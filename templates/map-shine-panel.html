@@ -1,0 +1,32 @@
+<div class="map-shine-panel">
+    <h1>Map Shine Controls</h1>
+
+    <section>
+        <h2>PBR Texture Preview</h2>
+        <div class="form-group">
+            <label for="pbr-type-select">Texture Type:</label>
+            <select id="pbr-type-select" name="pbr-type">
+                <option value="composite">Final End Composite</option>
+                <option value="specular">Specular</option>
+                <option value="normal">Normal</option>
+                <option value="ambient">Ambient</option>
+                <option value="iridescence">Iridescence</option>
+            </select>
+        </div>
+        <button id="preview-pbr-btn">Preview Texture</button>
+    </section>
+
+    <section>
+        <h2>Texture Manager</h2>
+        <div id="texture-status-container" class="texture-manager">
+            {{#each textures}}
+            <div class="texture-row" title="{{this.path}}">
+                <span class="status-light {{this.statusClass}}"></span>
+                <span class="texture-name" title="{{this.tooltip}}">{{this.name}}</span>
+            </div>
+            {{/each}}
+        </div>
+    </section>
+
+
+</div>

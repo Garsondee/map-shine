@@ -1,0 +1,1404 @@
+0 verbose cli C:\Program Files\nodejs\node.exe C:\Program Files\nodejs\node_modules\npm\bin\npm-cli.js
+1 info using npm@10.8.2
+2 info using node@v22.5.1
+3 silly config load:file:C:\Program Files\nodejs\node_modules\npm\npmrc
+4 silly config load:file:C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\.npmrc
+5 error config prefix cannot be changed from project config: C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\.npmrc.
+6 silly config load:file:C:\Users\Ingram\.npmrc
+7 silly config load:file:C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\.npm\prefix\etc\npmrc
+8 verbose title npm install
+9 verbose argv "install"
+10 verbose logfile logs-max:10 dir:C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\.npm\cache\_logs\2025-07-04T20_51_26_211Z-
+11 verbose logfile C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\.npm\cache\_logs\2025-07-04T20_51_26_211Z-debug-0.log
+12 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+13 silly logfile done cleaning log files
+14 silly idealTree buildDeps
+15 silly fetch manifest pixi-filters@^5.3.0
+16 silly packumentCache full:https://registry.npmjs.org/pixi-filters cache-miss
+17 http fetch GET 200 https://registry.npmjs.org/pixi-filters 19ms (cache hit)
+18 silly packumentCache full:https://registry.npmjs.org/pixi-filters set size:257419 disposed:false
+19 silly fetch manifest pixi.js@^8.11.0
+20 silly packumentCache full:https://registry.npmjs.org/pixi.js cache-miss
+21 http fetch GET 200 https://registry.npmjs.org/pixi.js 15ms (cache hit)
+22 silly packumentCache full:https://registry.npmjs.org/pixi.js set size:4212426 disposed:false
+23 silly fetch manifest @sveltejs/vite-plugin-svelte@^3.0.0
+24 silly packumentCache full:https://registry.npmjs.org/@sveltejs%2fvite-plugin-svelte cache-miss
+25 http fetch GET 200 https://registry.npmjs.org/@sveltejs%2fvite-plugin-svelte 9ms (cache hit)
+26 silly packumentCache full:https://registry.npmjs.org/@sveltejs%2fvite-plugin-svelte set size:399035 disposed:false
+27 silly fetch manifest svelte@^4.2.7
+28 silly packumentCache full:https://registry.npmjs.org/svelte cache-miss
+29 http fetch GET 200 https://registry.npmjs.org/svelte 13ms (cache hit)
+30 silly packumentCache full:https://registry.npmjs.org/svelte set size:3914637 disposed:false
+31 silly fetch manifest vite@^5.0.0
+32 silly packumentCache full:https://registry.npmjs.org/vite cache-miss
+33 http fetch GET 200 https://registry.npmjs.org/vite 85ms (cache hit)
+34 silly packumentCache full:https://registry.npmjs.org/vite set size:38437001 disposed:false
+35 silly fetch manifest @types/node@^18.0.0 || >=20.0.0
+36 silly packumentCache full:https://registry.npmjs.org/@types%2fnode cache-miss
+37 http fetch GET 200 https://registry.npmjs.org/@types%2fnode 26ms (cache hit)
+38 silly packumentCache full:https://registry.npmjs.org/@types%2fnode set size:10360744 disposed:false
+39 silly fetch manifest less@*
+40 silly packumentCache full:https://registry.npmjs.org/less cache-miss
+41 http fetch GET 200 https://registry.npmjs.org/less 7ms (cache hit)
+42 silly packumentCache full:https://registry.npmjs.org/less set size:413596 disposed:false
+43 silly fetch manifest lightningcss@^1.21.0
+44 silly packumentCache full:https://registry.npmjs.org/lightningcss cache-miss
+45 http fetch GET 200 https://registry.npmjs.org/lightningcss 5ms (cache hit)
+46 silly packumentCache full:https://registry.npmjs.org/lightningcss set size:169503 disposed:false
+47 silly fetch manifest sass@*
+48 silly packumentCache full:https://registry.npmjs.org/sass cache-miss
+49 http fetch GET 200 https://registry.npmjs.org/sass 8ms (cache hit)
+50 silly packumentCache full:https://registry.npmjs.org/sass set size:683895 disposed:false
+51 silly fetch manifest sass-embedded@*
+52 silly packumentCache full:https://registry.npmjs.org/sass-embedded cache-miss
+53 http fetch GET 200 https://registry.npmjs.org/sass-embedded 7ms (cache hit)
+54 silly packumentCache full:https://registry.npmjs.org/sass-embedded set size:352957 disposed:false
+55 silly fetch manifest stylus@*
+56 silly packumentCache full:https://registry.npmjs.org/stylus cache-miss
+57 http fetch GET 200 https://registry.npmjs.org/stylus 6ms (cache hit)
+58 silly packumentCache full:https://registry.npmjs.org/stylus set size:286766 disposed:false
+59 silly fetch manifest sugarss@*
+60 silly packumentCache full:https://registry.npmjs.org/sugarss cache-miss
+61 http fetch GET 200 https://registry.npmjs.org/sugarss 4ms (cache hit)
+62 silly packumentCache full:https://registry.npmjs.org/sugarss set size:43245 disposed:false
+63 silly fetch manifest postcss@^8.3.3
+64 silly packumentCache full:https://registry.npmjs.org/postcss cache-miss
+65 http fetch GET 200 https://registry.npmjs.org/postcss 6ms (cache hit)
+66 silly packumentCache full:https://registry.npmjs.org/postcss set size:696262 disposed:false
+67 silly fetch manifest terser@^5.4.0
+68 silly packumentCache full:https://registry.npmjs.org/terser cache-miss
+69 http fetch GET 200 https://registry.npmjs.org/terser 13ms (cache hit)
+70 silly packumentCache full:https://registry.npmjs.org/terser set size:773562 disposed:false
+71 silly placeDep ROOT @sveltejs/vite-plugin-svelte@3.1.2 OK for: map-shine@1.0.0 want: ^3.0.0
+72 silly placeDep ROOT vite@5.4.19 OK for: @sveltejs/vite-plugin-svelte@3.1.2 want: ^5.0.0
+73 silly placeDep ROOT svelte@4.2.20 OK for: @sveltejs/vite-plugin-svelte@3.1.2 want: ^4.0.0 || ^5.0.0-next.0
+74 silly placeDep ROOT pixi-filters@5.3.0 OK for: map-shine@1.0.0 want: ^5.3.0
+75 silly placeDep ROOT pixi.js@8.11.0 OK for: map-shine@1.0.0 want: ^8.11.0
+76 silly fetch manifest debug@^4.3.4
+77 silly packumentCache full:https://registry.npmjs.org/debug cache-miss
+78 silly fetch manifest kleur@^4.1.5
+79 silly packumentCache full:https://registry.npmjs.org/kleur cache-miss
+80 silly fetch manifest vitefu@^0.2.5
+81 silly packumentCache full:https://registry.npmjs.org/vitefu cache-miss
+82 silly fetch manifest deepmerge@^4.3.1
+83 silly packumentCache full:https://registry.npmjs.org/deepmerge cache-miss
+84 silly fetch manifest svelte-hmr@^0.16.0
+85 silly packumentCache full:https://registry.npmjs.org/svelte-hmr cache-miss
+86 silly fetch manifest magic-string@^0.30.10
+87 silly packumentCache full:https://registry.npmjs.org/magic-string cache-miss
+88 silly fetch manifest @sveltejs/vite-plugin-svelte-inspector@^2.1.0
+89 silly packumentCache full:https://registry.npmjs.org/@sveltejs%2fvite-plugin-svelte-inspector cache-miss
+90 silly fetch manifest acorn@^8.9.0
+91 silly packumentCache full:https://registry.npmjs.org/acorn cache-miss
+92 silly fetch manifest code-red@^1.0.3
+93 silly packumentCache full:https://registry.npmjs.org/code-red cache-miss
+94 silly fetch manifest css-tree@^2.3.1
+95 silly packumentCache full:https://registry.npmjs.org/css-tree cache-miss
+96 silly fetch manifest aria-query@^5.3.0
+97 silly packumentCache full:https://registry.npmjs.org/aria-query cache-miss
+98 silly fetch manifest periscopic@^3.1.0
+99 silly packumentCache full:https://registry.npmjs.org/periscopic cache-miss
+100 silly fetch manifest is-reference@^3.0.1
+101 silly packumentCache full:https://registry.npmjs.org/is-reference cache-miss
+102 silly fetch manifest magic-string@^0.30.4
+103 silly packumentCache full:https://registry.npmjs.org/magic-string cache-miss
+104 silly fetch manifest @types/estree@^1.0.1
+105 silly packumentCache full:https://registry.npmjs.org/@types%2festree cache-miss
+106 silly fetch manifest estree-walker@^3.0.3
+107 silly packumentCache full:https://registry.npmjs.org/estree-walker cache-miss
+108 silly fetch manifest axobject-query@^4.0.0
+109 silly packumentCache full:https://registry.npmjs.org/axobject-query cache-miss
+110 silly fetch manifest locate-character@^3.0.0
+111 silly packumentCache full:https://registry.npmjs.org/locate-character cache-miss
+112 silly fetch manifest @ampproject/remapping@^2.2.1
+113 silly packumentCache full:https://registry.npmjs.org/@ampproject%2fremapping cache-miss
+114 http fetch GET 200 https://registry.npmjs.org/vitefu 34ms (cache hit)
+115 silly packumentCache full:https://registry.npmjs.org/vitefu set size:43182 disposed:false
+116 silly fetch manifest @jridgewell/trace-mapping@^0.3.18
+117 silly packumentCache full:https://registry.npmjs.org/@jridgewell%2ftrace-mapping cache-miss
+118 http fetch GET 200 https://registry.npmjs.org/kleur 37ms (cache hit)
+119 silly packumentCache full:https://registry.npmjs.org/kleur set size:61853 disposed:false
+120 silly fetch manifest @jridgewell/sourcemap-codec@^1.4.15
+121 silly packumentCache full:https://registry.npmjs.org/@jridgewell%2fsourcemap-codec cache-miss
+122 http fetch GET 200 https://registry.npmjs.org/debug 40ms (cache hit)
+123 silly packumentCache full:https://registry.npmjs.org/debug set size:193521 disposed:false
+124 silly fetch manifest rollup@^4.20.0
+125 silly packumentCache full:https://registry.npmjs.org/rollup cache-miss
+126 http fetch GET 200 https://registry.npmjs.org/magic-string 45ms (cache hit)
+127 silly packumentCache full:https://registry.npmjs.org/magic-string set size:322805 disposed:false
+128 silly fetch manifest esbuild@^0.21.3
+129 silly packumentCache full:https://registry.npmjs.org/esbuild cache-miss
+130 http fetch GET 200 https://registry.npmjs.org/@sveltejs%2fvite-plugin-svelte-inspector 49ms (cache hit)
+131 silly packumentCache full:https://registry.npmjs.org/@sveltejs%2fvite-plugin-svelte-inspector set size:53940 disposed:false
+132 silly fetch manifest postcss@^8.4.43
+133 silly packumentCache full:https://registry.npmjs.org/postcss cache-hit
+134 silly fetch manifest fsevents@~2.3.3
+135 silly packumentCache full:https://registry.npmjs.org/fsevents cache-miss
+136 http fetch GET 200 https://registry.npmjs.org/aria-query 50ms (cache hit)
+137 silly packumentCache full:https://registry.npmjs.org/aria-query set size:98864 disposed:false
+138 silly fetch manifest @pixi/filter-crt@5.1.1
+139 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-crt cache-miss
+140 http fetch GET 200 https://registry.npmjs.org/periscopic 52ms (cache hit)
+141 silly packumentCache full:https://registry.npmjs.org/periscopic set size:44746 disposed:false
+142 silly fetch manifest @pixi/filter-dot@5.1.1
+143 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-dot cache-miss
+144 http fetch GET 200 https://registry.npmjs.org/acorn 56ms (cache hit)
+145 silly packumentCache full:https://registry.npmjs.org/acorn set size:377362 disposed:false
+146 silly fetch manifest @pixi/filter-glow@5.2.1
+147 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-glow cache-miss
+148 http fetch GET 200 https://registry.npmjs.org/code-red 69ms (cache hit)
+149 silly packumentCache full:https://registry.npmjs.org/code-red set size:153818 disposed:false
+150 silly fetch manifest @pixi/filter-ascii@5.1.1
+151 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-ascii cache-miss
+152 http fetch GET 200 https://registry.npmjs.org/css-tree 73ms (cache hit)
+153 silly packumentCache full:https://registry.npmjs.org/css-tree set size:221018 disposed:false
+154 silly fetch manifest @pixi/filter-bevel@5.1.1
+155 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-bevel cache-miss
+156 http fetch GET 200 https://registry.npmjs.org/svelte-hmr 78ms (cache hit)
+157 silly packumentCache full:https://registry.npmjs.org/svelte-hmr set size:399582 disposed:false
+158 silly fetch manifest @pixi/filter-bloom@5.1.1
+159 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-bloom cache-miss
+160 http fetch GET 200 https://registry.npmjs.org/deepmerge 83ms (cache hit)
+161 silly packumentCache full:https://registry.npmjs.org/deepmerge set size:101897 disposed:false
+162 silly fetch manifest @pixi/filter-twist@5.1.1
+163 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-twist cache-miss
+164 http fetch GET 200 https://registry.npmjs.org/magic-string 83ms (cache hit)
+165 silly packumentCache full:https://registry.npmjs.org/magic-string set size:322805 disposed:false
+166 silly packumentCache full:https://registry.npmjs.org/magic-string dispose
+167 silly fetch manifest @pixi/filter-emboss@5.1.1
+168 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-emboss cache-miss
+169 http fetch GET 200 https://registry.npmjs.org/@types%2festree 88ms (cache hit)
+170 silly packumentCache full:https://registry.npmjs.org/@types%2festree set size:74075 disposed:false
+171 silly fetch manifest @pixi/filter-glitch@5.1.1
+172 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-glitch cache-miss
+173 http fetch GET 200 https://registry.npmjs.org/@ampproject%2fremapping 88ms (cache hit)
+174 silly packumentCache full:https://registry.npmjs.org/@ampproject%2fremapping set size:88598 disposed:false
+175 silly fetch manifest @pixi/filter-godray@5.1.1
+176 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-godray cache-miss
+177 http fetch GET 200 https://registry.npmjs.org/is-reference 91ms (cache hit)
+178 silly packumentCache full:https://registry.npmjs.org/is-reference set size:35422 disposed:false
+179 silly fetch manifest @pixi/filter-outline@5.2.0
+180 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-outline cache-miss
+181 http fetch GET 200 https://registry.npmjs.org/locate-character 92ms (cache hit)
+182 silly packumentCache full:https://registry.npmjs.org/locate-character set size:16931 disposed:false
+183 silly fetch manifest @pixi/filter-old-film@5.1.1
+184 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-old-film cache-miss
+185 http fetch GET 200 https://registry.npmjs.org/estree-walker 93ms (cache hit)
+186 silly packumentCache full:https://registry.npmjs.org/estree-walker set size:60887 disposed:false
+187 silly fetch manifest @pixi/filter-pixelate@5.1.1
+188 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-pixelate cache-miss
+189 http fetch GET 200 https://registry.npmjs.org/axobject-query 94ms (cache hit)
+190 silly packumentCache full:https://registry.npmjs.org/axobject-query set size:75032 disposed:false
+191 silly fetch manifest @pixi/filter-color-map@5.1.1
+192 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-color-map cache-miss
+193 http fetch GET 200 https://registry.npmjs.org/fsevents 80ms (cache hit)
+194 silly packumentCache full:https://registry.npmjs.org/fsevents set size:182472 disposed:false
+195 silly fetch manifest @pixi/filter-grayscale@5.1.1
+196 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-grayscale cache-miss
+197 http fetch GET 200 https://registry.npmjs.org/@jridgewell%2ftrace-mapping 101ms (cache hit)
+198 silly packumentCache full:https://registry.npmjs.org/@jridgewell%2ftrace-mapping set size:165065 disposed:false
+199 silly fetch manifest @pixi/filter-rgb-split@5.1.1
+200 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-rgb-split cache-miss
+201 http fetch GET 200 https://registry.npmjs.org/@pixi%2ffilter-crt 87ms (cache hit)
+202 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-crt set size:46471 disposed:false
+203 silly fetch manifest @pixi/filter-shockwave@5.1.1
+204 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-shockwave cache-miss
+205 http fetch GET 200 https://registry.npmjs.org/@pixi%2ffilter-dot 87ms (cache hit)
+206 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-dot set size:54760 disposed:false
+207 silly fetch manifest @pixi/filter-zoom-blur@5.1.1
+208 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-zoom-blur cache-miss
+209 http fetch GET 200 https://registry.npmjs.org/@pixi%2ffilter-glow 75ms (cache hit)
+210 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-glow set size:64596 disposed:false
+211 silly fetch manifest @pixi/filter-adjustment@5.1.1
+212 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-adjustment cache-miss
+213 http fetch GET 200 https://registry.npmjs.org/@pixi%2ffilter-ascii 73ms (cache hit)
+214 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-ascii set size:55048 disposed:false
+215 silly fetch manifest @pixi/filter-reflection@5.1.1
+216 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-reflection cache-miss
+217 http fetch GET 200 https://registry.npmjs.org/esbuild 102ms (cache hit)
+218 silly packumentCache full:https://registry.npmjs.org/esbuild set size:1213289 disposed:false
+219 silly fetch manifest @pixi/filter-tilt-shift@5.2.0
+220 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-tilt-shift cache-miss
+221 http fetch GET 200 https://registry.npmjs.org/@pixi%2ffilter-bloom 84ms (cache hit)
+222 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-bloom set size:57313 disposed:false
+223 silly fetch manifest @pixi/filter-bulge-pinch@5.1.1
+224 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-bulge-pinch cache-miss
+225 http fetch GET 200 https://registry.npmjs.org/@jridgewell%2fsourcemap-codec 129ms (cache hit)
+226 silly packumentCache full:https://registry.npmjs.org/@jridgewell%2fsourcemap-codec set size:56434 disposed:false
+227 silly fetch manifest @pixi/filter-convolution@5.1.1
+228 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-convolution cache-miss
+229 http fetch GET 200 https://registry.npmjs.org/@pixi%2ffilter-bevel 92ms (cache hit)
+230 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-bevel set size:43316 disposed:false
+231 silly fetch manifest @pixi/filter-cross-hatch@5.1.1
+232 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-cross-hatch cache-miss
+233 http fetch GET 200 https://registry.npmjs.org/@pixi%2ffilter-emboss 81ms (cache hit)
+234 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-emboss set size:52405 disposed:false
+235 silly fetch manifest @pixi/filter-drop-shadow@5.2.0
+236 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-drop-shadow cache-miss
+237 http fetch GET 200 https://registry.npmjs.org/rollup 136ms (cache hit)
+238 silly packumentCache full:https://registry.npmjs.org/rollup set size:5585786 disposed:false
+239 silly fetch manifest @pixi/filter-kawase-blur@5.1.1
+240 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-kawase-blur cache-miss
+241 http fetch GET 200 https://registry.npmjs.org/@pixi%2ffilter-glitch 147ms (cache hit)
+242 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-glitch set size:49348 disposed:false
+243 silly fetch manifest @pixi/filter-motion-blur@5.1.1
+244 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-motion-blur cache-miss
+245 http fetch GET 200 https://registry.npmjs.org/@pixi%2ffilter-twist 155ms (cache hit)
+246 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-twist set size:55365 disposed:false
+247 silly fetch manifest @pixi/filter-radial-blur@5.1.1
+248 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-radial-blur cache-miss
+249 http fetch GET 200 https://registry.npmjs.org/@pixi%2ffilter-godray 147ms (cache hit)
+250 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-godray set size:51834 disposed:false
+251 silly fetch manifest @pixi/filter-color-overlay@5.1.1
+252 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-color-overlay cache-miss
+253 http fetch GET 200 https://registry.npmjs.org/@pixi%2ffilter-outline 154ms (cache hit)
+254 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-outline set size:66851 disposed:false
+255 silly fetch manifest @pixi/filter-color-replace@5.1.1
+256 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-color-replace cache-miss
+257 http fetch GET 200 https://registry.npmjs.org/@pixi%2ffilter-pixelate 153ms (cache hit)
+258 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-pixelate set size:51260 disposed:false
+259 silly fetch manifest @pixi/filter-advanced-bloom@5.1.1
+260 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-advanced-bloom cache-miss
+261 http fetch GET 200 https://registry.npmjs.org/@pixi%2ffilter-color-map 152ms (cache hit)
+262 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-color-map set size:40354 disposed:false
+263 silly fetch manifest @pixi/filter-color-gradient@5.3.0
+264 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-color-gradient cache-miss
+265 http fetch GET 200 https://registry.npmjs.org/@pixi%2ffilter-old-film 158ms (cache hit)
+266 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-old-film set size:43489 disposed:false
+267 silly fetch manifest @pixi/filter-hsl-adjustment@5.3.0
+268 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-hsl-adjustment cache-miss
+269 http fetch GET 200 https://registry.npmjs.org/@pixi%2ffilter-rgb-split 134ms (cache hit)
+270 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-rgb-split set size:51761 disposed:false
+271 silly fetch manifest @pixi/filter-simple-lightmap@5.1.1
+272 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-simple-lightmap cache-miss
+273 http fetch GET 200 https://registry.npmjs.org/@pixi%2ffilter-zoom-blur 132ms (cache hit)
+274 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-zoom-blur set size:57173 disposed:false
+275 silly fetch manifest @pixi/filter-multi-color-replace@5.1.1
+276 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-multi-color-replace cache-miss
+277 http fetch GET 200 https://registry.npmjs.org/@pixi%2ffilter-shockwave 136ms (cache hit)
+278 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-shockwave set size:59908 disposed:false
+279 silly fetch manifest earcut@^3.0.1
+280 silly packumentCache full:https://registry.npmjs.org/earcut cache-miss
+281 http fetch GET 200 https://registry.npmjs.org/@pixi%2ffilter-adjustment 134ms (cache hit)
+282 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-adjustment set size:38830 disposed:false
+283 silly fetch manifest gifuct-js@^2.1.2
+284 silly packumentCache full:https://registry.npmjs.org/gifuct-js cache-miss
+285 http fetch GET 200 https://registry.npmjs.org/@pixi%2ffilter-grayscale 145ms (cache hit)
+286 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-grayscale set size:6793 disposed:false
+287 silly fetch manifest ismobilejs@^1.1.1
+288 silly packumentCache full:https://registry.npmjs.org/ismobilejs cache-miss
+289 http fetch GET 200 https://registry.npmjs.org/@pixi%2ffilter-reflection 134ms (cache hit)
+290 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-reflection set size:41856 disposed:false
+291 silly fetch manifest @pixi/colord@^2.9.6
+292 silly packumentCache full:https://registry.npmjs.org/@pixi%2fcolord cache-miss
+293 http fetch GET 200 https://registry.npmjs.org/@pixi%2ffilter-bulge-pinch 116ms (cache hit)
+294 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-bulge-pinch set size:57773 disposed:false
+295 silly fetch manifest @types/earcut@^3.0.0
+296 silly packumentCache full:https://registry.npmjs.org/@types%2fearcut cache-miss
+297 http fetch GET 200 https://registry.npmjs.org/@pixi%2ffilter-tilt-shift 123ms (cache hit)
+298 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-tilt-shift set size:61410 disposed:false
+299 silly fetch manifest @webgpu/types@^0.1.40
+300 silly packumentCache full:https://registry.npmjs.org/@webgpu%2ftypes cache-miss
+301 http fetch GET 200 https://registry.npmjs.org/@pixi%2ffilter-cross-hatch 116ms (cache hit)
+302 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-cross-hatch set size:51861 disposed:false
+303 silly fetch manifest eventemitter3@^5.0.1
+304 silly packumentCache full:https://registry.npmjs.org/eventemitter3 cache-miss
+305 http fetch GET 200 https://registry.npmjs.org/@pixi%2ffilter-convolution 119ms (cache hit)
+306 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-convolution set size:57788 disposed:false
+307 silly fetch manifest @xmldom/xmldom@^0.8.10
+308 silly packumentCache full:https://registry.npmjs.org/@xmldom%2fxmldom cache-miss
+309 http fetch GET 200 https://registry.npmjs.org/@pixi%2ffilter-kawase-blur 52ms (cache hit)
+310 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-kawase-blur set size:45314 disposed:false
+311 silly fetch manifest parse-svg-path@^0.1.2
+312 silly packumentCache full:https://registry.npmjs.org/parse-svg-path cache-miss
+313 http fetch GET 200 https://registry.npmjs.org/@pixi%2ffilter-drop-shadow 120ms (cache hit)
+314 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-drop-shadow set size:71523 disposed:false
+315 silly fetch manifest @types/css-font-loading-module@^0.0.12
+316 silly packumentCache full:https://registry.npmjs.org/@types%2fcss-font-loading-module cache-miss
+317 http fetch GET 200 https://registry.npmjs.org/@pixi%2ffilter-motion-blur 59ms (cache hit)
+318 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-motion-blur set size:46557 disposed:false
+319 http fetch GET 200 https://registry.npmjs.org/@pixi%2ffilter-radial-blur 59ms (cache hit)
+320 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-radial-blur set size:43472 disposed:false
+321 http fetch GET 200 https://registry.npmjs.org/@pixi%2ffilter-color-overlay 58ms (cache hit)
+322 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-color-overlay set size:28895 disposed:false
+323 http fetch GET 200 https://registry.npmjs.org/@pixi%2ffilter-color-replace 51ms (cache hit)
+324 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-color-replace set size:57816 disposed:false
+325 http fetch GET 200 https://registry.npmjs.org/@pixi%2ffilter-color-gradient 48ms (cache hit)
+326 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-color-gradient set size:7295 disposed:false
+327 http fetch GET 200 https://registry.npmjs.org/@pixi%2ffilter-advanced-bloom 50ms (cache hit)
+328 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-advanced-bloom set size:53645 disposed:false
+329 http fetch GET 200 https://registry.npmjs.org/@pixi%2ffilter-hsl-adjustment 49ms (cache hit)
+330 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-hsl-adjustment set size:6066 disposed:false
+331 http fetch GET 200 https://registry.npmjs.org/@pixi%2ffilter-simple-lightmap 40ms (cache hit)
+332 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-simple-lightmap set size:56951 disposed:false
+333 http fetch GET 200 https://registry.npmjs.org/earcut 37ms (cache hit)
+334 silly packumentCache full:https://registry.npmjs.org/earcut set size:152117 disposed:false
+335 http fetch GET 200 https://registry.npmjs.org/@pixi%2fcolord 35ms (cache hit)
+336 silly packumentCache full:https://registry.npmjs.org/@pixi%2fcolord set size:57392 disposed:false
+337 http fetch GET 200 https://registry.npmjs.org/gifuct-js 39ms (cache hit)
+338 silly packumentCache full:https://registry.npmjs.org/gifuct-js set size:19455 disposed:false
+339 http fetch GET 200 https://registry.npmjs.org/ismobilejs 39ms (cache hit)
+340 silly packumentCache full:https://registry.npmjs.org/ismobilejs set size:49339 disposed:false
+341 http fetch GET 200 https://registry.npmjs.org/@webgpu%2ftypes 37ms (cache hit)
+342 silly packumentCache full:https://registry.npmjs.org/@webgpu%2ftypes set size:254970 disposed:false
+343 http fetch GET 200 https://registry.npmjs.org/@types%2fearcut 40ms (cache hit)
+344 silly packumentCache full:https://registry.npmjs.org/@types%2fearcut set size:10646 disposed:false
+345 http fetch GET 200 https://registry.npmjs.org/@pixi%2ffilter-multi-color-replace 48ms (cache hit)
+346 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-multi-color-replace set size:49821 disposed:false
+347 http fetch GET 200 https://registry.npmjs.org/eventemitter3 37ms (cache hit)
+348 silly packumentCache full:https://registry.npmjs.org/eventemitter3 set size:86060 disposed:false
+349 http fetch GET 200 https://registry.npmjs.org/@xmldom%2fxmldom 38ms (cache hit)
+350 silly packumentCache full:https://registry.npmjs.org/@xmldom%2fxmldom set size:152463 disposed:false
+351 http fetch GET 200 https://registry.npmjs.org/@types%2fcss-font-loading-module 37ms (cache hit)
+352 silly packumentCache full:https://registry.npmjs.org/@types%2fcss-font-loading-module set size:29675 disposed:false
+353 http fetch GET 200 https://registry.npmjs.org/parse-svg-path 39ms (cache hit)
+354 silly packumentCache full:https://registry.npmjs.org/parse-svg-path set size:5248 disposed:false
+355 silly fetch manifest svelte@^4.0.0 || ^5.0.0-next.0
+356 silly packumentCache full:https://registry.npmjs.org/svelte cache-miss
+357 http fetch GET 200 https://registry.npmjs.org/svelte 11ms (cache hit)
+358 silly packumentCache full:https://registry.npmjs.org/svelte set size:3914637 disposed:false
+359 silly fetch manifest svelte@^3.19.0 || ^4.0.0
+360 silly packumentCache full:https://registry.npmjs.org/svelte cache-miss
+361 http fetch GET 200 https://registry.npmjs.org/svelte 20ms (cache hit)
+362 silly packumentCache full:https://registry.npmjs.org/svelte set size:3914637 disposed:false
+363 silly placeDep ROOT @sveltejs/vite-plugin-svelte-inspector@2.1.0 OK for: @sveltejs/vite-plugin-svelte@3.1.2 want: ^2.1.0
+364 silly placeDep ROOT debug@4.4.1 OK for: @sveltejs/vite-plugin-svelte@3.1.2 want: ^4.3.4
+365 silly placeDep ROOT deepmerge@4.3.1 OK for: @sveltejs/vite-plugin-svelte@3.1.2 want: ^4.3.1
+366 silly placeDep ROOT kleur@4.1.5 OK for: @sveltejs/vite-plugin-svelte@3.1.2 want: ^4.1.5
+367 silly placeDep ROOT magic-string@0.30.17 OK for: @sveltejs/vite-plugin-svelte@3.1.2 want: ^0.30.10
+368 silly placeDep ROOT svelte-hmr@0.16.0 OK for: @sveltejs/vite-plugin-svelte@3.1.2 want: ^0.16.0
+369 silly placeDep ROOT vitefu@0.2.5 OK for: @sveltejs/vite-plugin-svelte@3.1.2 want: ^0.2.5
+370 silly fetch manifest ms@^2.1.3
+371 silly packumentCache full:https://registry.npmjs.org/ms cache-miss
+372 silly fetch manifest @jridgewell/sourcemap-codec@^1.5.0
+373 silly packumentCache full:https://registry.npmjs.org/@jridgewell%2fsourcemap-codec cache-hit
+374 http fetch GET 200 https://registry.npmjs.org/ms 7ms (cache hit)
+375 silly packumentCache full:https://registry.npmjs.org/ms set size:84883 disposed:false
+376 silly placeDep ROOT ms@2.1.3 OK for: debug@4.4.1 want: ^2.1.3
+377 silly placeDep ROOT @jridgewell/sourcemap-codec@1.5.4 OK for: magic-string@0.30.17 want: ^1.5.0
+378 silly fetch manifest @pixi/core@^7.0.0-X
+379 silly packumentCache full:https://registry.npmjs.org/@pixi%2fcore cache-miss
+380 http fetch GET 200 https://registry.npmjs.org/@pixi%2fcore 5ms (cache hit)
+381 silly packumentCache full:https://registry.npmjs.org/@pixi%2fcore set size:332111 disposed:false
+382 silly fetch manifest @pixi/filter-alpha@^7.0.0-X
+383 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-alpha cache-miss
+384 http fetch GET 200 https://registry.npmjs.org/@pixi%2ffilter-alpha 5ms (cache hit)
+385 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-alpha set size:322518 disposed:false
+386 silly fetch manifest @pixi/filter-blur@^7.0.0-X
+387 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-blur cache-miss
+388 http fetch GET 200 https://registry.npmjs.org/@pixi%2ffilter-blur 5ms (cache hit)
+389 silly packumentCache full:https://registry.npmjs.org/@pixi%2ffilter-blur set size:315845 disposed:false
+390 silly placeDep ROOT @pixi/filter-adjustment@5.1.1 OK for: pixi-filters@5.3.0 want: 5.1.1
+391 silly placeDep ROOT @pixi/core@7.4.3 OK for: @pixi/filter-adjustment@5.1.1 want: ^7.0.0-X
+392 silly placeDep ROOT @pixi/filter-advanced-bloom@5.1.1 OK for: pixi-filters@5.3.0 want: 5.1.1
+393 silly placeDep ROOT @pixi/filter-ascii@5.1.1 OK for: pixi-filters@5.3.0 want: 5.1.1
+394 silly placeDep ROOT @pixi/filter-bevel@5.1.1 OK for: pixi-filters@5.3.0 want: 5.1.1
+395 silly placeDep ROOT @pixi/filter-bloom@5.1.1 OK for: pixi-filters@5.3.0 want: 5.1.1
+396 silly placeDep ROOT @pixi/filter-alpha@7.4.3 OK for: @pixi/filter-bloom@5.1.1 want: ^7.0.0-X
+397 silly placeDep ROOT @pixi/filter-blur@7.4.3 OK for: @pixi/filter-bloom@5.1.1 want: ^7.0.0-X
+398 silly placeDep ROOT @pixi/filter-bulge-pinch@5.1.1 OK for: pixi-filters@5.3.0 want: 5.1.1
+399 silly placeDep ROOT @pixi/filter-color-gradient@5.3.0 OK for: pixi-filters@5.3.0 want: 5.3.0
+400 silly placeDep ROOT @pixi/filter-color-map@5.1.1 OK for: pixi-filters@5.3.0 want: 5.1.1
+401 silly placeDep ROOT @pixi/filter-color-overlay@5.1.1 OK for: pixi-filters@5.3.0 want: 5.1.1
+402 silly placeDep ROOT @pixi/filter-color-replace@5.1.1 OK for: pixi-filters@5.3.0 want: 5.1.1
+403 silly placeDep ROOT @pixi/filter-convolution@5.1.1 OK for: pixi-filters@5.3.0 want: 5.1.1
+404 silly placeDep ROOT @pixi/filter-cross-hatch@5.1.1 OK for: pixi-filters@5.3.0 want: 5.1.1
+405 silly placeDep ROOT @pixi/filter-crt@5.1.1 OK for: pixi-filters@5.3.0 want: 5.1.1
+406 silly placeDep ROOT @pixi/filter-dot@5.1.1 OK for: pixi-filters@5.3.0 want: 5.1.1
+407 silly placeDep ROOT @pixi/filter-drop-shadow@5.2.0 OK for: pixi-filters@5.3.0 want: 5.2.0
+408 silly placeDep ROOT @pixi/filter-emboss@5.1.1 OK for: pixi-filters@5.3.0 want: 5.1.1
+409 silly placeDep ROOT @pixi/filter-glitch@5.1.1 OK for: pixi-filters@5.3.0 want: 5.1.1
+410 silly placeDep ROOT @pixi/filter-glow@5.2.1 OK for: pixi-filters@5.3.0 want: 5.2.1
+411 silly placeDep ROOT @pixi/filter-godray@5.1.1 OK for: pixi-filters@5.3.0 want: 5.1.1
+412 silly placeDep ROOT @pixi/filter-grayscale@5.1.1 OK for: pixi-filters@5.3.0 want: 5.1.1
+413 silly placeDep ROOT @pixi/filter-hsl-adjustment@5.3.0 OK for: pixi-filters@5.3.0 want: 5.3.0
+414 silly placeDep ROOT @pixi/filter-kawase-blur@5.1.1 OK for: pixi-filters@5.3.0 want: 5.1.1
+415 silly placeDep ROOT @pixi/filter-motion-blur@5.1.1 OK for: pixi-filters@5.3.0 want: 5.1.1
+416 silly placeDep ROOT @pixi/filter-multi-color-replace@5.1.1 OK for: pixi-filters@5.3.0 want: 5.1.1
+417 silly placeDep ROOT @pixi/filter-old-film@5.1.1 OK for: pixi-filters@5.3.0 want: 5.1.1
+418 silly placeDep ROOT @pixi/filter-outline@5.2.0 OK for: pixi-filters@5.3.0 want: 5.2.0
+419 silly placeDep ROOT @pixi/filter-pixelate@5.1.1 OK for: pixi-filters@5.3.0 want: 5.1.1
+420 silly placeDep ROOT @pixi/filter-radial-blur@5.1.1 OK for: pixi-filters@5.3.0 want: 5.1.1
+421 silly placeDep ROOT @pixi/filter-reflection@5.1.1 OK for: pixi-filters@5.3.0 want: 5.1.1
+422 silly placeDep ROOT @pixi/filter-rgb-split@5.1.1 OK for: pixi-filters@5.3.0 want: 5.1.1
+423 silly placeDep ROOT @pixi/filter-shockwave@5.1.1 OK for: pixi-filters@5.3.0 want: 5.1.1
+424 silly placeDep ROOT @pixi/filter-simple-lightmap@5.1.1 OK for: pixi-filters@5.3.0 want: 5.1.1
+425 silly placeDep ROOT @pixi/filter-tilt-shift@5.2.0 OK for: pixi-filters@5.3.0 want: 5.2.0
+426 silly placeDep ROOT @pixi/filter-twist@5.1.1 OK for: pixi-filters@5.3.0 want: 5.1.1
+427 silly placeDep ROOT @pixi/filter-zoom-blur@5.1.1 OK for: pixi-filters@5.3.0 want: 5.1.1
+428 silly fetch manifest @pixi/math@7.4.3
+429 silly packumentCache full:https://registry.npmjs.org/@pixi%2fmath cache-miss
+430 silly fetch manifest @pixi/color@7.4.3
+431 silly packumentCache full:https://registry.npmjs.org/@pixi%2fcolor cache-miss
+432 silly fetch manifest @pixi/utils@7.4.3
+433 silly packumentCache full:https://registry.npmjs.org/@pixi%2futils cache-miss
+434 silly fetch manifest @pixi/runner@7.4.3
+435 silly packumentCache full:https://registry.npmjs.org/@pixi%2frunner cache-miss
+436 silly fetch manifest @pixi/ticker@7.4.3
+437 silly packumentCache full:https://registry.npmjs.org/@pixi%2fticker cache-miss
+438 silly fetch manifest @pixi/settings@7.4.3
+439 silly packumentCache full:https://registry.npmjs.org/@pixi%2fsettings cache-miss
+440 silly fetch manifest @pixi/constants@7.4.3
+441 silly packumentCache full:https://registry.npmjs.org/@pixi%2fconstants cache-miss
+442 silly fetch manifest @pixi/extensions@7.4.3
+443 silly packumentCache full:https://registry.npmjs.org/@pixi%2fextensions cache-miss
+444 http fetch GET 200 https://registry.npmjs.org/@pixi%2fmath 15ms (cache hit)
+445 silly packumentCache full:https://registry.npmjs.org/@pixi%2fmath set size:279856 disposed:false
+446 http fetch GET 200 https://registry.npmjs.org/@pixi%2futils 17ms (cache hit)
+447 silly packumentCache full:https://registry.npmjs.org/@pixi%2futils set size:319462 disposed:false
+448 http fetch GET 200 https://registry.npmjs.org/@pixi%2fticker 20ms (cache hit)
+449 silly packumentCache full:https://registry.npmjs.org/@pixi%2fticker set size:301287 disposed:false
+450 http fetch GET 200 https://registry.npmjs.org/@pixi%2fcolor 24ms (cache hit)
+451 silly packumentCache full:https://registry.npmjs.org/@pixi%2fcolor set size:46239 disposed:false
+452 http fetch GET 200 https://registry.npmjs.org/@pixi%2frunner 24ms (cache hit)
+453 silly packumentCache full:https://registry.npmjs.org/@pixi%2frunner set size:306039 disposed:false
+454 http fetch GET 200 https://registry.npmjs.org/@pixi%2fextensions 27ms (cache hit)
+455 silly packumentCache full:https://registry.npmjs.org/@pixi%2fextensions set size:129360 disposed:false
+456 http fetch GET 200 https://registry.npmjs.org/@pixi%2fsettings 29ms (cache hit)
+457 silly packumentCache full:https://registry.npmjs.org/@pixi%2fsettings set size:305287 disposed:false
+458 http fetch GET 200 https://registry.npmjs.org/@pixi%2fconstants 32ms (cache hit)
+459 silly packumentCache full:https://registry.npmjs.org/@pixi%2fconstants set size:284217 disposed:false
+460 silly placeDep ROOT @pixi/color@7.4.3 OK for: @pixi/core@7.4.3 want: 7.4.3
+461 silly placeDep ROOT @pixi/constants@7.4.3 OK for: @pixi/core@7.4.3 want: 7.4.3
+462 silly placeDep ROOT @pixi/extensions@7.4.3 OK for: @pixi/core@7.4.3 want: 7.4.3
+463 silly placeDep ROOT @pixi/math@7.4.3 OK for: @pixi/core@7.4.3 want: 7.4.3
+464 silly placeDep ROOT @pixi/runner@7.4.3 OK for: @pixi/core@7.4.3 want: 7.4.3
+465 silly placeDep ROOT @pixi/settings@7.4.3 OK for: @pixi/core@7.4.3 want: 7.4.3
+466 silly placeDep ROOT @pixi/ticker@7.4.3 OK for: @pixi/core@7.4.3 want: 7.4.3
+467 silly placeDep ROOT @pixi/utils@7.4.3 OK for: @pixi/core@7.4.3 want: 7.4.3
+468 silly fetch manifest ismobilejs@^1.1.0
+469 silly packumentCache full:https://registry.npmjs.org/ismobilejs cache-hit
+470 silly fetch manifest url@^0.11.0
+471 silly packumentCache full:https://registry.npmjs.org/url cache-miss
+472 silly fetch manifest earcut@^2.2.4
+473 silly packumentCache full:https://registry.npmjs.org/earcut cache-hit
+474 silly fetch manifest @types/earcut@^2.1.0
+475 silly packumentCache full:https://registry.npmjs.org/@types%2fearcut cache-hit
+476 silly fetch manifest eventemitter3@^4.0.0
+477 silly packumentCache full:https://registry.npmjs.org/eventemitter3 cache-hit
+478 http fetch GET 200 https://registry.npmjs.org/url 7ms (cache hit)
+479 silly packumentCache full:https://registry.npmjs.org/url set size:22041 disposed:false
+480 silly placeDep ROOT @pixi/colord@2.9.6 OK for: @pixi/color@7.4.3 want: ^2.9.6
+481 silly placeDep ROOT @types/css-font-loading-module@0.0.12 OK for: @pixi/settings@7.4.3 want: ^0.0.12
+482 silly placeDep ROOT ismobilejs@1.1.1 OK for: @pixi/settings@7.4.3 want: ^1.1.0
+483 silly placeDep ROOT @types/earcut@2.1.4 OK for: @pixi/utils@7.4.3 want: ^2.1.0
+484 silly placeDep ROOT earcut@2.2.4 OK for: @pixi/utils@7.4.3 want: ^2.2.4
+485 silly placeDep ROOT eventemitter3@4.0.7 OK for: @pixi/utils@7.4.3 want: ^4.0.0
+486 silly placeDep ROOT url@0.11.4 OK for: @pixi/utils@7.4.3 want: ^0.11.0
+487 silly fetch manifest punycode@^1.4.1
+488 silly packumentCache full:https://registry.npmjs.org/punycode cache-miss
+489 silly fetch manifest qs@^6.12.3
+490 silly packumentCache full:https://registry.npmjs.org/qs cache-miss
+491 http fetch GET 200 https://registry.npmjs.org/punycode 6ms (cache hit)
+492 silly packumentCache full:https://registry.npmjs.org/punycode set size:61302 disposed:false
+493 http fetch GET 200 https://registry.npmjs.org/qs 10ms (cache hit)
+494 silly packumentCache full:https://registry.npmjs.org/qs set size:264677 disposed:false
+495 silly placeDep node_modules/pixi.js @types/earcut@3.0.0 OK for: pixi.js@8.11.0 want: ^3.0.0
+496 silly placeDep ROOT @webgpu/types@0.1.63 OK for: pixi.js@8.11.0 want: ^0.1.40
+497 silly placeDep ROOT @xmldom/xmldom@0.8.10 OK for: pixi.js@8.11.0 want: ^0.8.10
+498 silly placeDep node_modules/pixi.js earcut@3.0.1 OK for: pixi.js@8.11.0 want: ^3.0.1
+499 silly placeDep node_modules/pixi.js eventemitter3@5.0.1 OK for: pixi.js@8.11.0 want: ^5.0.1
+500 silly placeDep ROOT gifuct-js@2.1.2 OK for: pixi.js@8.11.0 want: ^2.1.2
+501 silly placeDep ROOT parse-svg-path@0.1.2 OK for: pixi.js@8.11.0 want: ^0.1.2
+502 silly fetch manifest js-binary-schema-parser@^2.0.3
+503 silly packumentCache full:https://registry.npmjs.org/js-binary-schema-parser cache-miss
+504 http fetch GET 200 https://registry.npmjs.org/js-binary-schema-parser 8ms (cache hit)
+505 silly packumentCache full:https://registry.npmjs.org/js-binary-schema-parser set size:15214 disposed:false
+506 silly placeDep ROOT js-binary-schema-parser@2.0.3 OK for: gifuct-js@2.1.2 want: ^2.0.3
+507 silly placeDep ROOT @ampproject/remapping@2.3.0 OK for: svelte@4.2.20 want: ^2.2.1
+508 silly placeDep ROOT @jridgewell/trace-mapping@0.3.29 OK for: svelte@4.2.20 want: ^0.3.18
+509 silly placeDep ROOT @types/estree@1.0.8 OK for: svelte@4.2.20 want: ^1.0.1
+510 silly placeDep ROOT acorn@8.15.0 OK for: svelte@4.2.20 want: ^8.9.0
+511 silly placeDep ROOT aria-query@5.3.2 OK for: svelte@4.2.20 want: ^5.3.0
+512 silly placeDep ROOT axobject-query@4.1.0 OK for: svelte@4.2.20 want: ^4.0.0
+513 silly placeDep ROOT code-red@1.0.4 OK for: svelte@4.2.20 want: ^1.0.3
+514 silly placeDep ROOT css-tree@2.3.1 OK for: svelte@4.2.20 want: ^2.3.1
+515 silly placeDep ROOT estree-walker@3.0.3 OK for: svelte@4.2.20 want: ^3.0.3
+516 silly placeDep ROOT is-reference@3.0.3 OK for: svelte@4.2.20 want: ^3.0.1
+517 silly placeDep ROOT locate-character@3.0.0 OK for: svelte@4.2.20 want: ^3.0.0
+518 silly placeDep ROOT periscopic@3.1.0 OK for: svelte@4.2.20 want: ^3.1.0
+519 silly fetch manifest @jridgewell/gen-mapping@^0.3.5
+520 silly packumentCache full:https://registry.npmjs.org/@jridgewell%2fgen-mapping cache-miss
+521 silly fetch manifest @jridgewell/trace-mapping@^0.3.24
+522 silly packumentCache full:https://registry.npmjs.org/@jridgewell%2ftrace-mapping cache-hit
+523 silly fetch manifest @jridgewell/resolve-uri@^3.1.0
+524 silly packumentCache full:https://registry.npmjs.org/@jridgewell%2fresolve-uri cache-miss
+525 silly fetch manifest mdn-data@2.0.30
+526 silly packumentCache full:https://registry.npmjs.org/mdn-data cache-miss
+527 silly fetch manifest source-map-js@^1.0.1
+528 silly packumentCache full:https://registry.npmjs.org/source-map-js cache-miss
+529 http fetch GET 200 https://registry.npmjs.org/@jridgewell%2fgen-mapping 9ms (cache hit)
+530 silly packumentCache full:https://registry.npmjs.org/@jridgewell%2fgen-mapping set size:77827 disposed:false
+531 http fetch GET 200 https://registry.npmjs.org/mdn-data 10ms (cache hit)
+532 silly packumentCache full:https://registry.npmjs.org/mdn-data set size:161646 disposed:false
+533 http fetch GET 200 https://registry.npmjs.org/source-map-js 11ms (cache hit)
+534 silly packumentCache full:https://registry.npmjs.org/source-map-js set size:62640 disposed:false
+535 http fetch GET 200 https://registry.npmjs.org/@jridgewell%2fresolve-uri 14ms (cache hit)
+536 silly packumentCache full:https://registry.npmjs.org/@jridgewell%2fresolve-uri set size:57361 disposed:false
+537 silly placeDep ROOT @jridgewell/gen-mapping@0.3.12 OK for: @ampproject/remapping@2.3.0 want: ^0.3.5
+538 silly placeDep ROOT @jridgewell/resolve-uri@3.1.2 OK for: @jridgewell/trace-mapping@0.3.29 want: ^3.1.0
+539 silly placeDep ROOT mdn-data@2.0.30 OK for: css-tree@2.3.1 want: 2.0.30
+540 silly placeDep ROOT source-map-js@1.2.1 OK for: css-tree@2.3.1 want: ^1.0.1
+541 silly placeDep ROOT punycode@1.4.1 OK for: url@0.11.4 want: ^1.4.1
+542 silly placeDep ROOT qs@6.14.0 OK for: url@0.11.4 want: ^6.12.3
+543 silly fetch manifest side-channel@^1.1.0
+544 silly packumentCache full:https://registry.npmjs.org/side-channel cache-miss
+545 http fetch GET 200 https://registry.npmjs.org/side-channel 5ms (cache hit)
+546 silly packumentCache full:https://registry.npmjs.org/side-channel set size:24660 disposed:false
+547 silly placeDep ROOT side-channel@1.1.0 OK for: qs@6.14.0 want: ^1.1.0
+548 silly fetch manifest es-errors@^1.3.0
+549 silly packumentCache full:https://registry.npmjs.org/es-errors cache-miss
+550 silly fetch manifest object-inspect@^1.13.3
+551 silly packumentCache full:https://registry.npmjs.org/object-inspect cache-miss
+552 silly fetch manifest side-channel-list@^1.0.0
+553 silly packumentCache full:https://registry.npmjs.org/side-channel-list cache-miss
+554 silly fetch manifest side-channel-map@^1.0.1
+555 silly packumentCache full:https://registry.npmjs.org/side-channel-map cache-miss
+556 silly fetch manifest side-channel-weakmap@^1.0.2
+557 silly packumentCache full:https://registry.npmjs.org/side-channel-weakmap cache-miss
+558 http fetch GET 200 https://registry.npmjs.org/es-errors 9ms (cache hit)
+559 silly packumentCache full:https://registry.npmjs.org/es-errors set size:16918 disposed:false
+560 http fetch GET 200 https://registry.npmjs.org/side-channel-list 11ms (cache hit)
+561 silly packumentCache full:https://registry.npmjs.org/side-channel-list set size:6005 disposed:false
+562 http fetch GET 200 https://registry.npmjs.org/side-channel-map 11ms (cache hit)
+563 silly packumentCache full:https://registry.npmjs.org/side-channel-map set size:9126 disposed:false
+564 http fetch GET 200 https://registry.npmjs.org/object-inspect 13ms (cache hit)
+565 silly packumentCache full:https://registry.npmjs.org/object-inspect set size:101912 disposed:false
+566 http fetch GET 200 https://registry.npmjs.org/side-channel-weakmap 14ms (cache hit)
+567 silly packumentCache full:https://registry.npmjs.org/side-channel-weakmap set size:12620 disposed:false
+568 silly placeDep ROOT es-errors@1.3.0 OK for: side-channel@1.1.0 want: ^1.3.0
+569 silly placeDep ROOT object-inspect@1.13.4 OK for: side-channel@1.1.0 want: ^1.13.3
+570 silly placeDep ROOT side-channel-list@1.0.0 OK for: side-channel@1.1.0 want: ^1.0.0
+571 silly placeDep ROOT side-channel-map@1.0.1 OK for: side-channel@1.1.0 want: ^1.0.1
+572 silly placeDep ROOT side-channel-weakmap@1.0.2 OK for: side-channel@1.1.0 want: ^1.0.2
+573 silly fetch manifest call-bound@^1.0.2
+574 silly packumentCache full:https://registry.npmjs.org/call-bound cache-miss
+575 silly fetch manifest get-intrinsic@^1.2.5
+576 silly packumentCache full:https://registry.npmjs.org/get-intrinsic cache-miss
+577 silly fetch manifest call-bound@^1.0.2
+578 silly packumentCache full:https://registry.npmjs.org/call-bound cache-miss
+579 silly fetch manifest get-intrinsic@^1.2.5
+580 silly packumentCache full:https://registry.npmjs.org/get-intrinsic cache-miss
+581 http fetch GET 200 https://registry.npmjs.org/call-bound 15ms (cache hit)
+582 silly packumentCache full:https://registry.npmjs.org/call-bound set size:15317 disposed:false
+583 http fetch GET 200 https://registry.npmjs.org/call-bound 15ms (cache hit)
+584 silly packumentCache full:https://registry.npmjs.org/call-bound set size:15317 disposed:false
+585 silly packumentCache full:https://registry.npmjs.org/call-bound dispose
+586 http fetch GET 200 https://registry.npmjs.org/get-intrinsic 16ms (cache hit)
+587 silly packumentCache full:https://registry.npmjs.org/get-intrinsic set size:57687 disposed:false
+588 http fetch GET 200 https://registry.npmjs.org/get-intrinsic 18ms (cache hit)
+589 silly packumentCache full:https://registry.npmjs.org/get-intrinsic set size:57687 disposed:false
+590 silly packumentCache full:https://registry.npmjs.org/get-intrinsic dispose
+591 silly placeDep ROOT call-bound@1.0.4 OK for: side-channel-map@1.0.1 want: ^1.0.2
+592 silly placeDep ROOT get-intrinsic@1.3.0 OK for: side-channel-map@1.0.1 want: ^1.2.5
+593 silly fetch manifest call-bind-apply-helpers@^1.0.2
+594 silly packumentCache full:https://registry.npmjs.org/call-bind-apply-helpers cache-miss
+595 silly fetch manifest get-intrinsic@^1.3.0
+596 silly packumentCache full:https://registry.npmjs.org/get-intrinsic cache-hit
+597 silly fetch manifest call-bind-apply-helpers@^1.0.2
+598 silly packumentCache full:https://registry.npmjs.org/call-bind-apply-helpers cache-miss
+599 silly fetch manifest es-define-property@^1.0.1
+600 silly packumentCache full:https://registry.npmjs.org/es-define-property cache-miss
+601 silly fetch manifest es-object-atoms@^1.1.1
+602 silly packumentCache full:https://registry.npmjs.org/es-object-atoms cache-miss
+603 silly fetch manifest function-bind@^1.1.2
+604 silly packumentCache full:https://registry.npmjs.org/function-bind cache-miss
+605 silly fetch manifest get-proto@^1.0.1
+606 silly packumentCache full:https://registry.npmjs.org/get-proto cache-miss
+607 silly fetch manifest gopd@^1.2.0
+608 silly packumentCache full:https://registry.npmjs.org/gopd cache-miss
+609 silly fetch manifest has-symbols@^1.1.0
+610 silly packumentCache full:https://registry.npmjs.org/has-symbols cache-miss
+611 silly fetch manifest hasown@^2.0.2
+612 silly packumentCache full:https://registry.npmjs.org/hasown cache-miss
+613 silly fetch manifest math-intrinsics@^1.1.0
+614 silly packumentCache full:https://registry.npmjs.org/math-intrinsics cache-miss
+615 http fetch GET 200 https://registry.npmjs.org/es-define-property 17ms (cache hit)
+616 silly packumentCache full:https://registry.npmjs.org/es-define-property set size:8542 disposed:false
+617 http fetch GET 200 https://registry.npmjs.org/get-proto 16ms (cache hit)
+618 silly packumentCache full:https://registry.npmjs.org/get-proto set size:8300 disposed:false
+619 http fetch GET 200 https://registry.npmjs.org/es-object-atoms 17ms (cache hit)
+620 silly packumentCache full:https://registry.npmjs.org/es-object-atoms set size:15304 disposed:false
+621 http fetch GET 200 https://registry.npmjs.org/call-bind-apply-helpers 19ms (cache hit)
+622 silly packumentCache full:https://registry.npmjs.org/call-bind-apply-helpers set size:12744 disposed:false
+623 http fetch GET 200 https://registry.npmjs.org/call-bind-apply-helpers 19ms (cache hit)
+624 silly packumentCache full:https://registry.npmjs.org/call-bind-apply-helpers set size:12744 disposed:false
+625 silly packumentCache full:https://registry.npmjs.org/call-bind-apply-helpers dispose
+626 http fetch GET 200 https://registry.npmjs.org/function-bind 19ms (cache hit)
+627 silly packumentCache full:https://registry.npmjs.org/function-bind set size:15733 disposed:false
+628 http fetch GET 200 https://registry.npmjs.org/gopd 19ms (cache hit)
+629 silly packumentCache full:https://registry.npmjs.org/gopd set size:11458 disposed:false
+630 http fetch GET 200 https://registry.npmjs.org/has-symbols 19ms (cache hit)
+631 silly packumentCache full:https://registry.npmjs.org/has-symbols set size:21550 disposed:false
+632 http fetch GET 200 https://registry.npmjs.org/math-intrinsics 20ms (cache hit)
+633 silly packumentCache full:https://registry.npmjs.org/math-intrinsics set size:9265 disposed:false
+634 http fetch GET 200 https://registry.npmjs.org/hasown 21ms (cache hit)
+635 silly packumentCache full:https://registry.npmjs.org/hasown set size:12476 disposed:false
+636 silly placeDep ROOT call-bind-apply-helpers@1.0.2 OK for: call-bound@1.0.4 want: ^1.0.2
+637 silly placeDep ROOT function-bind@1.1.2 OK for: call-bind-apply-helpers@1.0.2 want: ^1.1.2
+638 silly placeDep ROOT es-define-property@1.0.1 OK for: get-intrinsic@1.3.0 want: ^1.0.1
+639 silly placeDep ROOT es-object-atoms@1.1.1 OK for: get-intrinsic@1.3.0 want: ^1.1.1
+640 silly placeDep ROOT get-proto@1.0.1 OK for: get-intrinsic@1.3.0 want: ^1.0.1
+641 silly placeDep ROOT gopd@1.2.0 OK for: get-intrinsic@1.3.0 want: ^1.2.0
+642 silly placeDep ROOT has-symbols@1.1.0 OK for: get-intrinsic@1.3.0 want: ^1.1.0
+643 silly placeDep ROOT hasown@2.0.2 OK for: get-intrinsic@1.3.0 want: ^2.0.2
+644 silly placeDep ROOT math-intrinsics@1.1.0 OK for: get-intrinsic@1.3.0 want: ^1.1.0
+645 silly fetch manifest dunder-proto@^1.0.1
+646 silly packumentCache full:https://registry.npmjs.org/dunder-proto cache-miss
+647 http fetch GET 200 https://registry.npmjs.org/dunder-proto 3ms (cache hit)
+648 silly packumentCache full:https://registry.npmjs.org/dunder-proto set size:8256 disposed:false
+649 silly placeDep ROOT dunder-proto@1.0.1 OK for: get-proto@1.0.1 want: ^1.0.1
+650 silly placeDep ROOT esbuild@0.21.5 OK for: vite@5.4.19 want: ^0.21.3
+651 silly placeDep ROOT fsevents@2.3.3 OK for: vite@5.4.19 want: ~2.3.3
+652 silly placeDep ROOT postcss@8.5.6 OK for: vite@5.4.19 want: ^8.4.43
+653 silly placeDep ROOT rollup@4.44.2 OK for: vite@5.4.19 want: ^4.20.0
+654 silly fetch manifest @esbuild/aix-ppc64@0.21.5
+655 silly packumentCache full:https://registry.npmjs.org/@esbuild%2faix-ppc64 cache-miss
+656 silly fetch manifest @esbuild/linux-arm@0.21.5
+657 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-arm cache-miss
+658 silly fetch manifest @esbuild/linux-x64@0.21.5
+659 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-x64 cache-miss
+660 silly fetch manifest @esbuild/sunos-x64@0.21.5
+661 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fsunos-x64 cache-miss
+662 silly fetch manifest @esbuild/win32-x64@0.21.5
+663 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fwin32-x64 cache-miss
+664 silly fetch manifest @esbuild/darwin-x64@0.21.5
+665 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fdarwin-x64 cache-miss
+666 silly fetch manifest @esbuild/linux-ia32@0.21.5
+667 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-ia32 cache-miss
+668 silly fetch manifest @esbuild/netbsd-x64@0.21.5
+669 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fnetbsd-x64 cache-miss
+670 silly fetch manifest @esbuild/win32-ia32@0.21.5
+671 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fwin32-ia32 cache-miss
+672 silly fetch manifest @esbuild/android-arm@0.21.5
+673 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fandroid-arm cache-miss
+674 silly fetch manifest @esbuild/android-x64@0.21.5
+675 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fandroid-x64 cache-miss
+676 silly fetch manifest @esbuild/freebsd-x64@0.21.5
+677 silly packumentCache full:https://registry.npmjs.org/@esbuild%2ffreebsd-x64 cache-miss
+678 silly fetch manifest @esbuild/linux-arm64@0.21.5
+679 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-arm64 cache-miss
+680 silly fetch manifest @esbuild/linux-ppc64@0.21.5
+681 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-ppc64 cache-miss
+682 silly fetch manifest @esbuild/linux-s390x@0.21.5
+683 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-s390x cache-miss
+684 silly fetch manifest @esbuild/openbsd-x64@0.21.5
+685 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fopenbsd-x64 cache-miss
+686 silly fetch manifest @esbuild/win32-arm64@0.21.5
+687 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fwin32-arm64 cache-miss
+688 silly fetch manifest @esbuild/darwin-arm64@0.21.5
+689 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fdarwin-arm64 cache-miss
+690 silly fetch manifest @esbuild/android-arm64@0.21.5
+691 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fandroid-arm64 cache-miss
+692 http fetch GET 200 https://registry.npmjs.org/@esbuild%2faix-ppc64 27ms (cache hit)
+693 silly packumentCache full:https://registry.npmjs.org/@esbuild%2faix-ppc64 set size:35915 disposed:false
+694 silly fetch manifest @esbuild/freebsd-arm64@0.21.5
+695 silly packumentCache full:https://registry.npmjs.org/@esbuild%2ffreebsd-arm64 cache-miss
+696 http fetch GET 200 https://registry.npmjs.org/@esbuild%2flinux-x64 28ms (cache hit)
+697 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-x64 set size:169070 disposed:false
+698 silly fetch manifest @esbuild/linux-loong64@0.21.5
+699 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-loong64 cache-miss
+700 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fsunos-x64 29ms (cache hit)
+701 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fsunos-x64 set size:169274 disposed:false
+702 silly fetch manifest @esbuild/linux-riscv64@0.21.5
+703 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-riscv64 cache-miss
+704 http fetch GET 200 https://registry.npmjs.org/@esbuild%2flinux-arm 32ms (cache hit)
+705 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-arm set size:168782 disposed:false
+706 silly fetch manifest @esbuild/linux-mips64el@0.21.5
+707 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-mips64el cache-miss
+708 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fwin32-x64 33ms (cache hit)
+709 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fwin32-x64 set size:169273 disposed:false
+710 silly fetch manifest nanoid@^3.3.11
+711 silly packumentCache full:https://registry.npmjs.org/nanoid cache-miss
+712 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fnetbsd-x64 35ms (cache hit)
+713 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fnetbsd-x64 set size:167749 disposed:false
+714 silly fetch manifest picocolors@^1.1.1
+715 silly packumentCache full:https://registry.npmjs.org/picocolors cache-miss
+716 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fdarwin-x64 37ms (cache hit)
+717 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fdarwin-x64 set size:169672 disposed:false
+718 silly fetch manifest @rollup/rollup-darwin-arm64@4.44.2
+719 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-darwin-arm64 cache-miss
+720 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fandroid-arm 38ms (cache hit)
+721 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fandroid-arm set size:195313 disposed:false
+722 silly fetch manifest @rollup/rollup-android-arm64@4.44.2
+723 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-android-arm64 cache-miss
+724 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fandroid-x64 41ms (cache hit)
+725 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fandroid-x64 set size:169119 disposed:false
+726 silly fetch manifest @rollup/rollup-win32-arm64-msvc@4.44.2
+727 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-win32-arm64-msvc cache-miss
+728 http fetch GET 200 https://registry.npmjs.org/@esbuild%2flinux-ia32 44ms (cache hit)
+729 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-ia32 set size:169633 disposed:false
+730 silly fetch manifest @rollup/rollup-freebsd-arm64@4.44.2
+731 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-freebsd-arm64 cache-miss
+732 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fwin32-ia32 45ms (cache hit)
+733 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fwin32-ia32 set size:169830 disposed:false
+734 silly fetch manifest @rollup/rollup-linux-arm64-gnu@4.44.2
+735 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-linux-arm64-gnu cache-miss
+736 http fetch GET 200 https://registry.npmjs.org/@esbuild%2ffreebsd-x64 47ms (cache hit)
+737 silly packumentCache full:https://registry.npmjs.org/@esbuild%2ffreebsd-x64 set size:170403 disposed:false
+738 silly fetch manifest @rollup/rollup-linux-arm64-musl@4.44.2
+739 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-linux-arm64-musl cache-miss
+740 http fetch GET 200 https://registry.npmjs.org/@esbuild%2flinux-arm64 49ms (cache hit)
+741 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-arm64 set size:170581 disposed:false
+742 silly fetch manifest @rollup/rollup-android-arm-eabi@4.44.2
+743 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-android-arm-eabi cache-miss
+744 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fwin32-arm64 50ms (cache hit)
+745 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fwin32-arm64 set size:170774 disposed:false
+746 silly fetch manifest @rollup/rollup-linux-arm-gnueabihf@4.44.2
+747 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-linux-arm-gnueabihf cache-miss
+748 http fetch GET 200 https://registry.npmjs.org/@esbuild%2flinux-s390x 52ms (cache hit)
+749 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-s390x set size:171857 disposed:false
+750 silly fetch manifest @rollup/rollup-linux-arm-musleabihf@4.44.2
+751 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-linux-arm-musleabihf cache-miss
+752 http fetch GET 200 https://registry.npmjs.org/@esbuild%2flinux-ppc64 54ms (cache hit)
+753 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-ppc64 set size:172307 disposed:false
+754 silly fetch manifest @rollup/rollup-win32-ia32-msvc@4.44.2
+755 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-win32-ia32-msvc cache-miss
+756 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fdarwin-arm64 56ms (cache hit)
+757 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fdarwin-arm64 set size:171149 disposed:false
+758 silly fetch manifest @rollup/rollup-linux-loongarch64-gnu@4.44.2
+759 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-linux-loongarch64-gnu cache-miss
+760 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fandroid-arm64 58ms (cache hit)
+761 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fandroid-arm64 set size:171924 disposed:false
+762 silly fetch manifest @rollup/rollup-linux-riscv64-gnu@4.44.2
+763 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-linux-riscv64-gnu cache-miss
+764 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fopenbsd-x64 60ms (cache hit)
+765 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fopenbsd-x64 set size:170408 disposed:false
+766 silly fetch manifest @rollup/rollup-linux-riscv64-musl@4.44.2
+767 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-linux-riscv64-musl cache-miss
+768 http fetch GET 200 https://registry.npmjs.org/@esbuild%2ffreebsd-arm64 58ms (cache hit)
+769 silly packumentCache full:https://registry.npmjs.org/@esbuild%2ffreebsd-arm64 set size:171900 disposed:false
+770 silly fetch manifest @rollup/rollup-linux-powerpc64le-gnu@4.44.2
+771 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-linux-powerpc64le-gnu cache-miss
+772 http fetch GET 200 https://registry.npmjs.org/@esbuild%2flinux-loong64 59ms (cache hit)
+773 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-loong64 set size:225184 disposed:false
+774 silly fetch manifest @rollup/rollup-linux-s390x-gnu@4.44.2
+775 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-linux-s390x-gnu cache-miss
+776 http fetch GET 200 https://registry.npmjs.org/@esbuild%2flinux-mips64el 59ms (cache hit)
+777 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-mips64el set size:173767 disposed:false
+778 silly fetch manifest @rollup/rollup-darwin-x64@4.44.2
+779 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-darwin-x64 cache-miss
+780 http fetch GET 200 https://registry.npmjs.org/@esbuild%2flinux-riscv64 64ms (cache hit)
+781 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-riscv64 set size:172006 disposed:false
+782 silly fetch manifest @rollup/rollup-win32-x64-msvc@4.44.2
+783 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-win32-x64-msvc cache-miss
+784 http fetch GET 200 https://registry.npmjs.org/nanoid 62ms (cache hit)
+785 silly packumentCache full:https://registry.npmjs.org/nanoid set size:296547 disposed:false
+786 silly fetch manifest @rollup/rollup-freebsd-x64@4.44.2
+787 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-freebsd-x64 cache-miss
+788 http fetch GET 200 https://registry.npmjs.org/picocolors 64ms (cache hit)
+789 silly packumentCache full:https://registry.npmjs.org/picocolors set size:16648 disposed:false
+790 silly fetch manifest @rollup/rollup-linux-x64-gnu@4.44.2
+791 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-linux-x64-gnu cache-miss
+792 http fetch GET 200 https://registry.npmjs.org/@rollup%2frollup-freebsd-arm64 57ms (cache hit)
+793 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-freebsd-arm64 set size:95169 disposed:false
+794 silly fetch manifest @rollup/rollup-linux-x64-musl@4.44.2
+795 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-linux-x64-musl cache-miss
+796 http fetch GET 200 https://registry.npmjs.org/@rollup%2frollup-win32-arm64-msvc 62ms (cache hit)
+797 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-win32-arm64-msvc set size:249426 disposed:false
+798 http fetch GET 200 https://registry.npmjs.org/@rollup%2frollup-android-arm64 66ms (cache hit)
+799 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-android-arm64 set size:246956 disposed:false
+800 http fetch GET 200 https://registry.npmjs.org/@rollup%2frollup-darwin-arm64 71ms (cache hit)
+801 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-darwin-arm64 set size:245864 disposed:false
+802 http fetch GET 200 https://registry.npmjs.org/@rollup%2frollup-linux-arm64-musl 63ms (cache hit)
+803 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-linux-arm64-musl set size:206211 disposed:false
+804 http fetch GET 200 https://registry.npmjs.org/@rollup%2frollup-linux-arm64-gnu 68ms (cache hit)
+805 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-linux-arm64-gnu set size:251124 disposed:false
+806 http fetch GET 200 https://registry.npmjs.org/@rollup%2frollup-win32-ia32-msvc 60ms (cache hit)
+807 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-win32-ia32-msvc set size:248342 disposed:false
+808 http fetch GET 200 https://registry.npmjs.org/@rollup%2frollup-android-arm-eabi 74ms (cache hit)
+809 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-android-arm-eabi set size:249437 disposed:false
+810 http fetch GET 200 https://registry.npmjs.org/@rollup%2frollup-linux-arm-gnueabihf 74ms (cache hit)
+811 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-linux-arm-gnueabihf set size:253346 disposed:false
+812 http fetch GET 200 https://registry.npmjs.org/@rollup%2frollup-linux-arm-musleabihf 75ms (cache hit)
+813 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-linux-arm-musleabihf set size:147211 disposed:false
+814 http fetch GET 200 https://registry.npmjs.org/@rollup%2frollup-linux-loongarch64-gnu 73ms (cache hit)
+815 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-linux-loongarch64-gnu set size:72601 disposed:false
+816 http fetch GET 200 https://registry.npmjs.org/@rollup%2frollup-linux-riscv64-gnu 72ms (cache hit)
+817 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-linux-riscv64-gnu set size:178382 disposed:false
+818 http fetch GET 200 https://registry.npmjs.org/@rollup%2frollup-linux-riscv64-musl 72ms (cache hit)
+819 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-linux-riscv64-musl set size:24061 disposed:false
+820 http fetch GET 200 https://registry.npmjs.org/@rollup%2frollup-linux-powerpc64le-gnu 55ms (cache hit)
+821 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-linux-powerpc64le-gnu set size:154635 disposed:false
+822 http fetch GET 200 https://registry.npmjs.org/@rollup%2frollup-darwin-x64 51ms (cache hit)
+823 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-darwin-x64 set size:243699 disposed:false
+824 http fetch GET 200 https://registry.npmjs.org/@rollup%2frollup-linux-s390x-gnu 56ms (cache hit)
+825 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-linux-s390x-gnu set size:152853 disposed:false
+826 http fetch GET 200 https://registry.npmjs.org/@rollup%2frollup-win32-x64-msvc 54ms (cache hit)
+827 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-win32-x64-msvc set size:247261 disposed:false
+828 http fetch GET 200 https://registry.npmjs.org/@rollup%2frollup-freebsd-x64 51ms (cache hit)
+829 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-freebsd-x64 set size:95906 disposed:false
+830 http fetch GET 200 https://registry.npmjs.org/@rollup%2frollup-linux-x64-gnu 51ms (cache hit)
+831 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-linux-x64-gnu set size:248935 disposed:false
+832 http fetch GET 200 https://registry.npmjs.org/@rollup%2frollup-linux-x64-musl 52ms (cache hit)
+833 silly packumentCache full:https://registry.npmjs.org/@rollup%2frollup-linux-x64-musl set size:248004 disposed:false
+834 silly placeDep ROOT @esbuild/aix-ppc64@0.21.5 OK for: esbuild@0.21.5 want: 0.21.5
+835 silly placeDep ROOT @esbuild/android-arm@0.21.5 OK for: esbuild@0.21.5 want: 0.21.5
+836 silly placeDep ROOT @esbuild/android-arm64@0.21.5 OK for: esbuild@0.21.5 want: 0.21.5
+837 silly placeDep ROOT @esbuild/android-x64@0.21.5 OK for: esbuild@0.21.5 want: 0.21.5
+838 silly placeDep ROOT @esbuild/darwin-arm64@0.21.5 OK for: esbuild@0.21.5 want: 0.21.5
+839 silly placeDep ROOT @esbuild/darwin-x64@0.21.5 OK for: esbuild@0.21.5 want: 0.21.5
+840 silly placeDep ROOT @esbuild/freebsd-arm64@0.21.5 OK for: esbuild@0.21.5 want: 0.21.5
+841 silly placeDep ROOT @esbuild/freebsd-x64@0.21.5 OK for: esbuild@0.21.5 want: 0.21.5
+842 silly placeDep ROOT @esbuild/linux-arm@0.21.5 OK for: esbuild@0.21.5 want: 0.21.5
+843 silly placeDep ROOT @esbuild/linux-arm64@0.21.5 OK for: esbuild@0.21.5 want: 0.21.5
+844 silly placeDep ROOT @esbuild/linux-ia32@0.21.5 OK for: esbuild@0.21.5 want: 0.21.5
+845 silly placeDep ROOT @esbuild/linux-loong64@0.21.5 OK for: esbuild@0.21.5 want: 0.21.5
+846 silly placeDep ROOT @esbuild/linux-mips64el@0.21.5 OK for: esbuild@0.21.5 want: 0.21.5
+847 silly placeDep ROOT @esbuild/linux-ppc64@0.21.5 OK for: esbuild@0.21.5 want: 0.21.5
+848 silly placeDep ROOT @esbuild/linux-riscv64@0.21.5 OK for: esbuild@0.21.5 want: 0.21.5
+849 silly placeDep ROOT @esbuild/linux-s390x@0.21.5 OK for: esbuild@0.21.5 want: 0.21.5
+850 silly placeDep ROOT @esbuild/linux-x64@0.21.5 OK for: esbuild@0.21.5 want: 0.21.5
+851 silly placeDep ROOT @esbuild/netbsd-x64@0.21.5 OK for: esbuild@0.21.5 want: 0.21.5
+852 silly placeDep ROOT @esbuild/openbsd-x64@0.21.5 OK for: esbuild@0.21.5 want: 0.21.5
+853 silly placeDep ROOT @esbuild/sunos-x64@0.21.5 OK for: esbuild@0.21.5 want: 0.21.5
+854 silly placeDep ROOT @esbuild/win32-arm64@0.21.5 OK for: esbuild@0.21.5 want: 0.21.5
+855 silly placeDep ROOT @esbuild/win32-ia32@0.21.5 OK for: esbuild@0.21.5 want: 0.21.5
+856 silly placeDep ROOT @esbuild/win32-x64@0.21.5 OK for: esbuild@0.21.5 want: 0.21.5
+857 silly placeDep ROOT nanoid@3.3.11 OK for: postcss@8.5.6 want: ^3.3.11
+858 silly placeDep ROOT picocolors@1.1.1 OK for: postcss@8.5.6 want: ^1.1.1
+859 silly placeDep ROOT @rollup/rollup-android-arm-eabi@4.44.2 OK for: rollup@4.44.2 want: 4.44.2
+860 silly placeDep ROOT @rollup/rollup-android-arm64@4.44.2 OK for: rollup@4.44.2 want: 4.44.2
+861 silly placeDep ROOT @rollup/rollup-darwin-arm64@4.44.2 OK for: rollup@4.44.2 want: 4.44.2
+862 silly placeDep ROOT @rollup/rollup-darwin-x64@4.44.2 OK for: rollup@4.44.2 want: 4.44.2
+863 silly placeDep ROOT @rollup/rollup-freebsd-arm64@4.44.2 OK for: rollup@4.44.2 want: 4.44.2
+864 silly placeDep ROOT @rollup/rollup-freebsd-x64@4.44.2 OK for: rollup@4.44.2 want: 4.44.2
+865 silly placeDep ROOT @rollup/rollup-linux-arm-gnueabihf@4.44.2 OK for: rollup@4.44.2 want: 4.44.2
+866 silly placeDep ROOT @rollup/rollup-linux-arm-musleabihf@4.44.2 OK for: rollup@4.44.2 want: 4.44.2
+867 silly placeDep ROOT @rollup/rollup-linux-arm64-gnu@4.44.2 OK for: rollup@4.44.2 want: 4.44.2
+868 silly placeDep ROOT @rollup/rollup-linux-arm64-musl@4.44.2 OK for: rollup@4.44.2 want: 4.44.2
+869 silly placeDep ROOT @rollup/rollup-linux-loongarch64-gnu@4.44.2 OK for: rollup@4.44.2 want: 4.44.2
+870 silly placeDep ROOT @rollup/rollup-linux-powerpc64le-gnu@4.44.2 OK for: rollup@4.44.2 want: 4.44.2
+871 silly placeDep ROOT @rollup/rollup-linux-riscv64-gnu@4.44.2 OK for: rollup@4.44.2 want: 4.44.2
+872 silly placeDep ROOT @rollup/rollup-linux-riscv64-musl@4.44.2 OK for: rollup@4.44.2 want: 4.44.2
+873 silly placeDep ROOT @rollup/rollup-linux-s390x-gnu@4.44.2 OK for: rollup@4.44.2 want: 4.44.2
+874 silly placeDep ROOT @rollup/rollup-linux-x64-gnu@4.44.2 OK for: rollup@4.44.2 want: 4.44.2
+875 silly placeDep ROOT @rollup/rollup-linux-x64-musl@4.44.2 OK for: rollup@4.44.2 want: 4.44.2
+876 silly placeDep ROOT @rollup/rollup-win32-arm64-msvc@4.44.2 OK for: rollup@4.44.2 want: 4.44.2
+877 silly placeDep ROOT @rollup/rollup-win32-ia32-msvc@4.44.2 OK for: rollup@4.44.2 want: 4.44.2
+878 silly placeDep ROOT @rollup/rollup-win32-x64-msvc@4.44.2 OK for: rollup@4.44.2 want: 4.44.2
+879 silly reify moves {}
+880 silly audit bulk request {
+880 silly audit   '@sveltejs/vite-plugin-svelte': [ '3.1.2' ],
+880 silly audit   vite: [ '5.4.19' ],
+880 silly audit   svelte: [ '4.2.20' ],
+880 silly audit   'pixi-filters': [ '5.3.0' ],
+880 silly audit   'pixi.js': [ '8.11.0' ],
+880 silly audit   '@sveltejs/vite-plugin-svelte-inspector': [ '2.1.0' ],
+880 silly audit   debug: [ '4.4.1' ],
+880 silly audit   deepmerge: [ '4.3.1' ],
+880 silly audit   kleur: [ '4.1.5' ],
+880 silly audit   'magic-string': [ '0.30.17' ],
+880 silly audit   'svelte-hmr': [ '0.16.0' ],
+880 silly audit   vitefu: [ '0.2.5' ],
+880 silly audit   ms: [ '2.1.3' ],
+880 silly audit   '@jridgewell/sourcemap-codec': [ '1.5.4' ],
+880 silly audit   '@pixi/filter-adjustment': [ '5.1.1' ],
+880 silly audit   '@pixi/core': [ '7.4.3' ],
+880 silly audit   '@pixi/filter-advanced-bloom': [ '5.1.1' ],
+880 silly audit   '@pixi/filter-ascii': [ '5.1.1' ],
+880 silly audit   '@pixi/filter-bevel': [ '5.1.1' ],
+880 silly audit   '@pixi/filter-bloom': [ '5.1.1' ],
+880 silly audit   '@pixi/filter-alpha': [ '7.4.3' ],
+880 silly audit   '@pixi/filter-blur': [ '7.4.3' ],
+880 silly audit   '@pixi/filter-bulge-pinch': [ '5.1.1' ],
+880 silly audit   '@pixi/filter-color-gradient': [ '5.3.0' ],
+880 silly audit   '@pixi/filter-color-map': [ '5.1.1' ],
+880 silly audit   '@pixi/filter-color-overlay': [ '5.1.1' ],
+880 silly audit   '@pixi/filter-color-replace': [ '5.1.1' ],
+880 silly audit   '@pixi/filter-convolution': [ '5.1.1' ],
+880 silly audit   '@pixi/filter-cross-hatch': [ '5.1.1' ],
+880 silly audit   '@pixi/filter-crt': [ '5.1.1' ],
+880 silly audit   '@pixi/filter-dot': [ '5.1.1' ],
+880 silly audit   '@pixi/filter-drop-shadow': [ '5.2.0' ],
+880 silly audit   '@pixi/filter-emboss': [ '5.1.1' ],
+880 silly audit   '@pixi/filter-glitch': [ '5.1.1' ],
+880 silly audit   '@pixi/filter-glow': [ '5.2.1' ],
+880 silly audit   '@pixi/filter-godray': [ '5.1.1' ],
+880 silly audit   '@pixi/filter-grayscale': [ '5.1.1' ],
+880 silly audit   '@pixi/filter-hsl-adjustment': [ '5.3.0' ],
+880 silly audit   '@pixi/filter-kawase-blur': [ '5.1.1' ],
+880 silly audit   '@pixi/filter-motion-blur': [ '5.1.1' ],
+880 silly audit   '@pixi/filter-multi-color-replace': [ '5.1.1' ],
+880 silly audit   '@pixi/filter-old-film': [ '5.1.1' ],
+880 silly audit   '@pixi/filter-outline': [ '5.2.0' ],
+880 silly audit   '@pixi/filter-pixelate': [ '5.1.1' ],
+880 silly audit   '@pixi/filter-radial-blur': [ '5.1.1' ],
+880 silly audit   '@pixi/filter-reflection': [ '5.1.1' ],
+880 silly audit   '@pixi/filter-rgb-split': [ '5.1.1' ],
+880 silly audit   '@pixi/filter-shockwave': [ '5.1.1' ],
+880 silly audit   '@pixi/filter-simple-lightmap': [ '5.1.1' ],
+880 silly audit   '@pixi/filter-tilt-shift': [ '5.2.0' ],
+880 silly audit   '@pixi/filter-twist': [ '5.1.1' ],
+880 silly audit   '@pixi/filter-zoom-blur': [ '5.1.1' ],
+880 silly audit   '@pixi/color': [ '7.4.3' ],
+880 silly audit   '@pixi/constants': [ '7.4.3' ],
+880 silly audit   '@pixi/extensions': [ '7.4.3' ],
+880 silly audit   '@pixi/math': [ '7.4.3' ],
+880 silly audit   '@pixi/runner': [ '7.4.3' ],
+880 silly audit   '@pixi/settings': [ '7.4.3' ],
+880 silly audit   '@pixi/ticker': [ '7.4.3' ],
+880 silly audit   '@pixi/utils': [ '7.4.3' ],
+880 silly audit   '@pixi/colord': [ '2.9.6' ],
+880 silly audit   '@types/css-font-loading-module': [ '0.0.12' ],
+880 silly audit   ismobilejs: [ '1.1.1' ],
+880 silly audit   '@types/earcut': [ '2.1.4', '3.0.0' ],
+880 silly audit   earcut: [ '2.2.4', '3.0.1' ],
+880 silly audit   eventemitter3: [ '4.0.7', '5.0.1' ],
+880 silly audit   url: [ '0.11.4' ],
+880 silly audit   '@webgpu/types': [ '0.1.63' ],
+880 silly audit   '@xmldom/xmldom': [ '0.8.10' ],
+880 silly audit   'gifuct-js': [ '2.1.2' ],
+880 silly audit   'parse-svg-path': [ '0.1.2' ],
+880 silly audit   'js-binary-schema-parser': [ '2.0.3' ],
+880 silly audit   '@ampproject/remapping': [ '2.3.0' ],
+880 silly audit   '@jridgewell/trace-mapping': [ '0.3.29' ],
+880 silly audit   '@types/estree': [ '1.0.8' ],
+880 silly audit   acorn: [ '8.15.0' ],
+880 silly audit   'aria-query': [ '5.3.2' ],
+880 silly audit   'axobject-query': [ '4.1.0' ],
+880 silly audit   'code-red': [ '1.0.4' ],
+880 silly audit   'css-tree': [ '2.3.1' ],
+880 silly audit   'estree-walker': [ '3.0.3' ],
+880 silly audit   'is-reference': [ '3.0.3' ],
+880 silly audit   'locate-character': [ '3.0.0' ],
+880 silly audit   periscopic: [ '3.1.0' ],
+880 silly audit   '@jridgewell/gen-mapping': [ '0.3.12' ],
+880 silly audit   '@jridgewell/resolve-uri': [ '3.1.2' ],
+880 silly audit   'mdn-data': [ '2.0.30' ],
+880 silly audit   'source-map-js': [ '1.2.1' ],
+880 silly audit   punycode: [ '1.4.1' ],
+880 silly audit   qs: [ '6.14.0' ],
+880 silly audit   'side-channel': [ '1.1.0' ],
+880 silly audit   'es-errors': [ '1.3.0' ],
+880 silly audit   'object-inspect': [ '1.13.4' ],
+880 silly audit   'side-channel-list': [ '1.0.0' ],
+880 silly audit   'side-channel-map': [ '1.0.1' ],
+880 silly audit   'side-channel-weakmap': [ '1.0.2' ],
+880 silly audit   'call-bound': [ '1.0.4' ],
+880 silly audit   'get-intrinsic': [ '1.3.0' ],
+880 silly audit   'call-bind-apply-helpers': [ '1.0.2' ],
+880 silly audit   'function-bind': [ '1.1.2' ],
+880 silly audit   'es-define-property': [ '1.0.1' ],
+880 silly audit   'es-object-atoms': [ '1.1.1' ],
+880 silly audit   'get-proto': [ '1.0.1' ],
+880 silly audit   gopd: [ '1.2.0' ],
+880 silly audit   'has-symbols': [ '1.1.0' ],
+880 silly audit   hasown: [ '2.0.2' ],
+880 silly audit   'math-intrinsics': [ '1.1.0' ],
+880 silly audit   'dunder-proto': [ '1.0.1' ],
+880 silly audit   esbuild: [ '0.21.5' ],
+880 silly audit   fsevents: [ '2.3.3' ],
+880 silly audit   postcss: [ '8.5.6' ],
+880 silly audit   rollup: [ '4.44.2' ],
+880 silly audit   '@esbuild/aix-ppc64': [ '0.21.5' ],
+880 silly audit   '@esbuild/android-arm': [ '0.21.5' ],
+880 silly audit   '@esbuild/android-arm64': [ '0.21.5' ],
+880 silly audit   '@esbuild/android-x64': [ '0.21.5' ],
+880 silly audit   '@esbuild/darwin-arm64': [ '0.21.5' ],
+880 silly audit   '@esbuild/darwin-x64': [ '0.21.5' ],
+880 silly audit   '@esbuild/freebsd-arm64': [ '0.21.5' ],
+880 silly audit   '@esbuild/freebsd-x64': [ '0.21.5' ],
+880 silly audit   '@esbuild/linux-arm': [ '0.21.5' ],
+880 silly audit   '@esbuild/linux-arm64': [ '0.21.5' ],
+880 silly audit   '@esbuild/linux-ia32': [ '0.21.5' ],
+880 silly audit   '@esbuild/linux-loong64': [ '0.21.5' ],
+880 silly audit   '@esbuild/linux-mips64el': [ '0.21.5' ],
+880 silly audit   '@esbuild/linux-ppc64': [ '0.21.5' ],
+880 silly audit   '@esbuild/linux-riscv64': [ '0.21.5' ],
+880 silly audit   '@esbuild/linux-s390x': [ '0.21.5' ],
+880 silly audit   '@esbuild/linux-x64': [ '0.21.5' ],
+880 silly audit   '@esbuild/netbsd-x64': [ '0.21.5' ],
+880 silly audit   '@esbuild/openbsd-x64': [ '0.21.5' ],
+880 silly audit   '@esbuild/sunos-x64': [ '0.21.5' ],
+880 silly audit   '@esbuild/win32-arm64': [ '0.21.5' ],
+880 silly audit   '@esbuild/win32-ia32': [ '0.21.5' ],
+880 silly audit   '@esbuild/win32-x64': [ '0.21.5' ],
+880 silly audit   nanoid: [ '3.3.11' ],
+880 silly audit   picocolors: [ '1.1.1' ],
+880 silly audit   '@rollup/rollup-android-arm-eabi': [ '4.44.2' ],
+880 silly audit   '@rollup/rollup-android-arm64': [ '4.44.2' ],
+880 silly audit   '@rollup/rollup-darwin-arm64': [ '4.44.2' ],
+880 silly audit   '@rollup/rollup-darwin-x64': [ '4.44.2' ],
+880 silly audit   '@rollup/rollup-freebsd-arm64': [ '4.44.2' ],
+880 silly audit   '@rollup/rollup-freebsd-x64': [ '4.44.2' ],
+880 silly audit   '@rollup/rollup-linux-arm-gnueabihf': [ '4.44.2' ],
+880 silly audit   '@rollup/rollup-linux-arm-musleabihf': [ '4.44.2' ],
+880 silly audit   '@rollup/rollup-linux-arm64-gnu': [ '4.44.2' ],
+880 silly audit   '@rollup/rollup-linux-arm64-musl': [ '4.44.2' ],
+880 silly audit   '@rollup/rollup-linux-loongarch64-gnu': [ '4.44.2' ],
+880 silly audit   '@rollup/rollup-linux-powerpc64le-gnu': [ '4.44.2' ],
+880 silly audit   '@rollup/rollup-linux-riscv64-gnu': [ '4.44.2' ],
+880 silly audit   '@rollup/rollup-linux-riscv64-musl': [ '4.44.2' ],
+880 silly audit   '@rollup/rollup-linux-s390x-gnu': [ '4.44.2' ],
+880 silly audit   '@rollup/rollup-linux-x64-gnu': [ '4.44.2' ],
+880 silly audit   '@rollup/rollup-linux-x64-musl': [ '4.44.2' ],
+880 silly audit   '@rollup/rollup-win32-arm64-msvc': [ '4.44.2' ],
+880 silly audit   '@rollup/rollup-win32-ia32-msvc': [ '4.44.2' ],
+880 silly audit   '@rollup/rollup-win32-x64-msvc': [ '4.44.2' ]
+880 silly audit }
+881 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@rollup\rollup-win32-ia32-msvc
+882 silly reify mark deleted [
+882 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@rollup\\rollup-win32-ia32-msvc'
+882 silly reify ]
+883 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@rollup\rollup-win32-arm64-msvc
+884 silly reify mark deleted [
+884 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@rollup\\rollup-win32-arm64-msvc'
+884 silly reify ]
+885 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@rollup\rollup-linux-x64-musl
+886 silly reify mark deleted [
+886 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@rollup\\rollup-linux-x64-musl'
+886 silly reify ]
+887 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@rollup\rollup-linux-x64-gnu
+888 silly reify mark deleted [
+888 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@rollup\\rollup-linux-x64-gnu'
+888 silly reify ]
+889 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@rollup\rollup-linux-s390x-gnu
+890 silly reify mark deleted [
+890 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@rollup\\rollup-linux-s390x-gnu'
+890 silly reify ]
+891 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@rollup\rollup-linux-riscv64-musl
+892 silly reify mark deleted [
+892 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@rollup\\rollup-linux-riscv64-musl'
+892 silly reify ]
+893 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@rollup\rollup-linux-riscv64-gnu
+894 silly reify mark deleted [
+894 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@rollup\\rollup-linux-riscv64-gnu'
+894 silly reify ]
+895 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@rollup\rollup-linux-powerpc64le-gnu
+896 silly reify mark deleted [
+896 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@rollup\\rollup-linux-powerpc64le-gnu'
+896 silly reify ]
+897 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@rollup\rollup-linux-loongarch64-gnu
+898 silly reify mark deleted [
+898 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@rollup\\rollup-linux-loongarch64-gnu'
+898 silly reify ]
+899 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@rollup\rollup-linux-arm64-musl
+900 silly reify mark deleted [
+900 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@rollup\\rollup-linux-arm64-musl'
+900 silly reify ]
+901 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@rollup\rollup-linux-arm64-gnu
+902 silly reify mark deleted [
+902 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@rollup\\rollup-linux-arm64-gnu'
+902 silly reify ]
+903 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@rollup\rollup-linux-arm-musleabihf
+904 silly reify mark deleted [
+904 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@rollup\\rollup-linux-arm-musleabihf'
+904 silly reify ]
+905 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@rollup\rollup-linux-arm-gnueabihf
+906 silly reify mark deleted [
+906 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@rollup\\rollup-linux-arm-gnueabihf'
+906 silly reify ]
+907 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@rollup\rollup-freebsd-x64
+908 silly reify mark deleted [
+908 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@rollup\\rollup-freebsd-x64'
+908 silly reify ]
+909 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@rollup\rollup-freebsd-arm64
+910 silly reify mark deleted [
+910 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@rollup\\rollup-freebsd-arm64'
+910 silly reify ]
+911 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@rollup\rollup-darwin-x64
+912 silly reify mark deleted [
+912 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@rollup\\rollup-darwin-x64'
+912 silly reify ]
+913 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@rollup\rollup-darwin-arm64
+914 silly reify mark deleted [
+914 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@rollup\\rollup-darwin-arm64'
+914 silly reify ]
+915 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@rollup\rollup-android-arm64
+916 silly reify mark deleted [
+916 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@rollup\\rollup-android-arm64'
+916 silly reify ]
+917 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@rollup\rollup-android-arm-eabi
+918 silly reify mark deleted [
+918 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@rollup\\rollup-android-arm-eabi'
+918 silly reify ]
+919 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@esbuild\win32-ia32
+920 silly reify mark deleted [
+920 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@esbuild\\win32-ia32'
+920 silly reify ]
+921 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@esbuild\win32-arm64
+922 silly reify mark deleted [
+922 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@esbuild\\win32-arm64'
+922 silly reify ]
+923 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@esbuild\sunos-x64
+924 silly reify mark deleted [
+924 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@esbuild\\sunos-x64'
+924 silly reify ]
+925 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@esbuild\openbsd-x64
+926 silly reify mark deleted [
+926 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@esbuild\\openbsd-x64'
+926 silly reify ]
+927 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@esbuild\netbsd-x64
+928 silly reify mark deleted [
+928 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@esbuild\\netbsd-x64'
+928 silly reify ]
+929 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@esbuild\linux-x64
+930 silly reify mark deleted [
+930 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@esbuild\\linux-x64'
+930 silly reify ]
+931 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@esbuild\linux-s390x
+932 silly reify mark deleted [
+932 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@esbuild\\linux-s390x'
+932 silly reify ]
+933 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@esbuild\linux-riscv64
+934 silly reify mark deleted [
+934 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@esbuild\\linux-riscv64'
+934 silly reify ]
+935 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@esbuild\linux-ppc64
+936 silly reify mark deleted [
+936 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@esbuild\\linux-ppc64'
+936 silly reify ]
+937 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@esbuild\linux-mips64el
+938 silly reify mark deleted [
+938 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@esbuild\\linux-mips64el'
+938 silly reify ]
+939 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@esbuild\linux-loong64
+940 silly reify mark deleted [
+940 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@esbuild\\linux-loong64'
+940 silly reify ]
+941 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@esbuild\linux-ia32
+942 silly reify mark deleted [
+942 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@esbuild\\linux-ia32'
+942 silly reify ]
+943 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@esbuild\linux-arm64
+944 silly reify mark deleted [
+944 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@esbuild\\linux-arm64'
+944 silly reify ]
+945 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@esbuild\linux-arm
+946 silly reify mark deleted [
+946 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@esbuild\\linux-arm'
+946 silly reify ]
+947 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@esbuild\freebsd-x64
+948 silly reify mark deleted [
+948 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@esbuild\\freebsd-x64'
+948 silly reify ]
+949 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@esbuild\freebsd-arm64
+950 silly reify mark deleted [
+950 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@esbuild\\freebsd-arm64'
+950 silly reify ]
+951 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@esbuild\darwin-x64
+952 silly reify mark deleted [
+952 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@esbuild\\darwin-x64'
+952 silly reify ]
+953 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@esbuild\darwin-arm64
+954 silly reify mark deleted [
+954 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@esbuild\\darwin-arm64'
+954 silly reify ]
+955 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@esbuild\android-x64
+956 silly reify mark deleted [
+956 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@esbuild\\android-x64'
+956 silly reify ]
+957 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@esbuild\android-arm64
+958 silly reify mark deleted [
+958 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@esbuild\\android-arm64'
+958 silly reify ]
+959 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@esbuild\android-arm
+960 silly reify mark deleted [
+960 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@esbuild\\android-arm'
+960 silly reify ]
+961 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\@esbuild\aix-ppc64
+962 silly reify mark deleted [
+962 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\@esbuild\\aix-ppc64'
+962 silly reify ]
+963 verbose reify failed optional dependency C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\node_modules\fsevents
+964 silly reify mark deleted [
+964 silly reify   'C:\\Users\\SyncthingServiceAcct\\foundrydata\\Data\\modules\\map-shine\\node_modules\\fsevents'
+964 silly reify ]
+965 http fetch POST 200 https://registry.npmjs.org/-/npm/v1/security/advisories/bulk 952ms
+966 silly audit report {
+966 silly audit report   esbuild: [
+966 silly audit report     {
+966 silly audit report       id: 1102341,
+966 silly audit report       url: 'https://github.com/advisories/GHSA-67mh-4wv8-2f99',
+966 silly audit report       title: 'esbuild enables any website to send any requests to the development server and read the response',
+966 silly audit report       severity: 'moderate',
+966 silly audit report       vulnerable_versions: '<=0.24.2',
+966 silly audit report       cwe: [Array],
+966 silly audit report       cvss: [Object]
+966 silly audit report     }
+966 silly audit report   ]
+966 silly audit report }
+967 silly packumentCache corgi:https://registry.npmjs.org/esbuild cache-miss
+968 http fetch GET 200 https://registry.npmjs.org/esbuild 39ms (cache hit)
+969 silly packumentCache corgi:https://registry.npmjs.org/esbuild set size:861077 disposed:false
+970 silly packumentCache corgi:https://registry.npmjs.org/vite cache-miss
+971 http fetch GET 200 https://registry.npmjs.org/vite 32ms (cache hit)
+972 silly packumentCache corgi:https://registry.npmjs.org/vite set size:2025921 disposed:false
+973 silly packumentCache corgi:https://registry.npmjs.org/@sveltejs%2fvite-plugin-svelte cache-miss
+974 silly packumentCache corgi:https://registry.npmjs.org/@sveltejs%2fvite-plugin-svelte-inspector cache-miss
+975 silly packumentCache corgi:https://registry.npmjs.org/vitefu cache-miss
+976 http fetch GET 200 https://registry.npmjs.org/@sveltejs%2fvite-plugin-svelte 26ms (cache hit)
+977 silly packumentCache corgi:https://registry.npmjs.org/@sveltejs%2fvite-plugin-svelte set size:197470 disposed:false
+978 http fetch GET 200 https://registry.npmjs.org/vitefu 27ms (cache hit)
+979 silly packumentCache corgi:https://registry.npmjs.org/vitefu set size:20924 disposed:false
+980 http fetch GET 200 https://registry.npmjs.org/@sveltejs%2fvite-plugin-svelte-inspector 28ms (cache hit)
+981 silly packumentCache corgi:https://registry.npmjs.org/@sveltejs%2fvite-plugin-svelte-inspector set size:19137 disposed:false
+982 info run esbuild@0.21.5 postinstall node_modules/esbuild node install.js
+983 info run esbuild@0.21.5 postinstall { code: 0, signal: null }
+984 silly ADD node_modules/@rollup/rollup-win32-x64-msvc
+985 silly ADD
+986 silly ADD
+987 silly ADD
+988 silly ADD
+989 silly ADD
+990 silly ADD
+991 silly ADD
+992 silly ADD
+993 silly ADD
+994 silly ADD
+995 silly ADD
+996 silly ADD
+997 silly ADD
+998 silly ADD
+999 silly ADD
+1000 silly ADD
+1001 silly ADD
+1002 silly ADD
+1003 silly ADD
+1004 silly ADD node_modules/picocolors
+1005 silly ADD node_modules/nanoid
+1006 silly ADD node_modules/@esbuild/win32-x64
+1007 silly ADD
+1008 silly ADD
+1009 silly ADD
+1010 silly ADD
+1011 silly ADD
+1012 silly ADD
+1013 silly ADD
+1014 silly ADD
+1015 silly ADD
+1016 silly ADD
+1017 silly ADD
+1018 silly ADD
+1019 silly ADD
+1020 silly ADD
+1021 silly ADD
+1022 silly ADD
+1023 silly ADD
+1024 silly ADD
+1025 silly ADD
+1026 silly ADD
+1027 silly ADD
+1028 silly ADD
+1029 silly ADD node_modules/rollup
+1030 silly ADD node_modules/postcss
+1031 silly ADD
+1032 silly ADD node_modules/esbuild
+1033 silly ADD node_modules/dunder-proto
+1034 silly ADD node_modules/math-intrinsics
+1035 silly ADD node_modules/hasown
+1036 silly ADD node_modules/has-symbols
+1037 silly ADD node_modules/gopd
+1038 silly ADD node_modules/get-proto
+1039 silly ADD node_modules/es-object-atoms
+1040 silly ADD node_modules/es-define-property
+1041 silly ADD node_modules/function-bind
+1042 silly ADD node_modules/call-bind-apply-helpers
+1043 silly ADD node_modules/get-intrinsic
+1044 silly ADD node_modules/call-bound
+1045 silly ADD node_modules/side-channel-weakmap
+1046 silly ADD node_modules/side-channel-map
+1047 silly ADD node_modules/side-channel-list
+1048 silly ADD node_modules/object-inspect
+1049 silly ADD node_modules/es-errors
+1050 silly ADD node_modules/side-channel
+1051 silly ADD node_modules/qs
+1052 silly ADD node_modules/punycode
+1053 silly ADD node_modules/source-map-js
+1054 silly ADD node_modules/mdn-data
+1055 silly ADD node_modules/@jridgewell/resolve-uri
+1056 silly ADD node_modules/@jridgewell/gen-mapping
+1057 silly ADD node_modules/periscopic
+1058 silly ADD node_modules/locate-character
+1059 silly ADD node_modules/is-reference
+1060 silly ADD node_modules/estree-walker
+1061 silly ADD node_modules/css-tree
+1062 silly ADD node_modules/code-red
+1063 silly ADD node_modules/axobject-query
+1064 silly ADD node_modules/aria-query
+1065 silly ADD node_modules/acorn
+1066 silly ADD node_modules/@types/estree
+1067 silly ADD node_modules/@jridgewell/trace-mapping
+1068 silly ADD node_modules/@ampproject/remapping
+1069 silly ADD node_modules/js-binary-schema-parser
+1070 silly ADD node_modules/parse-svg-path
+1071 silly ADD node_modules/gifuct-js
+1072 silly ADD node_modules/@xmldom/xmldom
+1073 silly ADD node_modules/@webgpu/types
+1074 silly ADD node_modules/url
+1075 silly ADD node_modules/eventemitter3
+1076 silly ADD node_modules/earcut
+1077 silly ADD node_modules/@types/earcut
+1078 silly ADD node_modules/ismobilejs
+1079 silly ADD node_modules/@types/css-font-loading-module
+1080 silly ADD node_modules/@pixi/colord
+1081 silly ADD node_modules/@pixi/utils
+1082 silly ADD node_modules/@pixi/ticker
+1083 silly ADD node_modules/@pixi/settings
+1084 silly ADD node_modules/@pixi/runner
+1085 silly ADD node_modules/@pixi/math
+1086 silly ADD node_modules/@pixi/extensions
+1087 silly ADD node_modules/@pixi/constants
+1088 silly ADD node_modules/@pixi/color
+1089 silly ADD node_modules/@pixi/filter-zoom-blur
+1090 silly ADD node_modules/@pixi/filter-twist
+1091 silly ADD node_modules/@pixi/filter-tilt-shift
+1092 silly ADD node_modules/@pixi/filter-simple-lightmap
+1093 silly ADD node_modules/@pixi/filter-shockwave
+1094 silly ADD node_modules/@pixi/filter-rgb-split
+1095 silly ADD node_modules/@pixi/filter-reflection
+1096 silly ADD node_modules/@pixi/filter-radial-blur
+1097 silly ADD node_modules/@pixi/filter-pixelate
+1098 silly ADD node_modules/@pixi/filter-outline
+1099 silly ADD node_modules/@pixi/filter-old-film
+1100 silly ADD node_modules/@pixi/filter-multi-color-replace
+1101 silly ADD node_modules/@pixi/filter-motion-blur
+1102 silly ADD node_modules/@pixi/filter-kawase-blur
+1103 silly ADD node_modules/@pixi/filter-hsl-adjustment
+1104 silly ADD node_modules/@pixi/filter-grayscale
+1105 silly ADD node_modules/@pixi/filter-godray
+1106 silly ADD node_modules/@pixi/filter-glow
+1107 silly ADD node_modules/@pixi/filter-glitch
+1108 silly ADD node_modules/@pixi/filter-emboss
+1109 silly ADD node_modules/@pixi/filter-drop-shadow
+1110 silly ADD node_modules/@pixi/filter-dot
+1111 silly ADD node_modules/@pixi/filter-crt
+1112 silly ADD node_modules/@pixi/filter-cross-hatch
+1113 silly ADD node_modules/@pixi/filter-convolution
+1114 silly ADD node_modules/@pixi/filter-color-replace
+1115 silly ADD node_modules/@pixi/filter-color-overlay
+1116 silly ADD node_modules/@pixi/filter-color-map
+1117 silly ADD node_modules/@pixi/filter-color-gradient
+1118 silly ADD node_modules/@pixi/filter-bulge-pinch
+1119 silly ADD node_modules/@pixi/filter-blur
+1120 silly ADD node_modules/@pixi/filter-alpha
+1121 silly ADD node_modules/@pixi/filter-bloom
+1122 silly ADD node_modules/@pixi/filter-bevel
+1123 silly ADD node_modules/@pixi/filter-ascii
+1124 silly ADD node_modules/@pixi/filter-advanced-bloom
+1125 silly ADD node_modules/@pixi/core
+1126 silly ADD node_modules/@pixi/filter-adjustment
+1127 silly ADD node_modules/@jridgewell/sourcemap-codec
+1128 silly ADD node_modules/ms
+1129 silly ADD node_modules/vitefu
+1130 silly ADD node_modules/svelte-hmr
+1131 silly ADD node_modules/magic-string
+1132 silly ADD node_modules/kleur
+1133 silly ADD node_modules/deepmerge
+1134 silly ADD node_modules/debug
+1135 silly ADD node_modules/@sveltejs/vite-plugin-svelte-inspector
+1136 silly ADD node_modules/pixi.js
+1137 silly ADD node_modules/pixi.js/node_modules/eventemitter3
+1138 silly ADD node_modules/pixi.js/node_modules/earcut
+1139 silly ADD node_modules/pixi.js/node_modules/@types/earcut
+1140 silly ADD node_modules/pixi-filters
+1141 silly ADD node_modules/svelte
+1142 silly ADD node_modules/vite
+1143 silly ADD node_modules/@sveltejs/vite-plugin-svelte
+1144 verbose cwd C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine
+1145 verbose os Windows_NT 10.0.22631
+1146 verbose node v22.5.1
+1147 verbose npm  v10.8.2
+1148 verbose exit 0
+1149 info ok

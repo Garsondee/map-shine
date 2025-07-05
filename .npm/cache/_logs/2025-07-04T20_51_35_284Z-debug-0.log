@@ -1,0 +1,19 @@
+0 verbose cli C:\Program Files\nodejs\node.exe C:\Program Files\nodejs\node_modules\npm\bin\npm-cli.js
+1 info using npm@10.8.2
+2 info using node@v22.5.1
+3 silly config load:file:C:\Program Files\nodejs\node_modules\npm\npmrc
+4 silly config load:file:C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\.npmrc
+5 error config prefix cannot be changed from project config: C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\.npmrc.
+6 silly config load:file:C:\Users\Ingram\.npmrc
+7 silly config load:file:C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\.npm\prefix\etc\npmrc
+8 verbose title npm run build
+9 verbose argv "run" "build"
+10 verbose logfile logs-max:10 dir:C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\.npm\cache\_logs\2025-07-04T20_51_35_284Z-
+11 verbose logfile C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine\.npm\cache\_logs\2025-07-04T20_51_35_284Z-debug-0.log
+12 silly logfile done cleaning log files
+13 verbose cwd C:\Users\SyncthingServiceAcct\foundrydata\Data\modules\map-shine
+14 verbose os Windows_NT 10.0.22631
+15 verbose node v22.5.1
+16 verbose npm  v10.8.2
+17 verbose exit 1
+18 verbose code 1
