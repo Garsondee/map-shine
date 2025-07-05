@@ -777,7 +777,16 @@ class SystemStatusManager {
      * @param {{state: string, message: string}} statusObject - The new status object.
      */
     update(category, key, statusObject) {
+        // ADDED: Comprehensive logging for all status updates
+        console.log(`[MapShine Status] Update: ${category}.${key} | State: ${statusObject.state} | Message: "${statusObject.message}"`);
+
         if (this._state[category] && this._state[category][key]) {
+            // Prevent redundant updates that spam the log
+            const oldStatus = this._state[category][key];
+            if (oldStatus.state === statusObject.state && oldStatus.message === statusObject.message) {
+                return;
+            }
+
             this._state[category][key] = statusObject;
             this.emit('statusChanged', category, key, statusObject);
         } else {
@@ -885,44 +894,71 @@ class TextureAutoLoader {
         }
 
         await this._scanAndMatchTextures(textureMap);
-        console.log("MaterialToolkit | Texture Auto-Discovery Results:", textureMap);
+        // ADDED: Logging
+        console.log("[MapShine TextureScan] Step 4: Final Results | The following texture paths were discovered:", textureMap);
         return textureMap;
     }
 
     _getSceneBackgroundInfo() {
         const bgSrc = canvas.scene?.background.src;
-        if (!bgSrc) return false;
+        if (!bgSrc) {
+            // ADDED: Logging
+            console.log("[MapShine TextureScan] Step 1: Get Background Info | RESULT: FAILED. No background source found on current scene.");
+            return false;
+        }
         const cleanPath = decodeURIComponent(bgSrc);
         const lastSlash = cleanPath.lastIndexOf('/');
         const lastDot = cleanPath.lastIndexOf('.');
         this.basePath = cleanPath.substring(0, lastSlash + 1);
         this.baseName = cleanPath.substring(lastSlash + 1, lastDot);
+        
+        // ADDED: Logging
+        console.log(`[MapShine TextureScan] Step 1: Get Background Info | RESULT: SUCCESS.`);
+        console.log(`  > Full Source: ${bgSrc}`);
+        console.log(`  > Base Path: ${this.basePath}`);
+        console.log(`  > Base Name: ${this.baseName}`);
+
         return true;
     }
 
     async _scanAndMatchTextures(textureMap) {
         let filesInDir = [];
         try {
-            console.log(`MaterialToolkit | Scanning for textures in: "${this.basePath}"`);
+            // ADDED: Logging
+            console.log(`[MapShine TextureScan] Step 2: Scan Directory | PATH: "${this.basePath}"`);
             const source = game.settings.get("core", "noCanvas") ? "public" : "data";
             const browseResult = await FilePicker.browse(source, this.basePath);
             filesInDir = browseResult.files;
+            console.log(`[MapShine TextureScan]   > Found ${filesInDir.length} files in directory.`);
         } catch (e) {
-            console.warn(`MaterialToolkit | Could not browse directory "${this.basePath}". It may not exist or permissions may be wrong.`, e);
+            // ADDED: Logging
+            console.error(`[MapShine TextureScan] Step 2: Scan Directory | RESULT: FAILED. Could not browse directory "${this.basePath}".`, e);
             return;
         }
 
+        // ADDED: Logging
+        console.log(`[MapShine TextureScan] Step 3: Match Suffixes | Starting scan...`);
         for (const [key, suffix] of Object.entries(TextureAutoLoader.SUFFIX_MAP)) {
             const expectedPrefix = decodeURIComponent(this.baseName + suffix).toLowerCase();
+            // ADDED: Logging
+            console.log(`[MapShine TextureScan]   > Searching for [${key}] | Expected prefix: "${expectedPrefix}"`);
+
             const foundFile = filesInDir.find(fullPath => {
                 const decodedPath = decodeURIComponent(fullPath);
                 const filename = decodedPath.substring(decodedPath.lastIndexOf('/') + 1);
                 return filename.toLowerCase().startsWith(expectedPrefix);
             });
+
             if (foundFile) {
                 textureMap[key] = foundFile;
+                // ADDED: Logging
+                console.log(`[MapShine TextureScan]     - MATCH FOUND: ${foundFile}`);
+            } else {
+                // ADDED: Logging
+                console.log(`[MapShine TextureScan]     - No match found.`);
             }
         }
+        console.log(`[MapShine TextureScan] Step 3: Match Suffixes | RESULT: Scan complete.`);
     }
 }
 

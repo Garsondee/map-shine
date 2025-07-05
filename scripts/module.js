@@ -10,27 +10,34 @@ Hooks.once('init', () => {
 });
 
 
-Hooks.on('canvasReady', () => {
-    console.log('Map Shine | canvasReady hook: Finding related textures.');
-    findRelatedTextures();
-});
-      
+// Centralized initialization function to control the startup sequence
+async function initializeMapShine() {
+    console.log('Map Shine | Starting initialization...');
 
-Hooks.once('ready', async function() {
-    // Dynamically load the pixi-filters.js script
-    const script = document.createElement('script');
-    script.src = 'modules/map-shine/scripts/pixi-filters.js';
-    script.onload = () => {
-        console.log('Map Shine | PIXI filters loaded successfully and are available.');
-    };
-    script.onerror = () => {
-        console.error('Map Shine | Failed to load PIXI filters.');
-    };
-    document.head.appendChild(script);
+    // 1. Load PIXI filters
+    await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'modules/map-shine/scripts/pixi-filters.js';
+        script.onload = () => {
+            console.log('Map Shine | PIXI filters loaded successfully.');
+            resolve();
+        };
+        script.onerror = () => {
+            console.error('Map Shine | Failed to load PIXI filters.');
+            reject();
+        };
+        document.head.appendChild(script);
+    });
 
-    new MapShinePanel().render(true);
+    // 2. Find all related textures
+    const foundTextures = await findRelatedTextures();
 
-});
+    // 3. Render the panel only after all data is ready
+    console.log('Map Shine | All data loaded. Rendering panel.');
+    new MapShinePanel({ textureMaps: foundTextures }).render(true);
+}
+
+Hooks.once('ready', initializeMapShine);
 
 // Class definition for the canvas layer
 class MetallicShineLayer extends foundry.canvas.layers.CanvasLayer {

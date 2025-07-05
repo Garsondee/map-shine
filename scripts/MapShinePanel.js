@@ -3,11 +3,9 @@ import { getMetallicShineLayer, TEXTURE_DEFINITIONS } from './module.js';
 export class MapShinePanel extends Application {
   constructor(options = {}) {
     super(options);
-    this.textureMaps = {};
-    Hooks.on('MapShine.texturesFound', (maps) => {
-      this.textureMaps = maps;
-      this.render();
-    });
+    // Textures are now passed in directly at creation
+    this.textureMaps = options.textureMaps || {};
+    console.log('[MapShinePanel] Panel created with texture maps:', this.textureMaps);
   }
 
   static get defaultOptions() {
@@ -25,6 +23,7 @@ export class MapShinePanel extends Application {
   getData(options = {}) {
     const context = super.getData(options);
     const textureMaps = this.textureMaps || {};
+    console.log('[MapShinePanel] getData triggered. Current textureMaps:', textureMaps);
 
     context.textures = TEXTURE_DEFINITIONS.map((def) => {
       let path = 'Not found';
@@ -35,11 +34,13 @@ export class MapShinePanel extends Application {
         statusClass = canvas.scene?.background.src ? 'status-green' : 'status-red';
       } else {
         const foundPath = textureMaps[def.key];
+        console.log(`[MapShinePanel] Checking texture: ${def.key} | Path: ${foundPath}`);
         if (foundPath) {
           path = foundPath;
           statusClass = 'status-green';
         }
       }
+      console.log(`[MapShinePanel]   > Final status for ${def.key}: ${statusClass}`);
       return {
         name: def.name,
         tooltip: def.tooltip,
