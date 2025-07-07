@@ -1,4 +1,4 @@
-import { TEXTURE_DEFINITIONS, getDebugLayer } from './core.js';
+import { TEXTURE_DEFINITIONS } from './core.js';
 
 // =======================================================
 //  CLASS DEFINITIONS
