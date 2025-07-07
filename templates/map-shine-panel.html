@@ -6,11 +6,9 @@
         <div class="form-group">
             <label for="pbr-type-select">Texture Type:</label>
             <select id="pbr-type-select" name="pbr-type">
-                <option value="composite">Final End Composite</option>
-                <option value="specular">Specular</option>
-                <option value="normal">Normal</option>
-                <option value="ambient">Ambient</option>
-                <option value="iridescence">Iridescence</option>
+                {{#each previewOptions}}
+                <option value="{{this.key}}">{{this.name}}</option>
+                {{/each}}
             </select>
         </div>
         <button id="preview-pbr-btn">Preview Texture</button>

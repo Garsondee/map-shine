@@ -82,6 +82,24 @@ class CheckerboardLayer extends foundry.canvas.layers.CanvasLayer {
     }
 }
 
+class LuminosityMaskFilter extends PIXI.Filter {
+    constructor() {
+        const fragmentShader = `
+            varying vec2 vTextureCoord;
+            uniform sampler2D uSampler;
+
+            void main(void) {
+                vec4 color = texture2D(uSampler, vTextureCoord);
+                // Calculate luminosity (standard formula)
+                float luminosity = 0.299 * color.r + 0.587 * color.g + 0.114 * color.b;
+                // Invert luminosity for alpha: black (0) -> opaque (1), white (1) -> transparent (0)
+                gl_FragColor = vec4(color.rgb, 1.0 - luminosity);
+            }
+        `;
+        super(null, fragmentShader);
+    }
+}
+
 class DebugLayer extends foundry.canvas.layers.CanvasLayer {
     constructor() {
         super();
@@ -103,15 +121,15 @@ class DebugLayer extends foundry.canvas.layers.CanvasLayer {
         clickCatcher.drawRect(0, 0, canvas.app.screen.width, canvas.app.screen.height);
         clickCatcher.endFill();
         this.addChild(clickCatcher);
-        console.log("Map Shine | Drawing MetallicShineLayer.");
+        console.log("Map Shine | Drawing Debug Layer.");
     }
     
     async _tearDown() {
-        console.log("Map Shine | Tearing down MetallicShineLayer.");
+        console.log("Map Shine | Tearing down Debug Layer.");
         super._tearDown();
     }
 
-    async previewPBRTexture(textureType) {
+    async previewPBRTexture(textureType, textureMaps) {
         const checkerboardLayer = getCheckerboardLayer();
         if (this.pbrPreviewSprite) {
             this.removeChild(this.pbrPreviewSprite);
@@ -119,13 +137,23 @@ class DebugLayer extends foundry.canvas.layers.CanvasLayer {
             this.pbrPreviewSprite = null;
         }
 
-        if (textureType.toLowerCase() === 'composite') {
+        const lowerTextureType = textureType.toLowerCase();
+        const isMask = lowerTextureType.endsWith('_mask');
+
+        if (lowerTextureType === 'composite') {
             if (checkerboardLayer) checkerboardLayer.visible = false;
             ui.notifications.info('Map Shine: Switched to final composite view.');
             return;
         }
 
-        const texturePath = (this.textureMaps || {})[textureType.toLowerCase()];
+        let texturePath;
+        if (isMask) {
+            const baseTextureType = lowerTextureType.replace('_mask', '');
+            texturePath = (textureMaps || {})[baseTextureType];
+        } else {
+            texturePath = (textureMaps || {})[lowerTextureType];
+        }
+
         if (checkerboardLayer) checkerboardLayer.visible = true;
 
         if (!texturePath) {
@@ -152,6 +180,11 @@ class DebugLayer extends foundry.canvas.layers.CanvasLayer {
             sprite.width = sceneRect.width;
             sprite.height = sceneRect.height;
             sprite.alpha = 1.0;
+
+            if (isMask) {
+                sprite.filters = [new LuminosityMaskFilter()];
+            }
+
             this.addChild(sprite);
             this.pbrPreviewSprite = sprite;
             ui.notifications.info(`Map Shine: Previewing '${textureType}' PBR texture.`);
@@ -184,6 +217,8 @@ class MapShinePanel extends Application {
     async getData(options) {
         const context = await super.getData(options);
         const textureMaps = this.context.textureMaps || {};
+
+        // Build the list for the texture status manager
         const textures = TEXTURE_DEFINITIONS.map((def) => {
             let path = 'Not found';
             let statusClass = 'status-grey';
@@ -200,6 +235,23 @@ class MapShinePanel extends Application {
             return { name: def.name, tooltip: def.tooltip, path: path, statusClass: statusClass };
         });
         context.textures = textures;
+
+        // Build the dynamic list for the preview dropdown
+        const previewOptions = [{ key: 'composite', name: 'Final End Composite' }];
+        TEXTURE_DEFINITIONS.forEach(def => {
+            if (def.key !== 'background') {
+                previewOptions.push({ key: def.key, name: def.name });
+            }
+        });
+
+        // Conditionally add mask options
+        if (textureMaps.specular) {
+            previewOptions.push({ key: 'specular_mask', name: 'Specular Mask' });
+        }
+        if (textureMaps.iridescence) {
+            previewOptions.push({ key: 'iridescence_mask', name: 'Iridescence Mask' });
+        }
+        context.previewOptions = previewOptions;
         return context;
     }
 
@@ -209,16 +261,17 @@ class MapShinePanel extends Application {
         const typeSelect = html.find('#pbr-type-select');
 
         if (previewButton.length && typeSelect.length) {
-            previewButton.on('click', () => {
-                const textureType = typeSelect.val();
-                if (!textureType) {
-                    return ui.notifications.warn('Please select a texture type to preview.');
-                }
-                const layer = getDebugLayer();
-                if (layer) {
-                    layer.previewPBRTexture(textureType);
+            previewButton.on('click', (event) => {
+                event.preventDefault();
+                const selectedType = html.find('#pbr-type-select').val();
+                const debugLayer = getDebugLayer();
+                const shineLayer = canvas.layers.find(l => l instanceof DebugLayer);
+
+                if (debugLayer && shineLayer) {
+                    debugLayer.previewPBRTexture(selectedType, shineLayer.textureMaps);
                 } else {
-                    ui.notifications.warn('Map Shine layer not found or is invalid.');
+                    if (!debugLayer) ui.notifications.error('Map Shine: Debug layer not found.');
+                    if (!shineLayer) ui.notifications.error('Map Shine: Main shine layer not found.');
                 }
             });
         }
@@ -241,21 +294,6 @@ Hooks.once('init', () => {
     };
 });
 
-Hooks.once('ready', async function() {
-    console.log('Map Shine | Ready hook: Loading PIXI filters...');
-    try {
-        await new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.src = 'modules/map-shine/scripts/pixi-filters.js';
-            script.onload = resolve;
-            script.onerror = reject;
-            document.head.appendChild(script);
-        });
-        console.log('Map Shine | PIXI filters loaded successfully.');
-    } catch (err) {
-        console.error('Map Shine | Failed to load PIXI filters.', err);
-    }
-});
 
 // Add a button to the scene controls.
 Hooks.on('getSceneControlButtons', (controls) => {
