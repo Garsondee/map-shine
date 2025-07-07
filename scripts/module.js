@@ -1,8 +1,86 @@
-import { TEXTURE_DEFINITIONS, getDebugLayer } from './core.js';
+// This file contains core constants and utility functions shared across the module.
+
+// Definitions for PBR textures, used to build the status panel and find related files.
+export const TEXTURE_DEFINITIONS = [
+    { key: 'background', name: 'Background', tooltip: 'The base scene background texture.' },
+    { key: 'specular', name: 'Specular', tooltip: 'Specular map for reflections.' },
+    { key: 'normal', name: 'Normal', tooltip: 'Normal map for surface details.' },
+    { key: 'ambient', name: 'Ambient', tooltip: 'Ambient Occlusion map for shadows.' },
+    { key: 'iridescence', name: 'Iridescence', tooltip: 'Iridescence map for rainbow-like effects.' },
+];
+
+/**
+ * A utility function to safely retrieve the DebugLayer from the canvas.
+ * @returns {DebugLayer|null} The layer instance or null if not found.
+ */
+export function getDebugLayer() {
+    // Find the layer by its registered option name to avoid circular dependency/scope issues.
+    return canvas.layers.find(l => l.options.name === "debug-layer");
+}
+
+/**
+ * A utility function to safely retrieve the CheckerboardLayer from the canvas.
+ * @returns {CheckerboardLayer|null} The layer instance or null if not found.
+ */
+export function getCheckerboardLayer() {
+    return canvas.layers.find(l => l.options.name === "checkerboard-layer");
+}
 
 // =======================================================
 //  CLASS DEFINITIONS
 // =======================================================
+
+/**
+ * A canvas layer that renders a checkerboard pattern.
+ */
+class CheckerboardLayer extends foundry.canvas.layers.CanvasLayer {
+    constructor() {
+        super();
+        this.checkerboard = null;
+        this.visible = false;
+    }
+
+    static get layerOptions() {
+        return foundry.utils.mergeObject(super.layerOptions, {
+            name: 'checkerboard-layer',
+            zIndex: 239, // Just below the debug layer
+        });
+    }
+
+    async _draw() {
+        this.removeChildren();
+
+        // Create a checkerboard texture
+        const checkerTexture = this.createCheckerboardTexture();
+
+        const sceneRect = canvas.dimensions.sceneRect;
+
+        // Create a tiling sprite that covers the scene area
+        this.checkerboard = new PIXI.TilingSprite(checkerTexture, sceneRect.width, sceneRect.height);
+        this.checkerboard.x = sceneRect.x;
+        this.checkerboard.y = sceneRect.y;
+
+        this.addChild(this.checkerboard);
+
+        return this;
+    }
+
+    createCheckerboardTexture(size = 32, color1 = '#c0c0c0', color2 = '#808080') {
+        const canvasElement = document.createElement('canvas');
+        canvasElement.width = size * 2;
+        canvasElement.height = size * 2;
+        const ctx = canvasElement.getContext('2d');
+
+        ctx.fillStyle = color1;
+        ctx.fillRect(0, 0, size * 2, size * 2);
+
+        ctx.fillStyle = color2;
+        ctx.fillRect(0, 0, size, size);
+        ctx.fillRect(size, size, size, size);
+
+        return PIXI.Texture.from(canvasElement);
+    }
+}
 
 class DebugLayer extends foundry.canvas.layers.CanvasLayer {
     constructor() {
@@ -34,6 +112,7 @@ class DebugLayer extends foundry.canvas.layers.CanvasLayer {
     }
 
     async previewPBRTexture(textureType) {
+        const checkerboardLayer = getCheckerboardLayer();
         if (this.pbrPreviewSprite) {
             this.removeChild(this.pbrPreviewSprite);
             this.pbrPreviewSprite.destroy({ children: true });
@@ -41,11 +120,14 @@ class DebugLayer extends foundry.canvas.layers.CanvasLayer {
         }
 
         if (textureType.toLowerCase() === 'composite') {
+            if (checkerboardLayer) checkerboardLayer.visible = false;
             ui.notifications.info('Map Shine: Switched to final composite view.');
             return;
         }
 
         const texturePath = (this.textureMaps || {})[textureType.toLowerCase()];
+        if (checkerboardLayer) checkerboardLayer.visible = true;
+
         if (!texturePath) {
             ui.notifications.warn(`Map Shine: No PBR texture found for type '${textureType}'.`);
             return;
@@ -54,7 +136,7 @@ class DebugLayer extends foundry.canvas.layers.CanvasLayer {
         console.log("Map Shine | Attempting to preview PBR texture:", texturePath);
         let texture;
         try {
-            texture = await loadTexture(texturePath);
+            texture = await foundry.canvas.loadTexture(texturePath);
             if (!texture?.baseTexture?.valid) throw new Error("Texture is not valid");
         } catch (err) {
             ui.notifications.error(`Map Shine: Failed to load PBR texture '${textureType}': ${err}`);
@@ -149,6 +231,10 @@ class MapShinePanel extends Application {
 
 Hooks.once('init', () => {
     console.log('Map Shine | Initializing...');
+    CONFIG.Canvas.layers.checkerboardLayer = {
+        layerClass: CheckerboardLayer,
+        group: 'primary',
+    };
     CONFIG.Canvas.layers.debugLayer = {
         layerClass: DebugLayer,
         group: 'primary',
@@ -220,7 +306,7 @@ async function findRelatedTextures() {
     await Promise.all(pbrTypes.map(async (type) => {
         const expectedPath = `${dir}/${baseName}_${type}.${ext}`;
         try {
-            const tex = await loadTexture(expectedPath, { fallback: false });
+            const tex = await foundry.canvas.loadTexture(expectedPath, { fallback: false });
             if (tex) {
                 console.log(`Map Shine |  - Found: ${expectedPath}`);
                 if (layer) {
