@@ -6084,7 +6084,7 @@ Hooks.once('init', () => {
 
         if (data.intensitySubPath) {
             game.settings.register(MODULE_ID, `user-${key}-intensity`, {
-                name: `+- Intensity`,
+                name: `└─ Intensity`,
                 hint: `Modifies the intensity of '${data.name}' as a percentage of the scene's setting.`,
                 scope: "client",
                 config: true,
