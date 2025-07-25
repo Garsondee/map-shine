@@ -1,7 +1,7 @@
 {
   "id": "map-shine",
   "title": "Map Shine",
-  "description": "This module allows for a wide range of interesting special effects and animations to be put into a map without requiring a lot of technical knowledge.",
+  "description": "Map Shine - Specular and Metalltic Highlights for Foundry VTT",
   "version": "1.0.0",
   "library": "false",
   "manifestPlusVersion": "1.2.0",
@@ -37,9 +37,9 @@
       "path": "languages/en.json"
     }
   ],
-  "url": "https://github.com/Garsondee/map-shine",
-  "manifest": "https://github.com/Garsondee/map-shine/releases/latest/download/module.json",
-  "download": "https://github.com/Garsondee/map-shine/releases/latest/download/map-shine.zip",
+  "url": "https://github.com/yourname/map-shine",
+  "manifest": "https://github.com/yourname/map-shine/releases/latest/download/module.json",
+  "download": "https://github.com/yourname/map-shine/releases/latest/download/map-shine.zip",
   "license": "LICENSE",
   "readme": "README.md",
   "media": [
