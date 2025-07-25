@@ -1,0 +1,45 @@
+{
+  "name": "@pixi/filter-alpha",
+  "version": "6.5.10",
+  "main": "dist/cjs/filter-alpha.js",
+  "module": "dist/esm/filter-alpha.mjs",
+  "bundle": "dist/browser/filter-alpha.js",
+  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./index.d.ts",
+        "default": "./dist/esm/filter-alpha.mjs"
+      },
+      "require": {
+        "types": "./index.d.ts",
+        "default": "./dist/cjs/filter-alpha.js"
+      }
+    }
+  },
+  "namespace": "PIXI.filters",
+  "description": "Filter that applies alpha evenly across the entire display object and any opaque elements it contains",
+  "author": "Mat Groves",
+  "contributors": [
+    "Matt Karl <matt@mattkarl.com>"
+  ],
+  "homepage": "http://pixijs.com/",
+  "bugs": "https://github.com/pixijs/pixi.js/issues",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pixijs/pixi.js.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "lib",
+    "dist",
+    "*.d.ts"
+  ],
+  "peerDependencies": {
+    "@pixi/core": "6.5.10"
+  },
+  "gitHead": "8cdbf55064b7adc05f65c51e177f1c22f7329f0f"
+}

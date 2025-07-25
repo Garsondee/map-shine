@@ -1,0 +1,9 @@
+/*!
+ * @pixi/filter-bloom - v4.2.0
+ * Compiled Fri, 05 Aug 2022 19:53:35 UTC
+ *
+ * @pixi/filter-bloom is licensed under the MIT License.
+ * http://www.opensource.org/licenses/mit-license
+ */
+var __filters=function(t,r,e,i,l,n,u){"use strict";var o=function(t,r){return(o=Object.setPrototypeOf||{__proto__:[]}instanceof Array&&function(t,r){t.__proto__=r}||function(t,r){for(var e in r)Object.prototype.hasOwnProperty.call(r,e)&&(t[e]=r[e])})(t,r)};Object.create;Object.create;var b=function(t){function r(r,o,b,c){void 0===r&&(r=2),void 0===o&&(o=4),void 0===b&&(b=n.settings.FILTER_RESOLUTION),void 0===c&&(c=5);var s,a,f=t.call(this)||this;return"number"==typeof r?(s=r,a=r):r instanceof u.Point?(s=r.x,a=r.y):Array.isArray(r)&&(s=r[0],a=r[1]),f.blurXFilter=new l.BlurFilterPass(!0,s,o,b,c),f.blurYFilter=new l.BlurFilterPass(!1,a,o,b,c),f.blurYFilter.blendMode=e.BLEND_MODES.SCREEN,f.defaultFilter=new i.AlphaFilter,f}return function(t,r){function e(){this.constructor=t}o(t,r),t.prototype=null===r?Object.create(r):(e.prototype=r.prototype,new e)}(r,t),r.prototype.apply=function(t,r,e,i){var l=t.getFilterTexture();this.defaultFilter.apply(t,r,e,i),this.blurXFilter.apply(t,r,l,1),this.blurYFilter.apply(t,l,e,0),t.returnFilterTexture(l)},Object.defineProperty(r.prototype,"blur",{get:function(){return this.blurXFilter.blur},set:function(t){this.blurXFilter.blur=this.blurYFilter.blur=t},enumerable:!1,configurable:!0}),Object.defineProperty(r.prototype,"blurX",{get:function(){return this.blurXFilter.blur},set:function(t){this.blurXFilter.blur=t},enumerable:!1,configurable:!0}),Object.defineProperty(r.prototype,"blurY",{get:function(){return this.blurYFilter.blur},set:function(t){this.blurYFilter.blur=t},enumerable:!1,configurable:!0}),r}(r.Filter);return t.BloomFilter=b,Object.defineProperty(t,"__esModule",{value:!0}),t}({},PIXI,PIXI,PIXI.filters,PIXI.filters,PIXI,PIXI);Object.assign(PIXI.filters,__filters);
+//# sourceMappingURL=filter-bloom.js.map

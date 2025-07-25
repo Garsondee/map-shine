@@ -1,14 +1,12 @@
 {
   "id": "map-shine",
   "title": "Map Shine",
-  "description": "Map Shine - Specular and Metalltic Highlights for Foundry VTT",
+  "description": "Map Shine - Specular and Metallic Highlights for Foundry VTT",
   "version": "1.0.0",
-  "library": "false",
-  "manifestPlusVersion": "1.2.0",
+  "library": false,
   "compatibility": {
-    "minimum": 10,
-    "verified": 10,
-    "maximum": 13
+    "minimum": "10",
+    "verified": "11" 
   },
   "authors": [
     {
@@ -17,15 +15,12 @@
       "discord": ""
     }
   ],
-  "relationships": {
-    "systems": [],
-    "requires": []
-  },
-  "esmodules": [
-    "scripts/module.js"
-  ],
+  "dependencies": [],
   "scripts": [
     "scripts/pixi-filters.js"
+  ],
+  "esmodules": [
+    "scripts/module.js"
   ],
   "styles": [
     "styles/module.css"

@@ -1,0 +1,47 @@
+{
+  "name": "@pixi/filter-bevel",
+  "version": "4.2.0",
+  "main": "dist/filter-bevel.cjs.js",
+  "bundle": "dist/filter-bevel.js",
+  "description": "PixiJS filter to apply a bevel effect",
+  "author": "Evgeny Shestakov",
+  "contributors": [
+    "Evgeny Shestakov <ewanse@gmail.com>"
+  ],
+  "module": "dist/filter-bevel.esm.mjs",
+  "exports": {
+    ".": {
+      "import": "./dist/filter-bevel.esm.mjs",
+      "require": "./dist/filter-bevel.cjs.js",
+      "types": "./index.d.ts"
+    }
+  },
+  "types": "index.d.ts",
+  "homepage": "http://pixijs.com/",
+  "bugs": "https://github.com/pixijs/filters/issues",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pixijs/filters.git",
+    "directory": "filters/bevel"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "index.d.ts"
+  ],
+  "peerDependencies": {
+    "@pixi/core": "^6.0.0",
+    "@pixi/math": "^6.0.0",
+    "@pixi/utils": "^6.0.0"
+  },
+  "devDependencies": {
+    "@pixi/core": "^6.0.0",
+    "@pixi/math": "^6.0.0",
+    "@pixi/utils": "^6.0.0",
+    "@tools/fragments": "4.1.3"
+  },
+  "gitHead": "dc16782d00fffb8c02d30cc32146d9c6a40599cb"
+}

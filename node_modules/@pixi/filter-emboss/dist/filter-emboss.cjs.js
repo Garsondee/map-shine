@@ -1,0 +1,85 @@
+/*!
+ * @pixi/filter-emboss - v4.2.0
+ * Compiled Fri, 05 Aug 2022 19:53:35 UTC
+ *
+ * @pixi/filter-emboss is licensed under the MIT License.
+ * http://www.opensource.org/licenses/mit-license
+ */
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var core = require('@pixi/core');
+
+/*! *****************************************************************************
+Copyright (c) Microsoft Corporation.
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.
+***************************************************************************** */
+/* global Reflect, Promise */
+
+var extendStatics = function(d, b) {
+    extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) { if (Object.prototype.hasOwnProperty.call(b, p)) { d[p] = b[p]; } } };
+    return extendStatics(d, b);
+};
+
+function __extends(d, b) {
+    extendStatics(d, b);
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+}
+
+var vertex = "attribute vec2 aVertexPosition;\nattribute vec2 aTextureCoord;\n\nuniform mat3 projectionMatrix;\n\nvarying vec2 vTextureCoord;\n\nvoid main(void)\n{\n    gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);\n    vTextureCoord = aTextureCoord;\n}";
+
+var fragment = "precision mediump float;\n\nvarying vec2 vTextureCoord;\n\nuniform sampler2D uSampler;\nuniform float strength;\nuniform vec4 filterArea;\n\n\nvoid main(void)\n{\n\tvec2 onePixel = vec2(1.0 / filterArea);\n\n\tvec4 color;\n\n\tcolor.rgb = vec3(0.5);\n\n\tcolor -= texture2D(uSampler, vTextureCoord - onePixel) * strength;\n\tcolor += texture2D(uSampler, vTextureCoord + onePixel) * strength;\n\n\tcolor.rgb = vec3((color.r + color.g + color.b) / 3.0);\n\n\tfloat alpha = texture2D(uSampler, vTextureCoord).a;\n\n\tgl_FragColor = vec4(color.rgb * alpha, alpha);\n}\n";
+
+/**
+ * An RGB Split Filter.<br>
+ * ![original](../tools/screenshots/dist/original.png)![filter](../tools/screenshots/dist/emboss.png)
+ *
+ * @class
+ * @extends PIXI.Filter
+ * @memberof PIXI.filters
+ * @see {@link https://www.npmjs.com/package/@pixi/filter-emboss|@pixi/filter-emboss}
+ * @see {@link https://www.npmjs.com/package/pixi-filters|pixi-filters}
+ */
+var EmbossFilter = /** @class */ (function (_super) {
+    __extends(EmbossFilter, _super);
+    /**
+     * @param {number} [strength=5] - Strength of the emboss.
+     */
+    function EmbossFilter(strength) {
+        if (strength === void 0) { strength = 5; }
+        var _this = _super.call(this, vertex, fragment) || this;
+        _this.strength = strength;
+        return _this;
+    }
+    Object.defineProperty(EmbossFilter.prototype, "strength", {
+        /**
+         * Strength of emboss.
+         */
+        get: function () {
+            return this.uniforms.strength;
+        },
+        set: function (value) {
+            this.uniforms.strength = value;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    return EmbossFilter;
+}(core.Filter));
+
+exports.EmbossFilter = EmbossFilter;
+//# sourceMappingURL=filter-emboss.cjs.js.map
