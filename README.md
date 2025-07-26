@@ -165,7 +165,7 @@ A collection of screen-space effects to enhance the final look of the scene.
 
 ## How It Works
 
-The toolkit uses a texture-auto-discovery system. For any given background image or tile (e.g., `MyMap.webp`), you create corresponding effect maps with specific suffixes. The module automatically finds these maps and applies the associated effect. For best results, ensure all texture maps have the same dimensions as the base image.
+The toolkit uses a texture-auto-discovery system. [1] For any given background image or tile (e.g., `MyMap.webp`), you create corresponding effect maps with specific suffixes. [1] The module automatically finds these maps and applies the associated effect. [1] For best results, ensure all texture maps have the same dimensions as the base image. [1]
 
 ### Texture Suffixes
 
@@ -197,6 +197,54 @@ The toolkit uses a texture-auto-discovery system. For any given background image
   - **Effect**: Cloud Shadows
   - **Description**: A mask defining exterior areas. Outdoor areas should be solid white and indoor areas solid black. This will eventually be used for other weather effects.
 
+---
+
+### Example Tutorial Layers
+
+Here is an example of a base map and the corresponding effect layers used by Map Shine. The file names show which suffix corresponds to which effect.
+
+**Base Map (`mythica-machina-big-bank-ground.webp`)**
+<br><em>This is the main, full-color map image that players will see.</em>
+<p align="center">
+  <img src="https://github.com/Garsondee/map-shine/raw/main/tutorial-assets/mythica-machina-big-bank-ground.webp" alt="Base Map">
+</p>
+
+**Ambient Map (`_Ambient.webp`)**
+<br><em>Defines emissive surfaces. This map should be mostly transparent; opaque areas will glow.</em>
+<p align="center">
+  <img src="https://github.com/Garsondee/map-shine/raw/main/tutorial-assets/mythica-machina-big-bank-ground_Ambient.webp" alt="Ambient Map">
+</p>
+
+**Dust Map (`_Dust.webp`)**
+<br><em>A mask that defines where dust motes are visible. Use white for where you want dust to appear.</em>
+<p align="center">
+  <img src="https://github.com/Garsondee/map-shine/raw/main/tutorial-assets/mythica-machina-big-bank-ground_Dust.webp" alt="Dust Map">
+</p>
+
+**GroundGlow Map (`_GroundGlow.webp`)**
+<br><em>Defines areas that react to light. This map is used for both the "Glow in the Dark" and "Glow in the Light" effects.</em>
+<p align="center">
+  <img src="https://github.com/Garsondee/map-shine/raw/main/tutorial-assets/mythica-machina-big-bank-ground_GroundGlow.webp" alt="GroundGlow Map">
+</p>
+
+**Heat Map (`_Heat.webp`)**
+<br><em>Defines areas that produce a heat haze. Use white for the effect area and black for no effect.</em>
+<p align="center">
+  <img src="https://github.com/Garsondee/map-shine/raw/main/tutorial-assets/mythica-machina-big-bank-ground_Heat.webp" alt="Heat Map">
+</p>
+
+**Outdoors Map (`_Outdoors.webp`)**
+<br><em>A mask defining exterior areas. Outdoor areas should be solid white and indoor areas solid black.</em>
+<p align="center">
+  <img src="https://github.com/Garsondee/map-shine/raw/main/tutorial-assets/mythica-machina-big-bank-ground_Outdoors.webp" alt="Outdoors Map">
+</p>
+
+**Specular Map (`_Specular.webp`)**
+<br><em>Defines reflective surfaces. Black areas are non-reflective. Brightness and color control the shine's appearance.</em>
+<p align="center">
+  <img src="https://github.com/Garsondee/map-shine/raw/main/tutorial-assets/mythica-machina-big-bank-ground_Specular.webp" alt="Specular Map">
+</p>
+
 ## Configuration & Profiles
 
 This module includes a powerful real-time debugging UI that allows you to tweak every parameter of every effect. To manage your settings, the module also features a robust **Profile Manager**. You can save complex effect configurations as profiles, load them on demand, and even set a default profile to be loaded automatically for a given scene.
@@ -213,9 +261,9 @@ You are encouraged to use this system for your maps! It will always be free to u
 
 ## Installation
 
-1.  Inside Foundry VTT, navigate to the **Add-on Modules** tab in the main configuration screen.
-2.  Search for "Map Shine" and click the **Install** button.
-3.  Activate the module in your game world's module settings.
+1.  Inside Foundry VTT, navigate to the **Add-on Modules** tab in the main configuration screen. [1]
+2.  Search for "Map Shine" and click the **Install** button. [1]
+3.  Activate the module in your game world's module settings. [1]
 
 ## Dependencies
 
