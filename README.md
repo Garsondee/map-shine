@@ -234,7 +234,7 @@ Here is an example of a base map and the corresponding effect layers used by Map
 </p>
 
 **Outdoors Map (`mythica-machina-big-bank-ground_Outdoors.webp`)**
-<br><em>A mask defining exterior areas. Outdoor areas should be solid white and indoor areas solid black.</em>
+<br><em>A mask defining exterior areas. Outdoor areas should be solid white and indoor areas solid black. At the moment this is primarily used by the cloud rendering system, but I plan to add other effects which will differ depending on whether they are outdoors or not.</em>
 <p align="center">
   <img src="https://github.com/Garsondee/map-shine/raw/main/tutorial-assets/mythica-machina-big-bank-ground_Outdoors.webp" alt="Outdoors Map">
 </p>
