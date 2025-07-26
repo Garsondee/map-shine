@@ -209,37 +209,37 @@ Here is an example of a base map and the corresponding effect layers used by Map
   <img src="https://github.com/Garsondee/map-shine/raw/main/tutorial-assets/mythica-machina-big-bank-ground.webp" alt="Base Map">
 </p>
 
-**Ambient Map (`_Ambient.webp`)**
+**Ambient Map (`mythica-machina-big-bank-ground_Ambient.webp`)**
 <br><em>Defines emissive surfaces. This map should be mostly transparent; opaque areas will glow.</em>
 <p align="center">
   <img src="https://github.com/Garsondee/map-shine/raw/main/tutorial-assets/mythica-machina-big-bank-ground_Ambient.webp" alt="Ambient Map">
 </p>
 
-**Dust Map (`_Dust.webp`)**
+**Dust Map (`mythica-machina-big-bank-ground_Dust.webp`)**
 <br><em>A mask that defines where dust motes are visible. Use white for where you want dust to appear.</em>
 <p align="center">
   <img src="https://github.com/Garsondee/map-shine/raw/main/tutorial-assets/mythica-machina-big-bank-ground_Dust.webp" alt="Dust Map">
 </p>
 
-**GroundGlow Map (`_GroundGlow.webp`)**
+**GroundGlow Map (`mythica-machina-big-bank-ground_GroundGlow.webp`)**
 <br><em>Defines areas that react to light. This map is used for both the "Glow in the Dark" and "Glow in the Light" effects.</em>
 <p align="center">
   <img src="https://github.com/Garsondee/map-shine/raw/main/tutorial-assets/mythica-machina-big-bank-ground_GroundGlow.webp" alt="GroundGlow Map">
 </p>
 
-**Heat Map (`_Heat.webp`)**
+**Heat Map (`mythica-machina-big-bank-ground_Heat.webp`)**
 <br><em>Defines areas that produce a heat haze. Use white for the effect area and black for no effect.</em>
 <p align="center">
   <img src="https://github.com/Garsondee/map-shine/raw/main/tutorial-assets/mythica-machina-big-bank-ground_Heat.webp" alt="Heat Map">
 </p>
 
-**Outdoors Map (`_Outdoors.webp`)**
+**Outdoors Map (`mythica-machina-big-bank-ground_Outdoors.webp`)**
 <br><em>A mask defining exterior areas. Outdoor areas should be solid white and indoor areas solid black.</em>
 <p align="center">
   <img src="https://github.com/Garsondee/map-shine/raw/main/tutorial-assets/mythica-machina-big-bank-ground_Outdoors.webp" alt="Outdoors Map">
 </p>
 
-**Specular Map (`_Specular.webp`)**
+**Specular Map (`mythica-machina-big-bank-ground_Specular.webp`)**
 <br><em>Defines reflective surfaces. Black areas are non-reflective. Brightness and color control the shine's appearance.</em>
 <p align="center">
   <img src="https://github.com/Garsondee/map-shine/raw/main/tutorial-assets/mythica-machina-big-bank-ground_Specular.webp" alt="Specular Map">
