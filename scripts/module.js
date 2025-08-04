@@ -8888,4 +8888,4 @@ class MyStableLayer extends foundry.canvas.layers.CanvasLayer {
     }
 }
 
-//</p>
+//
