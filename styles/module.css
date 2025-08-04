@@ -1,0 +1,50 @@
+.texture-manager {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 10px;
+    border: 1px solid #ccc;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.texture-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 5px;
+    border-radius: 3px;
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.texture-row:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.status-light {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.status-light.status-green {
+    background-color: #4caf50; /* Green */
+    box-shadow: 0 0 5px #4caf50;
+}
+
+.status-light.status-red {
+    background-color: #f44336; /* Red */
+    box-shadow: 0 0 5px #f44336;
+}
+
+.status-light.status-grey {
+    background-color: #9e9e9e; /* Grey */
+}
+
+.texture-name {
+    font-weight: bold;
+    font-size: 14px;
+    cursor: help;
+}

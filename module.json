@@ -1,0 +1,54 @@
+{
+  "id": "map-shine",
+  "title": "Map Shine",
+  "description": "This module allows for a new and user friendly way to add special effects / filters / animation to maps in Foundry VTT.",
+  "version": "0.9.8",
+  "library": "false",
+  "manifestPlusVersion": "1.2.0",
+  "compatibility": {
+    "minimum": 13,
+    "verified": 13,
+    "maximum": 13
+  },
+  "authors": [
+    {
+      "name": "Ingram Blakelock",
+      "url": "",
+      "discord": "garsondee"
+    }
+  ],
+  "relationships": {
+    "systems": [],
+    "requires": [
+      {
+        "id": "illuminationbuffer",
+        "type": "module"
+      }
+    ]
+  },
+  "esmodules": [
+    "scripts/module.js",
+    "scripts/pixi-filters.js"
+  ],
+  "styles": [
+    "styles/module.css"
+  ],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "languages/en.json"
+    }
+  ],
+  "url": "https://github.com/garsondee/map-shine",
+  "manifest": "https://github.com/Garsondee/map-shine/releases/download/0.9.8/module.json",
+  "download": "https://github.com/Garsondee/map-shine/releases/download/0.9.8/module.zip",
+  "license": "LICENSE",
+  "readme": "README.md",
+  "media": [
+    {
+      "type": "icon",
+      "url": "https://avatars2.githubusercontent.com/u/71292812?s=400&u=ccdb4eeb7abf551ca8f314e5a9bfd0479a4d3d41&v=4"
+    }
+  ]
+}
