@@ -1,4 +1,3 @@
-
 /******************************************************************************
  *
  *                            MAP SHINE 
@@ -21,6 +20,7 @@
 // =================================================================================
 // Description: Global constants, default settings, and simple utility functions.
 // ---------------------------------------------------------------------------------
+
 
 const MODULE_ID = 'map-shine';
 
@@ -88,40 +88,40 @@ const MODULE_DEFAULTS = {
         "layerBlendMode": 1
       },
       "animation": {
-        "globalIntensity": 2.9,
+        "globalIntensity": 6.4,
         "hotspot": 0,
-        "updateFrequency": 10,
-        "parallaxAmount": 0.94,
-        "parallaxJitter": 1.5,
+        "updateFrequency": 2,
+        "parallaxAmount": 0.75,
+        "parallaxJitter": 2,
         "parallaxJitterSpeed": 0.3
       },
       "pattern": {
         "shared": {
-          "patternScale": 0.16,
-          "maxBrightness": 0.26
+          "patternScale": 0.29,
+          "maxBrightness": 0.47
         },
         "stripes1": {
           "enabled": true,
-          "intensity": 0.5,
+          "intensity": 0.3,
           "speed": -0.006,
           "tintColor": "#FFFFFF",
           "angle": 50,
           "sharpness": 8,
-          "bandDensity": 2,
+          "bandDensity": 1,
           "bandWidth": 1,
           "subStripeMaxCount": 5,
-          "subStripeMaxSharp": 1.5
+          "subStripeMaxSharp": 0
         },
         "stripes2": {
           "enabled": true,
-          "intensity": 0.5,
+          "intensity": 0.3,
           "speed": 0.004,
           "tintColor": "#FFFFFF",
           "angle": 44,
           "sharpness": 8,
           "bandDensity": 1,
           "bandWidth": 1,
-          "subStripeMaxCount": 3,
+          "subStripeMaxCount": 5,
           "subStripeMaxSharp": 0
         },
         "checkerboard": {
@@ -131,20 +131,20 @@ const MODULE_DEFAULTS = {
         }
       },
       "noise": {
-        "enabled": true,
+        "enabled": false,
         "speed": -0.003,
-        "scale": 0.7,
-        "threshold": 0.7,
-        "brightness": 1,
-        "contrast": 4.15,
+        "scale": 0.2,
+        "threshold": 0.43,
+        "brightness": 0.39,
+        "contrast": 0.4,
         "softness": 1
       },
       "shineBloom": {
         "enabled": false,
-        "threshold": 0.58,
-        "brightness": 1.75,
-        "blur": 4,
-        "quality": 2
+        "threshold": 0.19,
+        "brightness": 1.5,
+        "blur": 0,
+        "quality": 4
       },
       "starburst": {
         "enabled": false,
@@ -158,29 +158,29 @@ const MODULE_DEFAULTS = {
       },
       "rgbSplit": {
         "enabled": true,
-        "amount": 6.7
+        "amount": 1.1
       },
       "colorCorrection": {
-        "enabled": false,
-        "saturation": 3,
-        "brightness": 1,
-        "contrast": 1.1,
-        "exposure": 0,
-        "gamma": 0.95,
+        "enabled": true,
+        "saturation": 3.45,
+        "brightness": -0.3,
+        "contrast": 1,
+        "exposure": -1.6,
+        "gamma": 0.5,
         "levels": {
           "inBlack": 0,
           "inWhite": 1
         },
         "tint": {
           "color": "#ffcb2d",
-          "amount": 0
+          "amount": 0.2
         }
       }
     },
     "cloudShadows": {
       "enabled": true,
       "blendMode": 0,
-      "shadowIntensity": 0.3,
+      "shadowIntensity": 0.1,
       "maskBlur": 0,
       "illumination": {
         "enabled": false,
@@ -264,75 +264,75 @@ const MODULE_DEFAULTS = {
         "softness": 1
       }
     },
-    "structuralShadows": {
-      "enabled": true,
-      "shadowIntensity": 0.91,
-      "tint": "#000000",
-      "parallax": 0,
-      "rgbSplit": {
-        "enabled": true,
-        "intensity": 5,
-        "threshold": 0
-      },
-      "illumination": {
-        "enabled": true,
-        "intensity": 1,
-        "luminanceThreshold": 0.9,
-        "softness": 0.35
-      },
-      "intensityNoise": {
-        "enabled": false,
-        "amount": 0,
-        "speed": 0.15,
-        "scale": 1.25,
-        "evolution": 0,
-        "threshold": 0.71,
-        "brightness": -1.13,
-        "contrast": 2.8,
-        "softness": 1
-      },
-      "cloudOcclusion": {
-        "enabled": true,
-        "intensity": 0.8,
-        "wind": {
-          "angle": 45,
-          "speed": 0.0025
-        },
-        "noise": {
-          "scale": 0.18,
-          "octaves": 5,
-          "persistence": 0.4,
-          "lacunarity": 2.6
-        },
-        "shading": {
-          "threshold": 0.56,
-          "softness": 0.2,
-          "brightness": 0.5,
-          "contrast": 1,
-          "gamma": 0.75,
-          "exposure": -0.85,
-          "levels": {
-            "inBlack": 0,
-            "inWhite": 1
-          }
-        }
-      }
+"structuralShadows": {
+  "enabled": true,
+  "shadowIntensity": 0.82,
+  "tint": "#000000",
+  "parallax": 0,
+  "rgbSplit": {
+    "enabled": true,
+    "intensity": 2,
+    "threshold": 0.5
+  },
+  "illumination": {
+    "enabled": true,
+    "intensity": 0.8,
+    "luminanceThreshold": 0.9,
+    "softness": 0.2
+  },
+  "intensityNoise": {
+    "enabled": true,
+    "amount": 0.4,
+    "speed": 0,
+    "scale": 2,
+    "evolution": 0,
+    "threshold": 0,
+    "brightness": 0,
+    "contrast": 1,
+    "softness": 1
+  },
+  "cloudOcclusion": {
+    "enabled": false,
+    "intensity": 1,
+    "wind": {
+      "angle": 45,
+      "speed": 0.001
     },
+    "noise": {
+      "scale": 0.11,
+      "octaves": 5,
+      "persistence": 0.4,
+      "lacunarity": 2.6
+    },
+    "shading": {
+      "threshold": 1,
+      "softness": 0.2,
+      "brightness": 0.51,
+      "contrast": 1,
+      "gamma": 1,
+      "exposure": 0,
+      "levels": {
+        "inBlack": 0,
+        "inWhite": 1
+      }
+    }
+  }
+},
     "prism": {
       "enabled": true,
-      "intensity": 1,
-      "angle": 218,
-      "threshold": 0.1,
-      "softness": 0.5,
-      "distortionStrength": 1.9,
+      "intensity": 2,
+      "angle": 217,
+      "threshold": 0,
+      "softness": 0.22,
+      "distortionStrength": 9.2,
       "distortionNoise": {
-        "enabled": true,
-        "speed": 0,
-        "scale": 3.83,
+        "enabled": false,
+        "speed": 0.005,
+        "scale": 10,
         "evolution": 0,
-        "threshold": 0,
-        "brightness": 0.11,
-        "contrast": 1.85,
+        "threshold": 0.8,
+        "brightness": 0,
+        "contrast": 4.7,
         "softness": 1
       }
     },
@@ -404,19 +404,19 @@ const MODULE_DEFAULTS = {
       "duration": 3000,
       "colorCorrection": {
         "enabled": true,
-        "saturation": 0.5,
+        "saturation": 0.1,
         "brightness": -0.1,
-        "contrast": 0.9,
+        "contrast": 1.1,
         "invert": false,
         "tint": {
-          "color": "#FFFFFF",
-          "amount": 0
+          "color": "#aaddff",
+          "amount": 0.15
         },
         "exposure": 0,
-        "gamma": 1,
+        "gamma": 1.2,
         "levels": {
-          "inBlack": 0,
-          "inWhite": 1
+          "inBlack": 0.1,
+          "inWhite": 0.9
         },
         "whiteBalance": {
           "temperature": 0,
@@ -455,20 +455,20 @@ const MODULE_DEFAULTS = {
           "inWhite": 1
         },
         "whiteBalance": {
-          "temperature": 0.5,
+          "temperature": 0,
           "tint": 0
         },
         "highlightCloud": {
-          "enabled": true,
+          "enabled": false,
           "brightness": 0
         },
         "highlightCanopy": {
-          "enabled": true,
+          "enabled": false,
           "brightness": 0
         },
         "highlightStructural": {
-          "enabled": true,
-          "brightness": 3
+          "enabled": false,
+          "brightness": 0
         },
         "mask": {
           "enabled": false,
@@ -490,12 +490,12 @@ const MODULE_DEFAULTS = {
       },
       "lensDistortion": {
         "enabled": true,
-        "amount": 0.015,
+        "amount": -0.022,
         "centerX": 0.5,
         "centerY": 0.5
       },
       "chromaticAberration": {
-        "enabled": false,
+        "enabled": true,
         "amount": 0.001,
         "centerX": 0.5,
         "centerY": 0.5
@@ -513,7 +513,7 @@ const MODULE_DEFAULTS = {
     "dust": {
       "enabled": true,
       "blendMode": 0,
-      "maskThreshold": 0.8,
+      "maskThreshold": 0.54,
       "maskInfluence": 1,
       "particleTexture": "modules/map-shine/assets/particle.webp",
       "frequency": 0.1,
@@ -526,19 +526,19 @@ const MODULE_DEFAULTS = {
         "end": "#ffe9b9"
       },
       "alpha": {
-        "max": 0.2,
+        "max": 0.7,
         "fadeIn": 0.5,
         "fadeOut": 0.5
       },
       "scale": {
-        "sizeMultiplier": 3,
+        "sizeMultiplier": 2.5,
         "start": 0.4,
         "end": 0.47,
         "minMult": 0.86
       },
       "speed": {
-        "start": 3,
-        "end": 6,
+        "start": 1,
+        "end": 3,
         "minMult": 0.5
       },
       "rotation": {
@@ -552,10 +552,10 @@ const MODULE_DEFAULTS = {
       "enabled": true,
       "darknessAffectsIntensity": true,
       "blendMode": 0,
-      "maskThreshold": 0.9,
-      "maskInfluence": 0.09,
+      "maskThreshold": 0.5,
+      "maskInfluence": 0.34,
       "particleTexture": "modules/map-shine/assets/glint.webp",
-      "frequency": 0.932,
+      "frequency": 0.878,
       "lifetime": {
         "min": 0.8,
         "max": 2.9
@@ -565,13 +565,13 @@ const MODULE_DEFAULTS = {
         "end": "#FFFFFF"
       },
       "alpha": {
-        "max": 0.95,
-        "fadeIn": 0.05,
-        "fadeOut": 0.94
+        "max": 1,
+        "fadeIn": 0.5,
+        "fadeOut": 0.5
       },
       "scale": {
-        "sizeMultiplier": 9,
-        "start": 1.5,
+        "sizeMultiplier": 8.5,
+        "start": 0.45,
         "end": 0.61,
         "minMult": 0.9
       },
@@ -621,7 +621,7 @@ const MODULE_DEFAULTS = {
       },
       "caustics": {
         "enabled": true,
-        "intensity": 0.036,
+        "intensity": 0.013,
         "scale": 0.6,
         "speed": 0.02,
         "color": "#87CEFA",
@@ -738,19 +738,19 @@ const MODULE_DEFAULTS = {
       "enabled": true,
       "bloom": {
         "enabled": true,
-        "threshold": 0.15,
+        "threshold": 1,
         "bloomScale": 5,
-        "brightness": 3.2,
-        "blur": 4,
-        "quality": 4
+        "brightness": 4,
+        "blur": 1,
+        "quality": 3
       },
       "particles": {
         "enabled": true,
         "blendMode": 1,
         "maskThreshold": 0.9,
-        "maskInfluence": 0.84,
+        "maskInfluence": 5,
         "particleTexture": "modules/map-shine/assets/flame.webp",
-        "frequency": 0.005,
+        "frequency": 0.001,
         "lifetime": {
           "min": 0.4,
           "max": 0.9
@@ -760,14 +760,14 @@ const MODULE_DEFAULTS = {
           "end": "#ea7500"
         },
         "alpha": {
-          "max": 0.8,
-          "fadeIn": 0.02,
-          "fadeOut": 0.95
+          "max": 0.92,
+          "fadeIn": 0.05,
+          "fadeOut": 0.5
         },
         "scale": {
           "sizeMultiplier": 0.4,
           "start": 0.05,
-          "end": 1.16,
+          "end": 0.66,
           "minMult": 0.43
         },
         "speed": {
@@ -807,6 +807,7 @@ const hexToRgbArray = (hex) => {
         parseInt(result[3], 16) / 255
     ] : [1, 1, 1];
 };
+
 
 // =================================================================================
 // SECTION 2: CORE SYSTEMS & MANAGERS
@@ -1702,7 +1703,7 @@ class ScreenEffectsManager {
     static _updateContainerFilters() {
         if (!this._container) return;
 
-        const filterClasses = [WaterEffectsFilter, PrismFilter, HeatDistortionFilter, VignetteFilter, LensDistortionFilter, ChromaticAberrationFilter, ColorCorrectionFilter];
+        const filterClasses = [PrismFilter, HeatDistortionFilter, VignetteFilter, LensDistortionFilter, ChromaticAberrationFilter, ColorCorrectionFilter];
 
         const BloomFilterConstructor = PIXI.filters.AdvancedBloomFilter || (PIXI.filters.filters && PIXI.filters.filters.AdvancedBloomFilter);
         if (BloomFilterConstructor) {
@@ -1817,13 +1818,6 @@ class ScreenEffectsManager {
             state: ppErrors.length === 0 ? 'ok' : 'error',
             message: ppErrors.length === 0 ? `Compiled successfully.` : `Failed to compile: ${ppErrors.join(', ')}`
         });
-
-        try {
-            this.addFilter('water', new WaterEffectsFilter());
-        } catch(e) {
-            console.error("MapShine | Failed to compile WaterEffectsFilter", e);
-             systemStatus.update('shaders', 'water', { state: 'error', message: `Compilation failed: ${e.message}` });
-        }
     }
 
     static updateAllFiltersFromConfig(config) {
@@ -1946,71 +1940,6 @@ class ScreenEffectsManager {
             u.uSelectiveColor = hexToRgbArray(pauseConfig.selective.color);
             u.uSelectiveHueRange = pauseConfig.selective.hueRange;
             u.uSelectiveSatRange = pauseConfig.selective.saturationRange;
-        }
-
-        const waterFilter = this.getFilter('water');
-        if (waterFilter instanceof WaterEffectsFilter) {
-            const wConfig = config.water;
-            const u = waterFilter.uniforms;
-
-            // Parameter uniforms are set here from config.
-            // Texture uniforms (like masks) are set by the WaterFXLayer in its animation loop.
-            u.u_wave_enabled = wConfig.wave.enabled;
-            u.u_wave_intensity = wConfig.wave.intensity;
-            const srfConfig = wConfig.surface;
-            u.u_surface_enabled = srfConfig.enabled;
-            u.u_openWaterFoamColor = hexToRgbArray(srfConfig.foamColor);
-            u.u_openWaterFoamIntensity = srfConfig.foamIntensity;
-            u.u_openWaterFoamCoverage = srfConfig.foamCoverage;
-            u.u_openWaterFoamSharpness = srfConfig.foamSharpness;
-            u.u_openWaterFbmScale = srfConfig.fbmScale;
-            u.u_openWaterFbmSpeed = srfConfig.fbmSpeed;
-            u.u_openWaterFbmEvolution = srfConfig.fbmEvolution;
-            u.u_openWaterFbmOctaves = srfConfig.fbmOctaves;
-            u.u_openWaterFbmLacunarity = srfConfig.fbmLacunarity;
-            u.u_openWaterFbmPersistence = srfConfig.fbmPersistence;
-            u.u_sheenEnabled = srfConfig.sheenEnabled;
-            u.u_sheenColor = hexToRgbArray(srfConfig.sheenColor);
-            u.u_sheenIntensity = srfConfig.sheenIntensity;
-            u.u_sheenScale = srfConfig.sheenScale;
-            u.u_sheenSpeed = srfConfig.sheenSpeed;
-            u.u_sheenStretch = srfConfig.sheenStretch;
-            u.u_sheenSharpness = srfConfig.sheenSharpness;
-            const cConfig = wConfig.caustics;
-            u.u_caustics_enabled = cConfig.enabled;
-            u.u_causticsColor = hexToRgbArray(cConfig.color);
-            u.u_causticsIntensity = cConfig.intensity;
-            u.u_causticsScale = cConfig.scale;
-            u.u_causticsSpeed = cConfig.speed;
-            u.u_causticsLineSharpness = cConfig.lineSharpness;
-            u.u_causticsBloomIntensity = cConfig.bloomIntensity;
-            u.u_causticsLineDistortion = cConfig.lineDistortion;
-            u.u_causticsLineDistortionScale = cConfig.lineDistortionScale;
-            u.u_causticsIntersectionBoost = cConfig.intersectionBoost;
-            u.u_causticsRoughnessScale = cConfig.roughnessScale;
-            u.u_causticsRoughnessIntensity = cConfig.roughnessIntensity;
-            const shConfig = wConfig.shoreline;
-            u.u_shoreline_enabled = shConfig.enabled;
-            u.u_shorelineFoamColor = hexToRgbArray(shConfig.foamColor);
-            u.u_shorelineFoamIntensity = shConfig.foamIntensity;
-            const dispConfig = shConfig.displacement;
-            if (dispConfig) {
-                u.u_shorelineDisplacementEnabled = dispConfig.enabled;
-                u.u_shorelineDisplacementScale = dispConfig.scale;
-                u.u_shorelineDisplacementSpeed = dispConfig.speed;
-                u.u_shorelineDisplacementStrength = dispConfig.strength;
-            }
-            const foamPatternConfig = shConfig.foamPattern;
-            u.u_shorelinePatternScale = foamPatternConfig.scale;
-            u.u_shorelinePatternSpeed = foamPatternConfig.speed;
-            u.u_shorelinePatternEvolution = foamPatternConfig.evolution;
-            u.u_shorelinePatternOctaves = foamPatternConfig.octaves;
-            u.u_shorelinePatternLacunarity = foamPatternConfig.lacunarity;
-            u.u_shorelinePatternPersistence = foamPatternConfig.persistence;
-            u.u_shorelinePatternBrightness = foamPatternConfig.brightness;
-            u.u_shorelinePatternContrast = foamPatternConfig.contrast;
-            u.u_particleMaskBrightness = shConfig.particleMaskBrightness;
-            u.u_particleMaskContrast = shConfig.particleMaskContrast;
         }
     }
 
@@ -2433,26 +2362,6 @@ class LightingEffectManager {
             const config = fullConfig.postProcessing.colorCorrection;
             const u = ccFilter.uniforms;
 
-            const rect = this.canvas.scene.dimensions.sceneRect; // Use the un-padded scene rectangle
-            const screen = this.canvas.app.renderer.screen;
-
-            if (rect && screen.width > 0 && screen.height > 0) {
-                // Convert top-left world coordinate to screen pixel coordinate
-                const topLeftScreen = this.canvas.stage.toGlobal({ x: rect.x, y: rect.y });
-                
-                // Get width/height in pixels by multiplying world size by current scale
-                const sceneWidthPixels = rect.width * this.canvas.stage.scale.x;
-                const sceneHeightPixels = rect.height * this.canvas.stage.scale.y;
-            
-                // Normalize by screen dimensions and pass to shader
-                u.uSceneRectNorm = [
-                    topLeftScreen.x / screen.width,
-                    topLeftScreen.y / screen.height,
-                    sceneWidthPixels / screen.width,
-                    sceneHeightPixels / screen.height
-                ];
-            }
-
             // Standard illumination-based mask for color correction.
             const useIllumMask = config.mask.enabled && !!illuminationAPI;
             u.uMaskEnabled = useIllumMask;
@@ -2493,9 +2402,10 @@ class LightingEffectManager {
 
             // Structural Highlights
             const structuralLayer = this.canvas.layers.find(l => l instanceof StructuralShadowsLayer);
+            const structuralFilter = structuralLayer?.structuralFilter;
             const structuralHighlightMask = structuralLayer?.getHighlightMaskTexture();
             u.uStructuralHighlightsEnabled = config.highlightStructural.enabled && !!structuralHighlightMask?.valid;
-            if (u.uStructuralHighlightsEnabled) {
+            if (u.uStructuralHighlightsEnabled && structuralFilter) {
                 u.uStructuralHighlightsMask = structuralHighlightMask;
                 u.uStructuralHighlightsBrightness = config.highlightStructural.brightness;
                 const isSplitEnabled = structuralLayer.isRgbSplitEnabled();
@@ -2508,8 +2418,14 @@ class LightingEffectManager {
                 if (u.uStructuralOutdoorsMaskEnabled) {
                     u.uStructuralOutdoorsMask = outdoorsMask;
                 }
+                const sf_u = structuralFilter.uniforms;
+                u.uStructuralParallaxEnabled = true;
+                u.uStructuralParallaxAmount = sf_u.u_parallax;
+                u.uStructuralCameraOffset = sf_u.u_camera_offset;
+                u.uStructuralViewSize = sf_u.u_view_size;
             } else {
                 u.uStructuralOutdoorsMaskEnabled = false;
+                u.uStructuralParallaxEnabled = false;
                 u.uStructuralSplitHighlightsEnabled = false;
             }
         }
@@ -2745,7 +2661,7 @@ class ParticleEffectController {
                                 <div style="padding-left: 15px;">
                                     ${DebuggerUIBuilder._createSliderHTML(`${path}.wind.angleChangeFrequencyMin`, 'Min Time Between Changes (s)', 0.1, 30, 0.1)}
                                     ${DebuggerUIBuilder._createSliderHTML(`${path}.wind.angleChangeFrequencyMax`, 'Max Time Between Changes (s)', 0.1, 30, 0.1)}
-                                    ${DebuggerUIBuilder._createSliderHTML(`${path}.wind.angleChangeRange`, 'Max Angle Change ( )', 0, 90, 1, 'Max degrees the angle can shift each time.')}
+                                    ${DebuggerUIBuilder._createSliderHTML(`${path}.wind.angleChangeRange`, 'Max Angle Change (°)', 0, 90, 1, 'Max degrees the angle can shift each time.')}
                                 </div>
                             </details>
                         </div>
@@ -2965,6 +2881,7 @@ class ParticleEffectController {
     }
 }
 
+
 const buildParticleEmitterConfig = (effectConfig, targetData, maskKey) => {
     const config = effectConfig || {};
     const rect = targetData?.rect;
@@ -3164,6 +3081,7 @@ const buildParticleEmitterConfig = (effectConfig, targetData, maskKey) => {
     };
 };
 
+
 class ParticleManager {
     constructor() {
         this.masterContainer = new PIXI.Container();
@@ -3212,6 +3130,7 @@ class ParticleManager {
         console.log("Map Shine | ParticleManager destroyed.");
     }
 }
+
 
 class FireWindManager {
     constructor(config = {}) {
@@ -3591,49 +3510,6 @@ class NoisePatternFilter extends PIXI.Filter {
     }
 }
 
-class ParallaxMaskFilter extends PIXI.Filter {
-    constructor(options = {}) {
-        const vertexSrc = `
-            attribute vec2 aVertexPosition;
-            attribute vec2 aTextureCoord;
-            uniform mat3 projectionMatrix;
-            varying vec2 vTextureCoord;
-            varying vec2 vScreenCoord;
-
-            void main(void) {
-                gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
-                vTextureCoord = aTextureCoord;
-                vScreenCoord = gl_Position.xy * 0.5 + 0.5;
-            }
-        `;
-        const fragmentSrc = `
-            precision mediump float;
-            varying vec2 vTextureCoord;
-            varying vec2 vScreenCoord;
-
-            uniform sampler2D uMask;
-            uniform float uParallax;
-            uniform vec2 uCameraOffset;
-            uniform vec2 uViewSize;
-
-            void main() {
-                vec2 parallaxTexCoord = vScreenCoord;
-                if (uParallax > 0.0 && uViewSize.y > 0.0) {
-                    vec2 normalized_camera_offset_pixels = uCameraOffset / uViewSize;
-                    parallaxTexCoord = vScreenCoord - (normalized_camera_offset_pixels * uParallax);
-                }
-                gl_FragColor = texture2D(uMask, parallaxTexCoord);
-            }
-        `;
-        super(vertexSrc, fragmentSrc, {
-            uMask: PIXI.Texture.EMPTY,
-            uParallax: options.parallax ?? 0.0,
-            uCameraOffset: [0, 0],
-            uViewSize: [1, 1]
-        });
-    }
-}
-
 class LightingMaskFilter extends PIXI.Filter {
     constructor(options = {}) {
         const fragmentSrc = `
@@ -3708,12 +3584,16 @@ class ColorCorrectionFilter extends PIXI.Filter {
                 uniform float uStructuralHighlightsBrightness;
                 uniform sampler2D uStructuralOutdoorsMask;
                 uniform bool uStructuralOutdoorsMaskEnabled;
+                
+                uniform bool uStructuralParallaxEnabled;
+                uniform float uStructuralParallaxAmount;
+                uniform vec2 uStructuralCameraOffset;
+                uniform vec2 uStructuralViewSize;
 
                 uniform bool uStructuralSplitHighlightsEnabled;
                 uniform sampler2D uStructuralSplitHighlightsMask;
 
                 uniform float uIntensity;
-                uniform vec4 uSceneRectNorm;
 
 
                 const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
@@ -3734,12 +3614,9 @@ class ColorCorrectionFilter extends PIXI.Filter {
                 }
 
                 vec3 applyWhiteBalance(vec3 color, float temp, float green_tint) {
-                    // Use a curve that has maximum effect on mid-tones and falls off towards black and white
-                    // to prevent clipping and crushing blacks. The curve is x * (1.0 - x).
-                    const float STRENGTH = 0.5; // Controls the overall strength of the effect.
-                    color.r += temp * (color.r * (1.0 - color.r)) * STRENGTH;
-                    color.b -= temp * (color.b * (1.0 - color.b)) * STRENGTH;
-                    color.g += green_tint * (color.g * (1.0 - color.g)) * STRENGTH;
+                    color.r += temp * 0.15;
+                    color.b -= temp * 0.15;
+                    color.g += green_tint * 0.15;
                     return color;
                 }
 
@@ -3773,48 +3650,48 @@ class ColorCorrectionFilter extends PIXI.Filter {
                     workingColor = mix(workingColor, uTintColor, uTintAmount);
                     if (uInvert) workingColor = 1.0 - workingColor;
 
+                    // Apply the intensity blend to the color correction part of the effect FIRST.
                     vec3 final_rgb = mix(uncorrectedColor, workingColor, uIntensity);
 
+                    // Now, apply masks and highlights to the intensity-blended result.
                     if (uMaskEnabled) {
                         float maskValue = texture2D(uMaskTexture, vTextureCoord).r;
+                        // The mask now correctly determines where the intensity-blended color correction is applied.
                         final_rgb = mix(uncorrectedColor, final_rgb, maskValue);
                     }
-                    
-                    vec2 sceneMin = uSceneRectNorm.xy;
-                    vec2 sceneMax = uSceneRectNorm.xy + uSceneRectNorm.zw;
-                    bool isInsideScene = vTextureCoord.x >= sceneMin.x && vTextureCoord.x < sceneMax.x &&
-                                         vTextureCoord.y >= sceneMin.y && vTextureCoord.y < sceneMax.y;
 
-                    if (isInsideScene) {
-                        if (uCloudHighlightsEnabled) {
-                            float lightAmount = texture2D(uCloudHighlightsMask, vTextureCoord).r;
-                            final_rgb *= (1.0 + uCloudHighlightsBrightness * lightAmount);
+                    if (uCloudHighlightsEnabled) {
+                        float lightAmount = texture2D(uCloudHighlightsMask, vTextureCoord).r;
+                        final_rgb *= (1.0 + uCloudHighlightsBrightness * lightAmount);
+                    }
+                    if (uCanopyHighlightsEnabled) {
+                        float lightAmount = texture2D(uCanopyHighlightsMask, vTextureCoord).r;
+                        if (uCanopyOutdoorsMaskEnabled) {
+                            lightAmount *= texture2D(uCanopyOutdoorsMask, vTextureCoord).r;
                         }
-                        if (uCanopyHighlightsEnabled) {
-                            float lightAmount = texture2D(uCanopyHighlightsMask, vTextureCoord).r;
-                            if (uCanopyOutdoorsMaskEnabled) {
-                                lightAmount *= texture2D(uCanopyOutdoorsMask, vTextureCoord).r;
-                            }
-                            final_rgb *= (1.0 + uCanopyHighlightsBrightness * lightAmount);
+                        final_rgb *= (1.0 + uCanopyHighlightsBrightness * lightAmount);
+                    }
+                    
+                    if (uStructuralHighlightsEnabled) {
+                        vec2 highlightTexCoord = vTextureCoord;
+                        if ( uStructuralParallaxEnabled && uStructuralViewSize.y > 0.0) {
+                            vec2 normalized_camera_offset = uStructuralCameraOffset / uStructuralViewSize;
+                            highlightTexCoord = vTextureCoord - (normalized_camera_offset * uStructuralParallaxAmount);
                         }
-                        
-                        if (uStructuralHighlightsEnabled) {
-                            // The highlight masks already have parallax baked in from their respective layers.
-                            // We just need to sample them with the standard screen coordinate.
-                            if (uStructuralSplitHighlightsEnabled) {
-                                vec3 splitLight = texture2D(uStructuralSplitHighlightsMask, vTextureCoord).rgb;
-                                if (uStructuralOutdoorsMaskEnabled) {
-                                    splitLight *= (1.0 - texture2D(uStructuralOutdoorsMask, vTextureCoord).r);
-                                }
-                                vec3 highlightBoost = splitLight * uStructuralHighlightsBrightness;
-                                final_rgb *= (vec3(1.0) + highlightBoost);
-                            } else {
-                                float lightAmount = texture2D(uStructuralHighlightsMask, vTextureCoord).r;
-                                if (uStructuralOutdoorsMaskEnabled) {
-                                    lightAmount *= (1.0 - texture2D(uStructuralOutdoorsMask, vTextureCoord).r);
-                                }
-                                final_rgb *= (1.0 + uStructuralHighlightsBrightness * lightAmount);
+                        if (uStructuralSplitHighlightsEnabled) {
+                            vec3 splitLight = texture2D(uStructuralSplitHighlightsMask, highlightTexCoord).rgb;
+                            if (uStructuralOutdoorsMaskEnabled) {
+                            splitLight *= (1.0 - texture2D(uStructuralOutdoorsMask, vTextureCoord).r);
                             }
+                            vec3 highlightBoost = splitLight * uStructuralHighlightsBrightness;
+                            final_rgb *= (vec3(1.0) + highlightBoost);
+
+                        } else {
+                            float lightAmount = texture2D(uStructuralHighlightsMask, highlightTexCoord).r;
+                            if (uStructuralOutdoorsMaskEnabled) {
+                                lightAmount *= (1.0 - texture2D(uStructuralOutdoorsMask, vTextureCoord).r);
+                            }
+                            final_rgb *= (1.0 + uStructuralHighlightsBrightness * lightAmount);
                         }
                     }
 
@@ -3865,16 +3742,20 @@ class ColorCorrectionFilter extends PIXI.Filter {
             uAmbientCompositeTexture: PIXI.Texture.EMPTY,
             uAmbientCompositeEnabled: false,
             uAmbientCompositeBlendMode: PIXI.BLEND_MODES.NORMAL,
+
             uAmbientIlluminationMask: PIXI.Texture.EMPTY,
             uAmbientIlluminationMaskEnabled: false,
+
             uCloudHighlightsEnabled: false,
             uCloudHighlightsMask: PIXI.Texture.EMPTY,
             uCloudHighlightsBrightness: 0.0,
+
             uCanopyHighlightsEnabled: false,
             uCanopyHighlightsMask: PIXI.Texture.EMPTY,
             uCanopyHighlightsBrightness: 0.0,
             uCanopyOutdoorsMask: PIXI.Texture.EMPTY,
             uCanopyOutdoorsMaskEnabled: false,
+
             uStructuralHighlightsEnabled: false,
             uStructuralHighlightsMask: PIXI.Texture.EMPTY,
             uStructuralHighlightsBrightness: 0.0,
@@ -3882,7 +3763,13 @@ class ColorCorrectionFilter extends PIXI.Filter {
             uStructuralOutdoorsMaskEnabled: false,
             uStructuralSplitHighlightsEnabled: false,
             uStructuralSplitHighlightsMask: PIXI.Texture.EMPTY,
-            uSceneRectNorm: [0, 0, 1, 1],
+
+            uStructuralParallaxEnabled: false,
+            uStructuralParallaxAmount: 0.0,
+            uStructuralSceneRect: [0, 0, 1, 1],
+            uStructuralCameraOffset: [0, 0],
+            uStructuralViewSize: [1, 1],
+
             uIntensity: options.intensity ?? 1.0,
         });
     }
@@ -4516,12 +4403,6 @@ class MetallicShineFilter extends PIXI.Filter {
             // Samplers
             uniform sampler2D uSampler;
             uniform sampler2D uShinePatternMap;
-            uniform sampler2D uStructuralMask;
-            uniform sampler2D uOutdoorsMask;
-
-            // Toggles
-            uniform bool uUseStructuralMask;
-            uniform bool uUseOutdoorsMask;
 
             // Base Shine Uniforms
             uniform float uBoost;
@@ -4537,55 +4418,58 @@ class MetallicShineFilter extends PIXI.Filter {
 
             void main(void) {
                 vec4 specularColor = texture2D(uSampler, vTextureCoord);
-                float baseSpecularLuminance = dot(specularColor.rgb, lum_weights);
-                float finalSpecularLuminance = baseSpecularLuminance;
+                float specularLuminance = dot(specularColor.rgb, lum_weights);
 
-                // Conditionally apply structural shadows.
-                if (uUseStructuralMask) {
-                    float structuralLight = texture2D(uStructuralMask, vScreenCoord).r;
-                    
-                    if (uUseOutdoorsMask) {
-                        float outdoorsAmount = texture2D(uOutdoorsMask, vScreenCoord).r;
-                        // When outdoors (outdoorsAmount=1), use the original specular.
-                        // When indoors (outdoorsAmount=0), use the specular multiplied by the structural light.
-                        finalSpecularLuminance = mix(baseSpecularLuminance * structuralLight, baseSpecularLuminance, outdoorsAmount);
-                    } else {
-                        // If no outdoors mask is present, apply shadows everywhere.
-                        finalSpecularLuminance = baseSpecularLuminance * structuralLight;
-                    }
-                }
-
-                if (specularColor.a < 0.1 || finalSpecularLuminance < 0.01) {
+                if (specularColor.a < 0.1 || specularLuminance < 0.01) {
                     gl_FragColor = vec4(0.0);
                     return;
                 }
 
+                // 1. Get the raw animated shine pattern intensity
                 float shinePatternIntensity = texture2D(uShinePatternMap, vScreenCoord).r;
+
+                // 2. Start with the boosted pattern as the base color to be corrected
                 vec3 workingColor = vec3(shinePatternIntensity * uBoost);
 
+                // 3. If enabled, apply the full color correction pass to the shine itself
                 if (uCCEnabled) {
-                    if (uInWhite > uInBlack) workingColor = (workingColor - uInBlack) / (uInWhite - uInBlack);
+                    // Apply Levels
+                    if (uInWhite > uInBlack) {
+                        workingColor = (workingColor - uInBlack) / (uInWhite - uInBlack);
+                    }
+                    
+                    // Apply Exposure
                     workingColor *= pow(2.0, uExposure);
-                    if (uGamma > 0.0) workingColor = pow(workingColor, vec3(1.0 / uGamma));
+
+                    // Apply Gamma
+                    if (uGamma > 0.0) {
+                        workingColor = pow(workingColor, vec3(1.0 / uGamma));
+                    }
+                    
+                    // Apply Brightness & Contrast
                     workingColor += uBrightness;
                     workingColor = (workingColor - 0.5) * uContrast + 0.5;
+
+                    // Apply Saturation
                     float luminance = dot(workingColor, lum_weights);
                     workingColor = mix(vec3(luminance), workingColor, uSaturation);
+
+                    // Apply Tint
                     workingColor = mix(workingColor, uTintColor, uTintAmount);
                 }
 
-                vec3 finalColor = workingColor * finalSpecularLuminance;
+                // 4. Use the specular map's luminance to mask the color-corrected shine
+                vec3 finalColor = workingColor * specularLuminance;
+
                 finalColor = clamp(finalColor, 0.0, 1.0);
+
+                // The final alpha is based on the original pattern intensity and the specular map's alpha
                 gl_FragColor = vec4(finalColor, shinePatternIntensity * specularColor.a);
             }
         `;
 
         super(vertexSrc, fragmentSrc, {
             uShinePatternMap: options.shinePatternTexture,
-            uStructuralMask: PIXI.Texture.EMPTY,
-            uOutdoorsMask: PIXI.Texture.EMPTY,
-            uUseStructuralMask: false,
-            uUseOutdoorsMask: false,
             uBoost: options.boost ?? 1.0,
 
             uCCEnabled: options.uCCEnabled ?? true,
@@ -4932,19 +4816,19 @@ class MetallicShineLayer extends foundry.canvas.layers.CanvasLayer {
     _onAnimate(deltaTime) {
         if (this._destroyed) return;
         this._framesSinceLoad++;
-    
+
         this.visible = false;
-    
+
         const config = game.mapShine.profileManager.activeConfig;
         if (!config.enabled || !config.baseShine.enabled || !this.shineFilter || !this.shinePatternFilter) return;
-    
+
         const hasActiveTargets = this.effectSprites.size > 0 && Array.from(this.effectSprites.values()).some(s => s.texture.valid);
         if (!hasActiveTargets) return;
-    
+
         if (this._framesSinceLoad < 5) return;
-    
+
         this.visible = true;
-    
+
         // --- Pass 1: Generate the Shine Pattern ---
         const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
         this.noiseTextureManager.update(deltaTime * timeFactor, canvas.app.renderer);
@@ -4962,36 +4846,14 @@ class MetallicShineLayer extends foundry.canvas.layers.CanvasLayer {
             renderTexture: this.patternTexture,
             clear: true
         });
-    
-        const structuralLayer = canvas.layers.find(l => l instanceof StructuralShadowsLayer);
-        const cleanStructuralMask = structuralLayer?.getCleanStructuralLightMask();
-        const outdoorsMask = structuralLayer?.outdoorsMaskTexture;
-        
-        // Check if all required components are available and active.
-        if (this.shineFilter && structuralLayer?.visible && cleanStructuralMask?.valid) {
-            this.shineFilter.uniforms.uStructuralMask = cleanStructuralMask;
-            this.shineFilter.uniforms.uUseStructuralMask = true;
-    
-            // Also pass the outdoors mask if it's available.
-            if (outdoorsMask?.valid) {
-                this.shineFilter.uniforms.uOutdoorsMask = outdoorsMask;
-                this.shineFilter.uniforms.uUseOutdoorsMask = true;
-            } else {
-                 this.shineFilter.uniforms.uUseOutdoorsMask = false;
-            }
-    
-        } else if (this.shineFilter) {
-            this.shineFilter.uniforms.uUseStructuralMask = false;
-            this.shineFilter.uniforms.uUseOutdoorsMask = false;
-        }
-    
+
         // --- Pass 2: Render the Final Shine using the generated pattern ---
         canvas.app.renderer.render(this.sourceContainer, {
             renderTexture: this.shinePassTexture,
             clear: true,
             transform: canvas.stage.transform.worldTransform,
         });
-    
+
         // Position the final output sprites
         [this.shineSprite, this.bloomSprite, this.starburstSprite].forEach(sprite => {
             sprite.position.copyFrom(topLeft);
@@ -6186,6 +6048,7 @@ class StructuralShadowsFilter extends PIXI.Filter {
     }
 }
 
+
 class StructuralShadowsLayer extends MaskedEffectLayer {
     constructor() {
         super({
@@ -6198,18 +6061,20 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
         this.finalShadowTexture = null;
         this.finalHighlightMaskTexture = null;
         this.intensityNoiseManager = null;
+
+        // The dedicated cloud noise properties have been removed.
+        // this.cloudNoiseTexture = null;
+        // this.cloudNoiseFilter = null;
+        // this._cloudNoiseSprite = null;
+
         this.rgbSplitFilter = null;
         this.splitHighlightMaskTexture = null;
         this._splitHighlightSprite = null;
+
         this.outdoorsMaskContainer = null;
         this.outdoorsMaskTexture = null;
         this.outdoorsMaskSprites = new Map();
         this._needsOutdoorsMaskUpdate = true;
-
-        // New properties for the clean mask generation
-        this.cleanStructuralLightMask = null;
-        this.parallaxMaskFilter = null;
-        this._parallaxMaskSprite = null;
     }
 
     static getSettingsHTML() {
@@ -6297,10 +6162,6 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
         return this.finalHighlightMaskTexture;
     }
 
-    getCleanStructuralLightMask() {
-        return this.cleanStructuralLightMask;
-    }
-
     getSplitHighlightMaskTexture() {
         return this.splitHighlightMaskTexture;
     }
@@ -6324,7 +6185,9 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
             width: screen.width,
             height: screen.height
         });
+
         this.intensityNoiseManager = new NoiseTextureManager(renderer, 'structuralShadows.intensityNoise', true);
+
         this.finalShadowTexture = PIXI.RenderTexture.create({
             width: screen.width,
             height: screen.height
@@ -6333,6 +6196,8 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
             width: screen.width,
             height: screen.height
         });
+
+        // Setup for RGB Split
         this.splitHighlightMaskTexture = PIXI.RenderTexture.create({
             width: screen.width,
             height: screen.height
@@ -6340,17 +6205,6 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
         this.rgbSplitFilter = new StructuralHighlightRgbSplitFilter();
         this._splitHighlightSprite = new PIXI.Sprite(this.finalHighlightMaskTexture);
         this._splitHighlightSprite.filters = [this.rgbSplitFilter];
-
-        // New setup for clean mask generation
-        this.cleanStructuralLightMask = PIXI.RenderTexture.create({
-            width: screen.width,
-            height: screen.height
-        });
-        this.parallaxMaskFilter = new ParallaxMaskFilter();
-        this._parallaxMaskSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
-        this._parallaxMaskSprite.width = screen.width;
-        this._parallaxMaskSprite.height = screen.height;
-        this._parallaxMaskSprite.filters = [this.parallaxMaskFilter];
 
         try {
             this.structuralFilter = new StructuralShadowsFilter();
@@ -6365,13 +6219,16 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
                 message: `Compilation Failed: ${e.message}`
             });
         }
+
         this._patternGeneratorSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
         this._patternGeneratorSprite.width = screen.width;
         this._patternGeneratorSprite.height = screen.height;
         this._patternGeneratorSprite.filters = this.structuralFilter ? [this.structuralFilter] : [];
+
         this.effectSprite = new PIXI.Sprite(this.finalShadowTexture);
         this.effectSprite.blendMode = PIXI.BLEND_MODES.MULTIPLY;
         this.addChild(this.effectSprite);
+
         this.updateFromConfig(game.mapShine.profileManager.activeConfig);
     }
 
@@ -6384,12 +6241,13 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
         super._onResize();
         const renderer = canvas.app.renderer;
         const screen = renderer.screen;
+
         this.intensityNoiseManager?.resize(renderer);
         this.outdoorsMaskTexture?.resize(screen.width, screen.height);
         this.finalShadowTexture?.resize(screen.width, screen.height);
         this.finalHighlightMaskTexture?.resize(screen.width, screen.height);
         this.splitHighlightMaskTexture?.resize(screen.width, screen.height);
-        this.cleanStructuralLightMask?.resize(screen.width, screen.height);
+
         if (this._patternGeneratorSprite) {
             this._patternGeneratorSprite.width = screen.width;
             this._patternGeneratorSprite.height = screen.height;
@@ -6398,13 +6256,10 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
             this._splitHighlightSprite.width = screen.width;
             this._splitHighlightSprite.height = screen.height;
         }
-        if (this._parallaxMaskSprite) {
-            this._parallaxMaskSprite.width = screen.width;
-            this._parallaxMaskSprite.height = screen.height;
-        }
         if (this.rgbSplitFilter) {
             this.rgbSplitFilter.uniforms.uTexelSize = [1 / screen.width, 1 / screen.height];
         }
+
         if (this.effectSprite) {
             const stage = canvas.stage;
             const topLeft = stage.toLocal({
@@ -6421,12 +6276,14 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
     _onAnimate(deltaTime) {
         super._onAnimate(deltaTime);
         if (this._destroyed || !this.visible || !this.structuralFilter) return;
+
         const hasActiveTargets = this.maskSprites.size > 0 && Array.from(this.maskSprites.values()).some(s => s.texture.valid);
         if (!hasActiveTargets) {
             this.effectSprite.visible = false;
             return;
         }
         this.effectSprite.visible = true;
+
         const renderer = canvas.app.renderer;
         const stage = canvas.stage;
         const screen = renderer.screen;
@@ -6436,7 +6293,9 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
         });
         const viewSize = [screen.width / stage.scale.x, screen.height / stage.scale.y];
         const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
+
         this.intensityNoiseManager.update(deltaTime * timeFactor, renderer);
+
         if (this._needsOutdoorsMaskUpdate) {
             renderer.render(this.outdoorsMaskContainer, {
                 renderTexture: this.outdoorsMaskTexture,
@@ -6446,19 +6305,6 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
             this._needsOutdoorsMaskUpdate = false;
         }
 
-        // --- New Pass: Generate the clean, parallax-only structural mask ---
-        if (this.parallaxMaskFilter) {
-            const p_u = this.parallaxMaskFilter.uniforms;
-            p_u.uMask = this.getMaskTexture();
-            p_u.uCameraOffset = [topLeft.x, topLeft.y];
-            p_u.uViewSize = viewSize;
-            renderer.render(this._parallaxMaskSprite, {
-                renderTexture: this.cleanStructuralLightMask,
-                clear: true
-            });
-        }
-
-        // --- Main Pass: Generate the final shadows and highlight mask ---
         const u = this.structuralFilter.uniforms;
         u.uStructuralMask = this.getMaskTexture();
         u.u_intensityNoise = this.intensityNoiseManager.getTexture();
@@ -6466,29 +6312,32 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
         u.u_time += deltaTime * timeFactor;
         u.u_camera_offset = [topLeft.x, topLeft.y];
         u.u_view_size = viewSize;
+
         const illumConfig = game.mapShine.profileManager.activeConfig.structuralShadows.illumination;
         const illuminationAPI = game.modules.get('illuminationbuffer')?.api;
         const illumTexture = illuminationAPI?.getLightingTexture();
         u.u_illum_enabled = illumConfig.enabled && !!illumTexture?.valid;
         if (u.u_illum_enabled) u.uIlluminationBuffer = illumTexture;
+
         u.u_outputHighlightMask = true;
         renderer.render(this._patternGeneratorSprite, {
             renderTexture: this.finalHighlightMaskTexture,
             clear: true
         });
+
         u.u_outputHighlightMask = false;
         renderer.render(this._patternGeneratorSprite, {
             renderTexture: this.finalShadowTexture,
             clear: true
         });
 
-        // --- Optional Pass: Generate RGB split highlight mask ---
         if (this.isRgbSplitEnabled()) {
             renderer.render(this._splitHighlightSprite, {
                 renderTexture: this.splitHighlightMaskTexture,
                 clear: true
             });
         }
+
         this.effectSprite.position.copyFrom(topLeft);
         this.effectSprite.width = screen.width / stage.scale.x;
         this.effectSprite.height = screen.height / stage.scale.y;
@@ -6496,12 +6345,14 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
 
     async updateEffectTargets(targets) {
         await super.updateEffectTargets(targets);
+
         if (!this.outdoorsMaskContainer) return;
         this.outdoorsMaskContainer.removeChildren().forEach(c => c.destroy({
             texture: true,
             baseTexture: true
         }));
         this.outdoorsMaskSprites.clear();
+
         const allTargets = new Map([
             ['background', targets.background], ...targets.tiles.entries()
         ]);
@@ -6519,18 +6370,22 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
     async updateFromConfig(config) {
         const ssConfig = config.structuralShadows;
         this.visible = config.enabled && ssConfig.enabled;
+    
         this.intensityNoiseManager?.updateFromConfig(config);
+    
         if (this.structuralFilter) {
             const u = this.structuralFilter.uniforms;
             const cloudConfig = ssConfig.cloudOcclusion;
             const windAngleRad = (cloudConfig.wind.angle ?? 45.0) * (Math.PI / 180);
             const windSpeed = (cloudConfig.wind.speed ?? 0.001);
             u.u_windDirection = [Math.cos(windAngleRad) * windSpeed, Math.sin(windAngleRad) * windSpeed];
+            
             const noise = cloudConfig.noise;
             u.u_noise_scale = noise.scale;
             u.u_noise_octaves = noise.octaves;
             u.u_noise_persistence = noise.persistence;
             u.u_noise_lacunarity = noise.lacunarity;
+            
             const shading = cloudConfig.shading;
             u.u_cloud_shading_threshold = shading.threshold;
             u.u_cloud_shading_softness = shading.softness;
@@ -6540,6 +6395,7 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
             u.u_cloud_shading_exposure = shading.exposure;
             u.u_cloud_shading_inBlack = shading.levels.inBlack;
             u.u_cloud_shading_inWhite = shading.levels.inWhite;
+    
             u.u_shadowIntensity = ssConfig.shadowIntensity;
             u.u_tint = hexToRgbArray(ssConfig.tint);
             u.u_parallax = ssConfig.parallax;
@@ -6553,14 +6409,12 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
             u.u_illum_luminanceThreshold = illumConfig.luminanceThreshold;
             u.u_illum_softness = illumConfig.softness;
         }
+    
         if (this.rgbSplitFilter) {
             const u = this.rgbSplitFilter.uniforms;
             const rgbConfig = ssConfig.rgbSplit;
             u.uIntensity = rgbConfig.intensity;
             u.uThreshold = rgbConfig.threshold;
-        }
-        if (this.parallaxMaskFilter) {
-            this.parallaxMaskFilter.uniforms.uParallax = ssConfig.parallax;
         }
     }
 
@@ -6571,9 +6425,11 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
         this.finalShadowTexture?.destroy(true);
         this.finalHighlightMaskTexture?.destroy(true);
         this.effectSprite?.destroy();
+
         this.rgbSplitFilter?.destroy();
         this._splitHighlightSprite?.destroy();
         this.splitHighlightMaskTexture?.destroy(true);
+
         this.outdoorsMaskContainer?.destroy({
             children: true,
             texture: true,
@@ -6581,9 +6437,7 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
         });
         this.outdoorsMaskTexture?.destroy(true);
         this.outdoorsMaskSprites.clear();
-        this.cleanStructuralLightMask?.destroy(true);
-        this.parallaxMaskFilter?.destroy();
-        this._parallaxMaskSprite?.destroy();
+
         this.intensityNoiseManager = null;
         this.structuralFilter = null;
         this._patternGeneratorSprite = null;
@@ -6595,12 +6449,11 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
         this.rgbSplitFilter = null;
         this._splitHighlightSprite = null;
         this.splitHighlightMaskTexture = null;
-        this.cleanStructuralLightMask = null;
-        this.parallaxMaskFilter = null;
-        this._parallaxMaskSprite = null;
+
         await super._tearDown(options);
     }
 }
+
 
 // --- 5.7. Iridescence ---
 
@@ -8040,23 +7893,18 @@ class WaterEffectsFilter extends PIXI.Filter {
                 }
     
                 void main() {
-                    float waterMaskValue = texture2D(u_waterMask, vTextureCoord).r;
-
-                    if (waterMaskValue < 0.01 && !u_outputShorelineFoamMask) {
-                        gl_FragColor = texture2D(uSampler, vTextureCoord);
-                        return;
-                    }
-
-                    vec2 world_coord = u_camera_offset + (vTextureCoord * u_view_size);
+                    float waterMaskValue = texture2D(u_waterMask, vScreenCoord).r;
+                    vec2 world_coord = u_camera_offset + (vScreenCoord * u_view_size);
     
+                    // --- 1. Calculate Displacements in Their Native Spaces ---
                     vec2 wave_uv_offset = vec2(0.0);
                     if (u_wave_enabled) {
-                        wave_uv_offset = (texture2D(u_displacementMap, vTextureCoord).xy - 0.5) * 2.0 * u_wave_intensity;
+                        wave_uv_offset = (texture2D(u_displacementMap, vScreenCoord).xy - 0.5) * 2.0 * u_wave_intensity;
                     }
     
                     vec2 swirl_world_offset = vec2(0.0);
                     if (u_shoreline_enabled && u_shorelineDisplacementEnabled) {
-                        float currentShorelineMask = u_useShorelineMask ? texture2D(u_shorelineMask, vTextureCoord).r : clamp((texture2D(u_blurredWaterMask, vTextureCoord).r - waterMaskValue) * 5.0, 0.0, 1.0);
+                        float currentShorelineMask = u_useShorelineMask ? texture2D(u_shorelineMask, vScreenCoord).r : clamp((texture2D(u_blurredWaterMask, vScreenCoord).r - waterMaskValue) * 5.0, 0.0, 1.0);
                         if (currentShorelineMask > 0.0) {
                             vec2 swirl_noise_coord = world_coord * u_shorelineDisplacementScale * 0.01;
                             float displacement_time = u_time * u_shorelineDisplacementSpeed;
@@ -8066,14 +7914,26 @@ class WaterEffectsFilter extends PIXI.Filter {
                         }
                     }
     
+                    // --- 2. Calculate Final Coordinates ---
+                    // The final UV for sampling the scene is distorted by the screen-space wave effect.
                     vec2 final_distorted_uv = vTextureCoord + wave_uv_offset;
+                    
+                    // The final world coordinate for sampling patterns is distorted by the world-space swirl effect.
                     vec2 final_distorted_world_coord = world_coord + swirl_world_offset;
                     
+                    // --- 3. Apply and Render ---
                     vec4 sceneColor = texture2D(uSampler, mix(vTextureCoord, final_distorted_uv, waterMaskValue));
+                    
+                    if (waterMaskValue < 0.01 && !u_outputShorelineFoamMask) {
+                        gl_FragColor = sceneColor;
+                        return;
+                    }
                     
                     vec3 finalColor = sceneColor.rgb;
     
+                    // --- 4. Render Overlay Effects using the final distorted world coordinate ---
                     if (u_caustics_enabled) {
+                        // Caustics are an exception - they are unaffected by surface distortion for a parallax effect.
                         float time = u_time * u_causticsSpeed;
                         vec3 dist_coord = vec3(world_coord * u_causticsLineDistortionScale * 0.01, time * 2.0);
                         float distortion_noise = snoise(dist_coord) * u_causticsLineDistortion;
@@ -8093,6 +7953,7 @@ class WaterEffectsFilter extends PIXI.Filter {
                     }
     
                     if (u_surface_enabled) {
+                        // Apply wave distortion to the foam pattern sampling in a controlled way
                         vec2 foam_wave_distortion = wave_uv_offset * u_openWaterFbmScale * 10.0;
                         vec2 baseFoamUV = (final_distorted_world_coord * u_openWaterFbmScale * 0.01) + foam_wave_distortion;
 
@@ -8104,6 +7965,7 @@ class WaterEffectsFilter extends PIXI.Filter {
                         
                         vec3 sheenResult = vec3(0.0);
                         if (u_sheenEnabled) {
+                            // Also apply wave distortion to sheen
                             vec2 sheen_wave_distortion = wave_uv_offset * u_sheenScale * 10.0;
                             vec2 sheenUV = (final_distorted_world_coord * u_sheenScale * 0.01) + sheen_wave_distortion;
                             sheenUV.x *= u_sheenStretch;
@@ -8116,8 +7978,9 @@ class WaterEffectsFilter extends PIXI.Filter {
                     }
     
                     if (u_shoreline_enabled) {
-                        float shorelineMaskValue = u_useShorelineMask ? texture2D(u_shorelineMask, vTextureCoord).r : clamp((texture2D(u_blurredWaterMask, vTextureCoord).r - waterMaskValue) * 5.0, 0.0, 1.0);
+                        float shorelineMaskValue = u_useShorelineMask ? texture2D(u_shorelineMask, vScreenCoord).r : clamp((texture2D(u_blurredWaterMask, vScreenCoord).r - waterMaskValue) * 5.0, 0.0, 1.0);
                         
+                        // Apply wave distortion to the shoreline foam pattern
                         vec2 shore_foam_wave_distortion = wave_uv_offset * u_shorelinePatternScale * 10.0;
                         vec2 final_foam_uv = (final_distorted_world_coord * u_shorelinePatternScale * 0.01) + shore_foam_wave_distortion;
 
@@ -8198,6 +8061,7 @@ class WaterFXLayer extends MaskedEffectLayer {
         this.shorelineMaskContainer = null;
         this.shorelineMaskTexture = null;
         this.shorelineMaskSprites = new Map();
+        this.waterEffectsFilter = null;
         this._needsShorelineMaskUpdate = true;
         this.time = 0;
 
@@ -8503,6 +8367,12 @@ class WaterFXLayer extends MaskedEffectLayer {
             height: renderer.screen.height
         });
 
+        // --- Main Visual Filter (applied to the whole scene) ---
+        this.waterEffectsFilter = new WaterEffectsFilter();
+        if (canvas.effects) {
+            canvas.effects.filters = [...(canvas.effects.filters || []), this.waterEffectsFilter];
+        }
+
         // --- Particle Mask Generation System ---
         const particleMaskFilter = new WaterEffectsFilter();
         this.particleMaskGeneratorSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
@@ -8517,6 +8387,75 @@ class WaterFXLayer extends MaskedEffectLayer {
         this.updateFromConfig(game.mapShine.profileManager.activeConfig);
     }
 
+    _syncFilterUniforms(config, filter) {
+        if (!filter) return;
+        const wConfig = config.water;
+        const u = filter.uniforms;
+    
+        u.u_wave_enabled = wConfig.wave.enabled;
+        u.u_wave_intensity = wConfig.wave.intensity;
+        const srfConfig = wConfig.surface;
+        u.u_surface_enabled = srfConfig.enabled;
+        u.u_openWaterFoamColor = hexToRgbArray(srfConfig.foamColor);
+        u.u_openWaterFoamIntensity = srfConfig.foamIntensity;
+        u.u_openWaterFoamCoverage = srfConfig.foamCoverage;
+        u.u_openWaterFoamSharpness = srfConfig.foamSharpness;
+        u.u_openWaterFbmScale = srfConfig.fbmScale;
+        u.u_openWaterFbmSpeed = srfConfig.fbmSpeed;
+        u.u_openWaterFbmEvolution = srfConfig.fbmEvolution;
+        u.u_openWaterFbmOctaves = srfConfig.fbmOctaves;
+        u.u_openWaterFbmLacunarity = srfConfig.fbmLacunarity;
+        u.u_openWaterFbmPersistence = srfConfig.fbmPersistence;
+    
+        // Pass sheen uniforms directly
+        u.u_sheenEnabled = srfConfig.sheenEnabled;
+        u.u_sheenColor = hexToRgbArray(srfConfig.sheenColor);
+        u.u_sheenIntensity = srfConfig.sheenIntensity;
+        u.u_sheenScale = srfConfig.sheenScale;
+        u.u_sheenSpeed = srfConfig.sheenSpeed;
+        u.u_sheenStretch = srfConfig.sheenStretch;
+        u.u_sheenSharpness = srfConfig.sheenSharpness;
+    
+        const cConfig = wConfig.caustics;
+        u.u_caustics_enabled = cConfig.enabled;
+        u.u_causticsColor = hexToRgbArray(cConfig.color);
+        u.u_causticsIntensity = cConfig.intensity;
+        u.u_causticsScale = cConfig.scale;
+        u.u_causticsSpeed = cConfig.speed;
+        u.u_causticsLineSharpness = cConfig.lineSharpness;
+        u.u_causticsBloomIntensity = cConfig.bloomIntensity;
+        u.u_causticsLineDistortion = cConfig.lineDistortion;
+        u.u_causticsLineDistortionScale = cConfig.lineDistortionScale;
+        u.u_causticsIntersectionBoost = cConfig.intersectionBoost;
+        u.u_causticsRoughnessScale = cConfig.roughnessScale;
+        u.u_causticsRoughnessIntensity = cConfig.roughnessIntensity;
+        const shConfig = wConfig.shoreline;
+        u.u_shoreline_enabled = shConfig.enabled;
+        u.u_shorelineFoamColor = hexToRgbArray(shConfig.foamColor);
+        u.u_shorelineFoamIntensity = shConfig.foamIntensity;
+    
+        const dispConfig = shConfig.displacement;
+        if (dispConfig) {
+            u.u_shorelineDisplacementEnabled = dispConfig.enabled;
+            u.u_shorelineDisplacementScale = dispConfig.scale;
+            u.u_shorelineDisplacementSpeed = dispConfig.speed;
+            u.u_shorelineDisplacementStrength = dispConfig.strength;
+        }
+    
+        const foamPatternConfig = shConfig.foamPattern;
+        u.u_shorelinePatternScale = foamPatternConfig.scale;
+        u.u_shorelinePatternSpeed = foamPatternConfig.speed;
+        u.u_shorelinePatternEvolution = foamPatternConfig.evolution;
+        u.u_shorelinePatternOctaves = foamPatternConfig.octaves;
+        u.u_shorelinePatternLacunarity = foamPatternConfig.lacunarity;
+        u.u_shorelinePatternPersistence = foamPatternConfig.persistence;
+        u.u_shorelinePatternBrightness = foamPatternConfig.brightness;
+        u.u_shorelinePatternContrast = foamPatternConfig.contrast;
+    
+        u.u_particleMaskBrightness = shConfig.particleMaskBrightness;
+        u.u_particleMaskContrast = shConfig.particleMaskContrast;
+    }
+
     updateFromConfig(config) {
         const wConfig = config.water;
         this.visible = config.enabled && wConfig.enabled;
@@ -8526,8 +8465,10 @@ class WaterFXLayer extends MaskedEffectLayer {
         this.displacementFilter.uniforms.u_scale = wConfig.wave.scale;
         this.blurFilter.blur = wConfig.shoreline.detectionBlur;
 
-        // Parameter uniforms for the particle mask generator are synced by ScreenEffectsManager
-        // so we don't need a separate call here.
+        this._syncFilterUniforms(config, this.waterEffectsFilter);
+        if (this.particleMaskGeneratorSprite) {
+            this._syncFilterUniforms(config, this.particleMaskGeneratorSprite.filters[0]);
+        }
     }
 
     _onPan() {
@@ -8551,13 +8492,12 @@ class WaterFXLayer extends MaskedEffectLayer {
 
     _onAnimate(deltaTime) {
         super._onAnimate(deltaTime);
-        const waterEffectsFilter = ScreenEffectsManager.getFilter('water');
-        if (this._destroyed || !waterEffectsFilter) return;
+        if (this._destroyed || !this.waterEffectsFilter) return;
 
         const hasActiveMasks = this.maskSprites.size > 0 && Array.from(this.maskSprites.values()).some(s => s.texture?.valid);
-        waterEffectsFilter.enabled = this.visible && hasActiveMasks;
+        this.waterEffectsFilter.enabled = this.visible && hasActiveMasks;
 
-        if (!waterEffectsFilter.enabled) return;
+        if (!this.waterEffectsFilter.enabled) return;
 
         const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
         this.time += deltaTime * timeFactor;
@@ -8589,48 +8529,33 @@ class WaterFXLayer extends MaskedEffectLayer {
         });
 
         const useShorelineMask = this.shorelineMaskSprites.size > 0;
+
         this.displacementFilter.uniforms.u_time = this.time;
 
-        const u = waterEffectsFilter.uniforms;
-        u.u_time = this.time;
-        u.u_displacementMap = this.displacementTexture;
-        u.u_waterMask = this.getMaskTexture();
-        u.u_shorelineMask = this.shorelineMaskTexture;
-        u.u_blurredWaterMask = this.blurredWaterMaskTexture;
-        u.u_useShorelineMask = useShorelineMask;
-        u.u_camera_offset = [topLeft.x, topLeft.y];
-        u.u_view_size = viewSize;
+        const filtersToUpdate = [this.waterEffectsFilter, this.particleMaskGeneratorSprite.filters[0]];
+        for (const filter of filtersToUpdate) {
+            const u = filter.uniforms;
+            u.u_time = this.time;
+            u.u_displacementMap = this.displacementTexture;
+            u.u_waterMask = this.getMaskTexture();
+            u.u_shorelineMask = this.shorelineMaskTexture;
+            u.u_blurredWaterMask = this.blurredWaterMaskTexture;
+            u.u_useShorelineMask = useShorelineMask;
+            u.u_camera_offset = [topLeft.x, topLeft.y];
+            u.u_view_size = viewSize;
+        }
 
         const foamController = game.mapShine.particleManager?.controllers.get('foam');
-        const foamParticlesEnabled = game.mapShine.profileManager.activeConfig.water.shoreline.foamParticles.enabled;
+        if (foamController?.cullingFilter) {
+            const particleMaskFilter = this.particleMaskGeneratorSprite.filters[0];
+            particleMaskFilter.uniforms.u_outputShorelineFoamMask = true;
+            renderer.render(this.particleMaskGeneratorSprite, {
+                renderTexture: this.shorelineParticleMaskTexture,
+                clear: true
+            });
+            particleMaskFilter.uniforms.u_outputShorelineFoamMask = false;
 
-        if (foamController && foamParticlesEnabled) {
-             const particleMaskFilter = this.particleMaskGeneratorSprite.filters[0];
-            
-             // We need to sync the live textures to the particle mask generator as well.
-             const p_u = particleMaskFilter.uniforms;
-             p_u.u_time = this.time;
-             p_u.u_displacementMap = this.displacementTexture;
-             p_u.u_waterMask = this.getMaskTexture();
-             p_u.u_shorelineMask = this.shorelineMaskTexture;
-             p_u.u_blurredWaterMask = this.blurredWaterMaskTexture;
-             p_u.u_useShorelineMask = useShorelineMask;
-             p_u.u_camera_offset = [topLeft.x, topLeft.y];
-             p_u.u_view_size = viewSize;
- 
-             // Now generate the mask
-             p_u.u_outputShorelineFoamMask = true;
-             renderer.render(this.particleMaskGeneratorSprite, { renderTexture: this.shorelineParticleMaskTexture, clear: true });
-             p_u.u_outputShorelineFoamMask = false;
- 
-             // Find the foam particle controller and update its dynamic texture mask
-             const foamEmitter = game.mapShine.particleManager?.controllers?.get('foam')?.emitters?.values()?.next()?.value;
-             if (foamEmitter) {
-                 const shape = foamEmitter.behaviors.find(b => b.type === 'spawnShape')?.shape;
-                 if (shape instanceof TextureMaskShape) {
-                     shape.updateTexture(this.shorelineParticleMaskTexture);
-                 }
-             }
+            foamController.cullingFilter.uniforms.uMaskTexture = this.shorelineParticleMaskTexture;
         }
     }
 
@@ -8666,10 +8591,8 @@ class WaterFXLayer extends MaskedEffectLayer {
     }
 
     async _tearDown(options) {
-        // The global filter is managed by ScreenEffectsManager, so we just need to disable it.
-        const waterEffectsFilter = ScreenEffectsManager.getFilter('water');
-        if (waterEffectsFilter) {
-            waterEffectsFilter.enabled = false;
+        if (canvas.effects && this.waterEffectsFilter) {
+            canvas.effects.filters = (canvas.effects.filters || []).filter(f => f !== this.waterEffectsFilter);
         }
 
         this.displacementFilter?.destroy();
@@ -8685,6 +8608,7 @@ class WaterFXLayer extends MaskedEffectLayer {
         });
         this.shorelineMaskTexture?.destroy(true);
         this.shorelineMaskSprites.clear();
+        this.waterEffectsFilter?.destroy();
 
         this.particleMaskGeneratorSprite?.filters[0]?.destroy();
         this.particleMaskGeneratorSprite?.destroy();
@@ -8698,6 +8622,7 @@ class WaterFXLayer extends MaskedEffectLayer {
         this.blurredWaterMaskTexture = null;
         this.shorelineMaskContainer = null;
         this.shorelineMaskTexture = null;
+        this.waterEffectsFilter = null;
         this.particleMaskGeneratorSprite = null;
         this.shorelineParticleMaskTexture = null;
 
@@ -10783,7 +10708,10 @@ Hooks.once('init', () => {
             layerClass: IridescenceLayer,
             group: "primary"
         },
-
+        metallicShine: {
+            layerClass: MetallicShineLayer,
+            group: "primary"
+        },
         canopy: {
             layerClass: CanopyLayer,
             group: "environment"
@@ -10791,10 +10719,6 @@ Hooks.once('init', () => {
         structuralShadows: {
             layerClass: StructuralShadowsLayer,
             group: "environment"
-        },
-        metallicShine: {
-            layerClass: MetallicShineLayer,
-            group: "primary"
         },
         cloudShadows: {
             layerClass: CloudShadowsLayer,

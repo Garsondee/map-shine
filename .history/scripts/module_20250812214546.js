@@ -88,40 +88,40 @@ const MODULE_DEFAULTS = {
         "layerBlendMode": 1
       },
       "animation": {
-        "globalIntensity": 2.9,
+        "globalIntensity": 6.4,
         "hotspot": 0,
-        "updateFrequency": 10,
-        "parallaxAmount": 0.94,
-        "parallaxJitter": 1.5,
+        "updateFrequency": 2,
+        "parallaxAmount": 0.75,
+        "parallaxJitter": 2,
         "parallaxJitterSpeed": 0.3
       },
       "pattern": {
         "shared": {
-          "patternScale": 0.16,
-          "maxBrightness": 0.26
+          "patternScale": 0.29,
+          "maxBrightness": 0.47
         },
         "stripes1": {
           "enabled": true,
-          "intensity": 0.5,
+          "intensity": 0.3,
           "speed": -0.006,
           "tintColor": "#FFFFFF",
           "angle": 50,
           "sharpness": 8,
-          "bandDensity": 2,
+          "bandDensity": 1,
           "bandWidth": 1,
           "subStripeMaxCount": 5,
-          "subStripeMaxSharp": 1.5
+          "subStripeMaxSharp": 0
         },
         "stripes2": {
           "enabled": true,
-          "intensity": 0.5,
+          "intensity": 0.3,
           "speed": 0.004,
           "tintColor": "#FFFFFF",
           "angle": 44,
           "sharpness": 8,
           "bandDensity": 1,
           "bandWidth": 1,
-          "subStripeMaxCount": 3,
+          "subStripeMaxCount": 5,
           "subStripeMaxSharp": 0
         },
         "checkerboard": {
@@ -131,20 +131,20 @@ const MODULE_DEFAULTS = {
         }
       },
       "noise": {
-        "enabled": true,
+        "enabled": false,
         "speed": -0.003,
-        "scale": 0.7,
-        "threshold": 0.7,
-        "brightness": 1,
-        "contrast": 4.15,
+        "scale": 0.2,
+        "threshold": 0.43,
+        "brightness": 0.39,
+        "contrast": 0.4,
         "softness": 1
       },
       "shineBloom": {
         "enabled": false,
-        "threshold": 0.58,
-        "brightness": 1.75,
-        "blur": 4,
-        "quality": 2
+        "threshold": 0.19,
+        "brightness": 1.5,
+        "blur": 0,
+        "quality": 4
       },
       "starburst": {
         "enabled": false,
@@ -158,22 +158,22 @@ const MODULE_DEFAULTS = {
       },
       "rgbSplit": {
         "enabled": true,
-        "amount": 6.7
+        "amount": 1.1
       },
       "colorCorrection": {
-        "enabled": false,
-        "saturation": 3,
-        "brightness": 1,
-        "contrast": 1.1,
-        "exposure": 0,
-        "gamma": 0.95,
+        "enabled": true,
+        "saturation": 3.45,
+        "brightness": -0.3,
+        "contrast": 1,
+        "exposure": -1.6,
+        "gamma": 0.5,
         "levels": {
           "inBlack": 0,
           "inWhite": 1
         },
         "tint": {
           "color": "#ffcb2d",
-          "amount": 0
+          "amount": 0.2
         }
       }
     },
@@ -266,19 +266,19 @@ const MODULE_DEFAULTS = {
     },
     "structuralShadows": {
       "enabled": true,
-      "shadowIntensity": 0.91,
+      "shadowIntensity": 0.86,
       "tint": "#000000",
       "parallax": 0,
       "rgbSplit": {
         "enabled": true,
-        "intensity": 5,
-        "threshold": 0
+        "intensity": 2,
+        "threshold": 0.5
       },
       "illumination": {
         "enabled": true,
-        "intensity": 1,
+        "intensity": 0.8,
         "luminanceThreshold": 0.9,
-        "softness": 0.35
+        "softness": 0.2
       },
       "intensityNoise": {
         "enabled": false,
@@ -320,19 +320,19 @@ const MODULE_DEFAULTS = {
     },
     "prism": {
       "enabled": true,
-      "intensity": 1,
-      "angle": 218,
-      "threshold": 0.1,
-      "softness": 0.5,
-      "distortionStrength": 1.9,
+      "intensity": 2,
+      "angle": 217,
+      "threshold": 0,
+      "softness": 0.22,
+      "distortionStrength": 9.2,
       "distortionNoise": {
-        "enabled": true,
-        "speed": 0,
-        "scale": 3.83,
+        "enabled": false,
+        "speed": 0.005,
+        "scale": 10,
         "evolution": 0,
-        "threshold": 0,
-        "brightness": 0.11,
-        "contrast": 1.85,
+        "threshold": 0.8,
+        "brightness": 0,
+        "contrast": 4.7,
         "softness": 1
       }
     },
@@ -464,11 +464,11 @@ const MODULE_DEFAULTS = {
         },
         "highlightCanopy": {
           "enabled": true,
-          "brightness": 0
+          "brightness": 0.1
         },
         "highlightStructural": {
           "enabled": true,
-          "brightness": 3
+          "brightness": 2.5
         },
         "mask": {
           "enabled": false,
@@ -526,7 +526,7 @@ const MODULE_DEFAULTS = {
         "end": "#ffe9b9"
       },
       "alpha": {
-        "max": 0.2,
+        "max": 0.5,
         "fadeIn": 0.5,
         "fadeOut": 0.5
       },
@@ -621,7 +621,7 @@ const MODULE_DEFAULTS = {
       },
       "caustics": {
         "enabled": true,
-        "intensity": 0.036,
+        "intensity": 0.013,
         "scale": 0.6,
         "speed": 0.02,
         "color": "#87CEFA",
@@ -3591,49 +3591,6 @@ class NoisePatternFilter extends PIXI.Filter {
     }
 }
 
-class ParallaxMaskFilter extends PIXI.Filter {
-    constructor(options = {}) {
-        const vertexSrc = `
-            attribute vec2 aVertexPosition;
-            attribute vec2 aTextureCoord;
-            uniform mat3 projectionMatrix;
-            varying vec2 vTextureCoord;
-            varying vec2 vScreenCoord;
-
-            void main(void) {
-                gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
-                vTextureCoord = aTextureCoord;
-                vScreenCoord = gl_Position.xy * 0.5 + 0.5;
-            }
-        `;
-        const fragmentSrc = `
-            precision mediump float;
-            varying vec2 vTextureCoord;
-            varying vec2 vScreenCoord;
-
-            uniform sampler2D uMask;
-            uniform float uParallax;
-            uniform vec2 uCameraOffset;
-            uniform vec2 uViewSize;
-
-            void main() {
-                vec2 parallaxTexCoord = vScreenCoord;
-                if (uParallax > 0.0 && uViewSize.y > 0.0) {
-                    vec2 normalized_camera_offset_pixels = uCameraOffset / uViewSize;
-                    parallaxTexCoord = vScreenCoord - (normalized_camera_offset_pixels * uParallax);
-                }
-                gl_FragColor = texture2D(uMask, parallaxTexCoord);
-            }
-        `;
-        super(vertexSrc, fragmentSrc, {
-            uMask: PIXI.Texture.EMPTY,
-            uParallax: options.parallax ?? 0.0,
-            uCameraOffset: [0, 0],
-            uViewSize: [1, 1]
-        });
-    }
-}
-
 class LightingMaskFilter extends PIXI.Filter {
     constructor(options = {}) {
         const fragmentSrc = `
@@ -4516,12 +4473,6 @@ class MetallicShineFilter extends PIXI.Filter {
             // Samplers
             uniform sampler2D uSampler;
             uniform sampler2D uShinePatternMap;
-            uniform sampler2D uStructuralMask;
-            uniform sampler2D uOutdoorsMask;
-
-            // Toggles
-            uniform bool uUseStructuralMask;
-            uniform bool uUseOutdoorsMask;
 
             // Base Shine Uniforms
             uniform float uBoost;
@@ -4537,55 +4488,58 @@ class MetallicShineFilter extends PIXI.Filter {
 
             void main(void) {
                 vec4 specularColor = texture2D(uSampler, vTextureCoord);
-                float baseSpecularLuminance = dot(specularColor.rgb, lum_weights);
-                float finalSpecularLuminance = baseSpecularLuminance;
+                float specularLuminance = dot(specularColor.rgb, lum_weights);
 
-                // Conditionally apply structural shadows.
-                if (uUseStructuralMask) {
-                    float structuralLight = texture2D(uStructuralMask, vScreenCoord).r;
-                    
-                    if (uUseOutdoorsMask) {
-                        float outdoorsAmount = texture2D(uOutdoorsMask, vScreenCoord).r;
-                        // When outdoors (outdoorsAmount=1), use the original specular.
-                        // When indoors (outdoorsAmount=0), use the specular multiplied by the structural light.
-                        finalSpecularLuminance = mix(baseSpecularLuminance * structuralLight, baseSpecularLuminance, outdoorsAmount);
-                    } else {
-                        // If no outdoors mask is present, apply shadows everywhere.
-                        finalSpecularLuminance = baseSpecularLuminance * structuralLight;
-                    }
-                }
-
-                if (specularColor.a < 0.1 || finalSpecularLuminance < 0.01) {
+                if (specularColor.a < 0.1 || specularLuminance < 0.01) {
                     gl_FragColor = vec4(0.0);
                     return;
                 }
 
+                // 1. Get the raw animated shine pattern intensity
                 float shinePatternIntensity = texture2D(uShinePatternMap, vScreenCoord).r;
+
+                // 2. Start with the boosted pattern as the base color to be corrected
                 vec3 workingColor = vec3(shinePatternIntensity * uBoost);
 
+                // 3. If enabled, apply the full color correction pass to the shine itself
                 if (uCCEnabled) {
-                    if (uInWhite > uInBlack) workingColor = (workingColor - uInBlack) / (uInWhite - uInBlack);
+                    // Apply Levels
+                    if (uInWhite > uInBlack) {
+                        workingColor = (workingColor - uInBlack) / (uInWhite - uInBlack);
+                    }
+                    
+                    // Apply Exposure
                     workingColor *= pow(2.0, uExposure);
-                    if (uGamma > 0.0) workingColor = pow(workingColor, vec3(1.0 / uGamma));
+
+                    // Apply Gamma
+                    if (uGamma > 0.0) {
+                        workingColor = pow(workingColor, vec3(1.0 / uGamma));
+                    }
+                    
+                    // Apply Brightness & Contrast
                     workingColor += uBrightness;
                     workingColor = (workingColor - 0.5) * uContrast + 0.5;
+
+                    // Apply Saturation
                     float luminance = dot(workingColor, lum_weights);
                     workingColor = mix(vec3(luminance), workingColor, uSaturation);
+
+                    // Apply Tint
                     workingColor = mix(workingColor, uTintColor, uTintAmount);
                 }
 
-                vec3 finalColor = workingColor * finalSpecularLuminance;
+                // 4. Use the specular map's luminance to mask the color-corrected shine
+                vec3 finalColor = workingColor * specularLuminance;
+
                 finalColor = clamp(finalColor, 0.0, 1.0);
+
+                // The final alpha is based on the original pattern intensity and the specular map's alpha
                 gl_FragColor = vec4(finalColor, shinePatternIntensity * specularColor.a);
             }
         `;
 
         super(vertexSrc, fragmentSrc, {
             uShinePatternMap: options.shinePatternTexture,
-            uStructuralMask: PIXI.Texture.EMPTY,
-            uOutdoorsMask: PIXI.Texture.EMPTY,
-            uUseStructuralMask: false,
-            uUseOutdoorsMask: false,
             uBoost: options.boost ?? 1.0,
 
             uCCEnabled: options.uCCEnabled ?? true,
@@ -4932,19 +4886,19 @@ class MetallicShineLayer extends foundry.canvas.layers.CanvasLayer {
     _onAnimate(deltaTime) {
         if (this._destroyed) return;
         this._framesSinceLoad++;
-    
+
         this.visible = false;
-    
+
         const config = game.mapShine.profileManager.activeConfig;
         if (!config.enabled || !config.baseShine.enabled || !this.shineFilter || !this.shinePatternFilter) return;
-    
+
         const hasActiveTargets = this.effectSprites.size > 0 && Array.from(this.effectSprites.values()).some(s => s.texture.valid);
         if (!hasActiveTargets) return;
-    
+
         if (this._framesSinceLoad < 5) return;
-    
+
         this.visible = true;
-    
+
         // --- Pass 1: Generate the Shine Pattern ---
         const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
         this.noiseTextureManager.update(deltaTime * timeFactor, canvas.app.renderer);
@@ -4962,36 +4916,14 @@ class MetallicShineLayer extends foundry.canvas.layers.CanvasLayer {
             renderTexture: this.patternTexture,
             clear: true
         });
-    
-        const structuralLayer = canvas.layers.find(l => l instanceof StructuralShadowsLayer);
-        const cleanStructuralMask = structuralLayer?.getCleanStructuralLightMask();
-        const outdoorsMask = structuralLayer?.outdoorsMaskTexture;
-        
-        // Check if all required components are available and active.
-        if (this.shineFilter && structuralLayer?.visible && cleanStructuralMask?.valid) {
-            this.shineFilter.uniforms.uStructuralMask = cleanStructuralMask;
-            this.shineFilter.uniforms.uUseStructuralMask = true;
-    
-            // Also pass the outdoors mask if it's available.
-            if (outdoorsMask?.valid) {
-                this.shineFilter.uniforms.uOutdoorsMask = outdoorsMask;
-                this.shineFilter.uniforms.uUseOutdoorsMask = true;
-            } else {
-                 this.shineFilter.uniforms.uUseOutdoorsMask = false;
-            }
-    
-        } else if (this.shineFilter) {
-            this.shineFilter.uniforms.uUseStructuralMask = false;
-            this.shineFilter.uniforms.uUseOutdoorsMask = false;
-        }
-    
+
         // --- Pass 2: Render the Final Shine using the generated pattern ---
         canvas.app.renderer.render(this.sourceContainer, {
             renderTexture: this.shinePassTexture,
             clear: true,
             transform: canvas.stage.transform.worldTransform,
         });
-    
+
         // Position the final output sprites
         [this.shineSprite, this.bloomSprite, this.starburstSprite].forEach(sprite => {
             sprite.position.copyFrom(topLeft);
@@ -6198,18 +6130,20 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
         this.finalShadowTexture = null;
         this.finalHighlightMaskTexture = null;
         this.intensityNoiseManager = null;
+
+        // The dedicated cloud noise properties have been removed.
+        // this.cloudNoiseTexture = null;
+        // this.cloudNoiseFilter = null;
+        // this._cloudNoiseSprite = null;
+
         this.rgbSplitFilter = null;
         this.splitHighlightMaskTexture = null;
         this._splitHighlightSprite = null;
+
         this.outdoorsMaskContainer = null;
         this.outdoorsMaskTexture = null;
         this.outdoorsMaskSprites = new Map();
         this._needsOutdoorsMaskUpdate = true;
-
-        // New properties for the clean mask generation
-        this.cleanStructuralLightMask = null;
-        this.parallaxMaskFilter = null;
-        this._parallaxMaskSprite = null;
     }
 
     static getSettingsHTML() {
@@ -6297,10 +6231,6 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
         return this.finalHighlightMaskTexture;
     }
 
-    getCleanStructuralLightMask() {
-        return this.cleanStructuralLightMask;
-    }
-
     getSplitHighlightMaskTexture() {
         return this.splitHighlightMaskTexture;
     }
@@ -6324,7 +6254,9 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
             width: screen.width,
             height: screen.height
         });
+
         this.intensityNoiseManager = new NoiseTextureManager(renderer, 'structuralShadows.intensityNoise', true);
+
         this.finalShadowTexture = PIXI.RenderTexture.create({
             width: screen.width,
             height: screen.height
@@ -6333,6 +6265,8 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
             width: screen.width,
             height: screen.height
         });
+
+        // Setup for RGB Split
         this.splitHighlightMaskTexture = PIXI.RenderTexture.create({
             width: screen.width,
             height: screen.height
@@ -6340,17 +6274,6 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
         this.rgbSplitFilter = new StructuralHighlightRgbSplitFilter();
         this._splitHighlightSprite = new PIXI.Sprite(this.finalHighlightMaskTexture);
         this._splitHighlightSprite.filters = [this.rgbSplitFilter];
-
-        // New setup for clean mask generation
-        this.cleanStructuralLightMask = PIXI.RenderTexture.create({
-            width: screen.width,
-            height: screen.height
-        });
-        this.parallaxMaskFilter = new ParallaxMaskFilter();
-        this._parallaxMaskSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
-        this._parallaxMaskSprite.width = screen.width;
-        this._parallaxMaskSprite.height = screen.height;
-        this._parallaxMaskSprite.filters = [this.parallaxMaskFilter];
 
         try {
             this.structuralFilter = new StructuralShadowsFilter();
@@ -6365,13 +6288,16 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
                 message: `Compilation Failed: ${e.message}`
             });
         }
+
         this._patternGeneratorSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
         this._patternGeneratorSprite.width = screen.width;
         this._patternGeneratorSprite.height = screen.height;
         this._patternGeneratorSprite.filters = this.structuralFilter ? [this.structuralFilter] : [];
+
         this.effectSprite = new PIXI.Sprite(this.finalShadowTexture);
         this.effectSprite.blendMode = PIXI.BLEND_MODES.MULTIPLY;
         this.addChild(this.effectSprite);
+
         this.updateFromConfig(game.mapShine.profileManager.activeConfig);
     }
 
@@ -6384,12 +6310,13 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
         super._onResize();
         const renderer = canvas.app.renderer;
         const screen = renderer.screen;
+
         this.intensityNoiseManager?.resize(renderer);
         this.outdoorsMaskTexture?.resize(screen.width, screen.height);
         this.finalShadowTexture?.resize(screen.width, screen.height);
         this.finalHighlightMaskTexture?.resize(screen.width, screen.height);
         this.splitHighlightMaskTexture?.resize(screen.width, screen.height);
-        this.cleanStructuralLightMask?.resize(screen.width, screen.height);
+
         if (this._patternGeneratorSprite) {
             this._patternGeneratorSprite.width = screen.width;
             this._patternGeneratorSprite.height = screen.height;
@@ -6398,13 +6325,10 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
             this._splitHighlightSprite.width = screen.width;
             this._splitHighlightSprite.height = screen.height;
         }
-        if (this._parallaxMaskSprite) {
-            this._parallaxMaskSprite.width = screen.width;
-            this._parallaxMaskSprite.height = screen.height;
-        }
         if (this.rgbSplitFilter) {
             this.rgbSplitFilter.uniforms.uTexelSize = [1 / screen.width, 1 / screen.height];
         }
+
         if (this.effectSprite) {
             const stage = canvas.stage;
             const topLeft = stage.toLocal({
@@ -6421,12 +6345,14 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
     _onAnimate(deltaTime) {
         super._onAnimate(deltaTime);
         if (this._destroyed || !this.visible || !this.structuralFilter) return;
+
         const hasActiveTargets = this.maskSprites.size > 0 && Array.from(this.maskSprites.values()).some(s => s.texture.valid);
         if (!hasActiveTargets) {
             this.effectSprite.visible = false;
             return;
         }
         this.effectSprite.visible = true;
+
         const renderer = canvas.app.renderer;
         const stage = canvas.stage;
         const screen = renderer.screen;
@@ -6436,7 +6362,9 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
         });
         const viewSize = [screen.width / stage.scale.x, screen.height / stage.scale.y];
         const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
+
         this.intensityNoiseManager.update(deltaTime * timeFactor, renderer);
+
         if (this._needsOutdoorsMaskUpdate) {
             renderer.render(this.outdoorsMaskContainer, {
                 renderTexture: this.outdoorsMaskTexture,
@@ -6446,19 +6374,6 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
             this._needsOutdoorsMaskUpdate = false;
         }
 
-        // --- New Pass: Generate the clean, parallax-only structural mask ---
-        if (this.parallaxMaskFilter) {
-            const p_u = this.parallaxMaskFilter.uniforms;
-            p_u.uMask = this.getMaskTexture();
-            p_u.uCameraOffset = [topLeft.x, topLeft.y];
-            p_u.uViewSize = viewSize;
-            renderer.render(this._parallaxMaskSprite, {
-                renderTexture: this.cleanStructuralLightMask,
-                clear: true
-            });
-        }
-
-        // --- Main Pass: Generate the final shadows and highlight mask ---
         const u = this.structuralFilter.uniforms;
         u.uStructuralMask = this.getMaskTexture();
         u.u_intensityNoise = this.intensityNoiseManager.getTexture();
@@ -6466,29 +6381,32 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
         u.u_time += deltaTime * timeFactor;
         u.u_camera_offset = [topLeft.x, topLeft.y];
         u.u_view_size = viewSize;
+
         const illumConfig = game.mapShine.profileManager.activeConfig.structuralShadows.illumination;
         const illuminationAPI = game.modules.get('illuminationbuffer')?.api;
         const illumTexture = illuminationAPI?.getLightingTexture();
         u.u_illum_enabled = illumConfig.enabled && !!illumTexture?.valid;
         if (u.u_illum_enabled) u.uIlluminationBuffer = illumTexture;
+
         u.u_outputHighlightMask = true;
         renderer.render(this._patternGeneratorSprite, {
             renderTexture: this.finalHighlightMaskTexture,
             clear: true
         });
+
         u.u_outputHighlightMask = false;
         renderer.render(this._patternGeneratorSprite, {
             renderTexture: this.finalShadowTexture,
             clear: true
         });
 
-        // --- Optional Pass: Generate RGB split highlight mask ---
         if (this.isRgbSplitEnabled()) {
             renderer.render(this._splitHighlightSprite, {
                 renderTexture: this.splitHighlightMaskTexture,
                 clear: true
             });
         }
+
         this.effectSprite.position.copyFrom(topLeft);
         this.effectSprite.width = screen.width / stage.scale.x;
         this.effectSprite.height = screen.height / stage.scale.y;
@@ -6496,12 +6414,14 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
 
     async updateEffectTargets(targets) {
         await super.updateEffectTargets(targets);
+
         if (!this.outdoorsMaskContainer) return;
         this.outdoorsMaskContainer.removeChildren().forEach(c => c.destroy({
             texture: true,
             baseTexture: true
         }));
         this.outdoorsMaskSprites.clear();
+
         const allTargets = new Map([
             ['background', targets.background], ...targets.tiles.entries()
         ]);
@@ -6519,18 +6439,22 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
     async updateFromConfig(config) {
         const ssConfig = config.structuralShadows;
         this.visible = config.enabled && ssConfig.enabled;
+    
         this.intensityNoiseManager?.updateFromConfig(config);
+    
         if (this.structuralFilter) {
             const u = this.structuralFilter.uniforms;
             const cloudConfig = ssConfig.cloudOcclusion;
             const windAngleRad = (cloudConfig.wind.angle ?? 45.0) * (Math.PI / 180);
             const windSpeed = (cloudConfig.wind.speed ?? 0.001);
             u.u_windDirection = [Math.cos(windAngleRad) * windSpeed, Math.sin(windAngleRad) * windSpeed];
+            
             const noise = cloudConfig.noise;
             u.u_noise_scale = noise.scale;
             u.u_noise_octaves = noise.octaves;
             u.u_noise_persistence = noise.persistence;
             u.u_noise_lacunarity = noise.lacunarity;
+            
             const shading = cloudConfig.shading;
             u.u_cloud_shading_threshold = shading.threshold;
             u.u_cloud_shading_softness = shading.softness;
@@ -6540,6 +6464,7 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
             u.u_cloud_shading_exposure = shading.exposure;
             u.u_cloud_shading_inBlack = shading.levels.inBlack;
             u.u_cloud_shading_inWhite = shading.levels.inWhite;
+    
             u.u_shadowIntensity = ssConfig.shadowIntensity;
             u.u_tint = hexToRgbArray(ssConfig.tint);
             u.u_parallax = ssConfig.parallax;
@@ -6553,14 +6478,12 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
             u.u_illum_luminanceThreshold = illumConfig.luminanceThreshold;
             u.u_illum_softness = illumConfig.softness;
         }
+    
         if (this.rgbSplitFilter) {
             const u = this.rgbSplitFilter.uniforms;
             const rgbConfig = ssConfig.rgbSplit;
             u.uIntensity = rgbConfig.intensity;
             u.uThreshold = rgbConfig.threshold;
-        }
-        if (this.parallaxMaskFilter) {
-            this.parallaxMaskFilter.uniforms.uParallax = ssConfig.parallax;
         }
     }
 
@@ -6571,9 +6494,11 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
         this.finalShadowTexture?.destroy(true);
         this.finalHighlightMaskTexture?.destroy(true);
         this.effectSprite?.destroy();
+
         this.rgbSplitFilter?.destroy();
         this._splitHighlightSprite?.destroy();
         this.splitHighlightMaskTexture?.destroy(true);
+
         this.outdoorsMaskContainer?.destroy({
             children: true,
             texture: true,
@@ -6581,9 +6506,7 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
         });
         this.outdoorsMaskTexture?.destroy(true);
         this.outdoorsMaskSprites.clear();
-        this.cleanStructuralLightMask?.destroy(true);
-        this.parallaxMaskFilter?.destroy();
-        this._parallaxMaskSprite?.destroy();
+
         this.intensityNoiseManager = null;
         this.structuralFilter = null;
         this._patternGeneratorSprite = null;
@@ -6595,9 +6518,7 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
         this.rgbSplitFilter = null;
         this._splitHighlightSprite = null;
         this.splitHighlightMaskTexture = null;
-        this.cleanStructuralLightMask = null;
-        this.parallaxMaskFilter = null;
-        this._parallaxMaskSprite = null;
+
         await super._tearDown(options);
     }
 }
@@ -10783,7 +10704,10 @@ Hooks.once('init', () => {
             layerClass: IridescenceLayer,
             group: "primary"
         },
-
+        metallicShine: {
+            layerClass: MetallicShineLayer,
+            group: "primary"
+        },
         canopy: {
             layerClass: CanopyLayer,
             group: "environment"
@@ -10791,10 +10715,6 @@ Hooks.once('init', () => {
         structuralShadows: {
             layerClass: StructuralShadowsLayer,
             group: "environment"
-        },
-        metallicShine: {
-            layerClass: MetallicShineLayer,
-            group: "primary"
         },
         cloudShadows: {
             layerClass: CloudShadowsLayer,
