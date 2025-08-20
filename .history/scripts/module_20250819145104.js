@@ -1281,7 +1281,7 @@ const MODULE_DEFAULTS = {
         }
     },
     "structuralShadows": {
-        "worldBasedOnly": false,
+        "worldBasedOnly": true,
         "enabled": true,
         "shadowIntensity": 0.8,
         "tint": "#000000",
@@ -1327,6 +1327,12 @@ const MODULE_DEFAULTS = {
                     "inWhite": 1
                 }
             }
+        },
+        "illumination": {
+            "enabled": false,
+            "intensity": 1,
+            "luminanceThreshold": 0.95,
+            "softness": 0.01
         }
     },
     "prism": {
@@ -1470,45 +1476,6 @@ const MODULE_DEFAULTS = {
             }
         }
     },
-    "combatEffect": {
-        "enabled": true,
-        "worldBasedOnly": true,
-        "duration": 2000,
-        "timeScale": 0.25,
-        "colorCorrection": {
-            "enabled": true,
-            "saturation": 1,
-            "brightness": 0,
-            "contrast": 1,
-            "invert": false,
-            "tint": {
-                "color": "#FFFFFF",
-                "amount": 0
-            },
-            "exposure": 0,
-            "gamma": 1,
-            "levels": {
-                "inBlack": 0,
-                "inWhite": 1
-            },
-            "whiteBalance": {
-                "temperature": 0,
-                "tint": 0
-            },
-            "mask": {
-                "enabled": false,
-                "invert": false,
-                "luminanceThreshold": 0.25,
-                "softness": 0.1
-            },
-            "selective": {
-                "enabled": false,
-                "color": "#ff0000",
-                "hueRange": 0.05,
-                "saturationRange": 0.3
-            }
-        }
-    },
     "postProcessing": {
         "worldBasedOnly": true,
         "enabled": true,
@@ -1542,36 +1509,36 @@ const MODULE_DEFAULTS = {
             },
             "highlightStructural": {
                 "enabled": true,
-                "brightness": 0.5
+                "brightness": 1
             },
             "sceneIlluminationMixIn": {
-                "enabled": false,
-                "intensity": 1,
+                "enabled": true,
+                "intensity": 0.49,
                 "blendMode": 1,
                 "debugMode": false,
                 "colorCorrection": {
                     "enabled": true,
                     "saturation": 1,
-                    "brightness": 0,
-                    "contrast": 1,
-                    "exposure": 0,
+                    "brightness": -0.65,
+                    "contrast": 2,
+                    "exposure": -0.15,
                     "gamma": 1,
                     "tint": {
-                        "color": "#FFFFFF",
+                        "color": "#ff2d2d",
                         "amount": 0
                     }
                 },
                 "noise": {
-                    "enabled": true,
-                    "amount": 0.01,
-                    "scale": 1,
-                    "speed": 0.001
+                    "enabled": false,
+                    "amount": 0.1,
+                    "scale": 10,
+                    "speed": 0.0033
                 },
                 "shadowInteraction": {
                     "enabled": true,
                     "intensity": 1,
-                    "luminanceThreshold": 0.1,
-                    "softness": 0.15
+                    "luminanceThreshold": 0.97,
+                    "softness": 0.5
                 },
                 "negativeMask": {
                     "enabled": false,
@@ -1607,14 +1574,6 @@ const MODULE_DEFAULTS = {
                             "y": 0
                         },
                         {
-                            "x": 0.25,
-                            "y": 0.25
-                        },
-                        {
-                            "x": 0.75,
-                            "y": 0.75
-                        },
-                        {
                             "x": 1,
                             "y": 1
                         }
@@ -1624,14 +1583,6 @@ const MODULE_DEFAULTS = {
                     "points": [{
                             "x": 0,
                             "y": 0
-                        },
-                        {
-                            "x": 0.25,
-                            "y": 0.25
-                        },
-                        {
-                            "x": 0.75,
-                            "y": 0.75
                         },
                         {
                             "x": 1,
@@ -1645,14 +1596,6 @@ const MODULE_DEFAULTS = {
                             "y": 0
                         },
                         {
-                            "x": 0.25,
-                            "y": 0.25
-                        },
-                        {
-                            "x": 0.75,
-                            "y": 0.75
-                        },
-                        {
                             "x": 1,
                             "y": 1
                         }
@@ -1664,14 +1607,6 @@ const MODULE_DEFAULTS = {
                             "y": 0
                         },
                         {
-                            "x": 0.25,
-                            "y": 0.25
-                        },
-                        {
-                            "x": 0.75,
-                            "y": 0.75
-                        },
-                        {
                             "x": 1,
                             "y": 1
                         }
@@ -1680,18 +1615,29 @@ const MODULE_DEFAULTS = {
             },
             "dynamicExposure": {
                 "enabled": true,
-                "intensity": 1.5,
-                "duration": 8000,
-                "resetPeriod": 60000
-            }
+                "intensity": 2,
+                "duration": 20000,
+                "resetPeriod": 60000,
+                "darkThreshold": 0.5,
+                "brightThreshold": 0.14,
+                "maxNegativeExposure": 0.5,
+                "maxPositiveExposure": 1.75,
+                "transitionDuration": 5000,
+                "sensitivity": 2.9,
+                "contrastIntensity": 0.55,
+                "minContrast": 0.5,
+                "maxContrast": 1.5,
+                "highlightPreservation": 0.1
+            },
+            "activePreset": "cinematic"
         },
         "vignette": {
-            "enabled": false,
+            "enabled": true,
             "amount": 0.24,
             "softness": 0.36
         },
         "lensDistortion": {
-            "enabled": false,
+            "enabled": true,
             "amount": 0.015,
             "centerX": 0.5,
             "centerY": 0.5
@@ -1704,8 +1650,8 @@ const MODULE_DEFAULTS = {
         },
         "tiltShift": {
             "enabled": false,
-            "blur": 23,
-            "gradientBlur": 3610,
+            "blur": 50,
+            "gradientBlur": 2780,
             "startX": 0,
             "startY": 0.5,
             "endX": 1,
@@ -1740,6 +1686,42 @@ const MODULE_DEFAULTS = {
                 "gamma": 0.9,
                 "hue": 0
             }
+        },
+        "sceneIlluminationMixin": {
+            "enabled": false,
+            "intensity": 1,
+            "blendMode": 1,
+            "colorCorrection": {
+                "enabled": true,
+                "saturation": 1,
+                "brightness": 0,
+                "contrast": 1,
+                "exposure": 0,
+                "gamma": 1,
+                "tint": {
+                    "color": "#FFFFFF",
+                    "amount": 0
+                }
+            },
+            "noise": {
+                "enabled": true,
+                "amount": 0.01,
+                "scale": 1,
+                "speed": 0.001
+            }
+        },
+        "sceneIlluminationMixIn": {
+            "enabled": true,
+            "blendMode": 1,
+            "colorCorrection": {
+                "enabled": true,
+                "brightness": -0.44,
+                "contrast": 2.35,
+                "saturation": 2.4,
+                "exposure": -0.35,
+                "gamma": 0.9
+            },
+            "intensity": 2
         }
     },
     "dust": {
@@ -2096,9 +2078,9 @@ const MODULE_DEFAULTS = {
     },
     "diagnostic": {
         "enabled": false,
-        "showMasks": false,
-        "pixelInspector": false,
-        "displaySuffix": "fire"
+        "showMasks": true,
+        "pixelInspector": true,
+        "displaySuffix": "sparks"
     },
     "ambientLayerZIndex": 250
 }
@@ -2288,105 +2270,105 @@ class SceneChangeManager {
 
         // Inject the HTML structure and CSS
         this.transitionOverlay.innerHTML = `
-                        <style>
-                            #map-shine-scene-transition .transition-content {
-                                display: flex;
-                                flex-direction: column;
-                                align-items: center;
-                                gap: 1rem;
-                                max-width: 800px;
-                                padding: 2rem;
-                                opacity: 0; /* Content starts invisible */
-                            }
-                            #map-shine-scene-transition .transition-logo {
-                                max-width: 300px;
-                                max-height: 200px;
-                                object-fit: contain;
-                                margin-bottom: 1rem;
-                            }
-                            #map-shine-scene-transition .transition-heading {
-                                font-size: 3.5rem;
-                                margin: 0;
-                                line-height: 1.1;
-                                text-shadow: 0 0 10px rgba(0,0,0,0.5);
-                            }
-                            #map-shine-scene-transition .transition-subheading {
-                                font-size: 1.75rem;
-                                margin: 0;
-                                color: #ccc;
-                                font-weight: normal;
-                            }
-                            #map-shine-scene-transition .transition-scenename {
-                                font-size: 1.25rem;
-                                margin: 1rem 0 0 0;
-                                color: #aaa;
-                                font-style: italic;
-                                border-top: 1px solid #555;
-                                padding-top: 1rem;
-                            }
-                            #map-shine-scene-transition .transition-description {
-                                font-size: 1rem;
-                                color: #bbb;
-                                margin-top: 1rem;
-                                max-width: 60ch; /* Limit line length for readability */
-                                line-height: 1.6;
-                            }
-                            #map-shine-scene-transition .transition-hint {
-                                font-size: 0.9rem;
-                                color: #aaa;
-                                margin-top: 1.5rem;
-                                font-style: italic;
-                                border-top: 1px solid #444;
-                                padding-top: 1rem;
-                                max-width: 50ch;
-                            }
-                            /* NEW STYLES for loading bar */
-                            #map-shine-scene-transition .loading-bar-container {
-                                position: absolute;
-                                bottom: 10vh;
-                                left: 50%;
-                                transform: translateX(-50%);
-                                width: 400px;
-                                max-width: 80vw;
-                                height: 10px;
-                                border: 1px solid rgba(255, 255, 255, 0.5);
-                                background-color: rgba(0,0,0,0.5);
-                                border-radius: 5px;
-                                overflow: hidden;
-                                display: none; /* Hidden by default */
-                            }
-                            #map-shine-scene-transition .loading-bar-fill {
-                                width: 0%;
-                                height: 100%;
-                                background-color: rgba(255, 255, 255, 0.9);
-                                transform-origin: left;
-                                box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-                            }
-                            #map-shine-scene-transition .transition-status {
-                                position: absolute;
-                                bottom: calc(10vh + 20px);
-                                left: 50%;
-                                transform: translateX(-50%);
-                                font-size: 1rem;
-                                color: #ddd;
-                                opacity: 1;
-                                display: none; /* Hidden by default */
-                            }
-                        </style>
-                        <div class="transition-content">
-                            <img class="transition-logo" src="" style="display: none;">
-                            <h1 class="transition-heading" style="display: none;"></h1>
-                            <h2 class="transition-subheading" style="display: none;"></h2>
-                            <p class="transition-description" style="display: none;"></p>
-                            <h3 class="transition-scenename" style="display: none;"></h3>
-                            <p class="transition-hint" style="display: none;"></p>
-                        </div>
-                        <!-- NEW HTML for loading bar -->
-                        <div class="loading-bar-container">
-                            <div class="loading-bar-fill"></div>
-                        </div>
-                        <p class="transition-status"></p>
-                    `;
+                <style>
+                    #map-shine-scene-transition .transition-content {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        gap: 1rem;
+                        max-width: 800px;
+                        padding: 2rem;
+                        opacity: 0; /* Content starts invisible */
+                    }
+                    #map-shine-scene-transition .transition-logo {
+                        max-width: 300px;
+                        max-height: 200px;
+                        object-fit: contain;
+                        margin-bottom: 1rem;
+                    }
+                    #map-shine-scene-transition .transition-heading {
+                        font-size: 3.5rem;
+                        margin: 0;
+                        line-height: 1.1;
+                        text-shadow: 0 0 10px rgba(0,0,0,0.5);
+                    }
+                    #map-shine-scene-transition .transition-subheading {
+                        font-size: 1.75rem;
+                        margin: 0;
+                        color: #ccc;
+                        font-weight: normal;
+                    }
+                    #map-shine-scene-transition .transition-scenename {
+                        font-size: 1.25rem;
+                        margin: 1rem 0 0 0;
+                        color: #aaa;
+                        font-style: italic;
+                        border-top: 1px solid #555;
+                        padding-top: 1rem;
+                    }
+                    #map-shine-scene-transition .transition-description {
+                        font-size: 1rem;
+                        color: #bbb;
+                        margin-top: 1rem;
+                        max-width: 60ch; /* Limit line length for readability */
+                        line-height: 1.6;
+                    }
+                    #map-shine-scene-transition .transition-hint {
+                        font-size: 0.9rem;
+                        color: #aaa;
+                        margin-top: 1.5rem;
+                        font-style: italic;
+                        border-top: 1px solid #444;
+                        padding-top: 1rem;
+                        max-width: 50ch;
+                    }
+                    /* NEW STYLES for loading bar */
+                    #map-shine-scene-transition .loading-bar-container {
+                        position: absolute;
+                        bottom: 10vh;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        width: 400px;
+                        max-width: 80vw;
+                        height: 10px;
+                        border: 1px solid rgba(255, 255, 255, 0.5);
+                        background-color: rgba(0,0,0,0.5);
+                        border-radius: 5px;
+                        overflow: hidden;
+                        display: none; /* Hidden by default */
+                    }
+                    #map-shine-scene-transition .loading-bar-fill {
+                        width: 0%;
+                        height: 100%;
+                        background-color: rgba(255, 255, 255, 0.9);
+                        transform-origin: left;
+                        box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+                    }
+                    #map-shine-scene-transition .transition-status {
+                        position: absolute;
+                        bottom: calc(10vh + 20px);
+                        left: 50%;
+                        transform: translateX(-50%);
+                        font-size: 1rem;
+                        color: #ddd;
+                        opacity: 1;
+                        display: none; /* Hidden by default */
+                    }
+                </style>
+                <div class="transition-content">
+                    <img class="transition-logo" src="" style="display: none;">
+                    <h1 class="transition-heading" style="display: none;"></h1>
+                    <h2 class="transition-subheading" style="display: none;"></h2>
+                    <p class="transition-description" style="display: none;"></p>
+                    <h3 class="transition-scenename" style="display: none;"></h3>
+                    <p class="transition-hint" style="display: none;"></p>
+                </div>
+                <!-- NEW HTML for loading bar -->
+                <div class="loading-bar-container">
+                    <div class="loading-bar-fill"></div>
+                </div>
+                <p class="transition-status"></p>
+            `;
 
         document.body.appendChild(this.transitionOverlay);
     }
@@ -2649,10 +2631,6 @@ class SceneChangeManager {
             game.mapShine.pauseEffectManager.destroy();
             game.mapShine.pauseEffectManager = null;
         }
-        if (game.mapShine.combatEffectManager) {
-            game.mapShine.combatEffectManager.destroy();
-            game.mapShine.combatEffectManager = null;
-        }
         if (game.mapShine.fireWindManager) {
             game.mapShine.fireWindManager.destroy();
             game.mapShine.fireWindManager = null;
@@ -2819,6 +2797,12 @@ class SceneChangeManager {
         const dependenciesReady = await this._waitForDependencies(canvas);
         await game.mapShine.loadingManager.tick('DEPENDENCIES_END');
 
+        // --- DIAGNOSTIC DELAY ---
+        console.log("%cMap Shine | DIAGNOSTIC: Starting 5-second brute-force delay to test race condition.", 'color: #ff8c00; font-weight: bold;');
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        console.log("%cMap Shine | DIAGNOSTIC: 5-second delay complete. Proceeding with setup.", 'color: #ff8c00; font-weight: bold;');
+        // --- END DIAGNOSTIC DELAY ---
+
         // --- DEFERRED SETUP ---
         // We wrap the entire discovery and setup process in a requestAnimationFrame.
         // This ensures the canvas has completed its initial render cycle and all transforms are stable
@@ -2937,10 +2921,6 @@ class MapShineLifecycle {
             game.mapShine.pauseEffectManager.initialize();
         }
 
-        if (game.mapShine.combatEffectManager) {
-            game.mapShine.combatEffectManager.initialize();
-        }
-
         if (!game.mapShine.geometryMaskManager) {
             game.mapShine.geometryMaskManager = new GeometryMaskManager();
         }
@@ -2983,7 +2963,7 @@ class MapShineLifecycle {
                 console.log("%cMap Shine | Activating LightingEffectManager after delay.", 'color: #4CAF50;');
                 canvas.mapShine.lightingEffectManager.isReady = true;
             }
-        }, 200);
+        }, 2000); // 2-second delay to ensure Illumination Buffer is stable.
 
         // KILL SWITCH DISENGAGED: Re-enable illumination-dependent systems.
         game.mapShine.transitionActive = false;
@@ -3370,10 +3350,6 @@ class MapPointsManager {
         label = "New Group",
         type = "point"
     } = {}) {
-        if (!game.user.isGM) {
-            ui.notifications.warn("You do not have permission to create map point groups.");
-            return null;
-        }
         const groupId = foundry.utils.randomID();
         const newGroup = {
             id: groupId,
@@ -3394,9 +3370,13 @@ class MapPointsManager {
         return groupId;
     }
 
+    /**
+     * Updates the properties of a group, such as its effect source status.
+     * @param {string} groupId The ID of the group to update.
+     * @param {object} properties The properties to update, e.g., { isEffectSource, effectTarget }.
+     * @returns {Promise<void>}
+     */
     static async updateGroupProperties(groupId, properties) {
-        if (!game.user.isGM) return; // No warning needed for rapid changes.
-
         const group = this.getGroup(groupId);
         if (!group) {
             console.warn(`MapPointsManager | Cannot update properties for non-existent group "${groupId}".`);
@@ -3419,11 +3399,12 @@ class MapPointsManager {
         }
     }
 
+    /**
+     * Deletes a map point group.
+     * @param {string} groupId The ID of the group to delete.
+     * @returns {Promise<void>}
+     */
     static async deleteGroup(groupId) {
-        if (!game.user.isGM) {
-            ui.notifications.warn("You do not have permission to delete map point groups.");
-            return;
-        }
         const path = `flags.${MODULE_ID}.${this.FLAG_NAME}.-=${groupId}`;
         await canvas.scene.update({
             [path]: null
@@ -3436,9 +3417,13 @@ class MapPointsManager {
         Hooks.callAll("mapShine:mapPointsUpdated");
     }
 
+    /**
+     * Adds a point to a specified group.
+     * @param {string} groupId The ID of the group to add the point to.
+     * @param {object} point The point to add, with {x, y} world coordinates.
+     * @returns {Promise<void>}
+     */
     static async addPoint(groupId, point) {
-        if (!game.user.isGM) return; // No warning needed for rapid changes like adding points.
-
         console.log(`MapShine | MapPointsManager: Attempting to add point to group "${groupId}".`, point);
         const group = this.getGroup(groupId);
         if (!group) {
@@ -3461,9 +3446,14 @@ class MapPointsManager {
         Hooks.callAll("mapShine:mapPointsUpdated");
     }
 
+    /**
+     * Updates the position of a specific point in a group.
+     * @param {string} groupId The ID of the group.
+     * @param {number} pointIndex The index of the point to update.
+     * @param {object} newPosition The new {x, y} world coordinates for the point.
+     * @returns {Promise<void>}
+     */
     static async updatePoint(groupId, pointIndex, newPosition) {
-        if (!game.user.isGM) return; // No warning needed for rapid changes.
-
         const group = this.getGroup(groupId);
         if (!group || !group.points[pointIndex]) {
             console.warn(`MapPointsManager | Cannot update point at index ${pointIndex} in non-existent group "${groupId}".`);
@@ -3484,9 +3474,13 @@ class MapPointsManager {
         Hooks.callAll("mapShine:mapPointsUpdated");
     }
 
+    /**
+     * Deletes a point from a group by its index.
+     * @param {string} groupId The ID of the group.
+     * @param {number} pointIndex The index of the point to remove.
+     * @returns {Promise<void>}
+     */
     static async deletePoint(groupId, pointIndex) {
-        if (!game.user.isGM) return; // No warning.
-
         const group = this.getGroup(groupId);
         if (!group) return;
 
@@ -3875,6 +3869,7 @@ class DynamicExposureManager {
         this.lastTriggerTimestamp = 0;
         this.dazzleAnimation = null;
         this.activeTokenId = null;
+        this._movementCheckTimeout = null; // For debouncing movement checks
 
         // Effect parameters (will be loaded from config)
         this.config = {};
@@ -3921,39 +3916,42 @@ class DynamicExposureManager {
         if (controlled && token) {
             this.activeTokenId = token.id;
             // Establish the initial state without triggering the effect
-            this._updateInitialTokenState(token);
+            this._checkTokenState(token, false);
         } else if (!canvas.tokens.controlled.length) {
             this.activeTokenId = null;
             this.isIndoors = null;
         }
     }
 
-    _onUpdateToken(tokenDoc, change) {
+    _onUpdateToken(token, change) {
         this.config = game.mapShine.profileManager.activeConfig.postProcessing.colorCorrection.dynamicExposure;
 
-        if (!this.isInitialized || tokenDoc.id !== this.activeTokenId || !this.config.enabled) {
+        if (!this.isInitialized || token.id !== this.activeTokenId || !this.config.enabled) {
             return;
         }
 
-        // Only react to movement
         if (change.x !== undefined || change.y !== undefined) {
-            // We need to check the state at the destination, not the current position.
-            // Create a point representing the destination center in world coordinates.
-            const dest = {
-                x: change.x ?? tokenDoc.x,
-                y: change.y ?? tokenDoc.y,
-                w: tokenDoc.width * canvas.scene.grid.size,
-                h: tokenDoc.height * canvas.scene.grid.size
-            };
-            const destCenter = {
-                x: dest.x + dest.w / 2,
-                y: dest.y + dest.h / 2
-            };
-            this._checkTokenStateAtPoint(destCenter, true);
+            // Clear any pending check
+            if (this._movementCheckTimeout) {
+                clearTimeout(this._movementCheckTimeout);
+            }
+            // Set a new timeout to perform the check after a short delay
+            this._movementCheckTimeout = setTimeout(() => {
+                // The token object might not exist anymore if it was deleted quickly
+                const currentTokenObject = canvas.tokens.get(token.id)?.object;
+                if (currentTokenObject) {
+                    this._checkTokenState(currentTokenObject, true);
+                }
+            }, 150); // 150ms debounce delay
         }
     }
 
-    _updateInitialTokenState(token) {
+    /**
+     * Checks the token's position against the _Outdoors mask to determine its state.
+     * @param {Token} token - The token to check.
+     * @param {boolean} canTriggerEffect - Whether a state change is allowed to trigger the dazzle effect.
+     */
+    _checkTokenState(token, canTriggerEffect = false) {
         if (!token) {
             this.isIndoors = null;
             return;
@@ -3968,54 +3966,30 @@ class DynamicExposureManager {
         }
 
         const screenPos = canvas.stage.toGlobal(token.center);
+
         const screen = canvas.app.renderer.screen;
         const x = Math.max(0, Math.min(screen.width - 1, Math.round(screenPos.x)));
         const y = Math.max(0, Math.min(screen.height - 1, Math.round(screenPos.y)));
 
         try {
             const pixelData = canvas.app.renderer.extract.pixels(outdoorsMask, new PIXI.Rectangle(x, y, 1, 1));
-            const maskValue = pixelData[0];
-            const isNowOutdoors = maskValue > 128;
-            this.isIndoors = !isNowOutdoors;
-        } catch (e) {
-            // It's safe to ignore extraction errors here, as this is just setting an initial state.
-        }
-    }
+            const maskValue = pixelData[0]; // Red channel
 
-    _checkTokenStateAtPoint(worldPoint, canTriggerEffect = false) {
-        if (!worldPoint) {
-            this.isIndoors = null;
-            return;
-        }
+            // A dark pixel on the _Outdoors mask means the area is indoors.
+            // The threshold is now configurable.
+            const threshold = (this.config.dazzleThreshold ?? 0.5) * 255;
+            const isNowIndoors = maskValue < threshold;
 
-        const cloudLayer = canvas.layers.find(l => l instanceof CloudShadowsLayer);
-        const outdoorsMask = cloudLayer?.getMaskTexture();
-
-        if (!outdoorsMask?.valid) {
-            this.isIndoors = null;
-            return;
-        }
-
-        const screenPos = canvas.stage.toGlobal(worldPoint);
-        const screen = canvas.app.renderer.screen;
-        const x = Math.max(0, Math.min(screen.width - 1, Math.round(screenPos.x)));
-        const y = Math.max(0, Math.min(screen.height - 1, Math.round(screenPos.y)));
-
-        try {
-            const pixelData = canvas.app.renderer.extract.pixels(outdoorsMask, new PIXI.Rectangle(x, y, 1, 1));
-            const maskValue = pixelData[0];
-
-            // Corrected Logic: "Outdoors" is where the _Outdoors mask is bright.
-            const isNowOutdoors = maskValue > 128;
             const wasIndoors = this.isIndoors === true;
 
-            // Update the state for the *next* check, based on the destination of the *current* move.
-            this.isIndoors = !isNowOutdoors;
+            // Update the current state
+            this.isIndoors = isNowIndoors;
 
-            // Check for the specific transition from indoors (dark) to outdoors (bright).
-            if (canTriggerEffect && wasIndoors && isNowOutdoors) {
+            // Trigger condition: The token *was* indoors and is *not* indoors now.
+            if (canTriggerEffect && wasIndoors && !isNowIndoors) {
                 this._triggerDazzleEffect();
             }
+
         } catch (e) {
             // This can happen if the texture is not yet ready on the GPU.
             // It's safe to ignore and try again on the next movement.
@@ -4035,7 +4009,6 @@ class DynamicExposureManager {
             this.dazzleAnimation.kill();
         }
 
-        // Animate the exposure boost using GSAP
         this.ccFilter.uniforms.uDynamicExposureBoost = this.config.intensity;
         this.dazzleAnimation = gsap.to(this.ccFilter.uniforms, {
             uDynamicExposureBoost: 0,
@@ -4053,6 +4026,10 @@ class DynamicExposureManager {
 
         Hooks.off('controlToken', this._boundOnControlToken);
         Hooks.off('updateToken', this._boundOnUpdateToken);
+
+        if (this._movementCheckTimeout) {
+            clearTimeout(this._movementCheckTimeout);
+        }
 
         if (this.dazzleAnimation) {
             this.dazzleAnimation.kill();
@@ -4225,159 +4202,6 @@ class PauseEffectManager {
         u.uSelectiveDesaturation = cc.selective.desaturation;
         u.uSelectiveTargetSaturation = cc.selective.targetSaturation;
         u.uSelectiveTargetBrightness = cc.selective.targetBrightness;
-    }
-}
-
-class CombatEffectManager {
-    constructor() {
-        this._animationState = {
-            progress: 0 // Initialize to a safe default.
-        };
-        this._animation = null;
-        this._combatFilter = null;
-        this._originalGlobalTime = 100;
-        this._isInitialized = false;
-        this._boundOnCombatChange = this._onCombatChange.bind(this);
-    }
-
-    initialize() {
-        if (this._isInitialized) return;
-        this._combatFilter = ScreenEffectsManager.getFilter('combatEffect');
-        if (!this._combatFilter) {
-            console.error("Map Shine | CombatEffectManager could not find its dedicated filter.");
-            return;
-        }
-
-        const config = game.mapShine.profileManager.activeConfig;
-        this._originalGlobalTime = config.timeControl.globalTime;
-
-        // Check the combat state now that game.combats is available.
-        this._animationState.progress = game.combats.active?.started ? 1 : 0;
-
-        // Set initial state without animation, in case the game loads during combat.
-        this._updateEffects(this._animationState.progress);
-
-        Hooks.on('combatStart', () => this._boundOnCombatChange(true));
-        Hooks.on('combatEnd', () => this._boundOnCombatChange(false));
-        Hooks.on('deleteCombat', () => this._boundOnCombatChange(false));
-
-        this._isInitialized = true;
-        console.log("Map Shine | Combat Effect Manager Initialized.");
-    }
-
-    destroy() {
-        if (!this._isInitialized) return;
-
-        Hooks.off('combatStart', this._boundOnCombatChange);
-        Hooks.off('combatEnd', this._boundOnCombatChange);
-        Hooks.off('deleteCombat', this._boundOnCombatChange);
-
-        if (this._animation) {
-            this._animation.kill();
-        }
-        this._animation = null;
-        this._combatFilter = null;
-        this._isInitialized = false;
-        console.log("Map Shine | Combat Effect Manager Destroyed.");
-    }
-
-    _onCombatChange(inCombat) {
-        if (!this._combatFilter) return;
-
-        const config = game.mapShine.profileManager.activeConfig;
-        const ceConfig = config.combatEffect;
-
-        if (!ceConfig.enabled) {
-            this._updateEffects(0);
-            if (config.timeControl.globalTime < this._originalGlobalTime) {
-                foundry.utils.setProperty(config, 'timeControl.globalTime', this._originalGlobalTime);
-                game.mapShine.profileManager.updateAllSystemsFromConfig();
-                if (game.mapShine.debugger) {
-                    game.mapShine.debugger.eventHandler.updateAllControls();
-                }
-            }
-            return;
-        }
-
-        if (this._animation) {
-            this._animation.kill();
-        }
-
-        const targetProgress = inCombat ? 1 : 0;
-
-        if (inCombat && this._animationState.progress < 1) {
-            this._originalGlobalTime = game.mapShine.profileManager.activeConfig.timeControl.globalTime;
-        }
-
-        this._animation = gsap.to(this._animationState, {
-            progress: targetProgress,
-            duration: ceConfig.duration / 1000,
-            ease: "power2.inOut",
-            onUpdate: () => this._updateEffects(this._animationState.progress),
-            onComplete: () => {
-                this._animation = null;
-                this._updateEffects(targetProgress);
-            }
-        });
-    }
-
-    _updateEffects(progress) {
-        if (!this._combatFilter) return;
-
-        const config = game.mapShine.profileManager.activeConfig;
-        const ceConfig = config.combatEffect;
-        const timeControlPath = 'timeControl.globalTime';
-
-        // --- 1. Update Time Control ---
-        const newTime = lerp(this._originalGlobalTime, this._originalGlobalTime * ceConfig.timeScale, progress);
-
-        game.mapShine.timeControl.timeFactor = newTime / 100.0;
-        foundry.utils.setProperty(config, timeControlPath, newTime);
-
-        game.mapShine.profileManager.updateAllSystemsFromConfig({
-            timeOnly: true
-        });
-
-        if (game.mapShine.debugger) {
-            const slider = game.mapShine.debugger.element.querySelector('#control-timeControl-globalTime');
-            if (slider) {
-                slider.value = newTime;
-                game.mapShine.debugger.eventHandler._updateSliderValue(slider.id, newTime, slider.step);
-            }
-        }
-
-        // --- 2. Update Color Correction Filter ---
-        const u = this._combatFilter.uniforms;
-        const cc = ceConfig.colorCorrection;
-
-        this._combatFilter.enabled = progress > 0.001 && cc.enabled;
-        u.uIntensity = progress;
-
-        u.uSaturation = cc.saturation;
-        u.uBrightness = cc.brightness;
-        u.uContrast = cc.contrast;
-        u.uExposure = cc.exposure;
-        u.uGamma = cc.gamma;
-        u.uInBlack = cc.levels.inBlack;
-        u.uInWhite = cc.levels.inWhite;
-        u.uTemperature = cc.whiteBalance.temperature;
-        u.uWbTint = cc.whiteBalance.tint;
-        u.uTintAmount = cc.tint.amount;
-        u.uTintColor = hexToRgbArray(cc.tint.color);
-        u.uInvert = cc.invert;
-
-        // Selective Color
-        u.uSelectiveEnabled = cc.selective.enabled;
-        u.uSelectiveColor = hexToRgbArray(cc.selective.color);
-        u.uSelectiveHueRange = cc.selective.hueRange;
-        u.uSelectiveSatRange = cc.selective.saturationRange;
-        u.uSelectiveLumRange = cc.selective.luminanceRange;
-        u.uSelectiveTargetLum = cc.selective.targetLuminance;
-        u.uSelectiveSoftness = cc.selective.softness;
-        u.uSelectiveInvert = cc.selective.invert;
-        u.uSelectiveDesaturation = cc.desaturation;
-        u.uSelectiveTargetSaturation = cc.targetSaturation;
-        u.uSelectiveTargetBrightness = cc.targetBrightness;
     }
 }
 
@@ -5330,225 +5154,225 @@ class ParticleEffectController {
         // Special case for Fire Bloom
         if (effectKey === 'fire') {
             content += `
-                            <details id="details-fire-bloom">
-                                <summary><span class="accordion-toggle"></span>
-                                    <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('fire.bloom.enabled', 'Bloom Effect', true)}</div>
-                                </summary>
-                                <div style="padding-left: 15px;">
-                                    <div class="warning-box" style="background-color: #554422; border-color: #ffaa66;"><strong style="color: #ffddaa;">PERFORMANCE WARNING:</strong> This can be demanding. Lowering 'Quality' can improve performance.</div>
-                                    <p class="description-text">Adds a soft glow to the fire particles.</p>
-                                    ${DebuggerUIBuilder._createSliderHTML('fire.bloom.threshold', 'Threshold', 0, 1, 0.01)}
-                                    ${DebuggerUIBuilder._createSliderHTML('fire.bloom.brightness', 'Brightness', 0, 5, 0.05)}
-                                    ${DebuggerUIBuilder._createSliderHTML('fire.bloom.bloomScale', 'Scale', 0.1, 5, 0.1, 'The size of the bloom effect.')}
-                                    ${DebuggerUIBuilder._createSliderHTML('fire.bloom.blur', 'Blur Amount', 0, 20, 0.5)}
-                                    ${DebuggerUIBuilder._createSliderHTML('fire.bloom.quality', 'Quality', 1, 15, 1, 'Number of blur samples. Higher is smoother but much slower.')}
-                                </div>
-                            </details>
-                        `;
+                    <details id="details-fire-bloom" open>
+                        <summary><span class="accordion-toggle"></span>
+                            <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('fire.bloom.enabled', 'Bloom Effect', true)}</div>
+                        </summary>
+                        <div style="padding-left: 15px;">
+                            <div class="warning-box" style="background-color: #554422; border-color: #ffaa66;"><strong style="color: #ffddaa;">PERFORMANCE WARNING:</strong> This can be demanding. Lowering 'Quality' can improve performance.</div>
+                            <p class="description-text">Adds a soft glow to the fire particles.</p>
+                            ${DebuggerUIBuilder._createSliderHTML('fire.bloom.threshold', 'Threshold', 0, 1, 0.01)}
+                            ${DebuggerUIBuilder._createSliderHTML('fire.bloom.brightness', 'Brightness', 0, 5, 0.05)}
+                            ${DebuggerUIBuilder._createSliderHTML('fire.bloom.bloomScale', 'Scale', 0.1, 5, 0.1, 'The size of the bloom effect.')}
+                            ${DebuggerUIBuilder._createSliderHTML('fire.bloom.blur', 'Blur Amount', 0, 20, 0.5)}
+                            ${DebuggerUIBuilder._createSliderHTML('fire.bloom.quality', 'Quality', 1, 15, 1, 'Number of blur samples. Higher is smoother but much slower.')}
+                        </div>
+                    </details>
+                `;
         }
 
         if (effectKey === 'sparks') {
             const sparksPath = 'sparks';
             let sparksContent = `
-                        <p class="description-text">${definition.description}</p>
+                <p class="description-text">${definition.description}</p>
+                <details open>
+                    <summary><span class="accordion-toggle"></span><strong>Spawning & Density</strong></summary>
+                    <div style="padding-left: 15px;">
+                        ${DebuggerUIBuilder._createTextureInputHTML(definition.triggerTexture, `Effect Mask (_${definition.triggerTexture.charAt(0).toUpperCase() + definition.triggerTexture.slice(1)})`)}
+                        ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.maskInfluence`, 'Particle Density', 0.01, 5, 0.01)}
+                        ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.frequency`, 'Spawn Rate (s)', 0.01, 2, 0.01)}
+                        ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.maskThreshold`, 'Mask Threshold', 0, 1, 0.01, 'Luminance from the _Sparks map required to spawn sparks.')}
+                    </div>
+                </details>
+                <details>
+                    <summary><span class="accordion-toggle"></span><strong>Particle Appearance</strong></summary>
+                    <div style="padding-left: 15px;">
+                        ${DebuggerUIBuilder._createSelectHTML(`${sparksPath}.blendMode`, 'Blend Mode', BLEND_MODE_OPTIONS)}
+                        ${DebuggerUIBuilder._createTextInputHTML(`${sparksPath}.particleTexture`, 'Particle Texture')}
                         <details>
-                            <summary><span class="accordion-toggle"></span><strong>Spawning & Density</strong></summary>
+                            <summary><span class="accordion-toggle"></span><strong>Lifetime</strong></summary>
                             <div style="padding-left: 15px;">
-                                ${DebuggerUIBuilder._createTextureInputHTML(definition.triggerTexture, `Effect Mask (_${definition.triggerTexture.charAt(0).toUpperCase() + definition.triggerTexture.slice(1)})`)}
-                                ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.maskInfluence`, 'Particle Density', 0.01, 5, 0.01)}
-                                ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.frequency`, 'Spawn Rate (s)', 0.01, 2, 0.01)}
-                                ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.maskThreshold`, 'Mask Threshold', 0, 1, 0.01, 'Luminance from the _Sparks map required to spawn sparks.')}
+                                ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.lifetime.min`, 'Min Lifetime (s)', 0.5, 5, 0.1)}
+                                ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.lifetime.max`, 'Max Lifetime (s)', 0.5, 5, 0.1)}
+                            </div>
+                        </details>
+                        <details open>
+                            <summary><span class="accordion-toggle"></span><strong>Color Over Life</strong></summary>
+                            <div style="padding-left: 15px;">
+                                ${DebuggerUIBuilder._createColorPickerHTML(`${sparksPath}.color.start`, 'Start Color')}
+                                ${DebuggerUIBuilder._createColorPickerHTML(`${sparksPath}.color.end`, 'End Color')}
                             </div>
                         </details>
                         <details>
-                            <summary><span class="accordion-toggle"></span><strong>Particle Appearance</strong></summary>
+                            <summary><span class="accordion-toggle"></span><strong>Alpha / Opacity</strong></summary>
                             <div style="padding-left: 15px;">
-                                ${DebuggerUIBuilder._createSelectHTML(`${sparksPath}.blendMode`, 'Blend Mode', BLEND_MODE_OPTIONS)}
-                                ${DebuggerUIBuilder._createTextInputHTML(`${sparksPath}.particleTexture`, 'Particle Texture')}
-                                <details>
-                                    <summary><span class="accordion-toggle"></span><strong>Lifetime</strong></summary>
-                                    <div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.lifetime.min`, 'Min Lifetime (s)', 0.5, 5, 0.1)}
-                                        ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.lifetime.max`, 'Max Lifetime (s)', 0.5, 5, 0.1)}
-                                    </div>
-                                </details>
-                                <details>
-                                    <summary><span class="accordion-toggle"></span><strong>Color Over Life</strong></summary>
-                                    <div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createColorPickerHTML(`${sparksPath}.color.start`, 'Start Color')}
-                                        ${DebuggerUIBuilder._createColorPickerHTML(`${sparksPath}.color.end`, 'End Color')}
-                                    </div>
-                                </details>
-                                <details>
-                                    <summary><span class="accordion-toggle"></span><strong>Alpha / Opacity</strong></summary>
-                                    <div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.alpha.max`, 'Max Alpha', 0, 1, 0.01)}
-                                        ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.alpha.fadeIn`, 'FadeIn Time (%)', 0, 1, 0.01)}
-                                        ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.alpha.fadeOut`, 'FadeOut Time (%)', 0, 1, 0.01)}
-                                    </div>
-                                </details>
-                                <details>
-                                    <summary><span class="accordion-toggle"></span><strong>Scale / Size</strong></summary>
-                                    <div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.scale.sizeMultiplier`, 'Global Size', 0.1, 2, 0.05)}
-                                        ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.scale.start`, 'Start Scale', 0.1, 2, 0.05)}
-                                        ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.scale.end`, 'End Scale', 0, 2, 0.05)}
-                                        ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.scale.minMult`, 'Random Size Min', 0.1, 1, 0.01)}
-                                    </div>
-                                </details>
+                                ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.alpha.max`, 'Max Alpha', 0, 1, 0.01)}
+                                ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.alpha.fadeIn`, 'FadeIn Time (%)', 0, 1, 0.01)}
+                                ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.alpha.fadeOut`, 'FadeOut Time (%)', 0, 1, 0.01)}
                             </div>
                         </details>
                         <details>
-                            <summary><span class="accordion-toggle"></span><strong>Movement (Spark Path)</strong></summary>
+                            <summary><span class="accordion-toggle"></span><strong>Scale / Size</strong></summary>
+                            <div style="padding-left: 15px;">
+                                ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.scale.sizeMultiplier`, 'Global Size', 0.1, 2, 0.05)}
+                                ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.scale.start`, 'Start Scale', 0.1, 2, 0.05)}
+                                ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.scale.end`, 'End Scale', 0, 2, 0.05)}
+                                ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.scale.minMult`, 'Random Size Min', 0.1, 1, 0.01)}
+                            </div>
+                        </details>
+                    </div>
+                </details>
+                <details open>
+                    <summary><span class="accordion-toggle"></span><strong>Movement (Spark Path)</strong></summary>
+                    <div style="padding-left:15px;">
+                        <details>
+                            <summary><span class="accordion-toggle"></span><strong>Speed Along Path</strong></summary>
                             <div style="padding-left:15px;">
-                                <details>
-                                    <summary><span class="accordion-toggle"></span><strong>Speed Along Path</strong></summary>
-                                    <div style="padding-left:15px;">
-                                        ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.path.speed.start`, 'Start Speed', 10, 200, 1)}
-                                        ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.path.speed.end`, 'End Speed', 10, 200, 1)}
-                                        ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.path.speed.minMult`, 'Random Speed Min', 0.1, 1, 0.01)}
-                                    </div>
-                                </details>
-                                <details>
-                                    <summary><span class="accordion-toggle"></span><strong>Path Shape</strong></summary>
-                                    <div style="padding-left:15px;">
-                                        <p class="description-text">Controls the random sine wave path for each spark.</p>
-                                        ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.path.amplitude.min`, 'Min Wave Width', 0, 100, 1)}
-                                        ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.path.amplitude.max`, 'Max Wave Width', 0, 100, 1)}
-                                        ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.path.frequency.min`, 'Min Wave Freq', 10, 200, 1)}
-                                        ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.path.frequency.max`, 'Max Wave Freq', 10, 200, 1)}
-                                        ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.path.damping`, 'Damping', 0, 1, 0.05, 'How quickly the path straightens out over the spark\\s life.')}
-                                        ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.path.angle.min`, 'Min Start Angle', -90, 90, 1)}
-                                        ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.path.angle.max`, 'Max Start Angle', -90, 90, 1)}
-                                    </div>
-                                </details>
-                                <details>
-                                    <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(`${sparksPath}.path.motionBlur.enabled`, 'Motion Blur', true)}</div></summary>
-                                    <div style="padding-left:15px;">
-                                        <p class="description-text">Stretches particles based on their speed to simulate motion blur.</p>
-                                        ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.path.motionBlur.strength`, 'Strength', 0, 1, 0.01, 'Multiplier for how much speed affects particle length.')}
-                                        ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.path.motionBlur.maxLength`, 'Max Length', 0, 10, 0.1, 'The maximum amount to stretch the particle scale.')}
-                                    </div>
-                                </details>
+                                ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.path.speed.start`, 'Start Speed', 10, 200, 1)}
+                                ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.path.speed.end`, 'End Speed', 10, 200, 1)}
+                                ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.path.speed.minMult`, 'Random Speed Min', 0.1, 1, 0.01)}
                             </div>
                         </details>
-                    `;
+                        <details open>
+                            <summary><span class="accordion-toggle"></span><strong>Path Shape</strong></summary>
+                            <div style="padding-left:15px;">
+                                <p class="description-text">Controls the random sine wave path for each spark.</p>
+                                ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.path.amplitude.min`, 'Min Wave Width', 0, 100, 1)}
+                                ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.path.amplitude.max`, 'Max Wave Width', 0, 100, 1)}
+                                ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.path.frequency.min`, 'Min Wave Freq', 10, 200, 1)}
+                                ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.path.frequency.max`, 'Max Wave Freq', 10, 200, 1)}
+                                ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.path.damping`, 'Damping', 0, 1, 0.05, 'How quickly the path straightens out over the spark\\s life.')}
+                                ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.path.angle.min`, 'Min Start Angle', -90, 90, 1)}
+                                ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.path.angle.max`, 'Max Start Angle', -90, 90, 1)}
+                            </div>
+                        </details>
+                        <details open>
+                            <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(`${sparksPath}.path.motionBlur.enabled`, 'Motion Blur', true)}</div></summary>
+                            <div style="padding-left:15px;">
+                                <p class="description-text">Stretches particles based on their speed to simulate motion blur.</p>
+                                ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.path.motionBlur.strength`, 'Strength', 0, 1, 0.01, 'Multiplier for how much speed affects particle length.')}
+                                ${DebuggerUIBuilder._createSliderHTML(`${sparksPath}.path.motionBlur.maxLength`, 'Max Length', 0, 10, 0.1, 'The maximum amount to stretch the particle scale.')}
+                            </div>
+                        </details>
+                    </div>
+                </details>
+            `;
             return DebuggerUIBuilder._createAccordionHTML(effectKey, definition.title, sparksContent);
         }
 
         // Common particle sections
         content += `
+                <details open>
+                    <summary><span class="accordion-toggle"></span><strong>Spawning & Density</strong></summary>
+                    <div style="padding-left: 15px;">
+                        ${DebuggerUIBuilder._createTextureInputHTML(definition.triggerTexture, `Effect Mask (_${definition.triggerTexture.charAt(0).toUpperCase() + definition.triggerTexture.slice(1)})`)}
+                        ${DebuggerUIBuilder._createSliderHTML(`${path}.maskInfluence`, 'Particle Density', 0.01, 5, 0.01, 'Controls the maximum number of particles.')}
+                        ${DebuggerUIBuilder._createSliderHTML(`${path}.frequency`, 'Spawn Rate (s)', 0.001, 1, 0.001, 'Time in seconds between particle spawns. Lower is faster.')}
+                        ${DebuggerUIBuilder._createSliderHTML(`${path}.maskThreshold`, 'Mask Threshold', 0, 1, 0.01, 'Luminance from the mask required to spawn particles.')}
+                        ${effectKey === 'glint' ? DebuggerUIBuilder._createCheckboxHTML(`${path}.darknessAffectsIntensity`, 'Darkness Reduces Intensity', false, 'If checked, the scene darkness level will reduce the particle spawn rate.') : ''}
+                    </div>
+                </details>
+                <details>
+                    <summary><span class="accordion-toggle"></span><strong>Particle Appearance</strong></summary>
+                    <div style="padding-left: 15px;">
+                        ${DebuggerUIBuilder._createTextInputHTML(`${path}.particleTexture`, 'Particle Texture', 'Path to the particle image.')}
                         <details>
-                            <summary><span class="accordion-toggle"></span><strong>Spawning & Density</strong></summary>
+                            <summary><span class="accordion-toggle"></span><strong>Lifetime</strong></summary>
                             <div style="padding-left: 15px;">
-                                ${DebuggerUIBuilder._createTextureInputHTML(definition.triggerTexture, `Effect Mask (_${definition.triggerTexture.charAt(0).toUpperCase() + definition.triggerTexture.slice(1)})`)}
-                                ${DebuggerUIBuilder._createSliderHTML(`${path}.maskInfluence`, 'Particle Density', 0.01, 5, 0.01, 'Controls the maximum number of particles.')}
-                                ${DebuggerUIBuilder._createSliderHTML(`${path}.frequency`, 'Spawn Rate (s)', 0.001, 1, 0.001, 'Time in seconds between particle spawns. Lower is faster.')}
-                                ${DebuggerUIBuilder._createSliderHTML(`${path}.maskThreshold`, 'Mask Threshold', 0, 1, 0.01, 'Luminance from the mask required to spawn particles.')}
-                                ${effectKey === 'glint' ? DebuggerUIBuilder._createCheckboxHTML(`${path}.darknessAffectsIntensity`, 'Darkness Reduces Intensity', false, 'If checked, the scene darkness level will reduce the particle spawn rate.') : ''}
+                                ${DebuggerUIBuilder._createSliderHTML(`${path}.lifetime.min`, 'Min Lifetime (s)', 0.1, 20, 0.1)}
+                                ${DebuggerUIBuilder._createSliderHTML(`${path}.lifetime.max`, 'Max Lifetime (s)', 0.1, 20, 0.1)}
+                            </div>
+                        </details>
+                        <details open>
+                            <summary><span class="accordion-toggle"></span><strong>Color Over Life</strong></summary>
+                            <div style="padding-left: 15px;">
+                                <p class="description-text">Sets particle color at birth and death. If colors are the same, a static color is used.</p>
+                                ${DebuggerUIBuilder._createColorPickerHTML(`${path}.color.start`, 'Start Color')}
+                                ${DebuggerUIBuilder._createColorPickerHTML(`${path}.color.end`, 'End Color')}
                             </div>
                         </details>
                         <details>
-                            <summary><span class="accordion-toggle"></span><strong>Particle Appearance</strong></summary>
+                            <summary><span class="accordion-toggle"></span><strong>Alpha / Opacity</strong></summary>
                             <div style="padding-left: 15px;">
-                                ${DebuggerUIBuilder._createTextInputHTML(`${path}.particleTexture`, 'Particle Texture', 'Path to the particle image.')}
-                                <details>
-                                    <summary><span class="accordion-toggle"></span><strong>Lifetime</strong></summary>
-                                    <div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createSliderHTML(`${path}.lifetime.min`, 'Min Lifetime (s)', 0.1, 20, 0.1)}
-                                        ${DebuggerUIBuilder._createSliderHTML(`${path}.lifetime.max`, 'Max Lifetime (s)', 0.1, 20, 0.1)}
-                                    </div>
-                                </details>
-                                <details>
-                                    <summary><span class="accordion-toggle"></span><strong>Color Over Life</strong></summary>
-                                    <div style="padding-left: 15px;">
-                                        <p class="description-text">Sets particle color at birth and death. If colors are the same, a static color is used.</p>
-                                        ${DebuggerUIBuilder._createColorPickerHTML(`${path}.color.start`, 'Start Color')}
-                                        ${DebuggerUIBuilder._createColorPickerHTML(`${path}.color.end`, 'End Color')}
-                                    </div>
-                                </details>
-                                <details>
-                                    <summary><span class="accordion-toggle"></span><strong>Alpha / Opacity</strong></summary>
-                                    <div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createSliderHTML(`${path}.alpha.max`, 'Max Alpha', 0, 1, 0.01)}
-                                        ${DebuggerUIBuilder._createSliderHTML(`${path}.alpha.fadeIn`, 'FadeIn Time (%)', 0, 1, 0.01)}
-                                        ${DebuggerUIBuilder._createSliderHTML(`${path}.alpha.fadeOut`, 'FadeOut Time (%)', 0, 1, 0.01)}
-                                    </div>
-                                </details>
-                                <details>
-                                    <summary><span class="accordion-toggle"></span><strong>Scale / Size</strong></summary>
-                                    <div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createSliderHTML(`${path}.scale.sizeMultiplier`, 'Global Size', 0.1, 10, 0.1, 'A global multiplier for particle size.')}
-                                        ${DebuggerUIBuilder._createSliderHTML(`${path}.scale.start`, 'Start Scale Mult', 0, 2, 0.01, 'Particle size at birth (multiplied by Global Size).')}
-                                        ${DebuggerUIBuilder._createSliderHTML(`${path}.scale.end`, 'End Scale Mult', 0, 2, 0.01, 'Particle size at death (multiplied by Global Size).')}
-                                        ${DebuggerUIBuilder._createSliderHTML(`${path}.scale.minMult`, 'Random Size Min', 0.1, 1, 0.01, 'Minimum random scale multiplier for each particle (from this value to 1.0).')}
-                                    </div>
-                                </details>
-                                ${effectKey === 'glint' ? `
-                                <details>
-                                    <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(`${path}.rgbSplit.enabled`, 'RGB Split Effect', true)}</div></summary>
-                                    <div style="padding-left: 15px;">
-                                        <p class="description-text">Applies a chromatic aberration effect to the particles.</p>
-                                        ${DebuggerUIBuilder._createSliderHTML(`${path}.rgbSplit.amount`, 'Amount', 0, 10, 0.1)}
-                                    </div>
-                                </details>` : ''}
+                                ${DebuggerUIBuilder._createSliderHTML(`${path}.alpha.max`, 'Max Alpha', 0, 1, 0.01)}
+                                ${DebuggerUIBuilder._createSliderHTML(`${path}.alpha.fadeIn`, 'FadeIn Time (%)', 0, 1, 0.01)}
+                                ${DebuggerUIBuilder._createSliderHTML(`${path}.alpha.fadeOut`, 'FadeOut Time (%)', 0, 1, 0.01)}
                             </div>
                         </details>
                         <details>
-                            <summary><span class="accordion-toggle"></span><strong>Movement</strong></summary>
+                            <summary><span class="accordion-toggle"></span><strong>Scale / Size</strong></summary>
                             <div style="padding-left: 15px;">
-                                <details>
-                                    <summary><span class="accordion-toggle"></span><strong>Speed</strong></summary>
-                                    <div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createSliderHTML(`${path}.speed.start`, 'Start Speed', -50, 50, 1)}
-                                        ${DebuggerUIBuilder._createSliderHTML(`${path}.speed.end`, 'End Speed', -50, 50, 1)}
-                                        ${DebuggerUIBuilder._createSliderHTML(`${path}.speed.minMult`, 'Random Speed Min', 0.1, 1, 0.01, 'Minimum random speed multiplier for each particle (from this value to 1.0).')}
-                                    </div>
-                                </details>
-                                <details>
-                                    <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(`${path}.rotation.enabled`, 'Tumbling / Rotation', true)}</div></summary>
-                                    <div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createSliderHTML(`${path}.rotation.minSpeed`, 'Min Rot. Speed', -180, 180, 1, 'Degrees per second.')}
-                                        ${DebuggerUIBuilder._createSliderHTML(`${path}.rotation.maxSpeed`, 'Max Rot. Speed', -180, 180, 1, 'Degrees per second.')}
-                                        ${DebuggerUIBuilder._createSliderHTML(`${path}.rotation.accel`, 'Rot. Accel.', -90, 90, 1, 'Degrees per second squared.')}
-                                    </div>
-                                </details>
+                                ${DebuggerUIBuilder._createSliderHTML(`${path}.scale.sizeMultiplier`, 'Global Size', 0.1, 10, 0.1, 'A global multiplier for particle size.')}
+                                ${DebuggerUIBuilder._createSliderHTML(`${path}.scale.start`, 'Start Scale Mult', 0, 2, 0.01, 'Particle size at birth (multiplied by Global Size).')}
+                                ${DebuggerUIBuilder._createSliderHTML(`${path}.scale.end`, 'End Scale Mult', 0, 2, 0.01, 'Particle size at death (multiplied by Global Size).')}
+                                ${DebuggerUIBuilder._createSliderHTML(`${path}.scale.minMult`, 'Random Size Min', 0.1, 1, 0.01, 'Minimum random scale multiplier for each particle (from this value to 1.0).')}
                             </div>
                         </details>
-                    `;
+                        ${effectKey === 'glint' ? `
+                        <details>
+                            <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(`${path}.rgbSplit.enabled`, 'RGB Split Effect', true)}</div></summary>
+                            <div style="padding-left: 15px;">
+                                <p class="description-text">Applies a chromatic aberration effect to the particles.</p>
+                                ${DebuggerUIBuilder._createSliderHTML(`${path}.rgbSplit.amount`, 'Amount', 0, 10, 0.1)}
+                            </div>
+                        </details>` : ''}
+                    </div>
+                </details>
+                <details>
+                    <summary><span class="accordion-toggle"></span><strong>Movement</strong></summary>
+                    <div style="padding-left: 15px;">
+                        <details>
+                            <summary><span class="accordion-toggle"></span><strong>Speed</strong></summary>
+                            <div style="padding-left: 15px;">
+                                ${DebuggerUIBuilder._createSliderHTML(`${path}.speed.start`, 'Start Speed', -50, 50, 1)}
+                                ${DebuggerUIBuilder._createSliderHTML(`${path}.speed.end`, 'End Speed', -50, 50, 1)}
+                                ${DebuggerUIBuilder._createSliderHTML(`${path}.speed.minMult`, 'Random Speed Min', 0.1, 1, 0.01, 'Minimum random speed multiplier for each particle (from this value to 1.0).')}
+                            </div>
+                        </details>
+                        <details>
+                            <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(`${path}.rotation.enabled`, 'Tumbling / Rotation', true)}</div></summary>
+                            <div style="padding-left: 15px;">
+                                ${DebuggerUIBuilder._createSliderHTML(`${path}.rotation.minSpeed`, 'Min Rot. Speed', -180, 180, 1, 'Degrees per second.')}
+                                ${DebuggerUIBuilder._createSliderHTML(`${path}.rotation.maxSpeed`, 'Max Rot. Speed', -180, 180, 1, 'Degrees per second.')}
+                                ${DebuggerUIBuilder._createSliderHTML(`${path}.rotation.accel`, 'Rot. Accel.', -90, 90, 1, 'Degrees per second squared.')}
+                            </div>
+                        </details>
+                    </div>
+                </details>
+            `;
 
         // Special case for Fire Wind
         if (effectKey === 'fire') {
             content += `
-                            <details id="details-fire-wind">
-                                <summary><span class="accordion-toggle"></span>
-                                    <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(`${path}.wind.enabled`, 'Complex Wind', true)}</div>
-                                </summary>
+                    <details id="details-fire-wind" open>
+                        <summary><span class="accordion-toggle"></span>
+                            <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(`${path}.wind.enabled`, 'Complex Wind', true)}</div>
+                        </summary>
+                        <div style="padding-left: 15px;">
+                            <p class="description-text">Applies a dynamic wind force to all fire particles.</p>
+                            ${DebuggerUIBuilder._createSliderHTML(`${path}.wind.force`, 'Wind Force', 0, 500, 5, 'How strongly the wind pushes the particles.')}
+                            ${DebuggerUIBuilder._createSliderHTML(`${path}.wind.baseSpeed`, 'Base Speed', 0, 200, 1, 'The normal speed of the wind.')}
+                            ${DebuggerUIBuilder._createSliderHTML(`${path}.wind.gustSpeed`, 'Gust Speed', 0, 500, 5, 'The peak speed during a gust.')}
+                            <details>
+                                <summary><span class="accordion-toggle"></span><strong>Gust Timing</strong></summary>
                                 <div style="padding-left: 15px;">
-                                    <p class="description-text">Applies a dynamic wind force to all fire particles.</p>
-                                    ${DebuggerUIBuilder._createSliderHTML(`${path}.wind.force`, 'Wind Force', 0, 500, 5, 'How strongly the wind pushes the particles.')}
-                                    ${DebuggerUIBuilder._createSliderHTML(`${path}.wind.baseSpeed`, 'Base Speed', 0, 200, 1, 'The normal speed of the wind.')}
-                                    ${DebuggerUIBuilder._createSliderHTML(`${path}.wind.gustSpeed`, 'Gust Speed', 0, 500, 5, 'The peak speed during a gust.')}
-                                    <details>
-                                        <summary><span class="accordion-toggle"></span><strong>Gust Timing</strong></summary>
-                                        <div style="padding-left: 15px;">
-                                            ${DebuggerUIBuilder._createSliderHTML(`${path}.wind.gustFrequencyMin`, 'Min Time Between Gusts (s)', 0.1, 20, 0.1)}
-                                            ${DebuggerUIBuilder._createSliderHTML(`${path}.wind.gustFrequencyMax`, 'Max Time Between Gusts (s)', 0.1, 20, 0.1)}
-                                            ${DebuggerUIBuilder._createSliderHTML(`${path}.wind.gustDurationMin`, 'Min Gust Duration (s)', 0.1, 5, 0.1)}
-                                            ${DebuggerUIBuilder._createSliderHTML(`${path}.wind.gustDurationMax`, 'Max Gust Duration (s)', 0.1, 5, 0.1)}
-                                        </div>
-                                    </details>
-                                    <details>
-                                        <summary><span class="accordion-toggle"></span><strong>Angle Change</strong></summary>
-                                        <div style="padding-left: 15px;">
-                                            ${DebuggerUIBuilder._createSliderHTML(`${path}.wind.angleChangeFrequencyMin`, 'Min Time Between Changes (s)', 0.1, 30, 0.1)}
-                                            ${DebuggerUIBuilder._createSliderHTML(`${path}.wind.angleChangeFrequencyMax`, 'Max Time Between Changes (s)', 0.1, 30, 0.1)}
-                                            ${DebuggerUIBuilder._createSliderHTML(`${path}.wind.angleChangeRange`, 'Max Angle Change ( )', 0, 90, 1, 'Max degrees the angle can shift each time.')}
-                                        </div>
-                                    </details>
+                                    ${DebuggerUIBuilder._createSliderHTML(`${path}.wind.gustFrequencyMin`, 'Min Time Between Gusts (s)', 0.1, 20, 0.1)}
+                                    ${DebuggerUIBuilder._createSliderHTML(`${path}.wind.gustFrequencyMax`, 'Max Time Between Gusts (s)', 0.1, 20, 0.1)}
+                                    ${DebuggerUIBuilder._createSliderHTML(`${path}.wind.gustDurationMin`, 'Min Gust Duration (s)', 0.1, 5, 0.1)}
+                                    ${DebuggerUIBuilder._createSliderHTML(`${path}.wind.gustDurationMax`, 'Max Gust Duration (s)', 0.1, 5, 0.1)}
                                 </div>
                             </details>
-                        `;
+                            <details>
+                                <summary><span class="accordion-toggle"></span><strong>Angle Change</strong></summary>
+                                <div style="padding-left: 15px;">
+                                    ${DebuggerUIBuilder._createSliderHTML(`${path}.wind.angleChangeFrequencyMin`, 'Min Time Between Changes (s)', 0.1, 30, 0.1)}
+                                    ${DebuggerUIBuilder._createSliderHTML(`${path}.wind.angleChangeFrequencyMax`, 'Max Time Between Changes (s)', 0.1, 30, 0.1)}
+                                    ${DebuggerUIBuilder._createSliderHTML(`${path}.wind.angleChangeRange`, 'Max Angle Change ( )', 0, 90, 1, 'Max degrees the angle can shift each time.')}
+                                </div>
+                            </details>
+                        </div>
+                    </details>
+                `;
         }
 
         const mainAccordionPath = effectKey === 'fire' ? 'fire.particles.enabled' : `${path}.enabled`;
@@ -6825,76 +6649,76 @@ class SparkPathBehavior {
 class NoisePatternFilter extends PIXI.Filter {
     constructor(options) {
         const fragmentSrc = `
-                        precision mediump float; 
-                        varying vec2 vTextureCoord;
+                precision mediump float; 
+                varying vec2 vTextureCoord;
 
-                        uniform float u_time; 
-                        uniform vec2 u_resolution;
-                        uniform float u_speed, u_scale, u_threshold, u_brightness, u_contrast, u_softness;
-                        uniform float u_evolution;
-                        
-                        // New uniforms for world-space mode
-                        uniform bool u_isWorldSpace;
-                        uniform vec2 u_camera_offset;
-                        uniform vec2 u_view_size;
+                uniform float u_time; 
+                uniform vec2 u_resolution;
+                uniform float u_speed, u_scale, u_threshold, u_brightness, u_contrast, u_softness;
+                uniform float u_evolution;
+                
+                // New uniforms for world-space mode
+                uniform bool u_isWorldSpace;
+                uniform vec2 u_camera_offset;
+                uniform vec2 u_view_size;
 
-                        float random(vec3 st) { 
-                            return fract(sin(dot(st.xyz, vec3(12.9898, 78.233, 54.731))) * 43758.5453123); 
-                        }
+                float random(vec3 st) { 
+                    return fract(sin(dot(st.xyz, vec3(12.9898, 78.233, 54.731))) * 43758.5453123); 
+                }
 
-                        float value_noise(vec3 st) {
-                            vec3 i = floor(st); 
-                            vec3 f = fract(st); 
+                float value_noise(vec3 st) {
+                    vec3 i = floor(st); 
+                    vec3 f = fract(st); 
 
-                            float a = random(i + vec3(0.0, 0.0, 0.0));
-                            float b = random(i + vec3(1.0, 0.0, 0.0));
-                            float c = random(i + vec3(0.0, 1.0, 0.0));
-                            float d = random(i + vec3(1.0, 1.0, 0.0));
-                            float e = random(i + vec3(0.0, 0.0, 1.0));
-                            float f_ = random(i + vec3(1.0, 0.0, 1.0));
-                            float g = random(i + vec3(0.0, 1.0, 1.0));
-                            float h = random(i + vec3(1.0, 1.0, 1.0));
+                    float a = random(i + vec3(0.0, 0.0, 0.0));
+                    float b = random(i + vec3(1.0, 0.0, 0.0));
+                    float c = random(i + vec3(0.0, 1.0, 0.0));
+                    float d = random(i + vec3(1.0, 1.0, 0.0));
+                    float e = random(i + vec3(0.0, 0.0, 1.0));
+                    float f_ = random(i + vec3(1.0, 0.0, 1.0));
+                    float g = random(i + vec3(0.0, 1.0, 1.0));
+                    float h = random(i + vec3(1.0, 1.0, 1.0));
 
-                            vec3 u = f * f * (3.0 - 2.0 * f);
+                    vec3 u = f * f * (3.0 - 2.0 * f);
 
-                            float bottom_x = mix(a, b, u.x);
-                            float top_x = mix(c, d, u.x);
-                            float bottom_face_mix = mix(bottom_x, top_x, u.y);
+                    float bottom_x = mix(a, b, u.x);
+                    float top_x = mix(c, d, u.x);
+                    float bottom_face_mix = mix(bottom_x, top_x, u.y);
 
-                            float bottom_x_top = mix(e, f_, u.x);
-                            float top_x_top = mix(g, h, u.x);
-                            float top_face_mix = mix(bottom_x_top, top_x_top, u.y);
+                    float bottom_x_top = mix(e, f_, u.x);
+                    float top_x_top = mix(g, h, u.x);
+                    float top_face_mix = mix(bottom_x_top, top_x_top, u.y);
 
-                            return mix(bottom_face_mix, top_face_mix, u.z);
-                        }
+                    return mix(bottom_face_mix, top_face_mix, u.z);
+                }
 
-                        void main() {
-                            vec2 uv;
-                            if (u_isWorldSpace) {
-                                vec2 world_coord = u_camera_offset + (vTextureCoord * u_view_size);
-                                // Apply animation directly to the world coordinates to ensure stability.
-                                // A multiplier is used to make the UI speed value more intuitive.
-                                world_coord.x += u_time * u_speed * 10.0;
+                void main() {
+                    vec2 uv;
+                    if (u_isWorldSpace) {
+                        vec2 world_coord = u_camera_offset + (vTextureCoord * u_view_size);
+                        // Apply animation directly to the world coordinates to ensure stability.
+                        // A multiplier is used to make the UI speed value more intuitive.
+                        world_coord.x += u_time * u_speed * 10.0;
 
-                                // Use a large divisor to keep the user-facing scale value in a reasonable range (e.g., 0.1-10)
-                                uv = world_coord * u_scale / 1000.0;
-                            } else {
-                                // Original screen-space calculation
-                                vec2 screen_pixel_coord = vTextureCoord * u_resolution;
-                                vec2 screen_center_pixel_coord = u_resolution * 0.5;
-                                uv = (screen_pixel_coord - screen_center_pixel_coord) * u_scale / 30.0;
-                                uv.x += u_time * u_speed;
-                            }
-                            
-                            float time_z = u_time * u_evolution;
-                            float noise = value_noise(vec3(uv, time_z));
+                        // Use a large divisor to keep the user-facing scale value in a reasonable range (e.g., 0.1-10)
+                        uv = world_coord * u_scale / 1000.0;
+                    } else {
+                        // Original screen-space calculation
+                        vec2 screen_pixel_coord = vTextureCoord * u_resolution;
+                        vec2 screen_center_pixel_coord = u_resolution * 0.5;
+                        uv = (screen_pixel_coord - screen_center_pixel_coord) * u_scale / 30.0;
+                        uv.x += u_time * u_speed;
+                    }
+                    
+                    float time_z = u_time * u_evolution;
+                    float noise = value_noise(vec3(uv, time_z));
 
-                            noise += u_brightness;
-                            noise = (noise - 0.5) * u_contrast + 0.5;
-                            noise = smoothstep(u_threshold, u_threshold + u_softness, noise);
-                            gl_FragColor = vec4(vec3(clamp(noise, 0.0, 1.0)), 1.0);
-                        }
-                    `;
+                    noise += u_brightness;
+                    noise = (noise - 0.5) * u_contrast + 0.5;
+                    noise = smoothstep(u_threshold, u_threshold + u_softness, noise);
+                    gl_FragColor = vec4(vec3(clamp(noise, 0.0, 1.0)), 1.0);
+                }
+            `;
 
         const newOptions = {
             ...options,
@@ -6910,37 +6734,37 @@ class NoisePatternFilter extends PIXI.Filter {
 class ParallaxMaskFilter extends PIXI.Filter {
     constructor(options = {}) {
         const vertexSrc = `
-                    attribute vec2 aVertexPosition;
-                    attribute vec2 aTextureCoord;
-                    uniform mat3 projectionMatrix;
-                    varying vec2 vTextureCoord;
-                    varying vec2 vScreenCoord;
+            attribute vec2 aVertexPosition;
+            attribute vec2 aTextureCoord;
+            uniform mat3 projectionMatrix;
+            varying vec2 vTextureCoord;
+            varying vec2 vScreenCoord;
 
-                    void main(void) {
-                        gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
-                        vTextureCoord = aTextureCoord;
-                        vScreenCoord = gl_Position.xy * 0.5 + 0.5;
-                    }
-                `;
+            void main(void) {
+                gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
+                vTextureCoord = aTextureCoord;
+                vScreenCoord = gl_Position.xy * 0.5 + 0.5;
+            }
+        `;
         const fragmentSrc = `
-                    precision mediump float;
-                    varying vec2 vTextureCoord;
-                    varying vec2 vScreenCoord;
+            precision mediump float;
+            varying vec2 vTextureCoord;
+            varying vec2 vScreenCoord;
 
-                    uniform sampler2D uMask;
-                    uniform float uParallax;
-                    uniform vec2 uCameraOffset;
-                    uniform vec2 uViewSize;
+            uniform sampler2D uMask;
+            uniform float uParallax;
+            uniform vec2 uCameraOffset;
+            uniform vec2 uViewSize;
 
-                    void main() {
-                        vec2 parallaxTexCoord = vScreenCoord;
-                        if (uParallax > 0.0 && uViewSize.y > 0.0) {
-                            vec2 normalized_camera_offset_pixels = uCameraOffset / uViewSize;
-                            parallaxTexCoord = vScreenCoord - (normalized_camera_offset_pixels * uParallax);
-                        }
-                        gl_FragColor = texture2D(uMask, parallaxTexCoord);
-                    }
-                `;
+            void main() {
+                vec2 parallaxTexCoord = vScreenCoord;
+                if (uParallax > 0.0 && uViewSize.y > 0.0) {
+                    vec2 normalized_camera_offset_pixels = uCameraOffset / uViewSize;
+                    parallaxTexCoord = vScreenCoord - (normalized_camera_offset_pixels * uParallax);
+                }
+                gl_FragColor = texture2D(uMask, parallaxTexCoord);
+            }
+        `;
         super(vertexSrc, fragmentSrc, {
             uMask: PIXI.Texture.EMPTY,
             uParallax: options.parallax ?? 0.0,
@@ -6953,27 +6777,27 @@ class ParallaxMaskFilter extends PIXI.Filter {
 class LightingMaskFilter extends PIXI.Filter {
     constructor(options = {}) {
         const fragmentSrc = `
-                        precision mediump float;
-                        varying vec2 vTextureCoord;
+                precision mediump float;
+                varying vec2 vTextureCoord;
 
-                        uniform sampler2D uSampler; 
-                        uniform float uLuminanceThreshold;
-                        uniform float uSoftness;
-                        uniform bool uInvert;
+                uniform sampler2D uSampler; 
+                uniform float uLuminanceThreshold;
+                uniform float uSoftness;
+                uniform bool uInvert;
 
-                        const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
+                const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
 
-                        void main(void) {
-                            vec4 lightingColor = texture2D(uSampler, vTextureCoord);
-                            float lightLevel = dot(lightingColor.rgb, lum_weights);
+                void main(void) {
+                    vec4 lightingColor = texture2D(uSampler, vTextureCoord);
+                    float lightLevel = dot(lightingColor.rgb, lum_weights);
 
-                            float maskAlpha = smoothstep(uLuminanceThreshold, uLuminanceThreshold + uSoftness, lightLevel);
+                    float maskAlpha = smoothstep(uLuminanceThreshold, uLuminanceThreshold + uSoftness, lightLevel);
 
-                            float finalAlpha = uInvert ? maskAlpha : 1.0 - maskAlpha;
+                    float finalAlpha = uInvert ? maskAlpha : 1.0 - maskAlpha;
 
-                            gl_FragColor = vec4(vec3(finalAlpha), 1.0);
-                        }
-                    `;
+                    gl_FragColor = vec4(vec3(finalAlpha), 1.0);
+                }
+            `;
         super(PIXI.Filter.defaultVertexSrc, fragmentSrc, {
             uLuminanceThreshold: options.luminanceThreshold ?? 0.25,
             uSoftness: options.softness ?? 0.1,
@@ -6985,39 +6809,39 @@ class LightingMaskFilter extends PIXI.Filter {
 class CorrectedIlluminationFilter extends PIXI.Filter {
     constructor(options = {}) {
         const fragmentSrc = `
-                    precision mediump float;
-                    varying vec2 vTextureCoord;
+            precision mediump float;
+            varying vec2 vTextureCoord;
 
-                    uniform sampler2D uIlluminationBuffer;
-                    uniform sampler2D uOutdoorsMask;
+            uniform sampler2D uIlluminationBuffer;
+            uniform sampler2D uOutdoorsMask;
 
-                    uniform bool uHasGlobalIllumination;
-                    uniform vec3 uSunlightColor;
-                    
-                    void main(void) {
-                        // Get the total light from the original buffer.
-                        vec3 totalLight = texture2D(uIlluminationBuffer, vTextureCoord).rgb;
-                        
-                        // If there's no sunlight in the scene, there's nothing to correct.
-                        if ( !uHasGlobalIllumination ) {
-                            gl_FragColor = vec4(totalLight, 1.0);
-                            return;
-                        }
-                        
-                        // Get the outdoors mask value. 1.0 means fully outdoors, 0.0 means indoors.
-                        float outdoorsAmount = texture2D(uOutdoorsMask, vTextureCoord).r;
+            uniform bool uHasGlobalIllumination;
+            uniform vec3 uSunlightColor;
+            
+            void main(void) {
+                // Get the total light from the original buffer.
+                vec3 totalLight = texture2D(uIlluminationBuffer, vTextureCoord).rgb;
+                
+                // If there's no sunlight in the scene, there's nothing to correct.
+                if ( !uHasGlobalIllumination ) {
+                    gl_FragColor = vec4(totalLight, 1.0);
+                    return;
+                }
+                
+                // Get the outdoors mask value. 1.0 means fully outdoors, 0.0 means indoors.
+                float outdoorsAmount = texture2D(uOutdoorsMask, vTextureCoord).r;
 
-                        // Calculate how much sunlight to subtract.
-                        // We subtract the full sunlight color in indoor areas (outdoorsAmount = 0)
-                        // and zero sunlight in outdoor areas (outdoorsAmount = 1).
-                        vec3 sunlightToSubtract = uSunlightColor * (1.0 - outdoorsAmount);
+                // Calculate how much sunlight to subtract.
+                // We subtract the full sunlight color in indoor areas (outdoorsAmount = 0)
+                // and zero sunlight in outdoor areas (outdoorsAmount = 1).
+                vec3 sunlightToSubtract = uSunlightColor * (1.0 - outdoorsAmount);
 
-                        // Subtract the sunlight from the total light, ensuring we don't go below zero.
-                        vec3 correctedLight = max(vec3(0.0), totalLight - sunlightToSubtract);
-                        
-                        gl_FragColor = vec4(correctedLight, 1.0);
-                    }
-                `;
+                // Subtract the sunlight from the total light, ensuring we don't go below zero.
+                vec3 correctedLight = max(vec3(0.0), totalLight - sunlightToSubtract);
+                
+                gl_FragColor = vec4(correctedLight, 1.0);
+            }
+        `;
 
         super(PIXI.Filter.defaultVertexSrc, fragmentSrc, {
             uIlluminationBuffer: PIXI.Texture.EMPTY,
@@ -7032,325 +6856,325 @@ class CorrectedIlluminationFilter extends PIXI.Filter {
 class ColorCorrectionFilter extends PIXI.Filter {
     constructor(options = {}) {
         const fragmentSrc = `
-                        precision mediump float;
-                        varying vec2 vTextureCoord;
+                precision mediump float;
+                varying vec2 vTextureCoord;
 
-                        uniform sampler2D uSampler;
-                        uniform sampler2D uMaskTexture;
+                uniform sampler2D uSampler;
+                uniform sampler2D uMaskTexture;
 
-                        uniform sampler2D uAmbientCompositeTexture;
-                        uniform bool uAmbientCompositeEnabled;
-                        uniform int uAmbientCompositeBlendMode;
+                uniform sampler2D uAmbientCompositeTexture;
+                uniform bool uAmbientCompositeEnabled;
+                uniform int uAmbientCompositeBlendMode;
 
-                        uniform sampler2D uAmbientIlluminationMask;
-                        uniform bool uAmbientIlluminationMaskEnabled;
+                uniform sampler2D uAmbientIlluminationMask;
+                uniform bool uAmbientIlluminationMaskEnabled;
 
-                        uniform float uSaturation, uBrightness, uContrast;
-                        uniform float uExposure, uGamma, uInBlack, uInWhite;
-                        uniform float uTemperature, uWbTint;
-                        uniform bool uInvert;
-                        uniform vec3 uTintColor;
-                        uniform float uTintAmount;
-                        uniform bool uMaskEnabled;
+                uniform float uSaturation, uBrightness, uContrast;
+                uniform float uExposure, uGamma, uInBlack, uInWhite;
+                uniform float uTemperature, uWbTint;
+                uniform bool uInvert;
+                uniform vec3 uTintColor;
+                uniform float uTintAmount;
+                uniform bool uMaskEnabled;
+                
+                // Selective Color Uniforms
+                uniform bool uSelectiveEnabled;
+                uniform vec3 uSelectiveColor;
+                uniform float uSelectiveHueRange, uSelectiveSatRange, uSelectiveLumRange;
+                uniform float uSelectiveTargetLum, uSelectiveSoftness;
+                uniform bool uSelectiveInvert;
+                uniform float uSelectiveDesaturation;
+                uniform float uSelectiveTargetSaturation, uSelectiveTargetBrightness;
+
+                uniform sampler2D uCurveLUT;
+                uniform bool uCurvesEnabled;
+
+                uniform bool uCloudHighlightsEnabled;
+                uniform sampler2D uCloudHighlightsMask;
+                uniform float uCloudHighlightsBrightness;
+
+                uniform bool uCanopyHighlightsEnabled;
+                uniform sampler2D uCanopyHighlightsMask;
+                uniform float uCanopyHighlightsBrightness;
+                uniform sampler2D uCanopyOutdoorsMask;
+                uniform bool uCanopyOutdoorsMaskEnabled;
+
+                uniform bool uStructuralHighlightsEnabled;
+                uniform sampler2D uStructuralHighlightsMask;
+                uniform float uStructuralHighlightsBrightness;
+                uniform sampler2D uStructuralOutdoorsMask;
+                uniform bool uStructuralOutdoorsMaskEnabled;
+
+                uniform bool uStructuralSplitHighlightsEnabled;
+                uniform sampler2D uStructuralSplitHighlightsMask;
+
+                uniform float uIntensity;
+                uniform vec4 uSceneRectNorm;
+
+                uniform float uDynamicExposureBoost;
+                uniform float uDynamicContrastBoost;
+
+                // --- NEW: Illumination Mix-In Uniforms ---
+                uniform sampler2D uIllumTexture;
+                uniform bool uIllumEnabled;
+                uniform float uIllumIntensity;
+                uniform int uIllumBlendMode;
+                uniform bool uIllumCCEnabled;
+                uniform float uIllumSaturation, uIllumBrightness, uIllumContrast;
+                uniform float uIllumExposure, uIllumGamma;
+                uniform vec3 uIllumTintColor;
+                uniform float uIllumTintAmount;
+                uniform bool uIllumNoiseEnabled;
+                uniform float uIllumNoiseAmount;
+                uniform float uIllumNoiseScale;
+                uniform float uIllumTime;
+                uniform bool uIllumDebugMode;
+                uniform bool uIllumNegativeMaskEnabled;
+                uniform float uIllumNegativeMaskThreshold;
+                uniform float uIllumNegativeMaskSoftness;
+
+
+                const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
+
+                vec3 rgb2hsl(vec3 c) {
+                    float max_c = max(max(c.r, c.g), c.b);
+                    float min_c = min(min(c.r, c.g), c.b);
+                    float h = 0.0, s = 0.0, l = (max_c + min_c) / 2.0;
+                    if (max_c != min_c) {
+                        float d = max_c - min_c;
+                        s = l > 0.5 ? d / (2.0 - max_c - min_c) : d / (max_c + min_c);
+                        if (max_c == c.r) h = (c.g - c.b) / d + (c.g < c.b ? 6.0 : 0.0);
+                        else if (max_c == c.g) h = (c.b - c.r) / d + 2.0;
+                        else h = (c.r - c.g) / d + 4.0;
+                        h /= 6.0;
+                    }
+                    return vec3(h, s, l);
+                }
+
+                float hue2rgb(float p, float q, float t) {
+                    if (t < 0.0) t += 1.0;
+                    if (t > 1.0) t -= 1.0;
+                    if (t < 1.0/6.0) return p + (q - p) * 6.0 * t;
+                    if (t < 1.0/2.0) return q;
+                    if (t < 2.0/3.0) return p + (q - p) * (2.0/3.0 - t) * 6.0;
+                    return p;
+                }
+
+                vec3 hsl2rgb(vec3 c) {
+                    if (c.y == 0.0) return vec3(c.z);
+                    float q = c.z < 0.5 ? c.z * (1.0 + c.y) : c.z + c.y - c.z * c.y;
+                    float p = 2.0 * c.z - q;
+                    return vec3(hue2rgb(p, q, c.x + 1.0/3.0), hue2rgb(p, q, c.x), hue2rgb(p, q, c.x - 1.0/3.0));
+                }
+
+                vec3 applyCurves(vec3 color, sampler2D lut) {
+                    color.r = texture2D(lut, vec2(color.r, 0.5)).r;
+                    color.g = texture2D(lut, vec2(color.g, 0.5)).g;
+                    color.b = texture2D(lut, vec2(color.b, 0.5)).b;
+                    return color;
+                }
+
+                vec3 applyWhiteBalance(vec3 color, float temp, float green_tint) {
+                    const float STRENGTH = 0.5;
+                    color.r += temp * (color.r * (1.0 - color.r)) * STRENGTH;
+                    color.b -= temp * (color.b * (1.0 - color.b)) * STRENGTH;
+                    color.g += green_tint * (color.g * (1.0 - color.g)) * STRENGTH;
+                    return color;
+                }
+
+                // --- NEW: Noise functions for Illumination ---
+                float random(vec2 st) {
+                    return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
+                }
+                float noise(vec2 st) {
+                    vec2 i = floor(st);
+                    vec2 f = fract(st);
+                    vec2 u = f * f * (3.0 - 2.0 * f);
+                    return mix(mix(random(i + vec2(0.0, 0.0)), random(i + vec2(1.0, 0.0)), u.x),
+                            mix(random(i + vec2(0.0, 1.0)), random(i + vec2(1.0, 1.0)), u.x), u.y);
+                }
+
+                void main(void) {
+                    // --- 1. Base Color Correction Pass ---
+                    vec4 originalColor = texture2D(uSampler, vTextureCoord);
+
+                    vec3 workingColor = originalColor.rgb;
+                    if (originalColor.a > 0.0) {
+                        workingColor /= originalColor.a;
+                    }
+
+                    vec3 uncorrectedColor = workingColor; 
+
+                    if (uSelectiveEnabled) {
+                        vec3 pixel_hsl = rgb2hsl(workingColor);
+                        vec3 target_hsl = rgb2hsl(uSelectiveColor);
+
+                        float hue_dist = min(abs(pixel_hsl.x - target_hsl.x), 1.0 - abs(pixel_hsl.x - target_hsl.x));
+                        float hue_mask = 1.0 - smoothstep(uSelectiveHueRange, uSelectiveHueRange + uSelectiveSoftness, hue_dist);
+
+                        float sat_dist = abs(pixel_hsl.y - target_hsl.y);
+                        float sat_mask = 1.0 - smoothstep(uSelectiveSatRange, uSelectiveSatRange + uSelectiveSoftness, sat_dist);
                         
-                        // Selective Color Uniforms
-                        uniform bool uSelectiveEnabled;
-                        uniform vec3 uSelectiveColor;
-                        uniform float uSelectiveHueRange, uSelectiveSatRange, uSelectiveLumRange;
-                        uniform float uSelectiveTargetLum, uSelectiveSoftness;
-                        uniform bool uSelectiveInvert;
-                        uniform float uSelectiveDesaturation;
-                        uniform float uSelectiveTargetSaturation, uSelectiveTargetBrightness;
+                        float lum_dist = abs(pixel_hsl.z - uSelectiveTargetLum);
+                        float lum_mask = 1.0 - smoothstep(uSelectiveLumRange, uSelectiveLumRange + uSelectiveSoftness, lum_dist);
+                        
+                        float selection_mask = hue_mask * sat_mask * lum_mask;
+                        
+                        if (uSelectiveInvert) {
+                            selection_mask = 1.0 - selection_mask;
+                        }
 
-                        uniform sampler2D uCurveLUT;
-                        uniform bool uCurvesEnabled;
+                        vec3 desaturated_color = vec3(dot(workingColor, lum_weights));
+                        workingColor = mix(mix(desaturated_color, workingColor, 1.0 - uSelectiveDesaturation), workingColor, selection_mask);
+                        
+                        if (selection_mask > 0.0) {
+                            vec3 current_hsl = rgb2hsl(workingColor);
+                            current_hsl.y *= uSelectiveTargetSaturation;
+                            current_hsl.z = clamp(current_hsl.z + uSelectiveTargetBrightness, 0.0, 1.0);
+                            vec3 adjusted_color = hsl2rgb(current_hsl);
+                            workingColor = mix(workingColor, adjusted_color, selection_mask);
+                        }
+                    }
 
-                        uniform bool uCloudHighlightsEnabled;
-                        uniform sampler2D uCloudHighlightsMask;
-                        uniform float uCloudHighlightsBrightness;
+                    if (uInWhite > uInBlack) workingColor = (workingColor - uInBlack) / (uInWhite - uInBlack + 0.00001);
+                    
+                    // The highlight preservation logic has been removed as it was based on an incorrect luminance source.
+                    // The dynamic exposure boost is now applied directly as calculated by the manager.
+                    workingColor *= pow(2.0, uExposure + uDynamicExposureBoost);
 
-                        uniform bool uCanopyHighlightsEnabled;
-                        uniform sampler2D uCanopyHighlightsMask;
-                        uniform float uCanopyHighlightsBrightness;
-                        uniform sampler2D uCanopyOutdoorsMask;
-                        uniform bool uCanopyOutdoorsMaskEnabled;
+                    workingColor = applyWhiteBalance(workingColor, uTemperature, uWbTint);
+                    
+                    if (uGamma > 0.0) workingColor = pow(max(workingColor, 0.0), vec3(1.0 / uGamma));
 
-                        uniform bool uStructuralHighlightsEnabled;
-                        uniform sampler2D uStructuralHighlightsMask;
-                        uniform float uStructuralHighlightsBrightness;
-                        uniform sampler2D uStructuralOutdoorsMask;
-                        uniform bool uStructuralOutdoorsMaskEnabled;
+                    if (uCurvesEnabled) {
+                        workingColor = applyCurves(workingColor, uCurveLUT);
+                    }
+                    
+                    workingColor += uBrightness;
+                    workingColor = (workingColor - 0.5) * (uContrast * uDynamicContrastBoost) + 0.5;
+                    float final_luminance = dot(workingColor, lum_weights);
+                    workingColor = mix(vec3(final_luminance), workingColor, uSaturation);
+                    workingColor = mix(workingColor, uTintColor, uTintAmount);
+                    if (uInvert) workingColor = 1.0 - workingColor;
 
-                        uniform bool uStructuralSplitHighlightsEnabled;
-                        uniform sampler2D uStructuralSplitHighlightsMask;
+                    vec3 final_rgb = mix(uncorrectedColor, workingColor, uIntensity);
 
-                        uniform float uIntensity;
-                        uniform vec4 uSceneRectNorm;
+                    if (uMaskEnabled) {
+                        float maskValue = texture2D(uMaskTexture, vTextureCoord).r;
+                        final_rgb = mix(uncorrectedColor, final_rgb, maskValue);
+                    }
+                    
+                    vec2 sceneMin = uSceneRectNorm.xy;
+                    vec2 sceneMax = uSceneRectNorm.xy + uSceneRectNorm.zw;
+                    bool isInsideScene = vTextureCoord.x >= sceneMin.x && vTextureCoord.x < sceneMax.x &&
+                                        vTextureCoord.y >= sceneMin.y && vTextureCoord.y < sceneMax.y;
 
-                        uniform float uDynamicExposureBoost;
-                        uniform float uDynamicContrastBoost;
-
-                        // --- NEW: Illumination Mix-In Uniforms ---
-                        uniform sampler2D uIllumTexture;
-                        uniform bool uIllumEnabled;
-                        uniform float uIllumIntensity;
-                        uniform int uIllumBlendMode;
-                        uniform bool uIllumCCEnabled;
-                        uniform float uIllumSaturation, uIllumBrightness, uIllumContrast;
-                        uniform float uIllumExposure, uIllumGamma;
-                        uniform vec3 uIllumTintColor;
-                        uniform float uIllumTintAmount;
-                        uniform bool uIllumNoiseEnabled;
-                        uniform float uIllumNoiseAmount;
-                        uniform float uIllumNoiseScale;
-                        uniform float uIllumTime;
-                        uniform bool uIllumDebugMode;
-                        uniform bool uIllumNegativeMaskEnabled;
-                        uniform float uIllumNegativeMaskThreshold;
-                        uniform float uIllumNegativeMaskSoftness;
-
-
-                        const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
-
-                        vec3 rgb2hsl(vec3 c) {
-                            float max_c = max(max(c.r, c.g), c.b);
-                            float min_c = min(min(c.r, c.g), c.b);
-                            float h = 0.0, s = 0.0, l = (max_c + min_c) / 2.0;
-                            if (max_c != min_c) {
-                                float d = max_c - min_c;
-                                s = l > 0.5 ? d / (2.0 - max_c - min_c) : d / (max_c + min_c);
-                                if (max_c == c.r) h = (c.g - c.b) / d + (c.g < c.b ? 6.0 : 0.0);
-                                else if (max_c == c.g) h = (c.b - c.r) / d + 2.0;
-                                else h = (c.r - c.g) / d + 4.0;
-                                h /= 6.0;
+                    if (isInsideScene) {
+                        if (uCloudHighlightsEnabled) {
+                            float lightAmount = texture2D(uCloudHighlightsMask, vTextureCoord).r;
+                            final_rgb *= (1.0 + uCloudHighlightsBrightness * lightAmount);
+                        }
+                        if (uCanopyHighlightsEnabled) {
+                            float lightAmount = texture2D(uCanopyHighlightsMask, vTextureCoord).r;
+                            if (uCanopyOutdoorsMaskEnabled) {
+                                lightAmount *= texture2D(uCanopyOutdoorsMask, vTextureCoord).r;
                             }
-                            return vec3(h, s, l);
+                            final_rgb *= (1.0 + uCanopyHighlightsBrightness * lightAmount);
                         }
-
-                        float hue2rgb(float p, float q, float t) {
-                            if (t < 0.0) t += 1.0;
-                            if (t > 1.0) t -= 1.0;
-                            if (t < 1.0/6.0) return p + (q - p) * 6.0 * t;
-                            if (t < 1.0/2.0) return q;
-                            if (t < 2.0/3.0) return p + (q - p) * (2.0/3.0 - t) * 6.0;
-                            return p;
-                        }
-
-                        vec3 hsl2rgb(vec3 c) {
-                            if (c.y == 0.0) return vec3(c.z);
-                            float q = c.z < 0.5 ? c.z * (1.0 + c.y) : c.z + c.y - c.z * c.y;
-                            float p = 2.0 * c.z - q;
-                            return vec3(hue2rgb(p, q, c.x + 1.0/3.0), hue2rgb(p, q, c.x), hue2rgb(p, q, c.x - 1.0/3.0));
-                        }
-
-                        vec3 applyCurves(vec3 color, sampler2D lut) {
-                            color.r = texture2D(lut, vec2(color.r, 0.5)).r;
-                            color.g = texture2D(lut, vec2(color.g, 0.5)).g;
-                            color.b = texture2D(lut, vec2(color.b, 0.5)).b;
-                            return color;
-                        }
-
-                        vec3 applyWhiteBalance(vec3 color, float temp, float green_tint) {
-                            const float STRENGTH = 0.5;
-                            color.r += temp * (color.r * (1.0 - color.r)) * STRENGTH;
-                            color.b -= temp * (color.b * (1.0 - color.b)) * STRENGTH;
-                            color.g += green_tint * (color.g * (1.0 - color.g)) * STRENGTH;
-                            return color;
-                        }
-
-                        // --- NEW: Noise functions for Illumination ---
-                        float random(vec2 st) {
-                            return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
-                        }
-                        float noise(vec2 st) {
-                            vec2 i = floor(st);
-                            vec2 f = fract(st);
-                            vec2 u = f * f * (3.0 - 2.0 * f);
-                            return mix(mix(random(i + vec2(0.0, 0.0)), random(i + vec2(1.0, 0.0)), u.x),
-                                    mix(random(i + vec2(0.0, 1.0)), random(i + vec2(1.0, 1.0)), u.x), u.y);
-                        }
-
-                        void main(void) {
-                            // --- 1. Base Color Correction Pass ---
-                            vec4 originalColor = texture2D(uSampler, vTextureCoord);
-
-                            vec3 workingColor = originalColor.rgb;
-                            if (originalColor.a > 0.0) {
-                                workingColor /= originalColor.a;
-                            }
-
-                            vec3 uncorrectedColor = workingColor; 
-
-                            if (uSelectiveEnabled) {
-                                vec3 pixel_hsl = rgb2hsl(workingColor);
-                                vec3 target_hsl = rgb2hsl(uSelectiveColor);
-
-                                float hue_dist = min(abs(pixel_hsl.x - target_hsl.x), 1.0 - abs(pixel_hsl.x - target_hsl.x));
-                                float hue_mask = 1.0 - smoothstep(uSelectiveHueRange, uSelectiveHueRange + uSelectiveSoftness, hue_dist);
-
-                                float sat_dist = abs(pixel_hsl.y - target_hsl.y);
-                                float sat_mask = 1.0 - smoothstep(uSelectiveSatRange, uSelectiveSatRange + uSelectiveSoftness, sat_dist);
-                                
-                                float lum_dist = abs(pixel_hsl.z - uSelectiveTargetLum);
-                                float lum_mask = 1.0 - smoothstep(uSelectiveLumRange, uSelectiveLumRange + uSelectiveSoftness, lum_dist);
-                                
-                                float selection_mask = hue_mask * sat_mask * lum_mask;
-                                
-                                if (uSelectiveInvert) {
-                                    selection_mask = 1.0 - selection_mask;
+                        
+                        if (uStructuralHighlightsEnabled) {
+                            if (uStructuralSplitHighlightsEnabled) {
+                                vec3 splitLight = texture2D(uStructuralSplitHighlightsMask, vTextureCoord).rgb;
+                                if (uStructuralOutdoorsMaskEnabled) {
+                                    splitLight *= (1.0 - texture2D(uStructuralOutdoorsMask, vTextureCoord).r);
                                 }
-
-                                vec3 desaturated_color = vec3(dot(workingColor, lum_weights));
-                                workingColor = mix(mix(desaturated_color, workingColor, 1.0 - uSelectiveDesaturation), workingColor, selection_mask);
-                                
-                                if (selection_mask > 0.0) {
-                                    vec3 current_hsl = rgb2hsl(workingColor);
-                                    current_hsl.y *= uSelectiveTargetSaturation;
-                                    current_hsl.z = clamp(current_hsl.z + uSelectiveTargetBrightness, 0.0, 1.0);
-                                    vec3 adjusted_color = hsl2rgb(current_hsl);
-                                    workingColor = mix(workingColor, adjusted_color, selection_mask);
+                                vec3 highlightBoost = splitLight * uStructuralHighlightsBrightness;
+                                final_rgb *= (vec3(1.0) + highlightBoost);
+                            } else {
+                                float lightAmount = texture2D(uStructuralHighlightsMask, vTextureCoord).r;
+                                if (uStructuralOutdoorsMaskEnabled) {
+                                    lightAmount *= (1.0 - texture2D(uStructuralOutdoorsMask, vTextureCoord).r);
                                 }
+                                final_rgb *= (1.0 + uStructuralHighlightsBrightness * lightAmount);
+                            }
+                        }
+                    }
+
+                    if (uAmbientCompositeEnabled) {
+                        vec4 ambient = texture2D(uAmbientCompositeTexture, vTextureCoord);
+                        if (ambient.a > 0.0) {
+                            float lightMask = 1.0;
+                            if (uAmbientIlluminationMaskEnabled) {
+                                lightMask = dot(texture2D(uAmbientIlluminationMask, vTextureCoord).rgb, lum_weights);
+                            }
+                            vec3 ambientRGB = (ambient.rgb / ambient.a) * lightMask;
+                            if (uAmbientCompositeBlendMode == 1) { 
+                                final_rgb += ambientRGB;
+                            } else if (uAmbientCompositeBlendMode == 2) { 
+                                final_rgb *= ambientRGB;
+                            } else if (uAmbientCompositeBlendMode == 3) { 
+                                final_rgb = 1.0 - (1.0 - final_rgb) * (1.0 - ambientRGB);
+                            } else { 
+                                final_rgb = mix(final_rgb, ambientRGB, ambient.a);
+                            }
+                        }
+                    }
+
+                    // --- 2. Illumination Mix-in Pass ---
+                    if (uIllumEnabled) {
+                        vec2 illumUV = vTextureCoord;
+                        vec3 illumSample = texture2D(uIllumTexture, illumUV).rgb;
+                        
+                        if (uIllumDebugMode) {
+                            final_rgb = illumSample;
+                        } else {
+                            if (uIllumCCEnabled) {
+                                illumSample *= pow(2.0, uIllumExposure);
+                                if (uIllumGamma > 0.0) illumSample = pow(max(illumSample, 0.0), vec3(1.0 / uIllumGamma));
+                                illumSample += uIllumBrightness;
+                                illumSample = (illumSample - 0.5) * uIllumContrast + 0.5;
+                                float illumLuminance = dot(illumSample, lum_weights);
+                                illumSample = mix(vec3(illumLuminance), illumSample, uIllumSaturation);
+                                illumSample = mix(illumSample, uIllumTintColor, uIllumTintAmount);
                             }
 
-                            if (uInWhite > uInBlack) workingColor = (workingColor - uInBlack) / (uInWhite - uInBlack + 0.00001);
-                            
-                            // The highlight preservation logic has been removed as it was based on an incorrect luminance source.
-                            // The dynamic exposure boost is now applied directly as calculated by the manager.
-                            workingColor *= pow(2.0, uExposure + uDynamicExposureBoost);
-
-                            workingColor = applyWhiteBalance(workingColor, uTemperature, uWbTint);
-                            
-                            if (uGamma > 0.0) workingColor = pow(max(workingColor, 0.0), vec3(1.0 / uGamma));
-
-                            if (uCurvesEnabled) {
-                                workingColor = applyCurves(workingColor, uCurveLUT);
+                            if (uIllumNegativeMaskEnabled) {
+                                float sceneLuminance = dot(final_rgb, lum_weights);
+                                float negativeMask = 1.0 - smoothstep(uIllumNegativeMaskThreshold, uIllumNegativeMaskThreshold + uIllumNegativeMaskSoftness, sceneLuminance);
+                                illumSample *= negativeMask;
                             }
                             
-                            workingColor += uBrightness;
-                            workingColor = (workingColor - 0.5) * (uContrast * uDynamicContrastBoost) + 0.5;
-                            float final_luminance = dot(workingColor, lum_weights);
-                            workingColor = mix(vec3(final_luminance), workingColor, uSaturation);
-                            workingColor = mix(workingColor, uTintColor, uTintAmount);
-                            if (uInvert) workingColor = 1.0 - workingColor;
-
-                            vec3 final_rgb = mix(uncorrectedColor, workingColor, uIntensity);
-
-                            if (uMaskEnabled) {
-                                float maskValue = texture2D(uMaskTexture, vTextureCoord).r;
-                                final_rgb = mix(uncorrectedColor, final_rgb, maskValue);
+                            if (uIllumNoiseEnabled && uIllumNoiseAmount > 0.0) {
+                                vec2 noiseCoord = illumUV * uIllumNoiseScale + uIllumTime;
+                                float noiseValue = (noise(noiseCoord) - 0.5) * uIllumNoiseAmount;
+                                illumSample += noiseValue;
                             }
                             
-                            vec2 sceneMin = uSceneRectNorm.xy;
-                            vec2 sceneMax = uSceneRectNorm.xy + uSceneRectNorm.zw;
-                            bool isInsideScene = vTextureCoord.x >= sceneMin.x && vTextureCoord.x < sceneMax.x &&
-                                                vTextureCoord.y >= sceneMin.y && vTextureCoord.y < sceneMax.y;
-
-                            if (isInsideScene) {
-                                if (uCloudHighlightsEnabled) {
-                                    float lightAmount = texture2D(uCloudHighlightsMask, vTextureCoord).r;
-                                    final_rgb *= (1.0 + uCloudHighlightsBrightness * lightAmount);
-                                }
-                                if (uCanopyHighlightsEnabled) {
-                                    float lightAmount = texture2D(uCanopyHighlightsMask, vTextureCoord).r;
-                                    if (uCanopyOutdoorsMaskEnabled) {
-                                        lightAmount *= texture2D(uCanopyOutdoorsMask, vTextureCoord).r;
-                                    }
-                                    final_rgb *= (1.0 + uCanopyHighlightsBrightness * lightAmount);
-                                }
-                                
-                                if (uStructuralHighlightsEnabled) {
-                                    if (uStructuralSplitHighlightsEnabled) {
-                                        vec3 splitLight = texture2D(uStructuralSplitHighlightsMask, vTextureCoord).rgb;
-                                        if (uStructuralOutdoorsMaskEnabled) {
-                                            splitLight *= (1.0 - texture2D(uStructuralOutdoorsMask, vTextureCoord).r);
-                                        }
-                                        vec3 highlightBoost = splitLight * uStructuralHighlightsBrightness;
-                                        final_rgb *= (vec3(1.0) + highlightBoost);
-                                    } else {
-                                        float lightAmount = texture2D(uStructuralHighlightsMask, vTextureCoord).r;
-                                        if (uStructuralOutdoorsMaskEnabled) {
-                                            lightAmount *= (1.0 - texture2D(uStructuralOutdoorsMask, vTextureCoord).r);
-                                        }
-                                        final_rgb *= (1.0 + uStructuralHighlightsBrightness * lightAmount);
-                                    }
-                                }
+                            illumSample *= uIllumIntensity;
+                            float illumLuminance = dot(illumSample, lum_weights);
+                            
+                            if (uIllumBlendMode == 1) final_rgb += illumSample;
+                            else if (uIllumBlendMode == 2) final_rgb *= (1.0 + illumLuminance);
+                            else if (uIllumBlendMode == 3) final_rgb = 1.0 - (1.0 - final_rgb) * (1.0 - illumSample);
+                            else if (uIllumBlendMode == 4) {
+                                vec3 overlayResult;
+                                overlayResult.r = final_rgb.r < 0.5 ? 2.0 * final_rgb.r * illumSample.r : 1.0 - 2.0 * (1.0 - final_rgb.r) * (1.0 - illumSample.r);
+                                overlayResult.g = final_rgb.g < 0.5 ? 2.0 * final_rgb.g * illumSample.g : 1.0 - 2.0 * (1.0 - final_rgb.g) * (1.0 - illumSample.g);
+                                overlayResult.b = final_rgb.b < 0.5 ? 2.0 * final_rgb.b * illumSample.b : 1.0 - 2.0 * (1.0 - final_rgb.b) * (1.0 - illumSample.b);
+                                final_rgb = overlayResult;
+                            } else if (uIllumBlendMode == 5) final_rgb = min(vec3(1.0), final_rgb / (1.0 - min(illumSample, 0.999)));
+                            else {
+                                float lightStrength = illumLuminance;
+                                vec3 litColor = final_rgb * (1.0 + lightStrength * 2.0);
+                                final_rgb = mix(final_rgb, litColor, lightStrength);
                             }
-
-                            if (uAmbientCompositeEnabled) {
-                                vec4 ambient = texture2D(uAmbientCompositeTexture, vTextureCoord);
-                                if (ambient.a > 0.0) {
-                                    float lightMask = 1.0;
-                                    if (uAmbientIlluminationMaskEnabled) {
-                                        lightMask = dot(texture2D(uAmbientIlluminationMask, vTextureCoord).rgb, lum_weights);
-                                    }
-                                    vec3 ambientRGB = (ambient.rgb / ambient.a) * lightMask;
-                                    if (uAmbientCompositeBlendMode == 1) { 
-                                        final_rgb += ambientRGB;
-                                    } else if (uAmbientCompositeBlendMode == 2) { 
-                                        final_rgb *= ambientRGB;
-                                    } else if (uAmbientCompositeBlendMode == 3) { 
-                                        final_rgb = 1.0 - (1.0 - final_rgb) * (1.0 - ambientRGB);
-                                    } else { 
-                                        final_rgb = mix(final_rgb, ambientRGB, ambient.a);
-                                    }
-                                }
-                            }
-
-                            // --- 2. Illumination Mix-in Pass ---
-                            if (uIllumEnabled) {
-                                vec2 illumUV = vTextureCoord;
-                                vec3 illumSample = texture2D(uIllumTexture, illumUV).rgb;
-                                
-                                if (uIllumDebugMode) {
-                                    final_rgb = illumSample;
-                                } else {
-                                    if (uIllumCCEnabled) {
-                                        illumSample *= pow(2.0, uIllumExposure);
-                                        if (uIllumGamma > 0.0) illumSample = pow(max(illumSample, 0.0), vec3(1.0 / uIllumGamma));
-                                        illumSample += uIllumBrightness;
-                                        illumSample = (illumSample - 0.5) * uIllumContrast + 0.5;
-                                        float illumLuminance = dot(illumSample, lum_weights);
-                                        illumSample = mix(vec3(illumLuminance), illumSample, uIllumSaturation);
-                                        illumSample = mix(illumSample, uIllumTintColor, uIllumTintAmount);
-                                    }
-
-                                    if (uIllumNegativeMaskEnabled) {
-                                        float sceneLuminance = dot(final_rgb, lum_weights);
-                                        float negativeMask = 1.0 - smoothstep(uIllumNegativeMaskThreshold, uIllumNegativeMaskThreshold + uIllumNegativeMaskSoftness, sceneLuminance);
-                                        illumSample *= negativeMask;
-                                    }
-                                    
-                                    if (uIllumNoiseEnabled && uIllumNoiseAmount > 0.0) {
-                                        vec2 noiseCoord = illumUV * uIllumNoiseScale + uIllumTime;
-                                        float noiseValue = (noise(noiseCoord) - 0.5) * uIllumNoiseAmount;
-                                        illumSample += noiseValue;
-                                    }
-                                    
-                                    illumSample *= uIllumIntensity;
-                                    float illumLuminance = dot(illumSample, lum_weights);
-                                    
-                                    if (uIllumBlendMode == 1) final_rgb += illumSample;
-                                    else if (uIllumBlendMode == 2) final_rgb *= (1.0 + illumLuminance);
-                                    else if (uIllumBlendMode == 3) final_rgb = 1.0 - (1.0 - final_rgb) * (1.0 - illumSample);
-                                    else if (uIllumBlendMode == 4) {
-                                        vec3 overlayResult;
-                                        overlayResult.r = final_rgb.r < 0.5 ? 2.0 * final_rgb.r * illumSample.r : 1.0 - 2.0 * (1.0 - final_rgb.r) * (1.0 - illumSample.r);
-                                        overlayResult.g = final_rgb.g < 0.5 ? 2.0 * final_rgb.g * illumSample.g : 1.0 - 2.0 * (1.0 - final_rgb.g) * (1.0 - illumSample.g);
-                                        overlayResult.b = final_rgb.b < 0.5 ? 2.0 * final_rgb.b * illumSample.b : 1.0 - 2.0 * (1.0 - final_rgb.b) * (1.0 - illumSample.b);
-                                        final_rgb = overlayResult;
-                                    } else if (uIllumBlendMode == 5) final_rgb = min(vec3(1.0), final_rgb / (1.0 - min(illumSample, 0.999)));
-                                    else {
-                                        float lightStrength = illumLuminance;
-                                        vec3 litColor = final_rgb * (1.0 + lightStrength * 2.0);
-                                        final_rgb = mix(final_rgb, litColor, lightStrength);
-                                    }
-                                }
-                            }
-
-                            vec3 premultiplied_rgb = clamp(final_rgb, 0.0, 1.0) * originalColor.a;
-                            gl_FragColor = vec4(premultiplied_rgb, originalColor.a);
                         }
-                    `;
+                    }
+
+                    vec3 premultiplied_rgb = clamp(final_rgb, 0.0, 1.0) * originalColor.a;
+                    gl_FragColor = vec4(premultiplied_rgb, originalColor.a);
+                }
+            `;
 
         super(PIXI.Filter.defaultVertexSrc, fragmentSrc, {
             uSaturation: 1.0,
@@ -7437,382 +7261,339 @@ class ScreenEffectsManager {
 
     static getManagedEffectsHTML() {
         const buildSelectiveControls = (pathPrefix) => `
-                        <p class="description-text">Isolates a specific color range and applies adjustments to it and/or the rest of the image.</p>
-                        <details><summary><span class="accordion-toggle"></span><strong>Color Selection</strong></summary><div style="padding-left: 15px;">
-                            <p class="description-text">Define the color range to target.</p>
-                            ${DebuggerUIBuilder._createColorPickerHTML(pathPrefix + 'color', 'Target Color')}
-                            ${DebuggerUIBuilder._createSliderHTML(pathPrefix + 'hueRange', 'Hue Range', 0, 0.5, 0.01)}
-                            ${DebuggerUIBuilder._createSliderHTML(pathPrefix + 'saturationRange', 'Saturation Range', 0, 0.5, 0.01)}
-                            ${DebuggerUIBuilder._createSliderHTML(pathPrefix + 'targetLuminance', 'Target Luminance', 0, 1, 0.01)}
-                            ${DebuggerUIBuilder._createSliderHTML(pathPrefix + 'luminanceRange', 'Luminance Range', 0, 0.5, 0.01)}
-                            ${DebuggerUIBuilder._createSliderHTML(pathPrefix + 'softness', 'Selection Softness', 0.01, 0.5, 0.01, 'How gradual the transition is at the edge of the selection.')}
-                        </div></details>
-                        <details><summary><span class="accordion-toggle"></span><strong>Adjustments</strong></summary><div style="padding-left: 15px;">
-                            ${DebuggerUIBuilder._createCheckboxHTML(pathPrefix + 'invert', 'Invert Selection', false, 'If checked, the adjustments below will apply to the selected color instead of everything else.')}
-                            <hr style="border-color: #555; margin: 6px 0;">
-                            <p class="description-text" style="font-weight: bold;">Unselected Colors:</p>
-                            ${DebuggerUIBuilder._createSliderHTML(pathPrefix + 'desaturation', 'Desaturation Amount', 0, 1, 0.01, 'How much to desaturate colors outside the selected range.')}
-                            <hr style="border-color: #555; margin: 6px 0;">
-                            <p class="description-text" style="font-weight: bold;">Selected Color:</p>
-                            ${DebuggerUIBuilder._createSliderHTML(pathPrefix + 'targetSaturation', 'Saturation Boost', 0, 5, 0.05, 'Multiplier for the saturation of the selected color.')}
-                            ${DebuggerUIBuilder._createSliderHTML(pathPrefix + 'targetBrightness', 'Brightness Boost', -1, 1, 0.01, 'Adds or subtracts brightness from the selected color.')}
-                        </div></details>
-                    `;
+            <p class="description-text">Isolates a specific color range and applies adjustments to it and/or the rest of the image.</p>
+            <details open><summary><span class="accordion-toggle"></span><strong>Color Selection</strong></summary><div style="padding-left: 15px;">
+                <p class="description-text">Define the color range to target.</p>
+                ${DebuggerUIBuilder._createColorPickerHTML(pathPrefix + 'color', 'Target Color')}
+                ${DebuggerUIBuilder._createSliderHTML(pathPrefix + 'hueRange', 'Hue Range', 0, 0.5, 0.01)}
+                ${DebuggerUIBuilder._createSliderHTML(pathPrefix + 'saturationRange', 'Saturation Range', 0, 0.5, 0.01)}
+                ${DebuggerUIBuilder._createSliderHTML(pathPrefix + 'targetLuminance', 'Target Luminance', 0, 1, 0.01)}
+                ${DebuggerUIBuilder._createSliderHTML(pathPrefix + 'luminanceRange', 'Luminance Range', 0, 0.5, 0.01)}
+                ${DebuggerUIBuilder._createSliderHTML(pathPrefix + 'softness', 'Selection Softness', 0.01, 0.5, 0.01, 'How gradual the transition is at the edge of the selection.')}
+            </div></details>
+            <details open><summary><span class="accordion-toggle"></span><strong>Adjustments</strong></summary><div style="padding-left: 15px;">
+                ${DebuggerUIBuilder._createCheckboxHTML(pathPrefix + 'invert', 'Invert Selection', false, 'If checked, the adjustments below will apply to the selected color instead of everything else.')}
+                <hr style="border-color: #555; margin: 6px 0;">
+                <p class="description-text" style="font-weight: bold;">Unselected Colors:</p>
+                ${DebuggerUIBuilder._createSliderHTML(pathPrefix + 'desaturation', 'Desaturation Amount', 0, 1, 0.01, 'How much to desaturate colors outside the selected range.')}
+                <hr style="border-color: #555; margin: 6px 0;">
+                <p class="description-text" style="font-weight: bold;">Selected Color:</p>
+                ${DebuggerUIBuilder._createSliderHTML(pathPrefix + 'targetSaturation', 'Saturation Boost', 0, 5, 0.05, 'Multiplier for the saturation of the selected color.')}
+                ${DebuggerUIBuilder._createSliderHTML(pathPrefix + 'targetBrightness', 'Brightness Boost', -1, 1, 0.01, 'Adds or subtracts brightness from the selected color.')}
+            </div></details>
+        `;
 
         const worldBasedIconHTML = (path) => `
-                        <span class="world-based-icon" data-world-based-path="${path}" title="World Based: This effect uses the world-level default profile, ignoring scene-specific settings.">
-                            <i class="fas fa-globe"></i>
-                        </span>
-                    `;
+            <span class="world-based-icon" data-world-based-path="${path}" title="World Based: This effect uses the world-level default profile, ignoring scene-specific settings.">
+                <i class="fas fa-globe"></i>
+            </span>
+        `;
 
         const sceneTransitionHTML = DebuggerUIBuilder._createAccordionHTML('sceneTransition', 'Scene Transition Effect', `
-                        <p class="description-text">Overrides the default scene change with an elegant fade-through-black effect.</p>
-                        ${DebuggerUIBuilder._createCheckboxHTML('sceneTransition.worldBasedOnly', 'World Based Only', false, 'Ignores scene-specific settings for this effect and uses the configured World Default Profile instead. A default profile must be set.')}
-                        <hr style="border-color: #555; margin: 6px 0;">
-                        ${DebuggerUIBuilder._createSliderHTML('sceneTransition.fadeOutDuration', 'Fade Out Duration (ms)', 100, 5000, 50)}
-                        ${DebuggerUIBuilder._createSliderHTML('sceneTransition.fadeInDuration', 'Fade In Duration (ms)', 100, 5000, 50)}
-                        <hr style="border-color: #555; margin: 6px 0;">
-                        ${DebuggerUIBuilder._createTextInputWithPickerHTML('sceneTransition.logoPath', 'Logo Image Path', 'Path to an image file (e.g., PNG, WEBP) to display in the center.', 'image')}
-                        ${DebuggerUIBuilder._createTextInputHTML('sceneTransition.heading', 'Heading Text')}
-                        ${DebuggerUIBuilder._createTextInputHTML('sceneTransition.subheading', 'Subheading Text')}
-                        ${DebuggerUIBuilder._createTextInputHTML('sceneTransition.staticDescription', 'Description Text')}
-                        ${DebuggerUIBuilder._createCheckboxHTML('sceneTransition.showSceneName', 'Show Destination Scene Name', false, 'If checked, the name of the scene being loaded will be displayed.')}
-                        <hr style="border-color: #555; margin: 6px 0;">
-                        <details id="details-sceneTransition-hints">
-                            <summary>
-                                <span class="accordion-toggle"></span>
-                                <div class="summary-control">
-                                    ${DebuggerUIBuilder._createCheckboxHTML('sceneTransition.useRandomHint', 'Show Random Hint', true, 'If checked, a random hint from the pool below will be shown in addition to the description.')}
-                                </div>
-                            </summary>
-                            <div style="padding-top: 5px;">
-                                <div id="sceneTransition-randomHints-wrapper">
-                                    ${DebuggerUIBuilder._createListManagerHTML('sceneTransition.randomHints', 'Add Hint', 'Random Hint Pool')}
-                                </div>
-                            </div>
-                        </details>
-                    `, worldBasedIconHTML('sceneTransition.worldBasedOnly'));
+            <p class="description-text">Overrides the default scene change with an elegant fade-through-black effect.</p>
+            ${DebuggerUIBuilder._createCheckboxHTML('sceneTransition.worldBasedOnly', 'World Based Only', false, 'Ignores scene-specific settings for this effect and uses the configured World Default Profile instead. A default profile must be set.')}
+            <hr style="border-color: #555; margin: 6px 0;">
+            ${DebuggerUIBuilder._createSliderHTML('sceneTransition.fadeOutDuration', 'Fade Out Duration (ms)', 100, 5000, 50)}
+            ${DebuggerUIBuilder._createSliderHTML('sceneTransition.fadeInDuration', 'Fade In Duration (ms)', 100, 5000, 50)}
+            <hr style="border-color: #555; margin: 6px 0;">
+            ${DebuggerUIBuilder._createTextInputWithPickerHTML('sceneTransition.logoPath', 'Logo Image Path', 'Path to an image file (e.g., PNG, WEBP) to display in the center.', 'image')}
+            ${DebuggerUIBuilder._createTextInputHTML('sceneTransition.heading', 'Heading Text')}
+            ${DebuggerUIBuilder._createTextInputHTML('sceneTransition.subheading', 'Subheading Text')}
+            ${DebuggerUIBuilder._createTextInputHTML('sceneTransition.staticDescription', 'Description Text')}
+            ${DebuggerUIBuilder._createCheckboxHTML('sceneTransition.showSceneName', 'Show Destination Scene Name', false, 'If checked, the name of the scene being loaded will be displayed.')}
+            <hr style="border-color: #555; margin: 6px 0;">
+            <details id="details-sceneTransition-hints" open>
+                <summary>
+                    <span class="accordion-toggle"></span>
+                    <div class="summary-control">
+                        ${DebuggerUIBuilder._createCheckboxHTML('sceneTransition.useRandomHint', 'Show Random Hint', true, 'If checked, a random hint from the pool below will be shown in addition to the description.')}
+                    </div>
+                </summary>
+                <div style="padding-top: 5px;">
+                    <div id="sceneTransition-randomHints-wrapper">
+                        ${DebuggerUIBuilder._createListManagerHTML('sceneTransition.randomHints', 'Add Hint', 'Random Hint Pool')}
+                    </div>
+                </div>
+            </details>
+        `, worldBasedIconHTML('sceneTransition.worldBasedOnly'));
 
         const pauseEffectHTML = DebuggerUIBuilder._createAccordionHTML('pauseEffect', 'Pause Transition Effect', `
-                        <p class="description-text">Applies a transition effect when the game is paused, including a color correction pass and slowing down all animations.</p>
-                        ${DebuggerUIBuilder._createCheckboxHTML('pauseEffect.worldBasedOnly', 'World Based Only', false, 'Ignores scene-specific settings for this effect and uses the configured World Default Profile instead. A default profile must be set.')}
-                        <hr style="border-color: #555; margin: 6px 0;">
-                        ${DebuggerUIBuilder._createSliderHTML('pauseEffect.duration', 'Transition Duration (ms)', 100, 10000, 100)}
-                        <details id="details-pauseEffect-colorCorrection"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('pauseEffect.colorCorrection.enabled', 'Color Correction', true)}</div></summary>
-                            <div>
-                                <details id="details-pauseEffect-cc-basic"><summary><span class="accordion-toggle"></span><strong>Basic Adjustments</strong></summary><div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createSliderHTML('pauseEffect.colorCorrection.saturation', 'Saturation', 0, 4, 0.05)}
-                                        ${DebuggerUIBuilder._createSliderHTML('pauseEffect.colorCorrection.brightness', 'Brightness', -1, 1, 0.01)}
-                                        ${DebuggerUIBuilder._createSliderHTML('pauseEffect.colorCorrection.contrast', 'Contrast', 0, 4, 0.05)}
-                                        ${DebuggerUIBuilder._createCheckboxHTML('pauseEffect.colorCorrection.invert', 'Invert Colors')}
-                                </div></details>
-                                <details id="details-pauseEffect-cc-advanced"><summary><span class="accordion-toggle"></span><strong>Advanced Adjustments</strong></summary><div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createSliderHTML('pauseEffect.colorCorrection.exposure', 'Exposure', -2, 2, 0.05, 'Multiplies scene brightness, simulating camera exposure.')}
-                                        ${DebuggerUIBuilder._createSliderHTML('pauseEffect.colorCorrection.gamma', 'Gamma', 0.2, 2.5, 0.05, 'Adjusts mid-tones. < 1 lightens, > 1 darkens.')}
-                                        ${DebuggerUIBuilder._createSliderHTML('pauseEffect.colorCorrection.levels.inBlack', 'Black Point', 0, 1, 0.01, 'Sets the darkest point of the image.')}
-                                        ${DebuggerUIBuilder._createSliderHTML('pauseEffect.colorCorrection.levels.inWhite', 'White Point', 0, 1, 0.01, 'Sets the brightest point of the image.')}
-                                </div></details>
-                                <details id="details-pauseEffect-cc-whiteBalance"><summary><span class="accordion-toggle"></span><strong>White Balance</strong></summary><div style="padding-left: 15px;">
-                                        <p class="description-text">Simulates camera white balance correction.</p>
-                                        ${DebuggerUIBuilder._createSliderHTML('pauseEffect.colorCorrection.whiteBalance.temperature', 'Temperature', -1, 1, 0.01, 'Negative values are cooler (blue), positive are warmer (orange).')}
-                                        ${DebuggerUIBuilder._createSliderHTML('pauseEffect.colorCorrection.whiteBalance.tint', 'Tint', -1, 1, 0.01, 'Negative values shift toward magenta, positive toward green.')}
-                                </div></details>
-                                <details id="details-pauseEffect-cc-tint"><summary><span class="accordion-toggle"></span><strong>Global Tint</strong></summary><div style="padding-left: 15px;">
-                                        <p class="description-text">Applies a color overlay to the entire scene.</p>
-                                        ${DebuggerUIBuilder._createColorPickerHTML('pauseEffect.colorCorrection.tint.color', 'Tint Color')}
-                                        ${DebuggerUIBuilder._createSliderHTML('pauseEffect.colorCorrection.tint.amount', 'Tint Amount', 0, 1, 0.01)}
-                                </div></details>
-                                <details id="details-pauseEffect-cc-mask"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('pauseEffect.colorCorrection.mask.enabled', 'Luminance Mask', true)}</div></summary><div style="padding-left: 15px;">
-                                        <p class="description-text">Applies the color correction only to lit areas of the scene. Requires the Illumination Buffer module.</p>
-                                        ${DebuggerUIBuilder._createCheckboxHTML('pauseEffect.colorCorrection.mask.invert', 'Invert Mask (Affect Dark Areas)')}
-                                        ${DebuggerUIBuilder._createSliderHTML('pauseEffect.colorCorrection.mask.luminanceThreshold', 'Light Threshold', 0, 1, 0.01)}
-                                        ${DebuggerUIBuilder._createSliderHTML('pauseEffect.colorCorrection.mask.softness', 'Edge Softness', 0.01, 1, 0.01)}
-                                </div></details>
-                                <details id="details-pauseEffect-cc-selective"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('pauseEffect.colorCorrection.selective.enabled', 'Selective Color', true)}</div></summary><div style="padding-left: 15px;">
-                                    ${buildSelectiveControls('pauseEffect.colorCorrection.selective.')}
-                                </div></details>
-                            </div>
-                        </details>
-                    `, worldBasedIconHTML('pauseEffect.worldBasedOnly'));
-
-        const combatEffectHTML = DebuggerUIBuilder._createAccordionHTML('combatEffect', 'Combat Transition Effect', `
-                        <p class="description-text">Applies a transition effect when combat starts, including a color correction pass and slowing down all animations.</p>
-                        ${DebuggerUIBuilder._createCheckboxHTML('combatEffect.worldBasedOnly', 'World Based Only', false, 'Ignores scene-specific settings for this effect and uses the configured World Default Profile instead. A default profile must be set.')}
-                        <hr style="border-color: #555; margin: 6px 0;">
-                        ${DebuggerUIBuilder._createSliderHTML('combatEffect.duration', 'Transition Duration (ms)', 100, 10000, 100)}
-                        ${DebuggerUIBuilder._createSliderHTML('combatEffect.timeScale', 'Time Scale', 0, 1, 0.01, 'The target animation speed during combat (e.g., 0.25 = 25% speed).')}
-                        <details id="details-combatEffect-colorCorrection"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('combatEffect.colorCorrection.enabled', 'Color Correction', true)}</div></summary>
-                            <div>
-                                <details id="details-combatEffect-cc-basic"><summary><span class="accordion-toggle"></span><strong>Basic Adjustments</strong></summary><div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createSliderHTML('combatEffect.colorCorrection.saturation', 'Saturation', 0, 4, 0.05)}
-                                        ${DebuggerUIBuilder._createSliderHTML('combatEffect.colorCorrection.brightness', 'Brightness', -1, 1, 0.01)}
-                                        ${DebuggerUIBuilder._createSliderHTML('combatEffect.colorCorrection.contrast', 'Contrast', 0, 4, 0.05)}
-                                        ${DebuggerUIBuilder._createCheckboxHTML('combatEffect.colorCorrection.invert', 'Invert Colors')}
-                                </div></details>
-                                <details id="details-combatEffect-cc-advanced"><summary><span class="accordion-toggle"></span><strong>Advanced Adjustments</strong></summary><div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createSliderHTML('combatEffect.colorCorrection.exposure', 'Exposure', -2, 2, 0.05, 'Multiplies scene brightness, simulating camera exposure.')}
-                                        ${DebuggerUIBuilder._createSliderHTML('combatEffect.colorCorrection.gamma', 'Gamma', 0.2, 2.5, 0.05, 'Adjusts mid-tones. < 1 lightens, > 1 darkens.')}
-                                        ${DebuggerUIBuilder._createSliderHTML('combatEffect.colorCorrection.levels.inBlack', 'Black Point', 0, 1, 0.01, 'Sets the darkest point of the image.')}
-                                        ${DebuggerUIBuilder._createSliderHTML('combatEffect.colorCorrection.levels.inWhite', 'White Point', 0, 1, 0.01, 'Sets the brightest point of the image.')}
-                                </div></details>
-                                <details id="details-combatEffect-cc-whiteBalance"><summary><span class="accordion-toggle"></span><strong>White Balance</strong></summary><div style="padding-left: 15px;">
-                                        <p class="description-text">Simulates camera white balance correction.</p>
-                                        ${DebuggerUIBuilder._createSliderHTML('combatEffect.colorCorrection.whiteBalance.temperature', 'Temperature', -1, 1, 0.01, 'Negative values are cooler (blue), positive are warmer (orange).')}
-                                        ${DebuggerUIBuilder._createSliderHTML('combatEffect.colorCorrection.whiteBalance.tint', 'Tint', -1, 1, 0.01, 'Negative values shift toward magenta, positive toward green.')}
-                                </div></details>
-                                <details id="details-combatEffect-cc-tint"><summary><span class="accordion-toggle"></span><strong>Global Tint</strong></summary><div style="padding-left: 15px;">
-                                        <p class="description-text">Applies a color overlay to the entire scene.</p>
-                                        ${DebuggerUIBuilder._createColorPickerHTML('combatEffect.colorCorrection.tint.color', 'Tint Color')}
-                                        ${DebuggerUIBuilder._createSliderHTML('combatEffect.colorCorrection.tint.amount', 'Tint Amount', 0, 1, 0.01)}
-                                </div></details>
-                                <details id="details-combatEffect-cc-mask"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('combatEffect.colorCorrection.mask.enabled', 'Luminance Mask', true)}</div></summary><div style="padding-left: 15px;">
-                                        <p class="description-text">Applies the color correction only to lit areas of the scene. Requires the Illumination Buffer module.</p>
-                                        ${DebuggerUIBuilder._createCheckboxHTML('combatEffect.colorCorrection.mask.invert', 'Invert Mask (Affect Dark Areas)')}
-                                        ${DebuggerUIBuilder._createSliderHTML('combatEffect.colorCorrection.mask.luminanceThreshold', 'Light Threshold', 0, 1, 0.01)}
-                                        ${DebuggerUIBuilder._createSliderHTML('combatEffect.colorCorrection.mask.softness', 'Edge Softness', 0.01, 1, 0.01)}
-                                </div></details>
-                                <details id="details-combatEffect-cc-selective"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('combatEffect.colorCorrection.selective.enabled', 'Selective Color', true)}</div></summary><div style="padding-left: 15px;">
-                                    ${buildSelectiveControls('combatEffect.colorCorrection.selective.')}
-                                </div></details>
-                            </div>
-                        </details>
-                    `, worldBasedIconHTML('combatEffect.worldBasedOnly'));
+            <p class="description-text">Applies a transition effect when the game is paused, including a color correction pass and slowing down all animations.</p>
+            ${DebuggerUIBuilder._createCheckboxHTML('pauseEffect.worldBasedOnly', 'World Based Only', false, 'Ignores scene-specific settings for this effect and uses the configured World Default Profile instead. A default profile must be set.')}
+            <hr style="border-color: #555; margin: 6px 0;">
+            ${DebuggerUIBuilder._createSliderHTML('pauseEffect.duration', 'Transition Duration (ms)', 100, 10000, 100)}
+            <details id="details-pauseEffect-colorCorrection"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('pauseEffect.colorCorrection.enabled', 'Color Correction', true)}</div></summary>
+                <div>
+                    <details id="details-pauseEffect-cc-basic"><summary><span class="accordion-toggle"></span><strong>Basic Adjustments</strong></summary><div style="padding-left: 15px;">
+                            ${DebuggerUIBuilder._createSliderHTML('pauseEffect.colorCorrection.saturation', 'Saturation', 0, 4, 0.05)}
+                            ${DebuggerUIBuilder._createSliderHTML('pauseEffect.colorCorrection.brightness', 'Brightness', -1, 1, 0.01)}
+                            ${DebuggerUIBuilder._createSliderHTML('pauseEffect.colorCorrection.contrast', 'Contrast', 0, 4, 0.05)}
+                            ${DebuggerUIBuilder._createCheckboxHTML('pauseEffect.colorCorrection.invert', 'Invert Colors')}
+                    </div></details>
+                    <details id="details-pauseEffect-cc-advanced"><summary><span class="accordion-toggle"></span><strong>Advanced Adjustments</strong></summary><div style="padding-left: 15px;">
+                            ${DebuggerUIBuilder._createSliderHTML('pauseEffect.colorCorrection.exposure', 'Exposure', -2, 2, 0.05, 'Multiplies scene brightness, simulating camera exposure.')}
+                            ${DebuggerUIBuilder._createSliderHTML('pauseEffect.colorCorrection.gamma', 'Gamma', 0.2, 2.5, 0.05, 'Adjusts mid-tones. < 1 lightens, > 1 darkens.')}
+                            ${DebuggerUIBuilder._createSliderHTML('pauseEffect.colorCorrection.levels.inBlack', 'Black Point', 0, 1, 0.01, 'Sets the darkest point of the image.')}
+                            ${DebuggerUIBuilder._createSliderHTML('pauseEffect.colorCorrection.levels.inWhite', 'White Point', 0, 1, 0.01, 'Sets the brightest point of the image.')}
+                    </div></details>
+                    <details id="details-pauseEffect-cc-whiteBalance"><summary><span class="accordion-toggle"></span><strong>White Balance</strong></summary><div style="padding-left: 15px;">
+                            <p class="description-text">Simulates camera white balance correction.</p>
+                            ${DebuggerUIBuilder._createSliderHTML('pauseEffect.colorCorrection.whiteBalance.temperature', 'Temperature', -1, 1, 0.01, 'Negative values are cooler (blue), positive are warmer (orange).')}
+                            ${DebuggerUIBuilder._createSliderHTML('pauseEffect.colorCorrection.whiteBalance.tint', 'Tint', -1, 1, 0.01, 'Negative values shift toward magenta, positive toward green.')}
+                    </div></details>
+                    <details id="details-pauseEffect-cc-tint"><summary><span class="accordion-toggle"></span><strong>Global Tint</strong></summary><div style="padding-left: 15px;">
+                            <p class="description-text">Applies a color overlay to the entire scene.</p>
+                            ${DebuggerUIBuilder._createColorPickerHTML('pauseEffect.colorCorrection.tint.color', 'Tint Color')}
+                            ${DebuggerUIBuilder._createSliderHTML('pauseEffect.colorCorrection.tint.amount', 'Tint Amount', 0, 1, 0.01)}
+                    </div></details>
+                    <details id="details-pauseEffect-cc-mask"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('pauseEffect.colorCorrection.mask.enabled', 'Luminance Mask', true)}</div></summary><div style="padding-left: 15px;">
+                            <p class="description-text">Applies the color correction only to lit areas of the scene. Requires the Illumination Buffer module.</p>
+                            ${DebuggerUIBuilder._createCheckboxHTML('pauseEffect.colorCorrection.mask.invert', 'Invert Mask (Affect Dark Areas)')}
+                            ${DebuggerUIBuilder._createSliderHTML('pauseEffect.colorCorrection.mask.luminanceThreshold', 'Light Threshold', 0, 1, 0.01)}
+                            ${DebuggerUIBuilder._createSliderHTML('pauseEffect.colorCorrection.mask.softness', 'Edge Softness', 0.01, 1, 0.01)}
+                    </div></details>
+                    <details id="details-pauseEffect-cc-selective"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('pauseEffect.colorCorrection.selective.enabled', 'Selective Color', true)}</div></summary><div style="padding-left: 15px;">
+                        ${buildSelectiveControls('pauseEffect.colorCorrection.selective.')}
+                    </div></details>
+                </div>
+            </details>
+        `, worldBasedIconHTML('pauseEffect.worldBasedOnly'));
 
         const postProcessingHTML = `
-                        <h3 class="pane-title">Post-Processing Pipeline</h3>
-                        <div class="control-row" style="padding: 4px; background: rgba(0,0,0,0.2); border-radius: 4px; display:flex; justify-content:space-between; align-items:center;">
-                            <div style="display:flex; align-items:center; gap: 5px;">
-                                <label for="control-postProcessing-enabled" class="summary-label" title="Master toggle for all effects in this panel."><strong>Enable Post-Processing</strong></label>
-                                ${worldBasedIconHTML('postProcessing.worldBasedOnly')}
-                            </div>
-                            <div class="widget-group"><input type="checkbox" id="control-postProcessing-enabled" data-path="postProcessing.enabled"></div>
+            <h3 class="pane-title">Post-Processing Pipeline</h3>
+            <div class="control-row" style="padding: 4px; background: rgba(0,0,0,0.2); border-radius: 4px; display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; align-items:center; gap: 5px;">
+                ${DebuggerUIBuilder._createCheckboxHTML('postProcessing.enabled', '<strong>Enable Post-Processing</strong>', false, 'Master toggle for all effects in this panel.')}
+                ${worldBasedIconHTML('postProcessing.worldBasedOnly')}
+                </div>
+            </div>
+            ${DebuggerUIBuilder._createCheckboxHTML('postProcessing.worldBasedOnly', 'World Based Only', false, 'Ignores scene-specific settings for this entire effect group and uses the configured World Default Profile instead. A default profile must be set.')}
+            <hr style="border-color:#444; margin: 6px 0;">
+            <details id="details-postProcessing-colorCorrection" open><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('postProcessing.colorCorrection.enabled', 'Color Correction', true)}</div></summary>
+                <div>
+                    <details id="details-postProcessing-cc-presets" open><summary><span class="accordion-toggle"></span><strong>Color Presets</strong></summary><div style="padding-left: 15px;">
+                        <p class="description-text">Apply professional color grading presets or save your own custom looks.</p>
+                        ${DebuggerUIBuilder._createPresetSelectHTML('postProcessing.colorCorrection.activePreset', 'Preset', COLOR_CORRECTION_PRESETS)}
+                        <div style="display: flex; gap: 5px; margin-top: 5px;">
+                            <button id="apply-color-preset-btn" title="Apply the selected preset to all color correction settings" style="flex: 1; height: 24px;">Apply Preset</button>
+                            <button id="save-color-favorite-btn" title="Save current color settings as a favorite" style="flex: 1; height: 24px;">Save as Favorite</button>
                         </div>
-                        ${DebuggerUIBuilder._createCheckboxHTML('postProcessing.worldBasedOnly', 'World Based Only', false, 'Ignores scene-specific settings for this entire effect group and uses the configured World Default Profile instead. A default profile must be set.')}
-                        <hr style="border-color:#444; margin: 6px 0;">
-                        <details id="details-postProcessing-colorCorrection"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('postProcessing.colorCorrection.enabled', 'Color Correction', true)}</div></summary>
-                            <div>
-                                <details id="details-postProcessing-cc-presets"><summary><span class="accordion-toggle"></span><strong>Color Presets</strong></summary><div style="padding-left: 15px;">
-                                    <p class="description-text">Apply professional color grading presets or save your own custom looks.</p>
-                                    ${DebuggerUIBuilder._createPresetSelectHTML('postProcessing.colorCorrection.activePreset', 'Preset', COLOR_CORRECTION_PRESETS)}
-                                    <div style="display: flex; gap: 5px; margin-top: 5px;">
-                                        <button id="apply-color-preset-btn" title="Apply the selected preset to all color correction settings" style="flex: 1; height: 24px;">Apply Preset</button>
-                                        <button id="save-color-favorite-btn" title="Save current color settings as a favorite" style="flex: 1; height: 24px;">Save as Favorite</button>
+                        <details id="details-postProcessing-cc-favorites" style="margin-top: 10px;"><summary><span class="accordion-toggle"></span><strong>My Favorites</strong></summary><div style="padding-left: 15px;">
+                            <div id="color-favorites-list" style="margin-top: 5px;">
+                                <p style="color: #888; font-style: italic;">No favorites saved yet.</p>
+                            </div>
+                        </div></details>
+                    </div></details>
+                    <details id="details-postProcessing-cc-basic"><summary><span class="accordion-toggle"></span><strong>Basic Adjustments</strong></summary><div style="padding-left: 15px;">
+                            ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.saturation', 'Saturation', 0, 4, 0.05)}
+                            ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.brightness', 'Brightness', -1, 1, 0.01)}
+                            ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.contrast', 'Contrast', 0, 4, 0.05)}
+                            ${DebuggerUIBuilder._createCheckboxHTML('postProcessing.colorCorrection.invert', 'Invert Colors')}
+                    </div></details>
+                    <details id="details-postProcessing-cc-advanced"><summary><span class="accordion-toggle"></span><strong>Advanced Adjustments</strong></summary><div style="padding-left: 15px;">
+                            ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.exposure', 'Exposure', -2, 2, 0.05, 'Multiplies scene brightness, simulating camera exposure.')}
+                            ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.gamma', 'Gamma', 0.2, 2.5, 0.05, 'Adjusts mid-tones. < 1 lightens, > 1 darkens.')}
+                            ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.levels.inBlack', 'Black Point', 0, 1, 0.01, 'Sets the darkest point of the image.')}
+                            ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.levels.inWhite', 'White Point', 0, 1, 0.01, 'Sets the brightest point of the image.')}
+                    </div></details>
+                    <details id="details-postProcessing-cc-whiteBalance"><summary><span class="accordion-toggle"></span><strong>White Balance</strong></summary><div style="padding-left: 15px;">
+                            <p class="description-text">Simulates camera white balance correction.</p>
+                            ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.whiteBalance.temperature', 'Temperature', -1, 1, 0.01, 'Negative values are cooler (blue), positive are warmer (orange).')}
+                            ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.whiteBalance.tint', 'Tint', -1, 1, 0.01, 'Negative values shift toward magenta, positive toward green.')}
+                    </div></details>
+                    <details id="details-postProcessing-cc-highlights">
+                        <summary><span class="accordion-toggle"></span><strong>Highlight Adjustments</strong></summary>
+                        <div style="padding-left: 15px;">
+                            <p class="description-text">Boost brightness in areas unaffected by certain shadow effects.</p>
+                            <details id="details-postProcessing-cc-highlightCloud">
+                                <summary><span class="accordion-toggle"></span>
+                                    <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('postProcessing.colorCorrection.highlightCloud.enabled', 'Cloud Highlights', true)}</div>
+                                </summary>
+                                <div style="padding-left: 15px;">
+                                    <p class="description-text">Brightens the sky between cloud shadows.</p>
+                                    ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.highlightCloud.brightness', 'Brightness', 0, 2, 0.01)}
+                                </div>
+                            </details>
+                            <details id="details-postProcessing-cc-highlightCanopy">
+                                <summary><span class="accordion-toggle"></span>
+                                    <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('postProcessing.colorCorrection.highlightCanopy.enabled', 'Canopy Highlights', true)}</div>
+                                </summary>
+                                <div style="padding-left: 15px;">
+                                    <p class="description-text">Brightens the light filtering through the canopy.</p>
+                                    ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.highlightCanopy.brightness', 'Brightness', 0, 5, 0.01)}
                                     </div>
-                                    <details id="details-postProcessing-cc-favorites" style="margin-top: 10px;"><summary><span class="accordion-toggle"></span><strong>My Favorites</strong></summary><div style="padding-left: 15px;">
-                                        <div id="color-favorites-list" style="margin-top: 5px;">
-                                            <p style="color: #888; font-style: italic;">No favorites saved yet.</p>
-                                        </div>
-                                    </div></details>
-                                </div></details>
-                                <details id="details-postProcessing-cc-basic"><summary><span class="accordion-toggle"></span><strong>Basic Adjustments</strong></summary><div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.saturation', 'Saturation', 0, 4, 0.05)}
-                                        ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.brightness', 'Brightness', -1, 1, 0.01)}
-                                        ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.contrast', 'Contrast', 0, 4, 0.05)}
-                                        ${DebuggerUIBuilder._createCheckboxHTML('postProcessing.colorCorrection.invert', 'Invert Colors')}
-                                </div></details>
-                                <details id="details-postProcessing-cc-advanced"><summary><span class="accordion-toggle"></span><strong>Advanced Adjustments</strong></summary><div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.exposure', 'Exposure', -2, 2, 0.05, 'Multiplies scene brightness, simulating camera exposure.')}
-                                        ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.gamma', 'Gamma', 0.2, 2.5, 0.05, 'Adjusts mid-tones. < 1 lightens, > 1 darkens.')}
-                                        ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.levels.inBlack', 'Black Point', 0, 1, 0.01, 'Sets the darkest point of the image.')}
-                                        ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.levels.inWhite', 'White Point', 0, 1, 0.01, 'Sets the brightest point of the image.')}
-                                </div></details>
-                                <details id="details-postProcessing-cc-whiteBalance"><summary><span class="accordion-toggle"></span><strong>White Balance</strong></summary><div style="padding-left: 15px;">
-                                        <p class="description-text">Simulates camera white balance correction.</p>
-                                        ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.whiteBalance.temperature', 'Temperature', -1, 1, 0.01, 'Negative values are cooler (blue), positive are warmer (orange).')}
-                                        ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.whiteBalance.tint', 'Tint', -1, 1, 0.01, 'Negative values shift toward magenta, positive toward green.')}
-                                </div></details>
-                                <details id="details-postProcessing-cc-highlights">
-                                    <summary><span class="accordion-toggle"></span><strong>Highlight Adjustments</strong></summary>
-                                    <div style="padding-left: 15px;">
-                                        <p class="description-text">Boost brightness in areas unaffected by certain shadow effects.</p>
-                                        <details id="details-postProcessing-cc-highlightCloud">
-                                            <summary><span class="accordion-toggle"></span>
-                                                <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('postProcessing.colorCorrection.highlightCloud.enabled', 'Cloud Highlights', true)}</div>
-                                            </summary>
-                                            <div style="padding-left: 15px;">
-                                                <p class="description-text">Brightens the sky between cloud shadows.</p>
-                                                ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.highlightCloud.brightness', 'Brightness', 0, 2, 0.01)}
-                                            </div>
-                                        </details>
-                                        <details id="details-postProcessing-cc-highlightCanopy">
-                                            <summary><span class="accordion-toggle"></span>
-                                                <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('postProcessing.colorCorrection.highlightCanopy.enabled', 'Canopy Highlights', true)}</div>
-                                            </summary>
-                                            <div style="padding-left: 15px;">
-                                                <p class="description-text">Brightens the light filtering through the canopy.</p>
-                                                ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.highlightCanopy.brightness', 'Brightness', 0, 5, 0.01)}
-                                                </div>
-                                            </details>
-                                            <details id="details-postProcessing-cc-highlightStructural">
-                                                <summary><span class="accordion-toggle"></span>
-                                                    <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('postProcessing.colorCorrection.highlightStructural.enabled', 'Structural Highlights', true)}</div>
-                                                </summary>
-                                                <div style="padding-left: 15px;">
-                                                    <p class="description-text">Brightens the areas not in structural shadow (e.g., areas between rafters).</p>
-                                                    ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.highlightStructural.brightness', 'Brightness', 0, 5, 0.01)}
-                                                </div>
-                                            </details>
-                                        </div>
-                                    </details>
-                                <details id="details-postProcessing-cc-tint"><summary><span class="accordion-toggle"></span><strong>Global Tint</strong></summary><div style="padding-left: 15px;">
-                                        <p class="description-text">Applies a color overlay to the entire scene.</p>
-                                        ${DebuggerUIBuilder._createColorPickerHTML('postProcessing.colorCorrection.tint.color', 'Tint Color')}
-                                        ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.tint.amount', 'Tint Amount', 0, 1, 0.01)}
-                                </div></details>
-                                <details id="details-postProcessing-cc-mask"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('postProcessing.colorCorrection.mask.enabled', 'Luminance Mask', true)}</div></summary><div style="padding-left: 15px;">
-                                        <p class="description-text">Applies the color correction only to lit areas of the scene. Requires the Illumination Buffer module.</p>
-                                        ${DebuggerUIBuilder._createCheckboxHTML('postProcessing.colorCorrection.mask.invert', 'Invert Mask (Affect Dark Areas)')}
-                                        ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.mask.luminanceThreshold', 'Light Threshold', 0, 1, 0.01)}
-                                        ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.mask.softness', 'Edge Softness', 0.01, 1, 0.01)}
-                                </div></details>
-                                <details id="details-postProcessing-cc-selective"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('postProcessing.colorCorrection.selective.enabled', 'Selective Color', true)}</div></summary><div style="padding-left: 15px;">
-                                    ${buildSelectiveControls('postProcessing.colorCorrection.selective.')}
-                                </div></details>
-                                    <details id="details-postProcessing-cc-curves">
-                                    <summary>
-                                        <span class="accordion-toggle"></span>
-                                        <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('postProcessing.colorCorrection.curves.enabled', 'Curves', true)}</div>
+                                </details>
+                                <details id="details-postProcessing-cc-highlightStructural">
+                                    <summary><span class="accordion-toggle"></span>
+                                        <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('postProcessing.colorCorrection.highlightStructural.enabled', 'Structural Highlights', true)}</div>
                                     </summary>
-                                    <div style="padding-left: 15px; display: flex; flex-direction: column; align-items: center; padding-top: 5px;">
-                                        <p class="description-text">Precise, non-linear control over tonal range, similar to Photoshop's Curves tool.</p>
-                                        <div id="curve-channel-selector" style="text-align: center; margin-bottom: 5px; display: flex; gap: 10px; justify-content: center;">
-                                            <div class="widget-group"><input type="radio" name="curve-channel" id="curve-channel-rgb" value="rgb" data-path="postProcessing.colorCorrection.curves.activeChannel"><label for="curve-channel-rgb">RGB</label></div>
-                                            <div class="widget-group"><input type="radio" name="curve-channel" id="curve-channel-r" value="red" data-path="postProcessing.colorCorrection.curves.activeChannel"><label for="curve-channel-r" style="color:#f88;">R</label></div>
-                                            <div class="widget-group"><input type="radio" name="curve-channel" id="curve-channel-g" value="green" data-path="postProcessing.colorCorrection.curves.activeChannel"><label for="curve-channel-g" style="color:#8f8;">G</label></div>
-                                            <div class="widget-group"><input type="radio" name="curve-channel" id="curve-channel-b" value="blue" data-path="postProcessing.colorCorrection.curves.activeChannel"><label for="curve-channel-b" style="color:#8af;">B</label></div>
-                                        </div>
-                                        <div id="curve-editor-container" style="width: 256px; height: 256px; background: #222 url('data:image/svg+xml,%3Csvg width=\'16\' height=\'16\' viewBox=\'0 0 16 16\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M0 0 H8 V8 H0 Z\' fill=\'%23333\'/%3E%3Cpath d=\'M8 8 H16 V16 H8 Z\' fill=\'%23333\'/%3E%3C/svg%3E'); border: 1px solid #555; position: relative;">
-                                            <svg width="100%" height="100%" style="position: absolute; top: 0; left: 0; pointer-events: none;">
-                                                <line x1="0" y1="100%" x2="100%" y2="0" stroke="rgba(255,255,255,0.2)" stroke-width="1" stroke-dasharray="4 4"/>
-                                            </svg>
-                                        </div>
+                                    <div style="padding-left: 15px;">
+                                        <p class="description-text">Brightens the areas not in structural shadow (e.g., areas between rafters).</p>
+                                        ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.highlightStructural.brightness', 'Brightness', 0, 5, 0.01)}
                                     </div>
                                 </details>
                             </div>
                         </details>
-                            
-            <details id="details-postProcessing-dynamicExposure">
-                <summary>
-                    <span class="accordion-toggle"></span>
-                    <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('postProcessing.colorCorrection.dynamicExposure.enabled', 'Dynamic Exposure (Dazzle)', true)}</div>
-                </summary>
-                <div style="padding-left: 15px;">
-                    <p class="description-text">Creates a "dazzle" effect when a token moves from an area defined as indoors (dark parts of _Outdoors mask) to outdoors (light parts).</p>
-                    ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.dynamicExposure.intensity', 'Dazzle Intensity', 0, 5, 0.1, 'The peak exposure brightness when the effect triggers.')}
-                    ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.dynamicExposure.duration', 'Dazzle Duration (ms)', 500, 20000, 100, 'How long it takes for the dazzle effect to fade back to normal.')}
-                    ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.dynamicExposure.resetPeriod', 'Reset Period (ms)', 1000, 120000, 1000, 'The cooldown time before the effect can be triggered again.')}
+                    <details id="details-postProcessing-cc-tint"><summary><span class="accordion-toggle"></span><strong>Global Tint</strong></summary><div style="padding-left: 15px;">
+                            <p class="description-text">Applies a color overlay to the entire scene.</p>
+                            ${DebuggerUIBuilder._createColorPickerHTML('postProcessing.colorCorrection.tint.color', 'Tint Color')}
+                            ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.tint.amount', 'Tint Amount', 0, 1, 0.01)}
+                    </div></details>
+                    <details id="details-postProcessing-cc-mask"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('postProcessing.colorCorrection.mask.enabled', 'Luminance Mask', true)}</div></summary><div style="padding-left: 15px;">
+                            <p class="description-text">Applies the color correction only to lit areas of the scene. Requires the Illumination Buffer module.</p>
+                            ${DebuggerUIBuilder._createCheckboxHTML('postProcessing.colorCorrection.mask.invert', 'Invert Mask (Affect Dark Areas)')}
+                            ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.mask.luminanceThreshold', 'Light Threshold', 0, 1, 0.01)}
+                            ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.mask.softness', 'Edge Softness', 0.01, 1, 0.01)}
+                    </div></details>
+                    <details id="details-postProcessing-cc-selective"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('postProcessing.colorCorrection.selective.enabled', 'Selective Color', true)}</div></summary><div style="padding-left: 15px;">
+                        ${buildSelectiveControls('postProcessing.colorCorrection.selective.')}
+                    </div></details>
+                        <details id="details-postProcessing-cc-curves">
+                        <summary>
+                            <span class="accordion-toggle"></span>
+                            <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('postProcessing.colorCorrection.curves.enabled', 'Curves', true)}</div>
+                        </summary>
+                        <div style="padding-left: 15px; display: flex; flex-direction: column; align-items: center; padding-top: 5px;">
+                            <p class="description-text">Precise, non-linear control over tonal range, similar to Photoshop's Curves tool.</p>
+                            <div id="curve-channel-selector" style="text-align: center; margin-bottom: 5px; display: flex; gap: 10px; justify-content: center;">
+                                <div class="widget-group"><input type="radio" name="curve-channel" id="curve-channel-rgb" value="rgb" data-path="postProcessing.colorCorrection.curves.activeChannel"><label for="curve-channel-rgb">RGB</label></div>
+                                <div class="widget-group"><input type="radio" name="curve-channel" id="curve-channel-r" value="red" data-path="postProcessing.colorCorrection.curves.activeChannel"><label for="curve-channel-r" style="color:#f88;">R</label></div>
+                                <div class="widget-group"><input type="radio" name="curve-channel" id="curve-channel-g" value="green" data-path="postProcessing.colorCorrection.curves.activeChannel"><label for="curve-channel-g" style="color:#8f8;">G</label></div>
+                                <div class="widget-group"><input type="radio" name="curve-channel" id="curve-channel-b" value="blue" data-path="postProcessing.colorCorrection.curves.activeChannel"><label for="curve-channel-b" style="color:#8af;">B</label></div>
+                            </div>
+                            <div id="curve-editor-container" style="width: 256px; height: 256px; background: #222 url('data:image/svg+xml,%3Csvg width=\'16\' height=\'16\' viewBox=\'0 0 16 16\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M0 0 H8 V8 H0 Z\' fill=\'%23333\'/%3E%3Cpath d=\'M8 8 H16 V16 H8 Z\' fill=\'%23333\'/%3E%3C/svg%3E'); border: 1px solid #555; position: relative;">
+                                <svg width="100%" height="100%" style="position: absolute; top: 0; left: 0; pointer-events: none;">
+                                    <line x1="0" y1="100%" x2="100%" y2="0" stroke="rgba(255,255,255,0.2)" stroke-width="1" stroke-dasharray="4 4"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </details>
                 </div>
             </details>
-        
                 
-            <details id="details-postProcessing-sceneIlluminationMixIn">
-                <summary>
-                    <span class="accordion-toggle"></span>
-                    <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.enabled', 'Scene Illumination Mix-in', true)}</div>
-                </summary>
-                <div style="padding-left: 15px;">
-                    <p class="description-text">Mixes the raw illumination buffer texture back into the scene after all other color correction. Requires the Illumination Buffer module.</p>
-                    <div class="warning-box" style="background-color: #554422; border-color: #ffaa66;">
-                        <strong style="color: #ffddaa;">PERFORMANCE NOTE:</strong> This effect samples the illumination buffer directly and may impact performance on lower-end systems.
+<details id="details-postProcessing-dynamicExposure">
+    <summary>
+        <span class="accordion-toggle"></span>
+        <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('postProcessing.colorCorrection.dynamicExposure.enabled', 'Dynamic Exposure (Dazzle)', true)}</div>
+    </summary>
+    <div style="padding-left: 15px;">
+        <p class="description-text">Creates a "dazzle" effect when a token moves from an area defined as indoors (dark parts of _Outdoors mask) to outdoors (light parts).</p>
+        ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.dynamicExposure.intensity', 'Dazzle Intensity', 0, 5, 0.1, 'The peak exposure brightness when the effect triggers.')}
+        ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.dynamicExposure.duration', 'Dazzle Duration (ms)', 500, 20000, 100, 'How long it takes for the dazzle effect to fade back to normal.')}
+        ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.dynamicExposure.resetPeriod', 'Reset Period (ms)', 1000, 120000, 1000, 'The cooldown time before the effect can be triggered again.')}
+        ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.dynamicExposure.dazzleThreshold', 'Light Threshold', 0.05, 0.95, 0.01, 'The brightness on the _Outdoors mask required to be considered "outdoors".')}
+    </div>
+</details>
+
+    
+<details id="details-postProcessing-sceneIlluminationMixIn">
+    <summary>
+        <span class="accordion-toggle"></span>
+        <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.enabled', 'Scene Illumination Mix-in', true)}</div>
+    </summary>
+    <div style="padding-left: 15px;">
+        <p class="description-text">Mixes the raw illumination buffer texture back into the scene after all other color correction. Requires the Illumination Buffer module.</p>
+        <div class="warning-box" style="background-color: #554422; border-color: #ffaa66;">
+            <strong style="color: #ffddaa;">PERFORMANCE NOTE:</strong> This effect samples the illumination buffer directly and may impact performance on lower-end systems.
+        </div>
+        ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.intensity', 'Mix Intensity', 0, 2, 0.01, 'Overall strength of the illumination mix-in effect.')}
+        ${DebuggerUIBuilder._createSelectHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.blendMode', 'Blend Mode', {'Normal': 0, 'Add': 1, 'Multiply Light': 2, 'Screen': 3, 'Overlay': 4, 'Color Dodge': 5})}
+        ${DebuggerUIBuilder._createCheckboxHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.debugMode', 'Debug Mode', false, 'Show raw illumination texture for debugging.')}
+        
+        <details id="details-sceneIlluminationMixIn-shadowInteraction">
+            <summary><span class="accordion-toggle"></span>
+                <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.shadowInteraction.enabled', 'Erase Shadows with Light', true)}</div>
+            </summary>
+            <div style="padding-left: 15px;">
+                <p class="description-text">Uses the illumination buffer to reduce the intensity of structural and canopy shadows, simulating light overpowering darkness.</p>
+                ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.shadowInteraction.intensity', 'Reduction Amount', 0, 1, 0.01)}
+                ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.shadowInteraction.luminanceThreshold', 'Light Threshold', 0, 1, 0.01)}
+                ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.shadowInteraction.softness', 'Edge Softness', 0.01, 1, 0.01)}
+            </div>
+        </details>
+
+        <details id="details-sceneIlluminationMixIn-negativeMask">
+            <summary><span class="accordion-toggle"></span>
+                <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.negativeMask.enabled', 'Negative Mask (Anti-Overexposure)', true)}</div>
+            </summary>
+            <div style="padding-left: 15px;">
+                <p class="description-text">Prevents the mix-in from adding light to areas of the scene that are already bright, helping to avoid blown-out highlights.</p>
+                ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.negativeMask.threshold', 'Scene Brightness Threshold', 0, 1, 0.01)}
+                ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.negativeMask.softness', 'Mask Softness', 0.01, 1, 0.01)}
+            </div>
+        </details>
+
+        <details id="details-sceneIlluminationMixIn-colorCorrection">
+            <summary><span class="accordion-toggle"></span>
+                <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.colorCorrection.enabled', 'Illumination Color Correction', true)}</div>
+            </summary>
+            <div style="padding-left: 15px;">
+                <p class="description-text">Applies color correction to the illumination buffer before mixing it into the scene.</p>
+                ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.colorCorrection.saturation', 'Saturation', 0, 4, 0.05)}
+                ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.colorCorrection.brightness', 'Brightness', -1, 1, 0.01)}
+                ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.colorCorrection.contrast', 'Contrast', 0, 4, 0.05)}
+                ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.colorCorrection.exposure', 'Exposure', -2, 2, 0.05)}
+                ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.colorCorrection.gamma', 'Gamma', 0.2, 2.5, 0.05)}
+                <details id="details-sceneIlluminationMixIn-cc-tint">
+                    <summary><span class="accordion-toggle"></span><strong>Illumination Tint</strong></summary>
+                    <div style="padding-left: 15px;">
+                        ${DebuggerUIBuilder._createColorPickerHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.colorCorrection.tint.color', 'Tint Color')}
+                        ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.colorCorrection.tint.amount', 'Tint Amount', 0, 1, 0.01)}
                     </div>
-                    ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.intensity', 'Mix Intensity', 0, 2, 0.01, 'Overall strength of the illumination mix-in effect.')}
-                    ${DebuggerUIBuilder._createSelectHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.blendMode', 'Blend Mode', {'Normal': 0, 'Add': 1, 'Multiply Light': 2, 'Screen': 3, 'Overlay': 4, 'Color Dodge': 5})}
-                    ${DebuggerUIBuilder._createCheckboxHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.debugMode', 'Debug Mode', false, 'Show raw illumination texture for debugging.')}
-                    
-                    <details id="details-sceneIlluminationMixIn-shadowInteraction">
-                        <summary><span class="accordion-toggle"></span>
-                            <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.shadowInteraction.enabled', 'Erase Shadows with Light', true)}</div>
-                        </summary>
-                        <div style="padding-left: 15px;">
-                            <p class="description-text">Uses the illumination buffer to reduce the intensity of structural and canopy shadows, simulating light overpowering darkness.</p>
-                            ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.shadowInteraction.intensity', 'Reduction Amount', 0, 1, 0.01)}
-                            ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.shadowInteraction.luminanceThreshold', 'Light Threshold', 0, 1, 0.01)}
-                            ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.shadowInteraction.softness', 'Edge Softness', 0.01, 1, 0.01)}
-                        </div>
-                    </details>
+                </details>
+            </div>
+        </details>
         
-                    <details id="details-sceneIlluminationMixIn-negativeMask">
-                        <summary><span class="accordion-toggle"></span>
-                            <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.negativeMask.enabled', 'Negative Mask (Anti-Overexposure)', true)}</div>
-                        </summary>
-                        <div style="padding-left: 15px;">
-                            <p class="description-text">Prevents the mix-in from adding light to areas of the scene that are already bright, helping to avoid blown-out highlights.</p>
-                            ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.negativeMask.threshold', 'Scene Brightness Threshold', 0, 1, 0.01)}
-                            ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.negativeMask.softness', 'Mask Softness', 0.01, 1, 0.01)}
-                        </div>
-                    </details>
-        
-                    <details id="details-sceneIlluminationMixIn-colorCorrection">
-                        <summary><span class="accordion-toggle"></span>
-                            <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.colorCorrection.enabled', 'Illumination Color Correction', true)}</div>
-                        </summary>
-                        <div style="padding-left: 15px;">
-                            <p class="description-text">Applies color correction to the illumination buffer before mixing it into the scene.</p>
-                            ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.colorCorrection.saturation', 'Saturation', 0, 4, 0.05)}
-                            ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.colorCorrection.brightness', 'Brightness', -1, 1, 0.01)}
-                            ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.colorCorrection.contrast', 'Contrast', 0, 4, 0.05)}
-                            ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.colorCorrection.exposure', 'Exposure', -2, 2, 0.05)}
-                            ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.colorCorrection.gamma', 'Gamma', 0.2, 2.5, 0.05)}
-                            <details id="details-sceneIlluminationMixIn-cc-tint">
-                                <summary><span class="accordion-toggle"></span><strong>Illumination Tint</strong></summary>
-                                <div style="padding-left: 15px;">
-                                    ${DebuggerUIBuilder._createColorPickerHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.colorCorrection.tint.color', 'Tint Color')}
-                                    ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.colorCorrection.tint.amount', 'Tint Amount', 0, 1, 0.01)}
-                                </div>
-                            </details>
-                        </div>
-                    </details>
-                    
-                    <details id="details-sceneIlluminationMixIn-noise">
-                        <summary><span class="accordion-toggle"></span>
-                            <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.noise.enabled', 'Anti-Banding Noise', true)}</div>
-                        </summary>
-                        <div style="padding-left: 15px;">
-                            <p class="description-text">Adds subtle noise to prevent color banding artifacts in gradients.</p>
-                            ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.noise.amount', 'Noise Amount', 0, 0.1, 0.001, 'Strength of the dithering noise.')}
-                            ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.noise.scale', 'Noise Scale', 0.1, 10, 0.1, 'Size of the noise pattern.')}
-                            ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.noise.speed', 'Noise Speed', -0.01, 0.01, 0.0001, 'Animation speed of the noise pattern.')}
-                        </div>
-                    </details>
+        <details id="details-sceneIlluminationMixIn-noise">
+            <summary><span class="accordion-toggle"></span>
+                <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.noise.enabled', 'Anti-Banding Noise', true)}</div>
+            </summary>
+            <div style="padding-left: 15px;">
+                <p class="description-text">Adds subtle noise to prevent color banding artifacts in gradients.</p>
+                ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.noise.amount', 'Noise Amount', 0, 0.1, 0.001, 'Strength of the dithering noise.')}
+                ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.noise.scale', 'Noise Scale', 0.1, 10, 0.1, 'Size of the noise pattern.')}
+                ${DebuggerUIBuilder._createSliderHTML('postProcessing.colorCorrection.sceneIlluminationMixIn.noise.speed', 'Noise Speed', -0.01, 0.01, 0.0001, 'Animation speed of the noise pattern.')}
+            </div>
+        </details>
+    </div>
+</details>
+
+  
+
+            <details id="details-postProcessing-vignette"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('postProcessing.vignette.enabled', 'Vignette', true)}</div></summary>
+                <div>${DebuggerUIBuilder._createSliderHTML('postProcessing.vignette.amount', 'Amount', 0, 1, 0.01)}${DebuggerUIBuilder._createSliderHTML('postProcessing.vignette.softness', 'Softness', 0.01, 1, 0.01)}</div>
+            </details>
+            <details id="details-postProcessing-lensDistortion"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('postProcessing.lensDistortion.enabled', 'Lens Distortion', true)}</div></summary>
+                <div>
+                    ${DebuggerUIBuilder._createSliderHTML('postProcessing.lensDistortion.amount', 'Amount', -0.2, 0.2, 0.001)}
+                    ${DebuggerUIBuilder._createSliderHTML('postProcessing.lensDistortion.centerX', 'Center X', 0, 1, 0.01)}
+                    ${DebuggerUIBuilder._createSliderHTML('postProcessing.lensDistortion.centerY', 'Center Y', 0, 1, 0.01)}
                 </div>
             </details>
-        
-            
-        
-                        <details id="details-postProcessing-vignette"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('postProcessing.vignette.enabled', 'Vignette', true)}</div></summary>
-                            <div>${DebuggerUIBuilder._createSliderHTML('postProcessing.vignette.amount', 'Amount', 0, 1, 0.01)}${DebuggerUIBuilder._createSliderHTML('postProcessing.vignette.softness', 'Softness', 0.01, 1, 0.01)}</div>
-                        </details>
-                        <details id="details-postProcessing-lensDistortion"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('postProcessing.lensDistortion.enabled', 'Lens Distortion', true)}</div></summary>
-                            <div>
-                                ${DebuggerUIBuilder._createSliderHTML('postProcessing.lensDistortion.amount', 'Amount', -0.2, 0.2, 0.001)}
-                                ${DebuggerUIBuilder._createSliderHTML('postProcessing.lensDistortion.centerX', 'Center X', 0, 1, 0.01)}
-                                ${DebuggerUIBuilder._createSliderHTML('postProcessing.lensDistortion.centerY', 'Center Y', 0, 1, 0.01)}
-                            </div>
-                        </details>
-                        <details id="details-postProcessing-chromaticAberration"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('postProcessing.chromaticAberration.enabled', 'Chromatic Aberration', true)}</div></summary>
-                            <div>
-                                ${DebuggerUIBuilder._createSliderHTML('postProcessing.chromaticAberration.amount', 'Amount', -0.05, 0.05, 0.001)}
-                                ${DebuggerUIBuilder._createSliderHTML('postProcessing.chromaticAberration.centerX', 'Center X', 0, 1, 0.01)}
-                                ${DebuggerUIBuilder._createSliderHTML('postProcessing.chromaticAberration.centerY', 'Center Y', 0, 1, 0.01)}
-                            </div>
-                        </details>
-                        <details id="details-postProcessing-tiltShift"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('postProcessing.tiltShift.enabled', 'Tilt Shift', true)}</div></summary>
-                            <div>
-                                <p class="description-text">Simulates a tilt-shift lens, blurring the top and bottom of the screen. Requires a library that may not be bundled with all Foundry versions.</p>
-                                ${DebuggerUIBuilder._createSliderHTML('postProcessing.tiltShift.blur', 'Blur', 0, 50, 1)}
-                                ${DebuggerUIBuilder._createSliderHTML('postProcessing.tiltShift.gradientBlur', 'Gradient Size', 0, 5000, 10)}
-                                ${DebuggerUIBuilder._createSliderHTML('postProcessing.tiltShift.startX', 'Start X', 0, 1, 0.01)}
-                                ${DebuggerUIBuilder._createSliderHTML('postProcessing.tiltShift.startY', 'Start Y', 0, 1, 0.01)}
-                                ${DebuggerUIBuilder._createSliderHTML('postProcessing.tiltShift.endX', 'End X', 0, 1, 0.01)}
-                                ${DebuggerUIBuilder._createSliderHTML('postProcessing.tiltShift.endY', 'End Y', 0, 1, 0.01)}
-                            </div>
-                        </details>
-                        <button id="output-config-btn" title="Log the current full config object to the console for copy/pasting." style="width: 100%; margin-top: 5px;">Log Full Config to Console</button>
-                    `;
+            <details id="details-postProcessing-chromaticAberration"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('postProcessing.chromaticAberration.enabled', 'Chromatic Aberration', true)}</div></summary>
+                <div>
+                    ${DebuggerUIBuilder._createSliderHTML('postProcessing.chromaticAberration.amount', 'Amount', -0.05, 0.05, 0.001)}
+                    ${DebuggerUIBuilder._createSliderHTML('postProcessing.chromaticAberration.centerX', 'Center X', 0, 1, 0.01)}
+                    ${DebuggerUIBuilder._createSliderHTML('postProcessing.chromaticAberration.centerY', 'Center Y', 0, 1, 0.01)}
+                </div>
+            </details>
+            <details id="details-postProcessing-tiltShift"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('postProcessing.tiltShift.enabled', 'Tilt Shift', true)}</div></summary>
+                <div>
+                    <p class="description-text">Simulates a tilt-shift lens, blurring the top and bottom of the screen. Requires a library that may not be bundled with all Foundry versions.</p>
+                    ${DebuggerUIBuilder._createSliderHTML('postProcessing.tiltShift.blur', 'Blur', 0, 50, 1)}
+                    ${DebuggerUIBuilder._createSliderHTML('postProcessing.tiltShift.gradientBlur', 'Gradient Size', 0, 5000, 10)}
+                    ${DebuggerUIBuilder._createSliderHTML('postProcessing.tiltShift.startX', 'Start X', 0, 1, 0.01)}
+                    ${DebuggerUIBuilder._createSliderHTML('postProcessing.tiltShift.startY', 'Start Y', 0, 1, 0.01)}
+                    ${DebuggerUIBuilder._createSliderHTML('postProcessing.tiltShift.endX', 'End X', 0, 1, 0.01)}
+                    ${DebuggerUIBuilder._createSliderHTML('postProcessing.tiltShift.endY', 'End Y', 0, 1, 0.01)}
+                </div>
+            </details>
+            <button id="output-config-btn" title="Log the current full config object to the console for copy/pasting." style="width: 100%; margin-top: 5px;">Log Full Config to Console</button>
+        `;
 
         return {
             postProcessing: postProcessingHTML,
-            otherEffects: [sceneTransitionHTML, pauseEffectHTML, combatEffectHTML]
+            otherEffects: [sceneTransitionHTML, pauseEffectHTML]
         };
     }
 
@@ -7851,7 +7632,6 @@ class ScreenEffectsManager {
             'heatDistortion',
             'colorCorrection',
             'pauseEffect',
-            'combatEffect',
             'vignette',
             'lensDistortion',
             'chromaticAberration'
@@ -7932,9 +7712,6 @@ class ScreenEffectsManager {
             const pauseFilter = new ColorCorrectionFilter();
             pauseFilter.enabled = false;
             this.addFilter('pauseEffect', pauseFilter);
-            const combatFilter = new ColorCorrectionFilter();
-            combatFilter.enabled = false;
-            this.addFilter('combatEffect', combatFilter);
         } catch (e) {
             ppErrors.push('ColorCorrection');
         }
@@ -8120,37 +7897,6 @@ class ScreenEffectsManager {
             u.uSelectiveTargetSaturation = sel.targetSaturation;
             u.uSelectiveTargetBrightness = sel.targetBrightness;
         }
-
-        const combatFilter = this.getFilter('combatEffect');
-        if (combatFilter instanceof ColorCorrectionFilter) {
-            const combatConfig = config.combatEffect.colorCorrection;
-            const u = combatFilter.uniforms;
-            u.uSaturation = combatConfig.saturation;
-            u.uBrightness = combatConfig.brightness;
-            u.uContrast = combatConfig.contrast;
-            u.uInvert = combatConfig.invert;
-            u.uExposure = combatConfig.exposure;
-            u.uGamma = combatConfig.gamma;
-            u.uInBlack = combatConfig.levels.inBlack;
-            u.uInWhite = combatConfig.levels.inWhite;
-            u.uTemperature = combatConfig.whiteBalance.temperature;
-            u.uWbTint = combatConfig.whiteBalance.tint;
-            u.uTintColor = hexToRgbArray(combatConfig.tint.color);
-            u.uTintAmount = combatConfig.tint.amount;
-
-            const sel = combatConfig.selective;
-            u.uSelectiveEnabled = sel.enabled;
-            u.uSelectiveColor = hexToRgbArray(sel.color);
-            u.uSelectiveHueRange = sel.hueRange;
-            u.uSelectiveSatRange = sel.saturationRange;
-            u.uSelectiveLumRange = sel.luminanceRange;
-            u.uSelectiveTargetLum = sel.targetLuminance;
-            u.uSelectiveSoftness = sel.softness;
-            u.uSelectiveInvert = sel.invert;
-            u.uSelectiveDesaturation = sel.desaturation;
-            u.uSelectiveTargetSaturation = sel.targetSaturation;
-            u.uSelectiveTargetBrightness = sel.targetBrightness;
-        }
     }
 
     static tearDown() {
@@ -8174,72 +7920,72 @@ class ScreenEffectsManager {
 class AmbientColorFilter extends PIXI.Filter {
     constructor(options = {}) {
         const vertexSrc = `
-                        attribute vec2 aVertexPosition;
-                        attribute vec2 aTextureCoord;
+                attribute vec2 aVertexPosition;
+                attribute vec2 aTextureCoord;
 
-                        uniform mat3 projectionMatrix;
+                uniform mat3 projectionMatrix;
 
-                        varying vec2 vTextureCoord; 
-                        varying vec2 vScreenCoord;  
+                varying vec2 vTextureCoord; 
+                varying vec2 vScreenCoord;  
 
-                        void main(void)
-                        {
-                            gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
-                            vTextureCoord = aTextureCoord;
+                void main(void)
+                {
+                    gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
+                    vTextureCoord = aTextureCoord;
 
-                            vScreenCoord = gl_Position.xy * 0.5 + 0.5;
-                        }
-                    `;
+                    vScreenCoord = gl_Position.xy * 0.5 + 0.5;
+                }
+            `;
         const fragmentSrc = `
-                        precision mediump float;
-                        varying vec2 vTextureCoord;
-                        varying vec2 vScreenCoord; 
+                precision mediump float;
+                varying vec2 vTextureCoord;
+                varying vec2 vScreenCoord; 
 
-                        uniform sampler2D uSampler;
+                uniform sampler2D uSampler;
 
-                        uniform float uSaturation, uBrightness, uContrast, uGamma;
-                        uniform vec3 uTintColor;
-                        uniform float uTintAmount;
-                        uniform float u_intensity;
+                uniform float uSaturation, uBrightness, uContrast, uGamma;
+                uniform vec3 uTintColor;
+                uniform float uTintAmount;
+                uniform float u_intensity;
 
-                        uniform sampler2D uTokenMask;
-                        uniform bool uTokenMaskEnabled;
-                        uniform float uTokenMaskThreshold;
+                uniform sampler2D uTokenMask;
+                uniform bool uTokenMaskEnabled;
+                uniform float uTokenMaskThreshold;
 
-                        const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
+                const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
 
-                        void main(void) {
+                void main(void) {
 
-                            if (uTokenMaskEnabled) {
+                    if (uTokenMaskEnabled) {
 
-                                float maskValue = texture2D(uTokenMask, vScreenCoord).r;
-                                if (maskValue > uTokenMaskThreshold) {
-                                    discard;
-                                }
-                            }
-
-                            vec4 originalColor = texture2D(uSampler, vTextureCoord);
-                            if (originalColor.a == 0.0) {
-                                discard;
-                            }
-
-                            vec3 workingColor = originalColor.rgb;
-
-                            if (uGamma > 0.0) {
-                                workingColor = pow(workingColor, vec3(1.0 / uGamma));
-                            }
-                            workingColor += uBrightness;
-                            workingColor = (workingColor - 0.5) * uContrast + 0.5;
-                            float final_luminance = dot(workingColor, lum_weights);
-                            workingColor = mix(vec3(final_luminance), workingColor, uSaturation);
-                            workingColor = mix(workingColor, uTintColor, uTintAmount);
-
-                            workingColor *= u_intensity;
-
-                            vec3 premultiplied_rgb = workingColor * originalColor.a;
-                            gl_FragColor = vec4(premultiplied_rgb, originalColor.a);
+                        float maskValue = texture2D(uTokenMask, vScreenCoord).r;
+                        if (maskValue > uTokenMaskThreshold) {
+                            discard;
                         }
-                    `;
+                    }
+
+                    vec4 originalColor = texture2D(uSampler, vTextureCoord);
+                    if (originalColor.a == 0.0) {
+                        discard;
+                    }
+
+                    vec3 workingColor = originalColor.rgb;
+
+                    if (uGamma > 0.0) {
+                        workingColor = pow(workingColor, vec3(1.0 / uGamma));
+                    }
+                    workingColor += uBrightness;
+                    workingColor = (workingColor - 0.5) * uContrast + 0.5;
+                    float final_luminance = dot(workingColor, lum_weights);
+                    workingColor = mix(vec3(final_luminance), workingColor, uSaturation);
+                    workingColor = mix(workingColor, uTintColor, uTintAmount);
+
+                    workingColor *= u_intensity;
+
+                    vec3 premultiplied_rgb = workingColor * originalColor.a;
+                    gl_FragColor = vec4(premultiplied_rgb, originalColor.a);
+                }
+            `;
 
         super(vertexSrc, fragmentSrc, {
             uSaturation: options.saturation ?? 1.0,
@@ -8261,31 +8007,31 @@ class AmbientColorFilter extends PIXI.Filter {
 class HeatDistortionFilter extends PIXI.Filter {
     constructor(options = {}) {
         const fragmentSrc = `
-                        precision mediump float;
-                        varying vec2 vTextureCoord; 
+                precision mediump float;
+                varying vec2 vTextureCoord; 
 
-                        uniform sampler2D uSampler;          
-                        uniform sampler2D u_displacementMap; 
-                        uniform sampler2D u_intensityMask;   
+                uniform sampler2D uSampler;          
+                uniform sampler2D u_displacementMap; 
+                uniform sampler2D u_intensityMask;   
 
-                        uniform float u_intensity;
+                uniform float u_intensity;
 
-                        void main(void) {
+                void main(void) {
 
-                            float mask_value = texture2D(u_intensityMask, vTextureCoord).r;
+                    float mask_value = texture2D(u_intensityMask, vTextureCoord).r;
 
-                            if (mask_value == 0.0) {
-                                gl_FragColor = texture2D(uSampler, vTextureCoord);
-                                return;
-                            }
+                    if (mask_value == 0.0) {
+                        gl_FragColor = texture2D(uSampler, vTextureCoord);
+                        return;
+                    }
 
-                            vec2 displacement = (texture2D(u_displacementMap, vTextureCoord).rg - 0.5) * 2.0;
+                    vec2 displacement = (texture2D(u_displacementMap, vTextureCoord).rg - 0.5) * 2.0;
 
-                            vec2 offset = displacement * u_intensity * mask_value;
+                    vec2 offset = displacement * u_intensity * mask_value;
 
-                            gl_FragColor = texture2D(uSampler, vTextureCoord + offset);
-                        }
-                    `;
+                    gl_FragColor = texture2D(uSampler, vTextureCoord + offset);
+                }
+            `;
 
         super(PIXI.Filter.defaultVertexSrc, fragmentSrc, {
             u_displacementMap: PIXI.Texture.EMPTY,
@@ -8298,18 +8044,18 @@ class HeatDistortionFilter extends PIXI.Filter {
 class VignetteFilter extends PIXI.Filter {
     constructor(options = {}) {
         super(PIXI.Filter.defaultVertexSrc, `
-                        precision mediump float; varying vec2 vTextureCoord; uniform sampler2D uSampler; uniform float u_amount; uniform float u_softness;
-                        void main(void) {
-                            if (u_amount <= 0.0) { gl_FragColor = texture2D(uSampler, vTextureCoord); return; }
-                            vec4 color = texture2D(uSampler, vTextureCoord);
-                            float dist = distance(vTextureCoord, vec2(0.5));
-                            float start = u_softness - 0.15;
-                            float end = u_softness + 0.15;
-                            float falloff = smoothstep(start, end, dist);
-                            color.rgb *= (1.0 - (u_amount * falloff));
-                            gl_FragColor = color;
-                        }
-                    `, {
+                precision mediump float; varying vec2 vTextureCoord; uniform sampler2D uSampler; uniform float u_amount; uniform float u_softness;
+                void main(void) {
+                    if (u_amount <= 0.0) { gl_FragColor = texture2D(uSampler, vTextureCoord); return; }
+                    vec4 color = texture2D(uSampler, vTextureCoord);
+                    float dist = distance(vTextureCoord, vec2(0.5));
+                    float start = u_softness - 0.15;
+                    float end = u_softness + 0.15;
+                    float falloff = smoothstep(start, end, dist);
+                    color.rgb *= (1.0 - (u_amount * falloff));
+                    gl_FragColor = color;
+                }
+            `, {
             u_amount: options.amount ?? 0.5,
             u_softness: options.softness ?? 0.5,
         });
@@ -8331,15 +8077,15 @@ class VignetteFilter extends PIXI.Filter {
 class LensDistortionFilter extends PIXI.Filter {
     constructor(options = {}) {
         super(PIXI.Filter.defaultVertexSrc, `
-                        precision mediump float; varying vec2 vTextureCoord; uniform sampler2D uSampler; uniform float u_amount; uniform vec2 u_center;
-                        void main(void) {
-                            if (u_amount == 0.0) { gl_FragColor = texture2D(uSampler, vTextureCoord); return; }
-                            vec2 D = vTextureCoord - u_center;
-                            float r = length(D);
-                            vec2 distorted_coord = u_center + D * (1.0 + u_amount * r * r);
-                            gl_FragColor = texture2D(uSampler, distorted_coord);
-                        }
-                    `, {
+                precision mediump float; varying vec2 vTextureCoord; uniform sampler2D uSampler; uniform float u_amount; uniform vec2 u_center;
+                void main(void) {
+                    if (u_amount == 0.0) { gl_FragColor = texture2D(uSampler, vTextureCoord); return; }
+                    vec2 D = vTextureCoord - u_center;
+                    float r = length(D);
+                    vec2 distorted_coord = u_center + D * (1.0 + u_amount * r * r);
+                    gl_FragColor = texture2D(uSampler, distorted_coord);
+                }
+            `, {
             u_amount: options.amount ?? 0.0,
             u_center: [options.centerX ?? 0.5, options.centerY ?? 0.5]
         });
@@ -8361,17 +8107,17 @@ class LensDistortionFilter extends PIXI.Filter {
 class ChromaticAberrationFilter extends PIXI.Filter {
     constructor(options = {}) {
         super(PIXI.Filter.defaultVertexSrc, `
-                        precision mediump float; varying vec2 vTextureCoord; uniform sampler2D uSampler; uniform float u_amount; uniform vec2 u_center;
-                        void main(void) {
-                            if (u_amount <= 0.0) { gl_FragColor = texture2D(uSampler, vTextureCoord); return; }
-                            vec2 offset = (vTextureCoord - u_center) * u_amount;
-                            float r = texture2D(uSampler, vTextureCoord - offset).r;
-                            float g = texture2D(uSampler, vTextureCoord).g;
-                            float b = texture2D(uSampler, vTextureCoord + offset).b;
-                            float a = texture2D(uSampler, vTextureCoord).a;
-                            gl_FragColor = vec4(r, g, b, a);
-                        }
-                    `, {
+                precision mediump float; varying vec2 vTextureCoord; uniform sampler2D uSampler; uniform float u_amount; uniform vec2 u_center;
+                void main(void) {
+                    if (u_amount <= 0.0) { gl_FragColor = texture2D(uSampler, vTextureCoord); return; }
+                    vec2 offset = (vTextureCoord - u_center) * u_amount;
+                    float r = texture2D(uSampler, vTextureCoord - offset).r;
+                    float g = texture2D(uSampler, vTextureCoord).g;
+                    float b = texture2D(uSampler, vTextureCoord + offset).b;
+                    float a = texture2D(uSampler, vTextureCoord).a;
+                    gl_FragColor = vec4(r, g, b, a);
+                }
+            `, {
             u_amount: options.amount ?? 0.0,
             u_center: [options.centerX ?? 0.5, options.centerY ?? 0.5]
         });
@@ -8393,29 +8139,29 @@ class ChromaticAberrationFilter extends PIXI.Filter {
 class ParticleRgbSplitFilter extends PIXI.Filter {
     constructor(options = {}) {
         const fragmentSrc = `
-                        precision mediump float;
-                        varying vec2 vTextureCoord;
+                precision mediump float;
+                varying vec2 vTextureCoord;
 
-                        uniform sampler2D uSampler;
-                        uniform float uAmount;
-                        uniform vec2 uTexelSize;
+                uniform sampler2D uSampler;
+                uniform float uAmount;
+                uniform vec2 uTexelSize;
 
-                        void main(void) {
-                            if (uAmount == 0.0) {
-                                gl_FragColor = texture2D(uSampler, vTextureCoord);
-                                return;
-                            }
-                            
-                            vec2 offset = vec2(uAmount * uTexelSize.x, 0.0);
-                            
-                            float r = texture2D(uSampler, vTextureCoord - offset).r;
-                            float g = texture2D(uSampler, vTextureCoord).g;
-                            float b = texture2D(uSampler, vTextureCoord + offset).b;
-                            float a = texture2D(uSampler, vTextureCoord).a;
+                void main(void) {
+                    if (uAmount == 0.0) {
+                        gl_FragColor = texture2D(uSampler, vTextureCoord);
+                        return;
+                    }
+                    
+                    vec2 offset = vec2(uAmount * uTexelSize.x, 0.0);
+                    
+                    float r = texture2D(uSampler, vTextureCoord - offset).r;
+                    float g = texture2D(uSampler, vTextureCoord).g;
+                    float b = texture2D(uSampler, vTextureCoord + offset).b;
+                    float a = texture2D(uSampler, vTextureCoord).a;
 
-                            gl_FragColor = vec4(r, g, b, a);
-                        }
-                    `;
+                    gl_FragColor = vec4(r, g, b, a);
+                }
+            `;
         super(PIXI.Filter.defaultVertexSrc, fragmentSrc, {
             uAmount: options.amount ?? 0.0,
             uTexelSize: options.texelSize ?? [1.0 / (window.innerWidth || 1), 1.0 / (window.innerHeight || 1)]
@@ -8426,52 +8172,52 @@ class ParticleRgbSplitFilter extends PIXI.Filter {
 class PrismFilter extends PIXI.Filter {
     constructor(options = {}) {
         const fragmentSrc = `
-                        precision mediump float;
-                        varying vec2 vTextureCoord;
+                precision mediump float;
+                varying vec2 vTextureCoord;
 
-                        uniform sampler2D uSampler;
-                        uniform sampler2D uPrismMask;
-                        uniform sampler2D uDistortionMap;
+                uniform sampler2D uSampler;
+                uniform sampler2D uPrismMask;
+                uniform sampler2D uDistortionMap;
 
-                        uniform float uIntensity;
-                        uniform float uAngleRad;
-                        uniform float uThreshold;
-                        uniform float uSoftness;
-                        uniform float uDistortionStrength;
-                        uniform vec2 uTexelSize;
+                uniform float uIntensity;
+                uniform float uAngleRad;
+                uniform float uThreshold;
+                uniform float uSoftness;
+                uniform float uDistortionStrength;
+                uniform vec2 uTexelSize;
 
-                        const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
+                const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
 
-                        void main(void) {
-                            float maskValue = texture2D(uPrismMask, vTextureCoord).r;
-                            if (maskValue < 0.01) {
-                                gl_FragColor = texture2D(uSampler, vTextureCoord);
-                                return;
-                            }
+                void main(void) {
+                    float maskValue = texture2D(uPrismMask, vTextureCoord).r;
+                    if (maskValue < 0.01) {
+                        gl_FragColor = texture2D(uSampler, vTextureCoord);
+                        return;
+                    }
 
-                            vec4 originalColor = texture2D(uSampler, vTextureCoord);
-                            float luminance = dot(originalColor.rgb, lum_weights);
-                            float effectVisibility = smoothstep(uThreshold, uThreshold + uSoftness, luminance);
-                            if (effectVisibility < 0.01) {
-                                gl_FragColor = originalColor;
-                                return;
-                            }
+                    vec4 originalColor = texture2D(uSampler, vTextureCoord);
+                    float luminance = dot(originalColor.rgb, lum_weights);
+                    float effectVisibility = smoothstep(uThreshold, uThreshold + uSoftness, luminance);
+                    if (effectVisibility < 0.01) {
+                        gl_FragColor = originalColor;
+                        return;
+                    }
 
-                            vec2 distortionVec = (texture2D(uDistortionMap, vTextureCoord).rg - 0.5) * 2.0;
-                            vec2 splitDirection = vec2(cos(uAngleRad), sin(uAngleRad));
-                            vec2 finalOffset = (splitDirection + distortionVec * uDistortionStrength) * uIntensity * uTexelSize;
-                            
-                            float r = texture2D(uSampler, vTextureCoord - finalOffset).r;
-                            float g = originalColor.g;
-                            float b = texture2D(uSampler, vTextureCoord + finalOffset).b;
-                            
-                            vec3 splitColor = vec3(r, g, b);
-                            float blendAmount = maskValue * effectVisibility;
-                            vec3 finalColor = mix(originalColor.rgb, splitColor, blendAmount);
-                            
-                            gl_FragColor = vec4(finalColor, originalColor.a);
-                        }
-                    `;
+                    vec2 distortionVec = (texture2D(uDistortionMap, vTextureCoord).rg - 0.5) * 2.0;
+                    vec2 splitDirection = vec2(cos(uAngleRad), sin(uAngleRad));
+                    vec2 finalOffset = (splitDirection + distortionVec * uDistortionStrength) * uIntensity * uTexelSize;
+                    
+                    float r = texture2D(uSampler, vTextureCoord - finalOffset).r;
+                    float g = originalColor.g;
+                    float b = texture2D(uSampler, vTextureCoord + finalOffset).b;
+                    
+                    vec3 splitColor = vec3(r, g, b);
+                    float blendAmount = maskValue * effectVisibility;
+                    vec3 finalColor = mix(originalColor.rgb, splitColor, blendAmount);
+                    
+                    gl_FragColor = vec4(finalColor, originalColor.a);
+                }
+            `;
         super(PIXI.Filter.defaultVertexSrc, fragmentSrc, {
             uPrismMask: PIXI.Texture.EMPTY,
             uDistortionMap: PIXI.Texture.EMPTY,
@@ -8492,6 +8238,16 @@ class PrismFilter extends PIXI.Filter {
 //              that are tightly coupled to a single layer.
 // ---------------------------------------------------------------------------------
 
+/**
+ * An abstract base class for layers that generate a single, combined mask texture
+ * from multiple source images (_Dust, _Canopy, etc.) found on the map.
+ *
+ * This class handles the common logic for:
+ * - Identifying and loading source mask textures based on a suffix.
+ * - Rendering source sprites into a combined RenderTexture.
+ * - Caching the RenderTexture and only re-rendering it when necessary (on pan or target changes).
+ * - Managing the lifecycle of all related PIXI objects.
+ */
 class MaskedEffectLayer extends CanvasLayer {
     constructor(options) {
         super();
@@ -8679,8 +8435,6 @@ class MaskedEffectLayer extends CanvasLayer {
      * Helper to update a sprite's texture and transform.
      */
     async _updateSpriteTransform(sprite, texturePath, rect) {
-        if (!sprite || sprite.destroyed) return;
-
         const currentPath = sprite.texture?.baseTexture?.resource?.src;
         if (texturePath !== currentPath) {
             try {
@@ -8690,8 +8444,7 @@ class MaskedEffectLayer extends CanvasLayer {
             }
         }
 
-        if (!sprite || sprite.destroyed || !sprite.anchor || !sprite.texture.valid || !rect) return;
-
+        if (!sprite.texture.valid || !rect) return;
         sprite.anchor.set(0.5);
         sprite.position.set(rect.x + (rect.width / 2), rect.y + (rect.height / 2));
         sprite.width = rect.width;
@@ -8902,12 +8655,12 @@ class DiagnosticLayer extends CanvasLayer {
             const a_norm = (a / 255).toFixed(3);
 
             this.tooltip.innerHTML = `
-                        <strong>Pixel Inspector</strong><br>
-                        Screen X/Y: ${Math.round(clientX)}, ${Math.round(clientY)}<br>
-                        --------------------<br>
-                        RGBA (0-255): ${r}, ${g}, ${b}, ${a}<br>
-                        RGBA (Norm): ${r_norm}, ${g_norm}, ${b_norm}, ${a_norm}
-                    `;
+                <strong>Pixel Inspector</strong><br>
+                Screen X/Y: ${Math.round(clientX)}, ${Math.round(clientY)}<br>
+                --------------------<br>
+                RGBA (0-255): ${r}, ${g}, ${b}, ${a}<br>
+                RGBA (Norm): ${r_norm}, ${g_norm}, ${b_norm}, ${a_norm}
+            `;
         } else {
             this.tooltip.textContent = 'Reading pixel...';
         }
@@ -9089,8 +8842,6 @@ class DiagnosticLayer extends CanvasLayer {
     }
 
     async _updateSpriteTransform(sprite, texturePath, rect) {
-        if (!sprite || sprite.destroyed) return;
-
         const currentPath = sprite.texture?.baseTexture?.resource?.src;
         if (texturePath !== currentPath) {
             try {
@@ -9100,8 +8851,7 @@ class DiagnosticLayer extends CanvasLayer {
             }
         }
 
-        if (!sprite || sprite.destroyed || !sprite.anchor || !sprite.texture.valid || !rect) return;
-
+        if (!sprite.texture.valid || !rect) return;
         sprite.anchor.set(0.5);
         sprite.position.set(rect.x + (rect.width / 2), rect.y + (rect.height / 2));
         sprite.width = rect.width;
@@ -9357,34 +9107,34 @@ class MapPointsEditor extends FormApplication {
                 .join('');
 
             detailsHTML = `
-                            <div class="mp-details-header">
-                                <h4>${selectedGroup.label}</h4>
-                                <button type="button" data-action="delete-group" class="delete-btn" title="Delete Group"><i class="fas fa-trash"></i> Delete Group</button>
-                            </div>
-                            <ul class="mp-points-list">
-                                ${selectedGroup.points.map((p, i) => `
-                                    <li class="mp-point-item">
-                                        <span>#${i+1}</span>
-                                        <span>X: ${Math.round(p.x)}</span>
-                                        <span>Y: ${Math.round(p.y)}</span>
-                                        <button type="button" data-action="delete-point" data-point-index="${i}" title="Delete Point"><i class="fas fa-times"></i></button>
-                                    </li>
-                                `).join('')}
-                            </ul>
-                            <div class="mp-effect-source-settings">
-                                <h4><i class="fas fa-magic"></i> Effect Source</h4>
-                                <div class="control-row">
-                                    <label for="mp-isEffectSource" title="If checked, this group's geometry will be used to generate the selected effect.">Use as Effect Source</label>
-                                    <input type="checkbox" name="isEffectSource" id="mp-isEffectSource" ${selectedGroup.isEffectSource ? 'checked' : ''}>
-                                </div>
-                                <div class="control-row" id="mp-effectTarget-wrapper" style="display: ${selectedGroup.isEffectSource ? 'flex' : 'none'};">
-                                    <label for="mp-effectTarget">Target Effect</label>
-                                    <select name="effectTarget" id="mp-effectTarget">
-                                        ${effectOptions}
-                                    </select>
-                                </div>
-                            </div>
-                        `;
+                    <div class="mp-details-header">
+                        <h4>${selectedGroup.label}</h4>
+                        <button type="button" data-action="delete-group" class="delete-btn" title="Delete Group"><i class="fas fa-trash"></i> Delete Group</button>
+                    </div>
+                    <ul class="mp-points-list">
+                        ${selectedGroup.points.map((p, i) => `
+                            <li class="mp-point-item">
+                                <span>#${i+1}</span>
+                                <span>X: ${Math.round(p.x)}</span>
+                                <span>Y: ${Math.round(p.y)}</span>
+                                <button type="button" data-action="delete-point" data-point-index="${i}" title="Delete Point"><i class="fas fa-times"></i></button>
+                            </li>
+                        `).join('')}
+                    </ul>
+                    <div class="mp-effect-source-settings">
+                        <h4><i class="fas fa-magic"></i> Effect Source</h4>
+                        <div class="control-row">
+                            <label for="mp-isEffectSource" title="If checked, this group's geometry will be used to generate the selected effect.">Use as Effect Source</label>
+                            <input type="checkbox" name="isEffectSource" id="mp-isEffectSource" ${selectedGroup.isEffectSource ? 'checked' : ''}>
+                        </div>
+                        <div class="control-row" id="mp-effectTarget-wrapper" style="display: ${selectedGroup.isEffectSource ? 'flex' : 'none'};">
+                            <label for="mp-effectTarget">Target Effect</label>
+                            <select name="effectTarget" id="mp-effectTarget">
+                                ${effectOptions}
+                            </select>
+                        </div>
+                    </div>
+                `;
         } else {
             detailsHTML = `<div class="mp-details-placeholder">Select a group to view its details.</div>`;
         }
@@ -9396,122 +9146,122 @@ class MapPointsEditor extends FormApplication {
 
         // Main Template
         return `
-                        <style>
-                            /* General Layout & Theme */
-                            #map-shine-points-editor .window-content { background: none; padding: 0; }
-                            .mp-editor { display: flex; flex-direction: column; background: rgba(40, 40, 40, 0.95); color: #fff; padding: 8px; gap: 8px; height: 100%; box-sizing: border-box; }
-                            .mp-main-content { display: flex; gap: 8px; flex-grow: 1; min-height: 300px; }
-                            .mp-panel { display: flex; flex-direction: column; background: rgba(0,0,0,0.2); border-radius: 3px; padding: 8px; gap: 8px; }
-                            .mp-panel-groups { flex: 1; min-width: 200px; }
-                            .mp-panel-details { flex: 2; min-width: 200px; }
-                            .mp-panel h3, .mp-panel h4 { margin: 0 0 8px 0; text-align: center; border-bottom: 1px solid #555; padding-bottom: 8px; font-weight: bold; }
+                <style>
+                    /* General Layout & Theme */
+                    #map-shine-points-editor .window-content { background: none; padding: 0; }
+                    .mp-editor { display: flex; flex-direction: column; background: rgba(40, 40, 40, 0.95); color: #fff; padding: 8px; gap: 8px; height: 100%; box-sizing: border-box; }
+                    .mp-main-content { display: flex; gap: 8px; flex-grow: 1; min-height: 300px; }
+                    .mp-panel { display: flex; flex-direction: column; background: rgba(0,0,0,0.2); border-radius: 3px; padding: 8px; gap: 8px; }
+                    .mp-panel-groups { flex: 1; min-width: 200px; }
+                    .mp-panel-details { flex: 2; min-width: 200px; }
+                    .mp-panel h3, .mp-panel h4 { margin: 0 0 8px 0; text-align: center; border-bottom: 1px solid #555; padding-bottom: 8px; font-weight: bold; }
 
-                            /* Forms & Inputs */
-                            .mp-editor input[type="text"], .mp-editor select {
-                                background: #2a2a2a;
-                                border: 1px solid #666;
-                                color: #eee;
-                                border-radius: 3px;
-                                padding: 6px;
-                                width: 100%;
-                                box-sizing: border-box;
-                            }
-                            .mp-editor select option {
-                                background-color: #3a3a3a;
-                                color: #eee;
-                            }
-                            .mp-editor input[type="text"]::placeholder { color: #888; }
-                            .mp-editor button {
-                                background: #3a3a3a; border: 1px solid #666; color: #ccc; border-radius: 3px; padding: 6px 10px; cursor: pointer;
-                                display: flex; align-items: center; justify-content: center; gap: 5px;
-                            }
-                            .mp-editor button:hover { background: #555; border-color: #888; }
-                            .mp-editor select:focus, .mp-editor input:focus { outline: 1px solid #40a0fa; }
+                    /* Forms & Inputs */
+                    .mp-editor input[type="text"], .mp-editor select {
+                        background: #2a2a2a;
+                        border: 1px solid #666;
+                        color: #eee;
+                        border-radius: 3px;
+                        padding: 6px;
+                        width: 100%;
+                        box-sizing: border-box;
+                    }
+                    .mp-editor select option {
+                        background-color: #3a3a3a;
+                        color: #eee;
+                    }
+                    .mp-editor input[type="text"]::placeholder { color: #888; }
+                    .mp-editor button {
+                        background: #3a3a3a; border: 1px solid #666; color: #ccc; border-radius: 3px; padding: 6px 10px; cursor: pointer;
+                        display: flex; align-items: center; justify-content: center; gap: 5px;
+                    }
+                    .mp-editor button:hover { background: #555; border-color: #888; }
+                    .mp-editor select:focus, .mp-editor input:focus { outline: 1px solid #40a0fa; }
 
-                            /* Left Panel: Group List */
-                            .mp-group-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex-grow: 1; }
-                            .mp-group-item { display: flex; align-items: center; padding: 5px; margin-bottom: 2px; border-radius: 3px; cursor: pointer; border: 1px solid transparent; transition: background-color 0.2s; }
-                            .mp-group-item:hover { background: rgba(255,255,255,0.1); }
-                            .mp-group-item.selected { background: #005a9e; border-color: #40a0fa; }
-                            .mp-group-item-status { width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; flex-shrink: 0; }
-                            .mp-group-item-status.valid { background: #4cfa40; }
-                            .mp-group-item-status.broken { background: #fa4040; }
-                            .mp-group-item-label { flex-grow: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-                            .mp-group-item-type { color: #aaa; margin-left: 8px; font-size: 0.9em; }
+                    /* Left Panel: Group List */
+                    .mp-group-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex-grow: 1; }
+                    .mp-group-item { display: flex; align-items: center; padding: 5px; margin-bottom: 2px; border-radius: 3px; cursor: pointer; border: 1px solid transparent; transition: background-color 0.2s; }
+                    .mp-group-item:hover { background: rgba(255,255,255,0.1); }
+                    .mp-group-item.selected { background: #005a9e; border-color: #40a0fa; }
+                    .mp-group-item-status { width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; flex-shrink: 0; }
+                    .mp-group-item-status.valid { background: #4cfa40; }
+                    .mp-group-item-status.broken { background: #fa4040; }
+                    .mp-group-item-label { flex-grow: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+                    .mp-group-item-type { color: #aaa; margin-left: 8px; font-size: 0.9em; }
 
-                            /* Left Panel: Create Group Form */
-                            .mp-create-group-form { 
-                                margin-top: auto; padding-top: 8px; border-top: 1px solid #555;
-                                display: grid; grid-template-columns: 1fr; gap: 5px;
-                            }
-                            .mp-create-group-form .create-controls { display: grid; grid-template-columns: 1fr auto; gap: 5px; }
-                            .mp-create-group-form button {
-                                background-color: #2a552a; border-color: #6aaa6a; color: #ccffcc; font-weight: bold;
-                            }
-                            .mp-create-group-form button:hover { background-color: #3a753a; }
+                    /* Left Panel: Create Group Form */
+                    .mp-create-group-form { 
+                        margin-top: auto; padding-top: 8px; border-top: 1px solid #555;
+                        display: grid; grid-template-columns: 1fr; gap: 5px;
+                    }
+                    .mp-create-group-form .create-controls { display: grid; grid-template-columns: 1fr auto; gap: 5px; }
+                    .mp-create-group-form button {
+                        background-color: #2a552a; border-color: #6aaa6a; color: #ccffcc; font-weight: bold;
+                    }
+                    .mp-create-group-form button:hover { background-color: #3a753a; }
 
-                            /* Right Panel: Details */
-                            .mp-details-placeholder { display: flex; align-items: center; justify-content: center; height: 100%; text-align: center; color: #888; }
-                            .mp-details-header { display: flex; justify-content: space-between; align-items: center; }
-                            .mp-details-header h4 { border-bottom: none; text-align: left; flex-grow: 1; margin: 0; padding: 0; }
-                            .mp-details-header .delete-btn { background: #662222; border-color: #aa6666; color: #ffcccc; }
-                            .mp-details-header .delete-btn:hover { background: #883333; }
-                            .mp-points-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; max-height: 280px; }
-                            .mp-point-item { display: grid; grid-template-columns: 25px 1fr 1fr auto; align-items: center; gap: 8px; padding: 4px; border-radius: 2px; font-family: monospace; }
-                            .mp-point-item:nth-child(odd) { background: rgba(0,0,0,0.15); }
-                            .mp-point-item button { background: none; border: none; width: 22px; height: 22px; line-height: 20px; padding: 0; font-size: 14px; color: #ff8080; }
-                            .mp-point-item button:hover { color: #fff; background: rgba(255,0,0,0.3); }
-                            
-                            /* Right Panel: Effect Source */
-                            .mp-effect-source-settings { margin-top: auto; padding-top: 10px; border-top: 1px solid #555; }
-                            .mp-effect-source-settings h4 { text-align: left; border-bottom: none; font-size: 1.1em; margin-bottom: 8px; }
-                            .mp-effect-source-settings .control-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; gap: 10px; }
-                            .mp-effect-source-settings .control-row label { flex-shrink: 0; }
-                            .mp-effect-source-settings select { flex-grow: 1; }
-                            
-                            /* Footer */
-                            .mp-editor-footer button { 
-                                width: 100%; padding: 8px; font-weight: bold; font-size: 1.1em; 
-                                background-color: #225522; border-color: #66aa66; color: #ccffcc; 
-                            }
-                            .mp-editor-footer button:hover { background-color: #337733; }
-                            .mp-editor-footer button.active { background-color: #aa4444; border-color: #ff8888; color: #ffeeee; }
-                            .mp-editor-footer button.active:hover { background-color: #c86464; }
-                        </style>
-                        <form class="mp-editor">
-                            <div class="mp-main-content">
-                                <div class="mp-panel mp-panel-groups">
-                                    <h3>Groups</h3>
-                                    <ul class="mp-group-list">
-                                        ${groups.map(g => `
-                                            <li class="mp-group-item ${g.id === this._selectedGroupId ? 'selected' : ''}" data-group-id="${g.id}" data-action="select-group">
-                                                <span class="mp-group-item-status ${g.isBroken ? 'broken' : 'valid'}" title="${g.isBroken ? g.reason : 'Valid'}"></span>
-                                                <span class="mp-group-item-label">${g.label}</span>
-                                                <span class="mp-group-item-type">${g.type}</span>
-                                            </li>
-                                        `).join('')}
-                                    </ul>
-                                    <div class="mp-create-group-form">
-                                        <input type="text" name="newGroupName" placeholder="New Group Name">
-                                        <div class="create-controls">
-                                            <select name="newGroupType">
-                                                <option value="point">Points</option>
-                                                <option value="line">Line</option>
-                                                <option value="area">Area</option>
-                                            </select>
-                                        </div>
-                                        <button type="button" data-action="create-group">Create Group</button>
-                                    </div>
+                    /* Right Panel: Details */
+                    .mp-details-placeholder { display: flex; align-items: center; justify-content: center; height: 100%; text-align: center; color: #888; }
+                    .mp-details-header { display: flex; justify-content: space-between; align-items: center; }
+                    .mp-details-header h4 { border-bottom: none; text-align: left; flex-grow: 1; margin: 0; padding: 0; }
+                    .mp-details-header .delete-btn { background: #662222; border-color: #aa6666; color: #ffcccc; }
+                    .mp-details-header .delete-btn:hover { background: #883333; }
+                    .mp-points-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; max-height: 280px; }
+                    .mp-point-item { display: grid; grid-template-columns: 25px 1fr 1fr auto; align-items: center; gap: 8px; padding: 4px; border-radius: 2px; font-family: monospace; }
+                    .mp-point-item:nth-child(odd) { background: rgba(0,0,0,0.15); }
+                    .mp-point-item button { background: none; border: none; width: 22px; height: 22px; line-height: 20px; padding: 0; font-size: 14px; color: #ff8080; }
+                    .mp-point-item button:hover { color: #fff; background: rgba(255,0,0,0.3); }
+                    
+                    /* Right Panel: Effect Source */
+                    .mp-effect-source-settings { margin-top: auto; padding-top: 10px; border-top: 1px solid #555; }
+                    .mp-effect-source-settings h4 { text-align: left; border-bottom: none; font-size: 1.1em; margin-bottom: 8px; }
+                    .mp-effect-source-settings .control-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; gap: 10px; }
+                    .mp-effect-source-settings .control-row label { flex-shrink: 0; }
+                    .mp-effect-source-settings select { flex-grow: 1; }
+                    
+                    /* Footer */
+                    .mp-editor-footer button { 
+                        width: 100%; padding: 8px; font-weight: bold; font-size: 1.1em; 
+                        background-color: #225522; border-color: #66aa66; color: #ccffcc; 
+                    }
+                    .mp-editor-footer button:hover { background-color: #337733; }
+                    .mp-editor-footer button.active { background-color: #aa4444; border-color: #ff8888; color: #ffeeee; }
+                    .mp-editor-footer button.active:hover { background-color: #c86464; }
+                </style>
+                <form class="mp-editor">
+                    <div class="mp-main-content">
+                        <div class="mp-panel mp-panel-groups">
+                            <h3>Groups</h3>
+                            <ul class="mp-group-list">
+                                ${groups.map(g => `
+                                    <li class="mp-group-item ${g.id === this._selectedGroupId ? 'selected' : ''}" data-group-id="${g.id}" data-action="select-group">
+                                        <span class="mp-group-item-status ${g.isBroken ? 'broken' : 'valid'}" title="${g.isBroken ? g.reason : 'Valid'}"></span>
+                                        <span class="mp-group-item-label">${g.label}</span>
+                                        <span class="mp-group-item-type">${g.type}</span>
+                                    </li>
+                                `).join('')}
+                            </ul>
+                            <div class="mp-create-group-form">
+                                <input type="text" name="newGroupName" placeholder="New Group Name">
+                                <div class="create-controls">
+                                    <select name="newGroupType">
+                                        <option value="point">Points</option>
+                                        <option value="line">Line</option>
+                                        <option value="area">Area</option>
+                                    </select>
                                 </div>
-                                <div class="mp-panel mp-panel-details">
-                                    ${detailsHTML}
-                                </div>
+                                <button type="button" data-action="create-group">Create Group</button>
                             </div>
-                            <div class="mp-editor-footer">
-                                <button type="button" data-action="toggle-placement" class="${placementButtonClass}" style="width: 100%;">${placementButtonText}</button>
-                            </div>
-                        </form>
-                    `;
+                        </div>
+                        <div class="mp-panel mp-panel-details">
+                            ${detailsHTML}
+                        </div>
+                    </div>
+                    <div class="mp-editor-footer">
+                        <button type="button" data-action="toggle-placement" class="${placementButtonClass}" style="width: 100%;">${placementButtonText}</button>
+                    </div>
+                </form>
+            `;
     }
 
     activateListeners(html) {
@@ -9656,7 +9406,7 @@ class MapPointsInteractionManager {
     }
 
     activate() {
-        if (this.isActive || !game.user.isGM) return; // Added GM check
+        if (this.isActive) return;
         const layer = this.layer;
         if (!layer) return;
 
@@ -9894,95 +9644,95 @@ class BackgroundLayer extends CanvasLayer {
 class ShinePatternFilter extends PIXI.Filter {
     constructor(options) {
         super(PIXI.Filter.defaultVertexSrc, `
-                    precision mediump float;
-                    varying vec2 vTextureCoord;
+            precision mediump float;
+            varying vec2 vTextureCoord;
 
-                    uniform sampler2D uSampler;
-                    uniform sampler2D u_noiseMap;
+            uniform sampler2D uSampler;
+            uniform sampler2D u_noiseMap;
 
-                    uniform float u_time;
-                    uniform vec2 u_resolution; 
+            uniform float u_time;
+            uniform vec2 u_resolution; 
 
-                    // Parallax & Transform Uniforms
-                    uniform float u_parallaxAmount; 
-                    uniform float u_parallaxJitter;
-                    uniform float u_parallaxJitterSpeed;
-                    uniform vec2 u_camera_offset;
-                    uniform vec2 u_view_size;
+            // Parallax & Transform Uniforms
+            uniform float u_parallaxAmount; 
+            uniform float u_parallaxJitter;
+            uniform float u_parallaxJitterSpeed;
+            uniform vec2 u_camera_offset;
+            uniform vec2 u_view_size;
 
-                    uniform float u_globalIntensity;
-                    uniform float u_shared_maxBrightness;
-                    uniform float u_shared_patternScale;
+            uniform float u_globalIntensity;
+            uniform float u_shared_maxBrightness;
+            uniform float u_shared_patternScale;
 
-                    uniform bool u_noise_enabled;
-                    uniform bool u_s1_enabled, u_s2_enabled;
-                    uniform float u_s1_speed, u_s1_intensity, u_s1_angle_rad, u_s1_sharpness, u_s1_band_density, u_s1_band_width, u_s1_sub_stripe_max_count, u_s1_sub_stripe_max_sharp;
-                    uniform float u_s2_speed, u_s2_intensity, u_s2_angle_rad, u_s2_sharpness, u_s2_band_density, u_s2_band_width, u_s2_sub_stripe_max_count, u_s2_sub_stripe_max_sharp;
+            uniform bool u_noise_enabled;
+            uniform bool u_s1_enabled, u_s2_enabled;
+            uniform float u_s1_speed, u_s1_intensity, u_s1_angle_rad, u_s1_sharpness, u_s1_band_density, u_s1_band_width, u_s1_sub_stripe_max_count, u_s1_sub_stripe_max_sharp;
+            uniform float u_s2_speed, u_s2_intensity, u_s2_angle_rad, u_s2_sharpness, u_s2_band_density, u_s2_band_width, u_s2_sub_stripe_max_count, u_s2_sub_stripe_max_sharp;
 
-                    const float PI = 3.14159265359;
-                    float random(vec2 st) { return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123); }
+            const float PI = 3.14159265359;
+            float random(vec2 st) { return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123); }
 
-                    float noise(vec2 st) {
-                        vec2 i = floor(st);
-                        vec2 f = fract(st);
-                        vec2 u = f * f * (3.0 - 2.0 * f);
-                        return mix(mix(random(i + vec2(0.0, 0.0)), random(i + vec2(1.0, 0.0)), u.x),
-                                mix(random(i + vec2(0.0, 1.0)), random(i + vec2(1.0, 1.0)), u.x), u.y);
-                    }
+            float noise(vec2 st) {
+                vec2 i = floor(st);
+                vec2 f = fract(st);
+                vec2 u = f * f * (3.0 - 2.0 * f);
+                return mix(mix(random(i + vec2(0.0, 0.0)), random(i + vec2(1.0, 0.0)), u.x),
+                        mix(random(i + vec2(0.0, 1.0)), random(i + vec2(1.0, 1.0)), u.x), u.y);
+            }
 
-                    float createStripeLayer(vec2 uv, float t, float angle, float density, float width, float sub_count, float sub_sharp, float sharp) {
-                        float p_perp = uv.x * cos(angle) + uv.y * sin(angle); 
-                        float band_coord = p_perp * density;
-                        float band_id = floor(band_coord); 
-                        float in_band_pos = fract(band_coord);
+            float createStripeLayer(vec2 uv, float t, float angle, float density, float width, float sub_count, float sub_sharp, float sharp) {
+                float p_perp = uv.x * cos(angle) + uv.y * sin(angle); 
+                float band_coord = p_perp * density;
+                float band_id = floor(band_coord); 
+                float in_band_pos = fract(band_coord);
 
-                        float result = 0.0;
-                        if (in_band_pos <= width) {
-                            float r1 = random(vec2(band_id)); 
-                            float r2 = random(vec2(band_id, r1)); 
-                            float r3 = random(vec2(r1, r2));
-                            float num_sub = 2.0 + r1 * sub_count; 
-                            float sub_stripe_s = 1.0 + r2 * sub_sharp; 
-                            float sub_stripe_b = 0.5 + r3 * 0.5;
-                            float sub_wave = (cos(in_band_pos * (num_sub / width) * 2.0 * PI + t) + 1.0) * 0.5;
-                            sub_wave = pow(sub_wave, sub_stripe_s) * sub_stripe_b;
-                            result = sub_wave * pow(sin((in_band_pos / width) * PI), sharp);
-                        }
-                        return result;
-                    }
+                float result = 0.0;
+                if (in_band_pos <= width) {
+                    float r1 = random(vec2(band_id)); 
+                    float r2 = random(vec2(band_id, r1)); 
+                    float r3 = random(vec2(r1, r2));
+                    float num_sub = 2.0 + r1 * sub_count; 
+                    float sub_stripe_s = 1.0 + r2 * sub_sharp; 
+                    float sub_stripe_b = 0.5 + r3 * 0.5;
+                    float sub_wave = (cos(in_band_pos * (num_sub / width) * 2.0 * PI + t) + 1.0) * 0.5;
+                    sub_wave = pow(sub_wave, sub_stripe_s) * sub_stripe_b;
+                    result = sub_wave * pow(sin((in_band_pos / width) * PI), sharp);
+                }
+                return result;
+            }
 
-                    void main() {
-                        // Calculate world-space coordinates (fixed to the map)
-                        vec2 world_coord = u_camera_offset + (vTextureCoord * u_view_size);
+            void main() {
+                // Calculate world-space coordinates (fixed to the map)
+                vec2 world_coord = u_camera_offset + (vTextureCoord * u_view_size);
 
-                        // Calculate screen-space coordinates (fixed to the camera/screen)
-                        vec2 screen_coord = vTextureCoord * u_resolution - (u_resolution * 0.5);
+                // Calculate screen-space coordinates (fixed to the camera/screen)
+                vec2 screen_coord = vTextureCoord * u_resolution - (u_resolution * 0.5);
 
-                        // Blend between world and screen space based on the parallax amount
-                        vec2 mixed_coords = mix(world_coord, screen_coord, u_parallaxAmount);
-                        
-                        // Add parallax jitter if enabled
-                        if (u_parallaxJitter > 0.0) {
-                            float jitter_time = u_time * u_parallaxJitterSpeed * 0.1;
-                            vec2 jitter_noise_coord = world_coord * 0.05; // Use world coordinates for stable noise
-                            float jitter_x = (noise(jitter_noise_coord + jitter_time) - 0.5) * 2.0;
-                            float jitter_y = (noise(jitter_noise_coord - jitter_time + vec2(37.3, -84.1)) - 0.5) * 2.0;
-                            mixed_coords += vec2(jitter_x, jitter_y) * u_parallaxJitter;
-                        }
+                // Blend between world and screen space based on the parallax amount
+                vec2 mixed_coords = mix(world_coord, screen_coord, u_parallaxAmount);
+                
+                // Add parallax jitter if enabled
+                if (u_parallaxJitter > 0.0) {
+                    float jitter_time = u_time * u_parallaxJitterSpeed * 0.1;
+                    vec2 jitter_noise_coord = world_coord * 0.05; // Use world coordinates for stable noise
+                    float jitter_x = (noise(jitter_noise_coord + jitter_time) - 0.5) * 2.0;
+                    float jitter_y = (noise(jitter_noise_coord - jitter_time + vec2(37.3, -84.1)) - 0.5) * 2.0;
+                    mixed_coords += vec2(jitter_x, jitter_y) * u_parallaxJitter;
+                }
 
-                        // Apply the user-controlled pattern scale to the final mixed coordinates
-                        vec2 pattern_uv = mixed_coords * u_shared_patternScale / 80.0;
-                        
-                        float pattern1 = u_s1_enabled ? createStripeLayer(pattern_uv, u_time * u_s1_speed, u_s1_angle_rad, u_s1_band_density, u_s1_band_width, u_s1_sub_stripe_max_count, u_s1_sub_stripe_max_sharp, u_s1_sharpness) * u_s1_intensity : 0.0;
-                        float pattern2 = u_s2_enabled ? createStripeLayer(pattern_uv, u_time * u_s2_speed, u_s2_angle_rad, u_s2_band_density, u_s2_band_width, u_s2_sub_stripe_max_count, u_s2_sub_stripe_max_sharp, u_s2_sharpness) * u_s2_intensity : 0.0;
+                // Apply the user-controlled pattern scale to the final mixed coordinates
+                vec2 pattern_uv = mixed_coords * u_shared_patternScale / 80.0;
+                
+                float pattern1 = u_s1_enabled ? createStripeLayer(pattern_uv, u_time * u_s1_speed, u_s1_angle_rad, u_s1_band_density, u_s1_band_width, u_s1_sub_stripe_max_count, u_s1_sub_stripe_max_sharp, u_s1_sharpness) * u_s1_intensity : 0.0;
+                float pattern2 = u_s2_enabled ? createStripeLayer(pattern_uv, u_time * u_s2_speed, u_s2_angle_rad, u_s2_band_density, u_s2_band_width, u_s2_sub_stripe_max_count, u_s2_sub_stripe_max_sharp, u_s2_sharpness) * u_s2_intensity : 0.0;
 
-                        float noise_mask = u_noise_enabled ? texture2D(u_noiseMap, vTextureCoord).r : 1.0; 
-                        float shineIntensity = max(pattern1, pattern2) * u_shared_maxBrightness * u_globalIntensity * noise_mask;
+                float noise_mask = u_noise_enabled ? texture2D(u_noiseMap, vTextureCoord).r : 1.0; 
+                float shineIntensity = max(pattern1, pattern2) * u_shared_maxBrightness * u_globalIntensity * noise_mask;
 
-                        vec3 final_rgb = vec3(1.0) * shineIntensity;
-                        gl_FragColor = vec4(final_rgb, 1.0);
-                    }
-                `, {
+                vec3 final_rgb = vec3(1.0) * shineIntensity;
+                gl_FragColor = vec4(final_rgb, 1.0);
+            }
+        `, {
             ...options
         });
     }
@@ -9991,94 +9741,94 @@ class ShinePatternFilter extends PIXI.Filter {
 class MetallicShineFilter extends PIXI.Filter {
     constructor(options) {
         const vertexSrc = `
-                    attribute vec2 aVertexPosition;
-                    attribute vec2 aTextureCoord;
+            attribute vec2 aVertexPosition;
+            attribute vec2 aTextureCoord;
 
-                    uniform mat3 projectionMatrix;
+            uniform mat3 projectionMatrix;
 
-                    varying vec2 vTextureCoord; 
-                    varying vec2 vScreenCoord;  
+            varying vec2 vTextureCoord; 
+            varying vec2 vScreenCoord;  
 
-                    void main(void)
-                    {
-                        gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
-                        vTextureCoord = aTextureCoord;
-                        vScreenCoord = gl_Position.xy * 0.5 + 0.5;
-                    }
-                `;
+            void main(void)
+            {
+                gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
+                vTextureCoord = aTextureCoord;
+                vScreenCoord = gl_Position.xy * 0.5 + 0.5;
+            }
+        `;
 
         const fragmentSrc = `
-                    precision mediump float;
+            precision mediump float;
 
-                    varying vec2 vTextureCoord;
-                    varying vec2 vScreenCoord;
+            varying vec2 vTextureCoord;
+            varying vec2 vScreenCoord;
 
-                    // Samplers
-                    uniform sampler2D uSampler;
-                    uniform sampler2D uShinePatternMap;
-                    uniform sampler2D uStructuralMask;
-                    uniform sampler2D uOutdoorsMask;
+            // Samplers
+            uniform sampler2D uSampler;
+            uniform sampler2D uShinePatternMap;
+            uniform sampler2D uStructuralMask;
+            uniform sampler2D uOutdoorsMask;
 
-                    // Toggles
-                    uniform bool uUseStructuralMask;
-                    uniform bool uUseOutdoorsMask;
+            // Toggles
+            uniform bool uUseStructuralMask;
+            uniform bool uUseOutdoorsMask;
 
-                    // Base Shine Uniforms
-                    uniform float uBoost;
+            // Base Shine Uniforms
+            uniform float uBoost;
 
-                    // Color Correction Uniforms
-                    uniform bool uCCEnabled;
-                    uniform float uSaturation, uBrightness, uContrast;
-                    uniform float uExposure, uGamma, uInBlack, uInWhite;
-                    uniform vec3 uTintColor;
-                    uniform float uTintAmount;
+            // Color Correction Uniforms
+            uniform bool uCCEnabled;
+            uniform float uSaturation, uBrightness, uContrast;
+            uniform float uExposure, uGamma, uInBlack, uInWhite;
+            uniform vec3 uTintColor;
+            uniform float uTintAmount;
 
-                    const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
+            const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
 
-                    void main(void) {
-                        vec4 specularColor = texture2D(uSampler, vTextureCoord);
-                        float baseSpecularLuminance = dot(specularColor.rgb, lum_weights);
-                        float finalSpecularLuminance = baseSpecularLuminance;
+            void main(void) {
+                vec4 specularColor = texture2D(uSampler, vTextureCoord);
+                float baseSpecularLuminance = dot(specularColor.rgb, lum_weights);
+                float finalSpecularLuminance = baseSpecularLuminance;
 
-                        // Conditionally apply structural shadows.
-                        if (uUseStructuralMask) {
-                            float structuralLight = texture2D(uStructuralMask, vScreenCoord).r;
-                            
-                            if (uUseOutdoorsMask) {
-                                float outdoorsAmount = texture2D(uOutdoorsMask, vScreenCoord).r;
-                                // When outdoors (outdoorsAmount=1), use the original specular.
-                                // When indoors (outdoorsAmount=0), use the specular multiplied by the structural light.
-                                finalSpecularLuminance = mix(baseSpecularLuminance * structuralLight, baseSpecularLuminance, outdoorsAmount);
-                            } else {
-                                // If no outdoors mask is present, apply shadows everywhere.
-                                finalSpecularLuminance = baseSpecularLuminance * structuralLight;
-                            }
-                        }
-
-                        if (specularColor.a < 0.1 || finalSpecularLuminance < 0.01) {
-                            gl_FragColor = vec4(0.0);
-                            return;
-                        }
-
-                        float shinePatternIntensity = texture2D(uShinePatternMap, vScreenCoord).r;
-                        vec3 workingColor = vec3(shinePatternIntensity * uBoost);
-
-                        if (uCCEnabled) {
-                            if (uInWhite > uInBlack) workingColor = (workingColor - uInBlack) / (uInWhite - uInBlack);
-                            workingColor *= pow(2.0, uExposure);
-                            if (uGamma > 0.0) workingColor = pow(workingColor, vec3(1.0 / uGamma));
-                            workingColor += uBrightness;
-                            workingColor = (workingColor - 0.5) * uContrast + 0.5;
-                            float luminance = dot(workingColor, lum_weights);
-                            workingColor = mix(vec3(luminance), workingColor, uSaturation);
-                            workingColor = mix(workingColor, uTintColor, uTintAmount);
-                        }
-
-                        vec3 finalColor = workingColor * finalSpecularLuminance;
-                        finalColor = clamp(finalColor, 0.0, 1.0);
-                        gl_FragColor = vec4(finalColor, shinePatternIntensity * specularColor.a);
+                // Conditionally apply structural shadows.
+                if (uUseStructuralMask) {
+                    float structuralLight = texture2D(uStructuralMask, vScreenCoord).r;
+                    
+                    if (uUseOutdoorsMask) {
+                        float outdoorsAmount = texture2D(uOutdoorsMask, vScreenCoord).r;
+                        // When outdoors (outdoorsAmount=1), use the original specular.
+                        // When indoors (outdoorsAmount=0), use the specular multiplied by the structural light.
+                        finalSpecularLuminance = mix(baseSpecularLuminance * structuralLight, baseSpecularLuminance, outdoorsAmount);
+                    } else {
+                        // If no outdoors mask is present, apply shadows everywhere.
+                        finalSpecularLuminance = baseSpecularLuminance * structuralLight;
                     }
-                `;
+                }
+
+                if (specularColor.a < 0.1 || finalSpecularLuminance < 0.01) {
+                    gl_FragColor = vec4(0.0);
+                    return;
+                }
+
+                float shinePatternIntensity = texture2D(uShinePatternMap, vScreenCoord).r;
+                vec3 workingColor = vec3(shinePatternIntensity * uBoost);
+
+                if (uCCEnabled) {
+                    if (uInWhite > uInBlack) workingColor = (workingColor - uInBlack) / (uInWhite - uInBlack);
+                    workingColor *= pow(2.0, uExposure);
+                    if (uGamma > 0.0) workingColor = pow(workingColor, vec3(1.0 / uGamma));
+                    workingColor += uBrightness;
+                    workingColor = (workingColor - 0.5) * uContrast + 0.5;
+                    float luminance = dot(workingColor, lum_weights);
+                    workingColor = mix(vec3(luminance), workingColor, uSaturation);
+                    workingColor = mix(workingColor, uTintColor, uTintAmount);
+                }
+
+                vec3 finalColor = workingColor * finalSpecularLuminance;
+                finalColor = clamp(finalColor, 0.0, 1.0);
+                gl_FragColor = vec4(finalColor, shinePatternIntensity * specularColor.a);
+            }
+        `;
 
         super(vertexSrc, fragmentSrc, {
             uShinePatternMap: options.shinePatternTexture,
@@ -10105,14 +9855,14 @@ class MetallicShineFilter extends PIXI.Filter {
 class ThresholdFilter extends PIXI.Filter {
     constructor(threshold = 0.5) {
         super(PIXI.Filter.defaultVertexSrc, `
-                    precision mediump float; varying vec2 vTextureCoord; uniform sampler2D uSampler; uniform float u_threshold;
-                    void main(void) {
-                        vec4 color = texture2D(uSampler, vTextureCoord);
-                        float brightness = dot(color.rgb, vec3(0.299, 0.587, 0.114));
-                        if (brightness < u_threshold) { gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0); }
-                        else { gl_FragColor = color; }
-                    }
-                `, {
+            precision mediump float; varying vec2 vTextureCoord; uniform sampler2D uSampler; uniform float u_threshold;
+            void main(void) {
+                vec4 color = texture2D(uSampler, vTextureCoord);
+                float brightness = dot(color.rgb, vec3(0.299, 0.587, 0.114));
+                if (brightness < u_threshold) { gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0); }
+                else { gl_FragColor = color; }
+            }
+        `, {
             u_threshold: threshold
         });
     }
@@ -10127,62 +9877,62 @@ class ThresholdFilter extends PIXI.Filter {
 class StarburstFilter extends PIXI.Filter {
     constructor(options = {}) {
         const fragmentSrc = `
-                    precision mediump float;
-                    varying vec2 vTextureCoord;
-                    uniform sampler2D uSampler;
+            precision mediump float;
+            varying vec2 vTextureCoord;
+            uniform sampler2D uSampler;
 
-                    uniform float u_threshold;
-                    uniform float u_intensity;
-                    uniform float u_angle_rad;
-                    uniform int u_points;
-                    uniform float u_size;
-                    uniform float u_falloff;
-                    uniform vec2 u_texel_size;
+            uniform float u_threshold;
+            uniform float u_intensity;
+            uniform float u_angle_rad;
+            uniform int u_points;
+            uniform float u_size;
+            uniform float u_falloff;
+            uniform vec2 u_texel_size;
 
-                    const float PI = 3.14159265359;
-                    const int MAX_SAMPLES_PER_RAY = 256; 
+            const float PI = 3.14159265359;
+            const int MAX_SAMPLES_PER_RAY = 256; 
 
-                    const int MAX_POINTS = 16;
+            const int MAX_POINTS = 16;
 
-                    const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
+            const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
 
-                    void main(void) {
-                        vec4 originalColor = texture2D(uSampler, vTextureCoord);
-                        float brightness = dot(originalColor.rgb, lum_weights);
+            void main(void) {
+                vec4 originalColor = texture2D(uSampler, vTextureCoord);
+                float brightness = dot(originalColor.rgb, lum_weights);
 
-                        if (brightness < u_threshold) {
-                            gl_FragColor = vec4(0.0);
-                            return;
-                        }
+                if (brightness < u_threshold) {
+                    gl_FragColor = vec4(0.0);
+                    return;
+                }
 
-                        vec3 starColor = vec3(0.0);
-                        float angle_step = 2.0 * PI / float(u_points);
+                vec3 starColor = vec3(0.0);
+                float angle_step = 2.0 * PI / float(u_points);
 
-                        for (int i = 0; i < MAX_POINTS; i++) {
+                for (int i = 0; i < MAX_POINTS; i++) {
 
-                            if (i < u_points) {
-                                float current_angle = u_angle_rad + float(i) * angle_step;
-                                vec2 direction = vec2(cos(current_angle), sin(current_angle));
+                    if (i < u_points) {
+                        float current_angle = u_angle_rad + float(i) * angle_step;
+                        vec2 direction = vec2(cos(current_angle), sin(current_angle));
 
-                                for (int j = 1; j < MAX_SAMPLES_PER_RAY; j++) {
-                                    if (float(j) <= u_size) {
-                                        float distance = float(j);
-                                        vec2 sampleCoord = vTextureCoord + direction * distance * u_texel_size;
+                        for (int j = 1; j < MAX_SAMPLES_PER_RAY; j++) {
+                            if (float(j) <= u_size) {
+                                float distance = float(j);
+                                vec2 sampleCoord = vTextureCoord + direction * distance * u_texel_size;
 
-                                        vec3 sample_color = texture2D(uSampler, sampleCoord).rgb;
-                                        float sample_brightness = dot(sample_color, lum_weights);
-                                        float dist_falloff = pow(1.0 - (distance / u_size), u_falloff);
+                                vec3 sample_color = texture2D(uSampler, sampleCoord).rgb;
+                                float sample_brightness = dot(sample_color, lum_weights);
+                                float dist_falloff = pow(1.0 - (distance / u_size), u_falloff);
 
-                                        starColor += sample_color * sample_brightness * dist_falloff;
-                                    }
-                                }
+                                starColor += sample_color * sample_brightness * dist_falloff;
                             }
                         }
-
-                        float star_brightness = dot(starColor * u_intensity, lum_weights);
-                        gl_FragColor = vec4(starColor * u_intensity, clamp(star_brightness, 0.0, 1.0));
                     }
-                `;
+                }
+
+                float star_brightness = dot(starColor * u_intensity, lum_weights);
+                gl_FragColor = vec4(starColor * u_intensity, clamp(star_brightness, 0.0, 1.0));
+            }
+        `;
 
         super(PIXI.Filter.defaultVertexSrc, fragmentSrc, {
             u_threshold: options.threshold ?? 0.85,
@@ -10228,127 +9978,127 @@ class MetallicShineLayer extends CanvasLayer {
         const iconHTML = `<span class="world-based-icon" data-world-based-path="${path}" title="World Based: This effect uses the world-level default profile, ignoring scene-specific settings."><i class="fas fa-globe"></i></span>`;
 
         const content = `
-                    ${checkboxHTML}
-                    <hr style="border-color: #555; margin: 6px 0;">
-                    ${DebuggerUIBuilder._createTextureInputHTML('specular', 'Specular/Reflect Map')}
-                    <p class="description-text">A grayscale texture where white areas reflect the animated pattern and black areas reflect nothing. This is the primary mask for this effect.</p>
-                    <details id="details-baseShine-animation"><summary><span class="accordion-toggle"></span><strong>Animation & Compositing</strong></summary>
-                        <div>
-                        ${DebuggerUIBuilder._createSliderHTML('baseShine.animation.globalIntensity', 'Global Intensity', 0, 10, 0.1, 'Controls the overall brightness of the shine effect.')}
-                        ${DebuggerUIBuilder._createSliderHTML('baseShine.animation.parallaxAmount', 'Parallax Amount', 0, 1, 0.01, "Controls shine movement with the camera. A value of 1 pins the effect to the camera, a low value means higher level of animation/movement.")}
-                        ${DebuggerUIBuilder._createSliderHTML('baseShine.animation.parallaxJitter', 'Parallax Jitter', 0, 2.0, 0.01, 'Adds a high-frequency shimmer to the parallax effect based on camera position.')}
-                        ${DebuggerUIBuilder._createSliderHTML('baseShine.animation.parallaxJitterSpeed', 'Jitter Speed', 0, 20, 0.1, 'The animation speed of the parallax jitter noise.')}
-                        ${DebuggerUIBuilder._createSliderHTML('baseShine.animation.updateFrequency', 'Update Frequency (Frames)', 0, 60, 1, 'How often the pattern updates. Higher values improve performance but make animation less smooth. 0 = every frame.')}
-                        </div>
-                    </details>
-                    <details id="details-baseShine-pattern"><summary><span class="accordion-toggle"></span><strong>Pattern Generator</strong></summary>
-                        <div>
-                            ${DebuggerUIBuilder._createSelectHTML('baseShine.patternType', 'Type', {'Stripes': 'stripes', 'Checkerboard': 'checkerboard'}, 'The base procedural shape of the shine.')}
-                            <div id="pattern-stripes-controls">
-                                ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.shared.patternScale', 'Pattern Scale', 0.01, 4, 0.01, 'Overall zoom level of the stripe patterns.')}
-                                ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.shared.maxBrightness', 'Max Brightness', 0, 2, 0.01, 'A cap on the brightness of the generated pattern.')}
-                                <details id="details-baseShine-pattern-s1"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('baseShine.pattern.stripes1.enabled', 'Stripe Layer A', true)}</div></summary>
-                                    <div>
-                                        ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.stripes1.intensity', 'Intensity', 0, 2, 0.05, 'Brightness of this individual stripe layer.')}
-                                        ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.stripes1.speed', 'Speed', -0.1, 0.1, 0.001, 'How fast the sub-stripes animate within the bands.')}
-                                        ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.stripes1.angle', 'Angle', 0, 360, 1)}
-                                        ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.stripes1.sharpness', 'Edge Falloff', 0.1, 8, 0.1, 'How soft or hard the edges of the main bands are.')}
-                                        ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.stripes1.bandDensity', 'Band Density', 1, 64, 0.5, 'How many main bands appear on screen.')}
-                                        ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.stripes1.bandWidth', 'Band Width', 0.1, 1, 0.01, 'The width of the main bands, as a fraction of the space between them.')}
-                                        ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.stripes1.subStripeMaxCount', 'Sub-Stripe Count', 1, 20, 1, 'The maximum number of smaller stripes that can appear inside a main band.')}
-                                        ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.stripes1.subStripeMaxSharp', 'Sub-Stripe Sharp', 1, 32, 0.5, 'The sharpness of the smaller, internal stripes.')}
-                                    </div>
-                                </details>     
-                                <details id="details-baseShine-pattern-s2"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('baseShine.pattern.stripes2.enabled', 'Stripe Layer B', true)}</div></summary>
-                                    <div>
-                                        ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.stripes2.intensity', 'Intensity', 0, 2, 0.05, 'Brightness of this individual stripe layer.')}
-                                        ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.stripes2.speed', 'Speed', -0.1, 0.1, 0.001, 'How fast the sub-stripes animate within the bands.')}
-                                        ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.stripes2.angle', 'Angle', 0, 360, 1)}
-                                        ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.stripes2.sharpness', 'Edge Falloff', 0.1, 8, 0.1, 'How soft or hard the edges of the main bands are.')}
-                                        ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.stripes2.bandDensity', 'Band Density', 1, 64, 0.5, 'How many main bands appear on screen.')}
-                                        ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.stripes2.bandWidth', 'Band Width', 0.1, 1, 0.01, 'The width of the main bands, as a fraction of the space between them.')}
-                                        ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.stripes2.subStripeMaxCount', 'Sub-Stripe Count', 1, 20, 1, 'The maximum number of smaller stripes that can appear inside a main band.')}
-                                        ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.stripes2.subStripeMaxSharp', 'Sub-Stripe Sharp', 1, 32, 0.5, 'The sharpness of the smaller, internal stripes.')}
-                                    </div>
-                                </details>
+            ${checkboxHTML}
+            <hr style="border-color: #555; margin: 6px 0;">
+            ${DebuggerUIBuilder._createTextureInputHTML('specular', 'Specular/Reflect Map')}
+            <p class="description-text">A grayscale texture where white areas reflect the animated pattern and black areas reflect nothing. This is the primary mask for this effect.</p>
+            <details id="details-baseShine-animation"><summary><span class="accordion-toggle"></span><strong>Animation & Compositing</strong></summary>
+                <div>
+                ${DebuggerUIBuilder._createSliderHTML('baseShine.animation.globalIntensity', 'Global Intensity', 0, 10, 0.1, 'Controls the overall brightness of the shine effect.')}
+                ${DebuggerUIBuilder._createSliderHTML('baseShine.animation.parallaxAmount', 'Parallax Amount', 0, 1, 0.01, "Controls shine movement with the camera. A value of 1 pins the effect to the camera, a low value means higher level of animation/movement.")}
+                ${DebuggerUIBuilder._createSliderHTML('baseShine.animation.parallaxJitter', 'Parallax Jitter', 0, 2.0, 0.01, 'Adds a high-frequency shimmer to the parallax effect based on camera position.')}
+                ${DebuggerUIBuilder._createSliderHTML('baseShine.animation.parallaxJitterSpeed', 'Jitter Speed', 0, 20, 0.1, 'The animation speed of the parallax jitter noise.')}
+                ${DebuggerUIBuilder._createSliderHTML('baseShine.animation.updateFrequency', 'Update Frequency (Frames)', 0, 60, 1, 'How often the pattern updates. Higher values improve performance but make animation less smooth. 0 = every frame.')}
+                </div>
+            </details>
+            <details id="details-baseShine-pattern"><summary><span class="accordion-toggle"></span><strong>Pattern Generator</strong></summary>
+                <div>
+                    ${DebuggerUIBuilder._createSelectHTML('baseShine.patternType', 'Type', {'Stripes': 'stripes', 'Checkerboard': 'checkerboard'}, 'The base procedural shape of the shine.')}
+                    <div id="pattern-stripes-controls">
+                        ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.shared.patternScale', 'Pattern Scale', 0.01, 4, 0.01, 'Overall zoom level of the stripe patterns.')}
+                        ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.shared.maxBrightness', 'Max Brightness', 0, 2, 0.01, 'A cap on the brightness of the generated pattern.')}
+                        <details id="details-baseShine-pattern-s1"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('baseShine.pattern.stripes1.enabled', 'Stripe Layer A', true)}</div></summary>
+                            <div>
+                                ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.stripes1.intensity', 'Intensity', 0, 2, 0.05, 'Brightness of this individual stripe layer.')}
+                                ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.stripes1.speed', 'Speed', -0.1, 0.1, 0.001, 'How fast the sub-stripes animate within the bands.')}
+                                ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.stripes1.angle', 'Angle', 0, 360, 1)}
+                                ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.stripes1.sharpness', 'Edge Falloff', 0.1, 8, 0.1, 'How soft or hard the edges of the main bands are.')}
+                                ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.stripes1.bandDensity', 'Band Density', 1, 64, 0.5, 'How many main bands appear on screen.')}
+                                ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.stripes1.bandWidth', 'Band Width', 0.1, 1, 0.01, 'The width of the main bands, as a fraction of the space between them.')}
+                                ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.stripes1.subStripeMaxCount', 'Sub-Stripe Count', 1, 20, 1, 'The maximum number of smaller stripes that can appear inside a main band.')}
+                                ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.stripes1.subStripeMaxSharp', 'Sub-Stripe Sharp', 1, 32, 0.5, 'The sharpness of the smaller, internal stripes.')}
                             </div>
-                            <div id="pattern-checkerboard-controls" style="display: none;">
-                                ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.checkerboard.gridSize', 'Grid Size', 2, 64, 2)}
-                                ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.checkerboard.brightness1', 'Brightness 1', 0, 1, 0.01)}
-                                ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.checkerboard.brightness2', 'Brightness 2', 0, 1, 0.01)}
+                        </details>     
+                        <details id="details-baseShine-pattern-s2"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('baseShine.pattern.stripes2.enabled', 'Stripe Layer B', true)}</div></summary>
+                            <div>
+                                ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.stripes2.intensity', 'Intensity', 0, 2, 0.05, 'Brightness of this individual stripe layer.')}
+                                ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.stripes2.speed', 'Speed', -0.1, 0.1, 0.001, 'How fast the sub-stripes animate within the bands.')}
+                                ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.stripes2.angle', 'Angle', 0, 360, 1)}
+                                ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.stripes2.sharpness', 'Edge Falloff', 0.1, 8, 0.1, 'How soft or hard the edges of the main bands are.')}
+                                ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.stripes2.bandDensity', 'Band Density', 1, 64, 0.5, 'How many main bands appear on screen.')}
+                                ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.stripes2.bandWidth', 'Band Width', 0.1, 1, 0.01, 'The width of the main bands, as a fraction of the space between them.')}
+                                ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.stripes2.subStripeMaxCount', 'Sub-Stripe Count', 1, 20, 1, 'The maximum number of smaller stripes that can appear inside a main band.')}
+                                ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.stripes2.subStripeMaxSharp', 'Sub-Stripe Sharp', 1, 32, 0.5, 'The sharpness of the smaller, internal stripes.')}
                             </div>
+                        </details>
+                    </div>
+                    <div id="pattern-checkerboard-controls" style="display: none;">
+                        ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.checkerboard.gridSize', 'Grid Size', 2, 64, 2)}
+                        ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.checkerboard.brightness1', 'Brightness 1', 0, 1, 0.01)}
+                        ${DebuggerUIBuilder._createSliderHTML('baseShine.pattern.checkerboard.brightness2', 'Brightness 2', 0, 1, 0.01)}
+                    </div>
+                </div>
+            </details>
+            <details id="details-baseShine-noise"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('baseShine.noise.enabled', 'Pattern Noise Mask', true)}</div></summary>
+                <div>
+                    <p class="description-text">Applies a noise pattern over the stripes to add texture and break up the uniformity.</p>
+                    ${DebuggerUIBuilder._createSliderHTML('baseShine.noise.speed', 'Speed', -0.5, 0.5, 0.001)}
+                    ${DebuggerUIBuilder._createSliderHTML('baseShine.noise.scale', 'Scale', 0.1, 10, 0.1)}
+                    ${DebuggerUIBuilder._createSliderHTML('baseShine.noise.threshold', 'Threshold', 0, 1, 0.01, 'Cuts off noise values below this, creating harder-edged noise.')}
+                    ${DebuggerUIBuilder._createSliderHTML('baseShine.noise.brightness', 'Brightness', -1, 1, 0.01)}
+                    ${DebuggerUIBuilder._createSliderHTML('baseShine.noise.contrast', 'Contrast', 0, 5, 0.05)}
+                    ${DebuggerUIBuilder._createSliderHTML('baseShine.noise.softness', 'Softness', 0.01, 1, 0.01, 'How gradual the transition is at the threshold edge.')}
+                </div>
+            </details>
+            <details id="details-baseShine-colorCorrection">
+                <summary>
+                    <span class="accordion-toggle"></span>
+                    <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('baseShine.colorCorrection.enabled', 'Shine Color Correction', true)}</div>
+                </summary>
+                <div>
+                    <p class="description-text">Fine-tunes the color and intensity of the metallic reflection itself, allowing for deep blacks and brilliant highlights.</p>
+                    ${DebuggerUIBuilder._createSliderHTML('baseShine.colorCorrection.saturation', 'Saturation', 0, 4, 0.05)}
+                    ${DebuggerUIBuilder._createSliderHTML('baseShine.colorCorrection.brightness', 'Brightness', -1, 1, 0.01)}
+                    ${DebuggerUIBuilder._createSliderHTML('baseShine.colorCorrection.contrast', 'Contrast', 0, 4, 0.05)}
+                    ${DebuggerUIBuilder._createSliderHTML('baseShine.colorCorrection.exposure', 'Exposure', -2, 2, 0.05)}
+                    ${DebuggerUIBuilder._createSliderHTML('baseShine.colorCorrection.gamma', 'Gamma', 0.2, 2.5, 0.05)}
+                    <details id="details-baseShine-cc-levels">
+                        <summary><span class="accordion-toggle"></span><strong>Levels</strong></summary>
+                        <div style="padding-left: 15px;">
+                            ${DebuggerUIBuilder._createSliderHTML('baseShine.colorCorrection.levels.inBlack', 'Black Point', 0, 1, 0.01)}
+                            ${DebuggerUIBuilder._createSliderHTML('baseShine.colorCorrection.levels.inWhite', 'White Point', 0, 1, 0.01)}
                         </div>
                     </details>
-                    <details id="details-baseShine-noise"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('baseShine.noise.enabled', 'Pattern Noise Mask', true)}</div></summary>
-                        <div>
-                            <p class="description-text">Applies a noise pattern over the stripes to add texture and break up the uniformity.</p>
-                            ${DebuggerUIBuilder._createSliderHTML('baseShine.noise.speed', 'Speed', -0.5, 0.5, 0.001)}
-                            ${DebuggerUIBuilder._createSliderHTML('baseShine.noise.scale', 'Scale', 0.1, 10, 0.1)}
-                            ${DebuggerUIBuilder._createSliderHTML('baseShine.noise.threshold', 'Threshold', 0, 1, 0.01, 'Cuts off noise values below this, creating harder-edged noise.')}
-                            ${DebuggerUIBuilder._createSliderHTML('baseShine.noise.brightness', 'Brightness', -1, 1, 0.01)}
-                            ${DebuggerUIBuilder._createSliderHTML('baseShine.noise.contrast', 'Contrast', 0, 5, 0.05)}
-                            ${DebuggerUIBuilder._createSliderHTML('baseShine.noise.softness', 'Softness', 0.01, 1, 0.01, 'How gradual the transition is at the threshold edge.')}
+                    <details id="details-baseShine-cc-tint">
+                        <summary><span class="accordion-toggle"></span><strong>Color Tint</strong></summary>
+                        <div style="padding-left: 15px;">
+                            ${DebuggerUIBuilder._createColorPickerHTML('baseShine.colorCorrection.tint.color', 'Tint Color')}
+                            ${DebuggerUIBuilder._createSliderHTML('baseShine.colorCorrection.tint.amount', 'Tint Amount', 0, 1, 0.01)}
                         </div>
                     </details>
-                    <details id="details-baseShine-colorCorrection">
-                        <summary>
-                            <span class="accordion-toggle"></span>
-                            <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('baseShine.colorCorrection.enabled', 'Shine Color Correction', true)}</div>
-                        </summary>
-                        <div>
-                            <p class="description-text">Fine-tunes the color and intensity of the metallic reflection itself, allowing for deep blacks and brilliant highlights.</p>
-                            ${DebuggerUIBuilder._createSliderHTML('baseShine.colorCorrection.saturation', 'Saturation', 0, 4, 0.05)}
-                            ${DebuggerUIBuilder._createSliderHTML('baseShine.colorCorrection.brightness', 'Brightness', -1, 1, 0.01)}
-                            ${DebuggerUIBuilder._createSliderHTML('baseShine.colorCorrection.contrast', 'Contrast', 0, 4, 0.05)}
-                            ${DebuggerUIBuilder._createSliderHTML('baseShine.colorCorrection.exposure', 'Exposure', -2, 2, 0.05)}
-                            ${DebuggerUIBuilder._createSliderHTML('baseShine.colorCorrection.gamma', 'Gamma', 0.2, 2.5, 0.05)}
-                            <details id="details-baseShine-cc-levels">
-                                <summary><span class="accordion-toggle"></span><strong>Levels</strong></summary>
-                                <div style="padding-left: 15px;">
-                                    ${DebuggerUIBuilder._createSliderHTML('baseShine.colorCorrection.levels.inBlack', 'Black Point', 0, 1, 0.01)}
-                                    ${DebuggerUIBuilder._createSliderHTML('baseShine.colorCorrection.levels.inWhite', 'White Point', 0, 1, 0.01)}
-                                </div>
-                            </details>
-                            <details id="details-baseShine-cc-tint">
-                                <summary><span class="accordion-toggle"></span><strong>Color Tint</strong></summary>
-                                <div style="padding-left: 15px;">
-                                    ${DebuggerUIBuilder._createColorPickerHTML('baseShine.colorCorrection.tint.color', 'Tint Color')}
-                                    ${DebuggerUIBuilder._createSliderHTML('baseShine.colorCorrection.tint.amount', 'Tint Amount', 0, 1, 0.01)}
-                                </div>
-                            </details>
-                        </div>
+                </div>
+            </details>
+            <details id="details-baseShine-bloom"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('baseShine.shineBloom.enabled', 'Shine Bloom Effect', true)}</div></summary>
+                <div>
+                    <div class="warning-box" style="background-color: #554422; border-color: #ffaa66;">
+                        <strong style="color: #ffddaa;">PERFORMANCE WARNING:</strong> This effect can be demanding. Lowering 'Quality' can improve performance significantly.
+                    </div>
+                    <p class="description-text">Adds a soft glow to the brightest parts of the shine effect.</p>
+                    ${DebuggerUIBuilder._createSliderHTML('baseShine.shineBloom.threshold', 'Threshold', 0, 1, 0.01, 'Only areas brighter than this will bloom.')}
+                    ${DebuggerUIBuilder._createSliderHTML('baseShine.shineBloom.brightness', 'Brightness', 0, 5, 0.05)}
+                    ${DebuggerUIBuilder._createSliderHTML('baseShine.shineBloom.blur', 'Blur Amount', 0, 20, 0.5)}
+                    ${DebuggerUIBuilder._createSliderHTML('baseShine.shineBloom.quality', 'Quality', 1, 15, 1, 'Number of blur samples. Higher is smoother but much slower.')}
+                    <details id="details-baseShine-rgbSplit"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('baseShine.rgbSplit.enabled', 'RGB Split', true)}</div></summary>
+                        <div>${DebuggerUIBuilder._createSliderHTML('baseShine.rgbSplit.amount', 'Amount', 0, 10, 0.1, 'Adds a chromatic aberration effect to the bloom.')}</div>
                     </details>
-                    <details id="details-baseShine-bloom"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('baseShine.shineBloom.enabled', 'Shine Bloom Effect', true)}</div></summary>
-                        <div>
-                            <div class="warning-box" style="background-color: #554422; border-color: #ffaa66;">
-                                <strong style="color: #ffddaa;">PERFORMANCE WARNING:</strong> This effect can be demanding. Lowering 'Quality' can improve performance significantly.
-                            </div>
-                            <p class="description-text">Adds a soft glow to the brightest parts of the shine effect.</p>
-                            ${DebuggerUIBuilder._createSliderHTML('baseShine.shineBloom.threshold', 'Threshold', 0, 1, 0.01, 'Only areas brighter than this will bloom.')}
-                            ${DebuggerUIBuilder._createSliderHTML('baseShine.shineBloom.brightness', 'Brightness', 0, 5, 0.05)}
-                            ${DebuggerUIBuilder._createSliderHTML('baseShine.shineBloom.blur', 'Blur Amount', 0, 20, 0.5)}
-                            ${DebuggerUIBuilder._createSliderHTML('baseShine.shineBloom.quality', 'Quality', 1, 15, 1, 'Number of blur samples. Higher is smoother but much slower.')}
-                            <details id="details-baseShine-rgbSplit"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('baseShine.rgbSplit.enabled', 'RGB Split', true)}</div></summary>
-                                <div>${DebuggerUIBuilder._createSliderHTML('baseShine.rgbSplit.amount', 'Amount', 0, 10, 0.1, 'Adds a chromatic aberration effect to the bloom.')}</div>
-                            </details>
-                        </div>
-                    </details>
-                    <details id="details-baseShine-starburst"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('baseShine.starburst.enabled', 'Shine Starburst Effect', true)}</div></summary>
-                        <div>
-                            <div class="warning-box">
-                                <strong style="color: #ffaaaa;">EXTREME PERFORMANCE WARNING:</strong> This effect is VERY performance-heavy, especially with a high 'Ray Length' or many 'Points'. Use with caution!
-                            </div>
-                            <p class="description-text">Adds star-like rays that emanate from the brightest parts of the shine.</p>
-                            ${DebuggerUIBuilder._createSliderHTML('baseShine.starburst.threshold', 'Threshold', 0, 1, 0.01, 'Only areas brighter than this will generate rays.')}
-                            ${DebuggerUIBuilder._createSliderHTML('baseShine.starburst.intensity', 'Intensity', 0, 4, 0.05)}
-                            ${DebuggerUIBuilder._createSliderHTML('baseShine.starburst.points', 'Points', 2, 16, 1)}
-                            ${DebuggerUIBuilder._createSliderHTML('baseShine.starburst.angle', 'Angle', 0, 360, 1)}
-                            ${DebuggerUIBuilder._createSliderHTML('baseShine.starburst.size', 'Ray Length', 1, 200, 1)}
-                            ${DebuggerUIBuilder._createSliderHTML('baseShine.starburst.falloff', 'Ray Falloff', 0.5, 8, 0.1, 'How quickly the rays fade out with distance. Higher values mean a shorter, faster fade.')}
-                            ${DebuggerUIBuilder._createSelectHTML('baseShine.starburst.blendMode', 'Blend Mode', BLEND_MODE_OPTIONS)}
-                        </div>
-                    </details>
-                `;
+                </div>
+            </details>
+            <details id="details-baseShine-starburst"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('baseShine.starburst.enabled', 'Shine Starburst Effect', true)}</div></summary>
+                <div>
+                    <div class="warning-box">
+                        <strong style="color: #ffaaaa;">EXTREME PERFORMANCE WARNING:</strong> This effect is VERY performance-heavy, especially with a high 'Ray Length' or many 'Points'. Use with caution!
+                    </div>
+                    <p class="description-text">Adds star-like rays that emanate from the brightest parts of the shine.</p>
+                    ${DebuggerUIBuilder._createSliderHTML('baseShine.starburst.threshold', 'Threshold', 0, 1, 0.01, 'Only areas brighter than this will generate rays.')}
+                    ${DebuggerUIBuilder._createSliderHTML('baseShine.starburst.intensity', 'Intensity', 0, 4, 0.05)}
+                    ${DebuggerUIBuilder._createSliderHTML('baseShine.starburst.points', 'Points', 2, 16, 1)}
+                    ${DebuggerUIBuilder._createSliderHTML('baseShine.starburst.angle', 'Angle', 0, 360, 1)}
+                    ${DebuggerUIBuilder._createSliderHTML('baseShine.starburst.size', 'Ray Length', 1, 200, 1)}
+                    ${DebuggerUIBuilder._createSliderHTML('baseShine.starburst.falloff', 'Ray Falloff', 0.5, 8, 0.1, 'How quickly the rays fade out with distance. Higher values mean a shorter, faster fade.')}
+                    ${DebuggerUIBuilder._createSelectHTML('baseShine.starburst.blendMode', 'Blend Mode', BLEND_MODE_OPTIONS)}
+                </div>
+            </details>
+        `;
         return DebuggerUIBuilder._createAccordionHTML(effectKey, 'Metallic Shine', content, iconHTML);
     }
 
@@ -10636,7 +10386,7 @@ class MetallicShineLayer extends CanvasLayer {
     }
 
     _updateSpriteTransform(sprite, rect) {
-        if (!sprite || sprite.destroyed || !sprite.anchor || !sprite.texture.valid || !rect) return;
+        if (!sprite.texture.valid || !rect) return;
         sprite.anchor.set(0.5);
         sprite.position.set(rect.x + (rect.width / 2), rect.y + (rect.height / 2));
         sprite.width = rect.width;
@@ -10707,123 +10457,123 @@ class MetallicShineLayer extends CanvasLayer {
 class CloudShadowsFilter extends PIXI.Filter {
     constructor(options = {}) {
         const vertexSrc = `
-                        attribute vec2 aVertexPosition;
-                        attribute vec2 aTextureCoord;
-                        uniform mat3 projectionMatrix;
-                        varying vec2 vTextureCoord;
-                        varying vec2 vScreenCoord;
+                attribute vec2 aVertexPosition;
+                attribute vec2 aTextureCoord;
+                uniform mat3 projectionMatrix;
+                varying vec2 vTextureCoord;
+                varying vec2 vScreenCoord;
 
-                        void main(void) {
-                            gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
-                            vTextureCoord = aTextureCoord;
-                            vScreenCoord = gl_Position.xy * 0.5 + 0.5;
-                        }
-                    `;
+                void main(void) {
+                    gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
+                    vTextureCoord = aTextureCoord;
+                    vScreenCoord = gl_Position.xy * 0.5 + 0.5;
+                }
+            `;
 
         const fragmentSrc = `
-                        precision mediump float;
-                        varying vec2 vTextureCoord;
-                        varying vec2 vScreenCoord;
+                precision mediump float;
+                varying vec2 vTextureCoord;
+                varying vec2 vScreenCoord;
 
-                        uniform sampler2D uOutdoorsMask;
-                        uniform sampler2D uIlluminationBuffer;
+                uniform sampler2D uOutdoorsMask;
+                uniform sampler2D uIlluminationBuffer;
 
-                        uniform float u_time;
-                        uniform vec2 u_camera_offset;
-                        uniform vec2 u_view_size;
-                        uniform vec2 u_windDirection;
+                uniform float u_time;
+                uniform vec2 u_camera_offset;
+                uniform vec2 u_view_size;
+                uniform vec2 u_windDirection;
 
-                        uniform float u_noise_scale;
-                        uniform int u_noise_octaves;
-                        uniform float u_noise_persistence;
-                        uniform float u_noise_lacunarity;
+                uniform float u_noise_scale;
+                uniform int u_noise_octaves;
+                uniform float u_noise_persistence;
+                uniform float u_noise_lacunarity;
 
-                        uniform float u_shading_threshold;
-                        uniform float u_shading_softness;
-                        uniform float u_shading_brightness;
-                        uniform float u_shading_contrast;
-                        uniform float u_shading_gamma;
-                        uniform float u_shadowIntensity;
+                uniform float u_shading_threshold;
+                uniform float u_shading_softness;
+                uniform float u_shading_brightness;
+                uniform float u_shading_contrast;
+                uniform float u_shading_gamma;
+                uniform float u_shadowIntensity;
 
-                        uniform bool u_outputHighlightMask;
+                uniform bool u_outputHighlightMask;
 
-                        // Illumination Masking Uniforms
-                        uniform bool u_illum_enabled;
-                        uniform float u_illum_intensity;
-                        uniform float u_illum_luminanceThreshold;
-                        uniform float u_illum_softness;
-                        
-                        const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
+                // Illumination Masking Uniforms
+                uniform bool u_illum_enabled;
+                uniform float u_illum_intensity;
+                uniform float u_illum_luminanceThreshold;
+                uniform float u_illum_softness;
+                
+                const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
 
-                        float random(vec2 st) {
-                            return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
-                        }
+                float random(vec2 st) {
+                    return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
+                }
 
-                        float noise(vec2 st) {
-                            vec2 i = floor(st);
-                            vec2 f = fract(st);
-                            float a = random(i);
-                            float b = random(i + vec2(1.0, 0.0));
-                            float c = random(i + vec2(0.0, 1.0));
-                            float d = random(i + vec2(1.0, 1.0));
-                            vec2 u = f * f * (3.0 - 2.0 * f);
-                            return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.y * u.x;
-                        }
+                float noise(vec2 st) {
+                    vec2 i = floor(st);
+                    vec2 f = fract(st);
+                    float a = random(i);
+                    float b = random(i + vec2(1.0, 0.0));
+                    float c = random(i + vec2(0.0, 1.0));
+                    float d = random(i + vec2(1.0, 1.0));
+                    vec2 u = f * f * (3.0 - 2.0 * f);
+                    return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.y * u.x;
+                }
 
-                        float fbm(vec2 st) {
-                            float value = 0.0;
-                            float amplitude = 0.5;
-                            for (int i = 0; i < 10; i++) {
-                                if (i >= u_noise_octaves) break;
-                                value += amplitude * noise(st);
-                                st *= u_noise_lacunarity;
-                                amplitude *= u_noise_persistence;
-                            }
-                            return value;
-                        }
+                float fbm(vec2 st) {
+                    float value = 0.0;
+                    float amplitude = 0.5;
+                    for (int i = 0; i < 10; i++) {
+                        if (i >= u_noise_octaves) break;
+                        value += amplitude * noise(st);
+                        st *= u_noise_lacunarity;
+                        amplitude *= u_noise_persistence;
+                    }
+                    return value;
+                }
 
-                        float applyShadingControls(float value) {
-                            value += u_shading_brightness;
-                            value = (value - 0.5) * u_shading_contrast + 0.5;
-                            value = smoothstep(u_shading_threshold, u_shading_threshold + u_shading_softness, value);
-                            if (u_shading_gamma > 0.0) {
-                                value = pow(value, u_shading_gamma);
-                            }
-                            return clamp(value, 0.0, 1.0);
-                        }
+                float applyShadingControls(float value) {
+                    value += u_shading_brightness;
+                    value = (value - 0.5) * u_shading_contrast + 0.5;
+                    value = smoothstep(u_shading_threshold, u_shading_threshold + u_shading_softness, value);
+                    if (u_shading_gamma > 0.0) {
+                        value = pow(value, u_shading_gamma);
+                    }
+                    return clamp(value, 0.0, 1.0);
+                }
 
-                        void main() {
-                            float maskValue = texture2D(uOutdoorsMask, vScreenCoord).r;
+                void main() {
+                    float maskValue = texture2D(uOutdoorsMask, vScreenCoord).r;
 
-                            float shadedCloudValue = 0.0;
-                            if (maskValue > 0.01) {
-                                vec2 world_coord = u_camera_offset + (vScreenCoord * u_view_size);
-                                vec2 noise_uv = world_coord / 100.0 * u_noise_scale;
-                                noise_uv += u_time * u_windDirection;
-                                float rawCloudValue = fbm(noise_uv);
-                                shadedCloudValue = applyShadingControls(rawCloudValue);
-                            }
+                    float shadedCloudValue = 0.0;
+                    if (maskValue > 0.01) {
+                        vec2 world_coord = u_camera_offset + (vScreenCoord * u_view_size);
+                        vec2 noise_uv = world_coord / 100.0 * u_noise_scale;
+                        noise_uv += u_time * u_windDirection;
+                        float rawCloudValue = fbm(noise_uv);
+                        shadedCloudValue = applyShadingControls(rawCloudValue);
+                    }
 
-                            if (u_outputHighlightMask) {
-                                float lightAmount = 1.0 - shadedCloudValue;
-                                gl_FragColor = vec4(vec3(lightAmount * maskValue), 1.0);
-                                return;
-                            }
+                    if (u_outputHighlightMask) {
+                        float lightAmount = 1.0 - shadedCloudValue;
+                        gl_FragColor = vec4(vec3(lightAmount * maskValue), 1.0);
+                        return;
+                    }
 
-                            float shadowAmount = shadedCloudValue * maskValue * u_shadowIntensity;
+                    float shadowAmount = shadedCloudValue * maskValue * u_shadowIntensity;
 
-                            if (u_illum_enabled) {
-                                float lightLevel = dot(texture2D(uIlluminationBuffer, vScreenCoord).rgb, lum_weights);
-                                float lightMask = smoothstep(u_illum_luminanceThreshold, u_illum_luminanceThreshold + u_illum_softness, lightLevel);
-                                float reduction = lightMask * u_illum_intensity;
-                                shadowAmount *= (1.0 - reduction);
-                            }
-                            
-                            shadowAmount = clamp(shadowAmount, 0.0, 1.0);
-                            
-                            gl_FragColor = vec4(vec3(1.0 - shadowAmount), 1.0);
-                        }
-                    `;
+                    if (u_illum_enabled) {
+                        float lightLevel = dot(texture2D(uIlluminationBuffer, vScreenCoord).rgb, lum_weights);
+                        float lightMask = smoothstep(u_illum_luminanceThreshold, u_illum_luminanceThreshold + u_illum_softness, lightLevel);
+                        float reduction = lightMask * u_illum_intensity;
+                        shadowAmount *= (1.0 - reduction);
+                    }
+                    
+                    shadowAmount = clamp(shadowAmount, 0.0, 1.0);
+                    
+                    gl_FragColor = vec4(vec3(1.0 - shadowAmount), 1.0);
+                }
+            `;
 
         super(vertexSrc, fragmentSrc, {
             uOutdoorsMask: PIXI.Texture.EMPTY,
@@ -10875,47 +10625,47 @@ class CloudShadowsLayer extends MaskedEffectLayer {
         const iconHTML = `<span class="world-based-icon" data-world-based-path="${path}" title="World Based: This effect uses the world-level default profile, ignoring scene-specific settings."><i class="fas fa-globe"></i></span>`;
 
         const content = `
-                        ${checkboxHTML}
-                        <hr style="border-color: #555; margin: 6px 0;">
-                        ${DebuggerUIBuilder._createTextureInputHTML('outdoors', 'Outdoor Mask (_Outdoors)')}
-                        <p class="description-text">Simulates moving cloud shadows within the masked areas.</p>
-                        ${DebuggerUIBuilder._createSliderHTML('cloudShadows.shadowIntensity', 'Global Intensity', 0, 2, 0.05)}
-                        ${DebuggerUIBuilder._createSliderHTML('cloudShadows.maskBlur', 'Mask Blur', 0, 50, 1)}
-                        <details><summary><span class="accordion-toggle"></span><strong>Wind</strong></summary>
-                            <div style="padding-left: 15px;">
-                                ${DebuggerUIBuilder._createSliderHTML('cloudShadows.wind.angle', 'Angle', 0, 360, 1)}
-                                ${DebuggerUIBuilder._createSliderHTML('cloudShadows.wind.speed', 'Speed', 0, 0.01, 0.0001)}
-                            </div>
-                        </details>
-                        <details><summary><span class="accordion-toggle"></span><strong>Noise Pattern</strong></summary>
-                            <div style="padding-left: 15px;">
-                                ${DebuggerUIBuilder._createSliderHTML('cloudShadows.noise.scale', 'Scale', 0.01, 10, 0.01)}
-                                ${DebuggerUIBuilder._createSliderHTML('cloudShadows.noise.octaves', 'Detail Octaves', 1, 8, 1, 'Adds more layers of detail to the noise. Higher is more complex.')}
-                                ${DebuggerUIBuilder._createSliderHTML('cloudShadows.noise.persistence', 'Roughness', 0.1, 1, 0.05, 'How much each successive octave contributes. Lower values give a softer look.')}
-                                ${DebuggerUIBuilder._createSliderHTML('cloudShadows.noise.lacunarity', 'Detail Frequency', 1.5, 4, 0.1, 'How much detail is added with each octave. Higher values create finer, more complex noise.')}
-                            </div>
-                        </details>
-                        <details><summary><span class="accordion-toggle"></span><strong>Shading & Appearance</strong></summary>
-                            <div style="padding-left: 15px;">
-                                ${DebuggerUIBuilder._createSliderHTML('cloudShadows.shading.threshold', 'Threshold', 0, 1, 0.01)}
-                                ${DebuggerUIBuilder._createSliderHTML('cloudShadows.shading.softness', 'Softness', 0.01, 1, 0.01)}
-                                ${DebuggerUIBuilder._createSliderHTML('cloudShadows.shading.brightness', 'Brightness', -1, 1, 0.01)}
-                                ${DebuggerUIBuilder._createSliderHTML('cloudShadows.shading.contrast', 'Contrast', 0.1, 5, 0.05)}
-                                ${DebuggerUIBuilder._createSliderHTML('cloudShadows.shading.gamma', 'Gamma', 0.1, 5, 0.05, 'Adjusts the mid-tones of the shadows. < 1 lightens, > 1 darkens.')}
-                            </div>
-                        </details>
-                        <details id="details-cloudShadows-illumination">
-                            <summary><span class="accordion-toggle"></span>
-                                <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('cloudShadows.illumination.enabled', 'Illumination Masking', true)}</div>
-                            </summary>
-                            <div style="padding-left: 15px;">
-                                <p class="description-text">Reduces shadow intensity in lit areas of the scene. Requires the Illumination Buffer module.</p>
-                                ${DebuggerUIBuilder._createSliderHTML('cloudShadows.illumination.intensity', 'Reduction Amount', 0, 1, 0.01, 'How much to reduce shadow opacity in fully lit areas.')}
-                                ${DebuggerUIBuilder._createSliderHTML('cloudShadows.illumination.luminanceThreshold', 'Light Threshold', 0, 1, 0.01, 'The scene brightness level above which shadows will start to fade.')}
-                                ${DebuggerUIBuilder._createSliderHTML('cloudShadows.illumination.softness', 'Edge Softness', 0.01, 1, 0.01, 'How gradual the fade transition is.')}
-                            </div>
-                        </details>
-                    `;
+                ${checkboxHTML}
+                <hr style="border-color: #555; margin: 6px 0;">
+                ${DebuggerUIBuilder._createTextureInputHTML('outdoors', 'Outdoor Mask (_Outdoors)')}
+                <p class="description-text">Simulates moving cloud shadows within the masked areas.</p>
+                ${DebuggerUIBuilder._createSliderHTML('cloudShadows.shadowIntensity', 'Global Intensity', 0, 2, 0.05)}
+                ${DebuggerUIBuilder._createSliderHTML('cloudShadows.maskBlur', 'Mask Blur', 0, 50, 1)}
+                <details><summary><span class="accordion-toggle"></span><strong>Wind</strong></summary>
+                    <div style="padding-left: 15px;">
+                        ${DebuggerUIBuilder._createSliderHTML('cloudShadows.wind.angle', 'Angle', 0, 360, 1)}
+                        ${DebuggerUIBuilder._createSliderHTML('cloudShadows.wind.speed', 'Speed', 0, 0.01, 0.0001)}
+                    </div>
+                </details>
+                <details><summary><span class="accordion-toggle"></span><strong>Noise Pattern</strong></summary>
+                    <div style="padding-left: 15px;">
+                        ${DebuggerUIBuilder._createSliderHTML('cloudShadows.noise.scale', 'Scale', 0.01, 10, 0.01)}
+                        ${DebuggerUIBuilder._createSliderHTML('cloudShadows.noise.octaves', 'Detail Octaves', 1, 8, 1, 'Adds more layers of detail to the noise. Higher is more complex.')}
+                        ${DebuggerUIBuilder._createSliderHTML('cloudShadows.noise.persistence', 'Roughness', 0.1, 1, 0.05, 'How much each successive octave contributes. Lower values give a softer look.')}
+                        ${DebuggerUIBuilder._createSliderHTML('cloudShadows.noise.lacunarity', 'Detail Frequency', 1.5, 4, 0.1, 'How much detail is added with each octave. Higher values create finer, more complex noise.')}
+                    </div>
+                </details>
+                <details><summary><span class="accordion-toggle"></span><strong>Shading & Appearance</strong></summary>
+                    <div style="padding-left: 15px;">
+                        ${DebuggerUIBuilder._createSliderHTML('cloudShadows.shading.threshold', 'Threshold', 0, 1, 0.01)}
+                        ${DebuggerUIBuilder._createSliderHTML('cloudShadows.shading.softness', 'Softness', 0.01, 1, 0.01)}
+                        ${DebuggerUIBuilder._createSliderHTML('cloudShadows.shading.brightness', 'Brightness', -1, 1, 0.01)}
+                        ${DebuggerUIBuilder._createSliderHTML('cloudShadows.shading.contrast', 'Contrast', 0.1, 5, 0.05)}
+                        ${DebuggerUIBuilder._createSliderHTML('cloudShadows.shading.gamma', 'Gamma', 0.1, 5, 0.05, 'Adjusts the mid-tones of the shadows. < 1 lightens, > 1 darkens.')}
+                    </div>
+                </details>
+                <details id="details-cloudShadows-illumination">
+                    <summary><span class="accordion-toggle"></span>
+                        <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('cloudShadows.illumination.enabled', 'Illumination Masking', true)}</div>
+                    </summary>
+                    <div style="padding-left: 15px;">
+                        <p class="description-text">Reduces shadow intensity in lit areas of the scene. Requires the Illumination Buffer module.</p>
+                        ${DebuggerUIBuilder._createSliderHTML('cloudShadows.illumination.intensity', 'Reduction Amount', 0, 1, 0.01, 'How much to reduce shadow opacity in fully lit areas.')}
+                        ${DebuggerUIBuilder._createSliderHTML('cloudShadows.illumination.luminanceThreshold', 'Light Threshold', 0, 1, 0.01, 'The scene brightness level above which shadows will start to fade.')}
+                        ${DebuggerUIBuilder._createSliderHTML('cloudShadows.illumination.softness', 'Edge Softness', 0.01, 1, 0.01, 'How gradual the fade transition is.')}
+                    </div>
+                </details>
+            `;
         return DebuggerUIBuilder._createAccordionHTML(effectKey, 'Cloud Shadows', content, iconHTML);
     }
 
@@ -11127,96 +10877,96 @@ class CloudShadowsLayer extends MaskedEffectLayer {
 class CanopyFilter extends PIXI.Filter {
     constructor(options = {}) {
         const vertexSrc = `
-                        attribute vec2 aVertexPosition;
-                        attribute vec2 aTextureCoord;
-                        uniform mat3 projectionMatrix;
-                        varying vec2 vTextureCoord;
-                        varying vec2 vScreenCoord;
+                attribute vec2 aVertexPosition;
+                attribute vec2 aTextureCoord;
+                uniform mat3 projectionMatrix;
+                varying vec2 vTextureCoord;
+                varying vec2 vScreenCoord;
 
-                        void main(void) {
-                            gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
-                            vTextureCoord = aTextureCoord;
-                            vScreenCoord = gl_Position.xy * 0.5 + 0.5;
-                        }
-                    `;
+                void main(void) {
+                    gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
+                    vTextureCoord = aTextureCoord;
+                    vScreenCoord = gl_Position.xy * 0.5 + 0.5;
+                }
+            `;
 
         const fragmentSrc = `
-                        precision mediump float;
-                        varying vec2 vTextureCoord;
-                        varying vec2 vScreenCoord;
+                precision mediump float;
+                varying vec2 vTextureCoord;
+                varying vec2 vScreenCoord;
 
-                        // Samplers
-                        uniform sampler2D uSampler;
-                        uniform sampler2D u_distortionNoise;
-                        uniform sampler2D uOutdoorsMask;
-                        uniform sampler2D uIlluminationBuffer;
+                // Samplers
+                uniform sampler2D uSampler;
+                uniform sampler2D u_distortionNoise;
+                uniform sampler2D uOutdoorsMask;
+                uniform sampler2D uIlluminationBuffer;
 
-                        // Uniforms
-                        uniform float u_shadowIntensity;
-                        uniform vec3 u_tint;
-                        uniform bool u_distortion_enabled;
-                        uniform float u_distortion_intensity;
+                // Uniforms
+                uniform float u_shadowIntensity;
+                uniform vec3 u_tint;
+                uniform bool u_distortion_enabled;
+                uniform float u_distortion_intensity;
 
-                        // Illumination Masking Uniforms
-                        uniform bool u_illum_enabled;
-                        uniform float u_illum_intensity;
-                        uniform float u_illum_luminanceThreshold;
-                        uniform float u_illum_softness;
+                // Illumination Masking Uniforms
+                uniform bool u_illum_enabled;
+                uniform float u_illum_intensity;
+                uniform float u_illum_luminanceThreshold;
+                uniform float u_illum_softness;
 
-                        // New uniforms for world-space calculations
-                        uniform vec4 u_scene_rect; // (x, y, width, height) of the entire scene
-                        uniform vec2 u_camera_offset; // World coordinate of the screen's top-left
-                        uniform vec2 u_view_size; // World dimensions of the screen
+                // New uniforms for world-space calculations
+                uniform vec4 u_scene_rect; // (x, y, width, height) of the entire scene
+                uniform vec2 u_camera_offset; // World coordinate of the screen's top-left
+                uniform vec2 u_view_size; // World dimensions of the screen
+                
+                const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
+
+                void main() {
+                    float outdoorMaskVal = texture2D(uOutdoorsMask, vScreenCoord).r;
+                    if (outdoorMaskVal < 0.01) {
+                        discard;
+                    }
+
+                    vec2 distortedCoord = vTextureCoord;
+                    if (u_distortion_enabled && u_distortion_intensity > 0.0) {
                         
-                        const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
+                        // --- World-Space Gradient Falloff ---
+                        // 1. Calculate the true world coordinate of this pixel.
+                        vec2 world_coord = u_camera_offset + (vScreenCoord * u_view_size);
 
-                        void main() {
-                            float outdoorMaskVal = texture2D(uOutdoorsMask, vScreenCoord).r;
-                            if (outdoorMaskVal < 0.01) {
-                                discard;
-                            }
+                        // 2. Normalize the world coordinate to a 0-1 range based on the scene dimensions.
+                        vec2 world_uv = (world_coord - u_scene_rect.xy) / u_scene_rect.zw;
 
-                            vec2 distortedCoord = vTextureCoord;
-                            if (u_distortion_enabled && u_distortion_intensity > 0.0) {
-                                
-                                // --- World-Space Gradient Falloff ---
-                                // 1. Calculate the true world coordinate of this pixel.
-                                vec2 world_coord = u_camera_offset + (vScreenCoord * u_view_size);
+                        // 3. Calculate falloff based on distance from the center of the WORLD.
+                        vec2 distFromCenter = abs(world_uv - 0.5) * 2.0;
+                        float maxDist = max(distFromCenter.x, distFromCenter.y);
+                        float falloff = 1.0 - smoothstep(0.8, 1.0, maxDist); // Fade out over the last 20% of the map edge
 
-                                // 2. Normalize the world coordinate to a 0-1 range based on the scene dimensions.
-                                vec2 world_uv = (world_coord - u_scene_rect.xy) / u_scene_rect.zw;
+                        // --- Distortion Calculation ---
+                        vec2 displacement = (texture2D(u_distortionNoise, vScreenCoord).rg - 0.5) * 2.0;
+                        vec2 offset = displacement * u_distortion_intensity * 0.01 * falloff;
+                        distortedCoord += offset;
+                    }
 
-                                // 3. Calculate falloff based on distance from the center of the WORLD.
-                                vec2 distFromCenter = abs(world_uv - 0.5) * 2.0;
-                                float maxDist = max(distFromCenter.x, distFromCenter.y);
-                                float falloff = 1.0 - smoothstep(0.8, 1.0, maxDist); // Fade out over the last 20% of the map edge
+                    float maskValue = texture2D(uSampler, distortedCoord).r;
+                    float maskAlpha = texture2D(uSampler, distortedCoord).a;
+                    float shadowAmount = 1.0 - maskValue;
+                    
+                    if (shadowAmount < 0.01 || maskAlpha < 0.01) {
+                        discard;
+                    }
+                    
+                    float finalAlpha = shadowAmount * u_shadowIntensity * outdoorMaskVal;
 
-                                // --- Distortion Calculation ---
-                                vec2 displacement = (texture2D(u_distortionNoise, vScreenCoord).rg - 0.5) * 2.0;
-                                vec2 offset = displacement * u_distortion_intensity * 0.01 * falloff;
-                                distortedCoord += offset;
-                            }
+                    if (u_illum_enabled) {
+                        float lightLevel = dot(texture2D(uIlluminationBuffer, vScreenCoord).rgb, lum_weights);
+                        float lightMask = smoothstep(u_illum_luminanceThreshold, u_illum_luminanceThreshold + u_illum_softness, lightLevel);
+                        float reduction = lightMask * u_illum_intensity;
+                        finalAlpha *= (1.0 - reduction);
+                    }
 
-                            float maskValue = texture2D(uSampler, distortedCoord).r;
-                            float maskAlpha = texture2D(uSampler, distortedCoord).a;
-                            float shadowAmount = 1.0 - maskValue;
-                            
-                            if (shadowAmount < 0.01 || maskAlpha < 0.01) {
-                                discard;
-                            }
-                            
-                            float finalAlpha = shadowAmount * u_shadowIntensity * outdoorMaskVal;
-
-                            if (u_illum_enabled) {
-                                float lightLevel = dot(texture2D(uIlluminationBuffer, vScreenCoord).rgb, lum_weights);
-                                float lightMask = smoothstep(u_illum_luminanceThreshold, u_illum_luminanceThreshold + u_illum_softness, lightLevel);
-                                float reduction = lightMask * u_illum_intensity;
-                                finalAlpha *= (1.0 - reduction);
-                            }
-
-                            gl_FragColor = vec4(u_tint * finalAlpha, finalAlpha);
-                        }
-                    `;
+                    gl_FragColor = vec4(u_tint * finalAlpha, finalAlpha);
+                }
+            `;
 
         super(vertexSrc, fragmentSrc, {
             u_distortionNoise: PIXI.Texture.EMPTY,
@@ -11262,30 +11012,30 @@ class CanopyLayer extends MaskedEffectLayer {
         const iconHTML = `<span class="world-based-icon" data-world-based-path="${path}" title="World Based: This effect uses the world-level default profile, ignoring scene-specific settings."><i class="fas fa-globe"></i></span>`;
 
         const content = `
-                        ${checkboxHTML}
-                        <hr style="border-color: #555; margin: 6px 0;">
-                        ${DebuggerUIBuilder._createTextureInputHTML('canopy', 'Canopy Mask (_Canopy)')}
-                        <p class="description-text">A black and white texture where black areas are shadows and white areas are light. This effect simulates a leafy canopy overhead.</p>
-                        ${DebuggerUIBuilder._createSliderHTML('canopy.shadowIntensity', 'Shadow Intensity', 0, 2, 0.01)}
-                        ${DebuggerUIBuilder._createColorPickerHTML('canopy.tint', 'Shadow Tint')}
-                        <details id="details-canopy-distortion"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('canopy.distortion.enabled', 'Shadow Animation', true)}</div></summary>
+                ${checkboxHTML}
+                <hr style="border-color: #555; margin: 6px 0;">
+                ${DebuggerUIBuilder._createTextureInputHTML('canopy', 'Canopy Mask (_Canopy)')}
+                <p class="description-text">A black and white texture where black areas are shadows and white areas are light. This effect simulates a leafy canopy overhead.</p>
+                ${DebuggerUIBuilder._createSliderHTML('canopy.shadowIntensity', 'Shadow Intensity', 0, 2, 0.01)}
+                ${DebuggerUIBuilder._createColorPickerHTML('canopy.tint', 'Shadow Tint')}
+                <details id="details-canopy-distortion"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('canopy.distortion.enabled', 'Shadow Animation', true)}</div></summary>
+                    <div style="padding-left: 15px;">
+                        <p class="description-text">Animates the shadows using a procedural noise pattern to create a distortion effect.</p>
+                        ${DebuggerUIBuilder._createSliderHTML('canopy.distortion.intensity', 'Intensity', 0, 20, 0.1, 'The overall strength of the distortion effect.')}
+                        ${DebuggerUIBuilder._createSliderHTML('canopy.distortion.speed', 'Speed', -0.5, 0.5, 0.005, 'Horizontal/Vertical scrolling speed of the distortion.')}
+                        ${DebuggerUIBuilder._createSliderHTML('canopy.distortion.scale', 'Scale', 0.01, 2, 0.01, 'Zoom level of the distortion pattern.')}
+                        ${DebuggerUIBuilder._createSliderHTML('canopy.distortion.evolution', 'Evolution', 0, 1, 0.01, 'Internal "morphing" speed of the distortion.')}
+                        <details id="details-canopy-distortion-noise-adv"><summary><span class="accordion-toggle"></span><strong>Advanced Noise Controls</strong></summary>
                             <div style="padding-left: 15px;">
-                                <p class="description-text">Animates the shadows using a procedural noise pattern to create a distortion effect.</p>
-                                ${DebuggerUIBuilder._createSliderHTML('canopy.distortion.intensity', 'Intensity', 0, 20, 0.1, 'The overall strength of the distortion effect.')}
-                                ${DebuggerUIBuilder._createSliderHTML('canopy.distortion.speed', 'Speed', -0.5, 0.5, 0.005, 'Horizontal/Vertical scrolling speed of the distortion.')}
-                                ${DebuggerUIBuilder._createSliderHTML('canopy.distortion.scale', 'Scale', 0.01, 2, 0.01, 'Zoom level of the distortion pattern.')}
-                                ${DebuggerUIBuilder._createSliderHTML('canopy.distortion.evolution', 'Evolution', 0, 1, 0.01, 'Internal "morphing" speed of the distortion.')}
-                                <details id="details-canopy-distortion-noise-adv"><summary><span class="accordion-toggle"></span><strong>Advanced Noise Controls</strong></summary>
-                                    <div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createSliderHTML('canopy.distortion.threshold', 'Threshold', 0, 1, 0.01)}
-                                        ${DebuggerUIBuilder._createSliderHTML('canopy.distortion.brightness', 'Brightness', -1, 1, 0.01)}
-                                        ${DebuggerUIBuilder._createSliderHTML('canopy.distortion.contrast', 'Contrast', 0, 5, 0.05)}
-                                        ${DebuggerUIBuilder._createSliderHTML('canopy.distortion.softness', 'Softness', 0.01, 1, 0.01)}
-                                    </div>
-                                </details>
+                                ${DebuggerUIBuilder._createSliderHTML('canopy.distortion.threshold', 'Threshold', 0, 1, 0.01)}
+                                ${DebuggerUIBuilder._createSliderHTML('canopy.distortion.brightness', 'Brightness', -1, 1, 0.01)}
+                                ${DebuggerUIBuilder._createSliderHTML('canopy.distortion.contrast', 'Contrast', 0, 5, 0.05)}
+                                ${DebuggerUIBuilder._createSliderHTML('canopy.distortion.softness', 'Softness', 0.01, 1, 0.01)}
                             </div>
                         </details>
-                    `;
+                    </div>
+                </details>
+            `;
         return DebuggerUIBuilder._createAccordionHTML(effectKey, 'Canopy Shadows', content, iconHTML);
     }
 
@@ -11460,34 +11210,34 @@ class CanopyLayer extends MaskedEffectLayer {
 class StructuralHighlightRgbSplitFilter extends PIXI.Filter {
     constructor(options = {}) {
         const fragmentSrc = `
-                        precision mediump float;
-                        varying vec2 vTextureCoord;
+                precision mediump float;
+                varying vec2 vTextureCoord;
 
-                        uniform sampler2D uSampler;
-                        uniform float uIntensity;
-                        uniform float uThreshold;
-                        uniform vec2 uTexelSize;
+                uniform sampler2D uSampler;
+                uniform float uIntensity;
+                uniform float uThreshold;
+                uniform vec2 uTexelSize;
 
-                        void main(void) {
-                            float lightAmount = texture2D(uSampler, vTextureCoord).r;
-                            
-                            if (lightAmount < uThreshold) {
-                                gl_FragColor = vec4(vec3(lightAmount), 1.0);
-                                return;
-                            }
-                            
-                            float split_factor = (lightAmount - uThreshold) / (1.0 - uThreshold);
-                            split_factor = clamp(split_factor, 0.0, 1.0);
-                            
-                            vec2 offset = vec2(uIntensity * split_factor * uTexelSize.x, 0.0);
-                            
-                            float r = texture2D(uSampler, vTextureCoord - offset).r;
-                            float g = lightAmount;
-                            float b = texture2D(uSampler, vTextureCoord + offset).r;
-                            
-                            gl_FragColor = vec4(r, g, b, 1.0);
-                        }
-                    `;
+                void main(void) {
+                    float lightAmount = texture2D(uSampler, vTextureCoord).r;
+                    
+                    if (lightAmount < uThreshold) {
+                        gl_FragColor = vec4(vec3(lightAmount), 1.0);
+                        return;
+                    }
+                    
+                    float split_factor = (lightAmount - uThreshold) / (1.0 - uThreshold);
+                    split_factor = clamp(split_factor, 0.0, 1.0);
+                    
+                    vec2 offset = vec2(uIntensity * split_factor * uTexelSize.x, 0.0);
+                    
+                    float r = texture2D(uSampler, vTextureCoord - offset).r;
+                    float g = lightAmount;
+                    float b = texture2D(uSampler, vTextureCoord + offset).r;
+                    
+                    gl_FragColor = vec4(r, g, b, 1.0);
+                }
+            `;
         super(PIXI.Filter.defaultVertexSrc, fragmentSrc, {
             uIntensity: options.intensity ?? 2.0,
             uThreshold: options.threshold ?? 0.5,
@@ -11499,166 +11249,166 @@ class StructuralHighlightRgbSplitFilter extends PIXI.Filter {
 class StructuralShadowsFilter extends PIXI.Filter {
     constructor(options = {}) {
         const vertexSrc = `
-                        attribute vec2 aVertexPosition;
-                        attribute vec2 aTextureCoord;
+                attribute vec2 aVertexPosition;
+                attribute vec2 aTextureCoord;
 
-                        uniform mat3 projectionMatrix;
+                uniform mat3 projectionMatrix;
 
-                        varying vec2 vTextureCoord;
-                        varying vec2 vScreenCoord;
-            
-                        void main(void) {
-                            gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
-                            vTextureCoord = aTextureCoord;
-                            vScreenCoord = gl_Position.xy * 0.5 + 0.5;
-                        }
-                    `;
+                varying vec2 vTextureCoord;
+                varying vec2 vScreenCoord;
+    
+                void main(void) {
+                    gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
+                    vTextureCoord = aTextureCoord;
+                    vScreenCoord = gl_Position.xy * 0.5 + 0.5;
+                }
+            `;
 
         const fragmentSrc = `
-                        precision mediump float;
-                        varying vec2 vTextureCoord;
-                        varying vec2 vScreenCoord;
-            
-                        // Samplers
-                        uniform sampler2D uStructuralMask;
-                        uniform sampler2D uOutdoorsMask;
-                        uniform sampler2D u_intensityNoise;
-                        uniform sampler2D uIlluminationBuffer;
-            
-                        // Main Uniforms
-                        uniform vec3 u_tint;
-                        uniform float u_shadowIntensity;
-                        uniform float u_parallax;
-                        uniform float u_time;
-            
-                        // World & Camera Uniforms
-                        uniform vec2 u_camera_offset;
-                        uniform vec2 u_view_size;
-            
-                        // Feature Toggles & Parameters
-                        uniform bool u_intensityNoise_enabled;
-                        uniform float u_intensityNoise_amount;
-                        uniform bool u_illum_enabled;
-                        uniform float u_illum_intensity;
-                        uniform float u_illum_luminanceThreshold;
-                        uniform float u_illum_softness;
-                        uniform bool u_outputHighlightMask;
+                precision mediump float;
+                varying vec2 vTextureCoord;
+                varying vec2 vScreenCoord;
+    
+                // Samplers
+                uniform sampler2D uStructuralMask;
+                uniform sampler2D uOutdoorsMask;
+                uniform sampler2D u_intensityNoise;
+                uniform sampler2D uIlluminationBuffer;
+    
+                // Main Uniforms
+                uniform vec3 u_tint;
+                uniform float u_shadowIntensity;
+                uniform float u_parallax;
+                uniform float u_time;
+    
+                // World & Camera Uniforms
+                uniform vec2 u_camera_offset;
+                uniform vec2 u_view_size;
+    
+                // Feature Toggles & Parameters
+                uniform bool u_intensityNoise_enabled;
+                uniform float u_intensityNoise_amount;
+                uniform bool u_illum_enabled;
+                uniform float u_illum_intensity;
+                uniform float u_illum_luminanceThreshold;
+                uniform float u_illum_softness;
+                uniform bool u_outputHighlightMask;
 
-                        // Cloud Occlusion Toggles & Parameters
-                        uniform bool u_cloud_enabled;
-                        uniform float u_cloud_intensity;
-                        uniform vec2 u_windDirection;
-                        // Cloud Noise
-                        uniform float u_noise_scale;
-                        uniform int u_noise_octaves;
-                        uniform float u_noise_persistence;
-                        uniform float u_noise_lacunarity;
-                        // Cloud Shading
-                        uniform float u_cloud_shading_threshold;
-                        uniform float u_cloud_shading_softness;
-                        uniform float u_cloud_shading_brightness;
-                        uniform float u_cloud_shading_contrast;
-                        uniform float u_cloud_shading_gamma;
-                        uniform float u_cloud_shading_exposure;
-                        uniform float u_cloud_shading_inBlack;
-                        uniform float u_cloud_shading_inWhite;
-            
-                        const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
+                // Cloud Occlusion Toggles & Parameters
+                uniform bool u_cloud_enabled;
+                uniform float u_cloud_intensity;
+                uniform vec2 u_windDirection;
+                // Cloud Noise
+                uniform float u_noise_scale;
+                uniform int u_noise_octaves;
+                uniform float u_noise_persistence;
+                uniform float u_noise_lacunarity;
+                // Cloud Shading
+                uniform float u_cloud_shading_threshold;
+                uniform float u_cloud_shading_softness;
+                uniform float u_cloud_shading_brightness;
+                uniform float u_cloud_shading_contrast;
+                uniform float u_cloud_shading_gamma;
+                uniform float u_cloud_shading_exposure;
+                uniform float u_cloud_shading_inBlack;
+                uniform float u_cloud_shading_inWhite;
+    
+                const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
 
-                        // --- CLOUD NOISE GENERATION FUNCTIONS ---
-                        float random(vec2 st) { return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123); }
-                        float noise(vec2 st) {
-                            vec2 i = floor(st); vec2 f = fract(st);
-                            float a = random(i); float b = random(i + vec2(1.0, 0.0));
-                            float c = random(i + vec2(0.0, 1.0)); float d = random(i + vec2(1.0, 1.0));
-                            vec2 u = f * f * (3.0 - 2.0 * f);
-                            return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.y * u.x;
-                        }
-                        float fbm(vec2 st) {
-                            float value = 0.0; float amplitude = 0.5;
-                            for (int i = 0; i < 10; i++) {
-                                if (i >= u_noise_octaves) break;
-                                value += amplitude * noise(st);
-                                st *= u_noise_lacunarity;
-                                amplitude *= u_noise_persistence;
-                            }
-                            return value;
-                        }
-                        float applyCloudShading(float value) {
-                            if (u_cloud_shading_inWhite > u_cloud_shading_inBlack) {
-                                value = (value - u_cloud_shading_inBlack) / (u_cloud_shading_inWhite - u_cloud_shading_inBlack);
-                            }
-                            value *= pow(2.0, u_cloud_shading_exposure);
-                            value += u_cloud_shading_brightness;
-                            value = (value - 0.5) * u_cloud_shading_contrast + 0.5;
-                            value = smoothstep(u_cloud_shading_threshold, u_cloud_shading_threshold + u_cloud_shading_softness, value);
-                            if (u_cloud_shading_gamma > 0.0) {
-                                value = pow(value, u_cloud_shading_gamma);
-                            }
-                            return clamp(value, 0.0, 1.0);
-                        }
-            
-                        void main() {
-                            float indoorMask = 1.0 - texture2D(uOutdoorsMask, vScreenCoord).r;
-                            if (indoorMask < 0.01 && !u_outputHighlightMask) {
-                                gl_FragColor = vec4(1.0); 
-                                return;
-                            }
-            
-                            vec2 parallaxTexCoord = vScreenCoord;
-                            if (u_parallax > 0.0 && u_view_size.y > 0.0) {
-                                vec2 normalized_camera_offset = u_camera_offset / u_view_size;
-                                parallaxTexCoord = vScreenCoord - (normalized_camera_offset * u_parallax);
-                            }
-                            
-                            vec4 structuralTexel = texture2D(uStructuralMask, parallaxTexCoord);
-                            
-                            if (structuralTexel.a < 0.01) {
-                                gl_FragColor = vec4(1.0);
-                                return;
-                            }
+                // --- CLOUD NOISE GENERATION FUNCTIONS ---
+                float random(vec2 st) { return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123); }
+                float noise(vec2 st) {
+                    vec2 i = floor(st); vec2 f = fract(st);
+                    float a = random(i); float b = random(i + vec2(1.0, 0.0));
+                    float c = random(i + vec2(0.0, 1.0)); float d = random(i + vec2(1.0, 1.0));
+                    vec2 u = f * f * (3.0 - 2.0 * f);
+                    return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.y * u.x;
+                }
+                float fbm(vec2 st) {
+                    float value = 0.0; float amplitude = 0.5;
+                    for (int i = 0; i < 10; i++) {
+                        if (i >= u_noise_octaves) break;
+                        value += amplitude * noise(st);
+                        st *= u_noise_lacunarity;
+                        amplitude *= u_noise_persistence;
+                    }
+                    return value;
+                }
+                float applyCloudShading(float value) {
+                    if (u_cloud_shading_inWhite > u_cloud_shading_inBlack) {
+                        value = (value - u_cloud_shading_inBlack) / (u_cloud_shading_inWhite - u_cloud_shading_inBlack);
+                    }
+                    value *= pow(2.0, u_cloud_shading_exposure);
+                    value += u_cloud_shading_brightness;
+                    value = (value - 0.5) * u_cloud_shading_contrast + 0.5;
+                    value = smoothstep(u_cloud_shading_threshold, u_cloud_shading_threshold + u_cloud_shading_softness, value);
+                    if (u_cloud_shading_gamma > 0.0) {
+                        value = pow(value, u_cloud_shading_gamma);
+                    }
+                    return clamp(value, 0.0, 1.0);
+                }
+    
+                void main() {
+                    float indoorMask = 1.0 - texture2D(uOutdoorsMask, vScreenCoord).r;
+                    if (indoorMask < 0.01 && !u_outputHighlightMask) {
+                        gl_FragColor = vec4(1.0); 
+                        return;
+                    }
+    
+                    vec2 parallaxTexCoord = vScreenCoord;
+                    if (u_parallax > 0.0 && u_view_size.y > 0.0) {
+                        vec2 normalized_camera_offset = u_camera_offset / u_view_size;
+                        parallaxTexCoord = vScreenCoord - (normalized_camera_offset * u_parallax);
+                    }
+                    
+                    vec4 structuralTexel = texture2D(uStructuralMask, parallaxTexCoord);
+                    
+                    if (structuralTexel.a < 0.01) {
+                        gl_FragColor = vec4(1.0);
+                        return;
+                    }
 
-                            float lightAmount = structuralTexel.r;
-            
-                            if (u_intensityNoise_enabled) {
-                                float flicker = texture2D(u_intensityNoise, vScreenCoord).r;
-                                lightAmount = min(1.0, lightAmount + flicker * u_intensityNoise_amount);
-                            }
-                            
-                            if (u_cloud_enabled) {
-                                vec2 world_coord = u_camera_offset + (vScreenCoord * u_view_size);
-                                vec2 noise_uv = world_coord / 100.0 * u_noise_scale;
-                                noise_uv += u_time * u_windDirection;
-                                float rawCloudValue = fbm(noise_uv);
-                                float shadedCloudValue = applyCloudShading(rawCloudValue);
-                                
-                                lightAmount *= (1.0 - shadedCloudValue * u_cloud_intensity);
-                            }
-                            
-                            lightAmount = clamp(lightAmount, 0.0, 1.0);
-            
-                            if (u_outputHighlightMask) {
-                                gl_FragColor = vec4(vec3(lightAmount * indoorMask), 1.0);
-                                return;
-                            }
-            
-                            float shadowAmount = 1.0 - lightAmount;
-                            shadowAmount *= u_shadowIntensity;
-                            
-                            if (u_illum_enabled) {
-                                float lightLevel = dot(texture2D(uIlluminationBuffer, vScreenCoord).rgb, lum_weights);
-                                float lightMask = smoothstep(u_illum_luminanceThreshold, u_illum_luminanceThreshold + u_illum_softness, lightLevel);
-                                float reduction = lightMask * u_illum_intensity;
-                                shadowAmount *= (1.0 - reduction);
-                            }
-                            
-                            shadowAmount *= indoorMask;
-                            shadowAmount = clamp(shadowAmount, 0.0, 1.0);
-            
-                            vec3 shadowColor = mix(vec3(1.0), u_tint, shadowAmount);
-                            gl_FragColor = vec4(shadowColor, 1.0);
-                        }
-                    `;
+                    float lightAmount = structuralTexel.r;
+    
+                    if (u_intensityNoise_enabled) {
+                        float flicker = texture2D(u_intensityNoise, vScreenCoord).r;
+                        lightAmount = min(1.0, lightAmount + flicker * u_intensityNoise_amount);
+                    }
+                    
+                    if (u_cloud_enabled) {
+                        vec2 world_coord = u_camera_offset + (vScreenCoord * u_view_size);
+                        vec2 noise_uv = world_coord / 100.0 * u_noise_scale;
+                        noise_uv += u_time * u_windDirection;
+                        float rawCloudValue = fbm(noise_uv);
+                        float shadedCloudValue = applyCloudShading(rawCloudValue);
+                        
+                        lightAmount *= (1.0 - shadedCloudValue * u_cloud_intensity);
+                    }
+                    
+                    lightAmount = clamp(lightAmount, 0.0, 1.0);
+    
+                    if (u_outputHighlightMask) {
+                        gl_FragColor = vec4(vec3(lightAmount * indoorMask), 1.0);
+                        return;
+                    }
+    
+                    float shadowAmount = 1.0 - lightAmount;
+                    shadowAmount *= u_shadowIntensity;
+                    
+                    if (u_illum_enabled) {
+                        float lightLevel = dot(texture2D(uIlluminationBuffer, vScreenCoord).rgb, lum_weights);
+                        float lightMask = smoothstep(u_illum_luminanceThreshold, u_illum_luminanceThreshold + u_illum_softness, lightLevel);
+                        float reduction = lightMask * u_illum_intensity;
+                        shadowAmount *= (1.0 - reduction);
+                    }
+                    
+                    shadowAmount *= indoorMask;
+                    shadowAmount = clamp(shadowAmount, 0.0, 1.0);
+    
+                    vec3 shadowColor = mix(vec3(1.0), u_tint, shadowAmount);
+                    gl_FragColor = vec4(shadowColor, 1.0);
+                }
+            `;
 
         super(vertexSrc, fragmentSrc, {
             uStructuralMask: PIXI.Texture.EMPTY,
@@ -11738,74 +11488,74 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
         const iconHTML = `<span class="world-based-icon" data-world-based-path="${path}" title="World Based: This effect uses the world-level default profile, ignoring scene-specific settings."><i class="fas fa-globe"></i></span>`;
 
         const content = `
-                        ${checkboxHTML}
-                        <hr style="border-color: #555; margin: 6px 0;">
-                        ${DebuggerUIBuilder._createTextureInputHTML('structural', 'Structural Mask (_Structural)')}
-                        <p class="description-text">A black and white texture for indoor shadows (rafters, beams, etc.). Black areas are shadows, white areas are light. Respects the Outdoor Mask.</p>
-                        ${DebuggerUIBuilder._createSliderHTML('structuralShadows.shadowIntensity', 'Shadow Intensity', 0, 5, 0.01)}
-                        ${DebuggerUIBuilder._createColorPickerHTML('structuralShadows.tint', 'Shadow Tint')}
-                        ${DebuggerUIBuilder._createSliderHTML('structuralShadows.parallax', 'Parallax', 0, 1, 0.001, 'How much the shadows shift relative to camera movement. 0 = fixed to map, 1 = fixed to screen.')}
-                        <details id="details-structuralShadows-rgbSplit"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('structuralShadows.rgbSplit.enabled', 'Highlight RGB Split', true)}</div></summary>
+                ${checkboxHTML}
+                <hr style="border-color: #555; margin: 6px 0;">
+                ${DebuggerUIBuilder._createTextureInputHTML('structural', 'Structural Mask (_Structural)')}
+                <p class="description-text">A black and white texture for indoor shadows (rafters, beams, etc.). Black areas are shadows, white areas are light. Respects the Outdoor Mask.</p>
+                ${DebuggerUIBuilder._createSliderHTML('structuralShadows.shadowIntensity', 'Shadow Intensity', 0, 5, 0.01)}
+                ${DebuggerUIBuilder._createColorPickerHTML('structuralShadows.tint', 'Shadow Tint')}
+                ${DebuggerUIBuilder._createSliderHTML('structuralShadows.parallax', 'Parallax', 0, 1, 0.001, 'How much the shadows shift relative to camera movement. 0 = fixed to map, 1 = fixed to screen.')}
+                <details id="details-structuralShadows-rgbSplit"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('structuralShadows.rgbSplit.enabled', 'Highlight RGB Split', true)}</div></summary>
+                    <div style="padding-left: 15px;">
+                        <p class="description-text">Applies a chromatic aberration effect to the structural highlights.</p>
+                        ${DebuggerUIBuilder._createSliderHTML('structuralShadows.rgbSplit.intensity', 'Intensity', 0, 20, 0.1)}
+                        ${DebuggerUIBuilder._createSliderHTML('structuralShadows.rgbSplit.threshold', 'Threshold', 0, 1, 0.01, 'Only highlights brighter than this will be split.')}
+                    </div>
+                </details>
+                <details id="details-structuralShadows-intensityNoise"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('structuralShadows.intensityNoise.enabled', 'Intensity Noise (Flicker)', true)}</div></summary>
+                    <div style="padding-left: 15px;">
+                        <p class="description-text">Animates the brightness of the shadows using a procedural noise pattern to create a flickering light effect.</p>
+                        ${DebuggerUIBuilder._createSliderHTML('structuralShadows.intensityNoise.amount', 'Amount', 0, 1, 0.01, 'The maximum amount to brighten the shadows by.')}
+                        ${DebuggerUIBuilder._createSliderHTML('structuralShadows.intensityNoise.speed', 'Speed', -0.5, 0.5, 0.005, 'Horizontal/Vertical scrolling speed of the noise.')}
+                        ${DebuggerUIBuilder._createSliderHTML('structuralShadows.intensityNoise.scale', 'Scale', 0.01, 2, 0.01, 'Zoom level of the noise pattern.')}
+                        ${DebuggerUIBuilder._createSliderHTML('structuralShadows.intensityNoise.evolution', 'Evolution', 0, 1, 0.01, 'Internal "morphing" speed of the noise.')}
+                        <details id="details-structuralShadows-intensityNoise-adv"><summary><span class="accordion-toggle"></span><strong>Advanced Noise Controls</strong></summary>
                             <div style="padding-left: 15px;">
-                                <p class="description-text">Applies a chromatic aberration effect to the structural highlights.</p>
-                                ${DebuggerUIBuilder._createSliderHTML('structuralShadows.rgbSplit.intensity', 'Intensity', 0, 20, 0.1)}
-                                ${DebuggerUIBuilder._createSliderHTML('structuralShadows.rgbSplit.threshold', 'Threshold', 0, 1, 0.01, 'Only highlights brighter than this will be split.')}
+                                ${DebuggerUIBuilder._createSliderHTML('structuralShadows.intensityNoise.threshold', 'Threshold', 0, 1, 0.01)}
+                                ${DebuggerUIBuilder._createSliderHTML('structuralShadows.intensityNoise.brightness', 'Brightness', -5, 5, 0.01)}
+                                ${DebuggerUIBuilder._createSliderHTML('structuralShadows.intensityNoise.contrast', 'Contrast', 0, 5, 0.05)}
+                                ${DebuggerUIBuilder._createSliderHTML('structuralShadows.intensityNoise.softness', 'Softness', 0.01, 1, 0.01)}
                             </div>
                         </details>
-                        <details id="details-structuralShadows-intensityNoise"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('structuralShadows.intensityNoise.enabled', 'Intensity Noise (Flicker)', true)}</div></summary>
+                    </div>
+                </details>
+                <details id="details-structuralShadows-cloudOcclusion"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('structuralShadows.cloudOcclusion.enabled', 'Cloud Occlusion', true)}</div></summary>
+                    <div style="padding-left: 15px;">
+                        <p class="description-text">Overlays animated cloud shadows on top of the structural shadows.</p>
+                        ${DebuggerUIBuilder._createSliderHTML('structuralShadows.cloudOcclusion.intensity', 'Cloud Intensity', 0, 2, 0.05)}
+                        <details><summary><span class="accordion-toggle"></span><strong>Wind</strong></summary>
                             <div style="padding-left: 15px;">
-                                <p class="description-text">Animates the brightness of the shadows using a procedural noise pattern to create a flickering light effect.</p>
-                                ${DebuggerUIBuilder._createSliderHTML('structuralShadows.intensityNoise.amount', 'Amount', 0, 1, 0.01, 'The maximum amount to brighten the shadows by.')}
-                                ${DebuggerUIBuilder._createSliderHTML('structuralShadows.intensityNoise.speed', 'Speed', -0.5, 0.5, 0.005, 'Horizontal/Vertical scrolling speed of the noise.')}
-                                ${DebuggerUIBuilder._createSliderHTML('structuralShadows.intensityNoise.scale', 'Scale', 0.01, 2, 0.01, 'Zoom level of the noise pattern.')}
-                                ${DebuggerUIBuilder._createSliderHTML('structuralShadows.intensityNoise.evolution', 'Evolution', 0, 1, 0.01, 'Internal "morphing" speed of the noise.')}
-                                <details id="details-structuralShadows-intensityNoise-adv"><summary><span class="accordion-toggle"></span><strong>Advanced Noise Controls</strong></summary>
-                                    <div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createSliderHTML('structuralShadows.intensityNoise.threshold', 'Threshold', 0, 1, 0.01)}
-                                        ${DebuggerUIBuilder._createSliderHTML('structuralShadows.intensityNoise.brightness', 'Brightness', -5, 5, 0.01)}
-                                        ${DebuggerUIBuilder._createSliderHTML('structuralShadows.intensityNoise.contrast', 'Contrast', 0, 5, 0.05)}
-                                        ${DebuggerUIBuilder._createSliderHTML('structuralShadows.intensityNoise.softness', 'Softness', 0.01, 1, 0.01)}
-                                    </div>
-                                </details>
+                                ${DebuggerUIBuilder._createSliderHTML('structuralShadows.cloudOcclusion.wind.angle', 'Angle', 0, 360, 1)}
+                                ${DebuggerUIBuilder._createSliderHTML('structuralShadows.cloudOcclusion.wind.speed', 'Speed', 0, 0.01, 0.0001)}
                             </div>
                         </details>
-                        <details id="details-structuralShadows-cloudOcclusion"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('structuralShadows.cloudOcclusion.enabled', 'Cloud Occlusion', true)}</div></summary>
+                        <details><summary><span class="accordion-toggle"></span><strong>Noise Pattern</strong></summary>
                             <div style="padding-left: 15px;">
-                                <p class="description-text">Overlays animated cloud shadows on top of the structural shadows.</p>
-                                ${DebuggerUIBuilder._createSliderHTML('structuralShadows.cloudOcclusion.intensity', 'Cloud Intensity', 0, 2, 0.05)}
-                                <details><summary><span class="accordion-toggle"></span><strong>Wind</strong></summary>
-                                    <div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createSliderHTML('structuralShadows.cloudOcclusion.wind.angle', 'Angle', 0, 360, 1)}
-                                        ${DebuggerUIBuilder._createSliderHTML('structuralShadows.cloudOcclusion.wind.speed', 'Speed', 0, 0.01, 0.0001)}
-                                    </div>
-                                </details>
-                                <details><summary><span class="accordion-toggle"></span><strong>Noise Pattern</strong></summary>
-                                    <div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createSliderHTML('structuralShadows.cloudOcclusion.noise.scale', 'Scale', 0.01, 10, 0.01)}
-                                        ${DebuggerUIBuilder._createSliderHTML('structuralShadows.cloudOcclusion.noise.octaves', 'Detail Octaves', 1, 8, 1)}
-                                        ${DebuggerUIBuilder._createSliderHTML('structuralShadows.cloudOcclusion.noise.persistence', 'Roughness', 0.1, 1, 0.05)}
-                                        ${DebuggerUIBuilder._createSliderHTML('structuralShadows.cloudOcclusion.noise.lacunarity', 'Detail Frequency', 1.5, 4, 0.1)}
-                                    </div>
-                                </details>
-                                <details><summary><span class="accordion-toggle"></span><strong>Cloud Shading & Appearance</strong></summary>
-                                    <div style="padding-left: 15px;">
-                                            <details><summary><span class="accordion-toggle"></span><strong>Tone & Gamma</strong></summary><div style="padding-left:15px;">
-                                            ${DebuggerUIBuilder._createSliderHTML('structuralShadows.cloudOcclusion.shading.brightness', 'Brightness', -1, 1, 0.01)}
-                                            ${DebuggerUIBuilder._createSliderHTML('structuralShadows.cloudOcclusion.shading.contrast', 'Contrast', 0.1, 5, 0.05)}
-                                            ${DebuggerUIBuilder._createSliderHTML('structuralShadows.cloudOcclusion.shading.gamma', 'Gamma', 0.1, 5, 0.05)}
-                                            ${DebuggerUIBuilder._createSliderHTML('structuralShadows.cloudOcclusion.shading.exposure', 'Exposure', -2, 2, 0.05, 'Multiplies cloud noise brightness, simulating camera exposure.')}
-                                        </div></details>
-                                        <details><summary><span class="accordion-toggle"></span><strong>Levels & Threshold</strong></summary><div style="padding-left:15px;">
-                                            ${DebuggerUIBuilder._createSliderHTML('structuralShadows.cloudOcclusion.shading.levels.inBlack', 'Black Point', 0, 1, 0.01, 'Sets the darkest point of the cloud noise. Increase to make clouds cover less area.')}
-                                            ${DebuggerUIBuilder._createSliderHTML('structuralShadows.cloudOcclusion.shading.levels.inWhite', 'White Point', 0, 1, 0.01, 'Sets the brightest point of the cloud noise. Decrease to make clouds cover more area.')}
-                                            ${DebuggerUIBuilder._createSliderHTML('structuralShadows.cloudOcclusion.shading.threshold', 'Threshold', 0, 1, 0.01, 'Cuts off noise values below this, creating harder-edged clouds.')}
-                                            ${DebuggerUIBuilder._createSliderHTML('structuralShadows.cloudOcclusion.shading.softness', 'Softness', 0.01, 1, 0.01, 'How gradual the transition is at the threshold edge.')}
-                                        </div></details>
-                                    </div>
-                                </details>
+                                ${DebuggerUIBuilder._createSliderHTML('structuralShadows.cloudOcclusion.noise.scale', 'Scale', 0.01, 10, 0.01)}
+                                ${DebuggerUIBuilder._createSliderHTML('structuralShadows.cloudOcclusion.noise.octaves', 'Detail Octaves', 1, 8, 1)}
+                                ${DebuggerUIBuilder._createSliderHTML('structuralShadows.cloudOcclusion.noise.persistence', 'Roughness', 0.1, 1, 0.05)}
+                                ${DebuggerUIBuilder._createSliderHTML('structuralShadows.cloudOcclusion.noise.lacunarity', 'Detail Frequency', 1.5, 4, 0.1)}
                             </div>
                         </details>
-                    `;
+                        <details open><summary><span class="accordion-toggle"></span><strong>Cloud Shading & Appearance</strong></summary>
+                            <div style="padding-left: 15px;">
+                                    <details><summary><span class="accordion-toggle"></span><strong>Tone & Gamma</strong></summary><div style="padding-left:15px;">
+                                    ${DebuggerUIBuilder._createSliderHTML('structuralShadows.cloudOcclusion.shading.brightness', 'Brightness', -1, 1, 0.01)}
+                                    ${DebuggerUIBuilder._createSliderHTML('structuralShadows.cloudOcclusion.shading.contrast', 'Contrast', 0.1, 5, 0.05)}
+                                    ${DebuggerUIBuilder._createSliderHTML('structuralShadows.cloudOcclusion.shading.gamma', 'Gamma', 0.1, 5, 0.05)}
+                                    ${DebuggerUIBuilder._createSliderHTML('structuralShadows.cloudOcclusion.shading.exposure', 'Exposure', -2, 2, 0.05, 'Multiplies cloud noise brightness, simulating camera exposure.')}
+                                </div></details>
+                                <details open><summary><span class="accordion-toggle"></span><strong>Levels & Threshold</strong></summary><div style="padding-left:15px;">
+                                    ${DebuggerUIBuilder._createSliderHTML('structuralShadows.cloudOcclusion.shading.levels.inBlack', 'Black Point', 0, 1, 0.01, 'Sets the darkest point of the cloud noise. Increase to make clouds cover less area.')}
+                                    ${DebuggerUIBuilder._createSliderHTML('structuralShadows.cloudOcclusion.shading.levels.inWhite', 'White Point', 0, 1, 0.01, 'Sets the brightest point of the cloud noise. Decrease to make clouds cover more area.')}
+                                    ${DebuggerUIBuilder._createSliderHTML('structuralShadows.cloudOcclusion.shading.threshold', 'Threshold', 0, 1, 0.01, 'Cuts off noise values below this, creating harder-edged clouds.')}
+                                    ${DebuggerUIBuilder._createSliderHTML('structuralShadows.cloudOcclusion.shading.softness', 'Softness', 0.01, 1, 0.01, 'How gradual the transition is at the threshold edge.')}
+                                </div></details>
+                            </div>
+                        </details>
+                    </div>
+                </details>
+            `;
         return DebuggerUIBuilder._createAccordionHTML(effectKey, 'Structural Shadows', content, iconHTML);
     }
 
@@ -12176,153 +11926,153 @@ class IridescenceFilter extends PIXI.Filter {
     constructor(options = {}) {
 
         const fragmentSrc = `
-                        precision mediump float;
-                        varying vec2 vTextureCoord;
+                precision mediump float;
+                varying vec2 vTextureCoord;
 
-                        const int MAX_OCTAVES = ${IridescenceFilter.MAX_OCTAVES}; // Injected from JS
-                        const int MAX_COLORS = 8;
+                const int MAX_OCTAVES = ${IridescenceFilter.MAX_OCTAVES}; // Injected from JS
+                const int MAX_COLORS = 8;
 
-                        // Input Textures
-                        uniform sampler2D uSampler;
-                        uniform sampler2D uMaskTexture;
-                        uniform sampler2D uDistortionMap;
+                // Input Textures
+                uniform sampler2D uSampler;
+                uniform sampler2D uMaskTexture;
+                uniform sampler2D uDistortionMap;
 
-                        // World & Camera Uniforms
-                        uniform float uParallax;
-                        uniform vec2 uCameraOffset;
-                        uniform vec2 uViewSize;
-                        uniform vec2 uResolution;
+                // World & Camera Uniforms
+                uniform float uParallax;
+                uniform vec2 uCameraOffset;
+                uniform vec2 uViewSize;
+                uniform vec2 uResolution;
 
-                        // Effect Uniforms
-                        uniform float uTime;
-                        uniform float uSpeed;
-                        uniform float uScale;
-                        uniform float uIntensity;
-                        uniform float uDistortionStrength;
+                // Effect Uniforms
+                uniform float uTime;
+                uniform float uSpeed;
+                uniform float uScale;
+                uniform float uIntensity;
+                uniform float uDistortionStrength;
 
-                        // FBM Uniforms
-                        uniform int uOctaves;
-                        uniform float uPersistence;
-                        uniform float uLacunarity;
-                        uniform float uFbmEvolution;
-                        uniform float uFbmBrightness;
-                        uniform float uFbmContrast;
+                // FBM Uniforms
+                uniform int uOctaves;
+                uniform float uPersistence;
+                uniform float uLacunarity;
+                uniform float uFbmEvolution;
+                uniform float uFbmBrightness;
+                uniform float uFbmContrast;
 
-                        // Gradient Uniforms
-                        uniform vec3 uGradientColors[MAX_COLORS];
-                        uniform int uNumColors;
-                        uniform float uHueShift;
-                        uniform float uGradientBrightness;
-                        uniform float uGradientContrast;
+                // Gradient Uniforms
+                uniform vec3 uGradientColors[MAX_COLORS];
+                uniform int uNumColors;
+                uniform float uHueShift;
+                uniform float uGradientBrightness;
+                uniform float uGradientContrast;
 
-                        // --- NOISE FUNCTIONS ---
-                        float random(vec2 st) {
-                            return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
-                        }
+                // --- NOISE FUNCTIONS ---
+                float random(vec2 st) {
+                    return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
+                }
 
-                        float noise(vec2 st) {
-                            vec2 i = floor(st);
-                            vec2 f = fract(st);
-                            vec2 u = f * f * (3.0 - 2.0 * f);
-                            return mix(mix(random(i + vec2(0.0, 0.0)), random(i + vec2(1.0, 0.0)), u.x),
-                                    mix(random(i + vec2(0.0, 1.0)), random(i + vec2(1.0, 1.0)), u.x), u.y);
-                        }
+                float noise(vec2 st) {
+                    vec2 i = floor(st);
+                    vec2 f = fract(st);
+                    vec2 u = f * f * (3.0 - 2.0 * f);
+                    return mix(mix(random(i + vec2(0.0, 0.0)), random(i + vec2(1.0, 0.0)), u.x),
+                            mix(random(i + vec2(0.0, 1.0)), random(i + vec2(1.0, 1.0)), u.x), u.y);
+                }
 
-                        float fbm(vec2 st) {
-                            float value = 0.0;
-                            float amplitude = 0.5;
-                            float frequency = 1.0;
-                            for (int i = 0; i < MAX_OCTAVES; i++) {
-                                if (i >= uOctaves) break;
-                                value += amplitude * noise(st * frequency);
-                                st *= uLacunarity;
-                                amplitude *= uPersistence;
-                            }
-                            return value;
-                        }
+                float fbm(vec2 st) {
+                    float value = 0.0;
+                    float amplitude = 0.5;
+                    float frequency = 1.0;
+                    for (int i = 0; i < MAX_OCTAVES; i++) {
+                        if (i >= uOctaves) break;
+                        value += amplitude * noise(st * frequency);
+                        st *= uLacunarity;
+                        amplitude *= uPersistence;
+                    }
+                    return value;
+                }
 
-                        // --- COLOR FUNCTIONS ---
-                        float hue2rgb(float p, float q, float t) {
-                            if (t < 0.0) t += 1.0;
-                            if (t > 1.0) t -= 1.0;
-                            if (t < 1.0/6.0) return p + (q - p) * 6.0 * t;
-                            if (t < 1.0/2.0) return q;
-                            if (t < 2.0/3.0) return p + (q - p) * (2.0/3.0 - t) * 6.0;
-                            return p;
-                        }
+                // --- COLOR FUNCTIONS ---
+                float hue2rgb(float p, float q, float t) {
+                    if (t < 0.0) t += 1.0;
+                    if (t > 1.0) t -= 1.0;
+                    if (t < 1.0/6.0) return p + (q - p) * 6.0 * t;
+                    if (t < 1.0/2.0) return q;
+                    if (t < 2.0/3.0) return p + (q - p) * (2.0/3.0 - t) * 6.0;
+                    return p;
+                }
 
-                        vec3 hsl2rgb(vec3 c) {
-                            if (c.y == 0.0) return vec3(c.z);
-                            float q = c.z < 0.5 ? c.z * (1.0 + c.y) : c.z + c.y - c.z * c.y;
-                            float p = 2.0 * c.z - q;
-                            return vec3(hue2rgb(p, q, c.x + 1.0/3.0), hue2rgb(p, q, c.x), hue2rgb(p, q, c.x - 1.0/3.0));
-                        }
+                vec3 hsl2rgb(vec3 c) {
+                    if (c.y == 0.0) return vec3(c.z);
+                    float q = c.z < 0.5 ? c.z * (1.0 + c.y) : c.z + c.y - c.z * c.y;
+                    float p = 2.0 * c.z - q;
+                    return vec3(hue2rgb(p, q, c.x + 1.0/3.0), hue2rgb(p, q, c.x), hue2rgb(p, q, c.x - 1.0/3.0));
+                }
 
-                        vec3 rgb2hsl(vec3 c) {
-                            float max_c = max(max(c.r, c.g), c.b);
-                            float min_c = min(min(c.r, c.g), c.b);
-                            float h = 0.0, s = 0.0, l = (max_c + min_c) / 2.0;
-                            if (max_c != min_c) {
-                                float d = max_c - min_c;
-                                s = l > 0.5 ? d / (2.0 - max_c - min_c) : d / (max_c + min_c);
-                                if (max_c == c.r) h = (c.g - c.b) / d + (c.g < c.b ? 6.0 : 0.0);
-                                else if (max_c == c.g) h = (c.b - c.r) / d + 2.0;
-                                else h = (c.r - c.g) / d + 4.0;
-                                h /= 6.0;
-                            }
-                            return vec3(h, s, l);
-                        }
+                vec3 rgb2hsl(vec3 c) {
+                    float max_c = max(max(c.r, c.g), c.b);
+                    float min_c = min(min(c.r, c.g), c.b);
+                    float h = 0.0, s = 0.0, l = (max_c + min_c) / 2.0;
+                    if (max_c != min_c) {
+                        float d = max_c - min_c;
+                        s = l > 0.5 ? d / (2.0 - max_c - min_c) : d / (max_c + min_c);
+                        if (max_c == c.r) h = (c.g - c.b) / d + (c.g < c.b ? 6.0 : 0.0);
+                        else if (max_c == c.g) h = (c.b - c.r) / d + 2.0;
+                        else h = (c.r - c.g) / d + 4.0;
+                        h /= 6.0;
+                    }
+                    return vec3(h, s, l);
+                }
 
-                        vec3 getGradientColor(float t) {
-                            if (uNumColors <= 1) { return uGradientColors[0]; }
-                            float pos = t * float(uNumColors - 1);
-                            float mix_factor = fract(pos);
-                            if (pos < 1.0) { return mix(uGradientColors[0], uGradientColors[1], mix_factor); }
-                            else if (pos < 2.0) { return mix(uGradientColors[1], uGradientColors[2], mix_factor); }
-                            else if (pos < 3.0) { return mix(uGradientColors[2], uGradientColors[3], mix_factor); }
-                            else if (pos < 4.0) { return mix(uGradientColors[3], uGradientColors[4], mix_factor); }
-                            else if (pos < 5.0) { return mix(uGradientColors[4], uGradientColors[5], mix_factor); }
-                            else if (pos < 6.0) { return mix(uGradientColors[5], uGradientColors[6], mix_factor); }
-                            else if (pos < 7.0) { return mix(uGradientColors[6], uGradientColors[7], mix_factor); }
-                            else { return uGradientColors[7]; }
-                        }
+                vec3 getGradientColor(float t) {
+                    if (uNumColors <= 1) { return uGradientColors[0]; }
+                    float pos = t * float(uNumColors - 1);
+                    float mix_factor = fract(pos);
+                    if (pos < 1.0) { return mix(uGradientColors[0], uGradientColors[1], mix_factor); }
+                    else if (pos < 2.0) { return mix(uGradientColors[1], uGradientColors[2], mix_factor); }
+                    else if (pos < 3.0) { return mix(uGradientColors[2], uGradientColors[3], mix_factor); }
+                    else if (pos < 4.0) { return mix(uGradientColors[3], uGradientColors[4], mix_factor); }
+                    else if (pos < 5.0) { return mix(uGradientColors[4], uGradientColors[5], mix_factor); }
+                    else if (pos < 6.0) { return mix(uGradientColors[5], uGradientColors[6], mix_factor); }
+                    else if (pos < 7.0) { return mix(uGradientColors[6], uGradientColors[7], mix_factor); }
+                    else { return uGradientColors[7]; }
+                }
 
-                        void main(void) {
-                            float maskValue = texture2D(uMaskTexture, vTextureCoord).r;
-                            if (maskValue < 0.01) {
-                                discard;
-                            }
+                void main(void) {
+                    float maskValue = texture2D(uMaskTexture, vTextureCoord).r;
+                    if (maskValue < 0.01) {
+                        discard;
+                    }
 
-                            vec2 worldCoord = uCameraOffset + (vTextureCoord * uViewSize);
-                            vec2 screenCoord = vTextureCoord * uResolution;
-                            vec2 parallaxCoord = mix(worldCoord, screenCoord, uParallax);
+                    vec2 worldCoord = uCameraOffset + (vTextureCoord * uViewSize);
+                    vec2 screenCoord = vTextureCoord * uResolution;
+                    vec2 parallaxCoord = mix(worldCoord, screenCoord, uParallax);
 
-                            vec2 distortionOffset = (texture2D(uDistortionMap, vTextureCoord).rg - 0.5) * 2.0;
-                            vec2 distortedCoord = parallaxCoord + (distortionOffset * uDistortionStrength * 10.0);
+                    vec2 distortionOffset = (texture2D(uDistortionMap, vTextureCoord).rg - 0.5) * 2.0;
+                    vec2 distortedCoord = parallaxCoord + (distortionOffset * uDistortionStrength * 10.0);
 
-                            vec2 scaledPatternUv = distortedCoord * uScale * 0.01;
-                            
-                            // Animate both directional drift and internal evolution
-                            vec2 fbm_uv = scaledPatternUv;
-                            fbm_uv += vec2(uTime * uSpeed * 0.1); // Scaled down directional drift
-                            fbm_uv.x += uTime * uFbmEvolution * 0.1; // Slower time evolution
+                    vec2 scaledPatternUv = distortedCoord * uScale * 0.01;
+                    
+                    // Animate both directional drift and internal evolution
+                    vec2 fbm_uv = scaledPatternUv;
+                    fbm_uv += vec2(uTime * uSpeed * 0.1); // Scaled down directional drift
+                    fbm_uv.x += uTime * uFbmEvolution * 0.1; // Slower time evolution
 
-                            float patternDriver = fbm(fbm_uv);
+                    float patternDriver = fbm(fbm_uv);
 
-                            // Apply brightness and contrast to the raw noise value
-                            patternDriver = (patternDriver - 0.5 + uFbmBrightness) * uFbmContrast + 0.5;
+                    // Apply brightness and contrast to the raw noise value
+                    patternDriver = (patternDriver - 0.5 + uFbmBrightness) * uFbmContrast + 0.5;
 
-                            vec3 baseColor = getGradientColor(clamp(patternDriver, 0.0, 1.0));
-                            vec3 hsl = rgb2hsl(baseColor);
-                            hsl.x = fract(hsl.x + uHueShift);
-                            vec3 shiftedColor = hsl2rgb(hsl);
-                            shiftedColor += uGradientBrightness;
-                            shiftedColor = (shiftedColor - 0.5) * uGradientContrast + 0.5;
+                    vec3 baseColor = getGradientColor(clamp(patternDriver, 0.0, 1.0));
+                    vec3 hsl = rgb2hsl(baseColor);
+                    hsl.x = fract(hsl.x + uHueShift);
+                    vec3 shiftedColor = hsl2rgb(hsl);
+                    shiftedColor += uGradientBrightness;
+                    shiftedColor = (shiftedColor - 0.5) * uGradientContrast + 0.5;
 
-                            vec3 finalRgb = clamp(shiftedColor, 0.0, 1.0) * uIntensity * maskValue;
-                            gl_FragColor = vec4(finalRgb, uIntensity * maskValue);
-                        }
-                    `;
+                    vec3 finalRgb = clamp(shiftedColor, 0.0, 1.0) * uIntensity * maskValue;
+                    gl_FragColor = vec4(finalRgb, uIntensity * maskValue);
+                }
+            `;
 
         super(PIXI.Filter.defaultVertexSrc, fragmentSrc, {
             // Textures
@@ -12375,50 +12125,50 @@ class IridescenceLayer extends MaskedEffectLayer {
         const iconHTML = `<span class="world-based-icon" data-world-based-path="${path}" title="World Based: This effect uses the world-level default profile, ignoring scene-specific settings."><i class="fas fa-globe"></i></span>`;
 
         const content = `
-                        ${checkboxHTML}
-                        <hr style="border-color: #555; margin: 6px 0;">
-                        ${DebuggerUIBuilder._createTextureInputHTML('iridescence', 'Iridescence Mask')}
-                        <p class="description-text">Creates a colorful, oil-slick-like effect within the masked areas.</p>
-                        ${DebuggerUIBuilder._createSliderHTML('iridescence.intensity', 'Intensity', 0, 2, 0.05)}
-                        ${DebuggerUIBuilder._createSliderHTML('iridescence.speed', 'Anim Speed', 0, 0.2, 0.001, 'Directional drift speed of the pattern.')}
-                        ${DebuggerUIBuilder._createSliderHTML('iridescence.scale', 'Pattern Scale', 0.1, 20, 0.1)}
-                        ${DebuggerUIBuilder._createSliderHTML('iridescence.parallax', 'Parallax', 0, 1, 0.01, '0 = Sticks to Map, 1 = Sticks to Screen')}
-                        <details id="details-iridescence-fbm"><summary><span class="accordion-toggle"></span><strong>FBM Pattern</strong></summary>
+                ${checkboxHTML}
+                <hr style="border-color: #555; margin: 6px 0;">
+                ${DebuggerUIBuilder._createTextureInputHTML('iridescence', 'Iridescence Mask')}
+                <p class="description-text">Creates a colorful, oil-slick-like effect within the masked areas.</p>
+                ${DebuggerUIBuilder._createSliderHTML('iridescence.intensity', 'Intensity', 0, 2, 0.05)}
+                ${DebuggerUIBuilder._createSliderHTML('iridescence.speed', 'Anim Speed', 0, 0.2, 0.001, 'Directional drift speed of the pattern.')}
+                ${DebuggerUIBuilder._createSliderHTML('iridescence.scale', 'Pattern Scale', 0.1, 20, 0.1)}
+                ${DebuggerUIBuilder._createSliderHTML('iridescence.parallax', 'Parallax', 0, 1, 0.01, '0 = Sticks to Map, 1 = Sticks to Screen')}
+                <details id="details-iridescence-fbm"><summary><span class="accordion-toggle"></span><strong>FBM Pattern</strong></summary>
+                    <div>
+                        <p class="description-text">Controls the procedural noise used to generate the base pattern.</p>
+                        ${DebuggerUIBuilder._createSliderHTML('iridescence.fbm.evolution', 'Evolution', 0, 1, 0.001, 'Internal "boiling" speed of the pattern.')}
+                        ${DebuggerUIBuilder._createSliderHTML('iridescence.fbm.octaves', 'Complexity (Octaves)', 1, IridescenceFilter.MAX_OCTAVES, 1, 'Layers of noise. More is more detailed but slower.')}
+                        ${DebuggerUIBuilder._createSliderHTML('iridescence.fbm.persistence', 'Roughness', 0.1, 1, 0.01, 'Influence of smaller details. Lower is smoother.')}
+                        ${DebuggerUIBuilder._createSliderHTML('iridescence.fbm.lacunarity', 'Detail Scale', 1.5, 4, 0.05, 'Frequency of smaller details. Higher is finer.')}
+                        ${DebuggerUIBuilder._createSliderHTML('iridescence.fbm.brightness', 'Noise Brightness', 0, 1, 0.01, 'Adjusts the brightness of the noise before color mapping.')}
+                        ${DebuggerUIBuilder._createSliderHTML('iridescence.fbm.contrast', 'Noise Contrast', 0, 5, 0.05, 'Adjusts the contrast of the noise before color mapping.')}
+                    </div>
+                </details>
+                <details id="details-iridescence-gradient"><summary><span class="accordion-toggle"></span><strong>Gradient Controls</strong></summary>
+                    <div>
+                        ${DebuggerUIBuilder._createGradientSelectHTML('iridescence.gradient.name', 'Gradient Preset')}
+                        ${DebuggerUIBuilder._createSliderHTML('iridescence.gradient.hueShift', 'Hue Shift', 0, 1, 0.01, 'Rotates the colors of the gradient.')}
+                        ${DebuggerUIBuilder._createSliderHTML('iridescence.gradient.brightness', 'Brightness', -1, 1, 0.01, 'Final brightness adjustment applied to the colored result.')}
+                        ${DebuggerUIBuilder._createSliderHTML('iridescence.gradient.contrast', 'Contrast', 0, 4, 0.05, 'Final contrast adjustment applied to the colored result.')}
+                    </div>
+                </details>
+                <details id="details-iridescence-distortion"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('iridescence.distortion.enabled', 'Churn/Distortion Effect', true)}</div></summary>
+                    <div>
+                        <p class="description-text">Uses a second, underlying noise pattern to warp the main iridescence effect.</p>
+                        ${DebuggerUIBuilder._createSliderHTML('iridescence.distortion.strength', 'Distortion Strength', 0, 20, 0.1)}
+                        <details id="details-iridescence-distortion-noise"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('iridescence.noise.enabled', 'Distortion Noise', true)}</div></summary>
                             <div>
-                                <p class="description-text">Controls the procedural noise used to generate the base pattern.</p>
-                                ${DebuggerUIBuilder._createSliderHTML('iridescence.fbm.evolution', 'Evolution', 0, 1, 0.001, 'Internal "boiling" speed of the pattern.')}
-                                ${DebuggerUIBuilder._createSliderHTML('iridescence.fbm.octaves', 'Complexity (Octaves)', 1, IridescenceFilter.MAX_OCTAVES, 1, 'Layers of noise. More is more detailed but slower.')}
-                                ${DebuggerUIBuilder._createSliderHTML('iridescence.fbm.persistence', 'Roughness', 0.1, 1, 0.01, 'Influence of smaller details. Lower is smoother.')}
-                                ${DebuggerUIBuilder._createSliderHTML('iridescence.fbm.lacunarity', 'Detail Scale', 1.5, 4, 0.05, 'Frequency of smaller details. Higher is finer.')}
-                                ${DebuggerUIBuilder._createSliderHTML('iridescence.fbm.brightness', 'Noise Brightness', 0, 1, 0.01, 'Adjusts the brightness of the noise before color mapping.')}
-                                ${DebuggerUIBuilder._createSliderHTML('iridescence.fbm.contrast', 'Noise Contrast', 0, 5, 0.05, 'Adjusts the contrast of the noise before color mapping.')}
+                                ${DebuggerUIBuilder._createSliderHTML('iridescence.noise.speed', -0.5, 0.5, 0.001)}
+                                ${DebuggerUIBuilder._createSliderHTML('iridescence.noise.scale', 'Scale', 0.1, 10, 0.1)}
+                                ${DebuggerUIBuilder._createSliderHTML('iridescence.noise.threshold', 'Threshold', 0, 1, 0.01)}
+                                ${DebuggerUIBuilder._createSliderHTML('iridescence.noise.brightness', 'Brightness', -1, 1, 0.01)}
+                                ${DebuggerUIBuilder._createSliderHTML('iridescence.noise.contrast', 'Contrast', 0, 5, 0.05)}
+                                ${DebuggerUIBuilder._createSliderHTML('iridescence.noise.softness', 'Softness', 0.01, 1, 0.01)}
                             </div>
                         </details>
-                        <details id="details-iridescence-gradient"><summary><span class="accordion-toggle"></span><strong>Gradient Controls</strong></summary>
-                            <div>
-                                ${DebuggerUIBuilder._createGradientSelectHTML('iridescence.gradient.name', 'Gradient Preset')}
-                                ${DebuggerUIBuilder._createSliderHTML('iridescence.gradient.hueShift', 'Hue Shift', 0, 1, 0.01, 'Rotates the colors of the gradient.')}
-                                ${DebuggerUIBuilder._createSliderHTML('iridescence.gradient.brightness', 'Brightness', -1, 1, 0.01, 'Final brightness adjustment applied to the colored result.')}
-                                ${DebuggerUIBuilder._createSliderHTML('iridescence.gradient.contrast', 'Contrast', 0, 4, 0.05, 'Final contrast adjustment applied to the colored result.')}
-                            </div>
-                        </details>
-                        <details id="details-iridescence-distortion"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('iridescence.distortion.enabled', 'Churn/Distortion Effect', true)}</div></summary>
-                            <div>
-                                <p class="description-text">Uses a second, underlying noise pattern to warp the main iridescence effect.</p>
-                                ${DebuggerUIBuilder._createSliderHTML('iridescence.distortion.strength', 'Distortion Strength', 0, 20, 0.1)}
-                                <details id="details-iridescence-distortion-noise"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('iridescence.noise.enabled', 'Distortion Noise', true)}</div></summary>
-                                    <div>
-                                        ${DebuggerUIBuilder._createSliderHTML('iridescence.noise.speed', -0.5, 0.5, 0.001)}
-                                        ${DebuggerUIBuilder._createSliderHTML('iridescence.noise.scale', 'Scale', 0.1, 10, 0.1)}
-                                        ${DebuggerUIBuilder._createSliderHTML('iridescence.noise.threshold', 'Threshold', 0, 1, 0.01)}
-                                        ${DebuggerUIBuilder._createSliderHTML('iridescence.noise.brightness', 'Brightness', -1, 1, 0.01)}
-                                        ${DebuggerUIBuilder._createSliderHTML('iridescence.noise.contrast', 'Contrast', 0, 5, 0.05)}
-                                        ${DebuggerUIBuilder._createSliderHTML('iridescence.noise.softness', 'Softness', 0.01, 1, 0.01)}
-                                    </div>
-                                </details>
-                            </div>
-                        </details>
-                    `;
+                    </div>
+                </details>
+            `;
         return DebuggerUIBuilder._createAccordionHTML(effectKey, 'Iridescence', content, iconHTML);
     }
 
@@ -12599,59 +12349,59 @@ class AmbientLayer extends CanvasLayer {
 
     static getSettingsHTML() {
         return DebuggerUIBuilder._createAccordionHTML('ambient', 'Ambient / Emissive', `
-                        ${DebuggerUIBuilder._createTextureInputHTML('ambient', 'Emissive Map (_Ambient)')}
-                        <p class="description-text">Applies color and effects to a texture, often used for glowing areas that are part of the map itself (e.g., lava, magic runes).</p>
-                        ${DebuggerUIBuilder._createSliderHTML('ambient.intensity', 'Intensity', 0, 5, 0.05, 'Brightness multiplier. Values > 1 are useful for additive blending.')}
-                        ${DebuggerUIBuilder._createSelectHTML('ambient.blendMode', 'Blend Mode', BLEND_MODE_OPTIONS)}
-                
-                        <details id="details-ambient-tokenMasking">
-                            <summary>
-                                <span class="accordion-toggle"></span>
-                                <div class="summary-control">
-                                    ${DebuggerUIBuilder._createCheckboxHTML('ambient.tokenMasking.enabled', 'Token Masking', true)}
-                                </div>
-                            </summary>
-                            <div style="padding-left: 15px;">
-                                <p class="description-text">Hides the effect behind tokens. For this to work, you may need to increase this layer's Z-Index (see Rendering Order section) to be above the token layer.</p>
-                                ${DebuggerUIBuilder._createSliderHTML('ambient.tokenMasking.threshold', 'Mask Threshold', 0, 1, 0.01)}
-                            </div>
-                        </details>
-                
-                        <details id="details-ambient-masking">
-                            <summary>
-                                <span class="accordion-toggle"></span>
-                                <div class="summary-control">
-                                    ${DebuggerUIBuilder._createCheckboxHTML('ambient.masking.enabled', 'Luminance Mask', true)}
-                                </div>
-                            </summary>
-                            <div style="padding-left: 15px;">
-                                <p class="description-text">Fades out the effect in dark areas of the scene. Requires scene lighting and the Illumination Buffer module.</p>
-                                ${DebuggerUIBuilder._createSliderHTML('ambient.masking.threshold', 'Brightness Threshold', 0, 1, 0.01)}
-                                ${DebuggerUIBuilder._createSliderHTML('ambient.masking.softness', 'Edge Softness', 0.01, 1, 0.01)}
-                            </div>
-                        </details>
-                
-                        <details id="details-ambient-colorCorrection"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('ambient.colorCorrection.enabled', 'Color Correction', true)}</div></summary>
-                            <div style="padding-left: 15px;">
-                                ${DebuggerUIBuilder._createSliderHTML('ambient.colorCorrection.saturation', 'Saturation', 0, 4, 0.05)}
-                                ${DebuggerUIBuilder._createSliderHTML('ambient.colorCorrection.brightness', 'Brightness', -1, 1, 0.01)}
-                                ${DebuggerUIBuilder._createSliderHTML('ambient.colorCorrection.contrast', 'Contrast', 0, 4, 0.05)}
-                                ${DebuggerUIBuilder._createSliderHTML('ambient.colorCorrection.gamma', 'Gamma', 0.2, 2.5, 0.05)}
-                                <details id="details-ambient-cc-tint"><summary><span class="accordion-toggle"></span><strong>Color Tint</strong></summary><div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createColorPickerHTML('ambient.colorCorrection.tint.color', 'Tint Color')}
-                                        ${DebuggerUIBuilder._createSliderHTML('ambient.colorCorrection.tint.amount', 'Tint Amount', 0, 1, 0.01)}
-                                </div></details>
-                            </div>
-                        </details>
-                        <details id="details-ambient-rendering">
-                            <summary><span class="accordion-toggle"></span><strong>Rendering Order</strong></summary>
-                            <div>
-                                <p class="description-text">Controls the draw order of this layer relative to others like lighting and tokens. Higher values are drawn on top.</p>
-                                ${DebuggerUIBuilder._createSliderHTML('ambientLayerZIndex', 'Layer Z-Index', 0, 500, 10, 'Default z-indexes: Tokens=100, Lighting=200, Weather=300, Fog=400')}
-                                <button id="reload-canvas-btn" style="width: 100%; margin-top: 5px;">Reload Canvas to Apply Z-Index</button>
-                            </div>
-                        </details>
-                    `);
+                ${DebuggerUIBuilder._createTextureInputHTML('ambient', 'Emissive Map (_Ambient)')}
+                <p class="description-text">Applies color and effects to a texture, often used for glowing areas that are part of the map itself (e.g., lava, magic runes).</p>
+                ${DebuggerUIBuilder._createSliderHTML('ambient.intensity', 'Intensity', 0, 5, 0.05, 'Brightness multiplier. Values > 1 are useful for additive blending.')}
+                ${DebuggerUIBuilder._createSelectHTML('ambient.blendMode', 'Blend Mode', BLEND_MODE_OPTIONS)}
+        
+                <details id="details-ambient-tokenMasking">
+                    <summary>
+                        <span class="accordion-toggle"></span>
+                        <div class="summary-control">
+                            ${DebuggerUIBuilder._createCheckboxHTML('ambient.tokenMasking.enabled', 'Token Masking', true)}
+                        </div>
+                    </summary>
+                    <div style="padding-left: 15px;">
+                        <p class="description-text">Hides the effect behind tokens. For this to work, you may need to increase this layer's Z-Index (see Rendering Order section) to be above the token layer.</p>
+                        ${DebuggerUIBuilder._createSliderHTML('ambient.tokenMasking.threshold', 'Mask Threshold', 0, 1, 0.01)}
+                    </div>
+                </details>
+        
+                <details id="details-ambient-masking">
+                    <summary>
+                        <span class="accordion-toggle"></span>
+                        <div class="summary-control">
+                            ${DebuggerUIBuilder._createCheckboxHTML('ambient.masking.enabled', 'Luminance Mask', true)}
+                        </div>
+                    </summary>
+                    <div style="padding-left: 15px;">
+                        <p class="description-text">Fades out the effect in dark areas of the scene. Requires scene lighting and the Illumination Buffer module.</p>
+                        ${DebuggerUIBuilder._createSliderHTML('ambient.masking.threshold', 'Brightness Threshold', 0, 1, 0.01)}
+                        ${DebuggerUIBuilder._createSliderHTML('ambient.masking.softness', 'Edge Softness', 0.01, 1, 0.01)}
+                    </div>
+                </details>
+        
+                <details id="details-ambient-colorCorrection"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('ambient.colorCorrection.enabled', 'Color Correction', true)}</div></summary>
+                    <div style="padding-left: 15px;">
+                        ${DebuggerUIBuilder._createSliderHTML('ambient.colorCorrection.saturation', 'Saturation', 0, 4, 0.05)}
+                        ${DebuggerUIBuilder._createSliderHTML('ambient.colorCorrection.brightness', 'Brightness', -1, 1, 0.01)}
+                        ${DebuggerUIBuilder._createSliderHTML('ambient.colorCorrection.contrast', 'Contrast', 0, 4, 0.05)}
+                        ${DebuggerUIBuilder._createSliderHTML('ambient.colorCorrection.gamma', 'Gamma', 0.2, 2.5, 0.05)}
+                        <details id="details-ambient-cc-tint"><summary><span class="accordion-toggle"></span><strong>Color Tint</strong></summary><div style="padding-left: 15px;">
+                                ${DebuggerUIBuilder._createColorPickerHTML('ambient.colorCorrection.tint.color', 'Tint Color')}
+                                ${DebuggerUIBuilder._createSliderHTML('ambient.colorCorrection.tint.amount', 'Tint Amount', 0, 1, 0.01)}
+                        </div></details>
+                    </div>
+                </details>
+                <details id="details-ambient-rendering">
+                    <summary><span class="accordion-toggle"></span><strong>Rendering Order</strong></summary>
+                    <div>
+                        <p class="description-text">Controls the draw order of this layer relative to others like lighting and tokens. Higher values are drawn on top.</p>
+                        ${DebuggerUIBuilder._createSliderHTML('ambientLayerZIndex', 'Layer Z-Index', 0, 500, 10, 'Default z-indexes: Tokens=100, Lighting=200, Weather=300, Fog=400')}
+                        <button id="reload-canvas-btn" style="width: 100%; margin-top: 5px;">Reload Canvas to Apply Z-Index</button>
+                    </div>
+                </details>
+            `);
     }
 
     async _tearDown(options) {
@@ -12755,8 +12505,6 @@ class AmbientLayer extends CanvasLayer {
     }
 
     async _updateSpriteTransform(sprite, texturePath, rect) {
-        if (!sprite || sprite.destroyed) return;
-
         // console.log(`AmbientLayer DEBUG | _updateSpriteTransform: Updating sprite for texture: ${texturePath}`);
         const currentPath = sprite.texture?.baseTexture?.resource?.src;
         if (texturePath !== currentPath) {
@@ -12768,7 +12516,7 @@ class AmbientLayer extends CanvasLayer {
                 sprite.texture = PIXI.Texture.EMPTY;
             }
         }
-        if (!sprite || sprite.destroyed || !sprite.anchor || !sprite.texture.valid || !rect) {
+        if (!sprite.texture.valid || !rect) {
             // console.warn(`AmbientLayer DEBUG | _updateSpriteTransform: Skipping transform update due to invalid texture or rect.`);
             return;
         }
@@ -12832,29 +12580,29 @@ class GroundGlowLayer extends CanvasLayer {
 
     static getSettingsHTML() {
         return DebuggerUIBuilder._createAccordionHTML('groundGlow', 'Glow in the Dark', `
-                        ${DebuggerUIBuilder._createTextureInputHTML('groundGlow', 'Glow Texture')}
-                        <p class="description-text">Makes a texture appear to glow only in unlit areas of the scene. Requires scene lighting.</p>
-                        ${DebuggerUIBuilder._createSliderHTML('groundGlow.intensity', 'Intensity', 0, 5, 0.05)}
-                
-                        <details id="details-groundGlow-tokenMasking">
-                            <summary>
-                                <span class="accordion-toggle"></span>
-                                <div class="summary-control">
-                                    ${DebuggerUIBuilder._createCheckboxHTML('groundGlow.tokenMasking.enabled', 'Token Masking', true)}
-                                </div>
-                            </summary>
-                            <div style="padding-left: 15px;">
-                                <p class="description-text">Hides the effect behind tokens. This layer is already in a high-level group, so it should work by default.</p>
-                                ${DebuggerUIBuilder._createSliderHTML('groundGlow.tokenMasking.threshold', 'Mask Threshold', 0, 1, 0.01)}
-                            </div>
-                        </details>
-                
-                        ${DebuggerUIBuilder._createSliderHTML('groundGlow.luminanceThreshold', 'Light Threshold', 0, 1, 0.01, 'The scene brightness level above which the glow will fade out.')}
-                        ${DebuggerUIBuilder._createSliderHTML('groundGlow.softness', 'Edge Softness', 0.01, 1, 0.01)}
-                        ${DebuggerUIBuilder._createCheckboxHTML('groundGlow.invert', 'Invert (Glow in Light)', false, 'Makes the effect appear in lit areas instead of dark ones.')}
-                        ${DebuggerUIBuilder._createSliderHTML('groundGlow.brightness', 'Brightness', 0, 5, 0.05)}
-                        ${DebuggerUIBuilder._createSliderHTML('groundGlow.saturation', 'Saturation', 0, 5, 0.05)}
-                    `);
+                ${DebuggerUIBuilder._createTextureInputHTML('groundGlow', 'Glow Texture')}
+                <p class="description-text">Makes a texture appear to glow only in unlit areas of the scene. Requires scene lighting.</p>
+                ${DebuggerUIBuilder._createSliderHTML('groundGlow.intensity', 'Intensity', 0, 5, 0.05)}
+        
+                <details id="details-groundGlow-tokenMasking">
+                    <summary>
+                        <span class="accordion-toggle"></span>
+                        <div class="summary-control">
+                            ${DebuggerUIBuilder._createCheckboxHTML('groundGlow.tokenMasking.enabled', 'Token Masking', true)}
+                        </div>
+                    </summary>
+                    <div style="padding-left: 15px;">
+                        <p class="description-text">Hides the effect behind tokens. This layer is already in a high-level group, so it should work by default.</p>
+                        ${DebuggerUIBuilder._createSliderHTML('groundGlow.tokenMasking.threshold', 'Mask Threshold', 0, 1, 0.01)}
+                    </div>
+                </details>
+        
+                ${DebuggerUIBuilder._createSliderHTML('groundGlow.luminanceThreshold', 'Light Threshold', 0, 1, 0.01, 'The scene brightness level above which the glow will fade out.')}
+                ${DebuggerUIBuilder._createSliderHTML('groundGlow.softness', 'Edge Softness', 0.01, 1, 0.01)}
+                ${DebuggerUIBuilder._createCheckboxHTML('groundGlow.invert', 'Invert (Glow in Light)', false, 'Makes the effect appear in lit areas instead of dark ones.')}
+                ${DebuggerUIBuilder._createSliderHTML('groundGlow.brightness', 'Brightness', 0, 5, 0.05)}
+                ${DebuggerUIBuilder._createSliderHTML('groundGlow.saturation', 'Saturation', 0, 5, 0.05)}
+            `);
     }
 
     async _draw(options) {
@@ -12943,8 +12691,6 @@ class GroundGlowLayer extends CanvasLayer {
     }
 
     async _updateSpriteTransform(sprite, texturePath, rect) {
-        if (!sprite || sprite.destroyed) return;
-
         const currentPath = sprite.texture?.baseTexture?.resource?.src;
         if (texturePath !== currentPath) {
             try {
@@ -12953,9 +12699,7 @@ class GroundGlowLayer extends CanvasLayer {
                 sprite.texture = PIXI.Texture.EMPTY;
             }
         }
-
-        if (!sprite || sprite.destroyed || !sprite.anchor || !sprite.texture.valid || !rect) return;
-
+        if (!sprite.texture.valid || !rect) return;
         sprite.anchor.set(0.5);
         sprite.position.set(rect.x + (rect.width / 2), rect.y + (rect.height / 2));
         sprite.width = rect.width;
@@ -13070,23 +12814,23 @@ class HeatDistortionLayer extends CanvasLayer {
         const iconHTML = `<span class="world-based-icon" data-world-based-path="${path}" title="World Based: This effect uses the world-level default profile, ignoring scene-specific settings."><i class="fas fa-globe"></i></span>`;
 
         const content = `
-                        ${checkboxHTML}
-                        <hr style="border-color: #555; margin: 6px 0;">
-                        ${DebuggerUIBuilder._createTextureInputHTML('heat', 'Intensity Mask (_Heat)')}
-                        <p class="description-text">Simulates rising heat waves, distorting the scene behind the masked areas.</p>
-                        ${DebuggerUIBuilder._createSliderHTML('heatDistortion.intensity', 'Intensity', 0, 0.05, 0.0005)}
-                        <details id="details-heatDistortion-noise"><summary><span class="accordion-toggle"></span><strong>Noise Pattern</strong></summary>
-                            <div style="padding-left: 15px;">
-                                ${DebuggerUIBuilder._createSliderHTML('heatDistortion.noise.speed', 'Speed (Wind)', -0.5, 0.5, 0.005, 'Horizontal scrolling speed of the heat waves.')}
-                                ${DebuggerUIBuilder._createSliderHTML('heatDistortion.noise.scale', 'Scale', 0.1, 10, 0.1, 'Zoom level of the heat waves.')}
-                                ${DebuggerUIBuilder._createSliderHTML('heatDistortion.noise.evolution', 'Evolution Speed', 0, 1, 0.01, 'The "boiling" or "morphing" speed of the noise, independent of wind.')}
-                                ${DebuggerUIBuilder._createSliderHTML('heatDistortion.noise.threshold', 'Threshold', 0, 1, 0.01)}
-                                ${DebuggerUIBuilder._createSliderHTML('heatDistortion.noise.brightness', 'Brightness', -1, 1, 0.01)}
-                                ${DebuggerUIBuilder._createSliderHTML('heatDistortion.noise.contrast', 'Contrast', 0, 5, 0.05)}
-                                ${DebuggerUIBuilder._createSliderHTML('heatDistortion.noise.softness', 'Softness', 0.01, 1, 0.01)}
-                            </div>
-                        </details>
-                    `;
+                ${checkboxHTML}
+                <hr style="border-color: #555; margin: 6px 0;">
+                ${DebuggerUIBuilder._createTextureInputHTML('heat', 'Intensity Mask (_Heat)')}
+                <p class="description-text">Simulates rising heat waves, distorting the scene behind the masked areas.</p>
+                ${DebuggerUIBuilder._createSliderHTML('heatDistortion.intensity', 'Intensity', 0, 0.05, 0.0005)}
+                <details id="details-heatDistortion-noise"><summary><span class="accordion-toggle"></span><strong>Noise Pattern</strong></summary>
+                    <div style="padding-left: 15px;">
+                        ${DebuggerUIBuilder._createSliderHTML('heatDistortion.noise.speed', 'Speed (Wind)', -0.5, 0.5, 0.005, 'Horizontal scrolling speed of the heat waves.')}
+                        ${DebuggerUIBuilder._createSliderHTML('heatDistortion.noise.scale', 'Scale', 0.1, 10, 0.1, 'Zoom level of the heat waves.')}
+                        ${DebuggerUIBuilder._createSliderHTML('heatDistortion.noise.evolution', 'Evolution Speed', 0, 1, 0.01, 'The "boiling" or "morphing" speed of the noise, independent of wind.')}
+                        ${DebuggerUIBuilder._createSliderHTML('heatDistortion.noise.threshold', 'Threshold', 0, 1, 0.01)}
+                        ${DebuggerUIBuilder._createSliderHTML('heatDistortion.noise.brightness', 'Brightness', -1, 1, 0.01)}
+                        ${DebuggerUIBuilder._createSliderHTML('heatDistortion.noise.contrast', 'Contrast', 0, 5, 0.05)}
+                        ${DebuggerUIBuilder._createSliderHTML('heatDistortion.noise.softness', 'Softness', 0.01, 1, 0.01)}
+                    </div>
+                </details>
+            `;
         return DebuggerUIBuilder._createAccordionHTML(effectKey, 'Heat Distortion', content, iconHTML);
     }
 
@@ -13154,8 +12898,6 @@ class HeatDistortionLayer extends CanvasLayer {
     }
 
     async _updateSpriteTransform(sprite, texturePath, rect) {
-        if (!sprite || sprite.destroyed) return;
-
         const currentPath = sprite.texture?.baseTexture?.resource?.src;
         if (texturePath !== currentPath) {
             try {
@@ -13164,9 +12906,7 @@ class HeatDistortionLayer extends CanvasLayer {
                 sprite.texture = PIXI.Texture.EMPTY;
             }
         }
-
-        if (!sprite || sprite.destroyed || !sprite.anchor || !sprite.texture.valid || !rect) return;
-
+        if (!sprite.texture.valid || !rect) return;
         sprite.anchor.set(0.5);
         sprite.position.set(rect.x + (rect.width / 2), rect.y + (rect.height / 2));
         sprite.width = rect.width;
@@ -13288,33 +13028,33 @@ class PrismLayer extends MaskedEffectLayer {
         const iconHTML = `<span class="world-based-icon" data-world-based-path="${path}" title="World Based: This effect uses the world-level default profile, ignoring scene-specific settings."><i class="fas fa-globe"></i></span>`;
 
         const content = `
-                        ${checkboxHTML}
-                        <hr style="border-color: #555; margin: 6px 0;">
-                        ${DebuggerUIBuilder._createTextureInputHTML('prism', 'Effect Mask (_Prism)')}
-                        <p class="description-text">Splits the light from the brightest parts of the scene into a prismatic, chromatic aberration effect.</p>
-                        ${DebuggerUIBuilder._createSliderHTML('prism.intensity', 'Intensity', 0, 50, 0.5, 'The distance in pixels the color channels are split.')}
-                        ${DebuggerUIBuilder._createSliderHTML('prism.angle', 'Angle', 0, 360, 1, 'The direction of the color split.')}
-                        ${DebuggerUIBuilder._createSliderHTML('prism.threshold', 'Luminance Threshold', 0, 1, 0.01, 'The effect will only apply to pixels brighter than this value.')}
-                        ${DebuggerUIBuilder._createSliderHTML('prism.softness', 'Threshold Softness', 0.01, 1, 0.01, 'The softness of the transition at the luminance threshold.')}
-                    
-                        <details id="details-prism-distortionNoise"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('prism.distortionNoise.enabled', 'Distortion', true)}</div></summary>
+                ${checkboxHTML}
+                <hr style="border-color: #555; margin: 6px 0;">
+                ${DebuggerUIBuilder._createTextureInputHTML('prism', 'Effect Mask (_Prism)')}
+                <p class="description-text">Splits the light from the brightest parts of the scene into a prismatic, chromatic aberration effect.</p>
+                ${DebuggerUIBuilder._createSliderHTML('prism.intensity', 'Intensity', 0, 50, 0.5, 'The distance in pixels the color channels are split.')}
+                ${DebuggerUIBuilder._createSliderHTML('prism.angle', 'Angle', 0, 360, 1, 'The direction of the color split.')}
+                ${DebuggerUIBuilder._createSliderHTML('prism.threshold', 'Luminance Threshold', 0, 1, 0.01, 'The effect will only apply to pixels brighter than this value.')}
+                ${DebuggerUIBuilder._createSliderHTML('prism.softness', 'Threshold Softness', 0.01, 1, 0.01, 'The softness of the transition at the luminance threshold.')}
+            
+                <details id="details-prism-distortionNoise"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('prism.distortionNoise.enabled', 'Distortion', true)}</div></summary>
+                    <div style="padding-left: 15px;">
+                        <p class="description-text">Uses a noise pattern to warp and animate the prism effect.</p>
+                        ${DebuggerUIBuilder._createSliderHTML('prism.distortionStrength', 'Distortion Strength', 0, 10, 0.1)}
+                        ${DebuggerUIBuilder._createSliderHTML('prism.distortionNoise.speed', 'Speed', -0.5, 0.5, 0.005)}
+                        ${DebuggerUIBuilder._createSliderHTML('prism.distortionNoise.scale', 'Scale', 0.01, 10, 0.01)}
+                        ${DebuggerUIBuilder._createSliderHTML('prism.distortionNoise.evolution', 'Evolution', 0, 1, 0.01)}
+                        <details id="details-prism-distortionNoise-adv"><summary><span class="accordion-toggle"></span><strong>Advanced Noise Controls</strong></summary>
                             <div style="padding-left: 15px;">
-                                <p class="description-text">Uses a noise pattern to warp and animate the prism effect.</p>
-                                ${DebuggerUIBuilder._createSliderHTML('prism.distortionStrength', 'Distortion Strength', 0, 10, 0.1)}
-                                ${DebuggerUIBuilder._createSliderHTML('prism.distortionNoise.speed', 'Speed', -0.5, 0.5, 0.005)}
-                                ${DebuggerUIBuilder._createSliderHTML('prism.distortionNoise.scale', 'Scale', 0.01, 10, 0.01)}
-                                ${DebuggerUIBuilder._createSliderHTML('prism.distortionNoise.evolution', 'Evolution', 0, 1, 0.01)}
-                                <details id="details-prism-distortionNoise-adv"><summary><span class="accordion-toggle"></span><strong>Advanced Noise Controls</strong></summary>
-                                    <div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createSliderHTML('prism.distortionNoise.threshold', 'Threshold', 0, 1, 0.01)}
-                                        ${DebuggerUIBuilder._createSliderHTML('prism.distortionNoise.brightness', 'Brightness', -1, 1, 0.01)}
-                                        ${DebuggerUIBuilder._createSliderHTML('prism.distortionNoise.contrast', 'Contrast', 0, 5, 0.05)}
-                                        ${DebuggerUIBuilder._createSliderHTML('prism.distortionNoise.softness', 'Softness', 0.01, 1, 0.01)}
-                                    </div>
-                                </details>
+                                ${DebuggerUIBuilder._createSliderHTML('prism.distortionNoise.threshold', 'Threshold', 0, 1, 0.01)}
+                                ${DebuggerUIBuilder._createSliderHTML('prism.distortionNoise.brightness', 'Brightness', -1, 1, 0.01)}
+                                ${DebuggerUIBuilder._createSliderHTML('prism.distortionNoise.contrast', 'Contrast', 0, 5, 0.05)}
+                                ${DebuggerUIBuilder._createSliderHTML('prism.distortionNoise.softness', 'Softness', 0.01, 1, 0.01)}
                             </div>
                         </details>
-                    `;
+                    </div>
+                </details>
+            `;
         return DebuggerUIBuilder._createAccordionHTML(effectKey, 'Prism Effect', content, iconHTML);
     }
 
@@ -13401,268 +13141,268 @@ class PrismLayer extends MaskedEffectLayer {
 class WaterEffectsFilter extends PIXI.Filter {
     constructor(options = {}) {
         const vertexSrc = `
-                        attribute vec2 aVertexPosition;
-                        attribute vec2 aTextureCoord;
-                        uniform mat3 projectionMatrix;
-                        varying vec2 vTextureCoord;
-                        varying vec2 vScreenCoord;
-            
-                        void main(void) {
-                            gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
-                            vTextureCoord = aTextureCoord;
-                            vScreenCoord = gl_Position.xy * 0.5 + 0.5;
-                        }
-                    `;
+                attribute vec2 aVertexPosition;
+                attribute vec2 aTextureCoord;
+                uniform mat3 projectionMatrix;
+                varying vec2 vTextureCoord;
+                varying vec2 vScreenCoord;
+    
+                void main(void) {
+                    gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
+                    vTextureCoord = aTextureCoord;
+                    vScreenCoord = gl_Position.xy * 0.5 + 0.5;
+                }
+            `;
 
         const fragmentSrc = `
-                        precision mediump float;
-                        varying vec2 vTextureCoord;
-                        varying vec2 vScreenCoord;
-            
-                        // Input textures & masks
-                        uniform sampler2D uSampler;
-                        uniform sampler2D u_displacementMap;
-                        uniform sampler2D u_waterMask;
-                        uniform sampler2D u_shorelineMask;
-                        uniform sampler2D u_blurredWaterMask;
-            
-                        // Uniforms for toggles and parameters
-                        uniform bool u_useShorelineMask;
-                        uniform vec2 u_camera_offset;
-                        uniform vec2 u_view_size;
-                        uniform float u_time;
-                        uniform bool u_outputShorelineFoamMask;
-            
-                        // Wave & Distortion
-                        uniform bool u_wave_enabled;
-                        uniform float u_wave_intensity;
-            
-                        // Surface (Open Water Foam & Sheen)
-                        uniform bool u_surface_enabled;
-                        uniform vec3 u_openWaterFoamColor;
-                        uniform float u_openWaterFoamIntensity;
-                        uniform float u_openWaterFoamCoverage;
-                        uniform float u_openWaterFoamSharpness;
-                        uniform float u_openWaterFbmScale;
-                        uniform float u_openWaterFbmSpeed;
-                        uniform float u_openWaterFbmEvolution;
-                        uniform int u_openWaterFbmOctaves;
-                        uniform float u_openWaterFbmLacunarity;
-                        uniform float u_openWaterFbmPersistence;
+                precision mediump float;
+                varying vec2 vTextureCoord;
+                varying vec2 vScreenCoord;
+    
+                // Input textures & masks
+                uniform sampler2D uSampler;
+                uniform sampler2D u_displacementMap;
+                uniform sampler2D u_waterMask;
+                uniform sampler2D u_shorelineMask;
+                uniform sampler2D u_blurredWaterMask;
+    
+                // Uniforms for toggles and parameters
+                uniform bool u_useShorelineMask;
+                uniform vec2 u_camera_offset;
+                uniform vec2 u_view_size;
+                uniform float u_time;
+                uniform bool u_outputShorelineFoamMask;
+    
+                // Wave & Distortion
+                uniform bool u_wave_enabled;
+                uniform float u_wave_intensity;
+    
+                // Surface (Open Water Foam & Sheen)
+                uniform bool u_surface_enabled;
+                uniform vec3 u_openWaterFoamColor;
+                uniform float u_openWaterFoamIntensity;
+                uniform float u_openWaterFoamCoverage;
+                uniform float u_openWaterFoamSharpness;
+                uniform float u_openWaterFbmScale;
+                uniform float u_openWaterFbmSpeed;
+                uniform float u_openWaterFbmEvolution;
+                uniform int u_openWaterFbmOctaves;
+                uniform float u_openWaterFbmLacunarity;
+                uniform float u_openWaterFbmPersistence;
+                
+                // Sheen (Now calculated directly in this shader)
+                uniform bool u_sheenEnabled;
+                uniform vec3 u_sheenColor;
+                uniform float u_sheenIntensity;
+                uniform float u_sheenScale;
+                uniform float u_sheenSpeed;
+                uniform float u_sheenStretch;
+                uniform float u_sheenSharpness;
+    
+                // Caustics
+                uniform bool u_caustics_enabled;
+                uniform vec3 u_causticsColor;
+                uniform float u_causticsIntensity;
+                uniform float u_causticsScale;
+                uniform float u_causticsSpeed;
+                uniform float u_causticsLineSharpness;
+                uniform float u_causticsBloomIntensity;
+                uniform float u_causticsLineDistortion;
+                uniform float u_causticsLineDistortionScale;
+                uniform float u_causticsIntersectionBoost;
+                uniform float u_causticsRoughnessScale;
+                uniform float u_causticsRoughnessIntensity;
+                
+                // Shoreline
+                uniform bool u_shoreline_enabled;
+                uniform vec3 u_shorelineFoamColor;
+                uniform float u_shorelineFoamIntensity;
+    
+                // Shoreline Foam Pattern
+                uniform float u_shorelinePatternScale;
+                uniform float u_shorelinePatternSpeed;
+                uniform float u_shorelinePatternEvolution;
+                uniform int u_shorelinePatternOctaves;
+                uniform float u_shorelinePatternLacunarity;
+                uniform float u_shorelinePatternPersistence;
+                uniform float u_shorelinePatternBrightness;
+                uniform float u_shorelinePatternContrast;
+                
+                // Shoreline Displacement Swirl
+                uniform bool u_shorelineDisplacementEnabled;
+                uniform float u_shorelineDisplacementScale;
+                uniform float u_shorelineDisplacementSpeed;
+                uniform float u_shorelineDisplacementStrength;
+    
+                // Shoreline Particle Mask Processing
+                uniform float u_particleMaskBrightness;
+                uniform float u_particleMaskContrast;
+    
+                vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 289.0);}
+                vec4 taylorInvSqrt(vec4 r){return 1.79284291400159 - 0.85373472095314 * r;}
+                float snoise(vec3 v) {
+                    const vec2 C = vec2(1.0/6.0, 1.0/3.0);
+                    const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+                    vec3 i  = floor(v + dot(v, C.yyy) );
+                    vec3 x0 =   v - i + dot(i, C.xxx) ;
+                    vec3 g = step(x0.yzx, x0.xyz);
+                    vec3 l = 1.0 - g;
+                    vec3 i1 = min( g.xyz, l.zxy );
+                    vec3 i2 = max( g.xyz, l.zxy );
+                    vec3 x1 = x0 - i1 + C.xxx;
+                    vec3 x2 = x0 - i2 + C.yyy;
+                    vec3 x3 = x0 - D.yyy;
+                    i = mod(i, 289.0);
+                    vec4 p = permute( permute( i.z + vec4(0.0, i1.z, i2.z, 1.0 ))
+                        + i.y + vec4(0.0, i1.y, i2.y, 1.0 ))
+                        + i.x + vec4(0.0, i1.x, i2.x, 1.0 );
+                    float n_ = 0.142857142857;
+                    vec3  ns = n_ * D.wyz - D.xzx;
+                    vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+                    vec4 x_ = floor(j * ns.z);
+                    vec4 y_ = floor(j - 7.0 * x_ );
+                    vec4 x = x_ *ns.x + ns.yyyy;
+                    vec4 y = y_ *ns.x + ns.yyyy;
+                    vec4 h = 1.0 - abs(x) - abs(y);
+                    vec4 b0 = vec4( x.xy, y.xy );
+                    vec4 b1 = vec4( x.zw, y.zw );
+                    vec4 s0 = floor(b0)*2.0 + 1.0;
+                    vec4 s1 = floor(b1)*2.0 + 1.0;
+                    vec4 sh = -step(h, vec4(0.0));
+                    vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;
+                    vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;
+                    vec3 p0 = vec3(a0.xy,h.x);
+                    vec3 p1 = vec3(a0.zw,h.y);
+                    vec3 p2 = vec3(a1.xy,h.z);
+                    vec3 p3 = vec3(a1.zw,h.w);
+                    vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
+                    p0 *= norm.x;
+                    p1 *= norm.y;
+                    p2 *= norm.z;
+                    p3 *= norm.w;
+                    vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+                    m = m * m;
+                    return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3) ) );
+                }
+                
+                float fbm(vec3 st, int octaves, float lacunarity, float persistence) {
+                    float value = 0.0;
+                    float amplitude = 0.5;
+                    for (int i = 0; i < 8; i++) {
+                        if (i >= octaves) break;
+                        value += amplitude * snoise(st);
+                        st *= lacunarity;
+                        amplitude *= persistence;
+                    }
+                    return value * 0.5 + 0.5;
+                }
+    
+                void main() {
+                    float waterMaskValue = texture2D(u_waterMask, vTextureCoord).r;
+
+                    if (waterMaskValue < 0.01 && !u_outputShorelineFoamMask) {
+                        gl_FragColor = texture2D(uSampler, vTextureCoord);
+                        return;
+                    }
+
+                    vec2 world_coord = u_camera_offset + (vTextureCoord * u_view_size);
+    
+                    vec2 wave_uv_offset = vec2(0.0);
+                    if (u_wave_enabled) {
+                        wave_uv_offset = (texture2D(u_displacementMap, vTextureCoord).xy - 0.5) * 2.0 * u_wave_intensity;
+                    }
+    
+                    vec2 swirl_world_offset = vec2(0.0);
+                    if (u_shoreline_enabled && u_shorelineDisplacementEnabled) {
+                        float currentShorelineMask = u_useShorelineMask ? texture2D(u_shorelineMask, vTextureCoord).r : clamp((texture2D(u_blurredWaterMask, vTextureCoord).r - waterMaskValue) * 5.0, 0.0, 1.0);
+                        if (currentShorelineMask > 0.0) {
+                            vec2 swirl_noise_coord = world_coord * u_shorelineDisplacementScale * 0.01;
+                            float displacement_time = u_time * u_shorelineDisplacementSpeed;
+                            float dx = snoise(vec3(swirl_noise_coord, displacement_time));
+                            float dy = snoise(vec3(swirl_noise_coord + vec2(17.8, 93.4), displacement_time));
+                            swirl_world_offset = vec2(dx, dy) * u_shorelineDisplacementStrength * currentShorelineMask;
+                        }
+                    }
+    
+                    vec2 final_distorted_uv = vTextureCoord + wave_uv_offset;
+                    vec2 final_distorted_world_coord = world_coord + swirl_world_offset;
+                    
+                    vec4 sceneColor = texture2D(uSampler, mix(vTextureCoord, final_distorted_uv, waterMaskValue));
+                    
+                    vec3 finalColor = sceneColor.rgb;
+    
+                    if (u_caustics_enabled) {
+                        float time = u_time * u_causticsSpeed;
+                        vec3 dist_coord = vec3(world_coord * u_causticsLineDistortionScale * 0.01, time * 2.0);
+                        float distortion_noise = snoise(dist_coord) * u_causticsLineDistortion;
+                        vec3 coord1 = vec3(world_coord * u_causticsScale * 0.02 + distortion_noise, time);
+                        float pattern1 = pow(max(0.0, 1.0 - abs(snoise(coord1))), u_causticsLineSharpness);
+                        vec3 coord2 = vec3(world_coord * u_causticsScale * 0.01 - distortion_noise, time * 0.5);
+                        float pattern2 = pow(max(0.0, 1.0 - abs(snoise(coord2))), u_causticsLineSharpness);
+                        vec3 rough_coord = vec3(world_coord * u_causticsRoughnessScale * 0.01, time * 1.5);
+                        float roughness_noise = snoise(rough_coord) * 0.5 + 0.5;
+                        roughness_noise = 1.0 - u_causticsRoughnessIntensity + (roughness_noise * u_causticsRoughnessIntensity);
+                        vec3 coord3 = vec3(world_coord * u_causticsScale * 0.005, time * 0.2);
+                        float bloom_pattern = smoothstep(0.6, 1.0, snoise(coord3) * 0.5 + 0.5);
+                        float line_pattern = pattern1 * pattern2 * u_causticsIntersectionBoost;
+                        float final_pattern = (line_pattern * roughness_noise) + bloom_pattern * u_causticsBloomIntensity;
+                        vec3 caustics = u_causticsColor * final_pattern * u_causticsIntensity;
+                        finalColor += caustics * waterMaskValue;
+                    }
+    
+                    if (u_surface_enabled) {
+                        vec2 foam_wave_distortion = wave_uv_offset * u_openWaterFbmScale * 10.0;
+                        vec2 baseFoamUV = (final_distorted_world_coord * u_openWaterFbmScale * 0.01) + foam_wave_distortion;
+
+                        baseFoamUV += u_time * u_openWaterFbmSpeed * 0.1;
+                        float foamTime = u_time * u_openWaterFbmEvolution * 0.1;
+                        float foamNoise = fbm(vec3(baseFoamUV, foamTime), u_openWaterFbmOctaves, u_openWaterFbmLacunarity, u_openWaterFbmPersistence);
+                        float openWaterFoamAmount = smoothstep(1.0 - u_openWaterFoamCoverage, 1.0 - u_openWaterFoamCoverage + u_openWaterFoamSharpness, foamNoise);
+                        vec3 openWaterFoamResult = u_openWaterFoamColor * openWaterFoamAmount * u_openWaterFoamIntensity;
                         
-                        // Sheen (Now calculated directly in this shader)
-                        uniform bool u_sheenEnabled;
-                        uniform vec3 u_sheenColor;
-                        uniform float u_sheenIntensity;
-                        uniform float u_sheenScale;
-                        uniform float u_sheenSpeed;
-                        uniform float u_sheenStretch;
-                        uniform float u_sheenSharpness;
-            
-                        // Caustics
-                        uniform bool u_caustics_enabled;
-                        uniform vec3 u_causticsColor;
-                        uniform float u_causticsIntensity;
-                        uniform float u_causticsScale;
-                        uniform float u_causticsSpeed;
-                        uniform float u_causticsLineSharpness;
-                        uniform float u_causticsBloomIntensity;
-                        uniform float u_causticsLineDistortion;
-                        uniform float u_causticsLineDistortionScale;
-                        uniform float u_causticsIntersectionBoost;
-                        uniform float u_causticsRoughnessScale;
-                        uniform float u_causticsRoughnessIntensity;
+                        vec3 sheenResult = vec3(0.0);
+                        if (u_sheenEnabled) {
+                            vec2 sheen_wave_distortion = wave_uv_offset * u_sheenScale * 10.0;
+                            vec2 sheenUV = (final_distorted_world_coord * u_sheenScale * 0.01) + sheen_wave_distortion;
+                            sheenUV.x *= u_sheenStretch;
+                            sheenUV.y += u_time * u_sheenSpeed * 0.1;
+                            float sheenNoise = snoise(vec3(sheenUV, u_time * 0.01));
+                            sheenNoise = pow(smoothstep(0.8, 1.0, sheenNoise), u_sheenSharpness);
+                            sheenResult = u_sheenColor * sheenNoise * u_sheenIntensity;
+                        }
+                        finalColor += (openWaterFoamResult + sheenResult) * waterMaskValue;
+                    }
+    
+                    if (u_shoreline_enabled) {
+                        float shorelineMaskValue = u_useShorelineMask ? texture2D(u_shorelineMask, vTextureCoord).r : clamp((texture2D(u_blurredWaterMask, vTextureCoord).r - waterMaskValue) * 5.0, 0.0, 1.0);
                         
-                        // Shoreline
-                        uniform bool u_shoreline_enabled;
-                        uniform vec3 u_shorelineFoamColor;
-                        uniform float u_shorelineFoamIntensity;
-            
-                        // Shoreline Foam Pattern
-                        uniform float u_shorelinePatternScale;
-                        uniform float u_shorelinePatternSpeed;
-                        uniform float u_shorelinePatternEvolution;
-                        uniform int u_shorelinePatternOctaves;
-                        uniform float u_shorelinePatternLacunarity;
-                        uniform float u_shorelinePatternPersistence;
-                        uniform float u_shorelinePatternBrightness;
-                        uniform float u_shorelinePatternContrast;
-                        
-                        // Shoreline Displacement Swirl
-                        uniform bool u_shorelineDisplacementEnabled;
-                        uniform float u_shorelineDisplacementScale;
-                        uniform float u_shorelineDisplacementSpeed;
-                        uniform float u_shorelineDisplacementStrength;
-            
-                        // Shoreline Particle Mask Processing
-                        uniform float u_particleMaskBrightness;
-                        uniform float u_particleMaskContrast;
-            
-                        vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 289.0);}
-                        vec4 taylorInvSqrt(vec4 r){return 1.79284291400159 - 0.85373472095314 * r;}
-                        float snoise(vec3 v) {
-                            const vec2 C = vec2(1.0/6.0, 1.0/3.0);
-                            const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
-                            vec3 i  = floor(v + dot(v, C.yyy) );
-                            vec3 x0 =   v - i + dot(i, C.xxx) ;
-                            vec3 g = step(x0.yzx, x0.xyz);
-                            vec3 l = 1.0 - g;
-                            vec3 i1 = min( g.xyz, l.zxy );
-                            vec3 i2 = max( g.xyz, l.zxy );
-                            vec3 x1 = x0 - i1 + C.xxx;
-                            vec3 x2 = x0 - i2 + C.yyy;
-                            vec3 x3 = x0 - D.yyy;
-                            i = mod(i, 289.0);
-                            vec4 p = permute( permute( i.z + vec4(0.0, i1.z, i2.z, 1.0 ))
-                                + i.y + vec4(0.0, i1.y, i2.y, 1.0 ))
-                                + i.x + vec4(0.0, i1.x, i2.x, 1.0 );
-                            float n_ = 0.142857142857;
-                            vec3  ns = n_ * D.wyz - D.xzx;
-                            vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
-                            vec4 x_ = floor(j * ns.z);
-                            vec4 y_ = floor(j - 7.0 * x_ );
-                            vec4 x = x_ *ns.x + ns.yyyy;
-                            vec4 y = y_ *ns.x + ns.yyyy;
-                            vec4 h = 1.0 - abs(x) - abs(y);
-                            vec4 b0 = vec4( x.xy, y.xy );
-                            vec4 b1 = vec4( x.zw, y.zw );
-                            vec4 s0 = floor(b0)*2.0 + 1.0;
-                            vec4 s1 = floor(b1)*2.0 + 1.0;
-                            vec4 sh = -step(h, vec4(0.0));
-                            vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;
-                            vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;
-                            vec3 p0 = vec3(a0.xy,h.x);
-                            vec3 p1 = vec3(a0.zw,h.y);
-                            vec3 p2 = vec3(a1.xy,h.z);
-                            vec3 p3 = vec3(a1.zw,h.w);
-                            vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
-                            p0 *= norm.x;
-                            p1 *= norm.y;
-                            p2 *= norm.z;
-                            p3 *= norm.w;
-                            vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
-                            m = m * m;
-                            return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3) ) );
+                        vec2 shore_foam_wave_distortion = wave_uv_offset * u_shorelinePatternScale * 10.0;
+                        vec2 final_foam_uv = (final_distorted_world_coord * u_shorelinePatternScale * 0.01) + shore_foam_wave_distortion;
+
+                        final_foam_uv.x += u_time * u_shorelinePatternSpeed;
+                        float foam_time = u_time * u_shorelinePatternEvolution;
+                        float foam_noise = fbm(vec3(final_foam_uv, foam_time), u_shorelinePatternOctaves, u_shorelinePatternLacunarity, u_shorelinePatternPersistence);
+                        foam_noise = (foam_noise - 0.5 + u_shorelinePatternBrightness) * u_shorelinePatternContrast + 0.5;
+                        float final_foam_amount = clamp(foam_noise, 0.0, 1.0) * shorelineMaskValue;
+    
+                        if (u_outputShorelineFoamMask) {
+                            float particle_mask_value = (final_foam_amount + u_particleMaskBrightness - 0.5) * u_particleMaskContrast + 0.5;
+                            gl_FragColor = vec4(vec3(clamp(particle_mask_value, 0.0, 1.0)), 1.0);
+                            return;
                         }
                         
-                        float fbm(vec3 st, int octaves, float lacunarity, float persistence) {
-                            float value = 0.0;
-                            float amplitude = 0.5;
-                            for (int i = 0; i < 8; i++) {
-                                if (i >= octaves) break;
-                                value += amplitude * snoise(st);
-                                st *= lacunarity;
-                                amplitude *= persistence;
-                            }
-                            return value * 0.5 + 0.5;
-                        }
-            
-                        void main() {
-                            float waterMaskValue = texture2D(u_waterMask, vTextureCoord).r;
-
-                            if (waterMaskValue < 0.01 && !u_outputShorelineFoamMask) {
-                                gl_FragColor = texture2D(uSampler, vTextureCoord);
-                                return;
-                            }
-
-                            vec2 world_coord = u_camera_offset + (vTextureCoord * u_view_size);
-            
-                            vec2 wave_uv_offset = vec2(0.0);
-                            if (u_wave_enabled) {
-                                wave_uv_offset = (texture2D(u_displacementMap, vTextureCoord).xy - 0.5) * 2.0 * u_wave_intensity;
-                            }
-            
-                            vec2 swirl_world_offset = vec2(0.0);
-                            if (u_shoreline_enabled && u_shorelineDisplacementEnabled) {
-                                float currentShorelineMask = u_useShorelineMask ? texture2D(u_shorelineMask, vTextureCoord).r : clamp((texture2D(u_blurredWaterMask, vTextureCoord).r - waterMaskValue) * 5.0, 0.0, 1.0);
-                                if (currentShorelineMask > 0.0) {
-                                    vec2 swirl_noise_coord = world_coord * u_shorelineDisplacementScale * 0.01;
-                                    float displacement_time = u_time * u_shorelineDisplacementSpeed;
-                                    float dx = snoise(vec3(swirl_noise_coord, displacement_time));
-                                    float dy = snoise(vec3(swirl_noise_coord + vec2(17.8, 93.4), displacement_time));
-                                    swirl_world_offset = vec2(dx, dy) * u_shorelineDisplacementStrength * currentShorelineMask;
-                                }
-                            }
-            
-                            vec2 final_distorted_uv = vTextureCoord + wave_uv_offset;
-                            vec2 final_distorted_world_coord = world_coord + swirl_world_offset;
-                            
-                            vec4 sceneColor = texture2D(uSampler, mix(vTextureCoord, final_distorted_uv, waterMaskValue));
-                            
-                            vec3 finalColor = sceneColor.rgb;
-            
-                            if (u_caustics_enabled) {
-                                float time = u_time * u_causticsSpeed;
-                                vec3 dist_coord = vec3(world_coord * u_causticsLineDistortionScale * 0.01, time * 2.0);
-                                float distortion_noise = snoise(dist_coord) * u_causticsLineDistortion;
-                                vec3 coord1 = vec3(world_coord * u_causticsScale * 0.02 + distortion_noise, time);
-                                float pattern1 = pow(max(0.0, 1.0 - abs(snoise(coord1))), u_causticsLineSharpness);
-                                vec3 coord2 = vec3(world_coord * u_causticsScale * 0.01 - distortion_noise, time * 0.5);
-                                float pattern2 = pow(max(0.0, 1.0 - abs(snoise(coord2))), u_causticsLineSharpness);
-                                vec3 rough_coord = vec3(world_coord * u_causticsRoughnessScale * 0.01, time * 1.5);
-                                float roughness_noise = snoise(rough_coord) * 0.5 + 0.5;
-                                roughness_noise = 1.0 - u_causticsRoughnessIntensity + (roughness_noise * u_causticsRoughnessIntensity);
-                                vec3 coord3 = vec3(world_coord * u_causticsScale * 0.005, time * 0.2);
-                                float bloom_pattern = smoothstep(0.6, 1.0, snoise(coord3) * 0.5 + 0.5);
-                                float line_pattern = pattern1 * pattern2 * u_causticsIntersectionBoost;
-                                float final_pattern = (line_pattern * roughness_noise) + bloom_pattern * u_causticsBloomIntensity;
-                                vec3 caustics = u_causticsColor * final_pattern * u_causticsIntensity;
-                                finalColor += caustics * waterMaskValue;
-                            }
-            
-                            if (u_surface_enabled) {
-                                vec2 foam_wave_distortion = wave_uv_offset * u_openWaterFbmScale * 10.0;
-                                vec2 baseFoamUV = (final_distorted_world_coord * u_openWaterFbmScale * 0.01) + foam_wave_distortion;
-
-                                baseFoamUV += u_time * u_openWaterFbmSpeed * 0.1;
-                                float foamTime = u_time * u_openWaterFbmEvolution * 0.1;
-                                float foamNoise = fbm(vec3(baseFoamUV, foamTime), u_openWaterFbmOctaves, u_openWaterFbmLacunarity, u_openWaterFbmPersistence);
-                                float openWaterFoamAmount = smoothstep(1.0 - u_openWaterFoamCoverage, 1.0 - u_openWaterFoamCoverage + u_openWaterFoamSharpness, foamNoise);
-                                vec3 openWaterFoamResult = u_openWaterFoamColor * openWaterFoamAmount * u_openWaterFoamIntensity;
-                                
-                                vec3 sheenResult = vec3(0.0);
-                                if (u_sheenEnabled) {
-                                    vec2 sheen_wave_distortion = wave_uv_offset * u_sheenScale * 10.0;
-                                    vec2 sheenUV = (final_distorted_world_coord * u_sheenScale * 0.01) + sheen_wave_distortion;
-                                    sheenUV.x *= u_sheenStretch;
-                                    sheenUV.y += u_time * u_sheenSpeed * 0.1;
-                                    float sheenNoise = snoise(vec3(sheenUV, u_time * 0.01));
-                                    sheenNoise = pow(smoothstep(0.8, 1.0, sheenNoise), u_sheenSharpness);
-                                    sheenResult = u_sheenColor * sheenNoise * u_sheenIntensity;
-                                }
-                                finalColor += (openWaterFoamResult + sheenResult) * waterMaskValue;
-                            }
-            
-                            if (u_shoreline_enabled) {
-                                float shorelineMaskValue = u_useShorelineMask ? texture2D(u_shorelineMask, vTextureCoord).r : clamp((texture2D(u_blurredWaterMask, vTextureCoord).r - waterMaskValue) * 5.0, 0.0, 1.0);
-                                
-                                vec2 shore_foam_wave_distortion = wave_uv_offset * u_shorelinePatternScale * 10.0;
-                                vec2 final_foam_uv = (final_distorted_world_coord * u_shorelinePatternScale * 0.01) + shore_foam_wave_distortion;
-
-                                final_foam_uv.x += u_time * u_shorelinePatternSpeed;
-                                float foam_time = u_time * u_shorelinePatternEvolution;
-                                float foam_noise = fbm(vec3(final_foam_uv, foam_time), u_shorelinePatternOctaves, u_shorelinePatternLacunarity, u_shorelinePatternPersistence);
-                                foam_noise = (foam_noise - 0.5 + u_shorelinePatternBrightness) * u_shorelinePatternContrast + 0.5;
-                                float final_foam_amount = clamp(foam_noise, 0.0, 1.0) * shorelineMaskValue;
-            
-                                if (u_outputShorelineFoamMask) {
-                                    float particle_mask_value = (final_foam_amount + u_particleMaskBrightness - 0.5) * u_particleMaskContrast + 0.5;
-                                    gl_FragColor = vec4(vec3(clamp(particle_mask_value, 0.0, 1.0)), 1.0);
-                                    return;
-                                }
-                                
-                                vec3 shoreline_foam_result = u_shorelineFoamColor * final_foam_amount * u_shorelineFoamIntensity;
-                                finalColor += shoreline_foam_result;
-                            }
-            
-                            if (u_outputShorelineFoamMask) {
-                                gl_FragColor = vec4(0.0);
-                                return;
-                            }
-            
-                            gl_FragColor = vec4(clamp(finalColor, 0.0, 1.0), sceneColor.a);
-                        }
-                    `;
+                        vec3 shoreline_foam_result = u_shorelineFoamColor * final_foam_amount * u_shorelineFoamIntensity;
+                        finalColor += shoreline_foam_result;
+                    }
+    
+                    if (u_outputShorelineFoamMask) {
+                        gl_FragColor = vec4(0.0);
+                        return;
+                    }
+    
+                    gl_FragColor = vec4(clamp(finalColor, 0.0, 1.0), sceneColor.a);
+                }
+            `;
 
         super(vertexSrc, fragmentSrc, {
             ...options,
@@ -13727,240 +13467,162 @@ class WaterFXLayer extends MaskedEffectLayer {
 
     static getSettingsHTML() {
         return DebuggerUIBuilder._createAccordionHTML('water', 'Water Effects', `
-                        ${DebuggerUIBuilder._createTextureInputHTML('water', 'Water Mask (_Water)')}
-                        <p class="description-text">A multi-layered effect for water surfaces, foam, and underwater caustics. Requires a _Water.webp mask.</p>
-                        <details id="details-water-wave">
-                            <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('water.wave.enabled', 'Wave Distortion', true)}</div></summary>
-                            <div style="padding-left: 15px;">
-                                <p class="description-text">Controls the underlying ripple/wobble of the water surface. This distortion affects the scene viewed through the water, as well as the foam and sheen on the surface.</p>
-                                ${DebuggerUIBuilder._createSliderHTML('water.wave.speed', 'Speed', 0, 0.1, 0.0001, 'The animation speed of the wave noise pattern.')}
-                                ${DebuggerUIBuilder._createSliderHTML('water.wave.scale', 'Scale', 0.1, 40, 0.1, 'The zoom level of the wave noise. Larger values create smaller, more frequent ripples.')}
-                                ${DebuggerUIBuilder._createSliderHTML('water.wave.intensity', 'Intensity', 0, 0.05, 0.0001, 'The strength of the distortion. Higher values push the pixels further.')}
-                            </div>
-                        </details>
-                        <details id="details-water-surface">
-                            <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('water.surface.enabled', 'Open Water Surface', true)}</div></summary>
-                            <div style="padding-left: 15px;">
-                                <details id="details-water-foam">
-                                    <summary><span class="accordion-toggle"></span><strong>Foam</strong></summary>
-                                    <div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createColorPickerHTML('water.surface.foamColor', 'Color')}
-                                        ${DebuggerUIBuilder._createSliderHTML('water.surface.foamIntensity', 'Base Intensity', 0, 2, 0.05)}
-                                        ${DebuggerUIBuilder._createSliderHTML('water.surface.foamCoverage', 'Coverage', 0, 1, 0.01, 'Amount of water surface covered by foam.')}
-                                        ${DebuggerUIBuilder._createSliderHTML('water.surface.foamSharpness', 'Edge Sharpness', 0.01, 1, 0.01, 'Hardness of the foam edges.')}
-                                        <details id="details-water-foam-fbm">
-                                            <summary><span class="accordion-toggle"></span><strong>FBM Pattern</strong></summary>
-                                            <div style="padding-left: 15px;">
-                                                <p class="description-text">Controls the procedural noise used for the foam pattern.</p>
-                                                ${DebuggerUIBuilder._createSliderHTML('water.surface.fbmScale', 'Scale', 0.001, 50, 0.001)}
-                                                ${DebuggerUIBuilder._createSliderHTML('water.surface.fbmSpeed', 'Speed', 0, 0.5, 0.01, 'Directional drift speed of the foam.')}
-                                                ${DebuggerUIBuilder._createSliderHTML('water.surface.fbmEvolution', 'Evolution', 0, 0.5, 0.01, 'Internal "boiling" speed of the foam.')}
-                                                ${DebuggerUIBuilder._createSliderHTML('water.surface.fbmOctaves', 'Complexity (Octaves)', 1, 8, 1)}
-                                                ${DebuggerUIBuilder._createSliderHTML('water.surface.fbmLacunarity', 'Detail Scale', 1.5, 4, 0.05)}
-                                                ${DebuggerUIBuilder._createSliderHTML('water.surface.fbmPersistence', 'Roughness', 0.1, 1, 0.05)}
-                                            </div>
-                                        </details>
-                                    </div>
-                                </details>
-                                <details id="details-water-sheen">
-                                    <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('water.surface.sheenEnabled', 'Surface Sheen', true)}</div></summary>
-                                    <div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createColorPickerHTML('water.surface.sheenColor', 'Color')}
-                                        ${DebuggerUIBuilder._createSliderHTML('water.surface.sheenIntensity', 'Intensity', 0, 1, 0.001)}
-                                        ${DebuggerUIBuilder._createSliderHTML('water.surface.sheenScale', 'Scale', 0.1, 10, 0.1)}
-                                        ${DebuggerUIBuilder._createSliderHTML('water.surface.sheenSpeed', 'Speed', 0, 0.5, 0.001)}
-                                        ${DebuggerUIBuilder._createSliderHTML('water.surface.sheenStretch', 'Stretch', 1, 10, 0.1, 'Stretches the sheen horizontally for a more reflective look.')}
-                                        ${DebuggerUIBuilder._createSliderHTML('water.surface.sheenSharpness', 'Sharpness', 0.5, 5, 0.1, 'Hardness of the sheen highlights.')}
-                                    </div>
-                                </details>
-                            </div>
-                        </details>
-                        <details id="details-water-caustics">
-                            <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('water.caustics.enabled', 'Underwater Caustics', true)}</div></summary>
-                            <div style="padding-left: 15px;">
-                                ${DebuggerUIBuilder._createSliderHTML('water.caustics.intensity', 'Intensity', 0, 1, 0.001)}
-                                ${DebuggerUIBuilder._createSliderHTML('water.caustics.scale', 'Scale', 0.1, 10, 0.1)}
-                                ${DebuggerUIBuilder._createSliderHTML('water.caustics.speed', 'Speed', 0, 1, 0.01)}
-                                ${DebuggerUIBuilder._createColorPickerHTML('water.caustics.color', 'Caustic Color')}
-                                ${DebuggerUIBuilder._createSliderHTML('water.caustics.lineSharpness', 'Line Sharpness', 1, 40, 1, 'Exponent for sharpening the caustic lines.')}
-                                ${DebuggerUIBuilder._createSliderHTML('water.caustics.bloomIntensity', 'Bloom Intensity', 0, 1, 0.01, 'Brightness of the soft underlying glow.')}
-                                ${DebuggerUIBuilder._createSliderHTML('water.caustics.lineDistortion', 'Line Distortion', 0, 2, 0.01, 'How much the lines are broken up and warped.')}
-                                ${DebuggerUIBuilder._createSliderHTML('water.caustics.lineDistortionScale', 'Distortion Scale', 0.1, 10, 0.1, 'The scale of the line distortion noise.')}
-                                ${DebuggerUIBuilder._createSliderHTML('water.caustics.intersectionBoost', 'Intersection Boost', 1, 20, 0.1, 'Multiplies the brightness of intersecting lines.')}
-                                ${DebuggerUIBuilder._createSliderHTML('water.caustics.roughnessScale', 'Roughness Scale', 0.1, 20, 0.1, 'Scale of the noise that breaks up the lines.')}
-                                ${DebuggerUIBuilder._createSliderHTML('water.caustics.roughnessIntensity', 'Roughness Intensity', 0, 1, 0.01, 'How strongly the noise affects line brightness.')}
-                            </div>
-                        </details>
-                        <details id="details-water-shoreline">
-                            <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('water.shoreline.enabled', 'Shoreline Foam', true)}</div></summary>
-                            <div style="padding-left: 15px;">
-                                ${DebuggerUIBuilder._createTextureInputHTML('shoreline', 'Shoreline Override (_Shoreline)')}
-                                <p class="description-text">Controls foam near land. Best results with a soft-edged, grayscale _Shoreline map.</p>
-                                
-                                <details><summary><span class="accordion-toggle"></span><strong>Foam Appearance</strong></summary><div style="padding-left:15px;">
-                                    ${DebuggerUIBuilder._createColorPickerHTML('water.shoreline.foamColor', 'Foam Color')}
-                                    ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamIntensity', 'Intensity', 0, 5, 0.1)}
-                                    ${DebuggerUIBuilder._createSliderHTML('water.shoreline.detectionBlur', 'Auto-Detection Blur', 1, 32, 1, 'Thickness of the shoreline when auto-detected (no _Shoreline file).')}
-                                </div></details>
-
-                                <details id="details-water-shoreline-displacement">
-                                    <summary><span class="accordion-toggle"></span>
-                                        <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('water.shoreline.displacement.enabled', 'Displacement Swirl', true)}</div>
-                                    </summary>
-                                    <div style="padding-left:15px;">
-                                        <p class="description-text">Adds a swirling distortion to the shoreline foam pattern, simulating churning water.</p>
-                                        ${DebuggerUIBuilder._createSliderHTML('water.shoreline.displacement.scale', 'Swirl Scale', 0.1, 10, 0.1, 'The size of the swirling patterns.')}
-                                        ${DebuggerUIBuilder._createSliderHTML('water.shoreline.displacement.speed', 'Swirl Speed', 0, 0.2, 0.001, 'How fast the swirls animate.')}
-                                        ${DebuggerUIBuilder._createSliderHTML('water.shoreline.displacement.strength', 'Swirl Strength', 0, 0.05, 0.0005, 'How much the foam pattern is distorted by the swirl.')}
-                                    </div>
-                                </details>
-                                
-                                <details><summary><span class="accordion-toggle"></span><strong>Foam Pattern (FBM)</strong></summary><div style="padding-left:15px;">
-                                    ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamPattern.scale', 'Scale', 1, 50, 0.5)}
-                                    ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamPattern.speed', 'Speed', 0, 0.5, 0.01, 'Directional drift speed of the foam.')}
-                                    ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamPattern.evolution', 'Evolution', 0, 0.5, 0.01, 'Internal "boiling" speed of the foam.')}
-                                    ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamPattern.octaves', 'Complexity (Octaves)', 1, 8, 1)}
-                                    ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamPattern.lacunarity', 'Detail Scale', 1.5, 4, 0.05)}
-                                    ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamPattern.persistence', 'Roughness', 0.1, 1, 0.05)}
-                                    ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamPattern.brightness', 'Brightness', 0, 1, 0.01)}
-                                    ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamPattern.contrast', 'Contrast', 0, 5, 0.05)}
-                                </div></details>
-                                
-                                <details id="details-water-shoreline-foam-particles">
-                                <summary><span class="accordion-toggle"></span>
-                                    <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('water.shoreline.foamParticles.enabled', 'Shoreline Foam Particles', true)}</div>
-                                </summary>
-                                <div style="padding-left:15px;">
-                                    <p class="description-text">Spawns particles on the brightest parts of the animated shoreline foam.</p>
-                                    ${DebuggerUIBuilder._createSelectHTML('water.shoreline.foamParticles.blendMode', 'Blend Mode', BLEND_MODE_OPTIONS)}
-                                    <details>
-                                        <summary><span class="accordion-toggle"></span><strong>Particle Mask Processing</strong></summary>
-                                        <div style="padding-left: 15px;">
-                                            <p class="description-text">Boosts the brightness/contrast of the underlying foam mask to make it suitable for particle spawning.</p>
-                                            ${DebuggerUIBuilder._createSliderHTML('water.shoreline.particleMaskBrightness', 'Brightness', -1, 1, 0.05)}
-                                            ${DebuggerUIBuilder._createSliderHTML('water.shoreline.particleMaskContrast', 'Contrast', 1, 20, 0.1)}
-                                        </div>
-                                    </details>
-                                    <details>
-                    <summary><span class="accordion-toggle"></span><strong>Spawning & Density</strong></summary>
+                ${DebuggerUIBuilder._createTextureInputHTML('water', 'Water Mask (_Water)')}
+                <p class="description-text">A multi-layered effect for water surfaces, foam, and underwater caustics. Requires a _Water.webp mask.</p>
+                <details id="details-water-wave" open>
+                    <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('water.wave.enabled', 'Wave Distortion', true)}</div></summary>
                     <div style="padding-left: 15px;">
-                        ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamParticles.maskInfluence', 'Particle Density', 0.01, 5, 0.01, 'Controls the maximum number of particles.')}
-                        ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamParticles.frequency', 'Spawn Rate (s)', 0.001, 1, 0.001, 'Time in seconds between particle spawns. Lower is faster.')}
-                        ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamParticles.maskThreshold', 'Spawn Threshold', 0, 1, 0.01, 'Foam brightness required to spawn particles.')}
-                                            </div>
-                                        </details>
-                                        <details>
-                                            <summary><span class="accordion-toggle"></span><strong>Particle Appearance</strong></summary>
-                                            <div style="padding-left: 15px;">
-                                                ${DebuggerUIBuilder._createTextInputHTML('water.shoreline.foamParticles.particleTexture', 'Particle Texture', 'Path to the particle image.')}
-                                                <details>
-                                                    <summary><span class="accordion-toggle"></span><strong>Lifetime</strong></summary>
-                                                    <div style="padding-left: 15px;">
-                                                        ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamParticles.lifetime.min', 'Min Lifetime (s)', 0.1, 20, 0.1)}
-                                                        ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamParticles.lifetime.max', 'Max Lifetime (s)', 0.1, 20, 0.1)}
-                                                    </div>
-                                                </details>
-                                                <details>
-                                                    <summary><span class="accordion-toggle"></span><strong>Color Over Life</strong></summary>
-                                                    <div style="padding-left: 15px;">
-                                                        <p class="description-text">Sets particle color at birth and death. If colors are the same, a static color is used.</p>
-                                                        ${DebuggerUIBuilder._createColorPickerHTML('water.shoreline.foamParticles.color.start', 'Start Color')}
-                                                        ${DebuggerUIBuilder._createColorPickerHTML('water.shoreline.foamParticles.color.end', 'End Color')}
-                                                    </div>
-                                                </details>
-                                                <details>
-                                                    <summary><span class="accordion-toggle"></span><strong>Alpha / Opacity</strong></summary>
-                                                    <div style="padding-left: 15px;">
-                                                        ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamParticles.alpha.max', 'Max Alpha', 0, 1, 0.01)}
-                                                        ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamParticles.alpha.fadeIn', 'FadeIn Time (%)', 0, 0.5, 0.01)}
-                                                        ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamParticles.alpha.fadeOut', 'FadeOut Time (%)', 0, 0.5, 0.01)}
-                                                    </div>
-                                                </details>
-                                                <details>
-                                                    <summary><span class="accordion-toggle"></span><strong>Scale / Size</strong></summary>
-                                                    <div style="padding-left: 15px;">
-                                                        ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamParticles.scale.sizeMultiplier', 'Global Size', 0.1, 10, 0.1, 'A global multiplier for particle size.')}
-                                                        ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamParticles.scale.start', 'Start Scale Mult', 0, 2, 0.01, 'Particle size at birth (multiplied by Global Size).')}
-                                                        ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamParticles.scale.end', 'End Scale Mult', 0, 2, 0.01, 'Particle size at death (multiplied by Global Size).')}
-                                                        ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamParticles.scale.minMult', 'Random Size Min', 0.1, 1, 0.01, 'Minimum random scale multiplier for each particle (from this value to 1.0).')}
-                                                    </div>
-                                                </details>
-                                            </div>
-                                        </details>
-                                        <details>
-                                            <summary><span class="accordion-toggle"></span><strong>Movement</strong></summary>
-                                            <div style="padding-left: 15px;">
-                                                <details>
-                                                    <summary><span class="accordion-toggle"></span><strong>Speed</strong></summary>
-                                                    <div style="padding-left: 15px;">
-                                                        ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamParticles.speed.start', 'Start Speed', -50, 50, 1)}
-                                                        ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamParticles.speed.end', 'End Speed', -50, 50, 1)}
-                                                        ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamParticles.speed.minMult', 'Random Speed Min', 0.1, 1, 0.01, 'Minimum random speed multiplier for each particle (from this value to 1.0).')}
-                                                    </div>
-                                                </details>
-                                                <details>
-                                                    <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('water.shoreline.foamParticles.rotation.enabled', 'Tumbling / Rotation', true)}</div></summary>
-                                                    <div style="padding-left: 15px;">
-                                                        ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamParticles.rotation.minSpeed', 'Min Rot. Speed', -180, 180, 1, 'Degrees per second.')}
-                                                        ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamParticles.rotation.maxSpeed', 'Max Rot. Speed', -180, 180, 1, 'Degrees per second.')}
-                                                        ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamParticles.rotation.accel', 'Rot. Accel.', -90, 90, 1, 'Degrees per second squared.')}
-                                                    </div>
-                                                </details>
-                                            </div>
-                                        </details>
+                        <p class="description-text">Controls the underlying ripple/wobble of the water surface. This distortion affects the scene viewed through the water, as well as the foam and sheen on the surface.</p>
+                        ${DebuggerUIBuilder._createSliderHTML('water.wave.speed', 'Speed', 0, 0.1, 0.0001, 'The animation speed of the wave noise pattern.')}
+                        ${DebuggerUIBuilder._createSliderHTML('water.wave.scale', 'Scale', 0.1, 40, 0.1, 'The zoom level of the wave noise. Larger values create smaller, more frequent ripples.')}
+                        ${DebuggerUIBuilder._createSliderHTML('water.wave.intensity', 'Intensity', 0, 0.05, 0.0001, 'The strength of the distortion. Higher values push the pixels further.')}
+                    </div>
+                </details>
+                <details id="details-water-surface" open>
+                    <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('water.surface.enabled', 'Open Water Surface', true)}</div></summary>
+                    <div style="padding-left: 15px;">
+                        <details id="details-water-foam" open>
+                            <summary><span class="accordion-toggle"></span><strong>Foam</strong></summary>
+                            <div style="padding-left: 15px;">
+                                ${DebuggerUIBuilder._createColorPickerHTML('water.surface.foamColor', 'Color')}
+                                ${DebuggerUIBuilder._createSliderHTML('water.surface.foamIntensity', 'Base Intensity', 0, 2, 0.05)}
+                                ${DebuggerUIBuilder._createSliderHTML('water.surface.foamCoverage', 'Coverage', 0, 1, 0.01, 'Amount of water surface covered by foam.')}
+                                ${DebuggerUIBuilder._createSliderHTML('water.surface.foamSharpness', 'Edge Sharpness', 0.01, 1, 0.01, 'Hardness of the foam edges.')}
+                                <details id="details-water-foam-fbm">
+                                    <summary><span class="accordion-toggle"></span><strong>FBM Pattern</strong></summary>
+                                    <div style="padding-left: 15px;">
+                                        <p class="description-text">Controls the procedural noise used for the foam pattern.</p>
+                                        ${DebuggerUIBuilder._createSliderHTML('water.surface.fbmScale', 'Scale', 0.001, 50, 0.001)}
+                                        ${DebuggerUIBuilder._createSliderHTML('water.surface.fbmSpeed', 'Speed', 0, 0.5, 0.01, 'Directional drift speed of the foam.')}
+                                        ${DebuggerUIBuilder._createSliderHTML('water.surface.fbmEvolution', 'Evolution', 0, 0.5, 0.01, 'Internal "boiling" speed of the foam.')}
+                                        ${DebuggerUIBuilder._createSliderHTML('water.surface.fbmOctaves', 'Complexity (Octaves)', 1, 8, 1)}
+                                        ${DebuggerUIBuilder._createSliderHTML('water.surface.fbmLacunarity', 'Detail Scale', 1.5, 4, 0.05)}
+                                        ${DebuggerUIBuilder._createSliderHTML('water.surface.fbmPersistence', 'Roughness', 0.1, 1, 0.05)}
                                     </div>
                                 </details>
                             </div>
                         </details>
-                        <details id="details-water-glint-particles">
+                        <details id="details-water-sheen" open>
+                            <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('water.surface.sheenEnabled', 'Surface Sheen', true)}</div></summary>
+                            <div style="padding-left: 15px;">
+                                ${DebuggerUIBuilder._createColorPickerHTML('water.surface.sheenColor', 'Color')}
+                                ${DebuggerUIBuilder._createSliderHTML('water.surface.sheenIntensity', 'Intensity', 0, 1, 0.001)}
+                                ${DebuggerUIBuilder._createSliderHTML('water.surface.sheenScale', 'Scale', 0.1, 10, 0.1)}
+                                ${DebuggerUIBuilder._createSliderHTML('water.surface.sheenSpeed', 'Speed', 0, 0.5, 0.001)}
+                                ${DebuggerUIBuilder._createSliderHTML('water.surface.sheenStretch', 'Stretch', 1, 10, 0.1, 'Stretches the sheen horizontally for a more reflective look.')}
+                                ${DebuggerUIBuilder._createSliderHTML('water.surface.sheenSharpness', 'Sharpness', 0.5, 5, 0.1, 'Hardness of the sheen highlights.')}
+                            </div>
+                        </details>
+                    </div>
+                </details>
+                <details id="details-water-caustics" open>
+                    <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('water.caustics.enabled', 'Underwater Caustics', true)}</div></summary>
+                    <div style="padding-left: 15px;">
+                        ${DebuggerUIBuilder._createSliderHTML('water.caustics.intensity', 'Intensity', 0, 1, 0.001)}
+                        ${DebuggerUIBuilder._createSliderHTML('water.caustics.scale', 'Scale', 0.1, 10, 0.1)}
+                        ${DebuggerUIBuilder._createSliderHTML('water.caustics.speed', 'Speed', 0, 1, 0.01)}
+                        ${DebuggerUIBuilder._createColorPickerHTML('water.caustics.color', 'Caustic Color')}
+                        ${DebuggerUIBuilder._createSliderHTML('water.caustics.lineSharpness', 'Line Sharpness', 1, 40, 1, 'Exponent for sharpening the caustic lines.')}
+                        ${DebuggerUIBuilder._createSliderHTML('water.caustics.bloomIntensity', 'Bloom Intensity', 0, 1, 0.01, 'Brightness of the soft underlying glow.')}
+                        ${DebuggerUIBuilder._createSliderHTML('water.caustics.lineDistortion', 'Line Distortion', 0, 2, 0.01, 'How much the lines are broken up and warped.')}
+                        ${DebuggerUIBuilder._createSliderHTML('water.caustics.lineDistortionScale', 'Distortion Scale', 0.1, 10, 0.1, 'The scale of the line distortion noise.')}
+                        ${DebuggerUIBuilder._createSliderHTML('water.caustics.intersectionBoost', 'Intersection Boost', 1, 20, 0.1, 'Multiplies the brightness of intersecting lines.')}
+                        ${DebuggerUIBuilder._createSliderHTML('water.caustics.roughnessScale', 'Roughness Scale', 0.1, 20, 0.1, 'Scale of the noise that breaks up the lines.')}
+                        ${DebuggerUIBuilder._createSliderHTML('water.caustics.roughnessIntensity', 'Roughness Intensity', 0, 1, 0.01, 'How strongly the noise affects line brightness.')}
+                    </div>
+                </details>
+                <details id="details-water-shoreline" open>
+                    <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('water.shoreline.enabled', 'Shoreline Foam', true)}</div></summary>
+                    <div style="padding-left: 15px;">
+                        ${DebuggerUIBuilder._createTextureInputHTML('shoreline', 'Shoreline Override (_Shoreline)')}
+                        <p class="description-text">Controls foam near land. Best results with a soft-edged, grayscale _Shoreline map.</p>
+                        
+                        <details><summary><span class="accordion-toggle"></span><strong>Foam Appearance</strong></summary><div style="padding-left:15px;">
+                            ${DebuggerUIBuilder._createColorPickerHTML('water.shoreline.foamColor', 'Foam Color')}
+                            ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamIntensity', 'Intensity', 0, 5, 0.1)}
+                            ${DebuggerUIBuilder._createSliderHTML('water.shoreline.detectionBlur', 'Auto-Detection Blur', 1, 32, 1, 'Thickness of the shoreline when auto-detected (no _Shoreline file).')}
+                        </div></details>
+
+                        <details id="details-water-shoreline-displacement" open>
                             <summary><span class="accordion-toggle"></span>
-                                <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('water.glintParticles.enabled', 'Water Glints / Spray', true)}</div>
+                                <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('water.shoreline.displacement.enabled', 'Displacement Swirl', true)}</div>
                             </summary>
                             <div style="padding-left:15px;">
-                                <p class="description-text">General-purpose particles spawned across the entire water surface.</p>
-                                ${DebuggerUIBuilder._createSelectHTML('water.glintParticles.blendMode', 'Blend Mode', BLEND_MODE_OPTIONS)}
-                                <details>
-                                    <summary><span class="accordion-toggle"></span><strong>Spawning & Density</strong></summary>
-                                    <div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createSliderHTML('water.glintParticles.maskInfluence', 'Particle Density', 0.01, 5, 0.01, 'Controls the maximum number of particles.')}
-                                        ${DebuggerUIBuilder._createSliderHTML('water.glintParticles.frequency', 'Spawn Rate (s)', 0.001, 1, 0.001, 'Time in seconds between particle spawns. Lower is faster.')}
-                                        ${DebuggerUIBuilder._createSliderHTML('water.glintParticles.maskThreshold', 'Spawn Threshold', 0, 1, 0.01, 'Water mask brightness required to spawn particles.')}
+                                <p class="description-text">Adds a swirling distortion to the shoreline foam pattern, simulating churning water.</p>
+                                ${DebuggerUIBuilder._createSliderHTML('water.shoreline.displacement.scale', 'Swirl Scale', 0.1, 10, 0.1, 'The size of the swirling patterns.')}
+                                ${DebuggerUIBuilder._createSliderHTML('water.shoreline.displacement.speed', 'Swirl Speed', 0, 0.2, 0.001, 'How fast the swirls animate.')}
+                                ${DebuggerUIBuilder._createSliderHTML('water.shoreline.displacement.strength', 'Swirl Strength', 0, 0.05, 0.0005, 'How much the foam pattern is distorted by the swirl.')}
+                            </div>
+                        </details>
+                        
+                        <details><summary><span class="accordion-toggle"></span><strong>Foam Pattern (FBM)</strong></summary><div style="padding-left:15px;">
+                            ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamPattern.scale', 'Scale', 1, 50, 0.5)}
+                            ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamPattern.speed', 'Speed', 0, 0.5, 0.01, 'Directional drift speed of the foam.')}
+                            ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamPattern.evolution', 'Evolution', 0, 0.5, 0.01, 'Internal "boiling" speed of the foam.')}
+                            ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamPattern.octaves', 'Complexity (Octaves)', 1, 8, 1)}
+                            ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamPattern.lacunarity', 'Detail Scale', 1.5, 4, 0.05)}
+                            ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamPattern.persistence', 'Roughness', 0.1, 1, 0.05)}
+                            ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamPattern.brightness', 'Brightness', 0, 1, 0.01)}
+                            ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamPattern.contrast', 'Contrast', 0, 5, 0.05)}
+                        </div></details>
+                        
+                        <details id="details-water-shoreline-foam-particles" open>
+                        <summary><span class="accordion-toggle"></span>
+                            <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('water.shoreline.foamParticles.enabled', 'Shoreline Foam Particles', true)}</div>
+                        </summary>
+                        <div style="padding-left:15px;">
+                            <p class="description-text">Spawns particles on the brightest parts of the animated shoreline foam.</p>
+                            ${DebuggerUIBuilder._createSelectHTML('water.shoreline.foamParticles.blendMode', 'Blend Mode', BLEND_MODE_OPTIONS)}
+                            <details>
+                                <summary><span class="accordion-toggle"></span><strong>Particle Mask Processing</strong></summary>
+                                <div style="padding-left: 15px;">
+                                    <p class="description-text">Boosts the brightness/contrast of the underlying foam mask to make it suitable for particle spawning.</p>
+                                    ${DebuggerUIBuilder._createSliderHTML('water.shoreline.particleMaskBrightness', 'Brightness', -1, 1, 0.05)}
+                                    ${DebuggerUIBuilder._createSliderHTML('water.shoreline.particleMaskContrast', 'Contrast', 1, 20, 0.1)}
+                                </div>
+                            </details>
+                            <details open>
+            <summary><span class="accordion-toggle"></span><strong>Spawning & Density</strong></summary>
+            <div style="padding-left: 15px;">
+                ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamParticles.maskInfluence', 'Particle Density', 0.01, 5, 0.01, 'Controls the maximum number of particles.')}
+                ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamParticles.frequency', 'Spawn Rate (s)', 0.001, 1, 0.001, 'Time in seconds between particle spawns. Lower is faster.')}
+                ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamParticles.maskThreshold', 'Spawn Threshold', 0, 1, 0.01, 'Foam brightness required to spawn particles.')}
                                     </div>
                                 </details>
                                 <details>
                                     <summary><span class="accordion-toggle"></span><strong>Particle Appearance</strong></summary>
                                     <div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createTextInputHTML('water.glintParticles.particleTexture', 'Particle Texture', 'Path to the particle image.')}
+                                        ${DebuggerUIBuilder._createTextInputHTML('water.shoreline.foamParticles.particleTexture', 'Particle Texture', 'Path to the particle image.')}
                                         <details>
                                             <summary><span class="accordion-toggle"></span><strong>Lifetime</strong></summary>
                                             <div style="padding-left: 15px;">
-                                                ${DebuggerUIBuilder._createSliderHTML('water.glintParticles.lifetime.min', 'Min Lifetime (s)', 0.1, 20, 0.1)}
-                                                ${DebuggerUIBuilder._createSliderHTML('water.glintParticles.lifetime.max', 'Max Lifetime (s)', 0.1, 20, 0.1)}
+                                                ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamParticles.lifetime.min', 'Min Lifetime (s)', 0.1, 20, 0.1)}
+                                                ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamParticles.lifetime.max', 'Max Lifetime (s)', 0.1, 20, 0.1)}
                                             </div>
                                         </details>
-                                        <details>
+                                        <details open>
                                             <summary><span class="accordion-toggle"></span><strong>Color Over Life</strong></summary>
                                             <div style="padding-left: 15px;">
                                                 <p class="description-text">Sets particle color at birth and death. If colors are the same, a static color is used.</p>
-                                                ${DebuggerUIBuilder._createColorPickerHTML('water.glintParticles.color.start', 'Start Color')}
-                                                ${DebuggerUIBuilder._createColorPickerHTML('water.glintParticles.color.end', 'End Color')}
+                                                ${DebuggerUIBuilder._createColorPickerHTML('water.shoreline.foamParticles.color.start', 'Start Color')}
+                                                ${DebuggerUIBuilder._createColorPickerHTML('water.shoreline.foamParticles.color.end', 'End Color')}
                                             </div>
                                         </details>
                                         <details>
                                             <summary><span class="accordion-toggle"></span><strong>Alpha / Opacity</strong></summary>
                                             <div style="padding-left: 15px;">
-                                                ${DebuggerUIBuilder._createSliderHTML('water.glintParticles.alpha.max', 'Max Alpha', 0, 1, 0.01)}
-                                                ${DebuggerUIBuilder._createSliderHTML('water.glintParticles.alpha.fadeIn', 'FadeIn Time (%)', 0, 0.5, 0.01)}
-                                                ${DebuggerUIBuilder._createSliderHTML('water.glintParticles.alpha.fadeOut', 'FadeOut Time (%)', 0, 0.5, 0.01)}
+                                                ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamParticles.alpha.max', 'Max Alpha', 0, 1, 0.01)}
+                                                ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamParticles.alpha.fadeIn', 'FadeIn Time (%)', 0, 0.5, 0.01)}
+                                                ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamParticles.alpha.fadeOut', 'FadeOut Time (%)', 0, 0.5, 0.01)}
                                             </div>
                                         </details>
                                         <details>
                                             <summary><span class="accordion-toggle"></span><strong>Scale / Size</strong></summary>
                                             <div style="padding-left: 15px;">
-                                                ${DebuggerUIBuilder._createSliderHTML('water.glintParticles.scale.sizeMultiplier', 'Global Size', 0.1, 10, 0.1, 'A global multiplier for particle size.')}
-                                                ${DebuggerUIBuilder._createSliderHTML('water.glintParticles.scale.start', 'Start Scale Mult', 0, 2, 0.01, 'Particle size at birth (multiplied by Global Size).')}
-                                                ${DebuggerUIBuilder._createSliderHTML('water.glintParticles.scale.end', 'End Scale Mult', 0, 2, 0.01, 'Particle size at death (multiplied by Global Size).')}
-                                                ${DebuggerUIBuilder._createSliderHTML('water.glintParticles.scale.minMult', 'Random Size Min', 0.1, 1, 0.01, 'Minimum random scale multiplier for each particle (from this value to 1.0).')}
+                                                ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamParticles.scale.sizeMultiplier', 'Global Size', 0.1, 10, 0.1, 'A global multiplier for particle size.')}
+                                                ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamParticles.scale.start', 'Start Scale Mult', 0, 2, 0.01, 'Particle size at birth (multiplied by Global Size).')}
+                                                ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamParticles.scale.end', 'End Scale Mult', 0, 2, 0.01, 'Particle size at death (multiplied by Global Size).')}
+                                                ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamParticles.scale.minMult', 'Random Size Min', 0.1, 1, 0.01, 'Minimum random scale multiplier for each particle (from this value to 1.0).')}
                                             </div>
                                         </details>
                                     </div>
@@ -13971,24 +13633,102 @@ class WaterFXLayer extends MaskedEffectLayer {
                                         <details>
                                             <summary><span class="accordion-toggle"></span><strong>Speed</strong></summary>
                                             <div style="padding-left: 15px;">
-                                                ${DebuggerUIBuilder._createSliderHTML('water.glintParticles.speed.start', 'Start Speed', -50, 50, 1)}
-                                                ${DebuggerUIBuilder._createSliderHTML('water.glintParticles.speed.end', 'End Speed', -50, 50, 1)}
-                                                ${DebuggerUIBuilder._createSliderHTML('water.glintParticles.speed.minMult', 'Random Speed Min', 0.1, 1, 0.01, 'Minimum random speed multiplier for each particle (from this value to 1.0).')}
+                                                ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamParticles.speed.start', 'Start Speed', -50, 50, 1)}
+                                                ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamParticles.speed.end', 'End Speed', -50, 50, 1)}
+                                                ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamParticles.speed.minMult', 'Random Speed Min', 0.1, 1, 0.01, 'Minimum random speed multiplier for each particle (from this value to 1.0).')}
                                             </div>
                                         </details>
                                         <details>
-                                            <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('water.glintParticles.rotation.enabled', 'Tumbling / Rotation', true)}</div></summary>
+                                            <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('water.shoreline.foamParticles.rotation.enabled', 'Tumbling / Rotation', true)}</div></summary>
                                             <div style="padding-left: 15px;">
-                                                ${DebuggerUIBuilder._createSliderHTML('water.glintParticles.rotation.minSpeed', 'Min Rot. Speed', -180, 180, 1, 'Degrees per second.')}
-                                                ${DebuggerUIBuilder._createSliderHTML('water.glintParticles.rotation.maxSpeed', 'Max Rot. Speed', -180, 180, 1, 'Degrees per second.')}
-                                                ${DebuggerUIBuilder._createSliderHTML('water.glintParticles.rotation.accel', 'Rot. Accel.', -90, 90, 1, 'Degrees per second squared.')}
+                                                ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamParticles.rotation.minSpeed', 'Min Rot. Speed', -180, 180, 1, 'Degrees per second.')}
+                                                ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamParticles.rotation.maxSpeed', 'Max Rot. Speed', -180, 180, 1, 'Degrees per second.')}
+                                                ${DebuggerUIBuilder._createSliderHTML('water.shoreline.foamParticles.rotation.accel', 'Rot. Accel.', -90, 90, 1, 'Degrees per second squared.')}
                                             </div>
                                         </details>
                                     </div>
                                 </details>
                             </div>
                         </details>
-                    `);
+                    </div>
+                </details>
+                <details id="details-water-glint-particles" open>
+                    <summary><span class="accordion-toggle"></span>
+                        <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('water.glintParticles.enabled', 'Water Glints / Spray', true)}</div>
+                    </summary>
+                    <div style="padding-left:15px;">
+                        <p class="description-text">General-purpose particles spawned across the entire water surface.</p>
+                        ${DebuggerUIBuilder._createSelectHTML('water.glintParticles.blendMode', 'Blend Mode', BLEND_MODE_OPTIONS)}
+                        <details open>
+                            <summary><span class="accordion-toggle"></span><strong>Spawning & Density</strong></summary>
+                            <div style="padding-left: 15px;">
+                                ${DebuggerUIBuilder._createSliderHTML('water.glintParticles.maskInfluence', 'Particle Density', 0.01, 5, 0.01, 'Controls the maximum number of particles.')}
+                                ${DebuggerUIBuilder._createSliderHTML('water.glintParticles.frequency', 'Spawn Rate (s)', 0.001, 1, 0.001, 'Time in seconds between particle spawns. Lower is faster.')}
+                                ${DebuggerUIBuilder._createSliderHTML('water.glintParticles.maskThreshold', 'Spawn Threshold', 0, 1, 0.01, 'Water mask brightness required to spawn particles.')}
+                            </div>
+                        </details>
+                        <details>
+                            <summary><span class="accordion-toggle"></span><strong>Particle Appearance</strong></summary>
+                            <div style="padding-left: 15px;">
+                                ${DebuggerUIBuilder._createTextInputHTML('water.glintParticles.particleTexture', 'Particle Texture', 'Path to the particle image.')}
+                                <details>
+                                    <summary><span class="accordion-toggle"></span><strong>Lifetime</strong></summary>
+                                    <div style="padding-left: 15px;">
+                                        ${DebuggerUIBuilder._createSliderHTML('water.glintParticles.lifetime.min', 'Min Lifetime (s)', 0.1, 20, 0.1)}
+                                        ${DebuggerUIBuilder._createSliderHTML('water.glintParticles.lifetime.max', 'Max Lifetime (s)', 0.1, 20, 0.1)}
+                                    </div>
+                                </details>
+                                <details open>
+                                    <summary><span class="accordion-toggle"></span><strong>Color Over Life</strong></summary>
+                                    <div style="padding-left: 15px;">
+                                        <p class="description-text">Sets particle color at birth and death. If colors are the same, a static color is used.</p>
+                                        ${DebuggerUIBuilder._createColorPickerHTML('water.glintParticles.color.start', 'Start Color')}
+                                        ${DebuggerUIBuilder._createColorPickerHTML('water.glintParticles.color.end', 'End Color')}
+                                    </div>
+                                </details>
+                                <details>
+                                    <summary><span class="accordion-toggle"></span><strong>Alpha / Opacity</strong></summary>
+                                    <div style="padding-left: 15px;">
+                                        ${DebuggerUIBuilder._createSliderHTML('water.glintParticles.alpha.max', 'Max Alpha', 0, 1, 0.01)}
+                                        ${DebuggerUIBuilder._createSliderHTML('water.glintParticles.alpha.fadeIn', 'FadeIn Time (%)', 0, 0.5, 0.01)}
+                                        ${DebuggerUIBuilder._createSliderHTML('water.glintParticles.alpha.fadeOut', 'FadeOut Time (%)', 0, 0.5, 0.01)}
+                                    </div>
+                                </details>
+                                <details>
+                                    <summary><span class="accordion-toggle"></span><strong>Scale / Size</strong></summary>
+                                    <div style="padding-left: 15px;">
+                                        ${DebuggerUIBuilder._createSliderHTML('water.glintParticles.scale.sizeMultiplier', 'Global Size', 0.1, 10, 0.1, 'A global multiplier for particle size.')}
+                                        ${DebuggerUIBuilder._createSliderHTML('water.glintParticles.scale.start', 'Start Scale Mult', 0, 2, 0.01, 'Particle size at birth (multiplied by Global Size).')}
+                                        ${DebuggerUIBuilder._createSliderHTML('water.glintParticles.scale.end', 'End Scale Mult', 0, 2, 0.01, 'Particle size at death (multiplied by Global Size).')}
+                                        ${DebuggerUIBuilder._createSliderHTML('water.glintParticles.scale.minMult', 'Random Size Min', 0.1, 1, 0.01, 'Minimum random scale multiplier for each particle (from this value to 1.0).')}
+                                    </div>
+                                </details>
+                            </div>
+                        </details>
+                        <details>
+                            <summary><span class="accordion-toggle"></span><strong>Movement</strong></summary>
+                            <div style="padding-left: 15px;">
+                                <details>
+                                    <summary><span class="accordion-toggle"></span><strong>Speed</strong></summary>
+                                    <div style="padding-left: 15px;">
+                                        ${DebuggerUIBuilder._createSliderHTML('water.glintParticles.speed.start', 'Start Speed', -50, 50, 1)}
+                                        ${DebuggerUIBuilder._createSliderHTML('water.glintParticles.speed.end', 'End Speed', -50, 50, 1)}
+                                        ${DebuggerUIBuilder._createSliderHTML('water.glintParticles.speed.minMult', 'Random Speed Min', 0.1, 1, 0.01, 'Minimum random speed multiplier for each particle (from this value to 1.0).')}
+                                    </div>
+                                </details>
+                                <details>
+                                    <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML('water.glintParticles.rotation.enabled', 'Tumbling / Rotation', true)}</div></summary>
+                                    <div style="padding-left: 15px;">
+                                        ${DebuggerUIBuilder._createSliderHTML('water.glintParticles.rotation.minSpeed', 'Min Rot. Speed', -180, 180, 1, 'Degrees per second.')}
+                                        ${DebuggerUIBuilder._createSliderHTML('water.glintParticles.rotation.maxSpeed', 'Max Rot. Speed', -180, 180, 1, 'Degrees per second.')}
+                                        ${DebuggerUIBuilder._createSliderHTML('water.glintParticles.rotation.accel', 'Rot. Accel.', -90, 90, 1, 'Degrees per second squared.')}
+                                    </div>
+                                </details>
+                            </div>
+                        </details>
+                    </div>
+                </details>
+            `);
     }
 
     async _draw(options) {
@@ -14313,109 +14053,109 @@ class WaterFXLayer extends MaskedEffectLayer {
 class WaveDisplacementFilter extends PIXI.Filter {
     constructor(options = {}) {
         const fragmentSrc = `
-                        precision mediump float;
-                        varying vec2 vTextureCoord;
-            
-                        uniform float u_time;
-                        uniform float u_speed;
-                        uniform float u_scale;
-            
-                        //
-                        // Description : Array and textureless GLSL 3D simplex noise function.
-                        //      Author : Ian McEwan, Ashima Arts.
-                        //  Maintainer : ijm
-                        //     Lastmod : 20110822 (ijm)
-                        //     License : Copyright (C) 2011 Ashima Arts. All rights reserved.
-                        //               Distributed under the MIT License. See LICENSE file.
-                        //               https://github.com/ashima/webgl-noise
-                        //
-                        vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 289.0);}
-                        vec4 taylorInvSqrt(vec4 r){return 1.79284291400159 - 0.85373472095314 * r;}
-            
-                        float snoise(vec3 v) {
-                            const vec2 C = vec2(1.0/6.0, 1.0/3.0);
-                            const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
-            
-                            // First corner
-                            vec3 i  = floor(v + dot(v, C.yyy) );
-                            vec3 x0 =   v - i + dot(i, C.xxx) ;
-            
-                            // Other corners
-                            vec3 g = step(x0.yzx, x0.xyz);
-                            vec3 l = 1.0 - g;
-                            vec3 i1 = min( g.xyz, l.zxy );
-                            vec3 i2 = max( g.xyz, l.zxy );
-            
-                            vec3 x1 = x0 - i1 + C.xxx;
-                            vec3 x2 = x0 - i2 + C.yyy; // 2.0*C.x = 1/3 = C.y
-                            vec3 x3 = x0 - D.yyy;      // -1.0+3.0*C.x = -0.5 = -D.y
-            
-                            // Permutations
-                            i = mod(i, 289.0);
-                            vec4 p = permute( permute( i.z + vec4(0.0, i1.z, i2.z, 1.0 ))
-                                + i.y + vec4(0.0, i1.y, i2.y, 1.0 ))
-                                + i.x + vec4(0.0, i1.x, i2.x, 1.0 );
-            
-                            // Gradients: 7x7 points over a square, mapped onto an octahedron.
-                            // The ring size 17*17 = 289 is close to a multiple of 49 (49*6 = 294)
-                            float n_ = 0.142857142857; // 1.0/7.0
-                            vec3  ns = n_ * D.wyz - D.xzx;
-            
-                            vec4 j = p - 49.0 * floor(p * ns.z * ns.z);  //  mod(p,7*7)
-            
-                            vec4 x_ = floor(j * ns.z);
-                            vec4 y_ = floor(j - 7.0 * x_ );    // mod(j,N)
-            
-                            vec4 x = x_ *ns.x + ns.yyyy;
-                            vec4 y = y_ *ns.x + ns.yyyy;
-                            vec4 h = 1.0 - abs(x) - abs(y);
-            
-                            vec4 b0 = vec4( x.xy, y.xy );
-                            vec4 b1 = vec4( x.zw, y.zw );
-            
-                            vec4 s0 = floor(b0)*2.0 + 1.0;
-                            vec4 s1 = floor(b1)*2.0 + 1.0;
-                            vec4 sh = -step(h, vec4(0.0));
-            
-                            vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;
-                            vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;
-            
-                            vec3 p0 = vec3(a0.xy,h.x);
-                            vec3 p1 = vec3(a0.zw,h.y);
-                            vec3 p2 = vec3(a1.xy,h.z);
-                            vec3 p3 = vec3(a1.zw,h.w);
-            
-                            // Normalise gradients
-                            vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
-                            p0 *= norm.x;
-                            p1 *= norm.y;
-                            p2 *= norm.z;
-                            p3 *= norm.w;
-            
-                            // Mix final noise value
-                            vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
-                            m = m * m;
-                            return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3) ) );
-                        }
-            
-                        void main() {
-                            float time = u_time * u_speed;
-                            vec2 uv1 = vTextureCoord * u_scale + vec2(time * 0.5, time * 0.2);
-                            vec2 uv2 = vTextureCoord * u_scale * 1.5 - vec2(time * -0.2, time * 0.5);
-            
-                            float noise1_x = snoise(vec3(uv1, time));
-                            float noise1_y = snoise(vec3(uv1 + 10.0, time));
-            
-                            float noise2_x = snoise(vec3(uv2, time));
-                            float noise2_y = snoise(vec3(uv2 + 20.0, time));
-            
-                            // Combine noises for a more complex pattern
-                            vec2 displacement = vec2(noise1_x + noise2_x, noise1_y + noise2_y) * 0.5;
-            
-                            // Output the displacement vector in the R and G channels, normalized to 0-1 range
-                            gl_FragColor = vec4(displacement * 0.5 + 0.5, 0.0, 1.0);
-                        }
-                    `;
+                precision mediump float;
+                varying vec2 vTextureCoord;
+    
+                uniform float u_time;
+                uniform float u_speed;
+                uniform float u_scale;
+    
+                //
+                // Description : Array and textureless GLSL 3D simplex noise function.
+                //      Author : Ian McEwan, Ashima Arts.
+                //  Maintainer : ijm
+                //     Lastmod : 20110822 (ijm)
+                //     License : Copyright (C) 2011 Ashima Arts. All rights reserved.
+                //               Distributed under the MIT License. See LICENSE file.
+                //               https://github.com/ashima/webgl-noise
+                //
+                vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 289.0);}
+                vec4 taylorInvSqrt(vec4 r){return 1.79284291400159 - 0.85373472095314 * r;}
+    
+                float snoise(vec3 v) {
+                    const vec2 C = vec2(1.0/6.0, 1.0/3.0);
+                    const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+    
+                    // First corner
+                    vec3 i  = floor(v + dot(v, C.yyy) );
+                    vec3 x0 =   v - i + dot(i, C.xxx) ;
+    
+                    // Other corners
+                    vec3 g = step(x0.yzx, x0.xyz);
+                    vec3 l = 1.0 - g;
+                    vec3 i1 = min( g.xyz, l.zxy );
+                    vec3 i2 = max( g.xyz, l.zxy );
+    
+                    vec3 x1 = x0 - i1 + C.xxx;
+                    vec3 x2 = x0 - i2 + C.yyy; // 2.0*C.x = 1/3 = C.y
+                    vec3 x3 = x0 - D.yyy;      // -1.0+3.0*C.x = -0.5 = -D.y
+    
+                    // Permutations
+                    i = mod(i, 289.0);
+                    vec4 p = permute( permute( i.z + vec4(0.0, i1.z, i2.z, 1.0 ))
+                        + i.y + vec4(0.0, i1.y, i2.y, 1.0 ))
+                        + i.x + vec4(0.0, i1.x, i2.x, 1.0 );
+    
+                    // Gradients: 7x7 points over a square, mapped onto an octahedron.
+                    // The ring size 17*17 = 289 is close to a multiple of 49 (49*6 = 294)
+                    float n_ = 0.142857142857; // 1.0/7.0
+                    vec3  ns = n_ * D.wyz - D.xzx;
+    
+                    vec4 j = p - 49.0 * floor(p * ns.z * ns.z);  //  mod(p,7*7)
+    
+                    vec4 x_ = floor(j * ns.z);
+                    vec4 y_ = floor(j - 7.0 * x_ );    // mod(j,N)
+    
+                    vec4 x = x_ *ns.x + ns.yyyy;
+                    vec4 y = y_ *ns.x + ns.yyyy;
+                    vec4 h = 1.0 - abs(x) - abs(y);
+    
+                    vec4 b0 = vec4( x.xy, y.xy );
+                    vec4 b1 = vec4( x.zw, y.zw );
+    
+                    vec4 s0 = floor(b0)*2.0 + 1.0;
+                    vec4 s1 = floor(b1)*2.0 + 1.0;
+                    vec4 sh = -step(h, vec4(0.0));
+    
+                    vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;
+                    vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;
+    
+                    vec3 p0 = vec3(a0.xy,h.x);
+                    vec3 p1 = vec3(a0.zw,h.y);
+                    vec3 p2 = vec3(a1.xy,h.z);
+                    vec3 p3 = vec3(a1.zw,h.w);
+    
+                    // Normalise gradients
+                    vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
+                    p0 *= norm.x;
+                    p1 *= norm.y;
+                    p2 *= norm.z;
+                    p3 *= norm.w;
+    
+                    // Mix final noise value
+                    vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+                    m = m * m;
+                    return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3) ) );
+                }
+    
+                void main() {
+                    float time = u_time * u_speed;
+                    vec2 uv1 = vTextureCoord * u_scale + vec2(time * 0.5, time * 0.2);
+                    vec2 uv2 = vTextureCoord * u_scale * 1.5 - vec2(time * -0.2, time * 0.5);
+    
+                    float noise1_x = snoise(vec3(uv1, time));
+                    float noise1_y = snoise(vec3(uv1 + 10.0, time));
+    
+                    float noise2_x = snoise(vec3(uv2, time));
+                    float noise2_y = snoise(vec3(uv2 + 20.0, time));
+    
+                    // Combine noises for a more complex pattern
+                    vec2 displacement = vec2(noise1_x + noise2_x, noise1_y + noise2_y) * 0.5;
+    
+                    // Output the displacement vector in the R and G channels, normalized to 0-1 range
+                    gl_FragColor = vec4(displacement * 0.5 + 0.5, 0.0, 1.0);
+                }
+            `;
         super(PIXI.Filter.defaultVertexSrc, fragmentSrc, {
             u_time: 0.0,
             u_speed: options.speed ?? 0.05,
@@ -14451,26 +14191,26 @@ class LoadingScreen {
         this.element.style.opacity = '0';
 
         this.element.innerHTML = `
-                        <div class="loading-content">
-                            <img src="modules/map-shine/assets/fvtt.png" class="loading-logo" alt="Foundry VTT Logo">
-                            <h2 class="loading-subhead">Mythica Machina Presents...</h2>
-                            <h1 class="loading-title">Map Shine</h1>
-                            <div class="loading-bar-container">
-                                <div class="loading-bar-fill"></div>
-                            </div>
-                            <div id="loading-status-text" class="loading-status"></div>
-                        </div>
-                        <style>
-                            #map-shine-loading-screen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 1); z-index: 100000; display: flex; justify-content: center; align-items: center; color: white; font-family: Signika, sans-serif; transition: opacity ${this.fadeOutDuration / 1000}s ease-in-out; }
-                            .loading-content { text-align: center; }
-                            .loading-logo { width: 150px; height: auto; margin: 0 auto 10px auto; display: block; filter: drop-shadow(0 0 10px rgba(0,0,0,0.6)); }
-                            .loading-subhead { font-size: 24px; font-weight: normal; color: #bbb; margin: 0 0 10px 0; text-shadow: 0 0 5px #111; }
-                            .loading-title { font-size: 72px; margin: 0 0 30px 0; text-shadow: 0 0 10px #222; }
-                            .loading-bar-container { width: 400px; height: 20px; border: 2px solid rgba(255, 255, 255, 0.5); margin: 0 auto; background-color: rgba(0,0,0,0.5); border-radius: 5px; overflow: hidden; }
-                            .loading-bar-fill { width: 0%; height: 100%; background-color: rgba(255, 255, 255, 0.9); transform-origin: left; transition: width 0.2s ease-out; box-shadow: 0 0 10px rgba(255, 255, 255, 0.5); }
-                            .loading-status { margin-top: 15px; font-size: 16px; color: #ddd; height: 20px; line-height: 20px; opacity: 0; transition: opacity ${this.statusFadeDuration / 1000}s ease-in-out; }
-                        </style>
-                    `;
+                <div class="loading-content">
+                    <img src="modules/map-shine/assets/fvtt.png" class="loading-logo" alt="Foundry VTT Logo">
+                    <h2 class="loading-subhead">Mythica Machina Presents...</h2>
+                    <h1 class="loading-title">Map Shine</h1>
+                    <div class="loading-bar-container">
+                        <div class="loading-bar-fill"></div>
+                    </div>
+                    <div id="loading-status-text" class="loading-status"></div>
+                </div>
+                <style>
+                    #map-shine-loading-screen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 1); z-index: 100000; display: flex; justify-content: center; align-items: center; color: white; font-family: Signika, sans-serif; transition: opacity ${this.fadeOutDuration / 1000}s ease-in-out; }
+                    .loading-content { text-align: center; }
+                    .loading-logo { width: 150px; height: auto; margin: 0 auto 10px auto; display: block; filter: drop-shadow(0 0 10px rgba(0,0,0,0.6)); }
+                    .loading-subhead { font-size: 24px; font-weight: normal; color: #bbb; margin: 0 0 10px 0; text-shadow: 0 0 5px #111; }
+                    .loading-title { font-size: 72px; margin: 0 0 30px 0; text-shadow: 0 0 10px #222; }
+                    .loading-bar-container { width: 400px; height: 20px; border: 2px solid rgba(255, 255, 255, 0.5); margin: 0 auto; background-color: rgba(0,0,0,0.5); border-radius: 5px; overflow: hidden; }
+                    .loading-bar-fill { width: 0%; height: 100%; background-color: rgba(255, 255, 255, 0.9); transform-origin: left; transition: width 0.2s ease-out; box-shadow: 0 0 10px rgba(255, 255, 255, 0.5); }
+                    .loading-status { margin-top: 15px; font-size: 16px; color: #ddd; height: 20px; line-height: 20px; opacity: 0; transition: opacity ${this.statusFadeDuration / 1000}s ease-in-out; }
+                </style>
+            `;
 
         document.body.appendChild(this.element);
         this.fillElement = this.element.querySelector('.loading-bar-fill');
@@ -14650,8 +14390,7 @@ class ProfileManager {
         this.status = {
             sceneProfileLoaded: false,
             isDirty: false,
-            error: null,
-            profileSource: 'none' // To track if the profile is from the scene, world, or module defaults
+            error: null
         };
         this._worldProfiles = {};
         this._defaultProfileName = '';
@@ -14670,8 +14409,7 @@ class ProfileManager {
         this.status = {
             sceneProfileLoaded: false,
             isDirty: false,
-            error: null,
-            profileSource: 'none'
+            error: null
         };
     }
 
@@ -14732,19 +14470,15 @@ class ProfileManager {
         this._worldProfiles = game.settings.get(this.moduleId, PROFILES_SETTING) || {};
         this._defaultProfileName = game.settings.get(this.moduleId, DEFAULT_PROFILE_SETTING) || '';
 
-        this.status.profileSource = 'none'; // Reset the source for the new scene
-
         let rawSceneProfile = canvas.scene?.getFlag(this.moduleId, 'profile') || null;
 
-        // Determine the source of the profile data
-        if (rawSceneProfile) {
-            this.status.profileSource = 'scene';
-        } else if (this._defaultProfileName && this._worldProfiles[this._defaultProfileName]) {
+        // If there's no scene-specific profile, check if a world-default is set and available.
+        if (!rawSceneProfile && this._defaultProfileName && this._worldProfiles[this._defaultProfileName]) {
             console.log(`Map Shine | No scene profile found. Applying world default profile: "${this._defaultProfileName}"`);
+            // Get the config part of the saved world profile. The profile might also contain UI state.
             const defaultConfigData = this._worldProfiles[this._defaultProfileName].config;
             if (defaultConfigData) {
                 rawSceneProfile = foundry.utils.deepClone(defaultConfigData);
-                this.status.profileSource = 'world'; // Mark that we're using the world default
             }
         }
 
@@ -14971,42 +14705,28 @@ class ProfileManager {
         if (saveSceneBtn) saveSceneBtn.style.display = this.isGm ? '' : 'none';
         if (revertSceneBtn) revertSceneBtn.disabled = !this.status.sceneProfileLoaded;
         if (!light || !text) return;
-
         light.className = 'fx-status-light';
-        let sourceText = "";
-        let stateText = "";
-        let lightColor = "grey";
 
         if (this.status.error) {
-            lightColor = 'red';
-            sourceText = `Error: ${this.status.error}`;
-        } else {
-            switch (this.status.profileSource) {
-                case 'scene':
-                    sourceText = "Scene Profile";
-                    lightColor = 'green';
-                    break;
-                case 'world':
-                    const defaultName = this.getDefaultProfileName();
-                    sourceText = `World Default: ${defaultName}`;
-                    lightColor = 'green';
-                    break;
-                default:
-                    sourceText = "Module Defaults";
-                    lightColor = 'grey';
-                    break;
-            }
-
+            light.classList.add('red');
+            text.textContent = `Error: ${this.status.error}`;
+        } else if (this.status.sceneProfileLoaded) {
             if (this.status.isDirty) {
-                stateText = "(Modified)";
-                lightColor = 'blue';
+                light.classList.add('blue');
+                text.textContent = "Scene Default (with your temporary changes)";
             } else {
-                stateText = "(Active)";
+                light.classList.add('green');
+                text.textContent = "Scene Default (active)";
+            }
+        } else {
+            if (this.status.isDirty) {
+                light.classList.add('blue');
+                text.textContent = "Module Default (with your temporary changes)";
+            } else {
+                light.classList.add('grey');
+                text.textContent = "Module Default (active)";
             }
         }
-
-        text.textContent = `${sourceText} ${stateText}`.trim();
-        light.classList.add(lightColor);
     }
 
     async getProfiles() {
@@ -15042,7 +14762,6 @@ class ProfileManager {
     }
 
     async saveProfile(name, config, uiState) {
-        if (!this.isGm) return false; // Guard
         if (!name) {
             ui.notifications.warn("Please enter a name for the profile.");
             return false;
@@ -15066,7 +14785,6 @@ class ProfileManager {
     }
 
     async updateProfile(name, config, uiState) {
-        if (!this.isGm) return false; // Guard
         if (!name || !this._worldProfiles[name]) {
             ui.notifications.warn("Select a valid profile to update.");
             return false;
@@ -15081,7 +14799,6 @@ class ProfileManager {
     }
 
     async deleteProfile(name) {
-        if (!this.isGm) return false; // Guard
         if (!name || !this._worldProfiles[name]) return false;
         delete this._worldProfiles[name];
         await game.settings.set(this.moduleId, PROFILES_SETTING, this._worldProfiles);
@@ -15090,7 +14807,6 @@ class ProfileManager {
     }
 
     async setDefaultProfile(name) {
-        if (!this.isGm) return; // Guard
         await game.settings.set(this.moduleId, DEFAULT_PROFILE_SETTING, name);
         this._defaultProfileName = name;
         ui.notifications.info(`"${name}" is now the default profile for new scenes.`);
@@ -15624,11 +15340,11 @@ class DebuggerEventHandler {
 
         const hints = foundry.utils.getProperty(this.config, path) || [];
         container.innerHTML = hints.map((hint, index) => `
-                    <div class="list-item-row">
-                        <input type="text" data-index="${index}" value="${Handlebars.escapeExpression(hint)}">
-                        <button class="remove-item-btn" data-index="${index}" title="Remove Hint">X</button>
-                    </div>
-                `).join('');
+            <div class="list-item-row">
+                <input type="text" data-index="${index}" value="${Handlebars.escapeExpression(hint)}">
+                <button class="remove-item-btn" data-index="${index}" title="Remove Hint">X</button>
+            </div>
+        `).join('');
     }
 
     updateAllControls() {
@@ -16076,11 +15792,11 @@ class DebuggerEventHandler {
         let html = '';
         favorites.forEach((favorite, index) => {
             html += `
-                        <div style="display: flex; align-items: center; gap: 5px; margin-bottom: 3px;">
-                            <button class="apply-favorite-btn" data-index="${index}" title="Apply this favorite" style="flex: 1; height: 20px; font-size: 11px;">${favorite.name}</button>
-                            <button class="delete-favorite-btn" data-index="${index}" title="Delete this favorite" style="width: 20px; height: 20px; font-size: 11px; color: #ff6b6b;"> </button>
-                        </div>
-                    `;
+                <div style="display: flex; align-items: center; gap: 5px; margin-bottom: 3px;">
+                    <button class="apply-favorite-btn" data-index="${index}" title="Apply this favorite" style="flex: 1; height: 20px; font-size: 11px;">${favorite.name}</button>
+                    <button class="delete-favorite-btn" data-index="${index}" title="Delete this favorite" style="width: 20px; height: 20px; font-size: 11px; color: #ff6b6b;"> </button>
+                </div>
+            `;
         });
         container.innerHTML = html;
 
@@ -16217,12 +15933,6 @@ class DebuggerEventHandler {
         const closeDragElement = () => {
             document.onmouseup = null;
             document.onmousemove = null;
-
-            // Save the new position
-            const currentPos = game.settings.get(MODULE_ID, 'debugger-position') || {};
-            currentPos.top = elmnt.offsetTop;
-            currentPos.left = elmnt.offsetLeft;
-            game.settings.set(MODULE_ID, 'debugger-position', currentPos);
         };
         header.onmousedown = dragMouseDown;
     }
@@ -16235,8 +15945,6 @@ class MaterialEditorDebugger {
         this.eventHandler = null;
         this.profileManager = null;
         this._boundUpdateIndicator = this._updateIndicator.bind(this);
-        this.resizeObserver = null;
-        this.resizeTimeout = null;
     }
 
     initialize(profileManager) {
@@ -16249,61 +15957,22 @@ class MaterialEditorDebugger {
         this.eventHandler = new DebuggerEventHandler(this.element, this.profileManager);
         this.eventHandler.initialize();
 
-        // Restore saved position and size, or apply defaults.
-        const savedPosition = game.settings.get(MODULE_ID, 'debugger-position');
-        const defaultWidth = 1000;
-        const defaultHeight = 1150;
-
-        if (savedPosition && savedPosition.width && savedPosition.height) {
-            this.element.style.width = `${savedPosition.width}px`;
-            this.element.style.height = `${savedPosition.height}px`;
-            this.element.style.top = `${savedPosition.top}px`;
-            this.element.style.left = `${savedPosition.left}px`;
-        } else {
-            // Set default size and position
-            this.element.style.width = `${defaultWidth}px`;
-            this.element.style.height = `${defaultHeight}px`;
-
-            const initialTop = 80;
-            const initialLeft = (window.innerWidth - defaultWidth) / 2;
-            this.element.style.top = `${initialTop}px`;
-            this.element.style.left = `${Math.max(0, initialLeft)}px`;
-        }
+        // Set the initial position of the window to be stable
+        const initialTop = 80; // A fixed distance from the top of the viewport
+        const initialLeft = (window.innerWidth - this.element.offsetWidth) / 2;
+        this.element.style.top = `${initialTop}px`;
+        this.element.style.left = `${initialLeft}px`;
 
         // When the UI is created, immediately populate all indicators from the current system status.
         this._populateAllIndicators();
         // Then, subscribe to any future changes.
         systemStatus.on('statusChanged', this._boundUpdateIndicator);
 
-        // Observe for user resizing.
-        this.resizeObserver = new ResizeObserver(entries => {
-            if (this.resizeTimeout) clearTimeout(this.resizeTimeout);
-            this.resizeTimeout = setTimeout(() => {
-                for (let entry of entries) {
-                    const {
-                        width,
-                        height
-                    } = entry.contentRect;
-                    const currentPos = game.settings.get(MODULE_ID, 'debugger-position') || {};
-                    currentPos.width = width;
-                    currentPos.height = height;
-                    // Also save top/left in case they are not set yet
-                    if (currentPos.top === undefined) currentPos.top = this.element.offsetTop;
-                    if (currentPos.left === undefined) currentPos.left = this.element.offsetLeft;
-                    game.settings.set(MODULE_ID, 'debugger-position', currentPos);
-                }
-            }, 200);
-        });
-        this.resizeObserver.observe(this.element);
-
         console.log("Material Editor | UI system initialized and subscribed to status updates.");
     }
 
     destroy() {
         systemStatus.off('statusChanged', this._boundUpdateIndicator);
-
-        this.resizeObserver?.disconnect();
-        if (this.resizeTimeout) clearTimeout(this.resizeTimeout);
 
         this.element?.remove();
         this.element = null;
@@ -16312,6 +15981,7 @@ class MaterialEditorDebugger {
         this.profileManager = null;
         game.mapShine.debugger = null;
 
+        // ADD THIS LINE to force the scene controls to re-render
         ui.controls.render(true);
 
         console.log("Material Editor | UI destroyed.");
@@ -16355,9 +16025,13 @@ class DebuggerUIBuilder {
     buildRootElement() {
         const element = document.createElement('div');
         element.id = 'material-editor-debugger';
-        element.innerHTML = this._getStyles() + this._getBaseHTML();
+        element.innerHTML = DebuggerUIBuilder._getStyles() + DebuggerUIBuilder._getBaseHTML();
 
-        element.querySelector('#material-editor-profiles-section').innerHTML = this._buildProfileSection();
+        element.querySelector('#material-editor-top-bar').innerHTML = DebuggerUIBuilder._buildTopBar();
+
+        element.querySelector('#material-editor-time-control-section').innerHTML = this._buildTimeControlSection();
+        element.querySelector('#material-editor-profiles-section').innerHTML = DebuggerUIBuilder._buildProfileSection();
+        element.querySelector('#material-editor-diagnostic-section').innerHTML = this._buildDiagnosticSection() + this._buildMapToolsSection();
 
         const postProcessingPane = element.querySelector('#post-processing-pane');
         const mainContentArea = element.querySelector('.main-content-area');
@@ -16376,9 +16050,9 @@ class DebuggerUIBuilder {
         const column2Effects = allRightSideEffects.slice(midPoint);
 
         mainContentArea.innerHTML = `
-                    <div class="fx-column">${column1Effects.join('')}</div>
-                    <div class="fx-column">${column2Effects.join('')}</div>
-                `;
+            <div class="fx-column">${column1Effects.join('')}</div>
+            <div class="fx-column">${column2Effects.join('')}</div>
+        `;
 
         element.querySelector('#material-editor-bottom-bar').innerHTML = DebuggerUIBuilder._buildBottomBar();
 
@@ -16387,231 +16061,301 @@ class DebuggerUIBuilder {
 
     _buildParticleSystemSection() {
         return `
-                    <h3 class="pane-title" style="margin-top: 15px;">Particle Systems</h3>
-                    <details id="details-particleSystems">
-                        <summary>
-                            <span class="accordion-toggle"></span>
-                            <div class="summary-control">
-                                ${DebuggerUIBuilder._createCheckboxHTML('particleSystems.enabled', '<strong>Enable All Particles</strong>', true, 'Master toggle for all particle effects.')}
-                            </div>
-                        </summary>
-                        <div style="padding-top: 5px;">
-                            <div class="control-row" style="padding: 4px; background: rgba(0,0,0,0.2); border-radius: 4px;">
-                                <label>Live Particle Count</label>
-                                <div class="widget-group">
-                                    <span id="particle-count-display" style="font-weight: bold; color: #aadcff;">0</span>
-                                    <span>/</span>
-                                    <span id="particle-limit-display">10000</span>
-                                </div>
-                            </div>
-                            ${DebuggerUIBuilder._createSliderHTML('particleSystems.globalDensityMultiplier', 'Global Density', 0.1, 2.0, 0.05, 'A multiplier for the spawn rate/density of ALL particle effects.')}
-                            ${DebuggerUIBuilder._createSliderHTML('particleSystems.globalParticleLimit', 'Global Particle Limit', 500, 30000, 100, 'A hard cap on the total number of particles allowed on screen at once to prevent performance issues.')}
+            <h3 class="pane-title" style="margin-top: 15px;">Particle Systems</h3>
+            <details id="details-particleSystems" open>
+                <summary>
+                    <span class="accordion-toggle"></span>
+                    <div class="summary-control">
+                        ${DebuggerUIBuilder._createCheckboxHTML('particleSystems.enabled', '<strong>Enable All Particles</strong>', true, 'Master toggle for all particle effects.')}
+                    </div>
+                </summary>
+                <div style="padding-top: 5px;">
+                    <div class="control-row" style="padding: 4px; background: rgba(0,0,0,0.2); border-radius: 4px;">
+                        <label>Live Particle Count</label>
+                        <div class="widget-group">
+                            <span id="particle-count-display" style="font-weight: bold; color: #aadcff;">0</span>
+                            <span>/</span>
+                            <span id="particle-limit-display">10000</span>
                         </div>
-                    </details>
-                `;
+                    </div>
+                    ${DebuggerUIBuilder._createSliderHTML('particleSystems.globalDensityMultiplier', 'Global Density', 0.1, 2.0, 0.05, 'A multiplier for the spawn rate/density of ALL particle effects.')}
+                    ${DebuggerUIBuilder._createSliderHTML('particleSystems.globalParticleLimit', 'Global Particle Limit', 500, 30000, 100, 'A hard cap on the total number of particles allowed on screen at once to prevent performance issues.')}
+                </div>
+            </details>
+        `;
     }
 
-    _getStyles() {
+    static _getStyles() {
         return `<style>
-                            #material-editor-debugger { 
-                                position: fixed; 
-                                z-index: 10; 
-                                background: rgba(40, 40, 40, 0.95); 
-                                color: #fff; 
-                                border: 1px solid #111; 
-                                border-radius: 8px; 
-                                padding: 5px; 
-                                font-family: sans-serif; 
-                                font-size: 11px; 
-                                display: flex; 
-                                flex-direction: column; 
-                                gap: 4px; 
-                                min-width: 550px;
-                                min-height: 600px;
-                                box-sizing: border-box;
-                                box-shadow: 0 0 25px rgba(0,0,0,0.7); 
-                                resize: both;
-                                overflow: auto;
-                            }
-                            #material-editor-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 4px; }
-                            #material-editor-header h3 { margin: 0; padding: 0; border: none; flex-grow: 1; text-align: center; cursor: move; user-select: none; font-size: 1.4em; }
-                            .header-btn { display: inline-block; text-decoration: none; background: #3a3a3a; border: 1px solid #666; color: #ccc; font-weight: bold; width: 22px; height: 22px; line-height: 22px; text-align: center; cursor: pointer; border-radius: 4px; flex-shrink: 0; font-size: 14px; padding: 0; }
-                            .header-btn:hover { background: #555; border-color: #888; }
-                            #material-editor-debugger .file-picker-btn {
-                                flex-shrink: 0;
-                                width: 22px;
-                                height: 22px;
-                                line-height: 18px;
-                                padding: 0;
-                                font-size: 12px;
-                                background: #3a3a3a;
-                                border: 1px solid #666;
-                                color: #ccc;
-                                cursor: pointer;
-                                border-radius: 4px;
-                            }
-                            #material-editor-debugger .file-picker-btn:hover { background: #555; border-color: #888; }
-                            #material-editor-debugger details { background: rgba(255,255,255,0.05); border: 1px solid #555; border-radius: 4px; padding: 3px; margin-bottom: 0; }
-                            #material-editor-debugger details[open] { background: rgba(255,255,255,0.08); padding-bottom: 5px; }
-                            #material-editor-debugger details[open] > summary .accordion-toggle { transform: rotate(90deg); }
-                            #material-editor-debugger details.disabled-effect > summary .summary-label { color: #888; }
-                            #material-editor-debugger summary { font-weight: bold; cursor: pointer; padding: 2px; display: flex; align-items: center; gap: 5px; list-style: none; }
-                            #material-editor-debugger summary::-webkit-details-marker { display: none; }
-                            #material-editor-debugger .accordion-toggle { flex-shrink: 0; width: 0; height: 0; border-top: 4px solid transparent; border-bottom: 4px solid transparent; border-left: 5px solid #ccc; transition: transform 0.2s ease-in-out; margin-left: 2px; }
-                            #material-editor-debugger .summary-control { display: flex; justify-content: space-between; align-items: center; width: 100%; }
-                            .world-based-icon { color: #aaa; display: none; margin-right: 5px; }
-                            .world-based-icon.active { display: inline-block; color: #40a0fa; }
-                            #material-editor-debugger details details { margin-left: 8px; margin-top: 4px; border-style: dashed; }
-                            #material-editor-debugger .traffic-light { width: 9px; height: 9px; border-radius: 50%; display: inline-block; box-shadow: 0 0 4px rgba(0,0,0,0.5); border: 1px solid #111; flex-shrink: 0; }
-                            #material-editor-debugger .traffic-light.ok { background-color: #4cfa40; }
-                            #material-editor-debugger .traffic-light.error { background-color: #fa4040; }
-                            #material-editor-debugger .traffic-light.warning { background-color: #f7a000; }
-                            #material-editor-debugger .traffic-light.unknown { background-color: #888; }
-                            #material-editor-debugger .traffic-light.inactive, #material-editor-debugger .traffic-light.disabled { background: none; border: 1px dashed #666; }
-                            #material-editor-debugger .control-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1px; padding: 1px 0; }
-                            #material-editor-debugger .control-row label { flex-shrink: 0; margin-right: 8px; display: flex; align-items: center; gap: 4px;}
-                            #material-editor-debugger .control-row .widget-group { display: flex; align-items: center; gap: 4px; }
-                            #material-editor-debugger .control-row-slider { display: grid; grid-template-columns: auto 1fr auto; gap: 5px; align-items: center; }
-                            #material-editor-debugger .control-row-slider label { margin-right: 0; }
-                            #material-editor-debugger .control-row-slider input[type=range] { width: 100%; }
-                            #material-editor-debugger .control-row .value-span { width: 40px; height: 18px; line-height: 18px; text-align: right; font-family: monospace; font-size: 11px; background: rgba(0,0,0,0.4); padding: 0 4px; border-radius: 3px; box-sizing: border-box; }
-                            #material-editor-debugger input[type=range] { flex-grow: 1; width: 120px; height: 14px; }
-                            #material-editor-debugger input[type=color] { width: 100%; height: 22px; border: 1px solid #555; padding: 1px; background: #333; box-sizing: border-box; }
-                            .main-layout-wrapper { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 8px; flex-grow: 1; min-height: 0; overflow: hidden; padding: 4px; background: rgba(0,0,0,0.2); border-radius: 5px; }
-                            #post-processing-pane { display: flex; flex-direction: column; gap: 4px; overflow-y: auto; padding-right: 5px; }
-                            .pane-title { text-align: center; font-size: 1.2em; font-weight: bold; color: #efefef; margin: 3px 0 8px 0; padding-bottom: 5px; border-bottom: 1px solid #555; }
-                            .main-content-area { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; overflow-y: auto; align-content: start; }
-                            .fx-column { display: flex; flex-direction: column; gap: 4px; }
-                            #material-editor-debugger #material-editor-profiles-section > details { margin-bottom: 0; }
-                            #material-editor-debugger #material-editor-profiles-section .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding-top: 5px; }
-                            #material-editor-debugger #material-editor-profiles-section .profile-group { display: flex; flex-direction: column; gap: 4px; padding: 6px; background: rgba(0,0,0,0.2); border-radius: 4px; min-width: 250px; }
-                            .profile-controls { display: flex; flex-direction: column; gap: 4px; }
-                            #material-editor-debugger select { width: 100%; text-transform: capitalize; background-color: #222; color: #fff; border: 1px solid #555; border-radius: 3px; height: 20px; font-size: 11px; }
-                            .star-icon { font-size: 0 !important; background-color: #ccc; width: 12px; height: 12px; clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); margin: auto; }
-                            #material-editor-debugger.minimized { width: auto; height: auto; padding: 4px; gap: 0; box-shadow: 0 0 10px rgba(0,0,0,0.5); right: auto; }
-                            #material-editor-debugger.minimized #material-editor-header { padding: 0; cursor: move; }
-                            #material-editor-debugger.minimized > *:not(#material-editor-header) { display: none; }
-                            #material-editor-debugger.minimized #material-editor-help-btn, #material-editor-debugger.minimized #material-editor-title { display: none; }
-                            .fx-status-light { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 1px solid #111; margin-right: 5px; vertical-align: middle; }
-                            .fx-status-light.green { background-color: #4cfa40; box-shadow: 0 0 5px #4cfa40; }
-                            .fx-status-light.blue { background-color: #40a0fa; box-shadow: 0 0 5px #40a0fa; }
-                            .fx-status-light.grey { background-color: #888; }
-                            .fx-status-light.red { background-color: #fa4040; box-shadow: 0 0 5px #fa4040; }
-                            .profile-controls button:disabled { background-color: #333; color: #777; cursor: not-allowed; border-color: #555; }
-                            .description-text { font-size: 10px; color: #aaa; margin: 4px 0 6px 0; padding-left: 5px; }
-                            .warning-box { background: #552222; border: 1px solid #ff6666; padding: 5px; margin: 5px 0; border-radius: 3px; font-size: 10px; }
-                            .warning-box strong { color: #ffaaaa; }
-                            .profile-group-title { font-weight: bold; text-align: center; display: block; margin-bottom: 5px; color: #ccc; border-bottom: 1px solid #555; padding-bottom: 3px;}
-                            #material-editor-bottom-bar { padding: 10px 15px; margin-top: 5px; background: rgba(15, 15, 15, 0.5); border-radius: 5px; border: 1px solid #666; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 30px; }
-                            #material-editor-bottom-bar .about-text { font-size: 11px; line-height: 1.5; color: #ccc; }
-                            #material-editor-bottom-bar .about-text p { margin: 0; }
-                            #material-editor-bottom-bar .about-text p:first-child { margin-bottom: 5px; }
-                            #material-editor-bottom-bar .support-links { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
-                            #material-editor-bottom-bar .support-links a.patreon-link { color: #f96854; text-decoration: none; font-weight: bold; font-size: 13px; white-space: nowrap; display: flex; align-items: center; gap: 8px; transition: all 0.2s; padding: 6px 12px; border-radius: 4px; background: rgba(40, 40, 40, 0.9); border: 1px solid #777; }
-                            #material-editor-bottom-bar .support-links a.patreon-link:hover { color: #fff; background: #f96854; border-color: #f96854; }
-                            #material-editor-bottom-bar .support-links .patreon-logo { height: 20px; width: 20px; }
-                            #material-editor-bottom-bar .stores-group { display: flex; flex-direction: column; gap: 5px; align-items: flex-end; }
-                            #material-editor-bottom-bar .stores-heading { margin: 0; padding: 0; font-size: 10px; font-weight: bold; color: #bbb; text-transform: uppercase; letter-spacing: 0.5px; }
-                            #material-editor-bottom-bar .store-links-inner { display: flex; gap: 15px; font-size: 11px; }
-                            #material-editor-bottom-bar .store-links-inner a { color: #8fb1ff; text-decoration: none; font-weight: bold; }
-                            #material-editor-bottom-bar .store-links-inner a:hover { color: #b3ceff; text-decoration: underline; }
-                            details.effect-unavailable { border-style: dashed; border-color: #444; }
-                            details.effect-unavailable > summary { opacity: 0.7; }
-                            details.effect-unavailable > summary .summary-label { text-decoration: line-through; }
-                            #new-controls-column-0 { border: 2px dashed #40a0fa; padding: 5px; border-radius: 5px; }
-                            #new-controls-column-0 > details > summary { background-color: rgba(64, 160, 250, 0.2); }
-                            .map-tools-toolbar { background: rgba(0,0,0,0.3); border: 1px solid #666; border-radius: 5px; padding: 8px; text-align: center; display: flex; flex-direction: column; gap: 8px; }
-                            .toolbar-title { font-weight: bold; font-size: 1.2em; color: #aadcff; border-bottom: 1px solid #555; padding-bottom: 5px; margin-bottom: 5px; letter-spacing: 1px;}
-                            .toolbar-button { width: 100%; padding: 8px; font-weight: bold; font-size: 1.1em; background-color: #225522; border: 1px solid #66aa66; color: #ccffcc; border-radius: 3px; cursor: pointer; transition: background-color 0.2s; }
-                            .toolbar-button:hover { background-color: #337733; }
-                            .toolbar-status { font-size: 0.9em; color: #aaa; }
-                            .toolbar-status span { font-weight: bold; padding: 2px 6px; border-radius: 10px; font-size: 0.9em; }
-                            .toolbar-status .status-inactive { color: #ffcccc; background-color: #662222; }
-                            .toolbar-status .status-active { color: #ccffcc; background-color: #226622; animation: pulse 2s infinite; }
-                            @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(102, 170, 102, 0.7); } 70% { box-shadow: 0 0 0 8px rgba(102, 170, 102, 0); } 100% { box-shadow: 0 0 0 0 rgba(102, 170, 102, 0); } }
-                        </style>`;
+                    #material-editor-debugger { 
+                        position: fixed; 
+                        z-index: 10; 
+                        background: rgba(40, 40, 40, 0.95); 
+                        color: #fff; 
+                        border: 1px solid #111; 
+                        border-radius: 8px; 
+                        padding: 5px; 
+                        font-family: sans-serif; 
+                        font-size: 11px; 
+                        display: flex; 
+                        flex-direction: column; 
+                        gap: 4px; 
+                        width: 95vw; 
+                        max-width: 1300px;
+                        box-sizing: border-box;
+                        box-shadow: 0 0 25px rgba(0,0,0,0.7); 
+                        max-height: calc(100vh - 100px); 
+                        transition: width 0.3s ease-in-out; 
+                    }
+                    #material-editor-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 4px; }
+                    #material-editor-header h3 { margin: 0; padding: 0; border: none; flex-grow: 1; text-align: center; cursor: move; user-select: none; font-size: 1.4em; }
+                    .header-btn { display: inline-block; text-decoration: none; background: #3a3a3a; border: 1px solid #666; color: #ccc; font-weight: bold; width: 22px; height: 22px; line-height: 22px; text-align: center; cursor: pointer; border-radius: 4px; flex-shrink: 0; font-size: 14px; padding: 0; }
+                    .header-btn:hover { background: #555; border-color: #888; }
+                    #material-editor-debugger .file-picker-btn {
+                        flex-shrink: 0;
+                        width: 22px;
+                        height: 22px;
+                        line-height: 18px;
+                        padding: 0;
+                        font-size: 12px;
+                        background: #3a3a3a;
+                        border: 1px solid #666;
+                        color: #ccc;
+                        cursor: pointer;
+                        border-radius: 4px;
+                    }
+                    #material-editor-debugger .file-picker-btn:hover { background: #555; border-color: #888; }
+                    #material-editor-debugger details { background: rgba(255,255,255,0.05); border: 1px solid #555; border-radius: 4px; padding: 3px; margin-bottom: 0; }
+                    #material-editor-debugger details[open] { background: rgba(255,255,255,0.08); padding-bottom: 5px; }
+                    #material-editor-debugger details[open] > summary .accordion-toggle { transform: rotate(90deg); }
+                    #material-editor-debugger details.disabled-effect > summary .summary-label { color: #888; }
+                    #material-editor-debugger summary { font-weight: bold; cursor: pointer; padding: 2px; display: flex; align-items: center; gap: 5px; list-style: none; }
+                    #material-editor-debugger summary::-webkit-details-marker { display: none; }
+                    #material-editor-debugger .accordion-toggle { flex-shrink: 0; width: 0; height: 0; border-top: 4px solid transparent; border-bottom: 4px solid transparent; border-left: 5px solid #ccc; transition: transform 0.2s ease-in-out; margin-left: 2px; }
+                    #material-editor-debugger .summary-control { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+                    .world-based-icon { color: #aaa; display: none; margin-right: 5px; }
+                    .world-based-icon.active { display: inline-block; color: #40a0fa; }
+                    #material-editor-debugger details details { margin-left: 8px; margin-top: 4px; border-style: dashed; }
+                    #material-editor-debugger .traffic-light { width: 9px; height: 9px; border-radius: 50%; display: inline-block; box-shadow: 0 0 4px rgba(0,0,0,0.5); border: 1px solid #111; flex-shrink: 0; }
+                    #material-editor-debugger .traffic-light.ok { background-color: #4cfa40; }
+                    #material-editor-debugger .traffic-light.error { background-color: #fa4040; }
+                    #material-editor-debugger .traffic-light.warning { background-color: #f7a000; }
+                    #material-editor-debugger .traffic-light.unknown { background-color: #888; }
+                    #material-editor-debugger .traffic-light.inactive, #material-editor-debugger .traffic-light.disabled { background: none; border: 1px dashed #666; }
+                    #material-editor-debugger .control-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1px; padding: 1px 0; }
+                    #material-editor-debugger .control-row label { flex-shrink: 0; margin-right: 8px; display: flex; align-items: center; gap: 4px;}
+                    #material-editor-debugger .control-row .widget-group { display: flex; align-items: center; gap: 4px; }
+                    #material-editor-debugger .control-row-slider { display: grid; grid-template-columns: auto 1fr auto; gap: 5px; align-items: center; }
+                    #material-editor-debugger .control-row-slider label { margin-right: 0; white-space: nowrap; }
+                    #material-editor-debugger .control-row-slider input[type=range] { width: 100%; }
+                    #material-editor-debugger .control-row .value-span { width: 40px; height: 18px; line-height: 18px; text-align: right; font-family: monospace; font-size: 11px; background: rgba(0,0,0,0.4); padding: 0 4px; border-radius: 3px; box-sizing: border-box; }
+                    #material-editor-debugger input[type=range] { flex-grow: 1; width: 120px; height: 14px; }
+                    #material-editor-debugger input[type=color] { width: 100%; height: 22px; border: 1px solid #555; padding: 1px; background: #333; box-sizing: border-box; }
+                    .main-layout-wrapper { display: grid; grid-template-columns: minmax(320px, 1fr) 2fr; gap: 8px; flex-grow: 1; min-height: 0; overflow: hidden; padding: 4px; background: rgba(0,0,0,0.2); border-radius: 5px; }
+                    #post-processing-pane { display: flex; flex-direction: column; gap: 4px; overflow-y: auto; padding-right: 5px; }
+                    .pane-title { text-align: center; font-size: 1.2em; font-weight: bold; color: #efefef; margin: 3px 0 8px 0; padding-bottom: 5px; border-bottom: 1px solid #555; }
+                    .main-content-area { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; overflow-y: auto; align-content: start; }
+                    .fx-column { display: flex; flex-direction: column; gap: 4px; }
+                    #material-editor-debugger .top-bar { flex-shrink: 0; display: flex; flex-direction: column; gap: 5px; padding: 4px; background: rgba(0,0,0,0.2); border-radius: 5px; }
+                    #material-editor-debugger .top-bar-row { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+                    #material-editor-debugger .status-group { display: flex; flex-wrap: wrap; gap: 4px 10px; border-left: 2px solid #555; padding-left: 8px; }
+                    #material-editor-debugger .status-group-title { font-weight: bold; color: #aaa; }
+                    #material-editor-debugger #material-editor-profiles-section > details { margin-bottom: 0; }
+                    #material-editor-debugger #material-editor-time-control-section > details { margin-bottom: 0; background-color: rgba(64, 160, 250, 0.1); border-color: #40a0fa; }
+                    #material-editor-debugger #material-editor-diagnostic-section > details { margin-bottom: 0; background-color: rgba(180, 50, 50, 0.15); border-color: #b43232; }
+                    #material-editor-debugger #material-editor-profiles-section .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding-top: 5px; }
+                    #material-editor-debugger #material-editor-profiles-section .profile-group { display: flex; flex-direction: column; gap: 4px; padding: 6px; background: rgba(0,0,0,0.2); border-radius: 4px; }
+                    .profile-controls { display: flex; flex-direction: column; gap: 4px; }
+                    #material-editor-debugger select { width: 100%; text-transform: capitalize; background-color: #222; color: #fff; border: 1px solid #555; border-radius: 3px; height: 20px; font-size: 11px; }
+                    .star-icon { font-size: 0 !important; background-color: #ccc; width: 12px; height: 12px; clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); margin: auto; }
+                    #material-editor-debugger.minimized { width: auto; height: auto; padding: 4px; gap: 0; box-shadow: 0 0 10px rgba(0,0,0,0.5); right: auto; }
+                    #material-editor-debugger.minimized #material-editor-header { padding: 0; cursor: move; }
+                    #material-editor-debugger.minimized > *:not(#material-editor-header) { display: none; }
+                    #material-editor-debugger.minimized #material-editor-help-btn, #material-editor-debugger.minimized #material-editor-title { display: none; }
+                    .fx-status-light { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 1px solid #111; margin-right: 5px; vertical-align: middle; }
+                    .fx-status-light.green { background-color: #4cfa40; box-shadow: 0 0 5px #4cfa40; }
+                    .fx-status-light.blue { background-color: #40a0fa; box-shadow: 0 0 5px #40a0fa; }
+                    .fx-status-light.grey { background-color: #888; }
+                    .fx-status-light.red { background-color: #fa4040; box-shadow: 0 0 5px #fa4040; }
+                    .profile-controls button:disabled { background-color: #333; color: #777; cursor: not-allowed; border-color: #555; }
+                    .description-text { font-size: 10px; color: #aaa; margin: 4px 0 6px 0; padding-left: 5px; }
+                    .warning-box { background: #552222; border: 1px solid #ff6666; padding: 5px; margin: 5px 0; border-radius: 3px; font-size: 10px; }
+                    .warning-box strong { color: #ffaaaa; }
+                    .profile-group-title { font-weight: bold; text-align: center; display: block; margin-bottom: 5px; color: #ccc; border-bottom: 1px solid #555; padding-bottom: 3px;}
+                    #material-editor-bottom-bar { padding: 10px 15px; margin-top: 5px; background: rgba(15, 15, 15, 0.5); border-radius: 5px; border: 1px solid #666; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 30px; }
+                    #material-editor-bottom-bar .about-text { font-size: 11px; line-height: 1.5; color: #ccc; }
+                    #material-editor-bottom-bar .about-text p { margin: 0; }
+                    #material-editor-bottom-bar .about-text p:first-child { margin-bottom: 5px; }
+                    #material-editor-bottom-bar .support-links { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+                    #material-editor-bottom-bar .support-links a.patreon-link { color: #f96854; text-decoration: none; font-weight: bold; font-size: 13px; white-space: nowrap; display: flex; align-items: center; gap: 8px; transition: all 0.2s; padding: 6px 12px; border-radius: 4px; background: rgba(40, 40, 40, 0.9); border: 1px solid #777; }
+                    #material-editor-bottom-bar .support-links a.patreon-link:hover { color: #fff; background: #f96854; border-color: #f96854; }
+                    #material-editor-bottom-bar .support-links .patreon-logo { height: 20px; width: 20px; }
+                    #material-editor-bottom-bar .stores-group { display: flex; flex-direction: column; gap: 5px; align-items: flex-end; }
+                    #material-editor-bottom-bar .stores-heading { margin: 0; padding: 0; font-size: 10px; font-weight: bold; color: #bbb; text-transform: uppercase; letter-spacing: 0.5px; }
+                    #material-editor-bottom-bar .store-links-inner { display: flex; gap: 15px; font-size: 11px; }
+                    #material-editor-bottom-bar .store-links-inner a { color: #8fb1ff; text-decoration: none; font-weight: bold; }
+                    #material-editor-bottom-bar .store-links-inner a:hover { color: #b3ceff; text-decoration: underline; }
+                    details.effect-unavailable { border-style: dashed; border-color: #444; }
+                    details.effect-unavailable > summary { opacity: 0.7; }
+                    details.effect-unavailable > summary .summary-label { text-decoration: line-through; }
+                    #new-controls-column-0 { border: 2px dashed #40a0fa; padding: 5px; border-radius: 5px; }
+                    #new-controls-column-0 > details > summary { background-color: rgba(64, 160, 250, 0.2); }
+                    .map-tools-toolbar { background: rgba(0,0,0,0.3); border: 1px solid #666; border-radius: 5px; padding: 8px; text-align: center; display: flex; flex-direction: column; gap: 8px; }
+                    .toolbar-title { font-weight: bold; font-size: 1.2em; color: #aadcff; border-bottom: 1px solid #555; padding-bottom: 5px; margin-bottom: 5px; letter-spacing: 1px;}
+                    .toolbar-button { width: 100%; padding: 8px; font-weight: bold; font-size: 1.1em; background-color: #225522; border: 1px solid #66aa66; color: #ccffcc; border-radius: 3px; cursor: pointer; transition: background-color 0.2s; }
+                    .toolbar-button:hover { background-color: #337733; }
+                    .toolbar-status { font-size: 0.9em; color: #aaa; }
+                    .toolbar-status span { font-weight: bold; padding: 2px 6px; border-radius: 10px; font-size: 0.9em; }
+                    .toolbar-status .status-inactive { color: #ffcccc; background-color: #662222; }
+                    .toolbar-status .status-active { color: #ccffcc; background-color: #226622; animation: pulse 2s infinite; }
+                    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(102, 170, 102, 0.7); } 70% { box-shadow: 0 0 0 8px rgba(102, 170, 102, 0); } 100% { box-shadow: 0 0 0 0 rgba(102, 170, 102, 0); } }
+                </style>`;
     }
 
-    _getBaseHTML() {
+    static _getBaseHTML() {
         return `
-                    <div id="material-editor-header">
-                        <a id="material-editor-help-btn" class="header-btn" href="https://github.com/Garsondee/map-shine" target="_blank" rel="noopener noreferrer" title="Help/Info (Opens GitHub page)">?</a>
-                        <h3 id="material-editor-title">Map Shine</h3>
-                        <button id="material-editor-minimize-btn" class="header-btn" title="Minimize">-</button>
-                        <button id="material-editor-close-btn" class="header-btn" title="Close" style="color: #ff8080;">X</button>
-                    </div>
-                    <div id="material-editor-profiles-section"></div>
-                    <div class="main-layout-wrapper">
-                        <div id="post-processing-pane"></div>
-                        <div class="main-content-area"></div>
-                    </div>
-                    <div id="material-editor-bottom-bar"></div>
-                `;
+            <div id="material-editor-header">
+                <a id="material-editor-help-btn" class="header-btn" href="https://github.com/Garsondee/map-shine" target="_blank" rel="noopener noreferrer" title="Help/Info (Opens GitHub page)">?</a>
+                <h3 id="material-editor-title">Map Shine</h3>
+                <button id="material-editor-minimize-btn" class="header-btn" title="Minimize">-</button>
+                <button id="material-editor-close-btn" class="header-btn" title="Close" style="color: #ff8080;">X</button>
+            </div>
+            <div id="material-editor-top-bar" class="top-bar"></div>
+            <div id="material-editor-time-control-section"></div>
+            <div id="material-editor-profiles-section"></div>
+            <div id="material-editor-diagnostic-section"></div>
+            <div class="main-layout-wrapper">
+                <div id="post-processing-pane"></div>
+                <div class="main-content-area"></div>
+            </div>
+            <div id="material-editor-bottom-bar"></div>
+        `;
+    }
+
+    _buildTimeControlSection() {
+        return `
+            <details id="details-timeControl" open>
+                <summary>
+                    <span class="accordion-toggle"></span>
+                    <strong style="font-size: 1.1em; color: #aadcff;">Time Control</strong>
+                </summary>
+                <div style="padding-top: 5px;">
+                    ${DebuggerUIBuilder._createSliderHTML('timeControl.globalTime', 'Global Time Scale', 0, 100, 1, 'Controls the master speed of all animated effects in this module. 100% is normal speed, 0% is frozen.')}
+                </div>
+            </details>
+        `;
     }
 
     _buildDiagnosticSection() {
+        // The options object is now empty, as it will be populated dynamically.
         const suffixOptions = {};
 
         return `
-                    <details id="details-diagnostic">
-                        <summary>
-                            <span class="accordion-toggle"></span>
-                            <div class="summary-control">
-                                ${DebuggerUIBuilder._createCheckboxHTML('diagnostic.enabled', '<strong>Diagnostic Mode</strong>', true)}
-                            </div>
-                        </summary>
-                        <div style="padding-top: 5px;">
-                            <p class="description-text">A tool for developers and artists to inspect effect maps and pixel values.</p>
-                            ${DebuggerUIBuilder._createCheckboxHTML('diagnostic.showMasks', 'Show Discovered Masks & Outlines')}
-                            ${DebuggerUIBuilder._createSelectHTML('diagnostic.displaySuffix', 'Display Texture', suffixOptions, 'Select which mask or generated texture to display.')}
-                            ${DebuggerUIBuilder._createCheckboxHTML('diagnostic.pixelInspector', 'Enable Pixel Inspector Tooltip')}
-                            ${DebuggerUIBuilder._createCheckboxHTML('showTokenMask', 'Show Token Mask')}
-                        </div>
-                    </details>
-                `;
+            <details id="details-diagnostic">
+                <summary>
+                    <span class="accordion-toggle"></span>
+                    <div class="summary-control">
+                        ${DebuggerUIBuilder._createCheckboxHTML('diagnostic.enabled', '<strong>Diagnostic Mode</strong>', true)}
+                    </div>
+                </summary>
+                <div style="padding-top: 5px;">
+                    <p class="description-text">A tool for developers and artists to inspect effect maps and pixel values.</p>
+                    ${DebuggerUIBuilder._createCheckboxHTML('diagnostic.showMasks', 'Show Discovered Masks & Outlines')}
+                    ${DebuggerUIBuilder._createSelectHTML('diagnostic.displaySuffix', 'Display Texture', suffixOptions, 'Select which mask or generated texture to display.')}
+                    ${DebuggerUIBuilder._createCheckboxHTML('diagnostic.pixelInspector', 'Enable Pixel Inspector Tooltip')}
+                </div>
+            </details>
+        `;
     }
 
     _buildMapToolsSection() {
         return `
-                    <div class="map-tools-toolbar">
-                        <div class="toolbar-title">MAP TOOLS</div>
-                        <button type="button" class="toolbar-button" data-action="open-map-points-editor" title="Open the editor to create and manage groups of points on the map.">
-                            <i class="fas fa-drafting-compass"></i> LAUNCH EDITOR
-                        </button>
-                        <div class="toolbar-status">
-                            Placement Mode: <span id="map-placement-status" class="status-inactive">INACTIVE</span>
-                        </div>
-                    </div>
-                `;
+            <div class="map-tools-toolbar">
+                <div class="toolbar-title">MAP TOOLS</div>
+                <button type="button" class="toolbar-button" data-action="open-map-points-editor" title="Open the editor to create and manage groups of points on the map.">
+                    <i class="fas fa-drafting-compass"></i> LAUNCH EDITOR
+                </button>
+                <div class="toolbar-status">
+                    Placement Mode: <span id="map-placement-status" class="status-inactive">INACTIVE</span>
+                </div>
+            </div>
+        `;
     }
 
     static _buildBottomBar() {
         return `
-                    <div class="about-text">
-                        <p><strong>Map Shine:</strong> A free toolkit for creating memorable, animated, and visually striking maps.<br>
-                         It will always be free for commercial use. Map making is both my passion and helps me support my family.<br>
-                        If you use this module, please consider giving credit by linking my Patreon or map stores.</p>
+            <div class="about-text">
+                <p><strong>Map Shine:</strong> A free toolkit for creating memorable, animated, and visually striking maps. It will <br>
+                always be free for commercial use. Map making is both my passion and helps me support my family.<br>
+                If you use this module, please consider giving credit by linking my Patreon or map stores.</p>
+            </div>
+            <div class="support-links">
+                <a href="https://www.patreon.com/c/MythicaMachina" target="_blank" class="patreon-link">
+                    <span>Support on Patreon</span>
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/9/94/Patreon_logo.svg" class="patreon-logo" alt="Patreon Logo">
+                </a>
+                <div class="stores-group">
+                    <h5 class="stores-heading">BUY MY MAPS AND HELP SUPPORT ME</h5>
+                    <div class="store-links-inner">
+                        <a href="https://www.foundryvtt.store/creators/mythica-machina" target="_blank">Foundry VTT Store</a>
+                        <a href="https://www.drivethrurpg.com/en/publisher/29377/mythicamachina" target="_blank">DriveThruRPG</a>
                     </div>
-                    <div class="support-links">
-                        <a href="https://www.patreon.com/c/MythicaMachina" target="_blank" class="patreon-link">
-                            <span>Support on Patreon</span>
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/9/94/Patreon_logo.svg" class="patreon-logo" alt="Patreon Logo">
-                        </a>
-                        <div class="stores-group">
-                            <h5 class="stores-heading">BUY MY MAPS AND HELP SUPPORT ME</h5>
-                            <div class="store-links-inner">
-                                <a href="https://www.foundryvtt.store/creators/mythica-machina" target="_blank">Foundry VTT Store</a>
-                                <a href="https://www.drivethrurpg.com/en/publisher/29377/mythicamachina" target="_blank">DriveThruRPG</a>
-                            </div>
-                        </div>
-                    </div>
-                `;
+                </div>
+            </div>
+        `;
     }
 
-    _buildProfileSection() {
-        const isGm = game.user.isGM;
-        // Only build the world profile management section if the user is a GM
-        const worldProfileSection = isGm ? `
+    static _buildTopBar() {
+        return `
+            <div class="top-bar-row">
+                <div class="widget-group">
+                    <input type="checkbox" id="global-enabled" data-path="enabled">
+                    <label for="global-enabled">Enable All Effects</label>
+                </div>
+                <div class="status-group" style="border: none; padding-left: 0;">
+                    <strong class="status-group-title">Configuration Status:</strong>
+                    <span id="fx-status-light" class="fx-status-light grey"></span>
+                    <span id="fx-status-text" style="color: #ddd;">Initializing...</span>
+                </div>
+                <div class="status-group">
+                    <span class="status-group-title">Shaders:</span>
+                    <div class="widget-group"><span id="status-shaders-baseShine" class="traffic-light unknown"></span>Base</div>
+                    <div class="widget-group"><span id="status-shaders-noise" class="traffic-light unknown"></span>Noise</div>
+                    <div class="widget-group"><span id="status-shaders-iridescence" class="traffic-light unknown"></span>Iridescence</div>
+                    <div class="widget-group"><span id="status-shaders-prism" class="traffic-light unknown"></span>Prism</div>
+                    <div class="widget-group"><span id="status-shaders-heat" class="traffic-light unknown"></span>Heat</div>
+                    <div class="widget-group"><span id="status-shaders-cloudShadows" class="traffic-light unknown"></span>Clouds</div>
+                    <div class="widget-group"><span id="status-shaders-structuralShadows" class="traffic-light unknown"></span>Structural</div>
+                    <div class="widget-group"><span id="status-shaders-postProcessing" class="traffic-light unknown"></span>PostFX</div>
+                </div>
+                <div class="widget-group" style="background: #551111; padding: 2px 4px; border-radius: 3px;">
+                    <label for="control-showTokenMask">Show Token Mask</label>
+                    <input type="checkbox" id="control-showTokenMask" data-path="showTokenMask">
+                </div>
+            </div>
+        `;
+    }
+
+    static _buildProfileSection() {
+        return `
+            <details id="details-profile-management" open>
+                <summary>
+                    <span class="accordion-toggle"></span>
+                    <strong style="font-size: 1.1em;">Profiles & State Management</strong>
+                </summary>
+                <div class="profile-grid">
+                    <div class="profile-group">
+                        <strong class="profile-group-title">Manage Scene State</strong>
+                        <p class="description-text" style="text-align: center;">Control the settings for the current scene.</p>
+                        <button id="profile-save-scene" title="Save your current temporary changes as the new official default for this scene. (GM Only)">Commit Changes to Scene</button>
+                        <button id="profile-revert-scene" title="Discard all of your temporary changes and revert to the last saved state for this scene.">Discard My Changes</button>
+                        <button id="profile-revert-module" title="For this session only, ignore all scene settings and use the original module defaults.">Preview Module Defaults</button>
+                        <hr style="border-color: #555; margin: 4px 0;">
+                        <div style="display: flex; gap: 5px;">
+                            <button id="profile-copy-settings" title="Copy the current active settings to the clipboard as JSON text.">Copy Settings</button>
+                            <button id="profile-paste-settings" title="Load settings from JSON text on the clipboard. This will create unsaved changes.">Paste Settings</button>
+                        </div>
+                    </div>
                     <div class="profile-group">
                         <strong class="profile-group-title">Manage World Profiles</strong>
                         <p class="description-text" style="text-align: center;">Load, save, and manage reusable profiles for your entire world.</p>
@@ -16630,58 +16374,9 @@ class DebuggerUIBuilder {
                             </div>
                         </div>
                     </div>
-                ` : `
-                    <div class="profile-group">
-                        <strong class="profile-group-title">Manage World Profiles</strong>
-                        <p class="description-text" style="text-align: center;">World profiles can be loaded and managed by the GM.</p>
-                        <div class="profile-controls">
-                            <select id="profiles-dropdown"></select>
-                            <div style="display: flex; gap: 5px;">
-                                <button id="profile-load" title="Temporarily preview the selected profile. This will create unsaved changes.">Preview Profile</button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-
-        return `
-                    <details id="details-profile-management">
-                        <summary>
-                            <span class="accordion-toggle"></span>
-                            <strong style="font-size: 1.1em;">Global Controls & Profiles</strong>
-                        </summary>
-                        <div class="profile-grid">
-                            <div class="profile-group">
-                                <strong class="profile-group-title">Global Controls</strong>
-                                <div class="control-row">
-                                <label for="global-enabled" title="Master on/off switch for all Map Shine effects.">Enable All Effects</label>
-                                <div class="widget-group"><input type="checkbox" id="global-enabled" data-path="enabled"></div>
-                                </div>
-                                ${DebuggerUIBuilder._createSliderHTML('timeControl.globalTime', 'Global Time Scale', 0, 100, 1, 'Controls the master speed of all animated effects in this module. 100% is normal speed, 0% is frozen.')}
-                            </div>
-                            <div class="profile-group">
-                                <strong class="profile-group-title">Manage Scene State</strong>
-                                <div class="control-row" style="justify-content: center; background: rgba(0,0,0,0.2); padding: 4px; border-radius: 3px;">
-                                    <span id="fx-status-light" class="fx-status-light grey"></span>
-                                    <span id="fx-status-text" style="color: #ddd;">Initializing...</span>
-                                </div>
-                                <button id="profile-save-scene" title="Save your current temporary changes as the new official default for this scene. (GM Only)">Commit Changes to Scene</button>
-                                <button id="profile-revert-scene" title="Discard all of your temporary changes and revert to the last saved state for this scene.">Discard My Changes</button>
-                                <button id="profile-revert-module" title="For this session only, ignore all scene settings and use the original module defaults.">Preview Module Defaults</button>
-                                <hr style="border-color: #555; margin: 4px 0;">
-                                <div style="display: flex; gap: 5px;">
-                                    <button id="profile-copy-settings" title="Copy the current active settings to the clipboard as JSON text.">Copy Settings</button>
-                                    <button id="profile-paste-settings" title="Load settings from JSON text on the clipboard. This will create unsaved changes.">Paste Settings</button>
-                                </div>
-                            </div>
-                            ${worldProfileSection}
-                            <div class="profile-group">
-                                <strong class="profile-group-title">Tools & Diagnostics</strong>
-                                ${this._buildMapToolsSection()}
-                                ${this._buildDiagnosticSection()}
-                            </div>
-                        </div>
-                    </details>
-                `;
+                </div>
+            </details>
+        `;
     }
 
     static _createSafeId(path) {
@@ -16695,18 +16390,18 @@ class DebuggerUIBuilder {
         const checkboxHtml = `<div class="widget-group"><input type="checkbox" id="${checkboxId}" data-path="${path}"></div>`;
 
         return `<details id="details-${id}">
-                            <summary>
-                                <span class="accordion-toggle"></span>
-                                <div class="summary-control">
-                                    <div style="display: flex; align-items: center; gap: 5px;">
-                                        ${labelHtml}
-                                        ${headerExtra}
-                                    </div>
-                                    ${checkboxHtml}
-                                </div>
-                            </summary>
-                            <div style="padding-top: 5px;">${content}</div>
-                        </details>`;
+                    <summary>
+                        <span class="accordion-toggle"></span>
+                        <div class="summary-control">
+                            <div style="display: flex; align-items: center; gap: 5px;">
+                                ${labelHtml}
+                                ${headerExtra}
+                            </div>
+                            ${checkboxHtml}
+                        </div>
+                    </summary>
+                    <div style="padding-top: 5px;">${content}</div>
+                </details>`;
     }
 
     static _createCheckboxHTML(path, label, isSummary = false, title = '') {
@@ -16761,14 +16456,14 @@ class DebuggerUIBuilder {
         const id = this._createSafeId(path);
         const titleAttr = title ? `title="${title}"` : '';
         return `
-                    <div class="control-row" style="margin-bottom: 3px;">
-                        <label for="${id}" ${titleAttr}>${label}</label>
-                        <div class="widget-group" style="flex-grow:1; display:flex; gap: 3px;">
-                            <input type="text" id="${id}" data-path="${path}" style="flex-grow:1; font-family:monospace; font-size:10px;">
-                            <button type="button" class="file-picker-btn" data-fp-target="${id}" data-fp-type="${pickerType}" title="Browse Files"><i class="fas fa-file-import"></i></button>
-                        </div>
-                    </div>
-                `;
+            <div class="control-row" style="margin-bottom: 3px;">
+                <label for="${id}" ${titleAttr}>${label}</label>
+                <div class="widget-group" style="flex-grow:1; display:flex; gap: 3px;">
+                    <input type="text" id="${id}" data-path="${path}" style="flex-grow:1; font-family:monospace; font-size:10px;">
+                    <button type="button" class="file-picker-btn" data-fp-target="${id}" data-fp-type="${pickerType}" title="Browse Files"><i class="fas fa-file-import"></i></button>
+                </div>
+            </div>
+        `;
     }
 
     static _createTextureInputHTML(key, label) {
@@ -16781,25 +16476,25 @@ class DebuggerUIBuilder {
         const addButtonId = `${id}-add-btn`;
 
         return `
-                    <div id="${id}" class="list-manager-container" data-path="${path}">
-                        <div class="control-row">
-                            <label>${itemLabel}</label>
-                            <button id="${addButtonId}" class="add-item-btn">${addButtonLabel}</button>
-                        </div>
-                        <div id="${listContainerId}" class="list-items-container" style="display: flex; flex-direction: column; gap: 4px; margin-top: 5px; padding-left: 10px;">
-                        </div>
-                    </div>
-                    <style>
-                        .list-manager-container .list-item-row { display: flex; align-items: center; gap: 5px; }
-                        .list-manager-container .list-item-row input[type=text] { flex-grow: 1; }
-                        .list-manager-container .list-item-row .remove-item-btn { 
-                            flex-shrink: 0; background: #662222; border: 1px solid #aa6666; color: #ffcccc; 
-                            font-weight: bold; width: 22px; height: 22px; line-height: 22px; text-align: center; 
-                            cursor: pointer; border-radius: 4px; padding: 0;
-                        }
-                        .list-manager-container .list-item-row .remove-item-btn:hover { background: #883333; }
-                    </style>
-                `;
+            <div id="${id}" class="list-manager-container" data-path="${path}">
+                <div class="control-row">
+                    <label>${itemLabel}</label>
+                    <button id="${addButtonId}" class="add-item-btn">${addButtonLabel}</button>
+                </div>
+                <div id="${listContainerId}" class="list-items-container" style="display: flex; flex-direction: column; gap: 4px; margin-top: 5px; padding-left: 10px;">
+                </div>
+            </div>
+            <style>
+                .list-manager-container .list-item-row { display: flex; align-items: center; gap: 5px; }
+                .list-manager-container .list-item-row input[type=text] { flex-grow: 1; }
+                .list-manager-container .list-item-row .remove-item-btn { 
+                    flex-shrink: 0; background: #662222; border: 1px solid #aa6666; color: #ffcccc; 
+                    font-weight: bold; width: 22px; height: 22px; line-height: 22px; text-align: center; 
+                    cursor: pointer; border-radius: 4px; padding: 0;
+                }
+                .list-manager-container .list-item-row .remove-item-btn:hover { background: #883333; }
+            </style>
+        `;
     }
 
     _getEffectSections() {
@@ -16887,7 +16582,6 @@ Hooks.once('init', () => {
         initialized: true,
         isCustomPaused: false,
         pauseEffectManager: new PauseEffectManager(),
-        combatEffectManager: new CombatEffectManager(),
         timeControl: {
             timeFactor: 1.0
         },
@@ -16915,74 +16609,10 @@ Hooks.once('init', () => {
                 tiles: new Map()
             },
             async refresh() {
-                console.log("MapShine | Refreshing effect targets...");
-                const FLAG_NAME = 'mapShineTargets';
+                console.log("MapShine | Refreshing effect targets and updating system status...");
+                const loader = new TextureAutoLoader();
+                this.targets = await loader.discoverAllTargets();
 
-                if (game.user.isGM) {
-                    // GM client: Discover textures, create a serializable version, and write to a flag.
-                    const loader = new TextureAutoLoader();
-                    const discoveredTargets = await loader.discoverAllTargets(); // This contains full tile objects.
-
-                    // Create a version of the targets that is safe to serialize for the flag.
-                    // It removes the circular 'tile' object reference.
-                    const serializableTiles = Array.from(discoveredTargets.tiles.entries()).map(([tileId, targetData]) => {
-                        const {
-                            tile,
-                            ...rest
-                        } = targetData; // Destructure to remove the 'tile' property.
-                        return [tileId, rest];
-                    });
-
-                    const serializableTargets = {
-                        background: discoveredTargets.background,
-                        tiles: serializableTiles // This is now an array of [id, data] without circular refs.
-                    };
-
-                    const oldFlagData = canvas.scene.getFlag(MODULE_ID, FLAG_NAME);
-
-                    // Compare the clean, serializable versions. This prevents the recursive loop.
-                    if (JSON.stringify(serializableTargets) === JSON.stringify(oldFlagData)) {
-                        console.log("MapShine | Discovered targets are unchanged. No flag update needed.");
-                        // Use the original data with full tile objects for the local GM client.
-                        this.targets = discoveredTargets;
-                    } else {
-                        console.log("MapShine | New effect targets discovered. Updating scene flag.");
-                        // Set the flag with the clean data. This will trigger the "updateScene" hook for all clients.
-                        await canvas.scene.setFlag(MODULE_ID, FLAG_NAME, serializableTargets);
-                        return; // Exit here; the hook will handle processing for all clients, including this GM.
-                    }
-
-                } else {
-                    // Player client: Read from the flag set by the GM.
-                    const flagData = canvas.scene.getFlag(MODULE_ID, FLAG_NAME);
-                    if (flagData) {
-                        // "Re-hydrate" the tile objects from the ID stored in the flag.
-                        const rehydratedTiles = new Map();
-                        if (flagData.tiles) {
-                            for (const [tileId, targetData] of flagData.tiles) {
-                                const tile = canvas.tiles.get(tileId);
-                                if (tile) {
-                                    rehydratedTiles.set(tileId, {
-                                        ...targetData,
-                                        tile: tile // Add the full tile object back in for local use.
-                                    });
-                                }
-                            }
-                        }
-                        this.targets = {
-                            background: flagData.background,
-                            tiles: rehydratedTiles
-                        };
-                    } else {
-                        // Fallback for if the GM hasn't set the flag yet.
-                        this.targets = {
-                            background: null,
-                            tiles: new Map()
-                        };
-                    }
-                }
-
-                // The following logic now runs for all clients, using the correctly populated targets.
                 const allTargets = [this.targets.background, ...this.targets.tiles.values()].filter(t => t);
                 for (const key of Object.keys(TextureAutoLoader.SUFFIX_MAP)) {
                     const foundPath = allTargets.map(t => t[key]).find(p => p);
@@ -17163,14 +16793,6 @@ Hooks.once('init', () => {
         default: "[]"
     });
 
-    game.settings.register(MODULE_ID, 'debugger-position', {
-        name: "Debugger Window Position",
-        scope: "client",
-        config: false,
-        type: Object,
-        default: {}
-    });
-
     game.settings.register(MODULE_ID, 'ambientLayerZIndex', {
         name: "Ambient Layer Z-Index (Requires Reload)",
         hint: "Controls the rendering order of the Ambient/Emissive layer. Changes require a canvas reload.",
@@ -17341,17 +16963,4 @@ Hooks.once('init', () => {
     Hooks.on("updateTile", () => game.mapShine?.effectTargetManager.refresh());
     Hooks.on("deleteTile", () => game.mapShine?.effectTargetManager.refresh());
 
-});
-
-Hooks.on("updateScene", (scene, data) => {
-    // Only react to updates on the currently viewed scene.
-    if (!scene.isView) return;
-
-    // Check if our specific flag was changed, or if the background image was changed.
-    const flagPath = `flags.${MODULE_ID}`;
-    const backgroundPath = 'background.src';
-    if (foundry.utils.hasProperty(data, flagPath) || foundry.utils.hasProperty(data, backgroundPath)) {
-        console.log("Map Shine | Detected relevant scene update. Refreshing targets for all clients.");
-        game.mapShine?.effectTargetManager.refresh();
-    }
 });
