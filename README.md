@@ -1,6 +1,6 @@
 # Map Shine Toolkit
 
-![Version](https://img.shields.io/badge/Version-1.0-blue)![Foundry VTT Compatibility](https://img.shields.io/badge/Foundry%20VTT-v13+-green)
+![Version](https://img.shields.io/badge/Version-1.0.15-blue)![Foundry VTT Compatibility](https://img.shields.io/badge/Foundry%20VTT-v13+-green)
 
 <p align="center">
   <img src="https://i.imgur.com/RZQS4qV.jpeg" alt="Map Shine UI">
