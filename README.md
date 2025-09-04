@@ -3,7 +3,7 @@
 ![Version](https://img.shields.io/badge/Version-1.0-blue)![Foundry VTT Compatibility](https://img.shields.io/badge/Foundry%20VTT-v13+-green)
 
 <p align="center">
-  <img src="https://github.com/Garsondee/map-shine/raw/main/UI.jpg" alt="Map Shine UI">
+  <img src="https://i.imgur.com/RZQS4qV.jpeg" alt="Map Shine UI">
 </p>
 
 Welcome to the Map Shine Toolkit, a module for Foundry Virtual Tabletop designed to provide map makers with a powerful toolkit for adding animations and special effects in the quickest and least technically complex way possible.
