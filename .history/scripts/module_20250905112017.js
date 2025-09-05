@@ -1309,1155 +1309,1154 @@ const COLOR_CORRECTION_PRESETS = {
 };
 
 const MODULE_DEFAULTS = {
-  timeControl: {
-    globalTime: 100,
+  "timeControl": {
+    "globalTime": 100
   },
-  enabled: true,
-  debug: true,
-  showTokenMask: false,
-  showDustMaskDebug: false,
-  showGlintMaskDebug: false,
-  tileOpacity: 0,
-  baseShine: {
-    worldBasedOnly: false,
-    enabled: true,
-    specularTexturePath: "",
-    compositing: {
-      layerBlendMode: 9,
+  "enabled": true,
+  "debug": true,
+  "showTokenMask": false,
+  "showDustMaskDebug": false,
+  "showGlintMaskDebug": false,
+  "tileOpacity": 0,
+  "baseShine": {
+    "worldBasedOnly": false,
+    "enabled": true,
+    "specularTexturePath": "",
+    "compositing": {
+      "layerBlendMode": 9
     },
-    animation: {
-      globalIntensity: 3.4,
-      parallaxAmount: 1.06,
-      parallaxJitter: 1.5,
-      parallaxJitterSpeed: 3,
+    "animation": {
+      "globalIntensity": 3.4,
+      "parallaxAmount": 1.06,
+      "parallaxJitter": 1.5,
+      "parallaxJitterSpeed": 3
     },
-    pattern: {
-      shared: {
-        patternScale: 0.1,
+    "pattern": {
+      "shared": {
+        "patternScale": 0.1
       },
-      stripes: {
-        enabled: true,
-        intensity: 0.35,
-        speed: -0.006,
-        angle: 45,
-        sharpness: 8,
-        bandDensity: 2,
-        bandWidth: 1.5,
-        gradientName: "rainbow",
-        gradientIntensity: 1,
-        subStripeCount: 4,
-        subStripeSpeedVariation: 3,
-        subStripeSharpnessVariation: 2.5,
-        subStripeTintVariation: 0.1,
+      "stripes": {
+        "enabled": true,
+        "intensity": 0.35,
+        "speed": -6,
+        "angle": 45,
+        "sharpness": 8,
+        "bandDensity": 2,
+        "bandWidth": 1.5,
+        "gradientName": "rainbow",
+        "subStripeCount": 4,
+        "subStripeSpeedVariation": 3,
+        "subStripeSharpnessVariation": 2.5,
+        "subStripeTintVariation": 0.1
+      }
+    },
+    "fbmNoise": {
+      "enabled": true,
+      "maskIntensity": 1,
+      "distortionIntensity": 2.5,
+      "speed": -3,
+      "scale": 0.6,
+      "evolution": 1,
+      "octaves": 4,
+      "persistence": 0.4,
+      "lacunarity": 2.2,
+      "threshold": 0.5,
+      "brightness": 0,
+      "contrast": 2,
+      "softness": 0.1
+    },
+    "rgbSplit": {
+      "enabled": true,
+      "amount": 6.7
+    }
+  },
+  "cloudShadows": {
+    "worldBasedOnly": true,
+    "enabled": true,
+    "blendMode": 0,
+    "shadowIntensity": 0.55,
+    "maskBlur": 0,
+    "shadowInteraction": {
+      "enabled": false,
+      "intensity": 1,
+      "luminanceThreshold": 0.97,
+      "softness": 0.01
+    },
+    "wind": {
+      "angle": 45,
+      "speed": 0.5
+    },
+    "noise": {
+      "scale": 0.04,
+      "octaves": 7,
+      "persistence": 0.35,
+      "lacunarity": 1.9
+    },
+    "shading": {
+      "threshold": 1,
+      "softness": 0.71,
+      "brightness": 0.14,
+      "contrast": 5,
+      "gamma": 1.6
+    }
+  },
+  "iridescence": {
+    "worldBasedOnly": false,
+    "enabled": true,
+    "texturePath": "",
+    "blendMode": 1,
+    "intensity": 0.9,
+    "speed": 1,
+    "scale": 0.7,
+    "parallax": 0,
+    "fbm": {
+      "octaves": 5,
+      "persistence": 0.33,
+      "lacunarity": 1.9,
+      "evolution": 0,
+      "brightness": 0.45,
+      "contrast": 0.8
+    },
+    "distortion": {
+      "enabled": true,
+      "strength": 5.26
+    },
+    "noise": {
+      "enabled": true,
+      "speed": 4.2,
+      "scale": 9.7,
+      "threshold": 0.47,
+      "brightness": 0.74,
+      "contrast": 2.45,
+      "softness": 0.5
+    },
+    "gradient": {
+      "name": "rainbow",
+      "hueShift": 0,
+      "brightness": 0.04,
+      "contrast": 0.5
+    }
+  },
+  "canopy": {
+    "worldBasedOnly": false,
+    "enabled": true,
+    "shadowIntensity": 0.3,
+    "tint": "#050805",
+    "distortion": {
+      "enabled": true,
+      "intensity": 1.2,
+      "speed": 0.5,
+      "scale": 0.01,
+      "evolution": 1,
+      "threshold": 0,
+      "brightness": -0.37,
+      "contrast": 1,
+      "softness": 1
+    }
+  },
+  "structuralShadows": {
+    "worldBasedOnly": false,
+    "enabled": true,
+    "shadowIntensity": 0.8,
+    "tint": "#000000",
+    "parallax": 0,
+    "illuminationInteraction": {
+      "enabled": true,
+      "intensity": 1,
+      "luminanceThreshold": 0.1,
+      "softness": 0.15,
+      "colorCorrection": {
+        "enabled": true,
+        "saturation": 1,
+        "brightness": 0,
+        "contrast": 1,
+        "exposure": 0,
+        "gamma": 1,
+        "tint": {
+          "color": "#FFFFFF",
+          "amount": 0
+        }
+      }
+    },
+    "rgbSplit": {
+      "enabled": true,
+      "intensity": 8.8,
+      "threshold": 0
+    },
+    "intensityNoise": {
+      "enabled": true,
+      "amount": 0,
+      "speed": 1.5,
+      "scale": 1.25,
+      "evolution": 0,
+      "threshold": 0.71,
+      "brightness": -1.13,
+      "contrast": 2.8,
+      "softness": 1
+    },
+    "cloudOcclusion": {
+      "enabled": true,
+      "intensity": 0.25
+    },
+    "metallicShineMixIn": {
+      "enabled": false,
+      "intensity": 1
+    }
+  },
+  "prism": {
+    "worldBasedOnly": false,
+    "enabled": true,
+    "intensity": 1,
+    "angle": 218,
+    "threshold": 0.1,
+    "softness": 0.5,
+    "distortionStrength": 1.9,
+    "distortionNoise": {
+      "enabled": true,
+      "speed": 0,
+      "scale": 3.83,
+      "evolution": 0,
+      "threshold": 0,
+      "brightness": 0.11,
+      "contrast": 1.85,
+      "softness": 1
+    }
+  },
+  "ambient": {
+    "worldBasedOnly": false,
+    "enabled": true,
+    "texturePath": "",
+    "blendMode": 1,
+    "intensity": 1,
+    "masking": {
+      "enabled": true,
+      "threshold": 0,
+      "softness": 0.25
+    },
+    "tokenMasking": {
+      "enabled": true,
+      "threshold": 0
+    },
+    "colorCorrection": {
+      "enabled": true,
+      "saturation": 1.2,
+      "brightness": 0,
+      "contrast": 1,
+      "gamma": 1,
+      "tint": {
+        "color": "#ff0209",
+        "amount": 0
+      }
+    }
+  },
+  "groundGlow": {
+    "worldBasedOnly": false,
+    "enabled": true,
+    "texturePath": "",
+    "blendMode": 1,
+    "intensity": 1.05,
+    "luminanceThreshold": 0.25,
+    "brightness": 1.2,
+    "saturation": 1.2,
+    "softness": 1,
+    "invert": false,
+    "tokenMasking": {
+      "enabled": true,
+      "threshold": 0
+    }
+  },
+  "heatDistortion": {
+    "worldBasedOnly": false,
+    "enabled": true,
+    "texturePath": "",
+    "intensity": 0.0015,
+    "noise": {
+      "primary": {
+        "speed": 1,
+        "scale": 1.5,
+        "octaves": 3,
+        "lacunarity": 2.2,
+        "persistence": 0.45
       },
-    },
-    fbmNoise: {
-      enabled: true,
-      maskIntensity: 1,
-      distortionIntensity: 2.5,
-      speed: -3,
-      scale: 0.6,
-      evolution: 1,
-      octaves: 4,
-      persistence: 0.4,
-      lacunarity: 2.2,
-      threshold: 0.5,
-      brightness: 0,
-      contrast: 2,
-      softness: 0.1,
-    },
-    rgbSplit: {
-      enabled: true,
-      amount: 6.7,
-    },
-  },
-  cloudShadows: {
-    worldBasedOnly: true,
-    enabled: true,
-    blendMode: 0,
-    shadowIntensity: 0.55,
-    maskBlur: 0,
-    shadowInteraction: {
-      enabled: false,
-      intensity: 1,
-      luminanceThreshold: 0.97,
-      softness: 0.01,
-    },
-    wind: {
-      angle: 45,
-      speed: 0.5,
-    },
-    noise: {
-      scale: 0.04,
-      octaves: 7,
-      persistence: 0.35,
-      lacunarity: 1.9,
-    },
-    shading: {
-      threshold: 1,
-      softness: 0.71,
-      brightness: 0.14,
-      contrast: 5,
-      gamma: 1.6,
-    },
-  },
-  iridescence: {
-    worldBasedOnly: false,
-    enabled: true,
-    texturePath: "",
-    blendMode: 1,
-    intensity: 0.9,
-    speed: 1,
-    scale: 0.7,
-    parallax: 0,
-    fbm: {
-      octaves: 5,
-      persistence: 0.33,
-      lacunarity: 1.9,
-      evolution: 0,
-      brightness: 0.45,
-      contrast: 0.8,
-    },
-    distortion: {
-      enabled: true,
-      strength: 5.26,
-    },
-    noise: {
-      enabled: true,
-      speed: 4.2,
-      scale: 9.7,
-      threshold: 0.47,
-      brightness: 0.74,
-      contrast: 2.45,
-      softness: 0.5,
-    },
-    gradient: {
-      name: "rainbow",
-      hueShift: 0,
-      brightness: 0.04,
-      contrast: 0.5,
-    },
-  },
-  canopy: {
-    worldBasedOnly: false,
-    enabled: true,
-    shadowIntensity: 0.3,
-    tint: "#050805",
-    distortion: {
-      enabled: true,
-      intensity: 1.2,
-      speed: 0.5,
-      scale: 0.01,
-      evolution: 1,
-      threshold: 0,
-      brightness: -0.37,
-      contrast: 1,
-      softness: 1,
-    },
-  },
-  structuralShadows: {
-    worldBasedOnly: false,
-    enabled: true,
-    shadowIntensity: 0.8,
-    tint: "#000000",
-    parallax: 0,
-    illuminationInteraction: {
-      enabled: true,
-      intensity: 1,
-      luminanceThreshold: 0.1,
-      softness: 0.15,
-      colorCorrection: {
-        enabled: true,
-        saturation: 1,
-        brightness: 0,
-        contrast: 1,
-        exposure: 0,
-        gamma: 1,
-        tint: {
-          color: "#FFFFFF",
-          amount: 0,
-        },
+      "secondary": {
+        "speed": 8,
+        "scale": 6,
+        "octaves": 2,
+        "lacunarity": 2.8,
+        "persistence": 0.3
       },
-    },
-    rgbSplit: {
-      enabled: true,
-      intensity: 8.8,
-      threshold: 0,
-    },
-    intensityNoise: {
-      enabled: true,
-      amount: 0,
-      speed: 1.5,
-      scale: 1.25,
-      evolution: 0,
-      threshold: 0.71,
-      brightness: -1.13,
-      contrast: 2.8,
-      softness: 1,
-    },
-    cloudOcclusion: {
-      enabled: true,
-      intensity: 0.25,
-    },
-    metallicShineMixIn: {
-      enabled: false,
-      intensity: 1,
-    },
+      "rising": {
+        "speed": 2,
+        "intensity": 0.4
+      }
+    }
   },
-  prism: {
-    worldBasedOnly: false,
-    enabled: true,
-    intensity: 1,
-    angle: 218,
-    threshold: 0.1,
-    softness: 0.5,
-    distortionStrength: 1.9,
-    distortionNoise: {
-      enabled: true,
-      speed: 0,
-      scale: 3.83,
-      evolution: 0,
-      threshold: 0,
-      brightness: 0.11,
-      contrast: 1.85,
-      softness: 1,
-    },
+  "advancedBloom": {
+    "worldBasedOnly": false,
+    "enabled": false,
+    "threshold": 0.5,
+    "bloomScale": 1,
+    "brightness": 1,
+    "blur": 8,
+    "quality": 4
   },
-  ambient: {
-    worldBasedOnly: false,
-    enabled: true,
-    texturePath: "",
-    blendMode: 1,
-    intensity: 1,
-    masking: {
-      enabled: true,
-      threshold: 0,
-      softness: 0.25,
-    },
-    tokenMasking: {
-      enabled: true,
-      threshold: 0,
-    },
-    colorCorrection: {
-      enabled: true,
-      saturation: 1.2,
-      brightness: 0,
-      contrast: 1,
-      gamma: 1,
-      tint: {
-        color: "#ff0209",
-        amount: 0,
-      },
-    },
+  "sceneAppearance": {
+    "transitionDuration": 5000
   },
-  groundGlow: {
-    worldBasedOnly: false,
-    enabled: true,
-    texturePath: "",
-    blendMode: 1,
-    intensity: 1.05,
-    luminanceThreshold: 0.25,
-    brightness: 1.2,
-    saturation: 1.2,
-    softness: 1,
-    invert: false,
-    tokenMasking: {
-      enabled: true,
-      threshold: 0,
-    },
-  },
-  heatDistortion: {
-    worldBasedOnly: false,
-    enabled: true,
-    texturePath: "",
-    intensity: 0.0015,
-    noise: {
-      primary: {
-        speed: 1,
-        scale: 1.5,
-        octaves: 3,
-        lacunarity: 2.2,
-        persistence: 0.45,
-      },
-      secondary: {
-        speed: 8,
-        scale: 6,
-        octaves: 2,
-        lacunarity: 2.8,
-        persistence: 0.3,
-      },
-      rising: {
-        speed: 2,
-        intensity: 0.4,
-      },
-    },
-  },
-  advancedBloom: {
-    worldBasedOnly: false,
-    enabled: false,
-    threshold: 0.5,
-    bloomScale: 1,
-    brightness: 1,
-    blur: 8,
-    quality: 4,
-  },
-  sceneAppearance: {
-    transitionDuration: 5000,
-  },
-  sceneTransition: {
-    enabled: true,
-    worldBasedOnly: true,
-    fadeOutDuration: 5000,
-    fadeInDuration: 5000,
-    logoPath: "modules/map-shine/assets/mm-logo.png",
-    heading: "New Chapter",
-    subheading: "The story continues...",
-    staticDescription: "This is the default description text...",
-    showSceneName: true,
-    useRandomHint: true,
-    randomHints: [
+  "sceneTransition": {
+    "enabled": true,
+    "worldBasedOnly": true,
+    "fadeOutDuration": 5000,
+    "fadeInDuration": 5000,
+    "logoPath": "modules/map-shine/assets/mm-logo.png",
+    "heading": "New Chapter",
+    "subheading": "The story continues...",
+    "staticDescription": "This is the default description text...",
+    "showSceneName": true,
+    "useRandomHint": true,
+    "randomHints": [
       "Loading Screen Hint 1",
       "Loading Screen Hint 2",
-      "Loading Screen Hint 3",
-    ],
+      "Loading Screen Hint 3"
+    ]
   },
-  pauseEffect: {
-    enabled: true,
-    worldBasedOnly: true,
-    duration: 3000,
-    colorCorrection: {
-      enabled: true,
-      saturation: 0.2,
-      brightness: -0.15,
-      contrast: 1,
-      invert: false,
-      tint: {
-        color: "#FFFFFF",
-        amount: 0,
+  "pauseEffect": {
+    "enabled": true,
+    "worldBasedOnly": true,
+    "duration": 3000,
+    "colorCorrection": {
+      "enabled": true,
+      "saturation": 0.2,
+      "brightness": -0.15,
+      "contrast": 1,
+      "invert": false,
+      "tint": {
+        "color": "#FFFFFF",
+        "amount": 0
       },
-      exposure: 0,
-      gamma: 1,
-      levels: {
-        inBlack: 0,
-        inWhite: 1,
+      "exposure": 0,
+      "gamma": 1,
+      "levels": {
+        "inBlack": 0,
+        "inWhite": 1
       },
-      whiteBalance: {
-        temperature: 0,
-        tint: 0,
+      "whiteBalance": {
+        "temperature": 0,
+        "tint": 0
       },
-      mask: {
-        enabled: false,
-        invert: false,
-        luminanceThreshold: 0.25,
-        softness: 0.1,
+      "mask": {
+        "enabled": false,
+        "invert": false,
+        "luminanceThreshold": 0.25,
+        "softness": 0.1
       },
-      selective: {
-        enabled: false,
-        color: "#ff0000",
-        hueRange: 0.05,
-        saturationRange: 0.3,
-      },
-    },
+      "selective": {
+        "enabled": false,
+        "color": "#ff0000",
+        "hueRange": 0.05,
+        "saturationRange": 0.3
+      }
+    }
   },
-  combatEffect: {
-    enabled: true,
-    worldBasedOnly: true,
-    duration: 2000,
-    timeScale: 0.25,
-    colorCorrection: {
-      enabled: true,
-      saturation: 1,
-      brightness: 0,
-      contrast: 1,
-      invert: false,
-      tint: {
-        color: "#FFFFFF",
-        amount: 0,
+  "combatEffect": {
+    "enabled": true,
+    "worldBasedOnly": true,
+    "duration": 2000,
+    "timeScale": 0.25,
+    "colorCorrection": {
+      "enabled": true,
+      "saturation": 1,
+      "brightness": 0,
+      "contrast": 1,
+      "invert": false,
+      "tint": {
+        "color": "#FFFFFF",
+        "amount": 0
       },
-      exposure: 0,
-      gamma: 1,
-      levels: {
-        inBlack: 0,
-        inWhite: 1,
+      "exposure": 0,
+      "gamma": 1,
+      "levels": {
+        "inBlack": 0,
+        "inWhite": 1
       },
-      whiteBalance: {
-        temperature: 0,
-        tint: 0,
+      "whiteBalance": {
+        "temperature": 0,
+        "tint": 0
       },
-      mask: {
-        enabled: false,
-        invert: false,
-        luminanceThreshold: 0.25,
-        softness: 0.1,
+      "mask": {
+        "enabled": false,
+        "invert": false,
+        "luminanceThreshold": 0.25,
+        "softness": 0.1
       },
-      selective: {
-        enabled: false,
-        color: "#ff0000",
-        hueRange: 0.05,
-        saturationRange: 0.3,
-      },
-    },
+      "selective": {
+        "enabled": false,
+        "color": "#ff0000",
+        "hueRange": 0.05,
+        "saturationRange": 0.3
+      }
+    }
   },
-  postProcessing: {
-    worldBasedOnly: true,
-    enabled: true,
-    colorCorrection: {
-      enabled: true,
-      saturation: 1,
-      brightness: 0,
-      contrast: 1,
-      invert: false,
-      tint: {
-        color: "#FFFFFF",
-        amount: 0,
+  "postProcessing": {
+    "worldBasedOnly": true,
+    "enabled": true,
+    "colorCorrection": {
+      "enabled": true,
+      "saturation": 1,
+      "brightness": 0,
+      "contrast": 1,
+      "invert": false,
+      "tint": {
+        "color": "#FFFFFF",
+        "amount": 0
       },
-      exposure: -0.1,
-      gamma: 1,
-      levels: {
-        inBlack: 0,
-        inWhite: 1,
+      "exposure": -0.1,
+      "gamma": 1,
+      "levels": {
+        "inBlack": 0,
+        "inWhite": 1
       },
-      whiteBalance: {
-        temperature: 0,
-        tint: 0,
+      "whiteBalance": {
+        "temperature": 0,
+        "tint": 0
       },
-      highlightCloud: {
-        enabled: true,
-        brightness: 0,
+      "highlightCloud": {
+        "enabled": true,
+        "brightness": 0
       },
-      highlightCanopy: {
-        enabled: true,
-        brightness: 0,
+      "highlightCanopy": {
+        "enabled": true,
+        "brightness": 0
       },
-      highlightStructural: {
-        enabled: true,
-        brightness: 0.5,
+      "highlightStructural": {
+        "enabled": true,
+        "brightness": 0.5
       },
-      sceneIlluminationMixIn: {
-        enabled: false,
-        intensity: 0.1,
-        blendMode: 1,
-        debugMode: false,
-        colorCorrection: {
-          enabled: true,
-          saturation: 1,
-          brightness: 0,
-          contrast: 1,
-          exposure: 0,
-          gamma: 1,
-          tint: {
-            color: "#FFFFFF",
-            amount: 0,
-          },
+      "sceneIlluminationMixIn": {
+        "enabled": false,
+        "intensity": 0.1,
+        "blendMode": 1,
+        "debugMode": false,
+        "colorCorrection": {
+          "enabled": true,
+          "saturation": 1,
+          "brightness": 0,
+          "contrast": 1,
+          "exposure": 0,
+          "gamma": 1,
+          "tint": {
+            "color": "#FFFFFF",
+            "amount": 0
+          }
         },
-        noise: {
-          enabled: true,
-          amount: 0.01,
-          scale: 1,
-          speed: 1,
+        "noise": {
+          "enabled": true,
+          "amount": 0.01,
+          "scale": 1,
+          "speed": 1
         },
-        shadowInteraction: {
-          enabled: true,
-          intensity: 1,
-          luminanceThreshold: 0.1,
-          softness: 0.15,
+        "shadowInteraction": {
+          "enabled": true,
+          "intensity": 1,
+          "luminanceThreshold": 0.1,
+          "softness": 0.15
         },
-        negativeMask: {
-          enabled: false,
-          threshold: 0.8,
-          softness: 0.2,
-        },
+        "negativeMask": {
+          "enabled": false,
+          "threshold": 0.8,
+          "softness": 0.2
+        }
       },
-      mask: {
-        enabled: false,
-        invert: false,
-        luminanceThreshold: 0.25,
-        softness: 0.1,
+      "mask": {
+        "enabled": false,
+        "invert": false,
+        "luminanceThreshold": 0.25,
+        "softness": 0.1
       },
-      selective: {
-        enabled: false,
-        color: "#fb0045",
-        hueRange: 0.02,
-        saturationRange: 0.5,
-        luminanceRange: 0.5,
-        targetLuminance: 0.04,
-        softness: 0.1,
-        invert: false,
-        desaturation: 1,
-        targetSaturation: 1,
-        targetBrightness: 0,
+      "selective": {
+        "enabled": false,
+        "color": "#fb0045",
+        "hueRange": 0.02,
+        "saturationRange": 0.5,
+        "luminanceRange": 0.5,
+        "targetLuminance": 0.04,
+        "softness": 0.1,
+        "invert": false,
+        "desaturation": 1,
+        "targetSaturation": 1,
+        "targetBrightness": 0
       },
-      curves: {
-        enabled: false,
-        activeChannel: "rgb",
-        rgb: {
-          points: [
+      "curves": {
+        "enabled": false,
+        "activeChannel": "rgb",
+        "rgb": {
+          "points": [
             {
-              x: 0,
-              y: 0,
+              "x": 0,
+              "y": 0
             },
             {
-              x: 1,
-              y: 1,
-            },
-          ],
+              "x": 1,
+              "y": 1
+            }
+          ]
         },
-        red: {
-          points: [
+        "red": {
+          "points": [
             {
-              x: 0,
-              y: 0,
-            },
-            {
-              x: 1,
-              y: 1,
-            },
-          ],
-        },
-        green: {
-          points: [
-            {
-              x: 0,
-              y: 0,
+              "x": 0,
+              "y": 0
             },
             {
-              x: 1,
-              y: 1,
-            },
-          ],
+              "x": 1,
+              "y": 1
+            }
+          ]
         },
-        blue: {
-          points: [
+        "green": {
+          "points": [
             {
-              x: 0,
-              y: 0,
+              "x": 0,
+              "y": 0
             },
             {
-              x: 1,
-              y: 1,
+              "x": 1,
+              "y": 1
+            }
+          ]
+        },
+        "blue": {
+          "points": [
+            {
+              "x": 0,
+              "y": 0
             },
-          ],
+            {
+              "x": 1,
+              "y": 1
+            }
+          ]
+        }
+      },
+      "dynamicExposure": {
+        "enabled": true,
+        "intensity": 1.5,
+        "duration": 8000,
+        "resetPeriod": 60000
+      }
+    },
+    "vignette": {
+      "enabled": false,
+      "amount": 0.24,
+      "softness": 0.36
+    },
+    "lensDistortion": {
+      "enabled": false,
+      "amount": 0.015,
+      "centerX": 0.5,
+      "centerY": 0.5
+    },
+    "chromaticAberration": {
+      "enabled": true,
+      "amount": 0.001,
+      "centerX": 0.5,
+      "centerY": 0.5
+    },
+    "tiltShift": {
+      "enabled": false,
+      "blur": 23,
+      "gradientBlur": 3610,
+      "startX": 0,
+      "startY": 0.5,
+      "endX": 1,
+      "endY": 0.5
+    },
+    "grain": {
+      "enabled": false,
+      "intensity": 0.1,
+      "size": 1.5,
+      "monochromatic": true,
+      "luminanceResponse": {
+        "shadows": 0.8,
+        "highlights": 0.2
+      }
+    },
+    "lut": {
+      "enabled": true,
+      "texturePath": "",
+      "intensity": 1,
+      "presetName": "custom",
+      "diagnosticMode": 0,
+      "diagnosticSlice": 1,
+      "domainMin": {
+        "r": 0,
+        "g": 0,
+        "b": 0
+      },
+      "domainMax": {
+        "r": 1,
+        "g": 1,
+        "b": 1
+      },
+      "preLutBlur": {
+        "enabled": false,
+        "amount": 0
+      },
+      "inputProcessing": {
+        "enabled": false,
+        "saturation": 1,
+        "brightness": 0,
+        "contrast": 1,
+        "gamma": 0.9,
+        "hue": 0
+      }
+    }
+  },
+  "dust": {
+    "worldBasedOnly": false,
+    "enabled": true,
+    "blendMode": 0,
+    "maskThreshold": 0.39,
+    "maskInfluence": 5,
+    "particleTexture": "modules/map-shine/assets/particle.webp",
+    "frequency": 0.286,
+    "lifetime": {
+      "min": 4,
+      "max": 12
+    },
+    "color": {
+      "start": "#ffd275",
+      "end": "#ffe9b9"
+    },
+    "alpha": {
+      "max": 0.51,
+      "fadeIn": 0.5,
+      "fadeOut": 0.5
+    },
+    "scale": {
+      "sizeMultiplier": 1.7,
+      "start": 0.9,
+      "end": 1.09,
+      "minMult": 0.86
+    },
+    "speed": {
+      "start": 3,
+      "end": 6,
+      "minMult": 0.5
+    },
+    "rotation": {
+      "enabled": false,
+      "minSpeed": 0,
+      "maxSpeed": 20,
+      "accel": 0
+    }
+  },
+  "glint": {
+    "worldBasedOnly": false,
+    "enabled": true,
+    "darknessAffectsIntensity": true,
+    "blendMode": 0,
+    "maskThreshold": 0.9,
+    "maskInfluence": 0.09,
+    "particleTexture": "modules/map-shine/assets/glint.webp",
+    "frequency": 0.932,
+    "lifetime": {
+      "min": 0.8,
+      "max": 2.9
+    },
+    "color": {
+      "start": "#FFFFFF",
+      "end": "#FFFFFF"
+    },
+    "alpha": {
+      "max": 0.95,
+      "fadeIn": 0.05,
+      "fadeOut": 0.94
+    },
+    "scale": {
+      "sizeMultiplier": 9,
+      "start": 1.5,
+      "end": 0.61,
+      "minMult": 0.9
+    },
+    "speed": {
+      "start": 0,
+      "end": 0,
+      "minMult": 0.5
+    },
+    "rotation": {
+      "enabled": false,
+      "minSpeed": 0,
+      "maxSpeed": 20,
+      "accel": 0
+    },
+    "rgbSplit": {
+      "enabled": true,
+      "amount": 8.2
+    }
+  },
+  "water": {
+    "worldBasedOnly": false,
+    "enabled": true,
+    "wave": {
+      "enabled": true,
+      "speed": 1.48,
+      "scale": 38.1,
+      "intensity": 0.0004
+    },
+    "surface": {
+      "enabled": true,
+      "foamColor": "#33adff",
+      "foamIntensity": 0,
+      "foamCoverage": 0,
+      "foamSharpness": 0.13,
+      "fbmScale": 15.196,
+      "fbmSpeed": 1,
+      "fbmEvolution": 3,
+      "fbmOctaves": 5,
+      "fbmLacunarity": 4,
+      "fbmPersistence": 0.1,
+      "sheenEnabled": true,
+      "sheenIntensity": 0.448,
+      "sheenColor": "#FFFFFF",
+      "sheenScale": 0.5,
+      "sheenSpeed": 0.2,
+      "sheenStretch": 1,
+      "sheenSharpness": 0.8
+    },
+    "caustics": {
+      "enabled": true,
+      "intensity": 0.033,
+      "scale": 1,
+      "speed": 1,
+      "color": "#87CEFA",
+      "lineSharpness": 5,
+      "bloomIntensity": 1,
+      "lineDistortion": 0.1,
+      "lineDistortionScale": 5,
+      "intersectionBoost": 20,
+      "roughnessScale": 4.2,
+      "roughnessIntensity": 0.83
+    },
+    "shoreline": {
+      "enabled": false,
+      "detectionBlur": 1,
+      "foamColor": "#FFFFFF",
+      "foamIntensity": 0.5,
+      "foamPattern": {
+        "scale": 1,
+        "speed": 0,
+        "evolution": 1,
+        "octaves": 4,
+        "lacunarity": 2.05,
+        "persistence": 0.15,
+        "brightness": 0.5,
+        "contrast": 1
+      },
+      "displacement": {
+        "enabled": false,
+        "scale": 0.4,
+        "speed": 1.1,
+        "strength": 0.0025
+      },
+      "particleMaskBrightness": 0,
+      "particleMaskContrast": 1,
+      "foamParticles": {
+        "enabled": false,
+        "blendMode": 1,
+        "maskThreshold": 0.8,
+        "maskInfluence": 5,
+        "particleTexture": "modules/map-shine/assets/tight.webp",
+        "frequency": 0.006,
+        "lifetime": {
+          "min": 3.9,
+          "max": 3.7
         },
-      },
-      dynamicExposure: {
-        enabled: true,
-        intensity: 1.5,
-        duration: 8000,
-        resetPeriod: 60000,
-      },
-    },
-    vignette: {
-      enabled: false,
-      amount: 0.24,
-      softness: 0.36,
-    },
-    lensDistortion: {
-      enabled: false,
-      amount: 0.015,
-      centerX: 0.5,
-      centerY: 0.5,
-    },
-    chromaticAberration: {
-      enabled: true,
-      amount: 0.001,
-      centerX: 0.5,
-      centerY: 0.5,
-    },
-    tiltShift: {
-      enabled: false,
-      blur: 23,
-      gradientBlur: 3610,
-      startX: 0,
-      startY: 0.5,
-      endX: 1,
-      endY: 0.5,
-    },
-    grain: {
-      enabled: false,
-      intensity: 0.1,
-      size: 1.5,
-      monochromatic: true,
-      luminanceResponse: {
-        shadows: 0.8,
-        highlights: 0.2,
-      },
-    },
-    lut: {
-      enabled: true,
-      texturePath: "",
-      intensity: 1,
-      presetName: "custom",
-      diagnosticMode: 0,
-      diagnosticSlice: 1,
-      domainMin: {
-        r: 0,
-        g: 0,
-        b: 0,
-      },
-      domainMax: {
-        r: 1,
-        g: 1,
-        b: 1,
-      },
-      preLutBlur: {
-        enabled: false,
-        amount: 0,
-      },
-      inputProcessing: {
-        enabled: false,
-        saturation: 1,
-        brightness: 0,
-        contrast: 1,
-        gamma: 0.9,
-        hue: 0,
-      },
-    },
-  },
-  dust: {
-    worldBasedOnly: false,
-    enabled: true,
-    blendMode: 0,
-    maskThreshold: 0.39,
-    maskInfluence: 5,
-    particleTexture: "modules/map-shine/assets/particle.webp",
-    frequency: 0.286,
-    lifetime: {
-      min: 4,
-      max: 12,
-    },
-    color: {
-      start: "#ffd275",
-      end: "#ffe9b9",
-    },
-    alpha: {
-      max: 0.51,
-      fadeIn: 0.5,
-      fadeOut: 0.5,
-    },
-    scale: {
-      sizeMultiplier: 1.7,
-      start: 0.9,
-      end: 1.09,
-      minMult: 0.86,
-    },
-    speed: {
-      start: 3,
-      end: 6,
-      minMult: 0.5,
-    },
-    rotation: {
-      enabled: false,
-      minSpeed: 0,
-      maxSpeed: 20,
-      accel: 0,
-    },
-  },
-  glint: {
-    worldBasedOnly: false,
-    enabled: true,
-    darknessAffectsIntensity: true,
-    blendMode: 0,
-    maskThreshold: 0.9,
-    maskInfluence: 0.09,
-    particleTexture: "modules/map-shine/assets/glint.webp",
-    frequency: 0.932,
-    lifetime: {
-      min: 0.8,
-      max: 2.9,
-    },
-    color: {
-      start: "#FFFFFF",
-      end: "#FFFFFF",
-    },
-    alpha: {
-      max: 0.95,
-      fadeIn: 0.05,
-      fadeOut: 0.94,
-    },
-    scale: {
-      sizeMultiplier: 9,
-      start: 1.5,
-      end: 0.61,
-      minMult: 0.9,
-    },
-    speed: {
-      start: 0,
-      end: 0,
-      minMult: 0.5,
-    },
-    rotation: {
-      enabled: false,
-      minSpeed: 0,
-      maxSpeed: 20,
-      accel: 0,
-    },
-    rgbSplit: {
-      enabled: true,
-      amount: 8.2,
-    },
-  },
-  water: {
-    worldBasedOnly: false,
-    enabled: true,
-    wave: {
-      enabled: true,
-      speed: 1.48,
-      scale: 38.1,
-      intensity: 0.0004,
-    },
-    surface: {
-      enabled: true,
-      foamColor: "#33adff",
-      foamIntensity: 0,
-      foamCoverage: 0,
-      foamSharpness: 0.13,
-      fbmScale: 15.196,
-      fbmSpeed: 1,
-      fbmEvolution: 3,
-      fbmOctaves: 5,
-      fbmLacunarity: 4,
-      fbmPersistence: 0.1,
-      sheenEnabled: true,
-      sheenIntensity: 0.448,
-      sheenColor: "#FFFFFF",
-      sheenScale: 0.5,
-      sheenSpeed: 0.2,
-      sheenStretch: 1,
-      sheenSharpness: 0.8,
-    },
-    caustics: {
-      enabled: true,
-      intensity: 0.033,
-      scale: 1,
-      speed: 1,
-      color: "#87CEFA",
-      lineSharpness: 5,
-      bloomIntensity: 1,
-      lineDistortion: 0.1,
-      lineDistortionScale: 5,
-      intersectionBoost: 20,
-      roughnessScale: 4.2,
-      roughnessIntensity: 0.83,
-    },
-    shoreline: {
-      enabled: false,
-      detectionBlur: 1,
-      foamColor: "#FFFFFF",
-      foamIntensity: 0.5,
-      foamPattern: {
-        scale: 1,
-        speed: 0,
-        evolution: 1,
-        octaves: 4,
-        lacunarity: 2.05,
-        persistence: 0.15,
-        brightness: 0.5,
-        contrast: 1,
-      },
-      displacement: {
-        enabled: false,
-        scale: 0.4,
-        speed: 1.1,
-        strength: 0.0025,
-      },
-      particleMaskBrightness: 0,
-      particleMaskContrast: 1,
-      foamParticles: {
-        enabled: false,
-        blendMode: 1,
-        maskThreshold: 0.8,
-        maskInfluence: 5,
-        particleTexture: "modules/map-shine/assets/tight.webp",
-        frequency: 0.006,
-        lifetime: {
-          min: 3.9,
-          max: 3.7,
+        "color": {
+          "start": "#9fcdff",
+          "end": "#d0faff"
         },
-        color: {
-          start: "#9fcdff",
-          end: "#d0faff",
+        "alpha": {
+          "max": 1,
+          "fadeIn": 0.02,
+          "fadeOut": 0.08
         },
-        alpha: {
-          max: 1,
-          fadeIn: 0.02,
-          fadeOut: 0.08,
+        "scale": {
+          "sizeMultiplier": 0.6,
+          "start": 1.04,
+          "end": 0.26,
+          "minMult": 0.5
         },
-        scale: {
-          sizeMultiplier: 0.6,
-          start: 1.04,
-          end: 0.26,
-          minMult: 0.5,
+        "speed": {
+          "start": 2,
+          "end": 6,
+          "minMult": 0.78
         },
-        speed: {
-          start: 2,
-          end: 6,
-          minMult: 0.78,
-        },
-        rotation: {
-          enabled: false,
-          minSpeed: 0,
-          maxSpeed: 0,
-          accel: 0,
-        },
-      },
+        "rotation": {
+          "enabled": false,
+          "minSpeed": 0,
+          "maxSpeed": 0,
+          "accel": 0
+        }
+      }
     },
-    glintParticles: {
-      enabled: true,
-      blendMode: 9,
-      maskThreshold: 0.17,
-      maskInfluence: 1.95,
-      particleTexture: "modules/map-shine/assets/glint.webp",
-      frequency: 0.99,
-      lifetime: {
-        min: 0.8,
-        max: 0.8,
+    "glintParticles": {
+      "enabled": true,
+      "blendMode": 9,
+      "maskThreshold": 0.17,
+      "maskInfluence": 1.95,
+      "particleTexture": "modules/map-shine/assets/glint.webp",
+      "frequency": 0.99,
+      "lifetime": {
+        "min": 0.8,
+        "max": 0.8
       },
-      color: {
-        start: "#eef7ff",
-        end: "#95b3ff",
+      "color": {
+        "start": "#eef7ff",
+        "end": "#95b3ff"
       },
-      alpha: {
-        max: 0.5,
-        fadeIn: 0.25,
-        fadeOut: 0.25,
+      "alpha": {
+        "max": 0.5,
+        "fadeIn": 0.25,
+        "fadeOut": 0.25
       },
-      scale: {
-        sizeMultiplier: 1.9,
-        start: 0.76,
-        end: 0.82,
-        minMult: 0.95,
+      "scale": {
+        "sizeMultiplier": 1.9,
+        "start": 0.76,
+        "end": 0.82,
+        "minMult": 0.95
       },
-      speed: {
-        start: 5,
-        end: 11,
-        minMult: 0.47,
+      "speed": {
+        "start": 5,
+        "end": 11,
+        "minMult": 0.47
       },
-      rotation: {
-        enabled: true,
-        minSpeed: 116,
-        maxSpeed: 123,
-        accel: 52,
-      },
-    },
+      "rotation": {
+        "enabled": true,
+        "minSpeed": 116,
+        "maxSpeed": 123,
+        "accel": 52
+      }
+    }
   },
-  fire: {
-    worldBasedOnly: false,
-    enabled: true,
-    bloom: {
-      enabled: true,
-      threshold: 0.09,
-      bloomScale: 5,
-      brightness: 5,
-      blur: 0,
-      quality: 4,
+  "fire": {
+    "worldBasedOnly": false,
+    "enabled": true,
+    "bloom": {
+      "enabled": true,
+      "threshold": 0.09,
+      "bloomScale": 5,
+      "brightness": 5,
+      "blur": 0,
+      "quality": 4
     },
-    particles: {
-      enabled: true,
-      blendMode: 1,
-      maskThreshold: 0.43,
-      maskInfluence: 5,
-      particleTexture: "modules/map-shine/assets/flame.webp",
-      frequency: 0.005,
-      lifetime: {
-        min: 0.1,
-        max: 2,
+    "particles": {
+      "enabled": true,
+      "blendMode": 1,
+      "maskThreshold": 0.43,
+      "maskInfluence": 5,
+      "particleTexture": "modules/map-shine/assets/flame.webp",
+      "frequency": 0.005,
+      "lifetime": {
+        "min": 0.1,
+        "max": 2
       },
-      color: {
-        start: "#FFDD88",
-        end: "#ea7500",
+      "color": {
+        "start": "#FFDD88",
+        "end": "#ea7500"
       },
-      alpha: {
-        max: 0.15,
-        fadeIn: 0.01,
-        fadeOut: 1,
+      "alpha": {
+        "max": 0.15,
+        "fadeIn": 0.01,
+        "fadeOut": 1
       },
-      scale: {
-        sizeMultiplier: 0.5,
-        start: 0.08,
-        end: 1.41,
-        minMult: 0.95,
+      "scale": {
+        "sizeMultiplier": 0.5,
+        "start": 0.08,
+        "end": 1.41,
+        "minMult": 0.95
       },
-      speed: {
-        start: 5,
-        end: 10,
-        minMult: 0.5,
+      "speed": {
+        "start": 5,
+        "end": 10,
+        "minMult": 0.5
       },
-      rotation: {
-        enabled: true,
-        minSpeed: 102,
-        maxSpeed: 170,
-        accel: 20,
+      "rotation": {
+        "enabled": true,
+        "minSpeed": 102,
+        "maxSpeed": 170,
+        "accel": 20
       },
-      wind: {
-        enabled: false,
-        force: 0,
-        baseSpeed: 0,
-        gustSpeed: 0,
-        gustFrequencyMin: 3,
-        gustFrequencyMax: 8,
-        gustDurationMin: 0.2,
-        gustDurationMax: 0.8,
-        angleChangeFrequencyMin: 5,
-        angleChangeFrequencyMax: 15,
-        angleChangeRange: 20,
-      },
-    },
+      "wind": {
+        "enabled": false,
+        "force": 0,
+        "baseSpeed": 0,
+        "gustSpeed": 0,
+        "gustFrequencyMin": 3,
+        "gustFrequencyMax": 8,
+        "gustDurationMin": 0.2,
+        "gustDurationMax": 0.8,
+        "angleChangeFrequencyMin": 5,
+        "angleChangeFrequencyMax": 15,
+        "angleChangeRange": 20
+      }
+    }
   },
-  sparks: {
-    worldBasedOnly: false,
-    enabled: true,
-    blendMode: 1,
-    maskThreshold: 0.95,
-    maskInfluence: 1.12,
-    particleTexture: "modules/map-shine/assets/particle.webp",
-    frequency: 0.08,
-    lifetime: {
-      min: 1.5,
-      max: 3,
+  "sparks": {
+    "worldBasedOnly": false,
+    "enabled": true,
+    "blendMode": 1,
+    "maskThreshold": 0.95,
+    "maskInfluence": 1.12,
+    "particleTexture": "modules/map-shine/assets/particle.webp",
+    "frequency": 0.08,
+    "lifetime": {
+      "min": 1.5,
+      "max": 3
     },
-    color: {
-      start: "#ffdd88",
-      end: "#ff8800",
+    "color": {
+      "start": "#ffdd88",
+      "end": "#ff8800"
     },
-    alpha: {
-      max: 1,
-      fadeIn: 0.1,
-      fadeOut: 0.03,
+    "alpha": {
+      "max": 1,
+      "fadeIn": 0.1,
+      "fadeOut": 0.03
     },
-    scale: {
-      sizeMultiplier: 1.55,
-      start: 1,
-      end: 0.1,
-      minMult: 0.5,
+    "scale": {
+      "sizeMultiplier": 1.55,
+      "start": 1,
+      "end": 0.1,
+      "minMult": 0.5
     },
-    path: {
-      speed: {
-        start: 114,
-        end: 10,
-        minMult: 0.99,
+    "path": {
+      "speed": {
+        "start": 114,
+        "end": 10,
+        "minMult": 0.99
       },
-      amplitude: {
-        min: 10,
-        max: 40,
+      "amplitude": {
+        "min": 10,
+        "max": 40
       },
-      frequency: {
-        min: 40,
-        max: 80,
+      "frequency": {
+        "min": 40,
+        "max": 80
       },
-      offset: {
-        min: 0,
-        max: 6.28,
+      "offset": {
+        "min": 0,
+        "max": 6.28
       },
-      damping: 0.5,
-      angle: {
-        min: -20,
-        max: 20,
+      "damping": 0.5,
+      "angle": {
+        "min": -20,
+        "max": 20
       },
-      motionBlur: {
-        enabled: true,
-        strength: 0.33,
-        maxLength: 6,
-      },
-    },
+      "motionBlur": {
+        "enabled": true,
+        "strength": 0.33,
+        "maxLength": 6
+      }
+    }
   },
-  lightning: {
-    enabled: true,
-    offPeriodMin: 200,
-    offPeriodMax: 1000,
-    strikeDuration: 250,
-    flickerInterval: 20,
-    flickerIntensity: 0.2,
-    fadeEasePower: 2,
-    color: "#99DDFF",
-    coreColor: "#FFFFFF",
-    brightness: 1,
-    sheathOpacity: 1,
-    coreOpacity: 1,
-    width: {
-      start: 12,
-      end: 2,
-      variationEnabled: true,
-      variationAmount: 0.5,
-      variationScale: 0.1,
-      variationSpeed: 0.1,
+  "lightning": {
+    "enabled": true,
+    "offPeriodMin": 200,
+    "offPeriodMax": 1000,
+    "strikeDuration": 250,
+    "flickerInterval": 20,
+    "flickerIntensity": 0.2,
+    "fadeEasePower": 2,
+    "color": "#99DDFF",
+    "coreColor": "#FFFFFF",
+    "brightness": 1,
+    "sheathOpacity": 1,
+    "coreOpacity": 1,
+    "width": {
+      "start": 12,
+      "end": 2,
+      "variationEnabled": true,
+      "variationAmount": 0.5,
+      "variationScale": 0.1,
+      "variationSpeed": 0.1
     },
-    coreWidth: {
-      start: 4,
-      end: 0.5,
+    "coreWidth": {
+      "start": 4,
+      "end": 0.5
     },
-    path: {
-      segments: 100,
-      endPointRandomness: 15,
+    "path": {
+      "segments": 100,
+      "endPointRandomness": 15
     },
-    curve: {
-      startAngleMin: -45,
-      startAngleMax: 45,
-      endAngleMin: 135,
-      endAngleMax: 225,
-      controlPointDistanceMin: 100,
-      controlPointDistanceMax: 400,
+    "curve": {
+      "startAngleMin": -45,
+      "startAngleMax": 45,
+      "endAngleMin": 135,
+      "endAngleMax": 225,
+      "controlPointDistanceMin": 100,
+      "controlPointDistanceMax": 400
     },
-    fork: {
-      maxDepth: 3,
-      chance: 0.4,
-      angleRange: 60,
-      lengthFalloff: 0.7,
-      widthFalloff: 0.6,
+    "fork": {
+      "maxDepth": 3,
+      "chance": 0.4,
+      "angleRange": 60,
+      "lengthFalloff": 0.7,
+      "widthFalloff": 0.6
     },
-    displacement: {
-      enabled: true,
-      magnitude: 15,
-      speed: 0.2,
-      scale: 0.05,
+    "displacement": {
+      "enabled": true,
+      "magnitude": 15,
+      "speed": 0.2,
+      "scale": 0.05
     },
-    displacementFine: {
-      enabled: true,
-      magnitude: 5,
-      speed: 0.1,
-      scale: 0.005,
+    "displacementFine": {
+      "enabled": true,
+      "magnitude": 5,
+      "speed": 0.1,
+      "scale": 0.005
     },
-    bloom: {
-      enabled: true,
-      blendMode: 1,
-      threshold: 0.5,
-      bloomScale: 1,
-      brightness: 2,
-      blur: 8,
-      quality: 4,
-      rgbSplit: {
-        enabled: true,
-        amount: 5,
+    "bloom": {
+      "enabled": true,
+      "blendMode": 1,
+      "threshold": 0.5,
+      "bloomScale": 1,
+      "brightness": 2,
+      "blur": 8,
+      "quality": 4,
+      "rgbSplit": {
+        "enabled": true,
+        "amount": 5
+      }
+    }
+  },
+  "smellyFlies": {
+    "worldBasedOnly": false,
+    "enabled": true,
+    "blendMode": 0,
+    "particleTexture": "modules/map-shine/assets/fly.webp",
+    "maxParticles": 100,
+    "flying": {
+      "takeoffDuration": 0.5,
+      "takeoffSpeedMin": 100,
+      "takeoffSpeedMax": 200,
+      "noiseStrength": 2000,
+      "noiseFrequency": 25,
+      "tetherStrength": 15.8,
+      "maxSpeed": 1000,
+      "drag": 0.8,
+      "landChance": 0.05,
+      "landingDuration": 1
+    },
+    "walking": {
+      "walkSpeed": 60,
+      "minIdleTime": 0.5,
+      "maxIdleTime": 2.5,
+      "minRotateTime": 0.2,
+      "maxRotateTime": 0.7,
+      "minMoveTime": 0.3,
+      "maxMoveTime": 5.3,
+      "minMoveDistance": 5,
+      "maxMoveDistance": 95,
+      "takeoffChance": 0.05
+    },
+    "motionBlur": {
+      "enabled": true,
+      "strength": 0.5,
+      "maxLength": 4
+    }
+  },
+  "particleSystems": {
+    "enabled": true,
+    "globalDensityMultiplier": 1,
+    "globalParticleLimit": 1000
+  },
+  "buildingShadows": {
+    "worldBasedOnly": false,
+    "enabled": true,
+    "intensity": 0.6,
+    "maxOffset": 80,
+    "maxBlur": 8,
+    "sunAngle": 45
+  },
+  "timeOfDay": {
+    "worldBasedOnly": false,
+    "enabled": true,
+    "intensity": 1,
+    "currentTime": 12,
+    "keyframes": {
+      "midnight": {
+        "time": 0,
+        "temperature": -0.2,
+        "tint": -0.05,
+        "saturation": 0.8,
+        "brightness": -0.2,
+        "contrast": 1.1,
+        "exposure": -0.25,
+        "gamma": 1.1
       },
-    },
-  },
-  smellyFlies: {
-    worldBasedOnly: false,
-    enabled: true,
-    blendMode: 0,
-    particleTexture: "modules/map-shine/assets/fly.webp",
-    maxParticles: 100,
-    flying: {
-      takeoffDuration: 0.5,
-      takeoffSpeedMin: 100,
-      takeoffSpeedMax: 200,
-      noiseStrength: 2000,
-      noiseFrequency: 25,
-      tetherStrength: 15.8,
-      maxSpeed: 1000,
-      drag: 0.8,
-      landChance: 0.05,
-      landingDuration: 1,
-    },
-    walking: {
-      walkSpeed: 60,
-      minIdleTime: 0.5,
-      maxIdleTime: 2.5,
-      minRotateTime: 0.2,
-      maxRotateTime: 0.7,
-      minMoveTime: 0.3,
-      maxMoveTime: 5.3,
-      minMoveDistance: 5,
-      maxMoveDistance: 95,
-      takeoffChance: 0.05,
-    },
-    motionBlur: {
-      enabled: true,
-      strength: 0.5,
-      maxLength: 4,
-    },
-  },
-  particleSystems: {
-    enabled: true,
-    globalDensityMultiplier: 1,
-    globalParticleLimit: 1000,
-  },
-  buildingShadows: {
-    worldBasedOnly: false,
-    enabled: true,
-    intensity: 0.6,
-    maxOffset: 80,
-    maxBlur: 8,
-    sunAngle: 45,
-  },
-  timeOfDay: {
-    worldBasedOnly: false,
-    enabled: true,
-    intensity: 1,
-    currentTime: 12,
-    keyframes: {
-      midnight: {
-        time: 0,
-        temperature: -0.2,
-        tint: -0.05,
-        saturation: 0.8,
-        brightness: -0.2,
-        contrast: 1.1,
-        exposure: -0.25,
-        gamma: 1.1,
+      "dawn": {
+        "time": 6,
+        "temperature": 0.3,
+        "tint": 0.1,
+        "saturation": 1.1,
+        "brightness": -0.1,
+        "contrast": 1.05,
+        "exposure": 0.1,
+        "gamma": 0.95
       },
-      dawn: {
-        time: 6,
-        temperature: 0.3,
-        tint: 0.1,
-        saturation: 1.1,
-        brightness: -0.1,
-        contrast: 1.05,
-        exposure: 0.1,
-        gamma: 0.95,
+      "midday": {
+        "time": 12,
+        "temperature": 0,
+        "tint": 0,
+        "saturation": 1,
+        "brightness": 0,
+        "contrast": 1,
+        "exposure": 0,
+        "gamma": 1
       },
-      midday: {
-        time: 12,
-        temperature: 0,
-        tint: 0,
-        saturation: 1,
-        brightness: 0,
-        contrast: 1,
-        exposure: 0,
-        gamma: 1,
+      "dusk": {
+        "time": 18,
+        "temperature": 0.4,
+        "tint": -0.1,
+        "saturation": 1.2,
+        "brightness": -0.05,
+        "contrast": 1.1,
+        "exposure": 0.15,
+        "gamma": 0.9
       },
-      dusk: {
-        time: 18,
-        temperature: 0.4,
-        tint: -0.1,
-        saturation: 1.2,
-        brightness: -0.05,
-        contrast: 1.1,
-        exposure: 0.15,
-        gamma: 0.9,
-      },
-      twilight: {
-        time: 21,
-        temperature: -0.15,
-        tint: -0.08,
-        saturation: 0.9,
-        brightness: -0.15,
-        contrast: 1,
-        exposure: -0.1,
-        gamma: 1.05,
-      },
-    },
+      "twilight": {
+        "time": 21,
+        "temperature": -0.15,
+        "tint": -0.08,
+        "saturation": 0.9,
+        "brightness": -0.15,
+        "contrast": 1,
+        "exposure": -0.1,
+        "gamma": 1.05
+      }
+    }
   },
-  diagnostic: {
-    enabled: false,
-    showMasks: false,
-    pixelInspector: false,
-    displaySuffix: "fire",
-    showIlluminationPreview: false,
+  "diagnostic": {
+    "enabled": false,
+    "showMasks": false,
+    "pixelInspector": false,
+    "displaySuffix": "fire",
+    "showIlluminationPreview": false
   },
-  overheadEffects: {
-    enabled: true,
-    parallax: {
-      enabled: true,
-      amount: 0,
+  "overheadEffects": {
+    "enabled": true,
+    "parallax": {
+      "enabled": true,
+      "amount": 0
     },
-    blur: {
-      enabled: true,
-      quality: 4,
-      strength: 8,
-    },
+    "blur": {
+      "enabled": true,
+      "quality": 4,
+      "strength": 8
+    }
   },
-  ambientLayerZIndex: 250,
-};
+  "ambientLayerZIndex": 250
+}
 
 const hexToRgbArray = (hex) => {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -4179,9 +4178,7 @@ class ResourceManager {
       return this._frameCache.structuralShadowTexture;
     }
 
-    const layer = canvas.layers.find(
-      (l) => l instanceof StructuralShadowsLayer
-    );
+    const layer = canvas.layers.find((l) => l instanceof StructuralShadowsLayer);
     if (!layer) return null;
 
     layer.renderEffectNow(deltaTime);
@@ -4205,9 +4202,7 @@ class ResourceManager {
     // Calling getStructuralShadowTexture will ensure the layer renders everything it needs to.
     this.getStructuralShadowTexture(deltaTime);
 
-    const layer = canvas.layers.find(
-      (l) => l instanceof StructuralShadowsLayer
-    );
+    const layer = canvas.layers.find((l) => l instanceof StructuralShadowsLayer);
     if (!layer) return null;
 
     const texture = layer.getHighlightMaskTexture();
@@ -8135,18 +8130,15 @@ class NoiseTextureManager {
 
     if (!this.filter) return;
     this.filter.enabled = true;
-
+    
     // Define scaling factors based on the effect path to normalize UI values.
     const SCALING_FACTORS = {
       "canopy.distortion": { speed: 0.01, evolution: 0.01 },
       "prism.distortionNoise": { speed: 0.1, evolution: 0.1 },
       "structuralShadows.intensityNoise": { speed: 0.1, evolution: 0.1 },
-      "iridescence.noise": { speed: 0.01, evolution: 0.01 },
+      "iridescence.noise": { speed: 0.01, evolution: 0.01 } 
     };
-    const factors = SCALING_FACTORS[this.configPath] || {
-      speed: 1.0,
-      evolution: 1.0,
-    };
+    const factors = SCALING_FACTORS[this.configPath] || { speed: 1.0, evolution: 1.0 };
 
     const u = this.filter.uniforms;
     u.u_speed = (nConfig.speed ?? 0.0) * (factors.speed ?? 1.0);
@@ -8410,14 +8402,8 @@ class FBMNoiseManager {
     if (!this.filter || !this.filter.enabled) return;
 
     const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
-    const nConfig = foundry.utils.getProperty(
-      game.mapShine.profileManager.activeConfig,
-      this.configPath
-    );
-    const isAnimated =
-      nConfig &&
-      (nConfig.speed * timeFactor !== 0 ||
-        nConfig.evolution * timeFactor !== 0);
+    const nConfig = foundry.utils.getProperty(game.mapShine.profileManager.activeConfig, this.configPath);
+    const isAnimated = nConfig && (nConfig.speed * timeFactor !== 0 || nConfig.evolution * timeFactor !== 0);
 
     if (!this._needsUpdate && !isAnimated) return;
 
@@ -8428,18 +8414,12 @@ class FBMNoiseManager {
       const stage = canvas.stage;
       const topLeft = stage.toLocal({ x: 0, y: 0 });
       this.filter.uniforms.uCameraOffset = [topLeft.x, topLeft.y];
-      this.filter.uniforms.uViewSize = [
-        screen.width / stage.scale.x,
-        screen.height / stage.scale.y,
-      ];
+      this.filter.uniforms.uViewSize = [screen.width / stage.scale.x, screen.height / stage.scale.y];
     } else {
       this.filter.uniforms.uViewSize = [screen.width, screen.height];
     }
 
-    renderer.render(this.sourceSprite, {
-      renderTexture: this.renderTexture,
-      clear: true,
-    });
+    renderer.render(this.sourceSprite, { renderTexture: this.renderTexture, clear: true });
     this._needsUpdate = false;
   }
 
@@ -8683,8 +8663,7 @@ class AmbientMaskManager {
     const mConfig = game.mapShine.profileManager.activeConfig.ambient.masking;
     const screen = this.canvas.app.renderer.screen;
 
-    const illuminationTexture =
-      game.mapShine.resourceManager.getIlluminationTexture();
+    const illuminationTexture = game.mapShine.resourceManager.getIlluminationTexture();
     const isIlluminationReady =
       illuminationTexture?.valid &&
       illuminationTexture.width === Math.round(screen.width) &&
@@ -8889,7 +8868,8 @@ class LightingEffectManager {
       config.highlightStructural.enabled && !!structuralHighlightMask?.valid;
     if (u.uStructuralHighlightsEnabled) {
       u.uStructuralHighlightsMask = structuralHighlightMask;
-      u.uStructuralHighlightsBrightness = config.highlightStructural.brightness;
+      u.uStructuralHighlightsBrightness =
+        config.highlightStructural.brightness;
       const isSplitEnabled = structuralLayer.isRgbSplitEnabled();
       u.uStructuralSplitHighlightsEnabled = isSplitEnabled;
       if (isSplitEnabled) {
@@ -18414,7 +18394,6 @@ class MetallicShineFilter extends PIXI.Filter {
             const int MAX_COLORS = 8;
             uniform vec3 uGradientColors[MAX_COLORS];
             uniform int uNumColors;
-            uniform float uGradientIntensity;
 
             // FBM Noise Mask
             uniform bool uFbmNoiseEnabled;
@@ -18508,9 +18487,6 @@ class MetallicShineFilter extends PIXI.Filter {
                 vec3 mainColor = getGradientColor(totalBrightness);
                 totalColor = mix(mainColor, totalColor / max(1.0, totalBrightness), 0.5);
 
-                // Apply gradient intensity by mixing the final color with white.
-                totalColor = mix(vec3(1.0), totalColor, uGradientIntensity);
-
                 return vec4(totalColor, totalBrightness);
             }
 
@@ -18559,7 +18535,6 @@ class MetallicShineFilter extends PIXI.Filter {
       uSubStripeTintVariation: 0.1,
       uGradientColors: [],
       uNumColors: 0,
-      uGradientIntensity: 1.0,
       uFbmNoiseEnabled: true,
       uFbmMaskIntensity: 1.0,
       uFbmDistortionIntensity: 0.0,
@@ -18588,51 +18563,17 @@ class MetallicShineLayer extends CanvasLayer {
     const content = `
             ${checkboxHTML}
             <hr style="border-color: #555; margin: 6px 0;">
-            ${DebuggerUIBuilder._createTextureInputHTML(
-              "specular",
-              "Specular Map (_Specular)"
-            )}
+            ${DebuggerUIBuilder._createTextureInputHTML("specular", "Specular Map (_Specular)")}
             <p class="description-text">Creates an animated, reflective sheen on surfaces, like polished metal or wet stone.</p>
-            ${DebuggerUIBuilder._createSelectHTML(
-              "baseShine.compositing.layerBlendMode",
-              "Blend Mode",
-              BLEND_MODE_OPTIONS
-            )}
+            ${DebuggerUIBuilder._createSelectHTML("baseShine.compositing.layerBlendMode", "Blend Mode", BLEND_MODE_OPTIONS)}
             
             <details id="details-baseShine-animation">
                 <summary><span class="accordion-toggle"></span><strong>Animation & Parallax</strong></summary>
                 <div style="padding-left: 15px;">
-                    ${DebuggerUIBuilder._createSliderHTML(
-                      "baseShine.animation.globalIntensity",
-                      "Global Intensity",
-                      0,
-                      10,
-                      0.1
-                    )}
-                    ${DebuggerUIBuilder._createSliderHTML(
-                      "baseShine.animation.parallaxAmount",
-                      "Parallax Amount",
-                      0,
-                      2,
-                      0.01,
-                      "How much the shine pattern moves with the camera. 0 = fixed to map, 1 = fixed to screen."
-                    )}
-                    ${DebuggerUIBuilder._createSliderHTML(
-                      "baseShine.animation.parallaxJitter",
-                      "Parallax Jitter",
-                      0,
-                      5,
-                      0.1,
-                      "Adds random, drifting motion to the parallax effect."
-                    )}
-                    ${DebuggerUIBuilder._createSliderHTML(
-                      "baseShine.animation.parallaxJitterSpeed",
-                      "Jitter Speed",
-                      0,
-                      1,
-                      0.05,
-                      "How quickly the jitter motion changes."
-                    )}
+                    ${DebuggerUIBuilder._createSliderHTML("baseShine.animation.globalIntensity", "Global Intensity", 0, 10, 0.1)}
+                    ${DebuggerUIBuilder._createSliderHTML("baseShine.animation.parallaxAmount", "Parallax Amount", 0, 2, 0.01, "How much the shine pattern moves with the camera. 0 = fixed to map, 1 = fixed to screen.")}
+                    ${DebuggerUIBuilder._createSliderHTML("baseShine.animation.parallaxJitter", "Parallax Jitter", 0, 5, 0.1, "Adds random, drifting motion to the parallax effect.")}
+                    ${DebuggerUIBuilder._createSliderHTML("baseShine.animation.parallaxJitterSpeed", "Jitter Speed", 0, 1, 0.05, "How quickly the jitter motion changes.")}
                 </div>
             </details>
 
@@ -18642,109 +18583,27 @@ class MetallicShineLayer extends CanvasLayer {
                     <details id="details-baseShine-pattern-shared">
                         <summary><span class="accordion-toggle"></span><strong>Shared Settings</strong></summary>
                         <div style="padding-left: 15px;">
-                            ${DebuggerUIBuilder._createSliderHTML(
-                              "baseShine.pattern.shared.patternScale",
-                              "Pattern Scale",
-                              0.001,
-                              2,
-                              0.001,
-                              "Overall zoom level of the stripe patterns."
-                            )}
+                            ${DebuggerUIBuilder._createSliderHTML("baseShine.pattern.shared.patternScale", "Pattern Scale", 0.001, 2, 0.001, "Overall zoom level of the stripe patterns.")}
                         </div>
                     </details>
                     <details id="details-baseShine-pattern-stripes">
-                        <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                          "baseShine.pattern.stripes.enabled",
-                          "Stripe Generation",
-                          true
-                        )}</div></summary>
+                        <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML("baseShine.pattern.stripes.enabled", "Stripe Generation", true)}</div></summary>
                         <div style="padding-left: 15px;">
                             <p class="description-text">Generates the primary light pattern for the effect.</p>
-                            ${DebuggerUIBuilder._createSliderHTML(
-                              "baseShine.pattern.stripes.intensity",
-                              "Intensity",
-                              0,
-                              2,
-                              0.05
-                            )}
-                            ${DebuggerUIBuilder._createSliderHTML(
-                              "baseShine.pattern.stripes.speed",
-                              "Speed",
-                              -0.05,
-                              0.05,
-                              0.001
-                            )}
-                            ${DebuggerUIBuilder._createGradientSelectHTML(
-                              "baseShine.pattern.stripes.gradientName",
-                              "Color Gradient"
-                            )}
-                            ${DebuggerUIBuilder._createSliderHTML(
-                              "baseShine.pattern.stripes.gradientIntensity",
-                              "Gradient Intensity",
-                              0,
-                              10,
-                              0.1,
-                              "Controls the saturation of the gradient color. 0 = white, 1 = full color."
-                            )}
-                            ${DebuggerUIBuilder._createSliderHTML(
-                              "baseShine.pattern.stripes.angle",
-                              "Angle",
-                              0,
-                              180,
-                              1
-                            )}
-                            ${DebuggerUIBuilder._createSliderHTML(
-                              "baseShine.pattern.stripes.sharpness",
-                              "Sharpness",
-                              1,
-                              20,
-                              0.5
-                            )}
-                            ${DebuggerUIBuilder._createSliderHTML(
-                              "baseShine.pattern.stripes.bandDensity",
-                              "Band Density",
-                              0.1,
-                              10,
-                              0.1
-                            )}
-                            ${DebuggerUIBuilder._createSliderHTML(
-                              "baseShine.pattern.stripes.bandWidth",
-                              "Band Width",
-                              0.1,
-                              5,
-                              0.1
-                            )}
+                            ${DebuggerUIBuilder._createSliderHTML("baseShine.pattern.stripes.intensity", "Intensity", 0, 2, 0.05)}
+                            ${DebuggerUIBuilder._createSliderHTML("baseShine.pattern.stripes.speed", "Speed", -0.05, 0.05, 0.001)}
+                            ${DebuggerUIBuilder._createGradientSelectHTML("baseShine.pattern.stripes.gradientName", "Color Gradient")}
+                            ${DebuggerUIBuilder._createSliderHTML("baseShine.pattern.stripes.angle", "Angle", 0, 180, 1)}
+                            ${DebuggerUIBuilder._createSliderHTML("baseShine.pattern.stripes.sharpness", "Sharpness", 1, 20, 0.5)}
+                            ${DebuggerUIBuilder._createSliderHTML("baseShine.pattern.stripes.bandDensity", "Band Density", 0.1, 10, 0.1)}
+                            ${DebuggerUIBuilder._createSliderHTML("baseShine.pattern.stripes.bandWidth", "Band Width", 0.1, 5, 0.1)}
                             <details><summary><span class="accordion-toggle"></span><strong>Procedural Sub-Stripes</strong></summary>
                             <div style="padding-left: 15px;">
                                 <p class="description-text">Adds randomized smaller stripes for more complexity.</p>
-                                ${DebuggerUIBuilder._createSliderHTML(
-                                  "baseShine.pattern.stripes.subStripeCount",
-                                  "Count",
-                                  0,
-                                  10,
-                                  1
-                                )}
-                                ${DebuggerUIBuilder._createSliderHTML(
-                                  "baseShine.pattern.stripes.subStripeSpeedVariation",
-                                  "Speed Variation",
-                                  0,
-                                  5,
-                                  0.1
-                                )}
-                                ${DebuggerUIBuilder._createSliderHTML(
-                                  "baseShine.pattern.stripes.subStripeSharpnessVariation",
-                                  "Sharpness Variation",
-                                  0,
-                                  5,
-                                  0.1
-                                )}
-                                ${DebuggerUIBuilder._createSliderHTML(
-                                  "baseShine.pattern.stripes.subStripeTintVariation",
-                                  "Tint Variation",
-                                  0,
-                                  1,
-                                  0.05
-                                )}
+                                ${DebuggerUIBuilder._createSliderHTML("baseShine.pattern.stripes.subStripeCount", "Count", 0, 10, 1)}
+                                ${DebuggerUIBuilder._createSliderHTML("baseShine.pattern.stripes.subStripeSpeedVariation", "Speed Variation", 0, 5, 0.1)}
+                                ${DebuggerUIBuilder._createSliderHTML("baseShine.pattern.stripes.subStripeSharpnessVariation", "Sharpness Variation", 0, 5, 0.1)}
+                                ${DebuggerUIBuilder._createSliderHTML("baseShine.pattern.stripes.subStripeTintVariation", "Tint Variation", 0, 1, 0.05)}
                             </div>
                             </details>
                         </div>
@@ -18753,133 +18612,40 @@ class MetallicShineLayer extends CanvasLayer {
             </details>
 
             <details id="details-baseShine-fbmNoise">
-                <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                  "baseShine.fbmNoise.enabled",
-                  "FBM Noise Mask & Distortion",
-                  true
-                )}</div></summary>
+                <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML("baseShine.fbmNoise.enabled", "FBM Noise Mask & Distortion", true)}</div></summary>
                 <div style="padding-left: 15px;">
                     <p class="description-text">Applies a procedural noise pattern to both warp the stripes and mask their intensity, creating an organic appearance.</p>
-                    ${DebuggerUIBuilder._createSliderHTML(
-                      "baseShine.fbmNoise.maskIntensity",
-                      "Mask Intensity",
-                      0,
-                      1,
-                      0.01,
-                      "How strongly the noise hides the stripes. 1.0 = full masking."
-                    )}
-                    ${DebuggerUIBuilder._createSliderHTML(
-                      "baseShine.fbmNoise.distortionIntensity",
-                      "Distortion Intensity",
-                      0,
-                      20,
-                      0.1,
-                      "How much the noise warps the shape of the stripes."
-                    )}
-                    ${DebuggerUIBuilder._createSliderHTML(
-                      "baseShine.fbmNoise.speed",
-                      "Speed",
-                      -0.05,
-                      0.05,
-                      0.001
-                    )}
-                    ${DebuggerUIBuilder._createSliderHTML(
-                      "baseShine.fbmNoise.scale",
-                      "Scale",
-                      0.1,
-                      5,
-                      0.05
-                    )}
-                    ${DebuggerUIBuilder._createSliderHTML(
-                      "baseShine.fbmNoise.evolution",
-                      "Evolution",
-                      0,
-                      1,
-                      0.01
-                    )}
+                    ${DebuggerUIBuilder._createSliderHTML("baseShine.fbmNoise.maskIntensity", "Mask Intensity", 0, 1, 0.01, "How strongly the noise hides the stripes. 1.0 = full masking.")}
+                    ${DebuggerUIBuilder._createSliderHTML("baseShine.fbmNoise.distortionIntensity", "Distortion Intensity", 0, 20, 0.1, "How much the noise warps the shape of the stripes.")}
+                    ${DebuggerUIBuilder._createSliderHTML("baseShine.fbmNoise.speed", "Speed", -0.05, 0.05, 0.001)}
+                    ${DebuggerUIBuilder._createSliderHTML("baseShine.fbmNoise.scale", "Scale", 0.1, 5, 0.05)}
+                    ${DebuggerUIBuilder._createSliderHTML("baseShine.fbmNoise.evolution", "Evolution", 0, 1, 0.01)}
                     <details><summary><span class="accordion-toggle"></span><strong>FBM Parameters</strong></summary>
                         <div style="padding-left: 15px;">
-                            ${DebuggerUIBuilder._createSliderHTML(
-                              "baseShine.fbmNoise.octaves",
-                              "Complexity (Octaves)",
-                              1,
-                              8,
-                              1
-                            )}
-                            ${DebuggerUIBuilder._createSliderHTML(
-                              "baseShine.fbmNoise.persistence",
-                              "Roughness",
-                              0.1,
-                              1,
-                              0.05
-                            )}
-                            ${DebuggerUIBuilder._createSliderHTML(
-                              "baseShine.fbmNoise.lacunarity",
-                              "Detail Scale",
-                              1.5,
-                              4,
-                              0.05
-                            )}
+                            ${DebuggerUIBuilder._createSliderHTML("baseShine.fbmNoise.octaves", "Complexity (Octaves)", 1, 8, 1)}
+                            ${DebuggerUIBuilder._createSliderHTML("baseShine.fbmNoise.persistence", "Roughness", 0.1, 1, 0.05)}
+                            ${DebuggerUIBuilder._createSliderHTML("baseShine.fbmNoise.lacunarity", "Detail Scale", 1.5, 4, 0.05)}
                         </div>
                     </details>
                     <details><summary><span class="accordion-toggle"></span><strong>Noise Shaping</strong></summary>
                         <div style="padding-left: 15px;">
-                            ${DebuggerUIBuilder._createSliderHTML(
-                              "baseShine.fbmNoise.threshold",
-                              "Threshold",
-                              0,
-                              1,
-                              0.01
-                            )}
-                            ${DebuggerUIBuilder._createSliderHTML(
-                              "baseShine.fbmNoise.brightness",
-                              "Brightness",
-                              -1,
-                              1,
-                              0.01
-                            )}
-                            ${DebuggerUIBuilder._createSliderHTML(
-                              "baseShine.fbmNoise.contrast",
-                              "Contrast",
-                              0,
-                              10,
-                              0.05
-                            )}
-                            ${DebuggerUIBuilder._createSliderHTML(
-                              "baseShine.fbmNoise.softness",
-                              "Softness",
-                              0.01,
-                              1,
-                              0.01
-                            )}
+                            ${DebuggerUIBuilder._createSliderHTML("baseShine.fbmNoise.threshold", "Threshold", 0, 1, 0.01)}
+                            ${DebuggerUIBuilder._createSliderHTML("baseShine.fbmNoise.brightness", "Brightness", -1, 1, 0.01)}
+                            ${DebuggerUIBuilder._createSliderHTML("baseShine.fbmNoise.contrast", "Contrast", 0, 10, 0.05)}
+                            ${DebuggerUIBuilder._createSliderHTML("baseShine.fbmNoise.softness", "Softness", 0.01, 1, 0.01)}
                         </div>
                     </details>
                 </div>
             </details>
             <details id="details-baseShine-rgbSplit">
-                <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                  "baseShine.rgbSplit.enabled",
-                  "RGB Split",
-                  true
-                )}</div></summary>
+                <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML("baseShine.rgbSplit.enabled", "RGB Split", true)}</div></summary>
                 <div style="padding-left: 15px;">
                     <p class="description-text">Applies a chromatic aberration effect to the final shine, splitting the color channels.</p>
-                     ${DebuggerUIBuilder._createSliderHTML(
-                       "baseShine.rgbSplit.amount",
-                       "Amount",
-                       0,
-                       20,
-                       0.1
-                     )}
+                     ${DebuggerUIBuilder._createSliderHTML("baseShine.rgbSplit.amount", "Amount", 0, 20, 0.1)}
                 </div>
             </details>
         `;
-    return DebuggerUIBuilder._createAccordionHTML(
-      effectKey,
-      "Metallic Shine",
-      content,
-      iconHTML
-    );
+    return DebuggerUIBuilder._createAccordionHTML(effectKey, "Metallic Shine", content, iconHTML);
   }
 
   _initMembers() {
@@ -18900,8 +18666,7 @@ class MetallicShineLayer extends CanvasLayer {
   }
 
   renderSpecularMask() {
-    if (this._destroyed || !this.sourceContainer || !this.specularMaskTexture)
-      return;
+    if (this._destroyed || !this.sourceContainer || !this.specularMaskTexture) return;
     canvas.app.renderer.render(this.sourceContainer, {
       renderTexture: this.specularMaskTexture,
       clear: true,
@@ -18918,15 +18683,8 @@ class MetallicShineLayer extends CanvasLayer {
 
     const renderer = canvas.app.renderer;
     this.sourceContainer = new PIXI.Container();
-    this.specularMaskTexture = PIXI.RenderTexture.create({
-      width: renderer.screen.width,
-      height: renderer.screen.height,
-    });
-    this.fbmNoiseManager = new FBMNoiseManager(
-      renderer,
-      "baseShine.fbmNoise",
-      true
-    );
+    this.specularMaskTexture = PIXI.RenderTexture.create({ width: renderer.screen.width, height: renderer.screen.height });
+    this.fbmNoiseManager = new FBMNoiseManager(renderer, "baseShine.fbmNoise", true);
 
     try {
       this.metallicShineFilter = new MetallicShineFilter();
@@ -18936,9 +18694,7 @@ class MetallicShineLayer extends CanvasLayer {
     }
 
     this.effectSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
-    this.effectSprite.filters = this.metallicShineFilter
-      ? [this.metallicShineFilter]
-      : [];
+    this.effectSprite.filters = this.metallicShineFilter ? [this.metallicShineFilter] : [];
     this.addChild(this.effectSprite);
 
     this._onAnimateBound = this._onAnimate.bind(this);
@@ -18958,10 +18714,7 @@ class MetallicShineLayer extends CanvasLayer {
   _onResize() {
     if (this._destroyed) return;
     const renderer = canvas.app.renderer;
-    this.specularMaskTexture?.resize(
-      renderer.screen.width,
-      renderer.screen.height
-    );
+    this.specularMaskTexture?.resize(renderer.screen.width, renderer.screen.height);
     this.fbmNoiseManager?.resize(renderer);
     this._needsMaskUpdate = true;
   }
@@ -18972,7 +18725,7 @@ class MetallicShineLayer extends CanvasLayer {
     if (this._needsMaskUpdate) {
       this.renderSpecularMask();
     }
-
+    
     const resourceManager = game.mapShine.resourceManager;
     if (!resourceManager) return;
 
@@ -18992,13 +18745,9 @@ class MetallicShineLayer extends CanvasLayer {
     u.uCameraOffset = [topLeft.x, topLeft.y];
     u.uViewSize = [screen.width / stage.scale.x, screen.height / stage.scale.y];
 
-    const parallaxOffsetX =
-      (screen.width / 2 - stage.pivot.x * stage.scale.x) *
-      animConfig.parallaxAmount;
-    const parallaxOffsetY =
-      (screen.height / 2 - stage.pivot.y * stage.scale.y) *
-      animConfig.parallaxAmount;
-
+    const parallaxOffsetX = (screen.width / 2 - stage.pivot.x * stage.scale.x) * animConfig.parallaxAmount;
+    const parallaxOffsetY = (screen.height / 2 - stage.pivot.y * stage.scale.y) * animConfig.parallaxAmount;
+    
     // Apply scaling factor to parallax jitter speed
     const scaledJitterSpeed = (animConfig.parallaxJitterSpeed ?? 3.0) * 0.1;
     this.jitter.x += (Math.random() - 0.5) * scaledJitterSpeed * timeFactor;
@@ -19038,10 +18787,10 @@ class MetallicShineLayer extends CanvasLayer {
 
       u.uGlobalIntensity = anim.globalIntensity;
       u.uPatternScale = shared.patternScale;
-
+      
       u.uStripesEnabled = stripes.enabled;
       u.uStripesIntensity = stripes.intensity;
-      u.uStripesSpeed = stripes.speed;
+      u.uStripesSpeed = stripes.speed * 0.001; // Apply scaling factor
       u.uStripesAngle = stripes.angle * (Math.PI / 180.0);
       u.uStripesSharpness = stripes.sharpness;
       u.uStripesBandDensity = stripes.bandDensity;
@@ -19050,13 +18799,10 @@ class MetallicShineLayer extends CanvasLayer {
       u.uSubStripeSpeedVariation = stripes.subStripeSpeedVariation;
       u.uSubStripeSharpnessVariation = stripes.subStripeSharpnessVariation;
       u.uSubStripeTintVariation = stripes.subStripeTintVariation;
-      u.uGradientIntensity = stripes.gradientIntensity ?? 1.0;
-
+      
       const gradientData = GRADIENT_PRESETS[stripes.gradientName];
       if (gradientData) {
-        u.uGradientColors = gradientData.colors.flatMap((hex) =>
-          hexToRgbArray(hex)
-        );
+        u.uGradientColors = gradientData.colors.flatMap(hex => hexToRgbArray(hex));
         u.uNumColors = gradientData.colors.length;
       }
 
@@ -19066,13 +18812,50 @@ class MetallicShineLayer extends CanvasLayer {
     }
   }
 
+  async updateFromConfig(config) {
+    const csConfig = config.cloudShadows;
+    this.visible = config.enabled && csConfig.enabled;
+    if (!this.cloudFilter) return;
+
+    if (this.maskBlurFilter) {
+      this.maskBlurFilter.blur = csConfig.maskBlur ?? 0.0;
+      this.maskBlurFilter.enabled = this.maskBlurFilter.blur > 0;
+      if (this.maskBlurFilter.enabled) this._needsMaskUpdate = true;
+    }
+
+    const u = this.cloudFilter.uniforms;
+    u.u_shadowIntensity = csConfig.shadowIntensity;
+
+    const windAngleRad = (csConfig.wind.angle ?? 45.0) * (Math.PI / 180);
+    // Apply scaling factor to speed
+    const windSpeed = (csConfig.wind.speed ?? 0.5) * 0.001;
+    u.u_windDirection = [
+      Math.cos(windAngleRad) * windSpeed,
+      Math.sin(windAngleRad) * windSpeed,
+    ];
+
+    u.u_noise_scale = csConfig.noise.scale;
+    u.u_noise_octaves = csConfig.noise.octaves;
+    u.u_noise_persistence = csConfig.noise.persistence;
+    u.u_noise_lacunarity = csConfig.noise.lacunarity;
+
+    const s = csConfig.shading;
+    u.u_shading_threshold = s.threshold;
+    u.u_shading_softness = s.softness;
+    u.u_shading_brightness = s.brightness;
+    u.u_shading_contrast = s.contrast;
+    u.u_shading_gamma = s.gamma;
+
+    this.blendMode = PIXI.BLEND_MODES.NORMAL;
+    if (this.effectSprite) {
+      this.effectSprite.blendMode = PIXI.BLEND_MODES.MULTIPLY;
+    }
+  }
+
   async updateEffectTargets(targets) {
     if (!this.sourceContainer) return;
     const validTargetIds = new Set();
-    const allTargets = new Map([
-      ["background", targets.background],
-      ...targets.tiles.entries(),
-    ]);
+    const allTargets = new Map([["background", targets.background], ...targets.tiles.entries()]);
     for (const [id, targetData] of allTargets.entries()) {
       if (!targetData?.specular) continue;
       validTargetIds.add(id);
@@ -19082,11 +18865,7 @@ class MetallicShineLayer extends CanvasLayer {
         this.effectSprites.set(id, sprite);
         this.sourceContainer.addChild(sprite);
       }
-      await this._updateSpriteTransform(
-        sprite,
-        targetData.specular,
-        targetData.rect
-      );
+      await this._updateSpriteTransform(sprite, targetData.specular, targetData.rect);
     }
     for (const [id, sprite] of this.effectSprites.entries()) {
       if (!validTargetIds.has(id)) {
@@ -19107,20 +18886,14 @@ class MetallicShineLayer extends CanvasLayer {
         sprite.texture = PIXI.Texture.EMPTY;
       }
     }
-    if (
-      !sprite ||
-      sprite.destroyed ||
-      !sprite.anchor ||
-      !sprite.texture.valid ||
-      !rect
-    )
-      return;
+    if (!sprite || sprite.destroyed || !sprite.anchor || !sprite.texture.valid || !rect) return;
     sprite.anchor.set(0.5);
     sprite.position.set(rect.x + rect.width / 2, rect.y + rect.height / 2);
     sprite.width = rect.width;
     sprite.height = rect.height;
     sprite.rotation = rect.rotation || 0;
   }
+
 
   async _tearDown(options) {
     if (this._destroyed) return;
@@ -22423,6 +22196,7 @@ class GroundGlowLayer extends CanvasLayer {
     this._updateMaskTransform();
   }
 
+
   async updateFromConfig(config) {
     if (!this.container || !this.colorFilter) return;
     const ggConfig = config.groundGlow;
@@ -22790,7 +22564,7 @@ class HeatDistortionLayer extends CanvasLayer {
     const p2 = nConfig.secondary;
     const r = nConfig.rising;
     const u = this.noiseFilter.uniforms;
-
+    
     // Apply scaling factors
     u.u_primarySpeed = (p1.speed ?? 1.0) * 0.01;
     u.u_primaryScale = p1.scale;
@@ -24374,8 +24148,8 @@ class WaterFXLayer extends MaskedEffectLayer {
     u.u_openWaterFoamCoverage = srfConfig.foamCoverage;
     u.u_openWaterFoamSharpness = srfConfig.foamSharpness;
     u.u_openWaterFbmScale = srfConfig.fbmScale;
-    u.u_openWaterFbmSpeed = (srfConfig.fbmSpeed ?? 1.0) * 0.1;
-    u.u_openWaterFbmEvolution = (srfConfig.fbmEvolution ?? 3.0) * 0.1;
+    u.u_openWaterFbmSpeed = srfConfig.fbmSpeed;
+    u.u_openWaterFbmEvolution = srfConfig.fbmEvolution;
     u.u_openWaterFbmOctaves = srfConfig.fbmOctaves;
     u.u_openWaterFbmLacunarity = srfConfig.fbmLacunarity;
     u.u_openWaterFbmPersistence = srfConfig.fbmPersistence;
@@ -24383,7 +24157,7 @@ class WaterFXLayer extends MaskedEffectLayer {
     u.u_sheenColor = hexToRgbArray(srfConfig.sheenColor);
     u.u_sheenIntensity = srfConfig.sheenIntensity;
     u.u_sheenScale = srfConfig.sheenScale;
-    u.u_sheenSpeed = (srfConfig.sheenSpeed ?? 0.2) * 0.01;
+    u.u_sheenSpeed = srfConfig.sheenSpeed;
     u.u_sheenStretch = srfConfig.sheenStretch;
     u.u_sheenSharpness = srfConfig.sheenSharpness;
     const cConfig = wConfig.caustics;
@@ -24391,7 +24165,7 @@ class WaterFXLayer extends MaskedEffectLayer {
     u.u_causticsColor = hexToRgbArray(cConfig.color);
     u.u_causticsIntensity = cConfig.intensity;
     u.u_causticsScale = cConfig.scale;
-    u.u_causticsSpeed = (cConfig.speed ?? 1.0) * 0.1;
+    u.u_causticsSpeed = cConfig.speed;
     u.u_causticsLineSharpness = cConfig.lineSharpness;
     u.u_causticsBloomIntensity = cConfig.bloomIntensity;
     u.u_causticsLineDistortion = cConfig.lineDistortion;
@@ -24407,13 +24181,13 @@ class WaterFXLayer extends MaskedEffectLayer {
     if (dispConfig) {
       u.u_shorelineDisplacementEnabled = dispConfig.enabled;
       u.u_shorelineDisplacementScale = dispConfig.scale;
-      u.u_shorelineDisplacementSpeed = (dispConfig.speed ?? 1.1) * 0.1;
+      u.u_shorelineDisplacementSpeed = dispConfig.speed;
       u.u_shorelineDisplacementStrength = dispConfig.strength;
     }
     const foamPatternConfig = shConfig.foamPattern;
     u.u_shorelinePatternScale = foamPatternConfig.scale;
-    u.u_shorelinePatternSpeed = (foamPatternConfig.speed ?? 0.0) * 0.1;
-    u.u_shorelinePatternEvolution = (foamPatternConfig.evolution ?? 1.0) * 0.1;
+    u.u_shorelinePatternSpeed = foamPatternConfig.speed;
+    u.u_shorelinePatternEvolution = foamPatternConfig.evolution;
     u.u_shorelinePatternOctaves = foamPatternConfig.octaves;
     u.u_shorelinePatternLacunarity = foamPatternConfig.lacunarity;
     u.u_shorelinePatternPersistence = foamPatternConfig.persistence;
@@ -24423,20 +24197,20 @@ class WaterFXLayer extends MaskedEffectLayer {
     u.u_particleMaskContrast = shConfig.particleMaskContrast;
   }
 
-  async updateFromConfig(config) {
+  updateFromConfig(config) {
     const wConfig = config.water;
     this.visible = config.enabled && wConfig.enabled;
 
+    // Update own filters
     if (this.displacementFilter) {
-      // Apply scaling factor
-      this.displacementFilter.uniforms.u_speed =
-        (wConfig.wave.speed ?? 1.48) * 0.01;
+      this.displacementFilter.uniforms.u_speed = wConfig.wave.speed;
       this.displacementFilter.uniforms.u_scale = wConfig.wave.scale;
     }
     if (this.blurFilter) {
       this.blurFilter.blur = wConfig.shoreline.detectionBlur;
     }
 
+    // Update the main WaterEffectsFilter and the particle mask generator filter
     this._updateWaterFilterUniforms(this.waterEffectsFilter, wConfig);
     this._updateWaterFilterUniforms(
       this.particleMaskGeneratorSprite?.filters[0],
