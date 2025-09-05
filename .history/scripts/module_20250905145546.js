@@ -1445,16 +1445,15 @@ const MODULE_DEFAULTS = {
     tint: "#050805",
     distortion: {
       enabled: true,
-      strength: 0.004,
-      speed: 0.1,
-      scale: 1.5,
-      evolution: 0.1,
+      intensity: 1.2,
+      speed: 0.5,
+      scale: 0.01,
+      evolution: 1,
       threshold: 0,
-      brightness: 0,
+      brightness: -0.37,
       contrast: 1,
       softness: 1,
     },
-    postScale: 1,
   },
   structuralShadows: {
     worldBasedOnly: false,
@@ -17167,6 +17166,10 @@ class DiagnosticLayer extends CanvasLayer {
           class: IridescenceLayer,
           property: "distortionNoiseManager",
         },
+        canopyNoise: {
+          class: CanopyLayer,
+          property: "distortionNoiseManager",
+        },
         structuralNoise: {
           class: StructuralShadowsLayer,
           property: "intensityNoiseManager",
@@ -19812,50 +19815,62 @@ class CanopyFilter extends PIXI.Filter {
                         varying vec2 vScreenCoord;
 
                         // Samplers
-                        uniform sampler2D u_canopyMask;
+                        uniform sampler2D uSampler;
+                        uniform sampler2D u_distortionNoise;
                         uniform sampler2D uOutdoorsMask;
                         uniform sampler2D uIlluminationBuffer;
-                        uniform sampler2D u_displacementMap;
 
-                        // Effect Uniforms
+                        // Uniforms
                         uniform float u_shadowIntensity;
                         uniform vec3 u_tint;
                         uniform bool u_distortion_enabled;
-                        uniform float u_distortion_strength;
-                        uniform float u_canvas_scale; // New uniform for zoom level
+                        uniform float u_distortion_intensity;
 
                         // Illumination Masking Uniforms
                         uniform bool u_illum_enabled;
                         uniform float u_illum_intensity;
                         uniform float u_illum_luminanceThreshold;
                         uniform float u_illum_softness;
+
+                        // New uniforms for world-space calculations
+                        uniform vec4 u_scene_rect; // (x, y, width, height) of the entire scene
+                        uniform vec2 u_camera_offset; // World coordinate of the screen's top-left
+                        uniform vec2 u_view_size; // World dimensions of the screen
                         
                         const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
-
-                        vec2 mirroredRepeat(vec2 v) {
-                            return 1.0 - abs(mod(v, 2.0) - 1.0);
-                        }
 
                         void main() {
                             float outdoorMaskVal = texture2D(uOutdoorsMask, vScreenCoord).r;
                             if (outdoorMaskVal < 0.01) {
                                 discard;
                             }
-                            
-                            vec2 finalSampleCoord = vScreenCoord;
-                            if (u_distortion_enabled) {
-                                vec2 noiseVec = (texture2D(u_displacementMap, vScreenCoord).rg - 0.5) * 2.0;
-                                // Scale the distortion strength by the inverse of the canvas scale.
-                                // This makes the distortion effect appear constant in world space.
-                                vec2 displacement = noiseVec * (u_distortion_strength / u_canvas_scale);
+
+                            vec2 distortedCoord = vTextureCoord;
+                            if (u_distortion_enabled && u_distortion_intensity > 0.0) {
                                 
-                                finalSampleCoord = mirroredRepeat(vScreenCoord + displacement);
+                                // --- World-Space Gradient Falloff ---
+                                // 1. Calculate the true world coordinate of this pixel.
+                                vec2 world_coord = u_camera_offset + (vScreenCoord * u_view_size);
+
+                                // 2. Normalize the world coordinate to a 0-1 range based on the scene dimensions.
+                                vec2 world_uv = (world_coord - u_scene_rect.xy) / u_scene_rect.zw;
+
+                                // 3. Calculate falloff based on distance from the center of the WORLD.
+                                vec2 distFromCenter = abs(world_uv - 0.5) * 2.0;
+                                float maxDist = max(distFromCenter.x, distFromCenter.y);
+                                float falloff = 1.0 - smoothstep(0.8, 1.0, maxDist); // Fade out over the last 20% of the map edge
+
+                                // --- Distortion Calculation ---
+                                vec2 displacement = (texture2D(u_distortionNoise, vScreenCoord).rg - 0.5) * 2.0;
+                                vec2 offset = displacement * u_distortion_intensity * 0.01 * falloff;
+                                distortedCoord += offset;
                             }
-                            
-                            float maskValue = texture2D(u_canopyMask, finalSampleCoord).r;
+
+                            float maskValue = texture2D(uSampler, distortedCoord).r;
+                            float maskAlpha = texture2D(uSampler, distortedCoord).a;
                             float shadowAmount = 1.0 - maskValue;
                             
-                            if (shadowAmount < 0.01) {
+                            if (shadowAmount < 0.01 || maskAlpha < 0.01) {
                                 discard;
                             }
                             
@@ -19873,19 +19888,20 @@ class CanopyFilter extends PIXI.Filter {
                     `;
 
     super(vertexSrc, fragmentSrc, {
-      u_canopyMask: PIXI.Texture.EMPTY,
+      u_distortionNoise: PIXI.Texture.EMPTY,
       uOutdoorsMask: PIXI.Texture.EMPTY,
       u_shadowIntensity: 0.7,
       u_tint: [0.0, 0.0, 0.0],
+      u_distortion_enabled: true,
+      u_distortion_intensity: 5.0,
+      u_scene_rect: [0, 0, 1, 1],
+      u_camera_offset: [0, 0],
+      u_view_size: [1, 1],
       uIlluminationBuffer: PIXI.Texture.EMPTY,
       u_illum_enabled: false,
       u_illum_intensity: 0.8,
       u_illum_luminanceThreshold: 0.1,
       u_illum_softness: 0.2,
-      u_displacementMap: PIXI.Texture.EMPTY,
-      u_distortion_enabled: true,
-      u_distortion_strength: 0.01,
-      u_canvas_scale: 1.0, // Add the new uniform with a default value
       ...options,
     });
   }
@@ -19897,12 +19913,10 @@ class CanopyLayer extends MaskedEffectLayer {
       maskSuffix: "canopy",
     });
 
-    this.canopyFilter = null;
-    this.finalShadowTexture = null;
-    this.effectSprite = null; // This sprite displays the final rendered effect
+    this.canopyFilter = null; // This will now be a template filter
     this.distortionNoiseManager = null;
-    this._generatorSprite = null; // This sprite is used internally to generate the effect into finalShadowTexture
-    this.sceneBoundsMask = null;
+    this.finalShadowTexture = null; // For off-screen capture
+    this.effectSprites = new Map(); // Map of world-space sprites
   }
 
   static getSettingsHTML() {
@@ -19937,40 +19951,44 @@ class CanopyLayer extends MaskedEffectLayer {
                         )}
                         <details id="details-canopy-distortion"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
                           "canopy.distortion.enabled",
-                          "Distortion",
+                          "Shadow Animation",
                           true
                         )}</div></summary>
                             <div style="padding-left: 15px;">
-                                <p class="description-text">Animates the shadows to simulate wind blowing through leaves.</p>
+                                <p class="description-text">Animates the shadows using a procedural noise pattern to create a distortion effect.</p>
                                 ${DebuggerUIBuilder._createSliderHTML(
-                                  "canopy.distortion.strength",
-                                  "Strength",
+                                  "canopy.distortion.intensity",
+                                  "Intensity",
                                   0,
-                                  0.05,
-                                  0.0001
+                                  20,
+                                  0.1,
+                                  "The overall strength of the distortion effect."
                                 )}
                                 ${DebuggerUIBuilder._createSliderHTML(
                                   "canopy.distortion.speed",
                                   "Speed",
                                   -0.5,
                                   0.5,
-                                  0.005
+                                  0.005,
+                                  "Horizontal/Vertical scrolling speed of the distortion."
                                 )}
                                 ${DebuggerUIBuilder._createSliderHTML(
                                   "canopy.distortion.scale",
                                   "Scale",
-                                  0.1,
-                                  10,
-                                  0.1
+                                  0.01,
+                                  2,
+                                  0.01,
+                                  "Zoom level of the distortion pattern."
                                 )}
                                 ${DebuggerUIBuilder._createSliderHTML(
                                   "canopy.distortion.evolution",
                                   "Evolution",
                                   0,
                                   1,
-                                  0.01
+                                  0.01,
+                                  'Internal "morphing" speed of the distortion.'
                                 )}
-                                <details id="details-canopy-distortion-adv"><summary><span class="accordion-toggle"></span><strong>Advanced Noise Controls</strong></summary>
+                                <details id="details-canopy-distortion-noise-adv"><summary><span class="accordion-toggle"></span><strong>Advanced Noise Controls</strong></summary>
                                     <div style="padding-left: 15px;">
                                         ${DebuggerUIBuilder._createSliderHTML(
                                           "canopy.distortion.threshold",
@@ -20004,14 +20022,6 @@ class CanopyLayer extends MaskedEffectLayer {
                                 </details>
                             </div>
                         </details>
-                        ${DebuggerUIBuilder._createSliderHTML(
-                          "canopy.postScale",
-                          "Post Scale",
-                          1,
-                          2,
-                          0.01,
-                          "Scales the final shadow texture after distortion is applied."
-                        )}
                     `;
     return DebuggerUIBuilder._createAccordionHTML(
       effectKey,
@@ -20022,7 +20032,8 @@ class CanopyLayer extends MaskedEffectLayer {
   }
 
   async _draw(options) {
-    await super._draw(options); // Calls base MaskedEffectLayer._draw()
+    // This now calls the base class _draw, which sets up the maskContainer for us.
+    await super._draw(options);
 
     this.blendMode = PIXI.BLEND_MODES.MULTIPLY;
     const renderer = canvas.app.renderer;
@@ -20037,104 +20048,64 @@ class CanopyLayer extends MaskedEffectLayer {
       this.canopyFilter = new CanopyFilter();
     } catch (e) {
       console.error("MapShine | Failed to create CanopyFilter", e);
-      // It's important to return or handle this gracefully if the filter fails.
-      // We will still draw the effectSprite, but it will be without the filter.
-      return;
     }
 
+    // Texture to hold the final rendered effect for other layers
     this.finalShadowTexture = PIXI.RenderTexture.create({
       width: renderer.screen.width,
       height: renderer.screen.height,
     });
 
-    // _generatorSprite is a fullscreen quad for the filter to render upon
-    this._generatorSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
-    this._generatorSprite.width = renderer.screen.width;
-    this._generatorSprite.height = renderer.screen.height;
-    this._generatorSprite.filters = this.canopyFilter
-      ? [this.canopyFilter]
-      : [];
-    // Important: _generatorSprite is *not* added to the stage, it's used only for off-screen rendering.
-
-    // effectSprite is added to the stage and displays the finalShadowTexture
-    this.effectSprite = new PIXI.Sprite(this.finalShadowTexture);
-    this.addChild(this.effectSprite);
-
-    // Create and apply the scene boundary mask
-    this.sceneBoundsMask = new PIXI.Graphics();
-    this.addChild(this.sceneBoundsMask);
-    this.effectSprite.mask = this.sceneBoundsMask;
+    // The main container for this layer now holds the world-space sprites.
+    // It's already created by the base class.
   }
 
   _onAnimate(deltaTime) {
-    super._onAnimate(deltaTime); // Calls base MaskedEffectLayer._onAnimate()
-    if (this._destroyed || !this.visible) return;
+    // We no longer call the base class _onAnimate.
+    // This layer's animation logic is self-contained.
+    if (this._destroyed || !this.visible || !this.canopyFilter) return;
 
+    // This layer is now driven by the ResourceManager for providing data,
+    // but it must still render itself visually every frame.
     const resourceManager = game.mapShine.resourceManager;
-    if (!resourceManager) {
-      return;
-    }
-
-    // This triggers renderEffectNow if needed, populating this.finalShadowTexture
-    resourceManager.getCanopyShadowTexture(deltaTime);
-
-    const config = game.mapShine.profileManager.activeConfig.canopy;
-    const postScale = config.postScale ?? 1.0;
-
-    const stage = canvas.stage;
-    const screen = canvas.app.renderer.screen;
-
-    // Calculate the visible area of the world in world coordinates
-    const visibleWorldWidth = screen.width / stage.scale.x;
-    const visibleWorldHeight = screen.height / stage.scale.y;
-
-    // Calculate the top-left corner of the visible world area
-    const topLeftWorld = stage.toLocal({ x: 0, y: 0 });
-
-    // Position the effectSprite to cover the visible world area
-    // Its texture (finalShadowTexture) is screen-sized, so it needs to be scaled
-    // to fit the world-space view, then further scaled by postScale.
-    this.effectSprite.anchor.set(0.5); // Anchor to center for scaling
-    this.effectSprite.x = topLeftWorld.x + visibleWorldWidth / 2;
-    this.effectSprite.y = topLeftWorld.y + visibleWorldHeight / 2;
-    this.effectSprite.width = visibleWorldWidth * postScale;
-    this.effectSprite.height = visibleWorldHeight * postScale;
-
-    // The layer container itself should remain at identity transform
-    // as its children handle their own positioning.
-    this.position.set(0, 0);
-    this.scale.set(1);
-
-    // Update the scene bounds mask every frame to ensure it's correctly positioned
-    if (this.sceneBoundsMask) {
-      const rect = canvas.scene.dimensions.sceneRect;
-      this.sceneBoundsMask.clear();
-      this.sceneBoundsMask.beginFill(0xffffff);
-      this.sceneBoundsMask.drawRect(rect.x, rect.y, rect.width, rect.height);
-      this.sceneBoundsMask.endFill();
+    if (resourceManager) {
+      // Trigger the off-screen render for other systems.
+      resourceManager.getCanopyShadowTexture(deltaTime);
     }
   }
 
+  /**
+   * On-demand rendering logic, called by the ResourceManager.
+   * This now performs BOTH the visual update and the off-screen capture.
+   * @param {number} deltaTime - Time since the last frame.
+   */
   renderEffectNow(deltaTime) {
     if (this._destroyed || !this.visible || !this.canopyFilter) return;
 
     this.distortionNoiseManager.update(deltaTime, canvas.app.renderer);
 
+    const stage = canvas.stage;
+    const screen = canvas.app.screen;
+    const topLeft = stage.toLocal({
+      x: 0,
+      y: 0,
+    });
     const resourceManager = game.mapShine.resourceManager;
     if (!resourceManager) return;
 
-    // Ensure _generatorSprite is explicitly sized to match the render target (screen dimensions)
-    this._generatorSprite.position.set(0, 0);
-    this._generatorSprite.width = canvas.app.renderer.screen.width;
-    this._generatorSprite.height = canvas.app.renderer.screen.height;
-
     const u = this.canopyFilter.uniforms;
 
-    u.u_canopyMask = this.getMaskTexture(); // This is already a screen-res RenderTexture from MaskedEffectLayer
-    u.uOutdoorsMask = resourceManager.getOutdoorsMask(); // Also a screen-res RenderTexture
-    u.u_displacementMap = this.distortionNoiseManager.getTexture(); // Also a screen-res RenderTexture from world-space noise
-    u.u_canvas_scale = canvas.stage.scale.x; // Pass current canvas zoom to the shader for world-consistent distortion scale
-
+    // Update the template filter with all current uniforms.
+    // This will be copied to each individual sprite's filter.
+    u.u_distortionNoise = this.distortionNoiseManager.getTexture();
+    u.uOutdoorsMask = resourceManager.getOutdoorsMask();
+    const rect = canvas.scene.dimensions.rect;
+    u.u_scene_rect = [rect.x, rect.y, rect.width, rect.height];
+    u.u_camera_offset = [topLeft.x, topLeft.y];
+    u.u_view_size = [
+      screen.width / stage.scale.x,
+      screen.height / stage.scale.y,
+    ];
     const siConfig = foundry.utils.getProperty(
       game.mapShine.profileManager.activeConfig,
       "postProcessing.colorCorrection.sceneIlluminationMixIn"
@@ -20145,7 +20116,6 @@ class CanopyLayer extends MaskedEffectLayer {
       siConfig?.enabled &&
       shadowInteractionConfig?.enabled &&
       illumTexture?.valid;
-
     u.u_illum_enabled = isIlluminationReady;
     if (isIlluminationReady) {
       u.uIlluminationBuffer = illumTexture;
@@ -20154,8 +20124,15 @@ class CanopyLayer extends MaskedEffectLayer {
       u.u_illum_softness = shadowInteractionConfig.softness;
     }
 
-    // Render the _generatorSprite (with its filter) into finalShadowTexture
-    canvas.app.renderer.render(this._generatorSprite, {
+    // Apply the updated uniforms to all active world-space sprites
+    for (const sprite of this.effectSprites.values()) {
+      if (sprite.filters && sprite.filters[0]) {
+        Object.assign(sprite.filters[0].uniforms, u);
+      }
+    }
+
+    // Render this layer's container to the final texture for other systems
+    canvas.app.renderer.render(this, {
       renderTexture: this.finalShadowTexture,
       clear: true,
     });
@@ -20171,47 +20148,79 @@ class CanopyLayer extends MaskedEffectLayer {
       const u = this.canopyFilter.uniforms;
       u.u_shadowIntensity = cConfig.shadowIntensity;
       u.u_tint = hexToRgbArray(cConfig.tint);
-      u.u_distortion_enabled = cConfig.distortion.enabled;
-      u.u_distortion_strength = cConfig.distortion.strength;
+
+      const distConfig = cConfig.distortion;
+      u.u_distortion_enabled = distConfig.enabled;
+      u.u_distortion_intensity = distConfig.intensity;
     }
   }
 
+  /**
+   * @override
+   * Re-implements the logic to create world-space sprites with filters.
+   */
   async updateEffectTargets(targets) {
+    // Instead of using the base MaskedEffectLayer's mask container,
+    // we manage our own visible sprites in this layer's container.
+    const validTargetIds = new Set();
+    const allTargets = new Map([
+      ["background", targets.background],
+      ...targets.tiles.entries(),
+    ]);
+
+    for (const [id, targetData] of allTargets.entries()) {
+      const texturePath = targetData?.[this.options.maskSuffix];
+      if (!texturePath) continue;
+
+      validTargetIds.add(id);
+      let sprite = this.effectSprites.get(id);
+
+      if (!sprite) {
+        sprite = new PIXI.Sprite(PIXI.Texture.EMPTY);
+        // Assign the single, shared filter instance to the new sprite.
+        if (this.canopyFilter) {
+          sprite.filters = [this.canopyFilter];
+        }
+        this.effectSprites.set(id, sprite);
+        this.addChild(sprite); // Add directly to this layer
+      }
+      await this._updateSpriteTransform(sprite, texturePath, targetData.rect);
+    }
+
+    // Clean up sprites for targets that no longer exist
+    for (const [id, sprite] of this.effectSprites.entries()) {
+      if (!validTargetIds.has(id)) {
+        sprite.destroy();
+        this.effectSprites.delete(id);
+      }
+    }
+
+    // Also update the base class mask texture, as it's still needed
+    // for the off-screen render pass.
     await super.updateEffectTargets(targets);
   }
 
   _onResize() {
-    super._onResize(); // Handles resizing the base mask texture (combinedMaskTexture)
+    super._onResize();
     const renderer = canvas.app.renderer;
-
+    this.distortionNoiseManager?.resize(renderer);
     this.finalShadowTexture?.resize(
       renderer.screen.width,
       renderer.screen.height
     );
-    this.distortionNoiseManager?.resize(renderer);
-
-    // Ensure _generatorSprite is always screen-sized
-    if (this._generatorSprite) {
-      this._generatorSprite.width = renderer.screen.width;
-      this._generatorSprite.height = renderer.screen.height;
-    }
-    // effectSprite's dimensions are managed in _onAnimate based on current view.
   }
 
   async _tearDown(options) {
-    this.canopyFilter?.destroy();
-    this.finalShadowTexture?.destroy(true);
-    this.effectSprite?.destroy();
-    this._generatorSprite?.destroy(); // Destroy the generator sprite
     this.distortionNoiseManager?.destroy();
-    this.sceneBoundsMask?.destroy();
-    this.sceneBoundsMask = null;
+    this.canopyFilter?.destroy(); // Destroy the template filter
+    this.finalShadowTexture?.destroy(true);
 
+    // Sprites are destroyed when the layer itself is destroyed
+    this.effectSprites.clear();
+
+    this.distortionNoiseManager = null;
     this.canopyFilter = null;
     this.finalShadowTexture = null;
-    this.effectSprite = null;
-    this._generatorSprite = null;
-    this.distortionNoiseManager = null;
 
     await super._tearDown(options);
   }
