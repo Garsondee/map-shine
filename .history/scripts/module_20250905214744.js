@@ -1,7 +1,4 @@
 // TODO: The Highlight Adjustments aren't being saved to the scene appearance profile and aren't loading accurately.
-// TODO: The metallic shine 'stripes' are too wide and could do with having variable gaps between them.
-// TODO: The overhead effects aren't working.
-
 
 /******************************************************************************
  *
@@ -2416,18 +2413,14 @@ const MODULE_DEFAULTS = {
   },
   overheadEffects: {
     enabled: true,
+    parallax: {
+      enabled: true,
+      amount: 0,
+    },
     blur: {
       enabled: true,
       quality: 4,
       strength: 8,
-    },
-    lighting: {
-      enabled: true,
-      intensity: 1.0,
-      exposure: 0.0,
-      gamma: 1.0,
-      offsetX: 0,
-      offsetY: 0,
     },
   },
   ambientLayerZIndex: 250,
@@ -7549,20 +7542,115 @@ class CombatEffectManager {
   }
 }
 
+class ParallaxFilter extends PIXI.Filter {
+  constructor(options = {}) {
+    const vertexSrc = `
+            attribute vec2 aVertexPosition;
+            attribute vec2 aTextureCoord;
+            uniform mat3 projectionMatrix;
+            varying vec2 vTextureCoord;
+
+            void main(void) {
+                gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
+                vTextureCoord = aTextureCoord;
+            }
+        `;
+    const fragmentSrc = `
+            precision mediump float;
+            varying vec2 vTextureCoord;
+
+            uniform sampler2D uSampler;
+            uniform vec2 uParallaxOffset; // The desired pixel offset from the manager.
+            uniform vec2 uInputSize;      // Manually provided size of the input texture.
+
+            void main(void) {
+                // If the input size is zero, do nothing to prevent division by zero.
+                if (uInputSize.x == 0.0 || uInputSize.y == 0.0) {
+                    gl_FragColor = texture2D(uSampler, vTextureCoord);
+                    return;
+                }
+            
+                // Calculate how much to shift the texture coordinates (which are 0.0 to 1.0)
+                // based on the pixel offset.
+                vec2 uvOffset = uParallaxOffset / uInputSize;
+
+                // To move the image right (positive offset), we need to sample from the left (negative UV change).
+                vec2 sampleCoord = vTextureCoord - uvOffset;
+
+                // Clamp the coordinates to the valid 0.0-1.0 range.
+                // This prevents the texture from becoming transparent if the offset is large,
+                // instead causing the edge pixels to "smear", which is a safer default behavior.
+                sampleCoord = clamp(sampleCoord, 0.0, 1.0);
+
+                gl_FragColor = texture2D(uSampler, sampleCoord);
+            }
+        `;
+
+    super(vertexSrc, fragmentSrc, {
+      uParallaxOffset: [0, 0],
+      uInputSize: [1, 1], // Default non-zero value
+    });
+  }
+}
+
+class NullRenderFilter extends PIXI.Filter {
+  constructor() {
+    super(
+      PIXI.Filter.defaultVertexSrc,
+      `
+            precision mediump float;
+            varying vec2 vTextureCoord;
+            uniform sampler2D uSampler;
+
+            void main(void) {
+                // Read the original texture color to preserve its alpha for the mask
+                vec4 originalColor = texture2D(uSampler, vTextureCoord);
+                // Output a completely transparent pixel, effectively hiding the object
+                gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+            }
+        `
+    );
+  }
+}
+
 class OverheadEffectsManager {
   constructor() {
-    this.managedTiles = new Map(); // key: tile.id, value: { tile, blurFilter, lightingFilter }
+    this.managedTiles = new Map(); // key: tile.id, value: { tile, clone, blurFilter, blurFilterOriginal, parallaxFilter, originalVisibility }
+    this.overheadContainer = null;
     this._boundOnCreateTile = this._onCreateTile.bind(this);
     this._boundOnUpdateTile = this._onUpdateTile.bind(this);
     this._boundOnDeleteTile = this._onDeleteTile.bind(this);
     this._boundOnAnimate = this._onAnimate.bind(this);
     this._destroyed = false;
+    // New state for tracking camera transform to optimize updates
+    this.lastCamera = { x: null, y: null, scale: null };
   }
 
   static getSettingsHTML() {
     const effectKey = "overheadEffects";
     const content = `
-            <p class="description-text">Applies effects like blur and lighting interaction to tiles flagged as 'Overhead'.</p>
+            <p class="description-text">Applies effects like parallax and blur to tiles flagged as 'Overhead'.</p>
+            <details id="details-overheadEffects-parallax">
+                <summary>
+                    <span class="accordion-toggle"></span>
+                    <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                      `${effectKey}.parallax.enabled`,
+                      "Parallax",
+                      true
+                    )}</div>
+                </summary>
+                <div style="padding-left: 15px;">
+                    <p class="description-text">Shifts the overhead tiles opposite to camera movement, creating a sense of depth.</p>
+                    ${DebuggerUIBuilder._createSliderHTML(
+                      `${effectKey}.parallax.amount`,
+                      "Amount",
+                      0,
+                      1,
+                      0.01,
+                      "How strongly the tiles shift. 0 = no parallax, 1 = moves with camera."
+                    )}
+                </div>
+            </details>
             <details id="details-overheadEffects-blur">
                 <summary>
                     <span class="accordion-toggle"></span>
@@ -7573,7 +7661,7 @@ class OverheadEffectsManager {
                     )}</div>
                 </summary>
                 <div style="padding-left: 15px;">
-                    <p class="description-text">Applies a blur that increases as you zoom in.</p>
+                    <p class="description-text">Applies a blur to the overhead tiles.</p>
                     ${DebuggerUIBuilder._createSliderHTML(
                       `${effectKey}.blur.quality`,
                       "Quality",
@@ -7588,62 +7676,7 @@ class OverheadEffectsManager {
                       0,
                       16,
                       1,
-                      "The maximum strength of the blur effect at high zoom."
-                    )}
-                </div>
-            </details>
-            <details id="details-overheadEffects-lighting">
-                <summary>
-                    <span class="accordion-toggle"></span>
-                    <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                      `${effectKey}.lighting.enabled`,
-                      "Lighting Interaction",
-                      true
-                    )}</div>
-                </summary>
-                <div style="padding-left: 15px;">
-                    <p class="description-text">Allows structural shadows to affect the brightness of overhead tiles.</p>
-                    ${DebuggerUIBuilder._createSliderHTML(
-                      `${effectKey}.lighting.intensity`,
-                      "Intensity",
-                      0,
-                      2,
-                      0.01,
-                      "How strongly the shadows darken the tiles."
-                    )}
-                    <hr style="border-color: #555; margin: 6px 0;">
-                    <p class="description-text" style="font-weight: bold;">Shadow Map Adjustments:</p>
-                    ${DebuggerUIBuilder._createSliderHTML(
-                      `${effectKey}.lighting.exposure`,
-                      "Exposure",
-                      -2,
-                      2,
-                      0.01,
-                      "Adjusts the brightness of the shadow map before it is applied."
-                    )}
-                    ${DebuggerUIBuilder._createSliderHTML(
-                      `${effectKey}.lighting.gamma`,
-                      "Gamma",
-                      0.1,
-                      3.0,
-                      0.01,
-                      "Adjusts the mid-tones of the shadow map."
-                    )}
-                    ${DebuggerUIBuilder._createSliderHTML(
-                      `${effectKey}.lighting.offsetX`,
-                      "Offset X (px)",
-                      -500,
-                      500,
-                      1,
-                      "Shifts the shadow map horizontally in world space."
-                    )}
-                    ${DebuggerUIBuilder._createSliderHTML(
-                      `${effectKey}.lighting.offsetY`,
-                      "Offset Y (px)",
-                      -500,
-                      500,
-                      1,
-                      "Shifts the shadow map vertically in world space."
+                      "The strength of the blur effect."
                     )}
                 </div>
             </details>
@@ -7657,7 +7690,13 @@ class OverheadEffectsManager {
 
   async initialize() {
     if (this._destroyed) return;
-    console.log("Map Shine | Initializing OverheadEffectsManager (Direct Filter Injection).");
+    console.log(
+      "Map Shine | Initializing OverheadEffectsManager (Optimized Update Strategy)."
+    );
+
+    this.overheadContainer = new PIXI.Container();
+    this.overheadContainer.sortableChildren = true;
+    canvas.interface.addChild(this.overheadContainer);
 
     for (const tileDoc of canvas.scene.tiles) {
       const tile = tileDoc.object;
@@ -7681,11 +7720,18 @@ class OverheadEffectsManager {
 
     canvas.app.ticker.remove(this._boundOnAnimate);
 
-    const tileIds = Array.from(this.managedTiles.keys());
-    for (const tileId of tileIds) {
+    for (const tileId of this.managedTiles.keys()) {
       this._removeManagedTile(tileId);
     }
     this.managedTiles.clear();
+
+    if (this.overheadContainer) {
+      canvas.interface.removeChild(this.overheadContainer);
+      this.overheadContainer.destroy({
+        children: true,
+      });
+      this.overheadContainer = null;
+    }
 
     Hooks.off("createTile", this._boundOnCreateTile);
     Hooks.off("updateTile", this._boundOnUpdateTile);
@@ -7694,6 +7740,7 @@ class OverheadEffectsManager {
 
   async _manageTile(tile) {
     if (!tile?.mesh) return;
+
     const isOverhead = tile.document.overhead;
     const isManaged = this.managedTiles.has(tile.id);
 
@@ -7705,94 +7752,191 @@ class OverheadEffectsManager {
   }
 
   async _addManagedTile(tile) {
-    if (!tile.mesh || this.managedTiles.has(tile.id)) return;
-    
+    if (!tile.mesh || this.managedTiles.has(tile.id) || !tile.texture?.valid)
+      return;
+
     await tile.draw();
     if (!tile.mesh) return;
 
-    const blurFilter = new PIXI.BlurFilter();
-    blurFilter.padding = 16;
-    
-    const lightingFilter = new OverheadLightingFilter();
-    
-    tile.mesh.filters = [...(tile.mesh.filters || []), blurFilter, lightingFilter];
+    const clone = tile.clone();
+
+    await clone.draw();
+
+    if (!clone.mesh) {
+      console.warn(
+        `Map Shine | Cloned tile '${tile.id}' failed to create a mesh. Aborting overhead effect for this tile.`
+      );
+      clone.destroy();
+      return;
+    }
+
+    clone.eventMode = "none";
+
+    const blurFilterForOriginal = new PIXI.BlurFilter();
+    const blurFilterForClone = new PIXI.BlurFilter();
+    const parallaxFilter = new ParallaxFilter();
+
+    blurFilterForOriginal.padding = 16;
+    blurFilterForClone.padding = 16;
+
+    tile.mesh.filters = [blurFilterForOriginal];
+    clone.mesh.filters = [blurFilterForClone, parallaxFilter];
+
+    const originalVisibility = tile.mesh.visible;
+
+    this.overheadContainer.addChild(clone);
 
     this.managedTiles.set(tile.id, {
       tile,
-      blurFilter,
-      lightingFilter
+      clone,
+      blurFilter: blurFilterForClone,
+      blurFilterOriginal: blurFilterForOriginal,
+      parallaxFilter,
+      originalVisibility,
     });
+
+    this.lastCamera.scale = null;
   }
 
   _removeManagedTile(tileId) {
     if (!this.managedTiles.has(tileId)) return;
 
-    const { tile, blurFilter, lightingFilter } = this.managedTiles.get(tileId);
+    const {
+      tile,
+      clone,
+      blurFilter,
+      blurFilterOriginal,
+      parallaxFilter,
+      originalVisibility,
+    } = this.managedTiles.get(tileId);
 
     if (tile?.mesh && !tile.mesh.destroyed) {
-       tile.mesh.filters = (tile.mesh.filters || []).filter(f => f !== blurFilter && f !== lightingFilter);
+      tile.mesh.visible = originalVisibility;
+      tile.mesh.filters = null;
     }
 
     this.managedTiles.delete(tileId);
+
+    if (clone) {
+      this.overheadContainer?.removeChild(clone);
+      clone.destroy();
+    }
+    blurFilter?.destroy();
+    blurFilterOriginal?.destroy();
+    parallaxFilter?.destroy();
   }
 
-  _onAnimate(ticker) {
+  _onAnimate() {
     if (this._destroyed || this.managedTiles.size === 0) return;
 
-    const deltaTime = ticker.deltaTime;
+    const currentCamera = {
+      x: canvas.stage.pivot.x,
+      y: canvas.stage.pivot.y,
+      scale: canvas.stage.scale.x,
+    };
+
+    const hasPanned =
+      currentCamera.x !== this.lastCamera.x ||
+      currentCamera.y !== this.lastCamera.y;
+    const hasZoomed = currentCamera.scale !== this.lastCamera.scale;
+
     for (const tileId of this.managedTiles.keys()) {
-      this._updateTileEffect(tileId, deltaTime);
+      this._updateAndSyncClone(tileId, hasPanned, hasZoomed);
     }
+
+    this.lastCamera = currentCamera;
   }
 
-  _updateTileEffect(tileId, deltaTime) {
+  _updateAndSyncClone(tileId, updateParallax, updateBlur) {
     if (!this.managedTiles.has(tileId)) return;
 
-    const { tile, blurFilter, lightingFilter } = this.managedTiles.get(tileId);
+    const { tile, clone, blurFilter, blurFilterOriginal, parallaxFilter } =
+      this.managedTiles.get(tileId);
 
-    if (!tile || tile.destroyed || !tile.mesh || tile.mesh.destroyed || !blurFilter || !lightingFilter) {
+    if (!tile || tile.destroyed || !tile.mesh || tile.mesh.destroyed) {
       this._removeManagedTile(tileId);
       return;
     }
 
+    clone.alpha = tile.alpha;
+    clone.visible = tile.visible;
+    clone.zIndex = tile.document.sort;
+
     const config = game.mapShine.profileManager.activeConfig;
     const oeConfig = config.overheadEffects;
-    
-    const blurConfig = oeConfig.blur;
-    const isBlurActive = this.visible && blurConfig.enabled && blurConfig.strength > 0;
-    blurFilter.enabled = isBlurActive;
 
-    if (isBlurActive) {
-      blurFilter.quality = blurConfig.quality;
-      const currentZoom = canvas.stage.scale.x;
-      const maxBlurAmount = blurConfig.strength;
-      const minZoomForBlur = 0.5;
-      const maxZoomForBlur = canvas.scene?.maxScale ?? 3.0;
-      let blurFactor = 0;
-      if (maxZoomForBlur > minZoomForBlur) {
-        blurFactor = (currentZoom - minZoomForBlur) / (maxZoomForBlur - minZoomForBlur);
+    if (updateParallax) {
+      const parallaxConfig = oeConfig.parallax;
+      const isParallaxActive = this.visible && parallaxConfig.enabled;
+      parallaxFilter.enabled = isParallaxActive;
+
+      if (isParallaxActive) {
+        const source = canvas.app.renderer.screen;
+        parallaxFilter.uniforms.uInputSize[0] = source.width;
+        parallaxFilter.uniforms.uInputSize[1] = source.height;
+
+        const amount = parallaxConfig.amount;
+        const contentRect = canvas.scene.dimensions.sceneRect;
+        if (contentRect?.width && contentRect?.height) {
+          const origin = {
+            x: contentRect.x + contentRect.width / 2,
+            y: contentRect.y + contentRect.height / 2,
+          };
+          const cameraOffset = {
+            x: canvas.stage.pivot.x - origin.x,
+            y: canvas.stage.pivot.y - origin.y,
+          };
+          const parallaxOffsetPixels = {
+            x: cameraOffset.x * amount * canvas.stage.scale.x,
+            y: cameraOffset.y * amount * canvas.stage.scale.y,
+          };
+          parallaxFilter.uniforms.uParallaxOffset = [
+            parallaxOffsetPixels.x,
+            parallaxOffsetPixels.y,
+          ];
+        }
       }
-      blurFactor = Math.max(0, Math.min(1, blurFactor));
-      const dynamicBlurAmount = maxBlurAmount * blurFactor;
-      blurFilter.blur = dynamicBlurAmount;
     }
 
-    const lightingConfig = oeConfig.lighting;
-    const isLightingActive = this.visible && lightingConfig.enabled;
-    lightingFilter.enabled = isLightingActive;
+    if (updateBlur) {
+      const blurConfig = oeConfig.blur;
+      const isBlurActive =
+        this.visible && blurConfig.enabled && blurConfig.strength > 0;
 
-    if (isLightingActive) {
-      const structuralTexture = game.mapShine.resourceManager.getStructuralShadowTexture(deltaTime);
-      if (structuralTexture?.valid) {
-        const screen = canvas.app.renderer.screen;
-        lightingFilter.uniforms.uLightMask = structuralTexture;
-        lightingFilter.uniforms.uIntensity = lightingConfig.intensity;
-        lightingFilter.uniforms.uExposure = lightingConfig.exposure;
-        lightingFilter.uniforms.uGamma = lightingConfig.gamma;
-        lightingFilter.uniforms.uOffset = [lightingConfig.offsetX, lightingConfig.offsetY];
-        lightingFilter.uniforms.uResolution = [screen.width, screen.height];
-      } else {
-        lightingFilter.enabled = false;
+      blurFilter.enabled = isBlurActive;
+      if (blurFilterOriginal) {
+        blurFilterOriginal.enabled = isBlurActive;
+      }
+
+      if (isBlurActive) {
+        const quality = blurConfig.quality;
+        blurFilter.quality = quality;
+        if (blurFilterOriginal) {
+          blurFilterOriginal.quality = quality;
+        }
+
+        const currentZoom = canvas.stage.scale.x;
+        const maxBlurAmount = blurConfig.strength;
+        const minZoomForBlur = 0.5;
+        const maxZoomForBlur = canvas.scene?.maxScale ?? 3.0;
+        let blurFactor = 0;
+        if (maxZoomForBlur > minZoomForBlur) {
+          blurFactor =
+            (currentZoom - minZoomForBlur) / (maxZoomForBlur - minZoomForBlur);
+        }
+        blurFactor = Math.max(0, Math.min(1, blurFactor));
+        const dynamicBlurAmount = maxBlurAmount * blurFactor;
+
+        blurFilter.blur = dynamicBlurAmount;
+        if (blurFilterOriginal) {
+          blurFilterOriginal.blur = dynamicBlurAmount;
+        }
+
+        const padding = dynamicBlurAmount * 2;
+        blurFilter.padding = padding;
+        if (blurFilterOriginal) {
+          blurFilterOriginal.padding = padding;
+        }
       }
     }
   }
@@ -7808,6 +7952,7 @@ class OverheadEffectsManager {
     const tile = tileDoc.object;
     if (tile) {
       this._manageTile(tile);
+      this.lastCamera.scale = null;
     }
   }
 
@@ -7818,76 +7963,7 @@ class OverheadEffectsManager {
   updateFromConfig(config) {
     const oeConfig = config.overheadEffects;
     this.visible = config.enabled && oeConfig.enabled;
-  }
-}
-
-class OverheadLightingFilter extends PIXI.Filter {
-  constructor(options = {}) {
-    const vertexSrc = `
-            attribute vec2 aVertexPosition;
-            attribute vec2 aTextureCoord;
-            uniform mat3 projectionMatrix;
-            varying vec2 vTextureCoord;
-            varying vec2 vScreenCoord;
-
-            void main(void) {
-                gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
-                vTextureCoord = aTextureCoord;
-                vScreenCoord = gl_Position.xy * 0.5 + 0.5;
-            }
-        `;
-
-    const fragmentSrc = `
-        precision mediump float;
-        varying vec2 vTextureCoord;
-        varying vec2 vScreenCoord;
-
-        uniform sampler2D uSampler;
-        uniform sampler2D uLightMask;
-        uniform float uIntensity;
-
-        // New uniforms for CC and offset
-        uniform float uExposure;
-        uniform float uGamma;
-        uniform vec2 uOffset;
-        uniform vec2 uResolution; // Screen resolution for pixel-based offset calculation
-
-        void main(void) {
-            vec4 originalColor = texture2D(uSampler, vTextureCoord);
-            if (originalColor.a == 0.0) {
-                gl_FragColor = vec4(0.0);
-                return;
-            }
-
-            // Calculate the offset in UV space (0.0 to 1.0)
-            vec2 offsetUV = uOffset / uResolution;
-            vec2 finalSampleCoord = vScreenCoord - offsetUV;
-
-            // Sample the light mask at the offset position
-            float lightLevel = texture2D(uLightMask, finalSampleCoord).r;
-
-            // Apply Color Correction to the light mask value
-            lightLevel *= pow(2.0, uExposure);
-            if (uGamma > 0.0) {
-                lightLevel = pow(lightLevel, uGamma);
-            }
-            lightLevel = clamp(lightLevel, 0.0, 1.0);
-
-            float shadowMultiplier = mix(1.0, lightLevel, uIntensity);
-            vec3 finalColor = originalColor.rgb * shadowMultiplier;
-
-            gl_FragColor = vec4(finalColor, originalColor.a);
-        }
-    `;
-
-    super(vertexSrc, fragmentSrc, {
-      uLightMask: options.uLightMask ?? PIXI.Texture.WHITE,
-      uIntensity: options.intensity ?? 1.0,
-      uExposure: options.exposure ?? 0.0,
-      uGamma: options.gamma ?? 1.0,
-      uOffset: options.offset ?? [0, 0],
-      uResolution: options.resolution ?? [1, 1],
-    });
+    this.lastCamera.scale = null;
   }
 }
 
