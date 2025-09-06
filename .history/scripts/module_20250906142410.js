@@ -18731,6 +18731,7 @@ class MapPointsInteractionManager {
   }
 }
 
+
 class MetallicStripePatternFilter extends PIXI.Filter {
   constructor(options = {}) {
       const vertexSrc = `
@@ -18800,13 +18801,16 @@ class MetallicStripePatternFilter extends PIXI.Filter {
 class MetallicShineLayer extends CanvasLayer {
   constructor() {
       super();
-      this.sourceContainer = null; // Container for raw _Specular.webp sprites
-      this.specularMaskTexture = null; // RENDER TEXTURE: The composite of all _Specular maps, used as a MASK
-      this.specularMaskSprite = null;  // SPRITE: Displays the specularMaskTexture, acts as the MASK
-      this.stripePatternTexture = null; // RENDER TEXTURE: The animated stripe pattern, used as CONTENT
-      this.stripeSprite = null;         // SPRITE: Displays the stripePatternTexture, is the visible CONTENT
+      this.sourceContainer = null;
+      this.specularContentTexture = null;
+      this.specularContentSprite = null;
+
+      // Dedicated components for mask generation
+      this.stripePatternTexture = null;    // The render texture for the stripes
+      this.stripeGeneratorSprite = null; // A fullscreen sprite with the filter, used to create the pattern
+      this.stripeMaskSprite = null;        // The final sprite that uses the generated texture and acts as the mask
+
       this.stripePatternFilter = null;
-      this.stripeGeneratorSprite = null; // Off-screen sprite used to generate the pattern
       this.time = 0;
       this._needsMaskUpdate = true;
   }
@@ -18815,10 +18819,10 @@ class MetallicShineLayer extends CanvasLayer {
       const effectKey = "baseShine";
       const path = `${effectKey}.worldBasedOnly`;
       const checkboxHTML = DebuggerUIBuilder._createCheckboxHTML(
-          path,
-          "World Based Only",
-          false,
-          "Ignores scene-specific settings for this effect and uses the configured World Default Profile instead. A default profile must be set."
+        path,
+        "World Based Only",
+        false,
+        "Ignores scene-specific settings for this effect and uses the configured World Default Profile instead. A default profile must be set."
       );
       const iconHTML = `<span class="world-based-icon" data-world-based-path="${path}" title="World Based: This effect uses the world-level default profile, ignoring scene-specific settings."><i class="fas fa-globe"></i></span>`;
 
@@ -18829,66 +18833,66 @@ class MetallicShineLayer extends CanvasLayer {
           <p class="description-text">Displays an animated stripe pattern, masked by the specular map.</p>
           
           ${DebuggerUIBuilder._createSelectHTML(
-              "baseShine.compositing.layerBlendMode",
-              "Blend Mode",
-              BLEND_MODE_OPTIONS
+            "baseShine.compositing.layerBlendMode",
+            "Blend Mode",
+            BLEND_MODE_OPTIONS
           )}
 
           ${DebuggerUIBuilder._createSliderHTML(
-              "baseShine.animation.globalIntensity",
-              "Global Intensity (Alpha)",
-              0,
-              2,
-              0.05,
-              "Controls the opacity of the final effect."
+            "baseShine.animation.globalIntensity",
+            "Global Intensity (Alpha)",
+            0,
+            2,
+            0.05,
+            "Controls the opacity of the final effect."
           )}
 
           <details id="details-baseShine-pattern-stripes">
               <summary><span class="accordion-toggle"></span><strong>Stripe Pattern</strong></summary>
               <div style="padding-left: 15px;">
                   ${DebuggerUIBuilder._createSliderHTML(
-                      "baseShine.pattern.stripes.speed",
-                      "Speed",
-                      -2.0,
-                      2.0,
-                      0.01
+                    "baseShine.pattern.stripes.speed",
+                    "Speed",
+                    -2.0,
+                    2.0,
+                    0.01
                   )}
                   ${DebuggerUIBuilder._createSliderHTML(
-                      "baseShine.pattern.stripes.angle",
-                      "Angle",
-                      0,
-                      180,
-                      1
+                    "baseShine.pattern.stripes.angle",
+                    "Angle",
+                    0,
+                    180,
+                    1
                   )}
                   ${DebuggerUIBuilder._createSliderHTML(
-                      "baseShine.pattern.stripes.bandWidth",
-                      "Stripe Width",
-                      0.1,
-                      10,
-                      0.1
+                    "baseShine.pattern.stripes.bandWidth",
+                    "Stripe Width",
+                    0.1,
+                    10,
+                    0.1
                   )}
                   ${DebuggerUIBuilder._createSliderHTML(
-                      "baseShine.pattern.stripes.gapWidth",
-                      "Gap Width",
-                      0.1,
-                      10,
-                      0.1
+                    "baseShine.pattern.stripes.gapWidth",
+                    "Gap Width",
+                    0.1,
+                    10,
+                    0.1
                   )}
                   ${DebuggerUIBuilder._createSliderHTML(
-                      "baseShine.pattern.stripes.sharpness",
-                      "Edge Sharpness",
-                      0.1,
-                      10,
-                      0.1
+                    "baseShine.pattern.stripes.sharpness",
+                    "Edge Sharpness",
+                    0.1,
+                    10,
+                    0.1
                   )}
               </div>
           </details>
       `;
       return DebuggerUIBuilder._createAccordionHTML(
-          effectKey,
-          "Metallic Shine",
-          content,
-          iconHTML
+        effectKey,
+        "Metallic Shine",
+        content,
+        iconHTML
       );
   }
 
@@ -18901,32 +18905,34 @@ class MetallicShineLayer extends CanvasLayer {
       const renderer = canvas.app.renderer;
       const screen = renderer.screen;
 
-      // 1. Setup for the MASK (the composite of all specular maps)
+      // 1. Setup for the visible content (the specular maps)
       this.sourceContainer = new PIXI.Container();
-      this.specularMaskTexture = PIXI.RenderTexture.create({ width: screen.width, height: screen.height });
-      this.specularMaskSprite = new PIXI.Sprite(this.specularMaskTexture);
-      this.addChild(this.specularMaskSprite); // The mask must be a child of the layer
+      this.specularContentTexture = PIXI.RenderTexture.create({ width: screen.width, height: screen.height });
+      this.specularContentSprite = new PIXI.Sprite(this.specularContentTexture);
+      this.addChild(this.specularContentSprite);
 
-      // 2. Setup for the CONTENT (the animated stripes)
+      // 2. Setup for mask generation
       try {
           this.stripePatternFilter = new MetallicStripePatternFilter();
           this.stripePatternTexture = PIXI.RenderTexture.create({ width: screen.width, height: screen.height });
-
-          // This sprite is an off-screen tool for generating the stripe texture.
+          
+          // This sprite is an off-screen tool for generating the stripe texture. It is NOT added to the stage.
           this.stripeGeneratorSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
           this.stripeGeneratorSprite.width = screen.width;
           this.stripeGeneratorSprite.height = screen.height;
           this.stripeGeneratorSprite.filters = [this.stripePatternFilter];
+
       } catch (e) {
           console.error("MapShine | Failed to create MetallicStripePatternFilter.", e);
       }
 
-      // This sprite is the visible content that gets masked.
-      this.stripeSprite = new PIXI.Sprite(this.stripePatternTexture);
-      this.addChild(this.stripeSprite);
+      // 3. Setup for the mask itself
+      // This sprite uses the generated stripe texture and will be used as the actual mask. It must be on the stage.
+      this.stripeMaskSprite = new PIXI.Sprite(this.stripePatternTexture);
+      this.addChild(this.stripeMaskSprite);
 
-      // 3. Apply the MASK to the CONTENT
-      this.stripeSprite.mask = this.specularMaskSprite;
+      // 4. Apply the mask
+      this.specularContentSprite.mask = this.stripeMaskSprite;
 
       this._onAnimateBound = this._onAnimate.bind(this);
       this._onResizeBound = this._onResize.bind(this);
@@ -18940,19 +18946,18 @@ class MetallicShineLayer extends CanvasLayer {
   _onAnimate(deltaTime) {
       if (this._destroyed || !this.visible) return;
 
-      // Step 1: Re-render the composite specular map if the camera has moved
       if (this._needsMaskUpdate) {
-          this._renderSpecularMaskTexture();
+          this._renderContentTexture();
       }
       
-      // Step 2: Update stripe filter uniforms
+      // Step 1: Update stripe filter uniforms
       if (this.stripePatternFilter) {
           const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
           this.time += deltaTime * timeFactor;
           this.stripePatternFilter.uniforms.uTime = this.time;
       }
 
-      // Step 3: Render the animated stripes into our dedicated content texture
+      // Step 2: Render the animated stripes into our dedicated mask texture
       if (this.stripeGeneratorSprite && this.stripePatternTexture) {
           canvas.app.renderer.render(this.stripeGeneratorSprite, {
               renderTexture: this.stripePatternTexture,
@@ -18960,24 +18965,24 @@ class MetallicShineLayer extends CanvasLayer {
           });
       }
       
-      // Step 4: Position both the content (stripes) and the mask (specular) to cover the screen
+      // Step 3: Position the content and the mask sprite to cover the screen
       const stage = canvas.stage;
       const screen = canvas.app.screen;
       const topLeft = stage.toLocal({ x: 0, y: 0 });
 
-      this.stripeSprite.position.copyFrom(topLeft);
-      this.stripeSprite.width = screen.width / stage.scale.x;
-      this.stripeSprite.height = screen.height / stage.scale.y;
+      this.specularContentSprite.position.copyFrom(topLeft);
+      this.specularContentSprite.width = screen.width / stage.scale.x;
+      this.specularContentSprite.height = screen.height / stage.scale.y;
       
-      this.specularMaskSprite.position.copyFrom(topLeft);
-      this.specularMaskSprite.width = screen.width / stage.scale.x;
-      this.specularMaskSprite.height = screen.height / stage.scale.y;
+      this.stripeMaskSprite.position.copyFrom(topLeft);
+      this.stripeMaskSprite.width = screen.width / stage.scale.x;
+      this.stripeMaskSprite.height = screen.height / stage.scale.y;
   }
 
-  _renderSpecularMaskTexture() {
-      if (!this.sourceContainer || !this.specularMaskTexture) return;
+  _renderContentTexture() {
+      if (!this.sourceContainer || !this.specularContentTexture) return;
       canvas.app.renderer.render(this.sourceContainer, {
-          renderTexture: this.specularMaskTexture,
+          renderTexture: this.specularContentTexture,
           clear: true,
           transform: canvas.stage.transform.worldTransform,
       });
@@ -19040,9 +19045,9 @@ class MetallicShineLayer extends CanvasLayer {
       // Apply blend mode to the entire layer for correct compositing.
       this.blendMode = bsConfig.compositing.layerBlendMode;
       
-      // Apply alpha to the visible content sprite (the stripes).
-      if (this.stripeSprite) {
-          this.stripeSprite.alpha = bsConfig.animation.globalIntensity;
+      // Apply alpha to the visible content sprite within the layer.
+      if (this.specularContentSprite) {
+          this.specularContentSprite.alpha = bsConfig.animation.globalIntensity;
       }
 
       if (this.stripePatternFilter) {
@@ -19059,7 +19064,7 @@ class MetallicShineLayer extends CanvasLayer {
   _onResize() {
       if (this._destroyed) return;
       const renderer = canvas.app.renderer;
-      this.specularMaskTexture?.resize(renderer.screen.width, renderer.screen.height);
+      this.specularContentTexture?.resize(renderer.screen.width, renderer.screen.height);
       this.stripePatternTexture?.resize(renderer.screen.width, renderer.screen.height);
       
       if (this.stripeGeneratorSprite) {
@@ -19079,16 +19084,18 @@ class MetallicShineLayer extends CanvasLayer {
       Hooks.off("canvasPan", this._onPanBound);
       
       this.sourceContainer?.destroy({ children: true });
-      this.specularMaskTexture?.destroy(true);
+      this.specularContentTexture?.destroy(true);
       this.stripePatternFilter?.destroy();
       this.stripeGeneratorSprite?.destroy();
       this.stripePatternTexture?.destroy(true);
 
+      // The mask and content sprites are children of the layer and will be destroyed automatically by super._tearDown()
+      
       this.sourceContainer = null;
-      this.specularMaskTexture = null;
-      this.stripeSprite = null; // Is a child of layer, destroyed by super
-      this.specularMaskSprite = null; // Is a child of layer, destroyed by super
+      this.specularContentTexture = null;
+      this.specularContentSprite = null;
       this.stripePatternFilter = null;
+      this.stripeMaskSprite = null;
       this.stripeGeneratorSprite = null;
       this.stripePatternTexture = null;
 
