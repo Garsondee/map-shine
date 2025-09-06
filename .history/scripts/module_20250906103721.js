@@ -1,8 +1,10 @@
 // TODO: The Highlight Adjustments aren't being saved to the scene appearance profile and aren't loading accurately.
 // TODO: The metallic shine 'stripes' are too wide and could do with having variable gaps between them.
 // TODO: Specular renders over the top of 'Overhead Effects'
+// Structural Negative Mask effects some parts but not all parts of the metallic shine. You should track this down, turning it off seems to increase the amount of gradient and stripes lines visible in the result.
+// TODO: Add CC to the end result of metallic shine so that we can manually tweak the appearance.
 
-// TODO: Overhead Effect's "Shadow" isn't working. No shadow is visible.
+// TODO: Overhead Effect's "Shadow" isn't working. No shadow is visible. 
 
 // LONG LONG TERM TODO: Could you create a system which places a formal 'input' and 'output' on layers, textures and intermediate textures/masks so that it would then be triviually easy to have individual CC adjustments for every effect?
 
@@ -4212,7 +4214,7 @@ class ResourceManager {
     // This is the key change: we actively command the layer to update its mask
     // if it has flagged that an update is needed (e.g., due to a pan).
     if (layer._needsMaskUpdate) {
-      layer.renderMask();
+        layer.renderMask();
     }
 
     // This now gets the guaranteed up-to-date combinedMaskTexture
@@ -5084,10 +5086,6 @@ class SceneChangeManager {
     if (game.mapShine.resourceManager) {
       game.mapShine.resourceManager.destroy();
       game.mapShine.resourceManager = null;
-    }
-    // Nullify the reference to the world container so it can be recreated for the new scene.
-    if (game.mapShine.worldContainer) {
-      game.mapShine.worldContainer = null;
     }
 
     // Destroy remaining canvas-specific managers
@@ -18641,6 +18639,7 @@ class MetallicShineFilter extends PIXI.Filter {
     });
   }
 }
+  
 
 class MetallicShineLayer extends CanvasLayer {
   constructor() {
@@ -19186,7 +19185,7 @@ class MetallicShineLayer extends CanvasLayer {
     u.uSpecularMask = this.specularMaskTexture;
     u.uIlluminationMask = resourceManager.getCompositeLightMask(deltaTime);
     u.uFbmNoiseTexture = this.fbmNoiseManager.getTexture();
-
+    
     const structuralMask = resourceManager.getStructuralMask();
     const smConfig = config.structuralMask;
     u.uStructuralMaskEnabled = smConfig.enabled && !!structuralMask?.valid;
@@ -19247,10 +19246,10 @@ class MetallicShineLayer extends CanvasLayer {
       u.uFbmNoiseEnabled = noise.enabled;
       u.uFbmMaskIntensity = noise.maskIntensity;
       u.uFbmDistortionIntensity = noise.distortionIntensity;
-
+      
       u.uStructuralMaskEnabled = smConfig.enabled;
       u.uStructuralMaskIntensity = smConfig.intensity;
-
+      
       u.uCcEnabled = cc.enabled;
       u.uCcSaturation = cc.saturation;
       u.uCcBrightness = cc.brightness;
@@ -19338,6 +19337,7 @@ class MetallicShineLayer extends CanvasLayer {
     return super._tearDown(options);
   }
 }
+
 
 class CloudShadowsFilter extends PIXI.Filter {
   constructor(options = {}) {
@@ -20266,9 +20266,7 @@ class CanopyLayer extends MaskedEffectLayer {
     this._generatorSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
     this._generatorSprite.width = renderer.screen.width;
     this._generatorSprite.height = renderer.screen.height;
-    this._generatorSprite.filters = this.canopyFilter
-      ? [this.canopyFilter]
-      : [];
+    this._generatorSprite.filters = this.canopyFilter ? [this.canopyFilter] : [];
     // Important: _generatorSprite is *not* added to the stage, it's used only for off-screen rendering.
 
     // effectSprite is added to the stage and displays the finalShadowTexture
@@ -27425,9 +27423,7 @@ class DebuggerEventHandler {
       case "reset-accordion": {
         const effectKey = target.dataset.effectKey;
         if (!effectKey || !MODULE_DEFAULTS[effectKey]) {
-          console.warn(
-            `Map Shine | Invalid effect key for reset: ${effectKey}`
-          );
+          console.warn(`Map Shine | Invalid effect key for reset: ${effectKey}`);
           return;
         }
 
@@ -27440,10 +27436,7 @@ class DebuggerEventHandler {
             );
 
             // This records the entire object reset as a user override.
-            await this.profileManager.recordUserChange(
-              effectKey,
-              defaultSection
-            );
+            await this.profileManager.recordUserChange(effectKey, defaultSection);
 
             // Trigger a full visual refresh
             await this.profileManager.updateAllSystemsFromConfig();
@@ -29334,25 +29327,18 @@ Hooks.on("updateScene", (scene, data) => {
   }
 });
 
-Hooks.on("canvasDraw", (canvas) => {
-  // This hook should only run once per scene load. We guard against it re-running on simple redraws.
-  if (game.mapShine.worldContainer) return;
-
+Hooks.on("canvasInit", (canvas) => {
+  // Create a new container for all world-related layers that should be post-processed.
   const worldContainer = new PIXI.Container();
   worldContainer.name = "mapShineWorldContainer";
+
+  // Move all existing children from the main stage into our new world container.
+  // This includes canvas.primary, canvas.effects, etc.
+  worldContainer.addChild(...canvas.stage.children);
+
+  // Add the world container back to the main stage.
   canvas.stage.addChild(worldContainer);
+
+  // Store this container for the ScreenEffectsManager to use.
   game.mapShine.worldContainer = worldContainer;
-
-  // Identify all layers that should be part of the "world" to be post-processed.
-  // This excludes the container itself and the main UI layer (canvas.interface).
-  const layersToWrap = canvas.stage.children.filter(
-    (child) => child !== worldContainer && child !== canvas.interface
-  );
-
-  // Move them into the container. This ensures all custom layers are properly sorted
-  // with core layers and are affected by post-processing effects.
-  if (layersToWrap.length > 0) {
-    worldContainer.addChild(...layersToWrap);
-    worldContainer.sortChildren();
-  }
 });

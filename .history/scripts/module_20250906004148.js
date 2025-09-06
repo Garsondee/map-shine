@@ -1,8 +1,10 @@
 // TODO: The Highlight Adjustments aren't being saved to the scene appearance profile and aren't loading accurately.
 // TODO: The metallic shine 'stripes' are too wide and could do with having variable gaps between them.
 // TODO: Specular renders over the top of 'Overhead Effects'
+// Structural Negative Mask effects some parts but not all parts of the metallic shine. You should track this down, turning it off seems to increase the amount of gradient and stripes lines visible in the result.
+// TODO: Add CC to the end result of metallic shine so that we can manually tweak the appearance.
 
-// TODO: Overhead Effect's "Shadow" isn't working. No shadow is visible.
+// TODO: Overhead Effect's "Shadow" isn't working. No shadow is visible. 
 
 // LONG LONG TERM TODO: Could you create a system which places a formal 'input' and 'output' on layers, textures and intermediate textures/masks so that it would then be triviually easy to have individual CC adjustments for every effect?
 
@@ -1357,8 +1359,6 @@ const MODULE_DEFAULTS = {
         subStripeSpeedVariation: 3,
         subStripeSharpnessVariation: 2.5,
         subStripeTintVariation: 0.1,
-        gapWidth: 1,
-        gapSmoothness: 0.1,
       },
     },
     fbmNoise: {
@@ -1380,22 +1380,9 @@ const MODULE_DEFAULTS = {
       enabled: true,
       amount: 6.7,
     },
-    structuralMask: {
-      enabled: true,
-      intensity: 1.0,
-    },
-    colorCorrection: {
-      enabled: true,
-      saturation: 1,
-      brightness: 0,
-      contrast: 1,
-      exposure: 0,
-      gamma: 1,
-      tint: {
-        color: "#FFFFFF",
-        amount: 0,
-      },
-      invert: false,
+    structuralNegativeMask: {
+      enabled: false,
+      intensity: 1,
     },
   },
   cloudShadows: {
@@ -4212,7 +4199,7 @@ class ResourceManager {
     // This is the key change: we actively command the layer to update its mask
     // if it has flagged that an update is needed (e.g., due to a pan).
     if (layer._needsMaskUpdate) {
-      layer.renderMask();
+        layer.renderMask();
     }
 
     // This now gets the guaranteed up-to-date combinedMaskTexture
@@ -5084,10 +5071,6 @@ class SceneChangeManager {
     if (game.mapShine.resourceManager) {
       game.mapShine.resourceManager.destroy();
       game.mapShine.resourceManager = null;
-    }
-    // Nullify the reference to the world container so it can be recreated for the new scene.
-    if (game.mapShine.worldContainer) {
-      game.mapShine.worldContainer = null;
     }
 
     // Destroy remaining canvas-specific managers
@@ -18354,6 +18337,7 @@ class BackgroundLayer extends CanvasLayer {
   }
 }
 
+    
 class MetallicShineFilter extends PIXI.Filter {
   constructor(options = {}) {
     const vertexSrc = `
@@ -18379,7 +18363,8 @@ class MetallicShineFilter extends PIXI.Filter {
             uniform sampler2D uSpecularMask;
             uniform sampler2D uIlluminationMask;
             uniform sampler2D uFbmNoiseTexture;
-            uniform sampler2D uStructuralMaskTexture;
+            uniform sampler2D uStructuralNegativeMaskTexture;
+            uniform sampler2D uOutdoorsMask;
 
             // Time & Camera
             uniform float uTime;
@@ -18399,8 +18384,6 @@ class MetallicShineFilter extends PIXI.Filter {
             uniform float uStripesSharpness;
             uniform float uStripesBandDensity;
             uniform float uStripesBandWidth;
-            uniform float uStripesGapWidth;
-            uniform float uStripesGapSmoothness;
             uniform int uSubStripeCount;
             uniform float uSubStripeSpeedVariation;
             uniform float uSubStripeSharpnessVariation;
@@ -18417,24 +18400,11 @@ class MetallicShineFilter extends PIXI.Filter {
             uniform float uFbmMaskIntensity;
             uniform float uFbmDistortionIntensity;
 
-            // Structural Mask
-            uniform bool uStructuralMaskEnabled;
-            uniform float uStructuralMaskIntensity;
-            
-            // Color Correction
-            uniform bool uCcEnabled;
-            uniform float uCcSaturation;
-            uniform float uCcBrightness;
-            uniform float uCcContrast;
-            uniform float uCcExposure;
-            uniform float uCcGamma;
-            uniform vec3 uCcTintColor;
-            uniform float uCcTintAmount;
-            uniform bool uCcInvert;
+            // Structural Negative Mask
+            uniform bool uStructuralNegativeMaskEnabled;
+            uniform float uStructuralNegativeMaskIntensity;
 
             // --- UTILITY FUNCTIONS ---
-            const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
-
             float random(vec2 st) {
                 return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
             }
@@ -18476,11 +18446,9 @@ class MetallicShineFilter extends PIXI.Filter {
                 vec3 totalColor = vec3(0.0);
                 
                 vec2 mainUv = rotate(baseUV, uStripesAngle);
-                
-                float mainSine = pow(abs(sin((mainUv.x + uTime * uStripesSpeed) * uStripesBandDensity)), uStripesSharpness);
-                float mainStripe = smoothstep(1.0 - uStripesBandWidth, 1.0 - uStripesBandWidth + 0.1, mainSine);
+                float mainStripe = pow(abs(sin((mainUv.x + uTime * uStripesSpeed) * uStripesBandDensity)), uStripesSharpness) * uStripesBandWidth;
 
-                totalBrightness = mainStripe;
+                totalBrightness += mainStripe;
 
                 if (uSubStripeCount > 0) {
                     for (int i = 1; i <= 10; ++i) {
@@ -18498,19 +18466,16 @@ class MetallicShineFilter extends PIXI.Filter {
                         float subFreq = pow(2.0, fi * (0.8 + freqRand * 0.4));
                         float subAmp = 1.0 / fi;
 
-                        float subSine = pow(abs(sin((mainUv.x + uTime * subSpeed) * uStripesBandDensity * subFreq)), subSharp);
-                        float subStripe = smoothstep(1.0 - uStripesBandWidth, 1.0 - uStripesBandWidth + 0.1, subSine) * subAmp;
+                        float subStripe = pow(abs(sin((mainUv.x + uTime * subSpeed) * uStripesBandDensity * subFreq)), subSharp) * subAmp;
                         
-                        totalBrightness = max(totalBrightness, subStripe);
+                        totalBrightness += subStripe;
                         
                         vec3 subStripeColor = getGradientColor(clamp(subStripe, 0.0, 1.0));
                         if (uSubStripeTintVariation > 0.0) {
                             vec3 randColor = vec3(random(seed + 0.3), random(seed + 0.4), random(seed + 0.5));
                             subStripeColor = mix(subStripeColor, randColor, uSubStripeTintVariation);
                         }
-                        if (subStripe > mainStripe) {
-                           totalColor = mix(totalColor, subStripeColor, subStripe);
-                        }
+                        totalColor += subStripeColor * subStripe;
                     }
                 }
                 
@@ -18519,80 +18484,33 @@ class MetallicShineFilter extends PIXI.Filter {
                 totalColor = mix(mainColor, totalColor / max(1.0, totalBrightness), 0.5);
                 totalColor = mix(vec3(1.0), totalColor, uGradientIntensity);
 
-                if (uStripesGapWidth > 0.001) {
-                    float total_band_width_ratio = 1.0 + uStripesGapWidth;
-                    float stripe_fraction = 1.0 / total_band_width_ratio;
-                    
-                    float phase_coord = (mainUv.x + uTime * uStripesSpeed) * uStripesBandDensity / 3.14159265;
-                    
-                    float gap_phase = fract(phase_coord / total_band_width_ratio);
-                    
-                    float smoothness = uStripesGapSmoothness * stripe_fraction;
-                    float gap_mask = smoothstep(0.0, smoothness, gap_phase) - smoothstep(stripe_fraction, stripe_fraction + smoothness, gap_phase);
-                    
-                    totalBrightness *= gap_mask;
-                }
-
                 return vec4(totalColor, totalBrightness);
             }
 
 
             void main() {
-                // Get world coordinates for parallax and pattern generation
                 vec2 worldCoord = uCameraOffset + (vScreenCoord * uViewSize) + uParallaxOffset;
-                
-                // 1. Generate the animated pattern and its base color
                 vec4 stripePattern = getComplexStripePattern(worldCoord);
-                float patternBrightness = stripePattern.a;
-                vec3 shineColor = stripePattern.rgb;
-
-                // 2. Apply Color Correction to the generated color
-                if (uCcEnabled) {
-                    shineColor *= pow(2.0, uCcExposure);
-                    if (uCcGamma > 0.0) {
-                        shineColor = pow(shineColor, vec3(1.0 / uCcGamma));
-                    }
-                    shineColor += uCcBrightness;
-                    shineColor = (shineColor - 0.5) * uCcContrast + 0.5;
-                    float luminance = dot(shineColor, lum_weights);
-                    shineColor = mix(vec3(luminance), shineColor, uCcSaturation);
-                    shineColor = mix(shineColor, uCcTintColor, uCcTintAmount);
-                    if (uCcInvert) {
-                        shineColor = 1.0 - shineColor;
-                    }
-                }
                 
-                // 3. Start building the final brightness/alpha with a multiplicative pipeline
-                float finalBrightness = patternBrightness;
-
-                // 4. Apply modulating masks that reduce the brightness
+                float fbmMaskValue = 1.0;
                 if (uFbmNoiseEnabled) {
-                    float fbmValue = texture2D(uFbmNoiseTexture, vScreenCoord).r;
-                    finalBrightness *= (1.0 - (fbmValue * uFbmMaskIntensity));
+                    fbmMaskValue = texture2D(uFbmNoiseTexture, vScreenCoord).r;
+                    fbmMaskValue = mix(1.0 - uFbmMaskIntensity, 1.0, fbmMaskValue);
                 }
                 
-                // 5. Apply base masks that define where the effect can appear at all
                 float specularMaskValue = texture2D(uSpecularMask, vScreenCoord).r;
                 float illuminationMaskValue = texture2D(uIlluminationMask, vScreenCoord).r;
                 
-                finalBrightness *= specularMaskValue;
-                finalBrightness *= illuminationMaskValue;
+                float finalMask = specularMaskValue * illuminationMaskValue * fbmMaskValue;
 
-                // 6. Apply structural occlusion mask
-                if (uStructuralMaskEnabled) {
-                    // _Structural map: white (1.0) = structure, black (0.0) = no structure.
-                    // We want to reduce shine ON the structure.
-                    float structuralValue = texture2D(uStructuralMaskTexture, vScreenCoord).r;
-                    finalBrightness *= (1.0 - (structuralValue * uStructuralMaskIntensity));
+                if (uStructuralNegativeMaskEnabled) {
+                    float structuralMaskValue = texture2D(uStructuralNegativeMaskTexture, vScreenCoord).r;
+                    float reductionFactor = mix(1.0, structuralMaskValue, uStructuralNegativeMaskIntensity);
+                    finalMask *= clamp(reductionFactor, 0.0, 1.0);
                 }
                 
-                // 7. Apply global intensity and clamp the result
-                finalBrightness *= uGlobalIntensity;
-                finalBrightness = clamp(finalBrightness, 0.0, 1.0);
-                
-                // 8. Final output (premultiplied alpha for additive blending)
-                vec3 finalResult = shineColor * finalBrightness;
-                gl_FragColor = vec4(finalResult, finalBrightness);
+                vec3 finalResult = stripePattern.rgb * stripePattern.a * finalMask * uGlobalIntensity;
+                gl_FragColor = vec4(finalResult, stripePattern.a * finalMask * uGlobalIntensity);
             }
         `;
 
@@ -18600,7 +18518,8 @@ class MetallicShineFilter extends PIXI.Filter {
       uSpecularMask: PIXI.Texture.EMPTY,
       uIlluminationMask: PIXI.Texture.EMPTY,
       uFbmNoiseTexture: PIXI.Texture.EMPTY,
-      uStructuralMaskTexture: PIXI.Texture.EMPTY,
+      uStructuralNegativeMaskTexture: PIXI.Texture.EMPTY,
+      uOutdoorsMask: PIXI.Texture.EMPTY,
       uTime: 0.0,
       uCameraOffset: [0, 0],
       uViewSize: [1, 1],
@@ -18614,8 +18533,6 @@ class MetallicShineFilter extends PIXI.Filter {
       uStripesSharpness: 4.0,
       uStripesBandDensity: 2.0,
       uStripesBandWidth: 1.0,
-      uStripesGapWidth: 1.0,
-      uStripesGapSmoothness: 0.1,
       uSubStripeCount: 3,
       uSubStripeSpeedVariation: 1.0,
       uSubStripeSharpnessVariation: 1.0,
@@ -18626,22 +18543,16 @@ class MetallicShineFilter extends PIXI.Filter {
       uFbmNoiseEnabled: true,
       uFbmMaskIntensity: 1.0,
       uFbmDistortionIntensity: 0.0,
-      uStructuralMaskEnabled: false,
-      uStructuralMaskIntensity: 1.0,
-      uCcEnabled: true,
-      uCcSaturation: 1.0,
-      uCcBrightness: 0.0,
-      uCcContrast: 1.0,
-      uCcExposure: 0.0,
-      uCcGamma: 1.0,
-      uCcTintColor: [1.0, 1.0, 1.0],
-      uCcTintAmount: 0.0,
-      uCcInvert: false,
+      uStructuralNegativeMaskEnabled: false,
+      uStructuralNegativeMaskIntensity: 1.0,
       ...options,
     });
   }
 }
 
+  
+
+    
 class MetallicShineLayer extends CanvasLayer {
   constructor() {
     super();
@@ -18788,22 +18699,6 @@ class MetallicShineLayer extends CanvasLayer {
                               5,
                               0.1
                             )}
-                            ${DebuggerUIBuilder._createSliderHTML(
-                              "baseShine.pattern.stripes.gapWidth",
-                              "Gap Width",
-                              0,
-                              5,
-                              0.1,
-                              "Width of gaps relative to stripes. 0=no gaps, 1=equal gaps, 2=gaps twice as wide as stripes."
-                            )}
-                            ${DebuggerUIBuilder._createSliderHTML(
-                              "baseShine.pattern.stripes.gapSmoothness",
-                              "Gap Smoothness",
-                              0.01,
-                              5.0,
-                              0.01,
-                              "Softness of the gap edge, as a fraction of the stripe's width."
-                            )}
                             <details><summary><span class="accordion-toggle"></span><strong>Procedural Sub-Stripes</strong></summary>
                             <div style="padding-left: 15px;">
                                 <p class="description-text">Adds randomized smaller stripes for more complexity.</p>
@@ -18869,9 +18764,9 @@ class MetallicShineLayer extends CanvasLayer {
                     ${DebuggerUIBuilder._createSliderHTML(
                       "baseShine.fbmNoise.speed",
                       "Speed",
-                      -5,
-                      5,
-                      0.1
+                      -0.05,
+                      0.05,
+                      0.001
                     )}
                     ${DebuggerUIBuilder._createSliderHTML(
                       "baseShine.fbmNoise.scale",
@@ -18884,8 +18779,8 @@ class MetallicShineLayer extends CanvasLayer {
                       "baseShine.fbmNoise.evolution",
                       "Evolution",
                       0,
-                      5,
-                      0.05
+                      1,
+                      0.01
                     )}
                     <details><summary><span class="accordion-toggle"></span><strong>FBM Parameters</strong></summary>
                         <div style="padding-left: 15px;">
@@ -18946,21 +18841,21 @@ class MetallicShineLayer extends CanvasLayer {
                     </details>
                 </div>
             </details>
-            <details id="details-baseShine-structuralMask">
+            <details id="details-baseShine-structuralNegativeMask">
                 <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                  "baseShine.structuralMask.enabled",
-                  "Structural Occlusion",
+                  "baseShine.structuralNegativeMask.enabled",
+                  "Structural Negative Mask",
                   true
                 )}</div></summary>
                 <div style="padding-left: 15px;">
-                    <p class="description-text">Uses the _Structural map to block shine on structures (e.g. rafters, beams).</p>
+                    <p class="description-text">Uses the dark areas of the _Structural map to reduce the intensity of the shine effect.</p>
                     ${DebuggerUIBuilder._createSliderHTML(
-                      "baseShine.structuralMask.intensity",
-                      "Occlusion Intensity",
+                      "baseShine.structuralNegativeMask.intensity",
+                      "Intensity",
                       0,
+                      100,
                       1,
-                      0.01,
-                      "How strongly structures block the shine."
+                      "How strongly the dark areas of the structural map reduce the shine."
                     )}
                 </div>
             </details>
@@ -18979,72 +18874,6 @@ class MetallicShineLayer extends CanvasLayer {
                        20,
                        0.1
                      )}
-                </div>
-            </details>
-            <details id="details-baseShine-colorCorrection">
-                <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                  "baseShine.colorCorrection.enabled",
-                  "Color Correction",
-                  true
-                )}</div></summary>
-                <div style="padding-left: 15px;">
-                    <p class="description-text">Applies color adjustments to the final shine effect before it is rendered.</p>
-                    <details><summary><span class="accordion-toggle"></span><strong>Basic Adjustments</strong></summary><div style="padding-left: 15px;">
-                        ${DebuggerUIBuilder._createSliderHTML(
-                          "baseShine.colorCorrection.saturation",
-                          "Saturation",
-                          0,
-                          4,
-                          0.05
-                        )}
-                        ${DebuggerUIBuilder._createSliderHTML(
-                          "baseShine.colorCorrection.brightness",
-                          "Brightness",
-                          -1,
-                          1,
-                          0.01
-                        )}
-                        ${DebuggerUIBuilder._createSliderHTML(
-                          "baseShine.colorCorrection.contrast",
-                          "Contrast",
-                          0,
-                          4,
-                          0.05
-                        )}
-                        ${DebuggerUIBuilder._createCheckboxHTML(
-                          "baseShine.colorCorrection.invert",
-                          "Invert Colors"
-                        )}
-                    </div></details>
-                    <details><summary><span class="accordion-toggle"></span><strong>Advanced Adjustments</strong></summary><div style="padding-left: 15px;">
-                        ${DebuggerUIBuilder._createSliderHTML(
-                          "baseShine.colorCorrection.exposure",
-                          "Exposure",
-                          -2,
-                          2,
-                          0.05
-                        )}
-                        ${DebuggerUIBuilder._createSliderHTML(
-                          "baseShine.colorCorrection.gamma",
-                          "Gamma",
-                          0.2,
-                          2.5,
-                          0.05
-                        )}
-                    </div></details>
-                    <details><summary><span class="accordion-toggle"></span><strong>Global Tint</strong></summary><div style="padding-left: 15px;">
-                        ${DebuggerUIBuilder._createColorPickerHTML(
-                          "baseShine.colorCorrection.tint.color",
-                          "Tint Color"
-                        )}
-                        ${DebuggerUIBuilder._createSliderHTML(
-                          "baseShine.colorCorrection.tint.amount",
-                          "Tint Amount",
-                          0,
-                          1,
-                          0.01
-                        )}
-                    </div></details>
                 </div>
             </details>
         `;
@@ -19186,12 +19015,14 @@ class MetallicShineLayer extends CanvasLayer {
     u.uSpecularMask = this.specularMaskTexture;
     u.uIlluminationMask = resourceManager.getCompositeLightMask(deltaTime);
     u.uFbmNoiseTexture = this.fbmNoiseManager.getTexture();
+    u.uOutdoorsMask = resourceManager.getOutdoorsMask();
 
     const structuralMask = resourceManager.getStructuralMask();
-    const smConfig = config.structuralMask;
-    u.uStructuralMaskEnabled = smConfig.enabled && !!structuralMask?.valid;
-    if (u.uStructuralMaskEnabled) {
-      u.uStructuralMaskTexture = structuralMask;
+    const snmConfig = config.structuralNegativeMask;
+    u.uStructuralNegativeMaskEnabled =
+      snmConfig.enabled && !!structuralMask?.valid;
+    if (u.uStructuralNegativeMaskEnabled) {
+      u.uStructuralNegativeMaskTexture = structuralMask;
     }
 
     this.effectSprite.position.copyFrom(topLeft);
@@ -19215,8 +19046,7 @@ class MetallicShineLayer extends CanvasLayer {
       const shared = bsConfig.pattern.shared;
       const stripes = bsConfig.pattern.stripes;
       const noise = bsConfig.fbmNoise;
-      const smConfig = bsConfig.structuralMask;
-      const cc = bsConfig.colorCorrection;
+      const snmConfig = bsConfig.structuralNegativeMask;
 
       u.uGlobalIntensity = anim.globalIntensity;
       u.uPatternScale = shared.patternScale;
@@ -19228,8 +19058,6 @@ class MetallicShineLayer extends CanvasLayer {
       u.uStripesSharpness = stripes.sharpness;
       u.uStripesBandDensity = stripes.bandDensity;
       u.uStripesBandWidth = stripes.bandWidth;
-      u.uStripesGapWidth = stripes.gapWidth ?? 1.0;
-      u.uStripesGapSmoothness = stripes.gapSmoothness ?? 0.1;
       u.uSubStripeCount = stripes.subStripeCount;
       u.uSubStripeSpeedVariation = stripes.subStripeSpeedVariation;
       u.uSubStripeSharpnessVariation = stripes.subStripeSharpnessVariation;
@@ -19247,19 +19075,9 @@ class MetallicShineLayer extends CanvasLayer {
       u.uFbmNoiseEnabled = noise.enabled;
       u.uFbmMaskIntensity = noise.maskIntensity;
       u.uFbmDistortionIntensity = noise.distortionIntensity;
-
-      u.uStructuralMaskEnabled = smConfig.enabled;
-      u.uStructuralMaskIntensity = smConfig.intensity;
-
-      u.uCcEnabled = cc.enabled;
-      u.uCcSaturation = cc.saturation;
-      u.uCcBrightness = cc.brightness;
-      u.uCcContrast = cc.contrast;
-      u.uCcExposure = cc.exposure;
-      u.uCcGamma = cc.gamma;
-      u.uCcTintColor = hexToRgbArray(cc.tint.color);
-      u.uCcTintAmount = cc.tint.amount;
-      u.uCcInvert = cc.invert;
+      
+      u.uStructuralNegativeMaskEnabled = snmConfig.enabled;
+      u.uStructuralNegativeMaskIntensity = snmConfig.intensity / 100.0;
     }
   }
 
@@ -19338,6 +19156,7 @@ class MetallicShineLayer extends CanvasLayer {
     return super._tearDown(options);
   }
 }
+
 
 class CloudShadowsFilter extends PIXI.Filter {
   constructor(options = {}) {
@@ -20266,9 +20085,7 @@ class CanopyLayer extends MaskedEffectLayer {
     this._generatorSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
     this._generatorSprite.width = renderer.screen.width;
     this._generatorSprite.height = renderer.screen.height;
-    this._generatorSprite.filters = this.canopyFilter
-      ? [this.canopyFilter]
-      : [];
+    this._generatorSprite.filters = this.canopyFilter ? [this.canopyFilter] : [];
     // Important: _generatorSprite is *not* added to the stage, it's used only for off-screen rendering.
 
     // effectSprite is added to the stage and displays the finalShadowTexture
@@ -26486,26 +26303,7 @@ class DebuggerUIBuilder {
 
   _getStyles() {
     return `<style>
-/* --- Reset Button --- */
-#material-editor-debugger .reset-accordion-btn {
-    width: 20px;
-    height: 20px;
-    font-size: 10px;
-    font-weight: bold;
-    padding: 0;
-    line-height: 18px; /* vertically center text */
-    border-radius: 50%;
-    background: #4a4a4a;
-    border: 1px solid #777;
-    color: #ddd;
-    margin-right: 5px;
-    flex-shrink: 0; /* prevent shrinking */
-}
-#material-editor-debugger .reset-accordion-btn:hover {
-    background: #803030;
-    color: #fff;
-    border-color: #c06060;
-}
+
 /* --- Main Controls Styles --- */
 #main-controls-section {
     padding: 8px;
@@ -26991,8 +26789,7 @@ class DebuggerUIBuilder {
     const path = `${id}.enabled`;
     const checkboxId = this._createSafeId(path);
     const labelHtml = `<span class="summary-label">${title}</span>`;
-    const resetButtonHtml = `<button type="button" class="reset-accordion-btn" data-action="reset-accordion" data-effect-key="${id}" title="Reset this section to defaults">R</button>`;
-    const widgetsHtml = `<div class="widget-group"><input type="checkbox" id="${checkboxId}" data-path="${path}"></div>`;
+    const checkboxHtml = `<div class="widget-group"><input type="checkbox" id="${checkboxId}" data-path="${path}"></div>`;
 
     return `<details id="details-${id}">
                             <summary>
@@ -27000,10 +26797,9 @@ class DebuggerUIBuilder {
                                 <div class="summary-control">
                                     <div style="display: flex; align-items: center; gap: 5px;">
                                         ${labelHtml}
-                                        ${resetButtonHtml}
                                         ${headerExtra}
                                     </div>
-                                    ${widgetsHtml}
+                                    ${checkboxHtml}
                                 </div>
                             </summary>
                             <div style="padding-top: 5px;">${content}</div>
@@ -27422,41 +27218,6 @@ class DebuggerEventHandler {
 
     // All other actions
     switch (action) {
-      case "reset-accordion": {
-        const effectKey = target.dataset.effectKey;
-        if (!effectKey || !MODULE_DEFAULTS[effectKey]) {
-          console.warn(
-            `Map Shine | Invalid effect key for reset: ${effectKey}`
-          );
-          return;
-        }
-
-        Dialog.confirm({
-          title: `Reset ${effectKey} Settings`,
-          content: `<p>Are you sure you want to reset all settings in the "<strong>${effectKey}</strong>" section to their default values? This will create unsaved changes.</p>`,
-          yes: async () => {
-            const defaultSection = foundry.utils.deepClone(
-              MODULE_DEFAULTS[effectKey]
-            );
-
-            // This records the entire object reset as a user override.
-            await this.profileManager.recordUserChange(
-              effectKey,
-              defaultSection
-            );
-
-            // Trigger a full visual refresh
-            await this.profileManager.updateAllSystemsFromConfig();
-            this.updateAllControls();
-
-            ui.notifications.info(
-              `"${effectKey}" section has been reset to defaults.`
-            );
-          },
-          defaultYes: false,
-        });
-        break;
-      }
       case "open-map-points-editor":
         e.preventDefault();
         if (
@@ -29334,25 +29095,18 @@ Hooks.on("updateScene", (scene, data) => {
   }
 });
 
-Hooks.on("canvasDraw", (canvas) => {
-  // This hook should only run once per scene load. We guard against it re-running on simple redraws.
-  if (game.mapShine.worldContainer) return;
-
+Hooks.on("canvasInit", (canvas) => {
+  // Create a new container for all world-related layers that should be post-processed.
   const worldContainer = new PIXI.Container();
   worldContainer.name = "mapShineWorldContainer";
+
+  // Move all existing children from the main stage into our new world container.
+  // This includes canvas.primary, canvas.effects, etc.
+  worldContainer.addChild(...canvas.stage.children);
+
+  // Add the world container back to the main stage.
   canvas.stage.addChild(worldContainer);
+
+  // Store this container for the ScreenEffectsManager to use.
   game.mapShine.worldContainer = worldContainer;
-
-  // Identify all layers that should be part of the "world" to be post-processed.
-  // This excludes the container itself and the main UI layer (canvas.interface).
-  const layersToWrap = canvas.stage.children.filter(
-    (child) => child !== worldContainer && child !== canvas.interface
-  );
-
-  // Move them into the container. This ensures all custom layers are properly sorted
-  // with core layers and are affected by post-processing effects.
-  if (layersToWrap.length > 0) {
-    worldContainer.addChild(...layersToWrap);
-    worldContainer.sortChildren();
-  }
 });
