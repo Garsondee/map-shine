@@ -1,8 +1,3 @@
-// TODO: The Highlight Adjustments aren't being saved to the scene appearance profile and aren't loading accurately.
-// TODO: The metallic shine 'stripes' are too wide and could do with having variable gaps between them.
-
-// LONG LONG TERM TODO: Could you create a system which places a formal 'input' and 'output' on layers, textures and intermediate textures/masks so that it would then be triviually easy to have individual CC adjustments for every effect?
-
 /******************************************************************************
  *
  *                            MAP SHINE
@@ -24295,6 +24290,7 @@ class OverheadEffectLayer extends CanvasLayer {
     this._boundRefresh = this._refreshOverheadTiles.bind(this);
     this._boundOnAnimate = this._onAnimate.bind(this);
     this._boundOnResize = this._onResize.bind(this);
+    this._boundOnCanvasReady = this._refreshOverheadTiles.bind(this);
   }
 
   async _draw(options) {
@@ -24326,10 +24322,10 @@ class OverheadEffectLayer extends CanvasLayer {
     Hooks.on("createTile", this._boundRefresh);
     Hooks.on("updateTile", this._boundRefresh);
     Hooks.on("deleteTile", this._boundRefresh);
+    Hooks.on("canvasReady", this._boundOnCanvasReady);
     canvas.app.ticker.add(this._boundOnAnimate);
     window.addEventListener("resize", this._boundOnResize);
 
-    this._refreshOverheadTiles();
     this.updateFromConfig(game.mapShine.profileManager.activeConfig);
   }
 
@@ -24355,6 +24351,7 @@ class OverheadEffectLayer extends CanvasLayer {
     Hooks.off("createTile", this._boundRefresh);
     Hooks.off("updateTile", this._boundRefresh);
     Hooks.off("deleteTile", this._boundRefresh);
+    Hooks.off("canvasReady", this._boundOnCanvasReady);
     canvas.app.ticker.remove(this._boundOnAnimate);
     window.removeEventListener("resize", this._boundOnResize);
 
