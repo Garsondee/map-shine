@@ -3251,7 +3251,8 @@ class ProfileManager {
     // --- World-Based Overrides ---
     // If the current profile source is from the scene, check if any effects within the scene's own
     // configuration are flagged to use the world default instead.
-    const worldConfig = this._worldProfiles[this._worldDefaultProfileName]?.config;
+    const worldConfig =
+      this._worldProfiles[this._worldDefaultProfileName]?.config;
     if (this.status.profileSource === "scene" && worldConfig) {
       // Iterate over the keys in the scene's base configuration.
       for (const key in baseConfig) {
@@ -3415,10 +3416,8 @@ class ProfileManager {
     await this._clearUserOverrides();
 
     // The hook will now trigger initializeForScene() and ui.render(), so they are no longer needed here.
-    
-    ui.notifications.info(
-      `Saved changes to appearance: "${profileName}"`
-    );
+
+    ui.notifications.info(`Saved changes to appearance: "${profileName}"`);
   }
 
   /**
@@ -15886,6 +15885,7 @@ class ScreenEffectsManager {
                         <div class="control-row" style="padding: 4px; background: rgba(0,0,0,0.2); border-radius: 4px; display:flex; justify-content:space-between; align-items:center;">
                             <div style="display:flex; align-items:center; gap: 5px;">
                                 <label for="control-postProcessing-enabled" class="summary-label" title="Master toggle for all effects in this panel."><strong>Enable Post-Processing</strong></label>
+                                <button type="button" class="reset-accordion-btn" data-action="reset-accordion" data-effect-key="postProcessing" title="Reset this section to defaults">R</button>
                                 ${worldBasedIconHTML(
                                   "postProcessing.worldBasedOnly"
                                 )}
@@ -26577,6 +26577,28 @@ class DebuggerUIBuilder {
     border-color: #c06060;
 }
 /* --- Main Controls Styles --- */
+
+/* --- Reset Button --- */
+#material-editor-debugger .reset-accordion-btn {
+    width: 20px;
+    height: 20px;
+    font-size: 10px;
+    font-weight: bold;
+    padding: 0;
+    line-height: 18px; /* vertically center text */
+    border-radius: 50%;
+    background: #4a4a4a;
+    border: 1px solid #777;
+    color: #ddd;
+    margin-right: 5px;
+    flex-shrink: 0; /* prevent shrinking */
+}
+#material-editor-debugger .reset-accordion-btn:hover {
+    background: #803030;
+    color: #fff;
+    border-color: #c06060;
+}
+
 #main-controls-section {
     padding: 8px;
     background: rgba(10, 10, 10, 0.4);
@@ -29181,6 +29203,7 @@ class SimpleUIPanel extends Application {
                                     <input type="checkbox" id="simple-enabled-${key}" data-key="${key}" data-type="enabled" ${
         isEnabled ? "checked" : ""
       }>
+                                    <button type="button" class="simple-reset-btn" data-action="reset-setting" data-key="${key}" title="Reset to Default">R</button>
                                 </div>
                             </div>
                         `;
@@ -29204,15 +29227,20 @@ class SimpleUIPanel extends Application {
                         .simple-ui-footer button:hover { background: #555; border-color: #888; }
                         .simple-ui-footer button.advanced-btn { background-color: #224466; border-color: #6688aa; color: #cceeff; }
                         .simple-ui-footer button.advanced-btn:hover { background-color: #336699; }
+                        .simple-reset-btn { width: 22px; height: 22px; font-size: 10px; font-weight: bold; padding: 0; line-height: 20px; border-radius: 50%; background: #4a4a4a; border: 1px solid #777; color: #ddd; flex-shrink: 0; }
+                        .simple-reset-btn:hover { background: #803030; color: #fff; border-color: #c06060; }
                     </style>
                     <div class="simple-ui-wrapper">
                         <div class="simple-control-row" title="Adjust the overall brightness of the scene. Higher values are brighter.">
                             <label for="simple-gamma-slider">Brightness (Gamma)</label>
-                            <div class="simple-slider-wrapper">
-                                <input type="range" id="simple-gamma-slider" data-path="postProcessing.colorCorrection.gamma" min="0.5" max="1.5" step="0.01" value="${gammaValue}">
-                                <span class="value-span" id="simple-gamma-slider-value">${gammaValue.toFixed(
-                                  2
-                                )}</span>
+                            <div class="simple-widgets">
+                                <div class="simple-slider-wrapper">
+                                    <input type="range" id="simple-gamma-slider" data-path="postProcessing.colorCorrection.gamma" min="0.5" max="1.5" step="0.01" value="${gammaValue}">
+                                    <span class="value-span" id="simple-gamma-slider-value">${gammaValue.toFixed(
+                                      2
+                                    )}</span>
+                                </div>
+                                <button type="button" class="simple-reset-btn" data-action="reset-setting" data-path="postProcessing.colorCorrection.gamma" title="Reset to Default">R</button>
                             </div>
                         </div>
                         <hr style="border-color: #555;">
@@ -29240,11 +29268,6 @@ class SimpleUIPanel extends Application {
         : 0;
       valueEl.text(Number(value).toFixed(decimals));
     }
-  }
-
-  _onSliderInput(event) {
-    const el = event.currentTarget;
-    this._updateSliderValue(el.id, el.value, el.step);
   }
 
   async _onInputChange(event) {
@@ -29276,6 +29299,44 @@ class SimpleUIPanel extends Application {
       await game.settings.set(MODULE_ID, "advanced-ui-mode", true);
       await this.close();
       game.mapShine.showEditor();
+    } else if (action === "reset-setting") {
+      const el = event.currentTarget;
+      const path = el.dataset.path;
+      const key = el.dataset.key;
+
+      if (path) {
+        // It's a profile setting like Gamma
+        const defaultValue = foundry.utils.getProperty(MODULE_DEFAULTS, path);
+        if (defaultValue !== undefined) {
+          await this.profileManager.recordUserChange(path, defaultValue);
+          await this.profileManager.updateAllSystemsFromConfig();
+          this.render(); // Re-render this panel to show the updated value
+        }
+      } else if (key) {
+        // It's a client override setting
+        // We need to reset both the enabled and intensity settings for this key
+        const enabledSettingName = `user-${key}-enabled`;
+        const defaultEnabled = game.settings.settings.get(
+          `${MODULE_ID}.${enabledSettingName}`
+        ).default;
+        await game.settings.set(MODULE_ID, enabledSettingName, defaultEnabled);
+
+        const configData = CLIENT_OVERRIDES_CONFIG[key];
+        if (configData.intensitySubPath) {
+          const intensitySettingName = `user-${key}-intensity`;
+          const defaultIntensity = game.settings.settings.get(
+            `${MODULE_ID}.${intensitySettingName}`
+          ).default;
+          await game.settings.set(
+            MODULE_ID,
+            intensitySettingName,
+            defaultIntensity
+          );
+        }
+        // The onChange hooks for these settings handle refreshing the canvas.
+        // We just need to re-render this panel to show the new values.
+        this.render();
+      }
     }
   }
 
@@ -29408,7 +29469,7 @@ Hooks.on("updateScene", (scene, data, options) => {
     // own overrides, and their UI will be updated by their original action.
     // This prevents the race condition. Other clients will proceed.
     if (options.userId === game.user.id) return;
-    
+
     game.mapShine?.profileManager.initializeForScene();
     game.mapShine?.profileManager.updateAllSystemsFromConfig();
     if (game.mapShine.debugger) {
