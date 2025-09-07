@@ -2382,6 +2382,17 @@ const MODULE_DEFAULTS = {
     displaySuffix: "fire",
     showIlluminationPreview: false,
   },
+  overheadEffect: {
+    worldBasedOnly: false,
+    enabled: true,
+    blurAmount: 4,
+    recolor: {
+      enabled: false,
+      intensity: 0.5,
+      tint: "#80DEEA",
+    },
+    hoverFadeDuration: 500,
+  },
   ambientLayerZIndex: 250,
 };
 
@@ -2661,7 +2672,11 @@ class MapShineInitialiser {
         group: "primary",
         zIndex: 254,
       },
-
+      overheadEffect: {
+        layerClass: OverheadEffectLayer,
+        group: "environment",
+        zIndex: 700,
+      },
 
       // --- UI & Debugging Layers (Highest zIndex) ---
       mapPoints: {
@@ -2844,7 +2859,7 @@ class MapShineInitialiser {
       applyTileOpacities() {
         const config = game.mapShine.profileManager.activeConfig;
         for (const tile of canvas.tiles.placeables) {
-          if (!tile.mesh) continue;
+          if (!tile.mesh || tile.isManagedByOverheadLayer) continue;
           const isTargetWithEffects =
             this.targets.tiles.has(tile.id) && config.enabled;
           if (isTargetWithEffects && !tile.document.overhead) {
@@ -5110,6 +5125,7 @@ class SceneChangeManager {
         SCREEN_FX_INIT: 75,
         MANAGERS_INIT: 85,
         CANVAS_MANAGERS_INIT: 95,
+        STRUCTURAL_HIGHLIGHTS: 98,
         SETUP_COMPLETE: 100,
       },
       messages: {
@@ -5125,6 +5141,7 @@ class SceneChangeManager {
         SCREEN_FX_INIT: "Initializing screen effects...",
         MANAGERS_INIT: "Initializing system managers...",
         CANVAS_MANAGERS_INIT: "Initializing canvas managers...",
+        STRUCTURAL_HIGHLIGHTS: "Rendering structural highlights...",
         SETUP_COMPLETE: "Finalizing scene...",
       },
       setProgress(waypoint) {
@@ -5368,6 +5385,16 @@ class MapShineLifecycle {
     canvas.mapShine.ambientMaskManager = new AmbientMaskManager(canvas);
     canvas.mapShine.tokenMaskManager = new DynamicTokenMaskManager(canvas);
     await loadingManager?.tick("CANVAS_MANAGERS_INIT");
+
+    // Pre-warm the structural shadows layer to prevent pop-in after loading.
+    await loadingManager?.tick("STRUCTURAL_HIGHLIGHTS");
+    const structuralLayer = canvas.layers.find(
+      (l) => l instanceof StructuralShadowsLayer
+    );
+    if (structuralLayer?.visible) {
+      // Pass a delta time of 0 for a single-frame, non-animated render.
+      structuralLayer.renderEffectNow(0);
+    }
 
     // 8. Hide the loading screen.
     if (loadingScreen) {
@@ -7634,7 +7661,6 @@ class CombatEffectManager {
     u.uSelectiveTargetBrightness = cc.targetBrightness;
   }
 }
-
 
 const systemStatus = new SystemStatusManager();
 
@@ -24199,6 +24225,309 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
   }
 }
 
+class OverheadRecolorFilter extends PIXI.Filter {
+  constructor(options = {}) {
+    const vertexSrc = `
+            attribute vec2 aVertexPosition;
+            attribute vec2 aTextureCoord;
+            uniform mat3 projectionMatrix;
+            varying vec2 vTextureCoord;
+            varying vec2 vScreenCoord;
+
+            void main(void) {
+                gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
+                vTextureCoord = aTextureCoord;
+                vScreenCoord = gl_Position.xy * 0.5 + 0.5;
+            }
+        `;
+
+    const fragmentSrc = `
+            precision mediump float;
+            varying vec2 vTextureCoord;
+            varying vec2 vScreenCoord;
+
+            uniform sampler2D uSampler;
+            uniform sampler2D uStructuralMask;
+            uniform vec3 uRecolorTint;
+            uniform float uRecolorIntensity;
+            uniform bool uRecolorEnabled;
+
+            void main() {
+                vec4 originalColor = texture2D(uSampler, vTextureCoord);
+                if (originalColor.a == 0.0) {
+                    discard;
+                }
+                
+                if (!uRecolorEnabled) {
+                    gl_FragColor = originalColor;
+                    return;
+                }
+                
+                float structuralMask = texture2D(uStructuralMask, vScreenCoord).r;
+                
+                vec3 tintedColor = mix(originalColor.rgb, uRecolorTint, structuralMask * uRecolorIntensity);
+                
+                gl_FragColor = vec4(tintedColor, originalColor.a);
+            }
+        `;
+
+    super(vertexSrc, fragmentSrc, {
+      uStructuralMask: PIXI.Texture.EMPTY,
+      uRecolorTint: [1.0, 1.0, 1.0],
+      uRecolorIntensity: 0.5,
+      uRecolorEnabled: false,
+    });
+  }
+}
+
+class OverheadEffectLayer extends CanvasLayer {
+  constructor() {
+    super();
+    this.overheadSprites = new Map();
+    this.spritesContainer = null;
+    this.recolorFilter = null;
+    this.blurFilter = null;
+    this.compositeTexture = null;
+    this.compositeSprite = null;
+    this.activeAnimations = new Map(); // To manage GSAP animations
+
+    // Bound listeners for robust add/remove
+    this._boundRefresh = this._refreshOverheadTiles.bind(this);
+    this._boundOnAnimate = this._onAnimate.bind(this);
+    this._boundOnResize = this._onResize.bind(this);
+  }
+
+  async _draw(options) {
+    this._destroyed = false;
+    this.eventMode = "auto"; // Enable pointer events for the layer
+
+    const renderer = canvas.app.renderer;
+    const screen = renderer.screen;
+
+    // Container for raw sprites, not added to the stage directly
+    this.spritesContainer = new PIXI.Container();
+
+    // Off-screen texture to render our sprites into
+    this.compositeTexture = PIXI.RenderTexture.create({
+      width: screen.width,
+      height: screen.height,
+    });
+
+    // Setup the correct filters
+    this.recolorFilter = new OverheadRecolorFilter();
+    this.blurFilter = new PIXI.BlurFilter();
+
+    // The final sprite that will display our filtered texture on the layer
+    this.compositeSprite = new PIXI.Sprite(this.compositeTexture);
+    this.compositeSprite.filters = [this.blurFilter, this.recolorFilter];
+    this.addChild(this.compositeSprite); // Add to this layer so it gets rendered
+
+    // Register event listeners
+    Hooks.on("createTile", this._boundRefresh);
+    Hooks.on("updateTile", this._boundRefresh);
+    Hooks.on("deleteTile", this._boundRefresh);
+    canvas.app.ticker.add(this._boundOnAnimate);
+    window.addEventListener("resize", this._boundOnResize);
+
+    this._refreshOverheadTiles();
+    this.updateFromConfig(game.mapShine.profileManager.activeConfig);
+  }
+
+  async _tearDown(options) {
+    this._destroyed = true;
+
+    // Kill any running animations
+    for (const anim of this.activeAnimations.values()) {
+      anim.kill();
+    }
+    this.activeAnimations.clear();
+
+    // Restore original tiles
+    for (const tileId of this.overheadSprites.keys()) {
+      const tile = canvas.tiles.get(tileId);
+      if (tile && tile.isManagedByOverheadLayer) {
+        tile.isManagedByOverheadLayer = false;
+        tile.mesh.alpha = 1.0;
+      }
+    }
+
+    // Unregister listeners
+    Hooks.off("createTile", this._boundRefresh);
+    Hooks.off("updateTile", this._boundRefresh);
+    Hooks.off("deleteTile", this._boundRefresh);
+    canvas.app.ticker.remove(this._boundOnAnimate);
+    window.removeEventListener("resize", this._boundOnResize);
+
+    // Destroy all PIXI objects
+    this.spritesContainer?.destroy({ children: true });
+    this.recolorFilter?.destroy();
+    this.blurFilter?.destroy();
+    this.compositeTexture?.destroy(true);
+    this.compositeSprite?.destroy();
+    this.overheadSprites.clear();
+
+    return super._tearDown(options);
+  }
+
+  _onAnimate() {
+    if (this._destroyed || !this.visible) return;
+
+    // Update sprite positions to match their real tile counterparts.
+    for (const [id, sprite] of this.overheadSprites.entries()) {
+      const tile = canvas.tiles.get(id);
+      if (tile?.texture?.valid) {
+        sprite.position.copyFrom(tile.mesh.position);
+        sprite.width = tile.document.width;
+        sprite.height = tile.document.height;
+        sprite.rotation = tile.mesh.rotation;
+        sprite.texture = tile.texture;
+        sprite.anchor.copyFrom(tile.mesh.anchor);
+        // Alpha is now managed by GSAP animations and is not copied from the hidden tile.
+      }
+    }
+
+    // Update filter uniforms that might change frame-to-frame
+    if (this.recolorFilter && this.recolorFilter.enabled) {
+      const structuralMask =
+        game.mapShine.resourceManager?.getStructuralMask();
+      this.recolorFilter.uniforms.uStructuralMask =
+        structuralMask || PIXI.Texture.WHITE;
+    }
+  }
+
+  render(renderer) {
+    if (this._destroyed || !this.visible || this.overheadSprites.size === 0) {
+      this.compositeSprite.visible = false;
+      return;
+    }
+
+    this.compositeSprite.visible = true;
+
+    // Render our container of overhead tile sprites to our off-screen texture.
+    renderer.render(this.spritesContainer, {
+      renderTexture: this.compositeTexture,
+      clear: true,
+      transform: canvas.stage.transform.worldTransform,
+    });
+
+    // Position the composite sprite to cover the viewport.
+    const stage = canvas.stage;
+    const screen = renderer.screen;
+    const topLeft = stage.toLocal({ x: 0, y: 0 });
+
+    this.compositeSprite.position.copyFrom(topLeft);
+    this.compositeSprite.width = screen.width / stage.scale.x;
+    this.compositeSprite.height = screen.height / stage.scale.y;
+
+    // Call the original render method to draw our composite sprite to the screen.
+    super.render(renderer);
+  }
+
+  _onResize() {
+    if (this._destroyed) return;
+    const renderer = canvas.app.renderer;
+    const screen = renderer.screen;
+    this.compositeTexture?.resize(screen.width, screen.height);
+  }
+
+  async updateFromConfig(config) {
+    const oeConfig = config.overheadEffect;
+    this.visible = config.enabled && oeConfig.enabled;
+
+    if (this.blurFilter) {
+      this.blurFilter.blur = oeConfig.blurAmount;
+      this.blurFilter.enabled = this.visible && oeConfig.blurAmount > 0;
+    }
+
+    if (this.recolorFilter) {
+      const rConfig = oeConfig.recolor;
+      this.recolorFilter.enabled = this.visible && rConfig.enabled;
+      if (this.recolorFilter.enabled) {
+        const u = this.recolorFilter.uniforms;
+        u.uRecolorEnabled = true;
+        u.uRecolorIntensity = rConfig.intensity;
+        u.uRecolorTint = hexToRgbArray(rConfig.tint);
+      } else {
+        this.recolorFilter.uniforms.uRecolorEnabled = false;
+      }
+    }
+  }
+
+  _refreshOverheadTiles() {
+    if (!this.spritesContainer) return;
+
+    const currentOverheadIds = new Set();
+    for (const tile of canvas.tiles.placeables) {
+      if (tile.document.overhead) {
+        currentOverheadIds.add(tile.id);
+        if (!this.overheadSprites.has(tile.id)) {
+          const sprite = new PIXI.Sprite(tile.texture);
+
+          // Configure hover and fade logic
+          const oeConfig =
+            game.mapShine.profileManager.activeConfig.overheadEffect;
+          const duration = (oeConfig.hoverFadeDuration || 500) / 1000; // gsap uses seconds
+
+          sprite.eventMode = "static";
+          sprite.cursor = "pointer";
+
+          sprite.on("pointerover", () => {
+            if (this.activeAnimations.has(tile.id)) {
+              this.activeAnimations.get(tile.id).kill();
+            }
+            const anim = gsap.to(sprite, {
+              alpha: 0,
+              duration: duration,
+              ease: "power2.out",
+            });
+            this.activeAnimations.set(tile.id, anim);
+          });
+
+          sprite.on("pointerout", () => {
+            if (this.activeAnimations.has(tile.id)) {
+              this.activeAnimations.get(tile.id).kill();
+            }
+            const anim = gsap.to(sprite, {
+              alpha: 1,
+              duration: duration,
+              ease: "power2.inOut",
+            });
+            this.activeAnimations.set(tile.id, anim);
+          });
+
+          this.overheadSprites.set(tile.id, sprite);
+          this.spritesContainer.addChild(sprite);
+
+          // Hide the original tile
+          tile.isManagedByOverheadLayer = true;
+          tile.mesh.alpha = 0;
+        }
+      }
+    }
+
+    // Cleanup sprites for tiles that are no longer overhead
+    for (const [id, sprite] of this.overheadSprites.entries()) {
+      if (!currentOverheadIds.has(id)) {
+        // Kill any animations
+        if (this.activeAnimations.has(id)) {
+          this.activeAnimations.get(id).kill();
+          this.activeAnimations.delete(id);
+        }
+        // Restore the original tile
+        const tile = canvas.tiles.get(id);
+        if (tile) {
+          tile.isManagedByOverheadLayer = false;
+          tile.mesh.alpha = 1.0;
+        }
+        // Clean up our internal sprite
+        sprite.destroy();
+        this.overheadSprites.delete(id);
+      }
+    }
+  }
+}
+
+
 class DayNightClock extends Application {
   constructor(options = {}) {
     super(options);
@@ -25085,7 +25414,7 @@ class LoadingScreen {
                             .loading-content { text-align: center; }
                             .loading-logo { width: 150px; height: auto; margin: 0 auto 10px auto; display: block; filter: drop-shadow(0 0 10px rgba(0,0,0,0.6)); }
                             .loading-subhead { font-size: 24px; font-weight: normal; color: #bbb; margin: 0 0 10px 0; text-shadow: 0 0 5px #111; }
-                            .loading-title { font-size: 72px; margin: 0 0 30px 0; text-shadow: 0 0 10px #222; }
+                            .loading-title { font-size: 72px; margin: 0 0 30px 0; text-shadow: 0 0 10px #222; color: #fff; }
                             .loading-bar-container { width: 400px; height: 20px; border: 2px solid rgba(255, 255, 255, 0.5); margin: 0 auto; background-color: rgba(0,0,0,0.5); border-radius: 5px; overflow: hidden; }
                             .loading-bar-fill { width: 0%; height: 100%; background-color: rgba(255, 255, 255, 0.9); transform-origin: left; transition: width 0.2s ease-out; box-shadow: 0 0 10px rgba(255, 255, 255, 0.5); }
                             .loading-status { margin-top: 15px; font-size: 16px; color: #ddd; height: 20px; line-height: 20px; opacity: 0; transition: opacity ${
@@ -26388,7 +26717,57 @@ class DebuggerUIBuilder {
       ParticleEffectController.getSettingsHTML("glint"),
       ParticleEffectController.getSmellyFliesSettingsHTML(),
       LightningManager.getSettingsHTML(),
+      this._getOverheadEffectHTML(),
     ];
+  }
+
+  _getOverheadEffectHTML() {
+    const effectKey = "overheadEffect";
+    return DebuggerUIBuilder._createAccordionHTML(
+      effectKey,
+      "Overhead Effect",
+      `
+        <p class="description-text">Controls for tiles flagged as 'Overhead'. This layer re-renders them to be above all other effects.</p>
+        ${DebuggerUIBuilder._createSliderHTML(
+          "overheadEffect.blurAmount",
+          "Blur Amount",
+          0,
+          20,
+          0.5,
+          "The amount of gaussian blur to apply to the overhead tiles."
+        )}
+        <details>
+            <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+              "overheadEffect.recolor.enabled",
+              "Structural Recolor",
+              true
+            )}</div></summary>
+            <div style="padding-left: 15px;">
+                <p class="description-text">Uses the _Structural mask to apply a color tint to the overhead tiles.</p>
+                ${DebuggerUIBuilder._createSliderHTML(
+                  "overheadEffect.recolor.intensity",
+                  "Intensity",
+                  0,
+                  2,
+                  0.01,
+                  "The strength of the recoloring effect."
+                )}
+                ${DebuggerUIBuilder._createColorPickerHTML(
+                  "overheadEffect.recolor.tint",
+                  "Tint Color"
+                )}
+            </div>
+        </details>
+        ${DebuggerUIBuilder._createSliderHTML(
+          "overheadEffect.hoverFadeDuration",
+          "Hover Fade Duration (ms)",
+          0,
+          2000,
+          50,
+          "How long it takes for the overhead tile to fade in/out on hover."
+        )}
+        `
+    );
   }
 
   _getColumnCounts(totalItems, maxColumns) {
