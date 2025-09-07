@@ -2382,12 +2382,16 @@ const MODULE_DEFAULTS = {
     enabled: true,
     blurAmount: 4,
     recolor: {
-      enabled: false,
-      intensity: 0.5,
-      tint: "#80DEEA",
+    enabled: false,
+    intensity: 0.5,
+    tint: "#80DEEA",
     },
     hoverFadeDuration: 500,
-  },
+    tokenMasking: {
+    enabled: true,
+    blurAmount: 10,
+    },
+    },
   ambientLayerZIndex: 250,
 };
 
@@ -3152,7 +3156,10 @@ class ProfileDataManager {
     const profiles = canvas.scene.getFlag(this.moduleId, "profiles") || [];
     const activeProfileId =
       canvas.scene.getFlag(this.moduleId, "activeProfileId") || null;
-    return { profiles: Array.isArray(profiles) ? profiles : [], activeProfileId };
+    return {
+      profiles: Array.isArray(profiles) ? profiles : [],
+      activeProfileId,
+    };
   }
 
   /**
@@ -3729,10 +3736,7 @@ class ProfileManager {
       foundry.utils.deepClone(MODULE_DEFAULTS),
       foundry.utils.deepClone(profileData.config)
     );
-    await this.dataManager.saveUserOverrides(
-      this.activeSceneId,
-      configToApply
-    );
+    await this.dataManager.saveUserOverrides(this.activeSceneId, configToApply);
     this.initializeForScene();
     await this.updateAllSystemsFromConfig();
     if (this.ui) this.ui.render();
@@ -24275,6 +24279,28 @@ class OverheadRecolorFilter extends PIXI.Filter {
   }
 }
 
+class InvertAlphaMaskFilter extends PIXI.Filter {
+  constructor() {
+    super(
+      PIXI.Filter.defaultVertexSrc,
+      `
+            precision mediump float;
+            varying vec2 vTextureCoord;
+            uniform sampler2D uSampler;
+
+            void main(void) {
+                vec4 color = texture2D(uSampler, vTextureCoord);
+                // The shape of the mask is in its alpha channel after blurring.
+                // We want the output alpha to be the inverse of the input alpha.
+                float invertedAlpha = 1.0 - color.a;
+                // Output RGB doesn't matter for a mask, but let's set it to the alpha for visualization.
+                gl_FragColor = vec4(vec3(invertedAlpha), invertedAlpha);
+            }
+        `
+    );
+  }
+}
+
 class OverheadEffectLayer extends CanvasLayer {
   constructor() {
     super();
@@ -24367,7 +24393,17 @@ class OverheadEffectLayer extends CanvasLayer {
   }
 
   _onAnimate() {
-    if (this._destroyed || !this.visible) return;
+    if (this._destroyed || !this.visible) {
+      if (this.compositeSprite) this.compositeSprite.visible = false;
+      return;
+    }
+
+    if (this.overheadSprites.size === 0) {
+      if (this.compositeSprite) this.compositeSprite.visible = false;
+      return;
+    }
+
+    this.compositeSprite.visible = true;
 
     // Update sprite positions to match their real tile counterparts.
     for (const [id, sprite] of this.overheadSprites.entries()) {
@@ -24379,7 +24415,6 @@ class OverheadEffectLayer extends CanvasLayer {
         sprite.rotation = tile.mesh.rotation;
         sprite.texture = tile.texture;
         sprite.anchor.copyFrom(tile.mesh.anchor);
-        // Alpha is now managed by GSAP animations and is not copied from the hidden tile.
       }
     }
 
@@ -24390,15 +24425,8 @@ class OverheadEffectLayer extends CanvasLayer {
       this.recolorFilter.uniforms.uStructuralMask =
         structuralMask || PIXI.Texture.WHITE;
     }
-  }
 
-  render(renderer) {
-    if (this._destroyed || !this.visible || this.overheadSprites.size === 0) {
-      this.compositeSprite.visible = false;
-      return;
-    }
-
-    this.compositeSprite.visible = true;
+    const renderer = canvas.app.renderer;
 
     // Render our container of overhead tile sprites to our off-screen texture.
     renderer.render(this.spritesContainer, {
@@ -24415,9 +24443,6 @@ class OverheadEffectLayer extends CanvasLayer {
     this.compositeSprite.position.copyFrom(topLeft);
     this.compositeSprite.width = screen.width / stage.scale.x;
     this.compositeSprite.height = screen.height / stage.scale.y;
-
-    // Call the original render method to draw our composite sprite to the screen.
-    super.render(renderer);
   }
 
   _onResize() {
@@ -24523,7 +24548,6 @@ class OverheadEffectLayer extends CanvasLayer {
     }
   }
 }
-
 
 class DayNightClock extends Application {
   constructor(options = {}) {
@@ -26727,11 +26751,11 @@ class DebuggerUIBuilder {
         <p class="description-text">Controls for tiles flagged as 'Overhead'. This layer re-renders them to be above all other effects.</p>
         ${DebuggerUIBuilder._createSliderHTML(
           "overheadEffect.blurAmount",
-          "Blur Amount",
+          "Tile Blur Amount",
           0,
           20,
           0.5,
-          "The amount of gaussian blur to apply to the overhead tiles."
+          "The amount of gaussian blur to apply to the overhead tiles themselves."
         )}
         <details>
             <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
@@ -26763,6 +26787,24 @@ class DebuggerUIBuilder {
           50,
           "How long it takes for the overhead tile to fade in/out on hover."
         )}
+        <details>
+            <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+              "overheadEffect.tokenMasking.enabled",
+              "Token Safe Area",
+              true
+            )}</div></summary>
+            <div style="padding-left: 15px;">
+                <p class="description-text">Prevents the overhead effect from drawing over tokens, creating a blurred "safe zone" around them.</p>
+                ${DebuggerUIBuilder._createSliderHTML(
+                  "overheadEffect.tokenMasking.blurAmount",
+                  "Safe Area Size (Blur)",
+                  0,
+                  50,
+                  1,
+                  "The size of the blurred area around tokens. Higher values create a larger, softer safe zone."
+                )}
+            </div>
+        </details>
         `
     );
   }
