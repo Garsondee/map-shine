@@ -2595,121 +2595,121 @@ class MapShineInitialiser {
     }
   }
 
-  /**
+/**
    * Registers all custom canvas layers with Foundry's configuration.
    */
-  static _registerLayers() {
-    const ambientZIndex = game.settings.get(MODULE_ID, "ambientLayerZIndex");
+static _registerLayers() {
+  const ambientZIndex = game.settings.get(MODULE_ID, "ambientLayerZIndex");
 
-    // Define z-indices for core Foundry layers for reference.
-    // Background: 20, Tiles: 30, Drawings: 40, Tokens: 100, Lighting: 200, Weather: 300, Fog: 400.
+  // Define z-indices for core Foundry layers for reference.
+  // Background: 20, Tiles: 30, Drawings: 40, Tokens: 100, Lighting: 200, Weather: 300, Fog: 400.
 
-    Object.assign(CONFIG.Canvas.layers, {
-      // --- Layers Below Tiles (zIndex < 30) ---
-      iridescence: {
-        layerClass: IridescenceLayer,
-        group: "primary",
-        zIndex: 24, // Surface effect, below structural shine.
-      },
-      structuralShadows: {
-        layerClass: StructuralShadowsLayer,
-        group: "primary",
-        zIndex: 26, // Contains the shine mix-in, correctly rendered under tiles.
-      },
-      buildingShadows: {
-        layerClass: BuildingShadowsLayer,
-        group: "primary",
-        zIndex: 28, // A ground-based shadow effect that should be under tiles.
-      },
+  Object.assign(CONFIG.Canvas.layers, {
+    // --- Layers Below Tiles (zIndex < 30) ---
+    iridescence: {
+      layerClass: IridescenceLayer,
+      group: "primary",
+      zIndex: 24, // Surface effect, below structural shine.
+    },
+    structuralShadows: {
+      layerClass: StructuralShadowsLayer,
+      group: "primary",
+      zIndex: 26, // Contains the shine mix-in, correctly rendered under tiles.
+    },
+    buildingShadows: {
+      layerClass: BuildingShadowsLayer,
+      group: "primary",
+      zIndex: 28, // A ground-based shadow effect that should be under tiles.
+    },
 
-      // --- Layers Above Tiles but Below Tokens (30 < zIndex < 100) ---
-      metallicShine: {
+    // --- Layers Above Tiles but Below Tokens (30 < zIndex < 100) ---
+    metallicShine: {
         layerClass: MetallicShineLayer,
         group: "primary",
         zIndex: 35, // Renders on top of tiles, but below tokens.
-      },
-      groundGlow: {
-        layerClass: GroundGlowLayer,
-        group: "primary",
-        zIndex: 35, // Renders on top of tiles but below tokens.
-      },
+    },
+    groundGlow: {
+      layerClass: GroundGlowLayer,
+      group: "primary",
+      zIndex: 35, // Renders on top of tiles but below tokens.
+    },
 
-      // --- Layers Above Tokens (zIndex > 100) ---
-      canopy: {
-        layerClass: CanopyLayer,
-        group: "environment",
-        zIndex: 110, // Environment effect, appears over tokens.
-      },
-      cloudShadows: {
-        layerClass: CloudShadowsLayer,
-        group: "environment",
-        zIndex: 120, // Environment effect, appears over tokens.
-      },
-      particleLayer: {
-        layerClass: ParticleLayer,
-        group: "environment",
-        zIndex: 180, // Particles should render above most primary elements.
-      },
-      lightningLayer: {
-        layerClass: LightningLayer,
-        group: "environment",
-        zIndex: 185,
-      },
-      smellyFliesLayer: {
-        layerClass: SmellyFliesLayer,
-        group: "environment",
-        zIndex: 190,
-      },
+    // --- Layers Above Tokens (zIndex > 100) ---
+    canopy: {
+      layerClass: CanopyLayer,
+      group: "environment",
+      zIndex: 110, // Environment effect, appears over tokens.
+    },
+    cloudShadows: {
+      layerClass: CloudShadowsLayer,
+      group: "environment",
+      zIndex: 120, // Environment effect, appears over tokens.
+    },
+    particleLayer: {
+      layerClass: ParticleLayer,
+      group: "environment",
+      zIndex: 180, // Particles should render above most primary elements.
+    },
+    lightningLayer: {
+      layerClass: LightningLayer,
+      group: "environment",
+      zIndex: 185,
+    },
+    smellyFliesLayer: {
+      layerClass: SmellyFliesLayer,
+      group: "environment",
+      zIndex: 190,
+    },
 
-      // --- High-Level Layers & Filters (zIndex > 200) ---
-      ambient: {
-        layerClass: AmbientLayer,
-        group: "primary",
-        zIndex: ambientZIndex, // Uses setting, defaults to 250.
-      },
-      prism: {
-        layerClass: PrismLayer,
-        group: "primary",
-        zIndex: 251,
-      },
-      waterFX: {
-        layerClass: WaterFXLayer,
-        group: "primary",
-        zIndex: 252,
-      },
-      heatDistortion: {
-        layerClass: HeatDistortionLayer,
-        group: "primary",
-        zIndex: 253,
-      },
-      timeOfDay: {
-        layerClass: TimeOfDayLayer,
-        group: "primary",
-        zIndex: 254,
-      },
-      overheadEffects: {
-        layerClass: OverheadEffectsLayer,
-        group: "effects",
-        zIndex: 270,
-      },
+    // --- High-Level Layers & Filters (zIndex > 200) ---
+    ambient: {
+      layerClass: AmbientLayer,
+      group: "primary",
+      zIndex: ambientZIndex, // Uses setting, defaults to 250.
+    },
+    prism: {
+      layerClass: PrismLayer,
+      group: "primary",
+      zIndex: 251,
+    },
+    waterFX: {
+      layerClass: WaterFXLayer,
+      group: "primary",
+      zIndex: 252,
+    },
+    heatDistortion: {
+      layerClass: HeatDistortionLayer,
+      group: "primary",
+      zIndex: 253,
+    },
+    timeOfDay: {
+      layerClass: TimeOfDayLayer,
+      group: "primary",
+      zIndex: 254,
+    },
+    overheadEffects: {
+      layerClass: OverheadEffectsLayer,
+      group: "effects",
+      zIndex: 270,
+    },
 
-      // --- UI & Debugging Layers (Highest zIndex) ---
-      mapPoints: {
-        layerClass: MapPointsLayer,
-        group: "interface",
-        zIndex: 800,
-      },
-      diagnostic: {
-        layerClass: DiagnosticLayer,
-        group: "interface",
-        zIndex: 900,
-      },
-    });
+    // --- UI & Debugging Layers (Highest zIndex) ---
+    mapPoints: {
+      layerClass: MapPointsLayer,
+      group: "interface",
+      zIndex: 800,
+    },
+    diagnostic: {
+      layerClass: DiagnosticLayer,
+      group: "interface",
+      zIndex: 900,
+    },
+  });
 
-    console.log(
-      `MapShine | Registered all layers with explicit z-indices. AmbientLayer zIndex set to: ${ambientZIndex}.`
-    );
-  }
+  console.log(
+    `MapShine | Registered all layers with explicit z-indices. AmbientLayer zIndex set to: ${ambientZIndex}.`
+  );
+}
 
   /**
    * Creates the global `game.mapShine` object and initializes its core managers and state.
@@ -3056,10 +3056,6 @@ class MapShineInitialiser {
     }
 
     // --- Standard Hooks ---
-
-    // Initialize the self-contained manager for the custom pause screen.
-    PauseScreenManager.initialize();
-
     Hooks.on("createTile", () => game.mapShine?.effectTargetManager.refresh());
     Hooks.on("updateTile", () => game.mapShine?.effectTargetManager.refresh());
     Hooks.on("deleteTile", () => game.mapShine?.effectTargetManager.refresh());
@@ -3249,18 +3245,25 @@ class ProfileManager {
     }
 
     // --- World-Based Overrides ---
-    // If the current profile source is from the scene, check if any effects within the scene's own
-    // configuration are flagged to use the world default instead.
-    const worldConfig = this._worldProfiles[this._worldDefaultProfileName]?.config;
-    if (this.status.profileSource === "scene" && worldConfig) {
-      // Iterate over the keys in the scene's base configuration.
-      for (const key in baseConfig) {
-        // Check if an effect in the SCENE config is flagged as 'worldBasedOnly' and a corresponding effect exists in the world config.
-        if (baseConfig[key]?.worldBasedOnly === true && worldConfig[key]) {
-          // If so, completely replace the scene's settings for that effect with the world's settings.
-          baseConfig[key] = foundry.utils.deepClone(worldConfig[key]);
+    // If the current profile source is from the scene, check the world profile for effects flagged as 'worldBasedOnly'.
+    if (
+      this.status.profileSource === "scene" &&
+      this._worldDefaultProfileName &&
+      this._worldProfiles[this._worldDefaultProfileName]?.config
+    ) {
+      const worldConfig =
+        this._worldProfiles[this._worldDefaultProfileName].config;
+      // Iterate over the keys in the world configuration.
+      for (const key in worldConfig) {
+        // Check if an effect in the world config is flagged as 'worldBasedOnly' and also exists in the scene's config.
+        if (worldConfig[key]?.worldBasedOnly === true && baseConfig[key]) {
+          // This merges the world settings for the effect on top of the scene settings.
+          this._customMerge(
+            baseConfig[key],
+            foundry.utils.deepClone(worldConfig[key])
+          );
           console.log(
-            `Map Shine | Effect '${key}' is flagged as world-based in the scene profile. Overriding with world settings.`
+            `Map Shine | Effect '${key}' is world-based. Overriding scene settings with world settings.`
           );
         }
       }
@@ -3399,25 +3402,23 @@ class ProfileManager {
       return;
     }
 
-    // Capture the name before any data is reloaded.
-    const profileName = this._sceneProfiles[profileIndex].name;
-
     const updatedProfiles = foundry.utils.deepClone(this._sceneProfiles);
     updatedProfiles[profileIndex].config = configToSave;
 
-    // The updateScene hook will now handle all post-save synchronization for all clients, including the GM.
     await canvas.scene.update(
       { [`flags.${this.moduleId}.profiles`]: updatedProfiles },
       { diff: false }
     );
 
-    // Clear user overrides after the update has been sent.
+    // Clear user overrides as they are now saved
     await this._clearUserOverrides();
 
-    // The hook will now trigger initializeForScene() and ui.render(), so they are no longer needed here.
-    
+    // Re-initialize to load the new clean state and re-render the UI
+    this.initializeForScene();
+    if (this.ui) this.ui.render();
+
     ui.notifications.info(
-      `Saved changes to appearance: "${profileName}"`
+      `Saved changes to appearance: "${this._sceneProfiles[profileIndex].name}"`
     );
   }
 
@@ -3820,49 +3821,39 @@ class ProfileManager {
   }
 
   _getEffectiveConfig(options = {}) {
-    // This function now calculates the effective config based on the manager's current state
-    // without causing any side effects like re-initialization.
-
-    // 1. Get the base configuration from the currently active saved profile (scene or world).
-    const baseConfig = this._getBaseConfig();
-
-    // 2. Create the final configuration object, starting with a deep clone of the base.
-    let finalConfig = foundry.utils.deepClone(baseConfig);
-
-    // 3. Merge the user's temporary, unsaved changes on top.
-    this._customMerge(finalConfig, this._userOverrides);
-
-    // 4. If not excluded, apply the final layer of client-side accessibility/performance overrides.
-    if (!options.excludeClientOverrides) {
-      finalConfig = ClientOverrides.apply(finalConfig);
+    this.initializeForScene(); // Ensure we're working with the latest data
+    let finalConfig = foundry.utils.deepClone(this.activeConfig);
+    if (options.excludeClientOverrides) {
+      // This is complex: we need to re-build without client overrides
+      const baseConfig = this._getBaseConfig();
+      finalConfig = foundry.utils.deepClone(baseConfig);
+      this._customMerge(finalConfig, this._userOverrides);
     }
-
     return finalConfig;
   }
 
   _getBaseConfig() {
     // A helper to get the config before user and client overrides are applied.
+    // This logic is duplicated from initializeForScene for this specific purpose.
     if (this.status.sceneHasProfiles) {
       const activeProfile =
         this._sceneProfiles.find((p) => p.id === this._activeProfileId) ||
         this._sceneProfiles[0];
       if (activeProfile?.config) {
-        // This is the fix. By merging with defaults here, we ensure that _getBaseConfig
-        // always returns a full, complete configuration object, not a sparse one.
-        // This makes the saving process much more robust.
-        return foundry.utils.mergeObject(
+        return this._reconcileOverrides(
           foundry.utils.deepClone(MODULE_DEFAULTS),
-          activeProfile.config
+          foundry.utils.deepClone(activeProfile.config)
         );
       }
     } else if (
       this._worldDefaultProfileName &&
       this._worldProfiles[this._worldDefaultProfileName]?.config
     ) {
-      // The same fix is applied here for world profiles.
-      return foundry.utils.mergeObject(
+      return this._reconcileOverrides(
         foundry.utils.deepClone(MODULE_DEFAULTS),
-        this._worldProfiles[this._worldDefaultProfileName].config
+        foundry.utils.deepClone(
+          this._worldProfiles[this._worldDefaultProfileName].config
+        )
       );
     }
     return foundry.utils.deepClone(MODULE_DEFAULTS);
@@ -5455,6 +5446,7 @@ class MapShineLifecycle {
     game.mapShine.effectsBloomLayer = new EffectsBloomLayer();
     game.mapShine.effectsBloomLayer.initialize();
 
+
     await loadingManager?.tick("MANAGERS_INIT");
 
     // 6. (NEW) Update the UI controls to reflect the finalized configuration.
@@ -5466,9 +5458,7 @@ class MapShineLifecycle {
     canvas.mapShine.lightingEffectManager = new LightingEffectManager(canvas);
     canvas.mapShine.ambientMaskManager = new AmbientMaskManager(canvas);
     canvas.mapShine.tokenMaskManager = new DynamicTokenMaskManager(canvas);
-    canvas.mapShine.overheadTileMaskManager = new OverheadTileMaskManager(
-      canvas
-    );
+    canvas.mapShine.overheadTileMaskManager = new OverheadTileMaskManager(canvas);
     await loadingManager?.tick("CANVAS_MANAGERS_INIT");
 
     // 8. Hide the loading screen.
@@ -7268,132 +7258,6 @@ class DynamicExposureManager {
   }
 }
 
-class PauseScreenManager {
-  /**
-   * Registers the necessary hooks to manage the custom pause screen.
-   * This is the single entry point for this system.
-   */
-  static initialize() {
-    // HOOK 1: Listen for in-session pause state changes.
-    Hooks.on("pauseGame", (paused) => {
-      if (paused) {
-        this._applyCustomPauseScreen();
-      } else {
-        this._revertCustomPauseScreen();
-      }
-    });
-
-    // HOOK 2: Check the initial state once the UI is fully ready.
-    Hooks.once("ready", () => {
-      if (game.paused) {
-        console.log(
-          "Map Shine | Game loaded in a paused state. Applying custom pause screen."
-        );
-        this._applyCustomPauseScreen();
-      }
-    });
-
-    console.log(
-      "Map Shine | Pause Screen Manager initialized and hooks are active."
-    );
-  }
-
-  /**
-   * Finds the #pause element in the DOM and applies custom styling.
-   * This function uses requestAnimationFrame to poll for the element, making it
-   * resilient to race conditions.
-   * @private
-   */
-  static _applyCustomPauseScreen() {
-    const MAX_ATTEMPTS = 120; // A generous timeout (approx. 2 seconds at 60fps)
-    let attempts = 0;
-
-    const findAndModify = () => {
-      const pauseElement = document.getElementById("pause");
-
-      if (pauseElement) {
-        console.log(
-          `MapShine | Found and applying custom style to #pause element after ${attempts} attempts.`
-        );
-
-        const customHTML = `
-          <div class="map-shine-pause-container">
-            <h1 class="map-shine-pause-title">SESSION PAUSED</h1>
-            <p class="map-shine-pause-subtitle">Please stand by...</p>
-            <div class="map-shine-pause-logo"></div>
-          </div>
-        `;
-
-        const customCSS = `
-          <style>
-            .custom-pause-screen {
-              display: flex; flex-direction: column; justify-content: center; align-items: center;
-              background: rgba(10, 0, 0, 0.75) !important;
-              backdrop-filter: blur(8px) grayscale(0.5);
-              border-top: 2px solid #ff4444; border-bottom: 2px solid #ff4444;
-              box-shadow: 0 0 20px rgba(255, 0, 0, 0.5) inset;
-              animation: none !important;
-            }
-            .map-shine-pause-container {
-              text-align: center; color: #fff; font-family: "Signika", sans-serif;
-              text-shadow: 0 0 10px #000; animation: fadeInContent 1.5s ease-out forwards;
-            }
-            .map-shine-pause-title {
-              font-size: 4em; margin: 0; letter-spacing: 5px; color: #ffcccc; text-transform: uppercase;
-            }
-            .map-shine-pause-subtitle {
-              font-size: 1.5em; margin: 10px 0 20px 0; color: #ff8888; font-style: italic;
-            }
-            .map-shine-pause-logo {
-              width: 80px; height: 80px;
-              background-image: url('modules/map-shine/assets/mm-logo.png');
-              background-size: contain; background-repeat: no-repeat; background-position: center;
-              margin: 0 auto; opacity: 0.8; animation: pulseLogo 4s ease-in-out infinite;
-            }
-            @keyframes fadeInContent {
-              from { opacity: 0; transform: translateY(20px); }
-              to { opacity: 1; transform: translateY(0); }
-            }
-            @keyframes pulseLogo {
-              0%, 100% { transform: scale(1); opacity: 0.8; }
-              50% { transform: scale(1.1); opacity: 1; }
-            }
-          </style>
-        `;
-
-        // Add our custom class instead of replacing the entire class list.
-        pauseElement.classList.add("custom-pause-screen");
-        pauseElement.innerHTML = customCSS + customHTML;
-
-        return;
-      }
-
-      attempts++;
-      if (attempts < MAX_ATTEMPTS) {
-        requestAnimationFrame(findAndModify);
-      } else {
-        console.warn(
-          "Map Shine | Timed out waiting for the #pause element to be added to the DOM."
-        );
-      }
-    };
-
-    requestAnimationFrame(findAndModify);
-  }
-
-  /**
-   * Resets the #pause element by removing our custom class. This allows Foundry's
-   * core scripts to manage it correctly and prepares it for the next pause.
-   * @private
-   */
-  static _revertCustomPauseScreen() {
-    const pauseElement = document.getElementById("pause");
-    if (pauseElement) {
-      pauseElement.classList.remove("custom-pause-screen");
-    }
-  }
-}
-
 class PauseEffectManager {
   constructor() {
     this._animationState = {
@@ -8031,19 +7895,19 @@ class OverheadEffectsManager {
 
 class OverheadEffectsLayer extends CanvasLayer {
   constructor() {
-    super();
-    this.managedTiles = new Map(); // key: tile.id, value: { sourceTile, sprite, blurFilter, lightingFilter }
-    this._boundOnCreateTile = this._onCreateTile.bind(this);
-    this._boundOnUpdateTile = this._onUpdateTile.bind(this);
-    this._boundOnDeleteTile = this._onDeleteTile.bind(this);
-    this._boundOnAnimate = this._onAnimate.bind(this);
-    this._destroyed = false;
-    this.isManagerEnabled = false;
+      super();
+      this.managedTiles = new Map(); // key: tile.id, value: { sourceTile, sprite, blurFilter, lightingFilter }
+      this._boundOnCreateTile = this._onCreateTile.bind(this);
+      this._boundOnUpdateTile = this._onUpdateTile.bind(this);
+      this._boundOnDeleteTile = this._onDeleteTile.bind(this);
+      this._boundOnAnimate = this._onAnimate.bind(this);
+      this._destroyed = false;
+      this.isManagerEnabled = false;
   }
 
   static getSettingsHTML() {
-    const effectKey = "overheadEffects";
-    const content = `
+      const effectKey = "overheadEffects";
+      const content = `
           <p class="description-text">Applies effects like blur and lighting interaction to tiles flagged as 'Overhead'.</p>
           <details id="details-overheadEffects-blur">
               <summary>
@@ -8130,242 +7994,229 @@ class OverheadEffectsLayer extends CanvasLayer {
               </div>
           </details>
       `;
-    return DebuggerUIBuilder._createAccordionHTML(
-      effectKey,
-      "Overhead Effects",
-      content
-    );
+      return DebuggerUIBuilder._createAccordionHTML(
+        effectKey,
+        "Overhead Effects",
+        content
+      );
   }
 
   async _draw(options) {
-    super._draw(options);
-    this.container = this.addChild(new PIXI.Container());
-    this.eventMode = "none";
-    this._destroyed = false;
+      super._draw(options);
+      this.container = this.addChild(new PIXI.Container());
+      this.eventMode = "none";
+      this._destroyed = false;
 
-    for (const tileDoc of canvas.scene.tiles) {
-      const tile = tileDoc.object;
-      if (tile) {
-        await this._manageTile(tile);
+      for (const tileDoc of canvas.scene.tiles) {
+          const tile = tileDoc.object;
+          if (tile) {
+              await this._manageTile(tile);
+          }
       }
-    }
 
-    Hooks.on("createTile", this._boundOnCreateTile);
-    Hooks.on("updateTile", this._boundOnUpdateTile);
-    Hooks.on("deleteTile", this._boundOnDeleteTile);
-    canvas.app.ticker.add(this._boundOnAnimate);
+      Hooks.on("createTile", this._boundOnCreateTile);
+      Hooks.on("updateTile", this._boundOnUpdateTile);
+      Hooks.on("deleteTile", this._boundOnDeleteTile);
+      canvas.app.ticker.add(this._boundOnAnimate);
 
-    this.updateFromConfig(game.mapShine.profileManager.activeConfig);
+      this.updateFromConfig(game.mapShine.profileManager.activeConfig);
   }
-
+  
   async _tearDown(options) {
-    if (this._destroyed) return;
-    this._destroyed = true;
-    canvas.app.ticker.remove(this._boundOnAnimate);
+      if (this._destroyed) return;
+      this._destroyed = true;
+      canvas.app.ticker.remove(this._boundOnAnimate);
+      
+      const tileIds = Array.from(this.managedTiles.keys());
+      for (const tileId of tileIds) {
+          this._removeManagedTile(tileId);
+      }
+      this.managedTiles.clear();
 
-    const tileIds = Array.from(this.managedTiles.keys());
-    for (const tileId of tileIds) {
-      this._removeManagedTile(tileId);
-    }
-    this.managedTiles.clear();
+      Hooks.off("createTile", this._boundOnCreateTile);
+      Hooks.off("updateTile", this._boundOnUpdateTile);
+      Hooks.off("deleteTile", this._boundOnDeleteTile);
 
-    Hooks.off("createTile", this._boundOnCreateTile);
-    Hooks.off("updateTile", this._boundOnUpdateTile);
-    Hooks.off("deleteTile", this._boundOnDeleteTile);
-
-    this.container?.destroy({ children: true });
-
-    return super._tearDown(options);
+      this.container?.destroy({children: true});
+      
+      return super._tearDown(options);
   }
 
   async _manageTile(tile) {
-    if (!tile || !tile.mesh) return;
-    const isOverhead = tile.document.overhead;
-    const isManaged = this.managedTiles.has(tile.id);
-
-    if (isOverhead && !isManaged) {
-      await this._addManagedTile(tile);
-    } else if (!isOverhead && isManaged) {
-      this._removeManagedTile(tile.id);
-    } else if (isOverhead && isManaged) {
-      this._updateSpriteTransform(tile.id);
-    }
-
-    if (tile.mesh) {
-      tile.mesh.visible = !this.managedTiles.has(tile.id);
-    }
+      if (!tile || !tile.mesh) return;
+      const isOverhead = tile.document.overhead;
+      const isManaged = this.managedTiles.has(tile.id);
+  
+      if (isOverhead && !isManaged) {
+        await this._addManagedTile(tile);
+      } else if (!isOverhead && isManaged) {
+        this._removeManagedTile(tile.id);
+      } else if (isOverhead && isManaged) {
+        this._updateSpriteTransform(tile.id);
+      }
+  
+      if(tile.mesh) {
+          tile.mesh.visible = !this.managedTiles.has(tile.id);
+      }
   }
 
   async _addManagedTile(tile) {
-    if (!tile.texture?.valid || this.managedTiles.has(tile.id)) return;
-
-    const sprite = new PIXI.Sprite(tile.texture);
-
-    const blurFilter = new PIXI.BlurFilter();
-    blurFilter.padding = 16;
-    const lightingFilter = new OverheadLightingFilter();
-
-    sprite.filters = [blurFilter, lightingFilter];
-
-    this.container.addChild(sprite);
-
-    this.managedTiles.set(tile.id, {
-      sourceTile: tile,
-      sprite,
-      blurFilter,
-      lightingFilter,
-    });
-
-    this._updateSpriteTransform(tile.id);
+      if (!tile.texture?.valid || this.managedTiles.has(tile.id)) return;
+  
+      const sprite = new PIXI.Sprite(tile.texture);
+      
+      const blurFilter = new PIXI.BlurFilter();
+      blurFilter.padding = 16;
+      const lightingFilter = new OverheadLightingFilter();
+      
+      sprite.filters = [blurFilter, lightingFilter];
+      
+      this.container.addChild(sprite);
+  
+      this.managedTiles.set(tile.id, {
+          sourceTile: tile,
+          sprite,
+          blurFilter,
+          lightingFilter,
+      });
+  
+      this._updateSpriteTransform(tile.id);
   }
 
   _updateSpriteTransform(tileId) {
-    if (!this.managedTiles.has(tileId)) return;
-    const { sourceTile, sprite } = this.managedTiles.get(tileId);
-    if (!sourceTile || sourceTile.destroyed || !sprite || sprite.destroyed) {
-      this._removeManagedTile(tileId);
-      return;
-    }
+      if (!this.managedTiles.has(tileId)) return;
+      const { sourceTile, sprite } = this.managedTiles.get(tileId);
+      if (!sourceTile || sourceTile.destroyed || !sprite || sprite.destroyed) {
+          this._removeManagedTile(tileId);
+          return;
+      }
 
-    sprite.texture = sourceTile.texture;
-    sprite.anchor.set(0.5);
-    sprite.position.set(sourceTile.center.x, sourceTile.center.y);
-    sprite.width = sourceTile.w;
-    sprite.height = sourceTile.h;
-    sprite.rotation = sourceTile.mesh.rotation;
-    sprite.alpha = sourceTile.mesh.worldAlpha;
-    sprite.tint = sourceTile.mesh.tint;
+      sprite.texture = sourceTile.texture;
+      sprite.anchor.set(0.5);
+      sprite.position.set(sourceTile.center.x, sourceTile.center.y);
+      sprite.width = sourceTile.w;
+      sprite.height = sourceTile.h;
+      sprite.rotation = sourceTile.mesh.rotation;
+      sprite.alpha = sourceTile.mesh.worldAlpha;
+      sprite.tint = sourceTile.mesh.tint;
   }
 
   _removeManagedTile(tileId) {
-    if (this.managedTiles.has(tileId)) {
-      const { sourceTile, sprite } = this.managedTiles.get(tileId);
-      if (sourceTile && !sourceTile.destroyed && sourceTile.mesh) {
-        sourceTile.mesh.visible = true; // Make original visible again
+      if (this.managedTiles.has(tileId)) {
+          const { sourceTile, sprite } = this.managedTiles.get(tileId);
+          if (sourceTile && !sourceTile.destroyed && sourceTile.mesh) {
+              sourceTile.mesh.visible = true; // Make original visible again
+          }
+          sprite?.destroy();
+          this.managedTiles.delete(tileId);
       }
-      sprite?.destroy();
-      this.managedTiles.delete(tileId);
-    }
   }
 
   _onAnimate(ticker) {
-    if (this._destroyed || this.managedTiles.size === 0) return;
+      if (this._destroyed || this.managedTiles.size === 0) return;
 
-    const deltaTime = ticker.deltaTime;
-    for (const tileId of this.managedTiles.keys()) {
-      this._updateTileEffect(tileId, deltaTime);
-    }
+      const deltaTime = ticker.deltaTime;
+      for (const tileId of this.managedTiles.keys()) {
+          this._updateTileEffect(tileId, deltaTime);
+      }
   }
 
   _updateTileEffect(tileId, deltaTime) {
-    if (!this.managedTiles.has(tileId)) return;
+      if (!this.managedTiles.has(tileId)) return;
 
-    const { sourceTile, sprite, blurFilter, lightingFilter } =
-      this.managedTiles.get(tileId);
+      const { sourceTile, sprite, blurFilter, lightingFilter } = this.managedTiles.get(tileId);
 
-    if (
-      !sourceTile ||
-      sourceTile.destroyed ||
-      !sprite ||
-      sprite.destroyed ||
-      !blurFilter ||
-      !lightingFilter
-    ) {
-      this._removeManagedTile(tileId);
-      return;
-    }
-
-    // Update sprite transform in case tile moved
-    this._updateSpriteTransform(tileId);
-
-    const config = game.mapShine.profileManager.activeConfig;
-    const oeConfig = config.overheadEffects;
-
-    const blurConfig = oeConfig.blur;
-    const isBlurActive = this.isManagerEnabled && blurConfig.enabled;
-    blurFilter.enabled = isBlurActive;
-    if (isBlurActive) {
-      blurFilter.quality = blurConfig.quality;
-      const currentZoom = canvas.stage.scale.x;
-      const maxBlurAmount = blurConfig.strength;
-      const minZoomForBlur = 0.5;
-      const maxZoomForBlur = canvas.scene?.maxScale ?? 3.0;
-      let blurFactor = 0;
-      if (maxZoomForBlur > minZoomForBlur) {
-        blurFactor =
-          (currentZoom - minZoomForBlur) / (maxZoomForBlur - minZoomForBlur);
+      if (!sourceTile || sourceTile.destroyed || !sprite || sprite.destroyed || !blurFilter || !lightingFilter) {
+          this._removeManagedTile(tileId);
+          return;
       }
-      blurFactor = Math.max(0, Math.min(1, blurFactor));
-      blurFilter.blur = maxBlurAmount * blurFactor;
-    }
 
-    const lightingConfig = oeConfig.lighting;
-    const isLightingActive = this.isManagerEnabled && lightingConfig.enabled;
-    lightingFilter.enabled = isLightingActive;
+      // Update sprite transform in case tile moved
+      this._updateSpriteTransform(tileId);
 
-    if (isLightingActive) {
-      const structuralTexture =
-        game.mapShine.resourceManager.getStructuralShadowTexture(deltaTime);
-      if (structuralTexture?.valid) {
-        const screen = canvas.app.renderer.screen;
-        lightingFilter.uniforms.uLightMask = structuralTexture;
-        lightingFilter.uniforms.uIntensity = lightingConfig.intensity;
-        lightingFilter.uniforms.uExposure = lightingConfig.exposure;
-        lightingFilter.uniforms.uGamma = lightingConfig.gamma;
-        lightingFilter.uniforms.uOffset = [
-          lightingConfig.offsetX,
-          lightingConfig.offsetY,
-        ];
-        lightingFilter.uniforms.uResolution = [screen.width, screen.height];
-      } else {
-        lightingFilter.enabled = false;
+      const config = game.mapShine.profileManager.activeConfig;
+      const oeConfig = config.overheadEffects;
+
+      const blurConfig = oeConfig.blur;
+      const isBlurActive = this.isManagerEnabled && blurConfig.enabled;
+      blurFilter.enabled = isBlurActive;
+      if (isBlurActive) {
+          blurFilter.quality = blurConfig.quality;
+          const currentZoom = canvas.stage.scale.x;
+          const maxBlurAmount = blurConfig.strength;
+          const minZoomForBlur = 0.5;
+          const maxZoomForBlur = canvas.scene?.maxScale ?? 3.0;
+          let blurFactor = 0;
+          if (maxZoomForBlur > minZoomForBlur) {
+              blurFactor = (currentZoom - minZoomForBlur) / (maxZoomForBlur - minZoomForBlur);
+          }
+          blurFactor = Math.max(0, Math.min(1, blurFactor));
+          blurFilter.blur = maxBlurAmount * blurFactor;
       }
-    }
+      
+      const lightingConfig = oeConfig.lighting;
+      const isLightingActive = this.isManagerEnabled && lightingConfig.enabled;
+      lightingFilter.enabled = isLightingActive;
+
+      if (isLightingActive) {
+          const structuralTexture = game.mapShine.resourceManager.getStructuralShadowTexture(deltaTime);
+          if (structuralTexture?.valid) {
+              const screen = canvas.app.renderer.screen;
+              lightingFilter.uniforms.uLightMask = structuralTexture;
+              lightingFilter.uniforms.uIntensity = lightingConfig.intensity;
+              lightingFilter.uniforms.uExposure = lightingConfig.exposure;
+              lightingFilter.uniforms.uGamma = lightingConfig.gamma;
+              lightingFilter.uniforms.uOffset = [lightingConfig.offsetX, lightingConfig.offsetY];
+              lightingFilter.uniforms.uResolution = [screen.width, screen.height];
+          } else {
+              lightingFilter.enabled = false;
+          }
+      }
   }
 
   async _onCreateTile(tileDoc) {
-    // Need a timeout to ensure tile.object is available
-    setTimeout(async () => {
-      const tile = tileDoc.object;
-      if (tile) await this._manageTile(tile);
-    }, 100);
+      // Need a timeout to ensure tile.object is available
+      setTimeout(async () => {
+          const tile = tileDoc.object;
+          if (tile) await this._manageTile(tile);
+      }, 100);
   }
 
   async _onUpdateTile(tileDoc) {
-    const tile = tileDoc.object;
-    if (tile) {
-      await this._manageTile(tile);
-    }
+      const tile = tileDoc.object;
+      if (tile) {
+          await this._manageTile(tile);
+      }
   }
 
   _onDeleteTile(tileDoc) {
-    this._removeManagedTile(tileDoc.id);
+      this._removeManagedTile(tileDoc.id);
   }
 
   async updateFromConfig(config) {
-    if (this._destroyed) return;
-    const oeConfig = config.overheadEffects;
-    this.isManagerEnabled = config.enabled && oeConfig.enabled;
+      if (this._destroyed) return;
+      const oeConfig = config.overheadEffects;
+      this.isManagerEnabled = config.enabled && oeConfig.enabled;
 
-    // Force an update on all tiles
-    for (const tileId of this.managedTiles.keys()) {
-      this._updateTileEffect(tileId, canvas.app.ticker.deltaTime);
-    }
+      // Force an update on all tiles
+      for (const tileId of this.managedTiles.keys()) {
+          this._updateTileEffect(tileId, canvas.app.ticker.deltaTime);
+      }
 
-    // When the effect is disabled, we need to make original tiles visible again.
-    if (!this.isManagerEnabled) {
-      for (const { sourceTile } of this.managedTiles.values()) {
-        if (sourceTile && sourceTile.mesh) {
-          sourceTile.mesh.visible = true;
-        }
+      // When the effect is disabled, we need to make original tiles visible again.
+      if(!this.isManagerEnabled) {
+          for(const {sourceTile} of this.managedTiles.values()){
+              if(sourceTile && sourceTile.mesh) {
+                  sourceTile.mesh.visible = true;
+              }
+          }
+      } else {
+           for(const {sourceTile} of this.managedTiles.values()){
+              if(sourceTile && sourceTile.mesh) {
+                  sourceTile.mesh.visible = false;
+              }
+          }
       }
-    } else {
-      for (const { sourceTile } of this.managedTiles.values()) {
-        if (sourceTile && sourceTile.mesh) {
-          sourceTile.mesh.visible = false;
-        }
-      }
-    }
   }
 }
 
@@ -8424,8 +8275,8 @@ class OverheadTileMaskManager {
       // The check for tile.mesh.visible has been removed to ensure all
       // overhead tiles are always included in the mask regardless of their current visibility state.
       if (tile.document.overhead && tile.mesh) {
-        currentOverheadIds.add(tile.id);
-        let sprite = this.overheadSprites.get(tile.id);
+          currentOverheadIds.add(tile.id);
+          let sprite = this.overheadSprites.get(tile.id);
 
         if (!sprite) {
           sprite = new PIXI.Sprite(tile.texture);
@@ -18890,7 +18741,7 @@ class MapPointsInteractionManager {
 
 class MetallicShineFilter extends PIXI.Filter {
   constructor(options = {}) {
-    const vertexSrc = `
+      const vertexSrc = `
           attribute vec2 aVertexPosition;
           attribute vec2 aTextureCoord;
           uniform mat3 projectionMatrix;
@@ -18904,7 +18755,7 @@ class MetallicShineFilter extends PIXI.Filter {
           }
       `;
 
-    const fragmentSrc = `
+      const fragmentSrc = `
           precision mediump float;
           varying vec2 vTextureCoord;
           varying vec2 vScreenCoord;
@@ -18957,21 +18808,21 @@ class MetallicShineFilter extends PIXI.Filter {
           }
       `;
 
-    super(vertexSrc, fragmentSrc, {
-      uSpecularMap: PIXI.Texture.EMPTY,
-      uStripePattern: PIXI.Texture.EMPTY,
-      uCloudOcclusionMask: PIXI.Texture.EMPTY,
-      uCloudOcclusionEnabled: false,
-      uCloudOcclusionIntensity: 1.0,
-      ...options,
-    });
+      super(vertexSrc, fragmentSrc, {
+          uSpecularMap: PIXI.Texture.EMPTY,
+          uStripePattern: PIXI.Texture.EMPTY,
+          uCloudOcclusionMask: PIXI.Texture.EMPTY,
+          uCloudOcclusionEnabled: false,
+          uCloudOcclusionIntensity: 1.0,
+          ...options,
+      });
   }
 }
 
 class MetallicStripePatternFilter extends PIXI.Filter {
   constructor(options = {}) {
-    const vertexSrc = PIXI.Filter.defaultVertexSrc;
-    const fragmentSrc = `
+      const vertexSrc = PIXI.Filter.defaultVertexSrc;
+      const fragmentSrc = `
           precision mediump float;
           varying vec2 vTextureCoord;
 
@@ -19064,74 +18915,71 @@ class MetallicStripePatternFilter extends PIXI.Filter {
           }
       `;
 
-    super(vertexSrc, fragmentSrc, {
-      uTime: 0.0,
-      uSpeed: options.uSpeed ?? 0.1,
-      uAngle: options.uAngle ?? 45.0,
-      uScale: options.uScale ?? 8.0,
-      uEvolution: options.uEvolution ?? 0.2,
-      uThreshold: options.uThreshold ?? 0.6,
-      uSoftness: options.uSoftness ?? 0.1,
-      uWidthVariationAmount: options.uWidthVariationAmount ?? 0.4,
-      uWidthVariationScale: options.uWidthVariationScale ?? 0.2,
-      uStrengthVariation: options.uStrengthVariation ?? 0.3,
-    });
+      super(vertexSrc, fragmentSrc, {
+          uTime: 0.0,
+          uSpeed: options.uSpeed ?? 0.1,
+          uAngle: options.uAngle ?? 45.0,
+          uScale: options.uScale ?? 8.0,
+          uEvolution: options.uEvolution ?? 0.2,
+          uThreshold: options.uThreshold ?? 0.6,
+          uSoftness: options.uSoftness ?? 0.1,
+          uWidthVariationAmount: options.uWidthVariationAmount ?? 0.4,
+          uWidthVariationScale: options.uWidthVariationScale ?? 0.2,
+          uStrengthVariation: options.uStrengthVariation ?? 0.3,
+      });
   }
 }
 
 class MetallicShineLayer extends CanvasLayer {
   constructor() {
-    super();
-    // For compositing _Specular maps
-    this.sourceContainer = null;
-    this.specularCompositeTexture = null;
+      super();
+      // For compositing _Specular maps
+      this.sourceContainer = null;
+      this.specularCompositeTexture = null;
 
-    // For generating the stripe pattern
-    this.stripePatternFilter = null; // The original B&W stripe generator
-    this.stripeGeneratorSprite = null;
-    this.stripePatternTexture = null;
+      // For generating the stripe pattern
+      this.stripePatternFilter = null; // The original B&W stripe generator
+      this.stripeGeneratorSprite = null;
+      this.stripePatternTexture = null;
 
-    // For the final composition
-    this.shineFilter = null; // The new filter that combines the two textures
-    this.effectSprite = null; // The final sprite that gets rendered
-
-    this.time = 0;
-    this._needsMaskUpdate = true;
+      // For the final composition
+      this.shineFilter = null;          // The new filter that combines the two textures
+      this.effectSprite = null;         // The final sprite that gets rendered
+      
+      this.time = 0;
+      this._needsMaskUpdate = true;
   }
 
   static getSettingsHTML() {
     const effectKey = "baseShine";
     const path = `${effectKey}.worldBasedOnly`;
     const checkboxHTML = DebuggerUIBuilder._createCheckboxHTML(
-      path,
-      "World Based Only",
-      false,
-      "Ignores scene-specific settings for this effect and uses the configured World Default Profile instead. A default profile must be set."
+        path,
+        "World Based Only",
+        false,
+        "Ignores scene-specific settings for this effect and uses the configured World Default Profile instead. A default profile must be set."
     );
     const iconHTML = `<span class="world-based-icon" data-world-based-path="${path}" title="World Based: This effect uses the world-level default profile, ignoring scene-specific settings."><i class="fas fa-globe"></i></span>`;
 
     const content = `
       ${checkboxHTML}
       <hr style="border-color: #555; margin: 6px 0;">
-      ${DebuggerUIBuilder._createTextureInputHTML(
-        "specular",
-        "Specular Map (_Specular)"
-      )}
+      ${DebuggerUIBuilder._createTextureInputHTML("specular", "Specular Map (_Specular)")}
       <p class="description-text">Displays an animated stripe pattern, masked by the specular map.</p>
       
       ${DebuggerUIBuilder._createSelectHTML(
-        "baseShine.compositing.layerBlendMode",
-        "Blend Mode",
-        BLEND_MODE_OPTIONS
+          "baseShine.compositing.layerBlendMode",
+          "Blend Mode",
+          BLEND_MODE_OPTIONS
       )}
 
       ${DebuggerUIBuilder._createSliderHTML(
-        "baseShine.animation.globalIntensity",
-        "Global Intensity (Alpha)",
-        0,
-        2,
-        0.05,
-        "Controls the opacity of the final effect."
+          "baseShine.animation.globalIntensity",
+          "Global Intensity (Alpha)",
+          0,
+          2,
+          0.05,
+          "Controls the opacity of the final effect."
       )}
 
       <details id="details-baseShine-pattern-stripes">
@@ -19139,182 +18987,164 @@ class MetallicShineLayer extends CanvasLayer {
           <div style="padding-left: 15px;">
               <p class="description-text">Uses procedural noise to create organic, varied stripes.</p>
               ${DebuggerUIBuilder._createSliderHTML(
-                "baseShine.pattern.stripes.speed",
-                "Scroll Speed",
-                -2.0,
-                2.0,
-                0.01,
-                "How fast the pattern scrolls along its angle."
+                  "baseShine.pattern.stripes.speed",
+                  "Scroll Speed",
+                  -2.0,
+                  2.0,
+                  0.01,
+                  "How fast the pattern scrolls along its angle."
               )}
               ${DebuggerUIBuilder._createSliderHTML(
-                "baseShine.pattern.stripes.angle",
-                "Angle",
-                0,
-                180,
-                1,
-                "The direction of the stripes."
+                  "baseShine.pattern.stripes.angle",
+                  "Angle",
+                  0,
+                  180,
+                  1,
+                  "The direction of the stripes."
               )}
               ${DebuggerUIBuilder._createSliderHTML(
-                "baseShine.pattern.stripes.scale",
-                "Scale",
-                1,
-                50,
-                0.5,
-                "Overall size of the stripes and gaps. Higher values mean smaller features."
+                  "baseShine.pattern.stripes.scale",
+                  "Scale",
+                  1,
+                  50,
+                  0.5,
+                  "Overall size of the stripes and gaps. Higher values mean smaller features."
               )}
               ${DebuggerUIBuilder._createSliderHTML(
-                "baseShine.pattern.stripes.evolution",
-                "Evolution",
-                0,
-                1,
-                0.01,
-                "The 'boiling' or internal animation speed of the noise."
-              )}
-              <hr style="border-color: #555; margin: 6px 0;">
-              ${DebuggerUIBuilder._createSliderHTML(
-                "baseShine.pattern.stripes.threshold",
-                "Threshold",
-                0,
-                1,
-                0.01,
-                "The cutoff point for noise to become a stripe. Higher values create thinner stripes."
-              )}
-              ${DebuggerUIBuilder._createSliderHTML(
-                "baseShine.pattern.stripes.softness",
-                "Edge Softness",
-                0.01,
-                0.5,
-                0.005,
-                "How blurry the edges of the stripes are."
+                  "baseShine.pattern.stripes.evolution",
+                  "Evolution",
+                  0,
+                  1,
+                  0.01,
+                  "The 'boiling' or internal animation speed of the noise."
               )}
               <hr style="border-color: #555; margin: 6px 0;">
               ${DebuggerUIBuilder._createSliderHTML(
-                "baseShine.pattern.stripes.widthVariationAmount",
-                "Width Variation",
-                0,
-                1,
-                0.01,
-                "The amount of randomness in stripe and gap widths."
+                  "baseShine.pattern.stripes.threshold",
+                  "Threshold",
+                  0,
+                  1,
+                  0.01,
+                  "The cutoff point for noise to become a stripe. Higher values create thinner stripes."
               )}
               ${DebuggerUIBuilder._createSliderHTML(
-                "baseShine.pattern.stripes.widthVariationScale",
-                "Width Variation Scale",
-                0.05,
-                1,
-                0.01,
-                "The scale of the noise that controls width variation. Should be smaller than the main scale."
+                  "baseShine.pattern.stripes.softness",
+                  "Edge Softness",
+                  0.01,
+                  0.5,
+                  0.005,
+                  "How blurry the edges of the stripes are."
+              )}
+              <hr style="border-color: #555; margin: 6px 0;">
+              ${DebuggerUIBuilder._createSliderHTML(
+                  "baseShine.pattern.stripes.widthVariationAmount",
+                  "Width Variation",
+                  0,
+                  1,
+                  0.01,
+                  "The amount of randomness in stripe and gap widths."
               )}
               ${DebuggerUIBuilder._createSliderHTML(
-                "baseShine.pattern.stripes.strengthVariation",
-                "Strength Variation",
-                0,
-                1,
-                0.01,
-                "How much the brightness of individual stripes varies."
+                  "baseShine.pattern.stripes.widthVariationScale",
+                  "Width Variation Scale",
+                  0.05,
+                  1,
+                  0.01,
+                  "The scale of the noise that controls width variation. Should be smaller than the main scale."
+              )}
+              ${DebuggerUIBuilder._createSliderHTML(
+                  "baseShine.pattern.stripes.strengthVariation",
+                  "Strength Variation",
+                  0,
+                  1,
+                  0.01,
+                  "How much the brightness of individual stripes varies."
               )}
           </div>
       </details>
       <details id="details-baseShine-cloudOcclusion">
           <summary><span class="accordion-toggle"></span>
               <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                "baseShine.cloudOcclusion.enabled",
-                "Cloud Occlusion",
-                true
+                  "baseShine.cloudOcclusion.enabled",
+                  "Cloud Occlusion",
+                  true
               )}</div>
           </summary>
           <div style="padding-left: 15px;">
               <p class="description-text">Reduces shine intensity based on cloud cover, making metal less reflective under overcast skies. Requires the Cloud Shadows effect to be active.</p>
               ${DebuggerUIBuilder._createSliderHTML(
-                "baseShine.cloudOcclusion.intensity",
-                "Intensity",
-                0,
-                1,
-                0.01,
-                "How strongly the clouds block the shine. 1.0 means a full shadow completely removes the shine."
+                  "baseShine.cloudOcclusion.intensity",
+                  "Intensity",
+                  0,
+                  1,
+                  0.01,
+                  "How strongly the clouds block the shine. 1.0 means a full shadow completely removes the shine."
               )}
           </div>
       </details>
   `;
     return DebuggerUIBuilder._createAccordionHTML(
-      effectKey,
-      "Metallic Shine",
-      content,
-      iconHTML
+        effectKey,
+        "Metallic Shine",
+        content,
+        iconHTML
     );
-  }
+}
 
   async _draw(options) {
-    this._destroyed = false;
-    this.eventMode = "none";
-    this._needsMaskUpdate = true;
-    this.time = 0;
-
-    const renderer = canvas.app.renderer;
-    const screen = renderer.screen;
-
-    this.sourceContainer = new PIXI.Container();
-    this.specularCompositeTexture = PIXI.RenderTexture.create({
-      width: screen.width,
-      height: screen.height,
-    });
-
-    try {
-      this.stripePatternFilter = new MetallicStripePatternFilter();
-      this.shineFilter = new MetallicShineFilter();
-    } catch (e) {
-      console.error("MapShine | Failed to create Metallic Shine filters.", e);
-    }
-
-    this.stripePatternTexture = PIXI.RenderTexture.create({
-      width: screen.width,
-      height: screen.height,
-    });
-    this.stripeGeneratorSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
-    this.stripeGeneratorSprite.width = screen.width;
-    this.stripeGeneratorSprite.height = screen.height;
-    this.stripeGeneratorSprite.filters = [this.stripePatternFilter];
-
-    this.effectSprite = new PIXI.Sprite(PIXI.Texture.WHITE); // Texture is irrelevant, filter generates output
-    this.effectSprite.filters = this.shineFilter ? [this.shineFilter] : [];
-    this.addChild(this.effectSprite);
-
-    this._onAnimateBound = this._onAnimate.bind(this);
-    this._onResizeBound = this._onResize.bind(this);
-    this._onPanBound = () => {
+      this._destroyed = false;
+      this.eventMode = "none";
       this._needsMaskUpdate = true;
-    };
+      this.time = 0;
 
-    canvas.app.ticker.add(this._onAnimateBound);
-    window.addEventListener("resize", this._onResizeBound);
-    Hooks.on("canvasPan", this._onPanBound);
+      const renderer = canvas.app.renderer;
+      const screen = renderer.screen;
+
+      this.sourceContainer = new PIXI.Container();
+      this.specularCompositeTexture = PIXI.RenderTexture.create({ width: screen.width, height: screen.height });
+      
+      try {
+          this.stripePatternFilter = new MetallicStripePatternFilter();
+          this.shineFilter = new MetallicShineFilter();
+      } catch (e) {
+          console.error("MapShine | Failed to create Metallic Shine filters.", e);
+      }
+
+      this.stripePatternTexture = PIXI.RenderTexture.create({ width: screen.width, height: screen.height });
+      this.stripeGeneratorSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
+      this.stripeGeneratorSprite.width = screen.width;
+      this.stripeGeneratorSprite.height = screen.height;
+      this.stripeGeneratorSprite.filters = [this.stripePatternFilter];
+
+      this.effectSprite = new PIXI.Sprite(PIXI.Texture.WHITE); // Texture is irrelevant, filter generates output
+      this.effectSprite.filters = this.shineFilter ? [this.shineFilter] : [];
+      this.addChild(this.effectSprite);
+
+      this._onAnimateBound = this._onAnimate.bind(this);
+      this._onResizeBound = this._onResize.bind(this);
+      this._onPanBound = () => { this._needsMaskUpdate = true; };
+
+      canvas.app.ticker.add(this._onAnimateBound);
+      window.addEventListener("resize", this._onResizeBound);
+      Hooks.on("canvasPan", this._onPanBound);
   }
 
   _onAnimate(deltaTime) {
-    if (
-      this._destroyed ||
-      !this.visible ||
-      !this.shineFilter ||
-      !game.mapShine.resourceManager
-    )
-      return;
+    if (this._destroyed || !this.visible || !this.shineFilter || !game.mapShine.resourceManager) return;
 
     // Re-render the composite specular map if camera moved
     if (this._needsMaskUpdate) {
-      this._renderSpecularCompositeTexture();
+        this._renderSpecularCompositeTexture();
     }
-
+  
     // Update and render the B&W stripe pattern
     const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
     this.time += deltaTime * timeFactor;
     this.stripePatternFilter.uniforms.uTime = this.time;
-    canvas.app.renderer.render(this.stripeGeneratorSprite, {
-      renderTexture: this.stripePatternTexture,
-      clear: true,
-    });
-
+    canvas.app.renderer.render(this.stripeGeneratorSprite, { renderTexture: this.stripePatternTexture, clear: true });
+    
     // Get the cloud shadow texture from the resource manager
-    const cloudTexture =
-      game.mapShine.resourceManager.getCloudShadowTexture(deltaTime);
+    const cloudTexture = game.mapShine.resourceManager.getCloudShadowTexture(deltaTime);
 
     // Update the final composition filter's uniforms
     const u = this.shineFilter.uniforms;
@@ -19331,158 +19161,146 @@ class MetallicShineLayer extends CanvasLayer {
     this.effectSprite.position.copyFrom(topLeft);
     this.effectSprite.width = screen.width / stage.scale.x;
     this.effectSprite.height = screen.height / stage.scale.y;
-  }
+}
 
   _renderSpecularCompositeTexture() {
-    if (!this.sourceContainer || !this.specularCompositeTexture) return;
-    canvas.app.renderer.render(this.sourceContainer, {
-      renderTexture: this.specularCompositeTexture,
-      clear: true,
-      transform: canvas.stage.transform.worldTransform,
-    });
-    this._needsMaskUpdate = false;
+      if (!this.sourceContainer || !this.specularCompositeTexture) return;
+      canvas.app.renderer.render(this.sourceContainer, {
+          renderTexture: this.specularCompositeTexture,
+          clear: true,
+          transform: canvas.stage.transform.worldTransform,
+      });
+      this._needsMaskUpdate = false;
   }
 
   async updateEffectTargets(targets) {
-    if (this._destroyed || !this.sourceContainer) return;
+      if (this._destroyed || !this.sourceContainer) return;
 
-    const allTargets = new Map([
-      ["background", targets.background],
-      ...targets.tiles.entries(),
-    ]);
+      const allTargets = new Map([
+          ["background", targets.background],
+          ...targets.tiles.entries(),
+      ]);
 
-    const spritesToKeep = new Set();
-    for (const [id, targetData] of allTargets.entries()) {
-      if (targetData?.specular) {
-        let sprite = this.sourceContainer.children.find(
-          (child) => child.name === id
-        );
-        if (!sprite) {
-          sprite = new PIXI.Sprite();
-          sprite.name = id;
-          this.sourceContainer.addChild(sprite);
-        }
-        spritesToKeep.add(sprite);
-        await this._updateSpriteTransform(
-          sprite,
-          targetData.specular,
-          targetData.rect
-        );
+      const spritesToKeep = new Set();
+      for (const [id, targetData] of allTargets.entries()) {
+          if (targetData?.specular) {
+              let sprite = this.sourceContainer.children.find(child => child.name === id);
+              if (!sprite) {
+                  sprite = new PIXI.Sprite();
+                  sprite.name = id;
+                  this.sourceContainer.addChild(sprite);
+              }
+              spritesToKeep.add(sprite);
+              await this._updateSpriteTransform(sprite, targetData.specular, targetData.rect);
+          }
       }
-    }
+    
+      this.sourceContainer.children.slice().forEach(child => {
+          if (!spritesToKeep.has(child)) {
+              this.sourceContainer.removeChild(child);
+              child.destroy();
+          }
+      });
 
-    this.sourceContainer.children.slice().forEach((child) => {
-      if (!spritesToKeep.has(child)) {
-        this.sourceContainer.removeChild(child);
-        child.destroy();
-      }
-    });
-
-    this._needsMaskUpdate = true;
+      this._needsMaskUpdate = true;
   }
 
   async _updateSpriteTransform(sprite, texturePath, rect) {
-    const currentPath = sprite.texture?.baseTexture?.resource?.src;
-    if (texturePath !== currentPath) {
-      try {
-        sprite.texture = await foundry.canvas.loadTexture(texturePath);
-      } catch (e) {
-        sprite.texture = PIXI.Texture.EMPTY;
+      const currentPath = sprite.texture?.baseTexture?.resource?.src;
+      if (texturePath !== currentPath) {
+          try {
+              sprite.texture = await foundry.canvas.loadTexture(texturePath);
+          } catch (e) {
+              sprite.texture = PIXI.Texture.EMPTY;
+          }
       }
-    }
-    if (!sprite.texture.valid || !rect) return;
-    sprite.anchor.set(0.5);
-    sprite.position.set(rect.x + rect.width / 2, rect.y + rect.height / 2);
-    sprite.width = rect.width;
-    sprite.height = rect.height;
-    sprite.rotation = rect.rotation || 0;
+      if (!sprite.texture.valid || !rect) return;
+      sprite.anchor.set(0.5);
+      sprite.position.set(rect.x + rect.width / 2, rect.y + rect.height / 2);
+      sprite.width = rect.width;
+      sprite.height = rect.height;
+      sprite.rotation = rect.rotation || 0;
   }
 
   async updateFromConfig(config) {
-    const bsConfig = config.baseShine;
-    this.visible = config.enabled && bsConfig.enabled;
+      const bsConfig = config.baseShine;
+      this.visible = config.enabled && bsConfig.enabled;
 
-    this.blendMode = bsConfig.compositing.layerBlendMode;
+      this.blendMode = bsConfig.compositing.layerBlendMode;
+      
+      if (this.effectSprite) {
+          this.effectSprite.alpha = bsConfig.animation.globalIntensity;
+      }
 
-    if (this.effectSprite) {
-      this.effectSprite.alpha = bsConfig.animation.globalIntensity;
-    }
-
-    if (this.stripePatternFilter) {
-      const stripes = bsConfig.pattern.stripes;
-      const u = this.stripePatternFilter.uniforms;
-      u.uSpeed = stripes.speed;
-      u.uAngle = stripes.angle;
-      u.uScale = stripes.scale;
-      u.uEvolution = stripes.evolution;
-      u.uThreshold = stripes.threshold;
-      u.uSoftness = stripes.softness;
-      u.uWidthVariationAmount = stripes.widthVariationAmount;
-      u.uWidthVariationScale = stripes.widthVariationScale;
-      u.uStrengthVariation = stripes.strengthVariation;
+      if (this.stripePatternFilter) {
+        const stripes = bsConfig.pattern.stripes;
+        const u = this.stripePatternFilter.uniforms;
+        u.uSpeed = stripes.speed;
+        u.uAngle = stripes.angle;
+        u.uScale = stripes.scale;
+        u.uEvolution = stripes.evolution;
+        u.uThreshold = stripes.threshold;
+        u.uSoftness = stripes.softness;
+        u.uWidthVariationAmount = stripes.widthVariationAmount;
+        u.uWidthVariationScale = stripes.widthVariationScale;
+        u.uStrengthVariation = stripes.strengthVariation;
     }
 
     if (this.shineFilter) {
-      const cloudOcclusion = bsConfig.cloudOcclusion;
-      const u = this.shineFilter.uniforms;
-      u.uCloudOcclusionEnabled = cloudOcclusion.enabled;
-      u.uCloudOcclusionIntensity = cloudOcclusion.intensity;
+        const cloudOcclusion = bsConfig.cloudOcclusion;
+        const u = this.shineFilter.uniforms;
+        u.uCloudOcclusionEnabled = cloudOcclusion.enabled;
+        u.uCloudOcclusionIntensity = cloudOcclusion.intensity;
     }
   }
 
   _onResize() {
-    if (this._destroyed) return;
-    const renderer = canvas.app.renderer;
-    this.specularCompositeTexture?.resize(
-      renderer.screen.width,
-      renderer.screen.height
-    );
-    this.stripePatternTexture?.resize(
-      renderer.screen.width,
-      renderer.screen.height
-    );
-
-    if (this.stripeGeneratorSprite) {
-      this.stripeGeneratorSprite.width = renderer.screen.width;
-      this.stripeGeneratorSprite.height = renderer.screen.height;
-    }
-
-    if (this.effectSprite) {
-      const stage = canvas.stage;
-      const screen = canvas.app.screen;
-      const topLeft = stage.toLocal({ x: 0, y: 0 });
-      this.effectSprite.position.copyFrom(topLeft);
-      this.effectSprite.width = screen.width / stage.scale.x;
-      this.effectSprite.height = screen.height / stage.scale.y;
-    }
-    this._needsMaskUpdate = true;
+      if (this._destroyed) return;
+      const renderer = canvas.app.renderer;
+      this.specularCompositeTexture?.resize(renderer.screen.width, renderer.screen.height);
+      this.stripePatternTexture?.resize(renderer.screen.width, renderer.screen.height);
+      
+      if (this.stripeGeneratorSprite) {
+          this.stripeGeneratorSprite.width = renderer.screen.width;
+          this.stripeGeneratorSprite.height = renderer.screen.height;
+      }
+      
+      if (this.effectSprite) {
+           const stage = canvas.stage;
+           const screen = canvas.app.screen;
+           const topLeft = stage.toLocal({ x: 0, y: 0 });
+           this.effectSprite.position.copyFrom(topLeft);
+           this.effectSprite.width = screen.width / stage.scale.x;
+           this.effectSprite.height = screen.height / stage.scale.y;
+      }
+      this._needsMaskUpdate = true;
   }
 
   async _tearDown(options) {
-    if (this._destroyed) return;
-    this._destroyed = true;
+      if (this._destroyed) return;
+      this._destroyed = true;
 
-    canvas.app.ticker.remove(this._onAnimateBound);
-    window.removeEventListener("resize", this._onResizeBound);
-    Hooks.off("canvasPan", this._onPanBound);
+      canvas.app.ticker.remove(this._onAnimateBound);
+      window.removeEventListener("resize", this._onResizeBound);
+      Hooks.off("canvasPan", this._onPanBound);
+    
+      this.sourceContainer?.destroy({ children: true });
+      this.specularCompositeTexture?.destroy(true);
+      this.stripePatternFilter?.destroy();
+      this.stripeGeneratorSprite?.destroy();
+      this.stripePatternTexture?.destroy(true);
+      this.shineFilter?.destroy();
+      this.effectSprite?.destroy();
 
-    this.sourceContainer?.destroy({ children: true });
-    this.specularCompositeTexture?.destroy(true);
-    this.stripePatternFilter?.destroy();
-    this.stripeGeneratorSprite?.destroy();
-    this.stripePatternTexture?.destroy(true);
-    this.shineFilter?.destroy();
-    this.effectSprite?.destroy();
+      this.sourceContainer = null;
+      this.specularCompositeTexture = null;
+      this.stripePatternFilter = null;
+      this.stripeGeneratorSprite = null;
+      this.stripePatternTexture = null;
+      this.shineFilter = null;
+      this.effectSprite = null;
 
-    this.sourceContainer = null;
-    this.specularCompositeTexture = null;
-    this.stripePatternFilter = null;
-    this.stripeGeneratorSprite = null;
-    this.stripePatternTexture = null;
-    this.shineFilter = null;
-    this.effectSprite = null;
-
-    await super._tearDown(options);
+      await super._tearDown(options);
   }
 }
 
@@ -29386,41 +29204,21 @@ Hooks.once("ready", () => {
   }
 });
 
-Hooks.on("updateScene", (scene, data, options) => {
+Hooks.on("updateScene", (scene, data) => {
+  // Only react to updates on the currently viewed scene.
   if (!scene.isView) return;
 
+  // Check if our specific flag was changed, or if the background image was changed.
   const flagPath = `flags.${MODULE_ID}`;
   const backgroundPath = "background.src";
-  const profileIdPath = `flags.${MODULE_ID}.activeProfileId`;
-  const sceneProfilesPath = `flags.${MODULE_ID}.profiles`;
-
-  // Check for texture discovery updates from the GM.
   if (
-    foundry.utils.hasProperty(data, `${flagPath}.mapShineTargets`) ||
+    foundry.utils.hasProperty(data, flagPath) ||
     foundry.utils.hasProperty(data, backgroundPath)
   ) {
+    console.log(
+      "Map Shine | Detected relevant scene update. Refreshing targets for all clients."
+    );
     game.mapShine?.effectTargetManager.refresh();
-  }
-
-  // This is the main synchronization logic for profile changes.
-  if (foundry.utils.hasProperty(data, sceneProfilesPath)) {
-    // Check if the current user initiated this update. If so, they have already cleared their
-    // own overrides, and their UI will be updated by their original action.
-    // This prevents the race condition. Other clients will proceed.
-    if (options.userId === game.user.id) return;
-    
-    game.mapShine?.profileManager.initializeForScene();
-    game.mapShine?.profileManager.updateAllSystemsFromConfig();
-    if (game.mapShine.debugger) {
-      game.mapShine.debugger.render();
-    }
-  }
-
-  // Check for a change in the active profile ID to trigger transitions for non-GM clients.
-  if (foundry.utils.hasProperty(data, profileIdPath)) {
-    if (!game.user.isGM) {
-      game.mapShine?.profileManager.handleRemoteProfileChange();
-    }
   }
 });
 

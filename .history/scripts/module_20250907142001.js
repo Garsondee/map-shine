@@ -1,3 +1,7 @@
+// TODO: If Foundry loads up in the 'Paused State' then animation/time doesn't actually work. This isn't broken if Foundry loads up and isn't paused. This is caused by the pause manager system.
+
+
+
 // TODO: The Highlight Adjustments aren't being saved to the scene appearance profile and aren't loading accurately.
 // TODO: The metallic shine 'stripes' are too wide and could do with having variable gaps between them.
 // TODO: Specular renders over the top of 'Overhead Effects'
@@ -5,6 +9,8 @@
 // TODO: Overhead Effect's "Shadow" isn't working. No shadow is visible.
 
 // LONG LONG TERM TODO: Could you create a system which places a formal 'input' and 'output' on layers, textures and intermediate textures/masks so that it would then be triviually easy to have individual CC adjustments for every effect?
+
+
 
 /******************************************************************************
  *
@@ -3060,6 +3066,9 @@ class MapShineInitialiser {
     // Initialize the self-contained manager for the custom pause screen.
     PauseScreenManager.initialize();
 
+
+
+
     Hooks.on("createTile", () => game.mapShine?.effectTargetManager.refresh());
     Hooks.on("updateTile", () => game.mapShine?.effectTargetManager.refresh());
     Hooks.on("deleteTile", () => game.mapShine?.effectTargetManager.refresh());
@@ -3249,18 +3258,25 @@ class ProfileManager {
     }
 
     // --- World-Based Overrides ---
-    // If the current profile source is from the scene, check if any effects within the scene's own
-    // configuration are flagged to use the world default instead.
-    const worldConfig = this._worldProfiles[this._worldDefaultProfileName]?.config;
-    if (this.status.profileSource === "scene" && worldConfig) {
-      // Iterate over the keys in the scene's base configuration.
-      for (const key in baseConfig) {
-        // Check if an effect in the SCENE config is flagged as 'worldBasedOnly' and a corresponding effect exists in the world config.
-        if (baseConfig[key]?.worldBasedOnly === true && worldConfig[key]) {
-          // If so, completely replace the scene's settings for that effect with the world's settings.
-          baseConfig[key] = foundry.utils.deepClone(worldConfig[key]);
+    // If the current profile source is from the scene, check the world profile for effects flagged as 'worldBasedOnly'.
+    if (
+      this.status.profileSource === "scene" &&
+      this._worldDefaultProfileName &&
+      this._worldProfiles[this._worldDefaultProfileName]?.config
+    ) {
+      const worldConfig =
+        this._worldProfiles[this._worldDefaultProfileName].config;
+      // Iterate over the keys in the world configuration.
+      for (const key in worldConfig) {
+        // Check if an effect in the world config is flagged as 'worldBasedOnly' and also exists in the scene's config.
+        if (worldConfig[key]?.worldBasedOnly === true && baseConfig[key]) {
+          // This merges the world settings for the effect on top of the scene settings.
+          this._customMerge(
+            baseConfig[key],
+            foundry.utils.deepClone(worldConfig[key])
+          );
           console.log(
-            `Map Shine | Effect '${key}' is flagged as world-based in the scene profile. Overriding with world settings.`
+            `Map Shine | Effect '${key}' is world-based. Overriding scene settings with world settings.`
           );
         }
       }
@@ -3399,25 +3415,23 @@ class ProfileManager {
       return;
     }
 
-    // Capture the name before any data is reloaded.
-    const profileName = this._sceneProfiles[profileIndex].name;
-
     const updatedProfiles = foundry.utils.deepClone(this._sceneProfiles);
     updatedProfiles[profileIndex].config = configToSave;
 
-    // The updateScene hook will now handle all post-save synchronization for all clients, including the GM.
     await canvas.scene.update(
       { [`flags.${this.moduleId}.profiles`]: updatedProfiles },
       { diff: false }
     );
 
-    // Clear user overrides after the update has been sent.
+    // Clear user overrides as they are now saved
     await this._clearUserOverrides();
 
-    // The hook will now trigger initializeForScene() and ui.render(), so they are no longer needed here.
-    
+    // Re-initialize to load the new clean state and re-render the UI
+    this.initializeForScene();
+    if (this.ui) this.ui.render();
+
     ui.notifications.info(
-      `Saved changes to appearance: "${profileName}"`
+      `Saved changes to appearance: "${this._sceneProfiles[profileIndex].name}"`
     );
   }
 
@@ -3820,49 +3834,39 @@ class ProfileManager {
   }
 
   _getEffectiveConfig(options = {}) {
-    // This function now calculates the effective config based on the manager's current state
-    // without causing any side effects like re-initialization.
-
-    // 1. Get the base configuration from the currently active saved profile (scene or world).
-    const baseConfig = this._getBaseConfig();
-
-    // 2. Create the final configuration object, starting with a deep clone of the base.
-    let finalConfig = foundry.utils.deepClone(baseConfig);
-
-    // 3. Merge the user's temporary, unsaved changes on top.
-    this._customMerge(finalConfig, this._userOverrides);
-
-    // 4. If not excluded, apply the final layer of client-side accessibility/performance overrides.
-    if (!options.excludeClientOverrides) {
-      finalConfig = ClientOverrides.apply(finalConfig);
+    this.initializeForScene(); // Ensure we're working with the latest data
+    let finalConfig = foundry.utils.deepClone(this.activeConfig);
+    if (options.excludeClientOverrides) {
+      // This is complex: we need to re-build without client overrides
+      const baseConfig = this._getBaseConfig();
+      finalConfig = foundry.utils.deepClone(baseConfig);
+      this._customMerge(finalConfig, this._userOverrides);
     }
-
     return finalConfig;
   }
 
   _getBaseConfig() {
     // A helper to get the config before user and client overrides are applied.
+    // This logic is duplicated from initializeForScene for this specific purpose.
     if (this.status.sceneHasProfiles) {
       const activeProfile =
         this._sceneProfiles.find((p) => p.id === this._activeProfileId) ||
         this._sceneProfiles[0];
       if (activeProfile?.config) {
-        // This is the fix. By merging with defaults here, we ensure that _getBaseConfig
-        // always returns a full, complete configuration object, not a sparse one.
-        // This makes the saving process much more robust.
-        return foundry.utils.mergeObject(
+        return this._reconcileOverrides(
           foundry.utils.deepClone(MODULE_DEFAULTS),
-          activeProfile.config
+          foundry.utils.deepClone(activeProfile.config)
         );
       }
     } else if (
       this._worldDefaultProfileName &&
       this._worldProfiles[this._worldDefaultProfileName]?.config
     ) {
-      // The same fix is applied here for world profiles.
-      return foundry.utils.mergeObject(
+      return this._reconcileOverrides(
         foundry.utils.deepClone(MODULE_DEFAULTS),
-        this._worldProfiles[this._worldDefaultProfileName].config
+        foundry.utils.deepClone(
+          this._worldProfiles[this._worldDefaultProfileName].config
+        )
       );
     }
     return foundry.utils.deepClone(MODULE_DEFAULTS);
@@ -7286,16 +7290,12 @@ class PauseScreenManager {
     // HOOK 2: Check the initial state once the UI is fully ready.
     Hooks.once("ready", () => {
       if (game.paused) {
-        console.log(
-          "Map Shine | Game loaded in a paused state. Applying custom pause screen."
-        );
+        console.log("Map Shine | Game loaded in a paused state. Applying custom pause screen.");
         this._applyCustomPauseScreen();
       }
     });
 
-    console.log(
-      "Map Shine | Pause Screen Manager initialized and hooks are active."
-    );
+    console.log("Map Shine | Pause Screen Manager initialized and hooks are active.");
   }
 
   /**
@@ -7309,12 +7309,10 @@ class PauseScreenManager {
     let attempts = 0;
 
     const findAndModify = () => {
-      const pauseElement = document.getElementById("pause");
+      const pauseElement = document.getElementById('pause');
 
       if (pauseElement) {
-        console.log(
-          `MapShine | Found and applying custom style to #pause element after ${attempts} attempts.`
-        );
+        console.log(`MapShine | Found and applying custom style to #pause element after ${attempts} attempts.`);
 
         const customHTML = `
           <div class="map-shine-pause-container">
@@ -7362,9 +7360,9 @@ class PauseScreenManager {
         `;
 
         // Add our custom class instead of replacing the entire class list.
-        pauseElement.classList.add("custom-pause-screen");
+        pauseElement.classList.add('custom-pause-screen');
         pauseElement.innerHTML = customCSS + customHTML;
-
+        
         return;
       }
 
@@ -7372,9 +7370,7 @@ class PauseScreenManager {
       if (attempts < MAX_ATTEMPTS) {
         requestAnimationFrame(findAndModify);
       } else {
-        console.warn(
-          "Map Shine | Timed out waiting for the #pause element to be added to the DOM."
-        );
+        console.warn("Map Shine | Timed out waiting for the #pause element to be added to the DOM.");
       }
     };
 
@@ -7387,9 +7383,9 @@ class PauseScreenManager {
    * @private
    */
   static _revertCustomPauseScreen() {
-    const pauseElement = document.getElementById("pause");
+    const pauseElement = document.getElementById('pause');
     if (pauseElement) {
-      pauseElement.classList.remove("custom-pause-screen");
+      pauseElement.classList.remove('custom-pause-screen');
     }
   }
 }
@@ -29386,41 +29382,21 @@ Hooks.once("ready", () => {
   }
 });
 
-Hooks.on("updateScene", (scene, data, options) => {
+Hooks.on("updateScene", (scene, data) => {
+  // Only react to updates on the currently viewed scene.
   if (!scene.isView) return;
 
+  // Check if our specific flag was changed, or if the background image was changed.
   const flagPath = `flags.${MODULE_ID}`;
   const backgroundPath = "background.src";
-  const profileIdPath = `flags.${MODULE_ID}.activeProfileId`;
-  const sceneProfilesPath = `flags.${MODULE_ID}.profiles`;
-
-  // Check for texture discovery updates from the GM.
   if (
-    foundry.utils.hasProperty(data, `${flagPath}.mapShineTargets`) ||
+    foundry.utils.hasProperty(data, flagPath) ||
     foundry.utils.hasProperty(data, backgroundPath)
   ) {
+    console.log(
+      "Map Shine | Detected relevant scene update. Refreshing targets for all clients."
+    );
     game.mapShine?.effectTargetManager.refresh();
-  }
-
-  // This is the main synchronization logic for profile changes.
-  if (foundry.utils.hasProperty(data, sceneProfilesPath)) {
-    // Check if the current user initiated this update. If so, they have already cleared their
-    // own overrides, and their UI will be updated by their original action.
-    // This prevents the race condition. Other clients will proceed.
-    if (options.userId === game.user.id) return;
-    
-    game.mapShine?.profileManager.initializeForScene();
-    game.mapShine?.profileManager.updateAllSystemsFromConfig();
-    if (game.mapShine.debugger) {
-      game.mapShine.debugger.render();
-    }
-  }
-
-  // Check for a change in the active profile ID to trigger transitions for non-GM clients.
-  if (foundry.utils.hasProperty(data, profileIdPath)) {
-    if (!game.user.isGM) {
-      game.mapShine?.profileManager.handleRemoteProfileChange();
-    }
   }
 });
 
