@@ -1,3 +1,8 @@
+// URGENT TODO: The Copy Settings to Clipboard button isn't working and I need it to update hard coded settings.
+// URGENT TODO: Get the hard coded settings working and in place and tested. Then release and push the map.
+// TODO: Remove all controls from 'Scene Illumination Mix-in apart from the colour correction. Everything else isn't working.
+// TODO: Add cloud shadows to Overhead Effects layer
+
 /******************************************************************************
  *
  *                            MAP SHINE
@@ -2380,10 +2385,12 @@ const MODULE_DEFAULTS = {
   overheadEffect: {
     worldBasedOnly: false,
     enabled: true,
-    blurAmount: 4,
+    blurMinZoom: 0,
+    blurMidZoom: 2,
+    blurMaxZoom: 8,
     recolor: {
-    enabled: false,
-    intensity: 0.5,
+      enabled: false,
+      intensity: 0.5,
     tint: "#80DEEA",
     },
     hoverFadeDuration: 500,
@@ -24306,11 +24313,14 @@ class OverheadEffectLayer extends CanvasLayer {
     super();
     this.overheadSprites = new Map();
     this.spritesContainer = null;
-    this.recolorFilter = null;
     this.blurFilter = null;
     this.compositeTexture = null;
     this.compositeSprite = null;
-    this.activeAnimations = new Map(); // To manage GSAP animations
+    this.activeAnimations = new Map();
+    // Blur properties
+    this.blurMinZoom = 0;
+    this.blurMidZoom = 2;
+    this.blurMaxZoom = 8;
 
     // Bound listeners for robust add/remove
     this._boundRefresh = this._refreshOverheadTiles.bind(this);
@@ -24321,30 +24331,24 @@ class OverheadEffectLayer extends CanvasLayer {
 
   async _draw(options) {
     this._destroyed = false;
-    this.eventMode = "auto"; // Enable pointer events for the layer
+    this.eventMode = "auto";
 
     const renderer = canvas.app.renderer;
     const screen = renderer.screen;
 
-    // Container for raw sprites, not added to the stage directly
     this.spritesContainer = new PIXI.Container();
-
-    // Off-screen texture to render our sprites into
     this.compositeTexture = PIXI.RenderTexture.create({
       width: screen.width,
       height: screen.height,
     });
 
-    // Setup the correct filters
-    this.recolorFilter = new OverheadRecolorFilter();
     this.blurFilter = new PIXI.BlurFilter();
 
-    // The final sprite that will display our filtered texture on the layer
     this.compositeSprite = new PIXI.Sprite(this.compositeTexture);
-    this.compositeSprite.filters = [this.blurFilter, this.recolorFilter];
-    this.addChild(this.compositeSprite); // Add to this layer so it gets rendered
+    this.compositeSprite.filters = [this.blurFilter];
+    this.compositeSprite.filterArea = renderer.screen;
+    this.addChild(this.compositeSprite);
 
-    // Register event listeners
     Hooks.on("createTile", this._boundRefresh);
     Hooks.on("updateTile", this._boundRefresh);
     Hooks.on("deleteTile", this._boundRefresh);
@@ -24358,13 +24362,11 @@ class OverheadEffectLayer extends CanvasLayer {
   async _tearDown(options) {
     this._destroyed = true;
 
-    // Kill any running animations
     for (const anim of this.activeAnimations.values()) {
       anim.kill();
     }
     this.activeAnimations.clear();
 
-    // Restore original tiles
     for (const tileId of this.overheadSprites.keys()) {
       const tile = canvas.tiles.get(tileId);
       if (tile && tile.isManagedByOverheadLayer) {
@@ -24373,7 +24375,6 @@ class OverheadEffectLayer extends CanvasLayer {
       }
     }
 
-    // Unregister listeners
     Hooks.off("createTile", this._boundRefresh);
     Hooks.off("updateTile", this._boundRefresh);
     Hooks.off("deleteTile", this._boundRefresh);
@@ -24381,9 +24382,7 @@ class OverheadEffectLayer extends CanvasLayer {
     canvas.app.ticker.remove(this._boundOnAnimate);
     window.removeEventListener("resize", this._boundOnResize);
 
-    // Destroy all PIXI objects
     this.spritesContainer?.destroy({ children: true });
-    this.recolorFilter?.destroy();
     this.blurFilter?.destroy();
     this.compositeTexture?.destroy(true);
     this.compositeSprite?.destroy();
@@ -24405,7 +24404,6 @@ class OverheadEffectLayer extends CanvasLayer {
 
     this.compositeSprite.visible = true;
 
-    // Update sprite positions to match their real tile counterparts.
     for (const [id, sprite] of this.overheadSprites.entries()) {
       const tile = canvas.tiles.get(id);
       if (tile?.texture?.valid) {
@@ -24418,28 +24416,44 @@ class OverheadEffectLayer extends CanvasLayer {
       }
     }
 
-    // Update filter uniforms that might change frame-to-frame
-    if (this.recolorFilter && this.recolorFilter.enabled) {
-      const structuralMask =
-        game.mapShine.resourceManager?.getStructuralMask();
-      this.recolorFilter.uniforms.uStructuralMask =
-        structuralMask || PIXI.Texture.WHITE;
+    if (this.blurFilter) {
+      const minZoom = typeof canvas.stage.transform.minScale === 'number' ? canvas.stage.transform.minScale : 0.1;
+      const maxZoom = typeof canvas.stage.transform.maxScale === 'number' ? canvas.stage.transform.maxScale : 3.0;
+      const currentZoom = canvas.stage.scale.x;
+      const range = maxZoom - minZoom;
+      let zoomT = 0; // Zoom progress from 0 (min) to 1 (max)
+      let worldBlur = this.blurMinZoom;
+
+      if (range > 0.001) {
+        const clampedZoom = Math.max(minZoom, Math.min(maxZoom, currentZoom));
+        zoomT = (clampedZoom - minZoom) / range;
+      }
+
+      const lerp = (a, b, t) => a * (1 - t) + b * t;
+
+      if (zoomT <= 0.5) {
+        // Interpolate between min and mid
+        worldBlur = lerp(this.blurMinZoom, this.blurMidZoom, zoomT * 2);
+      } else {
+        // Interpolate between mid and max
+        worldBlur = lerp(this.blurMidZoom, this.blurMaxZoom, (zoomT - 0.5) * 2);
+      }
+      
+      const screenBlur = worldBlur * currentZoom;
+      this.blurFilter.blur = screenBlur;
+      this.blurFilter.enabled = this.visible && screenBlur > 0.01;
     }
 
     const renderer = canvas.app.renderer;
-
-    // Render our container of overhead tile sprites to our off-screen texture.
     renderer.render(this.spritesContainer, {
       renderTexture: this.compositeTexture,
       clear: true,
       transform: canvas.stage.transform.worldTransform,
     });
-
-    // Position the composite sprite to cover the viewport.
+    
     const stage = canvas.stage;
     const screen = renderer.screen;
     const topLeft = stage.toLocal({ x: 0, y: 0 });
-
     this.compositeSprite.position.copyFrom(topLeft);
     this.compositeSprite.width = screen.width / stage.scale.x;
     this.compositeSprite.height = screen.height / stage.scale.y;
@@ -24450,29 +24464,18 @@ class OverheadEffectLayer extends CanvasLayer {
     const renderer = canvas.app.renderer;
     const screen = renderer.screen;
     this.compositeTexture?.resize(screen.width, screen.height);
+    if (this.compositeSprite) {
+      this.compositeSprite.filterArea = screen;
+    }
   }
 
   async updateFromConfig(config) {
     const oeConfig = config.overheadEffect;
     this.visible = config.enabled && oeConfig.enabled;
-
-    if (this.blurFilter) {
-      this.blurFilter.blur = oeConfig.blurAmount;
-      this.blurFilter.enabled = this.visible && oeConfig.blurAmount > 0;
-    }
-
-    if (this.recolorFilter) {
-      const rConfig = oeConfig.recolor;
-      this.recolorFilter.enabled = this.visible && rConfig.enabled;
-      if (this.recolorFilter.enabled) {
-        const u = this.recolorFilter.uniforms;
-        u.uRecolorEnabled = true;
-        u.uRecolorIntensity = rConfig.intensity;
-        u.uRecolorTint = hexToRgbArray(rConfig.tint);
-      } else {
-        this.recolorFilter.uniforms.uRecolorEnabled = false;
-      }
-    }
+    
+    this.blurMinZoom = oeConfig.blurMinZoom ?? 0;
+    this.blurMidZoom = oeConfig.blurMidZoom ?? 2;
+    this.blurMaxZoom = oeConfig.blurMaxZoom ?? 8;
   }
 
   _refreshOverheadTiles() {
@@ -24484,64 +24487,33 @@ class OverheadEffectLayer extends CanvasLayer {
         currentOverheadIds.add(tile.id);
         if (!this.overheadSprites.has(tile.id)) {
           const sprite = new PIXI.Sprite(tile.texture);
-
-          // Configure hover and fade logic
-          const oeConfig =
-            game.mapShine.profileManager.activeConfig.overheadEffect;
-          const duration = (oeConfig.hoverFadeDuration || 500) / 1000; // gsap uses seconds
-
+          const oeConfig = game.mapShine.profileManager.activeConfig.overheadEffect;
+          const duration = (oeConfig.hoverFadeDuration || 500) / 1000;
           sprite.eventMode = "static";
           sprite.cursor = "pointer";
-
           sprite.on("pointerover", () => {
-            if (this.activeAnimations.has(tile.id)) {
-              this.activeAnimations.get(tile.id).kill();
-            }
-            const anim = gsap.to(sprite, {
-              alpha: 0,
-              duration: duration,
-              ease: "power2.out",
-            });
+            if (this.activeAnimations.has(tile.id)) { this.activeAnimations.get(tile.id).kill(); }
+            const anim = gsap.to(sprite, { alpha: 0, duration: duration, ease: "power2.out" });
             this.activeAnimations.set(tile.id, anim);
           });
-
           sprite.on("pointerout", () => {
-            if (this.activeAnimations.has(tile.id)) {
-              this.activeAnimations.get(tile.id).kill();
-            }
-            const anim = gsap.to(sprite, {
-              alpha: 1,
-              duration: duration,
-              ease: "power2.inOut",
-            });
+            if (this.activeAnimations.has(tile.id)) { this.activeAnimations.get(tile.id).kill(); }
+            const anim = gsap.to(sprite, { alpha: 1, duration: duration, ease: "power2.inOut" });
             this.activeAnimations.set(tile.id, anim);
           });
-
           this.overheadSprites.set(tile.id, sprite);
           this.spritesContainer.addChild(sprite);
-
-          // Hide the original tile
           tile.isManagedByOverheadLayer = true;
           tile.mesh.alpha = 0;
         }
       }
     }
 
-    // Cleanup sprites for tiles that are no longer overhead
     for (const [id, sprite] of this.overheadSprites.entries()) {
       if (!currentOverheadIds.has(id)) {
-        // Kill any animations
-        if (this.activeAnimations.has(id)) {
-          this.activeAnimations.get(id).kill();
-          this.activeAnimations.delete(id);
-        }
-        // Restore the original tile
+        if (this.activeAnimations.has(id)) { this.activeAnimations.get(id).kill(); this.activeAnimations.delete(id); }
         const tile = canvas.tiles.get(id);
-        if (tile) {
-          tile.isManagedByOverheadLayer = false;
-          tile.mesh.alpha = 1.0;
-        }
-        // Clean up our internal sprite
+        if (tile) { tile.isManagedByOverheadLayer = false; tile.mesh.alpha = 1.0; }
         sprite.destroy();
         this.overheadSprites.delete(id);
       }
@@ -26749,33 +26721,33 @@ class DebuggerUIBuilder {
       "Overhead Effect",
       `
         <p class="description-text">Controls for tiles flagged as 'Overhead'. This layer re-renders them to be above all other effects.</p>
-        ${DebuggerUIBuilder._createSliderHTML(
-          "overheadEffect.blurAmount",
-          "Tile Blur Amount",
-          0,
-          20,
-          0.5,
-          "The amount of gaussian blur to apply to the overhead tiles themselves."
-        )}
         <details>
-            <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-              "overheadEffect.recolor.enabled",
-              "Structural Recolor",
-              true
-            )}</div></summary>
+            <summary><span class="accordion-toggle"></span><strong>Zoom-Based Blurring</strong></summary>
             <div style="padding-left: 15px;">
-                <p class="description-text">Uses the _Structural mask to apply a color tint to the overhead tiles.</p>
+                <p class="description-text">Define the world-space blur amount at different camera zoom levels.</p>
                 ${DebuggerUIBuilder._createSliderHTML(
-                  "overheadEffect.recolor.intensity",
-                  "Intensity",
+                  "overheadEffect.blurMinZoom",
+                  "Blur (Zoomed In)",
                   0,
-                  2,
-                  0.01,
-                  "The strength of the recoloring effect."
+                  50,
+                  0.5,
+                  "The blur amount when the camera is zoomed in to its minimum scale."
                 )}
-                ${DebuggerUIBuilder._createColorPickerHTML(
-                  "overheadEffect.recolor.tint",
-                  "Tint Color"
+                ${DebuggerUIBuilder._createSliderHTML(
+                  "overheadEffect.blurMidZoom",
+                  "Blur (Mid-Zoom)",
+                  0,
+                  50,
+                  0.5,
+                  "The blur amount when the camera is at 50% of its zoom range."
+                )}
+                ${DebuggerUIBuilder._createSliderHTML(
+                  "overheadEffect.blurMaxZoom",
+                  "Blur (Zoomed Out)",
+                  0,
+                  50,
+                  0.5,
+                  "The blur amount when the camera is zoomed out to its maximum scale."
                 )}
             </div>
         </details>
@@ -26787,24 +26759,6 @@ class DebuggerUIBuilder {
           50,
           "How long it takes for the overhead tile to fade in/out on hover."
         )}
-        <details>
-            <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-              "overheadEffect.tokenMasking.enabled",
-              "Token Safe Area",
-              true
-            )}</div></summary>
-            <div style="padding-left: 15px;">
-                <p class="description-text">Prevents the overhead effect from drawing over tokens, creating a blurred "safe zone" around them.</p>
-                ${DebuggerUIBuilder._createSliderHTML(
-                  "overheadEffect.tokenMasking.blurAmount",
-                  "Safe Area Size (Blur)",
-                  0,
-                  50,
-                  1,
-                  "The size of the blurred area around tokens. Higher values create a larger, softer safe zone."
-                )}
-            </div>
-        </details>
         `
     );
   }
