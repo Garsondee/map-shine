@@ -42,6 +42,12 @@ const UNIVERSAL_EFFECT_DEFAULTS = {
       "Loading Screen Hint 2",
       "Loading Screen Hint 3",
     ],
+    // New properties for background images and overlays
+    staticBackgroundImage: "",
+    useRandomBackgroundImage: false,
+    backgroundImages: [],
+    backgroundOverlayEnabled: true,
+    backgroundOverlayOpacity: 0.75,
   },
   pauseEffect: {
     enabled: true,
@@ -2506,56 +2512,84 @@ class MapShineInitialiser {
     };
 
     // --- Scene Transition Settings ---
+    const ST_DEFAULTS = UNIVERSAL_EFFECT_DEFAULTS.sceneTransition;
     registerUniversalSetting("sceneTransition.enabled", {
       name: "[Universal] Scene Transition: Enabled",
       type: Boolean,
-      default: UNIVERSAL_EFFECT_DEFAULTS.sceneTransition.enabled,
+      default: ST_DEFAULTS.enabled,
     });
     registerUniversalSetting("sceneTransition.fadeOutDuration", {
       name: "[Universal] Scene Transition: Fade Out (ms)",
       type: Number,
-      default: UNIVERSAL_EFFECT_DEFAULTS.sceneTransition.fadeOutDuration,
+      default: ST_DEFAULTS.fadeOutDuration,
     });
     registerUniversalSetting("sceneTransition.fadeInDuration", {
       name: "[Universal] Scene Transition: Fade In (ms)",
       type: Number,
-      default: UNIVERSAL_EFFECT_DEFAULTS.sceneTransition.fadeInDuration,
+      default: ST_DEFAULTS.fadeInDuration,
     });
     registerUniversalSetting("sceneTransition.logoPath", {
       name: "[Universal] Scene Transition: Logo Path",
       type: String,
-      default: UNIVERSAL_EFFECT_DEFAULTS.sceneTransition.logoPath,
+      default: ST_DEFAULTS.logoPath,
       filePicker: "image",
     });
     registerUniversalSetting("sceneTransition.heading", {
       name: "[Universal] Scene Transition: Heading",
       type: String,
-      default: UNIVERSAL_EFFECT_DEFAULTS.sceneTransition.heading,
+      default: ST_DEFAULTS.heading,
     });
     registerUniversalSetting("sceneTransition.subheading", {
       name: "[Universal] Scene Transition: Subheading",
       type: String,
-      default: UNIVERSAL_EFFECT_DEFAULTS.sceneTransition.subheading,
+      default: ST_DEFAULTS.subheading,
     });
     registerUniversalSetting("sceneTransition.staticDescription", {
       name: "[Universal] Scene Transition: Description",
       type: String,
-      default: UNIVERSAL_EFFECT_DEFAULTS.sceneTransition.staticDescription,
+      default: ST_DEFAULTS.staticDescription,
     });
     registerUniversalSetting("sceneTransition.showSceneName", {
       name: "[Universal] Scene Transition: Show Scene Name",
       type: Boolean,
-      default: UNIVERSAL_EFFECT_DEFAULTS.sceneTransition.showSceneName,
+      default: ST_DEFAULTS.showSceneName,
     });
     registerUniversalSetting("sceneTransition.useRandomHint", {
       name: "[Universal] Scene Transition: Use Random Hint",
       type: Boolean,
-      default: UNIVERSAL_EFFECT_DEFAULTS.sceneTransition.useRandomHint,
+      default: ST_DEFAULTS.useRandomHint,
     });
     registerUniversalSetting("sceneTransition.randomHints", {
       name: "[Universal] Scene Transition: Hints (one per line)",
       type: String,
-      default: UNIVERSAL_EFFECT_DEFAULTS.sceneTransition.randomHints.join("\n"),
+      default: ST_DEFAULTS.randomHints.join("\n"),
+    });
+    registerUniversalSetting("sceneTransition.staticBackgroundImage", {
+      name: "[Universal] Scene Transition: Static Background Image",
+      type: String,
+      default: ST_DEFAULTS.staticBackgroundImage,
+      filePicker: "image",
+    });
+    registerUniversalSetting("sceneTransition.useRandomBackgroundImage", {
+      name: "[Universal] Scene Transition: Use Random Background",
+      type: Boolean,
+      default: ST_DEFAULTS.useRandomBackgroundImage,
+    });
+    registerUniversalSetting("sceneTransition.backgroundImages", {
+      name: "[Universal] Scene Transition: Backgrounds (one per line)",
+      type: String,
+      default: ST_DEFAULTS.backgroundImages.join("\n"),
+    });
+    registerUniversalSetting("sceneTransition.backgroundOverlayEnabled", {
+      name: "[Universal] Scene Transition: Enable Background Overlay",
+      type: Boolean,
+      default: ST_DEFAULTS.backgroundOverlayEnabled,
+    });
+    registerUniversalSetting("sceneTransition.backgroundOverlayOpacity", {
+      name: "[Universal] Scene Transition: Background Overlay Opacity",
+      type: Number,
+      range: { min: 0, max: 1, step: 0.05 },
+      default: ST_DEFAULTS.backgroundOverlayOpacity,
     });
 
     // --- Pause Effect Settings ---
@@ -3178,6 +3212,30 @@ class MapShineInitialiser {
             )
               .split("\n")
               .filter((h) => h.trim() !== ""),
+            staticBackgroundImage: game.settings.get(
+              MODULE_ID,
+              "universal.sceneTransition.staticBackgroundImage"
+            ),
+            useRandomBackgroundImage: game.settings.get(
+              MODULE_ID,
+              "universal.sceneTransition.useRandomBackgroundImage"
+            ),
+            backgroundImages: (
+              game.settings.get(
+                MODULE_ID,
+                "universal.sceneTransition.backgroundImages"
+              ) || ""
+            )
+              .split("\n")
+              .filter((h) => h.trim() !== ""),
+            backgroundOverlayEnabled: game.settings.get(
+              MODULE_ID,
+              "universal.sceneTransition.backgroundOverlayEnabled"
+            ),
+            backgroundOverlayOpacity: game.settings.get(
+              MODULE_ID,
+              "universal.sceneTransition.backgroundOverlayOpacity"
+            ),
           };
 
           const sceneToView = this;
@@ -3245,6 +3303,27 @@ class MapShineInitialiser {
         "Map Shine | libWrapper is not active. Elegant scene transitions will be disabled."
       );
     }
+
+// This hook ensures the random hints setting always renders as a textarea.
+Hooks.on("renderSettingsConfig", (app, html, data) => {
+  const settingKey = `${MODULE_ID}.universal.sceneTransition.randomHints`;
+  // Use querySelector on the HTMLElement, which is the standard DOM API
+  const input = html.querySelector(`[name="${settingKey}"]`);
+
+  // Check if the input exists and is a single-line text input using standard properties
+  if (input && input.tagName === "INPUT" && input.type === "text") {
+    // Create a new textarea element
+    const textarea = document.createElement("textarea");
+    // Copy attributes from the old input to the new textarea using standard properties
+    textarea.name = input.name;
+    textarea.id = input.id;
+    textarea.value = input.value;
+    textarea.rows = 5; // Set a reasonable default height
+
+    // Replace the original input with the new textarea using the standard DOM API method
+    input.replaceWith(textarea);
+  }
+});
 
     // --- Standard Hooks ---
 
@@ -4661,6 +4740,11 @@ class SceneChangeManager {
     this._teardownPromise = Promise.resolve(); // Start with a resolved promise for the initial load.
     this._resolveTeardown = null;
     this.transitionOverlay = null;
+
+    // State for the hint cycling system
+    this._hintInterval = null;
+    this._shuffledHints = [];
+    this._currentHintIndex = 0;
   }
 
   initialize() {
@@ -4763,6 +4847,7 @@ class SceneChangeManager {
                                 border-top: 1px solid #444;
                                 padding-top: 1rem;
                                 max-width: 50ch;
+                                min-height: 2.2em; /* Reserve space to prevent layout shift */
                             }
                             /* NEW STYLES for loading bar */
                             #map-shine-scene-transition .loading-bar-container {
@@ -4819,10 +4904,116 @@ class SceneChangeManager {
   }
 
   _destroyOverlay() {
+    this._stopHintCycle(); // Stop the hint animation when the overlay is removed.
     if (!this.transitionOverlay) return;
     console.log(`[MapShine Transition] Destroying overlay element.`);
     this.transitionOverlay.remove();
     this.transitionOverlay = null;
+  }
+
+  /**
+   * Manages the hint cycling animation during a scene transition.
+   * @param {object} config The sceneTransition configuration object.
+   * @private
+   */
+  _cycleHints(config) {
+    if (!this.transitionOverlay) return;
+    const hintElement = this.transitionOverlay.querySelector(".transition-hint");
+    if (
+      !hintElement ||
+      !config.useRandomHint ||
+      !config.randomHints?.length
+    ) {
+      if (hintElement) hintElement.style.display = "none";
+      return;
+    }
+
+    // Fisher-Yates shuffle algorithm to randomize the hint order.
+    this._shuffledHints = [...config.randomHints];
+    for (let i = this._shuffledHints.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [this._shuffledHints[i], this._shuffledHints[j]] = [
+        this._shuffledHints[j],
+        this._shuffledHints[i],
+      ];
+    }
+
+    this._currentHintIndex = 0;
+
+    // If there is only one hint (or none), display it statically without animations.
+    if (this._shuffledHints.length <= 1) {
+      if (this._shuffledHints.length === 1) {
+        hintElement.innerText = this._shuffledHints[0];
+        hintElement.style.display = "block";
+        hintElement.style.opacity = "1";
+      }
+      return; // Do not start the animation cycle.
+    }
+
+    const HINT_FADE_DURATION = 1.0; // in seconds
+    const HINT_PAUSE_DURATION = 5.0; // in seconds
+
+    const showNextHint = () => {
+      // Check for teardown conditions
+      if (
+        !this.transitionOverlay ||
+        !hintElement ||
+        this._hintInterval === null
+      ) {
+        this._stopHintCycle();
+        return;
+      }
+
+      // Create a GSAP timeline for the fade-out, change, and fade-in sequence
+      const tl = gsap.timeline({
+        onComplete: () => {
+          // After the fade-in is complete, schedule the next call after the pause.
+          this._hintInterval = gsap.delayedCall(
+            HINT_PAUSE_DURATION,
+            showNextHint
+          );
+        },
+      });
+
+      tl.to(hintElement, {
+        opacity: 0,
+        duration: HINT_FADE_DURATION,
+        ease: "power2.in",
+      });
+
+      tl.call(() => {
+        this._currentHintIndex =
+          (this._currentHintIndex + 1) % this._shuffledHints.length;
+        hintElement.innerText = this._shuffledHints[this._currentHintIndex];
+      });
+
+      tl.to(hintElement, {
+        opacity: 1,
+        duration: HINT_FADE_DURATION,
+        ease: "power2.out",
+      });
+    };
+
+    // Set the initial state for the first hint
+    hintElement.innerText = this._shuffledHints[this._currentHintIndex];
+    hintElement.style.display = "block";
+    hintElement.style.opacity = "1"; // Ensure it's fully visible for the main fade-in
+
+    // Start the first animation cycle after the initial pause
+    this._hintInterval = gsap.delayedCall(HINT_PAUSE_DURATION, showNextHint);
+  }
+
+  /**
+   * Clears the hint cycling interval/timeline and resets state.
+   * @private
+   */
+  _stopHintCycle() {
+    if (this._hintInterval) {
+      this._hintInterval.kill(); // Use gsap's kill() for delayed calls
+      this._hintInterval = null;
+    }
+    this._shuffledHints = [];
+    this._currentHintIndex = 0;
   }
 
   /**
@@ -4886,8 +5077,6 @@ class SceneChangeManager {
       showSceneName,
       backgroundOverlayEnabled,
       backgroundOverlayOpacity,
-      useRandomHint,
-      randomHints,
     } = config;
 
     const setContent = (selector, text, display = "block") => {
@@ -4920,12 +5109,11 @@ class SceneChangeManager {
     setContent(".transition-description", staticDescription);
     setContent(".transition-scenename", showSceneName ? sceneName : "");
 
-    let hintText = "";
-    if (useRandomHint && randomHints?.length > 0) {
-      const randomIndex = Math.floor(Math.random() * randomHints.length);
-      hintText = randomHints[randomIndex];
+    // The hint element is now managed by the _cycleHints method.
+    const hintEl = this.transitionOverlay.querySelector(".transition-hint");
+    if (hintEl) {
+      hintEl.style.display = "none"; // Hide initially, cycle will manage it
     }
-    setContent(".transition-hint", hintText);
 
     const bgOverlay = this.transitionOverlay.querySelector(
       ".background-overlay"
@@ -4957,7 +5145,11 @@ class SceneChangeManager {
       this.transitionOverlay.style.backgroundImage = "none";
     }
 
+    // Populate all content EXCEPT the hint
     this._populateOverlayContent(config, sceneName);
+
+    // Start the hint cycling process
+    this._cycleHints(config);
 
     // GSAP Guard
     if (typeof gsap === "undefined") {
@@ -26891,11 +27083,13 @@ class DebuggerEventHandler {
     );
 
     if (isUniversal) {
-      const settings = foundry.utils.deepClone(
-        game.settings.get(MODULE_ID, "universal-effects")
-      );
-      foundry.utils.setProperty(settings, path, value);
-      await game.settings.set(MODULE_ID, "universal-effects", settings);
+      // The path from the UI control is relative (e.g., "sceneTransition.enabled").
+      // The actual setting key is prefixed with "universal.".
+      await game.settings.set(MODULE_ID, `universal.${path}`, value);
+      // For universal settings, we don't need a full profile update,
+      // as their managers read directly from game.settings.
+      // A full refresh might be needed if they affect visuals directly, which they do.
+      await this.profileManager.updateAllSystemsFromConfig();
     } else {
       await this.profileManager.recordUserChange(path, value);
       this._updateActionButtonsState();
@@ -26998,24 +27192,26 @@ class DebuggerEventHandler {
     const action = button.dataset.action;
     const container = button.closest(".list-manager-container");
     if (!container) return;
-    const path = container.dataset.path;
+    const path = container.dataset.path; // e.g., "sceneTransition.randomHints"
 
-    const settings = foundry.utils.deepClone(
-      game.settings.get(MODULE_ID, "universal-effects")
-    );
-    let list = foundry.utils.getProperty(settings, path) || [];
+    // This is a universal setting, so we operate on game.settings directly
+    const settingKey = `universal.${path}`;
+    const currentList =
+      game.settings
+        .get(MODULE_ID, settingKey)
+        .split("\n")
+        .filter((h) => h) || [];
 
     if (action === "add-item") {
-      if (path.endsWith("randomHints")) list.push("New Hint");
+      if (path.endsWith("randomHints")) currentList.push("New Hint");
       else if (path.endsWith("backgroundImages"))
-        list.push("path/to/image.webp");
+        currentList.push("path/to/image.webp");
     } else if (action === "remove-item") {
       const index = parseInt(button.dataset.index, 10);
-      if (!isNaN(index)) list.splice(index, 1);
+      if (!isNaN(index)) currentList.splice(index, 1);
     }
 
-    foundry.utils.setProperty(settings, path, list);
-    await game.settings.set(MODULE_ID, "universal-effects", settings);
+    await game.settings.set(MODULE_ID, settingKey, currentList.join("\n"));
     if (game.mapShine.debugger) game.mapShine.debugger.render();
   }
 
@@ -27024,20 +27220,21 @@ class DebuggerEventHandler {
     const container = target.closest(".list-manager-container");
     if (!container) return;
 
-    const path = container.dataset.path;
+    const path = container.dataset.path; // e.g., "sceneTransition.randomHints"
     const index = parseInt(target.dataset.index, 10);
 
-    const settings = foundry.utils.deepClone(
-      game.settings.get(MODULE_ID, "universal-effects")
-    );
-    let list = foundry.utils.getProperty(settings, path) || [];
+    const settingKey = `universal.${path}`;
+    const currentList =
+      game.settings
+        .get(MODULE_ID, settingKey)
+        .split("\n")
+        .filter((h) => h) || [];
 
-    if (!isNaN(index) && list[index] !== undefined) {
-      list[index] = target.value;
+    if (!isNaN(index) && currentList[index] !== undefined) {
+      currentList[index] = target.value;
     }
 
-    foundry.utils.setProperty(settings, path, list);
-    await game.settings.set(MODULE_ID, "universal-effects", settings);
+    await game.settings.set(MODULE_ID, settingKey, currentList.join("\n"));
   }
 
   // A single, robust click handler for all data-actions
@@ -27303,7 +27500,9 @@ class DebuggerEventHandler {
     );
     if (!container) return;
 
-    const hints = foundry.utils.getProperty(this.config, path) || [];
+    const hintsString =
+      game.settings.get(MODULE_ID, `universal.${path}`) || "";
+    const hints = hintsString.split("\n").filter((h) => h);
     container.innerHTML = hints
       .map(
         (hint, index) => `
@@ -27325,7 +27524,9 @@ class DebuggerEventHandler {
     );
     if (!container) return;
 
-    const backgrounds = foundry.utils.getProperty(this.config, path) || [];
+    const bgString =
+      game.settings.get(MODULE_ID, `universal.${path}`) || "";
+    const backgrounds = bgString.split("\n").filter((h) => h);
     container.innerHTML = backgrounds
       .map((bg, index) => {
         const inputId = `background-image-path-${index}`;
@@ -27414,8 +27615,6 @@ class DebuggerEventHandler {
     const clockTime =
       time ?? this.profileManager.activeConfig.timeOfDay.currentTime ?? 12.0;
 
-    const universalSettings = game.settings.get(MODULE_ID, "universal-effects");
-
     this.element.querySelectorAll("[data-path]").forEach((el) => {
       if (el.classList.contains("list-manager-container")) return;
       const path = el.dataset.path;
@@ -27425,16 +27624,24 @@ class DebuggerEventHandler {
         "pauseEffect.",
         "combatEffect.",
       ].some((p) => path.startsWith(p));
-      const sourceObject = isUniversal ? universalSettings : this.config;
 
-      const value = this._getPathValue(sourceObject, path);
+      let value;
+      if (isUniversal) {
+        // Correctly fetch individual universal settings
+        value = game.settings.get(MODULE_ID, `universal.${path}`);
+      } else {
+        // Fetch profile-specific settings
+        value = this._getPathValue(this.config, path);
+      }
+
       if (value === undefined || value === null) return;
+
       if (el.type === "checkbox") el.checked = Boolean(value);
-      else if (el.type === "radio") el.checked = el.value === value;
+      else if (el.type === "radio") el.checked = el.value === String(value);
       else el.value = value;
 
       if (el.id === "scene-transition-duration") {
-        const seconds = Math.round(value / 1000);
+        const seconds = Math.round(Number(value) / 1000);
         this._updateSliderValue(el.id, `${seconds}s`);
       } else if (el.type === "range") {
         this._updateSliderValue(el.id, value, el.step);
@@ -27927,8 +28134,10 @@ class DebuggerEventHandler {
   }
 
   _updateRandomHintVisibility() {
-    if (!this.config.sceneTransition) return;
-    const useRandom = this.config.sceneTransition.useRandomHint;
+    const useRandom = game.settings.get(
+      MODULE_ID,
+      "universal.sceneTransition.useRandomHint"
+    );
     const randomWrapper = this.element.querySelector(
       "#sceneTransition-randomHints-wrapper"
     );
@@ -27938,8 +28147,10 @@ class DebuggerEventHandler {
   }
 
   _updateRandomBackgroundVisibility() {
-    if (!this.config.sceneTransition) return;
-    const useRandom = this.config.sceneTransition.useRandomBackgroundImage;
+    const useRandom = game.settings.get(
+      MODULE_ID,
+      "universal.sceneTransition.useRandomBackgroundImage"
+    );
     const randomWrapper = this.element.querySelector(
       "#sceneTransition-backgroundImages-wrapper"
     );
@@ -27949,8 +28160,10 @@ class DebuggerEventHandler {
   }
 
   _updateBackgroundOverlayVisibility() {
-    if (!this.config.sceneTransition) return;
-    const isEnabled = this.config.sceneTransition.backgroundOverlayEnabled;
+    const isEnabled = game.settings.get(
+      MODULE_ID,
+      "universal.sceneTransition.backgroundOverlayEnabled"
+    );
     const details = this.element.querySelector(
       "#details-sceneTransition-bgOverlay"
     );
