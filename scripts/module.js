@@ -2398,6 +2398,10 @@ const MODULE_DEFAULTS = {
       enabled: false,
       intensity: 0.5,
       tint: "#80DEEA",
+      cloudShadowDarken: {
+        enabled: false,
+        intensity: 0.5,
+      },
     },
     hoverFadeDuration: 500,
     tokenMasking: {
@@ -24261,10 +24265,17 @@ class OverheadRecolorFilter extends PIXI.Filter {
             varying vec2 vScreenCoord;
 
             uniform sampler2D uSampler;
+
+            // Original tinting uniforms
             uniform sampler2D uStructuralMask;
             uniform vec3 uRecolorTint;
             uniform float uRecolorIntensity;
             uniform bool uRecolorEnabled;
+
+            // New cloud darkening uniforms
+            uniform sampler2D uCloudShadows;
+            uniform float uCloudShadowDarkenIntensity;
+            uniform bool uCloudShadowDarkenEnabled;
 
             void main() {
                 vec4 originalColor = texture2D(uSampler, vTextureCoord);
@@ -24272,16 +24283,27 @@ class OverheadRecolorFilter extends PIXI.Filter {
                     discard;
                 }
                 
-                if (!uRecolorEnabled) {
-                    gl_FragColor = originalColor;
-                    return;
+                vec3 workingColor = originalColor.rgb;
+
+                if (uRecolorEnabled) {
+                    float structuralMask = texture2D(uStructuralMask, vScreenCoord).r;
+                    workingColor = mix(workingColor, uRecolorTint, structuralMask * uRecolorIntensity);
+                }
+
+                if (uCloudShadowDarkenEnabled) {
+                    // uCloudShadows texture has high values (near 1.0) for clouds and low values (near 0.0) for clear sky.
+                    float cloudValue = texture2D(uCloudShadows, vScreenCoord).r;
+                    
+                    // We want to darken the color where cloudValue is high.
+                    // A darkeningFactor of 1.0 means no change. A factor of 0.0 is fully black.
+                    // This formula creates the correct factor based on cloud presence and intensity.
+                    float darkeningFactor = 1.0 - (cloudValue * uCloudShadowDarkenIntensity);
+                    
+                    // Apply the darkening factor.
+                    workingColor *= darkeningFactor;
                 }
                 
-                float structuralMask = texture2D(uStructuralMask, vScreenCoord).r;
-                
-                vec3 tintedColor = mix(originalColor.rgb, uRecolorTint, structuralMask * uRecolorIntensity);
-                
-                gl_FragColor = vec4(tintedColor, originalColor.a);
+                gl_FragColor = vec4(workingColor, originalColor.a);
             }
         `;
 
@@ -24290,6 +24312,10 @@ class OverheadRecolorFilter extends PIXI.Filter {
       uRecolorTint: [1.0, 1.0, 1.0],
       uRecolorIntensity: 0.5,
       uRecolorEnabled: false,
+      // New uniforms
+      uCloudShadows: PIXI.Texture.EMPTY,
+      uCloudShadowDarkenIntensity: 0.5,
+      uCloudShadowDarkenEnabled: false,
     });
   }
 }
@@ -24322,6 +24348,7 @@ class OverheadEffectLayer extends CanvasLayer {
     this.overheadSprites = new Map();
     this.spritesContainer = null;
     this.blurFilter = null;
+    this.recolorFilter = null;
     this.compositeTexture = null;
     this.compositeSprite = null;
     this.activeAnimations = new Map();
@@ -24359,9 +24386,10 @@ class OverheadEffectLayer extends CanvasLayer {
     });
 
     this.blurFilter = new PIXI.BlurFilter();
+    this.recolorFilter = new OverheadRecolorFilter();
 
     this.compositeSprite = new PIXI.Sprite(this.compositeTexture);
-    this.compositeSprite.filters = [this.blurFilter];
+    this.compositeSprite.filters = [this.blurFilter, this.recolorFilter];
     this.compositeSprite.filterArea = renderer.screen;
     this.addChild(this.compositeSprite);
 
@@ -24400,6 +24428,7 @@ class OverheadEffectLayer extends CanvasLayer {
 
     this.spritesContainer?.destroy({ children: true });
     this.blurFilter?.destroy();
+    this.recolorFilter?.destroy();
     this.compositeTexture?.destroy(true);
     this.compositeSprite?.destroy();
     this.overheadSprites.clear();
@@ -24407,7 +24436,7 @@ class OverheadEffectLayer extends CanvasLayer {
     return super._tearDown(options);
   }
 
-  _onAnimate() {
+  _onAnimate(deltaTime) {
     if (this._destroyed || !this.visible) {
       if (this.compositeSprite) this.compositeSprite.visible = false;
       return;
@@ -24474,6 +24503,16 @@ class OverheadEffectLayer extends CanvasLayer {
       this.compositeSprite.alpha = opacity;
     }
 
+    if (this.recolorFilter) {
+      const resourceManager = game.mapShine.resourceManager;
+      if (resourceManager) {
+        this.recolorFilter.uniforms.uStructuralMask =
+          resourceManager.getStructuralMask() ?? PIXI.Texture.WHITE;
+        this.recolorFilter.uniforms.uCloudShadows =
+          resourceManager.getRawCloudTexture(deltaTime) ?? PIXI.Texture.WHITE;
+      }
+    }
+
     const renderer = canvas.app.renderer;
     renderer.render(this.spritesContainer, {
       renderTexture: this.compositeTexture,
@@ -24512,6 +24551,21 @@ class OverheadEffectLayer extends CanvasLayer {
     this.zoomPointMin = oeConfig.zoomPointMin ?? 0.2;
     this.zoomPointMid = oeConfig.zoomPointMid ?? 0.65;
     this.zoomPointMax = oeConfig.zoomPointMax ?? 1.5;
+
+    if (this.recolorFilter) {
+      const rConfig = oeConfig.recolor;
+      this.recolorFilter.uniforms.uRecolorEnabled = rConfig.enabled;
+      this.recolorFilter.uniforms.uRecolorTint = hexToRgbArray(rConfig.tint);
+      this.recolorFilter.uniforms.uRecolorIntensity = rConfig.intensity;
+
+      const csdConfig = rConfig.cloudShadowDarken;
+      if (csdConfig) {
+        this.recolorFilter.uniforms.uCloudShadowDarkenEnabled =
+          csdConfig.enabled;
+        this.recolorFilter.uniforms.uCloudShadowDarkenIntensity =
+          csdConfig.intensity;
+      }
+    }
   }
 
   _refreshOverheadTiles() {
@@ -26871,6 +26925,49 @@ class DebuggerUIBuilder {
           50,
           "How long it takes for the overhead tile to fade in/out on hover."
         )}
+        <details id="details-overheadEffect-recolor">
+            <summary><span class="accordion-toggle"></span><strong>Recoloration</strong></summary>
+            <div style="padding-left: 15px;">
+                <details id="details-overheadEffect-recolor-tint">
+                    <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                      "overheadEffect.recolor.enabled",
+                      "Tint with Structural Mask",
+                      true
+                    )}</div></summary>
+                    <div style="padding-left: 15px;">
+                        <p class="description-text">Applies a color tint to overhead tiles based on the _Structural mask.</p>
+                        ${DebuggerUIBuilder._createColorPickerHTML(
+                          "overheadEffect.recolor.tint",
+                          "Tint Color"
+                        )}
+                        ${DebuggerUIBuilder._createSliderHTML(
+                          "overheadEffect.recolor.intensity",
+                          "Intensity",
+                          0,
+                          1,
+                          0.01
+                        )}
+                    </div>
+                </details>
+                <details id="details-overheadEffect-recolor-cloudShadowDarken">
+                    <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                      "overheadEffect.recolor.cloudShadowDarken.enabled",
+                      "Darken with Cloud Shadows",
+                      true
+                    )}</div></summary>
+                    <div style="padding-left: 15px;">
+                        <p class="description-text">Darkens overhead tiles using the cloud shadow pattern. Requires Cloud Shadows effect to be active.</p>
+                        ${DebuggerUIBuilder._createSliderHTML(
+                          "overheadEffect.recolor.cloudShadowDarken.intensity",
+                          "Intensity",
+                          0,
+                          1,
+                          0.01
+                        )}
+                    </div>
+                </details>
+            </div>
+        </details>
         `
     );
   }
