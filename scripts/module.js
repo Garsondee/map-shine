@@ -2502,6 +2502,15 @@ class MapShineInitialiser {
       default: false,
     });
 
+    game.settings.register(MODULE_ID, "loading-screen-subheading", {
+      name: "Loading Screen Subheading",
+      hint: "The text displayed above the world name on the initial loading screen.",
+      scope: "world",
+      config: true,
+      type: String,
+      default: "Loading the world...",
+    });
+
     // Helper to register a universal setting
     const registerUniversalSetting = (key, data) => {
       game.settings.register(MODULE_ID, `universal.${key}`, {
@@ -3304,26 +3313,26 @@ class MapShineInitialiser {
       );
     }
 
-// This hook ensures the random hints setting always renders as a textarea.
-Hooks.on("renderSettingsConfig", (app, html, data) => {
-  const settingKey = `${MODULE_ID}.universal.sceneTransition.randomHints`;
-  // Use querySelector on the HTMLElement, which is the standard DOM API
-  const input = html.querySelector(`[name="${settingKey}"]`);
+    // This hook ensures the random hints setting always renders as a textarea.
+    Hooks.on("renderSettingsConfig", (app, html, data) => {
+      const settingKey = `${MODULE_ID}.universal.sceneTransition.randomHints`;
+      // Use querySelector on the HTMLElement, which is the standard DOM API
+      const input = html.querySelector(`[name="${settingKey}"]`);
 
-  // Check if the input exists and is a single-line text input using standard properties
-  if (input && input.tagName === "INPUT" && input.type === "text") {
-    // Create a new textarea element
-    const textarea = document.createElement("textarea");
-    // Copy attributes from the old input to the new textarea using standard properties
-    textarea.name = input.name;
-    textarea.id = input.id;
-    textarea.value = input.value;
-    textarea.rows = 5; // Set a reasonable default height
+      // Check if the input exists and is a single-line text input using standard properties
+      if (input && input.tagName === "INPUT" && input.type === "text") {
+        // Create a new textarea element
+        const textarea = document.createElement("textarea");
+        // Copy attributes from the old input to the new textarea using standard properties
+        textarea.name = input.name;
+        textarea.id = input.id;
+        textarea.value = input.value;
+        textarea.rows = 5; // Set a reasonable default height
 
-    // Replace the original input with the new textarea using the standard DOM API method
-    input.replaceWith(textarea);
-  }
-});
+        // Replace the original input with the new textarea using the standard DOM API method
+        input.replaceWith(textarea);
+      }
+    });
 
     // --- Standard Hooks ---
 
@@ -4918,12 +4927,9 @@ class SceneChangeManager {
    */
   _cycleHints(config) {
     if (!this.transitionOverlay) return;
-    const hintElement = this.transitionOverlay.querySelector(".transition-hint");
-    if (
-      !hintElement ||
-      !config.useRandomHint ||
-      !config.randomHints?.length
-    ) {
+    const hintElement =
+      this.transitionOverlay.querySelector(".transition-hint");
+    if (!hintElement || !config.useRandomHint || !config.randomHints?.length) {
       if (hintElement) hintElement.style.display = "none";
       return;
     }
@@ -25518,6 +25524,11 @@ class LoadingScreen {
     this.fillElement = null;
     this.statusTextElement = null;
     this.statusFadeDuration = 200; // Faster text fade
+
+    // Properties for hint cycling
+    this._hintInterval = null;
+    this._shuffledHints = [];
+    this._currentHintIndex = 0;
   }
 
   show() {
@@ -25528,15 +25539,18 @@ class LoadingScreen {
     this.element.id = "map-shine-loading-screen";
     this.element.style.opacity = "0";
 
+    const subheading = game.settings.get(MODULE_ID, "loading-screen-subheading");
+
     this.element.innerHTML = `
                         <div class="loading-content">
                             <img src="modules/map-shine/assets/fvtt.png" class="loading-logo" alt="Foundry VTT Logo">
-                            <h2 class="loading-subhead">Mythica Machina Presents...</h2>
-                            <h1 class="loading-title">Map Shine</h1>
+                            <h2 class="loading-subhead">${subheading}</h2>
+                            <h1 class="loading-title">${game.world.title}</h1>
                             <div class="loading-bar-container">
                                 <div class="loading-bar-fill"></div>
                             </div>
                             <div id="loading-status-text" class="loading-status"></div>
+                            <p id="loading-hint-text" class="loading-hint"></p>
                         </div>
                         <style>
                             #map-shine-loading-screen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 1); z-index: 100000; display: flex; justify-content: center; align-items: center; color: white; font-family: Signika, sans-serif; transition: opacity ${
@@ -25551,6 +25565,17 @@ class LoadingScreen {
                             .loading-status { margin-top: 15px; font-size: 16px; color: #ddd; height: 20px; line-height: 20px; opacity: 0; transition: opacity ${
                               this.statusFadeDuration / 1000
                             }s ease-in-out; }
+                            .loading-hint {
+                                margin-top: 25px;
+                                font-size: 16px;
+                                color: #aaa;
+                                font-style: italic;
+                                max-width: 50ch;
+                                margin-left: auto;
+                                margin-right: auto;
+                                min-height: 3em; /* Reserve space to prevent layout shifts */
+                                opacity: 0; /* Initially hidden, controlled by GSAP */
+                            }
                         </style>
                     `;
 
@@ -25570,6 +25595,114 @@ class LoadingScreen {
     if (foundryLoading) {
       foundryLoading.style.display = "none";
     }
+
+    // Start the hint cycle
+    this._cycleHints();
+  }
+
+  /**
+   * Manages the hint cycling animation.
+   * @private
+   */
+  _cycleHints() {
+    if (!this.element || typeof gsap === "undefined") return;
+
+    const hintElement = this.element.querySelector(".loading-hint");
+    const config = {
+      useRandomHint: game.settings.get(
+        MODULE_ID,
+        "universal.sceneTransition.useRandomHint"
+      ),
+      randomHints: (
+        game.settings.get(
+          MODULE_ID,
+          "universal.sceneTransition.randomHints"
+        ) || ""
+      )
+        .split("\n")
+        .filter((h) => h.trim() !== ""),
+    };
+
+    if (!hintElement || !config.useRandomHint || !config.randomHints?.length) {
+      return;
+    }
+
+    // Fisher-Yates shuffle algorithm
+    this._shuffledHints = [...config.randomHints];
+    for (let i = this._shuffledHints.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [this._shuffledHints[i], this._shuffledHints[j]] = [
+        this._shuffledHints[j],
+        this._shuffledHints[i],
+      ];
+    }
+
+    this._currentHintIndex = 0;
+
+    if (this._shuffledHints.length <= 1) {
+      if (this._shuffledHints.length === 1) {
+        hintElement.innerText = this._shuffledHints[0];
+        gsap.to(hintElement, { opacity: 1, duration: 1.0 });
+      }
+      return;
+    }
+
+    const HINT_FADE_DURATION = 1.0;
+    const HINT_PAUSE_DURATION = 5.0;
+
+    const showNextHint = () => {
+      if (!this.element || !hintElement || this._hintInterval === null) {
+        this._stopHintCycle();
+        return;
+      }
+
+      const tl = gsap.timeline({
+        onComplete: () => {
+          this._hintInterval = gsap.delayedCall(
+            HINT_PAUSE_DURATION,
+            showNextHint
+          );
+        },
+      });
+
+      tl.to(hintElement, {
+        opacity: 0,
+        duration: HINT_FADE_DURATION,
+        ease: "power2.in",
+      });
+      tl.call(() => {
+        this._currentHintIndex =
+          (this._currentHintIndex + 1) % this._shuffledHints.length;
+        hintElement.innerText = this._shuffledHints[this._currentHintIndex];
+      });
+      tl.to(hintElement, {
+        opacity: 1,
+        duration: HINT_FADE_DURATION,
+        ease: "power2.out",
+      });
+    };
+
+    hintElement.innerText = this._shuffledHints[this._currentHintIndex];
+    gsap.to(hintElement, {
+      opacity: 1,
+      duration: 1.0,
+      onComplete: () => {
+        this._hintInterval = gsap.delayedCall(HINT_PAUSE_DURATION, showNextHint);
+      },
+    });
+  }
+
+  /**
+   * Clears the hint cycling interval/timeline.
+   * @private
+   */
+  _stopHintCycle() {
+    if (this._hintInterval) {
+      this._hintInterval.kill();
+      this._hintInterval = null;
+    }
+    this._shuffledHints = [];
+    this._currentHintIndex = 0;
   }
 
   setProgress(progress, message) {
@@ -25604,6 +25737,7 @@ class LoadingScreen {
   }
 
   async hide() {
+    this._stopHintCycle();
     if (!this.element) return;
 
     // Ensure we wait for the minimum display time before starting the fade out.
@@ -26473,22 +26607,7 @@ class DebuggerUIBuilder {
     const worldProfileSection = isGm
       ? `
                     <div class="profile-group">
-                        <strong class="profile-group-title">World Profile Library</strong>
-                        <p class="description-text" style="text-align: center;">Load, save, and manage reusable profiles for your entire world.</p>
-                        <div class="profile-controls">
-                            <select id="profiles-dropdown"></select>
-                            <div style="display: flex; gap: 5px;">
-                                <button id="profile-load" data-action="load-profile" title="Load the selected world profile into your current settings. This will create unsaved changes.">Load as Temporary</button>
-                                <button id="profile-set-default" data-action="set-default-profile" title="Set the selected profile as the default for new scenes." style="flex-grow: 1;">Set as World Default</button>
-                            </div>
-                            <hr style="border-color: #555; margin: 2px 0;">
-                            <input type="text" id="profile-name" placeholder="New/Existing Profile Name...">
-                            <div style="display: flex; gap: 5px;">
-                                <button id="profile-save" data-action="save-profile" title="Save the current settings as a NEW world-level profile.">Save as New</button>
-                                <button id="profile-update" data-action="update-profile" title="Overwrite the selected world profile with the current settings.">Update Selected</button>
-                                <button id="profile-delete" data-action="delete-profile" style="color: #ff8080;" title="Permanently delete the selected world profile.">Delete</button>
-                            </div>
-                        </div>
+                        <strong class="profile-group-title">Hard Coded Values</strong>
                         <div style="display: flex; gap: 5px; margin-top: 5px;">
                             <button id="profile-copy-settings" data-action="copy-settings" style="flex: 1;" title="Copy the current active settings to the clipboard as JSON text.">Copy Settings</button>
                             <button id="profile-paste-settings" data-action="paste-settings" style="flex: 1;" title="Load settings from JSON text on the clipboard as temporary changes.">Paste Settings</button>
@@ -26496,23 +26615,14 @@ class DebuggerUIBuilder {
                     </div>
                 `
       : `
-                    <div class="profile-group">
-                        <strong class="profile-group-title">World Profile Library</strong>
-                        <p class="description-text" style="text-align: center;">World profiles can be loaded by the GM.</p>
-                        <div class="profile-controls">
-                            <select id="profiles-dropdown"></select>
-                            <div style="display: flex; gap: 5px;">
-                                <button id="profile-load" data-action="load-profile" title="Load the selected world profile into your current settings. This will create unsaved changes.">Load as Temporary</button>
-                            </div>
-                        </div>
-                    </div>
+
                 `;
 
     return `
                     <details id="details-profile-management">
                         <summary>
                             <span class="accordion-toggle"></span>
-                            <strong style="font-size: 1.1em;">World Profiles and Diagnostics</strong>
+                            <strong style="font-size: 1.1em;">Map Point Tools and Debug Options</strong>
                         </summary>
                         <div class="profile-grid">
                             ${worldProfileSection}
@@ -26764,67 +26874,7 @@ class DebuggerUIBuilder {
         `;
   }
 
-  _buildProfileSection() {
-    const isGm = game.user.isGM;
-    const worldProfileSection = isGm
-      ? `
-                    <div class="profile-group">
-                        <strong class="profile-group-title">World Profile Library</strong>
-                        <p class="description-text" style="text-align: center;">Load, save, and manage reusable profiles for your entire world.</p>
 
-                        
-
-                        <div class="profile-controls">
-                            <select id="profiles-dropdown"></select>
-                            <div style="display: flex; gap: 5px;">
-                                <button id="profile-load" title="Load the selected world profile into your current settings. This will create unsaved changes.">Load as Temporary</button>
-                                <button id="profile-set-default" title="Set the selected profile as the default for new scenes." style="flex-grow: 1;">Set as World Default</button>
-                            </div>
-                            <hr style="border-color: #555; margin: 2px 0;">
-                            <input type="text" id="profile-name" placeholder="New/Existing Profile Name...">
-                            <div style="display: flex; gap: 5px;">
-                                <button id="profile-save" title="Save the current settings as a NEW world-level profile.">Save as New</button>
-                                <button id="profile-update" title="Overwrite the selected world profile with the current settings.">Update Selected</button>
-                                <button id="profile-delete" style="color: #ff8080;" title="Permanently delete the selected world profile.">Delete</button>
-                            </div>
-                        </div>
-                        <button id="profile-copy-settings" title="Copy the current active settings to the clipboard as JSON text.">Copy Settings</button>
-                                <button id="profile-paste-settings" title="Load settings from JSON text on the clipboard as temporary changes.">Paste Settings</button>
-                    </div>
-                `
-      : `
-                    <div class="profile-group">
-                        <strong class="profile-group-title">World Profile Library</strong>
-                        <p class="description-text" style="text-align: center;">World profiles can be loaded by the GM.</p>
-                        <div class="profile-controls">
-                            <select id="profiles-dropdown"></select>
-                            <div style="display: flex; gap: 5px;">
-                                <button id="profile-load" title="Load the selected world profile into your current settings. This will create unsaved changes.">Load as Temporary</button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-
-    return `
-                    <details id="details-profile-management">
-                        <summary>
-                            <span class="accordion-toggle"></span>
-                            <strong style="font-size: 1.1em;">World Profiles and Diagnostics</strong>
-                        </summary>
-
-
-
-                            
-                            ${worldProfileSection}
-                            <div class="profile-group">
-                                <strong class="profile-group-title">Tools & Diagnostics</strong>
-                                ${this._buildMapToolsSection()}
-                                ${this._buildDiagnosticSection()}
-                            </div>
-                        </div>
-                    </details>
-                `;
-  }
 
   _getEffectSections() {
     return [
@@ -27500,8 +27550,7 @@ class DebuggerEventHandler {
     );
     if (!container) return;
 
-    const hintsString =
-      game.settings.get(MODULE_ID, `universal.${path}`) || "";
+    const hintsString = game.settings.get(MODULE_ID, `universal.${path}`) || "";
     const hints = hintsString.split("\n").filter((h) => h);
     container.innerHTML = hints
       .map(
@@ -27524,8 +27573,7 @@ class DebuggerEventHandler {
     );
     if (!container) return;
 
-    const bgString =
-      game.settings.get(MODULE_ID, `universal.${path}`) || "";
+    const bgString = game.settings.get(MODULE_ID, `universal.${path}`) || "";
     const backgrounds = bgString.split("\n").filter((h) => h);
     container.innerHTML = backgrounds
       .map((bg, index) => {
