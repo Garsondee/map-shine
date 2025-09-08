@@ -1314,1103 +1314,1134 @@ const COLOR_CORRECTION_PRESETS = {
 };
 
 const MODULE_DEFAULTS = {
-  timeControl: {
-    globalTime: 100,
+  "timeControl": {
+    "globalTime": 100
   },
-  enabled: true,
-  debug: true,
-  showTokenMask: false,
-  showDustMaskDebug: false,
-  showGlintMaskDebug: false,
-  tileOpacity: 0,
-  baseShine: {
-    worldBasedOnly: false,
-    enabled: true,
-    compositing: {
-      layerBlendMode: 1, // ADD
+  "enabled": true,
+  "debug": true,
+  "showTokenMask": false,
+  "showDustMaskDebug": false,
+  "showGlintMaskDebug": false,
+  "tileOpacity": 0,
+  "baseShine": {
+    "worldBasedOnly": false,
+    "enabled": true,
+    "compositing": {
+      "layerBlendMode": 1
     },
-    animation: {
-      globalIntensity: 1.0,
+    "animation": {
+      "globalIntensity": 2
     },
-    pattern: {
-      // Simplified stripe pattern for subtractive effect
-      stripes: {
-        enabled: true,
-        speed: 0.1,
-        angle: 45,
-        scale: 8.0,
-        evolution: 0.2,
-        threshold: 0.6,
-        softness: 0.1,
-        widthVariationAmount: 0.4,
-        widthVariationScale: 0.2,
-        strengthVariation: 0.3,
+    "pattern": {
+      "stripes": {
+        "enabled": true,
+        "speed": 0,
+        "angle": 140,
+        "scale": 12.5,
+        "evolution": 0.01,
+        "threshold": 0.05,
+        "softness": 0.5,
+        "widthVariationAmount": 0,
+        "widthVariationScale": 0.51,
+        "strengthVariation": 1
+      }
+    },
+    "cloudOcclusion": {
+      "enabled": true,
+      "intensity": 0.81
+    }
+  },
+  "cloudShadows": {
+    "worldBasedOnly": false,
+    "enabled": true,
+    "blendMode": 0,
+    "shadowIntensity": 0.35,
+    "maskBlur": 0,
+    "shadowInteraction": {
+      "enabled": false,
+      "intensity": 1,
+      "luminanceThreshold": 0.97,
+      "softness": 0.01
+    },
+    "wind": {
+      "angle": 45,
+      "speed": 0.0008
+    },
+    "noise": {
+      "scale": 0.01,
+      "octaves": 7,
+      "persistence": 0.5,
+      "lacunarity": 1.9
+    },
+    "shading": {
+      "threshold": 1,
+      "softness": 0.71,
+      "brightness": 0.14,
+      "contrast": 5,
+      "gamma": 1.6
+    }
+  },
+  "iridescence": {
+    "worldBasedOnly": false,
+    "enabled": true,
+    "texturePath": "",
+    "blendMode": 1,
+    "intensity": 0.9,
+    "speed": 0.01,
+    "scale": 0.7,
+    "parallax": 0,
+    "fbm": {
+      "octaves": 5,
+      "persistence": 0.33,
+      "lacunarity": 1.9,
+      "evolution": 0,
+      "brightness": 0.45,
+      "contrast": 0.8
+    },
+    "distortion": {
+      "enabled": true,
+      "strength": 5.26
+    },
+    "noise": {
+      "enabled": true,
+      "speed": 0.042,
+      "scale": 9.7,
+      "threshold": 0.47,
+      "brightness": 0.74,
+      "contrast": 2.45,
+      "softness": 0.5
+    },
+    "gradient": {
+      "name": "rainbow",
+      "hueShift": 0,
+      "brightness": 0.04,
+      "contrast": 0.5
+    }
+  },
+  "canopy": {
+    "worldBasedOnly": false,
+    "enabled": true,
+    "shadowIntensity": 0.3,
+    "tint": "#050805",
+    "distortion": {
+      "enabled": true,
+      "strength": 0.004,
+      "speed": 0.005,
+      "scale": 0.01,
+      "evolution": 0.01,
+      "threshold": 0,
+      "brightness": -0.37,
+      "contrast": 1,
+      "softness": 1
+    },
+    "postScale": 1
+  },
+  "structuralShadows": {
+    "worldBasedOnly": false,
+    "enabled": true,
+    "shadowIntensity": 0.57,
+    "tint": "#000000",
+    "parallax": 0,
+    "illuminationInteraction": {
+      "enabled": false,
+      "intensity": 1,
+      "luminanceThreshold": 0.1,
+      "softness": 0.15,
+      "colorCorrection": {
+        "enabled": true,
+        "saturation": 1,
+        "brightness": 0,
+        "contrast": 1,
+        "exposure": 0,
+        "gamma": 1,
+        "tint": {
+          "color": "#FFFFFF",
+          "amount": 0
+        }
+      }
+    },
+    "rgbSplit": {
+      "enabled": true,
+      "intensity": 2.3,
+      "threshold": 0
+    },
+    "intensityNoise": {
+      "enabled": false,
+      "amount": 0.44,
+      "speed": 0.145,
+      "scale": 1.25,
+      "evolution": 0,
+      "threshold": 0.71,
+      "brightness": -1.13,
+      "contrast": 2.8,
+      "softness": 1
+    },
+    "cloudOcclusion": {
+      "enabled": true,
+      "intensity": 0.8
+    }
+  },
+  "prism": {
+    "worldBasedOnly": false,
+    "enabled": true,
+    "intensity": 1,
+    "angle": 218,
+    "threshold": 0.1,
+    "softness": 0.5,
+    "distortionStrength": 1.9,
+    "distortionNoise": {
+      "enabled": true,
+      "speed": 0,
+      "scale": 3.83,
+      "evolution": 0,
+      "threshold": 0,
+      "brightness": 0.11,
+      "contrast": 1.85,
+      "softness": 1
+    }
+  },
+  "ambient": {
+    "worldBasedOnly": false,
+    "enabled": true,
+    "texturePath": "",
+    "blendMode": 1,
+    "intensity": 1,
+    "masking": {
+      "enabled": true,
+      "threshold": 0,
+      "softness": 0.25
+    },
+    "tokenMasking": {
+      "enabled": true,
+      "threshold": 0
+    },
+    "colorCorrection": {
+      "enabled": true,
+      "saturation": 1.2,
+      "brightness": 0,
+      "contrast": 1,
+      "gamma": 1,
+      "tint": {
+        "color": "#ff0209",
+        "amount": 0
+      }
+    }
+  },
+  "groundGlow": {
+    "worldBasedOnly": false,
+    "enabled": true,
+    "texturePath": "",
+    "blendMode": 1,
+    "intensity": 1.05,
+    "luminanceThreshold": 0.25,
+    "brightness": 1.2,
+    "saturation": 1.2,
+    "softness": 1,
+    "invert": false,
+    "tokenMasking": {
+      "enabled": true,
+      "threshold": 0
+    }
+  },
+  "heatDistortion": {
+    "worldBasedOnly": false,
+    "enabled": true,
+    "texturePath": "",
+    "intensity": 0.0165,
+    "noise": {
+      "primary": {
+        "speed": 0.002,
+        "scale": 0.5,
+        "octaves": 2,
+        "lacunarity": 2.2,
+        "persistence": 0.45
       },
-    },
-    cloudOcclusion: {
-      enabled: false,
-      intensity: 1.0,
-    },
-  },
-  cloudShadows: {
-    worldBasedOnly: true,
-    enabled: true,
-    blendMode: 0,
-    shadowIntensity: 0.55,
-    maskBlur: 0,
-    shadowInteraction: {
-      enabled: false,
-      intensity: 1,
-      luminanceThreshold: 0.97,
-      softness: 0.01,
-    },
-    wind: {
-      angle: 45,
-      speed: 0.5,
-    },
-    noise: {
-      scale: 0.04,
-      octaves: 7,
-      persistence: 0.35,
-      lacunarity: 1.9,
-    },
-    shading: {
-      threshold: 1,
-      softness: 0.71,
-      brightness: 0.14,
-      contrast: 5,
-      gamma: 1.6,
-    },
-  },
-  iridescence: {
-    worldBasedOnly: false,
-    enabled: true,
-    texturePath: "",
-    blendMode: 1,
-    intensity: 0.9,
-    speed: 1,
-    scale: 0.7,
-    parallax: 0,
-    fbm: {
-      octaves: 5,
-      persistence: 0.33,
-      lacunarity: 1.9,
-      evolution: 0,
-      brightness: 0.45,
-      contrast: 0.8,
-    },
-    distortion: {
-      enabled: true,
-      strength: 5.26,
-    },
-    noise: {
-      enabled: true,
-      speed: 4.2,
-      scale: 9.7,
-      threshold: 0.47,
-      brightness: 0.74,
-      contrast: 2.45,
-      softness: 0.5,
-    },
-    gradient: {
-      name: "rainbow",
-      hueShift: 0,
-      brightness: 0.04,
-      contrast: 0.5,
-    },
-  },
-  canopy: {
-    worldBasedOnly: false,
-    enabled: true,
-    shadowIntensity: 0.3,
-    tint: "#050805",
-    distortion: {
-      enabled: true,
-      strength: 0.004,
-      speed: 0.1,
-      scale: 1.5,
-      evolution: 0.1,
-      threshold: 0,
-      brightness: 0,
-      contrast: 1,
-      softness: 1,
-    },
-    postScale: 1,
-  },
-  structuralShadows: {
-    worldBasedOnly: false,
-    enabled: true,
-    shadowIntensity: 0.8,
-    tint: "#000000",
-    parallax: 0,
-    illuminationInteraction: {
-      enabled: true,
-      intensity: 1,
-      luminanceThreshold: 0.1,
-      softness: 0.15,
-      colorCorrection: {
-        enabled: true,
-        saturation: 1,
-        brightness: 0,
-        contrast: 1,
-        exposure: 0,
-        gamma: 1,
-        tint: {
-          color: "#FFFFFF",
-          amount: 0,
-        },
+      "secondary": {
+        "speed": 0.185,
+        "scale": 19.5,
+        "octaves": 7,
+        "lacunarity": 3.8,
+        "persistence": 0.3
       },
-    },
-    rgbSplit: {
-      enabled: true,
-      intensity: 8.8,
-      threshold: 0,
-    },
-    intensityNoise: {
-      enabled: true,
-      amount: 0,
-      speed: 1.5,
-      scale: 1.25,
-      evolution: 0,
-      threshold: 0.71,
-      brightness: -1.13,
-      contrast: 2.8,
-      softness: 1,
-    },
-    cloudOcclusion: {
-      enabled: true,
-      intensity: 0.25,
-    },
+      "rising": {
+        "speed": 0.077,
+        "intensity": 0.4
+      }
+    }
   },
-  prism: {
-    worldBasedOnly: false,
-    enabled: true,
-    intensity: 1,
-    angle: 218,
-    threshold: 0.1,
-    softness: 0.5,
-    distortionStrength: 1.9,
-    distortionNoise: {
-      enabled: true,
-      speed: 0,
-      scale: 3.83,
-      evolution: 0,
-      threshold: 0,
-      brightness: 0.11,
-      contrast: 1.85,
-      softness: 1,
-    },
+  "advancedBloom": {
+    "worldBasedOnly": false,
+    "enabled": false,
+    "threshold": 0.5,
+    "bloomScale": 1,
+    "brightness": 1,
+    "blur": 8,
+    "quality": 4
   },
-  ambient: {
-    worldBasedOnly: false,
-    enabled: true,
-    texturePath: "",
-    blendMode: 1,
-    intensity: 1,
-    masking: {
-      enabled: true,
-      threshold: 0,
-      softness: 0.25,
-    },
-    tokenMasking: {
-      enabled: true,
-      threshold: 0,
-    },
-    colorCorrection: {
-      enabled: true,
-      saturation: 1.2,
-      brightness: 0,
-      contrast: 1,
-      gamma: 1,
-      tint: {
-        color: "#ff0209",
-        amount: 0,
-      },
-    },
+  "sceneAppearance": {
+    "transitionDuration": 3500
   },
-  groundGlow: {
-    worldBasedOnly: false,
-    enabled: true,
-    texturePath: "",
-    blendMode: 1,
-    intensity: 1.05,
-    luminanceThreshold: 0.25,
-    brightness: 1.2,
-    saturation: 1.2,
-    softness: 1,
-    invert: false,
-    tokenMasking: {
-      enabled: true,
-      threshold: 0,
-    },
-  },
-  heatDistortion: {
-    worldBasedOnly: false,
-    enabled: true,
-    texturePath: "",
-    intensity: 0.0015,
-    noise: {
-      primary: {
-        speed: 1,
-        scale: 1.5,
-        octaves: 3,
-        lacunarity: 2.2,
-        persistence: 0.45,
-      },
-      secondary: {
-        speed: 8,
-        scale: 6,
-        octaves: 2,
-        lacunarity: 2.8,
-        persistence: 0.3,
-      },
-      rising: {
-        speed: 2,
-        intensity: 0.4,
-      },
-    },
-  },
-  advancedBloom: {
-    worldBasedOnly: false,
-    enabled: false,
-    threshold: 0.5,
-    bloomScale: 1,
-    brightness: 1,
-    blur: 8,
-    quality: 4,
-  },
-  sceneAppearance: {
-    transitionDuration: 5000,
-  },
-  sceneTransition: {
-    enabled: true,
-    worldBasedOnly: true,
-    fadeOutDuration: 5000,
-    fadeInDuration: 5000,
-    logoPath: "modules/map-shine/assets/mm-logo.png",
-    heading: "New Chapter",
-    subheading: "The story continues...",
-    staticDescription: "This is the default description text...",
-    showSceneName: true,
-    useRandomHint: true,
-    randomHints: [
+  "sceneTransition": {
+    "enabled": true,
+    "worldBasedOnly": true,
+    "fadeOutDuration": 5000,
+    "fadeInDuration": 5000,
+    "logoPath": "modules/map-shine/assets/mm-logo.png",
+    "heading": "New Chapter",
+    "subheading": "The story continues...",
+    "staticDescription": "This is the default description text...",
+    "showSceneName": true,
+    "useRandomHint": true,
+    "randomHints": [
       "Loading Screen Hint 1",
       "Loading Screen Hint 2",
-      "Loading Screen Hint 3",
-    ],
+      "Loading Screen Hint 3"
+    ]
   },
-  pauseEffect: {
-    enabled: true,
-    worldBasedOnly: true,
-    duration: 3000,
-    colorCorrection: {
-      enabled: true,
-      saturation: 0.2,
-      brightness: -0.15,
-      contrast: 1,
-      invert: false,
-      tint: {
-        color: "#FFFFFF",
-        amount: 0,
+  "pauseEffect": {
+    "enabled": true,
+    "worldBasedOnly": true,
+    "duration": 3000,
+    "colorCorrection": {
+      "enabled": true,
+      "saturation": 0.2,
+      "brightness": -0.15,
+      "contrast": 1,
+      "invert": false,
+      "tint": {
+        "color": "#FFFFFF",
+        "amount": 0
       },
-      exposure: 0,
-      gamma: 1,
-      levels: {
-        inBlack: 0,
-        inWhite: 1,
+      "exposure": 0,
+      "gamma": 1,
+      "levels": {
+        "inBlack": 0,
+        "inWhite": 1
       },
-      whiteBalance: {
-        temperature: 0,
-        tint: 0,
+      "whiteBalance": {
+        "temperature": 0,
+        "tint": 0
       },
-      mask: {
-        enabled: false,
-        invert: false,
-        luminanceThreshold: 0.25,
-        softness: 0.1,
+      "mask": {
+        "enabled": false,
+        "invert": false,
+        "luminanceThreshold": 0.25,
+        "softness": 0.1
       },
-      selective: {
-        enabled: false,
-        color: "#ff0000",
-        hueRange: 0.05,
-        saturationRange: 0.3,
-      },
-    },
+      "selective": {
+        "enabled": false,
+        "color": "#ff0000",
+        "hueRange": 0.05,
+        "saturationRange": 0.3
+      }
+    }
   },
-  combatEffect: {
-    enabled: true,
-    worldBasedOnly: true,
-    duration: 2000,
-    timeScale: 0.25,
-    colorCorrection: {
-      enabled: true,
-      saturation: 1,
-      brightness: 0,
-      contrast: 1,
-      invert: false,
-      tint: {
-        color: "#FFFFFF",
-        amount: 0,
+  "combatEffect": {
+    "enabled": true,
+    "worldBasedOnly": true,
+    "duration": 10000,
+    "timeScale": 0.25,
+    "colorCorrection": {
+      "enabled": true,
+      "saturation": 1,
+      "brightness": 0,
+      "contrast": 1,
+      "invert": false,
+      "tint": {
+        "color": "#ff0000",
+        "amount": 0
       },
-      exposure: 0,
-      gamma: 1,
-      levels: {
-        inBlack: 0,
-        inWhite: 1,
+      "exposure": 0,
+      "gamma": 1,
+      "levels": {
+        "inBlack": 0,
+        "inWhite": 1
       },
-      whiteBalance: {
-        temperature: 0,
-        tint: 0,
+      "whiteBalance": {
+        "temperature": 0,
+        "tint": 0
       },
-      mask: {
-        enabled: false,
-        invert: false,
-        luminanceThreshold: 0.25,
-        softness: 0.1,
+      "mask": {
+        "enabled": false,
+        "invert": false,
+        "luminanceThreshold": 0.25,
+        "softness": 0.1
       },
-      selective: {
-        enabled: false,
-        color: "#ff0000",
-        hueRange: 0.05,
-        saturationRange: 0.3,
-      },
-    },
+      "selective": {
+        "enabled": false,
+        "color": "#ff0000",
+        "hueRange": 0.05,
+        "saturationRange": 0.3
+      }
+    }
   },
-  postProcessing: {
-    worldBasedOnly: true,
-    enabled: true,
-    colorCorrection: {
-      enabled: true,
-      saturation: 1,
-      brightness: 0,
-      contrast: 1,
-      invert: false,
-      tint: {
-        color: "#FFFFFF",
-        amount: 0,
+  "postProcessing": {
+    "worldBasedOnly": false,
+    "enabled": true,
+    "colorCorrection": {
+      "enabled": true,
+      "saturation": 1,
+      "brightness": 0,
+      "contrast": 1,
+      "invert": false,
+      "tint": {
+        "color": "#FFFFFF",
+        "amount": 0
       },
-      exposure: -0.1,
-      gamma: 1,
-      levels: {
-        inBlack: 0,
-        inWhite: 1,
+      "exposure": -0.2,
+      "gamma": 1,
+      "levels": {
+        "inBlack": 0,
+        "inWhite": 1
       },
-      whiteBalance: {
-        temperature: 0,
-        tint: 0,
+      "whiteBalance": {
+        "temperature": 0,
+        "tint": 0
       },
-      highlightCloud: {
-        enabled: true,
-        brightness: 0,
+      "highlightCloud": {
+        "enabled": false,
+        "brightness": 0.25
       },
-      highlightCanopy: {
-        enabled: true,
-        brightness: 0,
+      "highlightCanopy": {
+        "enabled": false,
+        "brightness": 0.97
       },
-      highlightStructural: {
-        enabled: true,
-        brightness: 0.5,
+      "highlightStructural": {
+        "enabled": true,
+        "brightness": 1.61
       },
-      sceneIlluminationMixIn: {
-        enabled: false,
-        intensity: 0.1,
-        blendMode: 1,
-        debugMode: false,
-        colorCorrection: {
-          enabled: true,
-          saturation: 1,
-          brightness: 0,
-          contrast: 1,
-          exposure: 0,
-          gamma: 1,
-          tint: {
-            color: "#FFFFFF",
-            amount: 0,
-          },
+      "sceneIlluminationMixIn": {
+        "enabled": true,
+        "intensity": 0.95,
+        "blendMode": 1,
+        "debugMode": false,
+        "colorCorrection": {
+          "enabled": true,
+          "saturation": 3.25,
+          "brightness": -0.28,
+          "contrast": 1.8,
+          "exposure": -0.55,
+          "gamma": 0.65,
+          "tint": {
+            "color": "#FFFFFF",
+            "amount": 0
+          }
         },
-        noise: {
-          enabled: true,
-          amount: 0.01,
-          scale: 1,
-          speed: 1,
+        "noise": {
+          "enabled": false,
+          "amount": 0.01,
+          "scale": 1,
+          "speed": 0.001
         },
-        shadowInteraction: {
-          enabled: true,
-          intensity: 1,
-          luminanceThreshold: 0.1,
-          softness: 0.15,
+        "shadowInteraction": {
+          "enabled": false,
+          "intensity": 1,
+          "luminanceThreshold": 0.1,
+          "softness": 0.15
         },
-        negativeMask: {
-          enabled: false,
-          threshold: 0.8,
-          softness: 0.2,
-        },
+        "negativeMask": {
+          "enabled": false,
+          "threshold": 0.8,
+          "softness": 0.2
+        }
       },
-      mask: {
-        enabled: false,
-        invert: false,
-        luminanceThreshold: 0.25,
-        softness: 0.1,
+      "mask": {
+        "enabled": false,
+        "invert": false,
+        "luminanceThreshold": 0.25,
+        "softness": 0.1
       },
-      selective: {
-        enabled: false,
-        color: "#fb0045",
-        hueRange: 0.02,
-        saturationRange: 0.5,
-        luminanceRange: 0.5,
-        targetLuminance: 0.04,
-        softness: 0.1,
-        invert: false,
-        desaturation: 1,
-        targetSaturation: 1,
-        targetBrightness: 0,
+      "selective": {
+        "enabled": false,
+        "color": "#fb0045",
+        "hueRange": 0.09,
+        "saturationRange": 0.5,
+        "luminanceRange": 0.5,
+        "targetLuminance": 0.04,
+        "softness": 0.1,
+        "invert": false,
+        "desaturation": 1,
+        "targetSaturation": 1,
+        "targetBrightness": 0
       },
-      curves: {
-        enabled: false,
-        activeChannel: "rgb",
-        rgb: {
-          points: [
+      "curves": {
+        "enabled": false,
+        "activeChannel": "rgb",
+        "rgb": {
+          "points": [
             {
-              x: 0,
-              y: 0,
+              "x": 0,
+              "y": 0
             },
             {
-              x: 1,
-              y: 1,
+              "x": 0.25,
+              "y": 0.25
             },
-          ],
+            {
+              "x": 0.75,
+              "y": 0.75
+            },
+            {
+              "x": 1,
+              "y": 1
+            }
+          ]
         },
-        red: {
-          points: [
+        "red": {
+          "points": [
             {
-              x: 0,
-              y: 0,
+              "x": 0,
+              "y": 0
             },
             {
-              x: 1,
-              y: 1,
+              "x": 0.25,
+              "y": 0.25
             },
-          ],
+            {
+              "x": 0.75,
+              "y": 0.75
+            },
+            {
+              "x": 1,
+              "y": 1
+            }
+          ]
         },
-        green: {
-          points: [
+        "green": {
+          "points": [
             {
-              x: 0,
-              y: 0,
+              "x": 0,
+              "y": 0
             },
             {
-              x: 1,
-              y: 1,
+              "x": 0.25,
+              "y": 0.25
             },
-          ],
+            {
+              "x": 0.75,
+              "y": 0.75
+            },
+            {
+              "x": 1,
+              "y": 1
+            }
+          ]
         },
-        blue: {
-          points: [
+        "blue": {
+          "points": [
             {
-              x: 0,
-              y: 0,
+              "x": 0,
+              "y": 0
             },
             {
-              x: 1,
-              y: 1,
+              "x": 0.25,
+              "y": 0.25
             },
-          ],
-        },
+            {
+              "x": 0.75,
+              "y": 0.75
+            },
+            {
+              "x": 1,
+              "y": 1
+            }
+          ]
+        }
       },
-      dynamicExposure: {
-        enabled: true,
-        intensity: 1.5,
-        duration: 8000,
-        resetPeriod: 60000,
+      "dynamicExposure": {
+        "enabled": false,
+        "intensity": 1.5,
+        "duration": 8000,
+        "resetPeriod": 60000
+      }
+    },
+    "vignette": {
+      "enabled": true,
+      "amount": 0.24,
+      "softness": 0.36
+    },
+    "lensDistortion": {
+      "enabled": true,
+      "amount": 0.015,
+      "centerX": 0.5,
+      "centerY": 0.5
+    },
+    "chromaticAberration": {
+      "enabled": true,
+      "amount": 0.001,
+      "centerX": 0.5,
+      "centerY": 0.5
+    },
+    "tiltShift": {
+      "enabled": false,
+      "blur": 23,
+      "gradientBlur": 3610,
+      "startX": 0,
+      "startY": 0.5,
+      "endX": 1,
+      "endY": 0.5
+    },
+    "grain": {
+      "enabled": false,
+      "intensity": 0.1,
+      "size": 1.5,
+      "monochromatic": true,
+      "luminanceResponse": {
+        "shadows": 0.8,
+        "highlights": 0.2
+      }
+    },
+    "lut": {
+      "enabled": true,
+      "texturePath": "",
+      "intensity": 1,
+      "presetName": "custom",
+      "diagnosticMode": 0,
+      "diagnosticSlice": 1,
+      "domainMin": {
+        "r": 0,
+        "g": 0,
+        "b": 0
       },
-    },
-    vignette: {
-      enabled: false,
-      amount: 0.24,
-      softness: 0.36,
-    },
-    lensDistortion: {
-      enabled: false,
-      amount: 0.015,
-      centerX: 0.5,
-      centerY: 0.5,
-    },
-    chromaticAberration: {
-      enabled: true,
-      amount: 0.001,
-      centerX: 0.5,
-      centerY: 0.5,
-    },
-    tiltShift: {
-      enabled: false,
-      blur: 23,
-      gradientBlur: 3610,
-      startX: 0,
-      startY: 0.5,
-      endX: 1,
-      endY: 0.5,
-    },
-    grain: {
-      enabled: false,
-      intensity: 0.1,
-      size: 1.5,
-      monochromatic: true,
-      luminanceResponse: {
-        shadows: 0.8,
-        highlights: 0.2,
+      "domainMax": {
+        "r": 1,
+        "g": 1,
+        "b": 1
       },
-    },
-    lut: {
-      enabled: true,
-      texturePath: "",
-      intensity: 1,
-      presetName: "custom",
-      diagnosticMode: 0,
-      diagnosticSlice: 1,
-      domainMin: {
-        r: 0,
-        g: 0,
-        b: 0,
+      "preLutBlur": {
+        "enabled": false,
+        "amount": 0
       },
-      domainMax: {
-        r: 1,
-        g: 1,
-        b: 1,
-      },
-      preLutBlur: {
-        enabled: false,
-        amount: 0,
-      },
-      inputProcessing: {
-        enabled: false,
-        saturation: 1,
-        brightness: 0,
-        contrast: 1,
-        gamma: 0.9,
-        hue: 0,
-      },
-    },
+      "inputProcessing": {
+        "enabled": false,
+        "saturation": 1,
+        "brightness": 0,
+        "contrast": 1,
+        "gamma": 0.9,
+        "hue": 0
+      }
+    }
   },
-  dust: {
-    worldBasedOnly: false,
-    enabled: true,
-    blendMode: 0,
-    maskThreshold: 0.39,
-    maskInfluence: 5,
-    particleTexture: "modules/map-shine/assets/particle.webp",
-    frequency: 0.286,
-    lifetime: {
-      min: 4,
-      max: 12,
+  "dust": {
+    "worldBasedOnly": false,
+    "enabled": true,
+    "blendMode": 0,
+    "maskThreshold": 0.39,
+    "maskInfluence": 5,
+    "particleTexture": "modules/map-shine/assets/particle.webp",
+    "frequency": 0.097,
+    "lifetime": {
+      "min": 4,
+      "max": 12
     },
-    color: {
-      start: "#ffd275",
-      end: "#ffe9b9",
+    "color": {
+      "start": "#ffd275",
+      "end": "#ffe9b9"
     },
-    alpha: {
-      max: 0.51,
-      fadeIn: 0.5,
-      fadeOut: 0.5,
+    "alpha": {
+      "max": 0.51,
+      "fadeIn": 0.5,
+      "fadeOut": 0.5
     },
-    scale: {
-      sizeMultiplier: 1.7,
-      start: 0.9,
-      end: 1.09,
-      minMult: 0.86,
+    "scale": {
+      "sizeMultiplier": 0.6,
+      "start": 0.9,
+      "end": 1.09,
+      "minMult": 0.86
     },
-    speed: {
-      start: 3,
-      end: 6,
-      minMult: 0.5,
+    "speed": {
+      "start": 3,
+      "end": 6,
+      "minMult": 0.5
     },
-    rotation: {
-      enabled: false,
-      minSpeed: 0,
-      maxSpeed: 20,
-      accel: 0,
-    },
+    "rotation": {
+      "enabled": false,
+      "minSpeed": 0,
+      "maxSpeed": 20,
+      "accel": 0
+    }
   },
-  glint: {
-    worldBasedOnly: false,
-    enabled: true,
-    darknessAffectsIntensity: true,
-    blendMode: 0,
-    maskThreshold: 0.9,
-    maskInfluence: 0.09,
-    particleTexture: "modules/map-shine/assets/glint.webp",
-    frequency: 0.932,
-    lifetime: {
-      min: 0.8,
-      max: 2.9,
+  "glint": {
+    "worldBasedOnly": false,
+    "enabled": true,
+    "darknessAffectsIntensity": true,
+    "blendMode": 0,
+    "maskThreshold": 0.9,
+    "maskInfluence": 0.09,
+    "particleTexture": "modules/map-shine/assets/glint.webp",
+    "frequency": 0.932,
+    "lifetime": {
+      "min": 0.8,
+      "max": 2.9
     },
-    color: {
-      start: "#FFFFFF",
-      end: "#FFFFFF",
+    "color": {
+      "start": "#FFFFFF",
+      "end": "#FFFFFF"
     },
-    alpha: {
-      max: 0.95,
-      fadeIn: 0.05,
-      fadeOut: 0.94,
+    "alpha": {
+      "max": 0.95,
+      "fadeIn": 0.05,
+      "fadeOut": 0.94
     },
-    scale: {
-      sizeMultiplier: 9,
-      start: 1.5,
-      end: 0.61,
-      minMult: 0.9,
+    "scale": {
+      "sizeMultiplier": 9,
+      "start": 1.5,
+      "end": 0.61,
+      "minMult": 0.9
     },
-    speed: {
-      start: 0,
-      end: 0,
-      minMult: 0.5,
+    "speed": {
+      "start": 0,
+      "end": 0,
+      "minMult": 0.5
     },
-    rotation: {
-      enabled: false,
-      minSpeed: 0,
-      maxSpeed: 20,
-      accel: 0,
+    "rotation": {
+      "enabled": false,
+      "minSpeed": 0,
+      "maxSpeed": 20,
+      "accel": 0
     },
-    rgbSplit: {
-      enabled: true,
-      amount: 8.2,
-    },
+    "rgbSplit": {
+      "enabled": true,
+      "amount": 8.2
+    }
   },
-  water: {
-    worldBasedOnly: false,
-    enabled: true,
-    wave: {
-      enabled: true,
-      speed: 1.48,
-      scale: 38.1,
-      intensity: 0.0004,
+  "water": {
+    "worldBasedOnly": false,
+    "enabled": true,
+    "wave": {
+      "enabled": true,
+      "speed": 0.0148,
+      "scale": 37.7,
+      "intensity": 0.0018
     },
-    surface: {
-      enabled: true,
-      foamColor: "#33adff",
-      foamIntensity: 0,
-      foamCoverage: 0,
-      foamSharpness: 0.13,
-      fbmScale: 15.196,
-      fbmSpeed: 1,
-      fbmEvolution: 3,
-      fbmOctaves: 5,
-      fbmLacunarity: 4,
-      fbmPersistence: 0.1,
-      sheenEnabled: true,
-      sheenIntensity: 0.448,
-      sheenColor: "#FFFFFF",
-      sheenScale: 0.5,
-      sheenSpeed: 0.2,
-      sheenStretch: 1,
-      sheenSharpness: 0.8,
+    "surface": {
+      "enabled": true,
+      "foamColor": "#33adff",
+      "foamIntensity": 0,
+      "foamCoverage": 0,
+      "foamSharpness": 0.13,
+      "fbmScale": 15.196,
+      "fbmSpeed": 0.01,
+      "fbmEvolution": 0.03,
+      "fbmOctaves": 5,
+      "fbmLacunarity": 4,
+      "fbmPersistence": 0.1,
+      "sheenEnabled": true,
+      "sheenIntensity": 0.448,
+      "sheenColor": "#FFFFFF",
+      "sheenScale": 0.5,
+      "sheenSpeed": 0.002,
+      "sheenStretch": 1,
+      "sheenSharpness": 0.8
     },
-    caustics: {
-      enabled: true,
-      intensity: 0.033,
-      scale: 1,
-      speed: 1,
-      color: "#87CEFA",
-      lineSharpness: 5,
-      bloomIntensity: 1,
-      lineDistortion: 0.1,
-      lineDistortionScale: 5,
-      intersectionBoost: 20,
-      roughnessScale: 4.2,
-      roughnessIntensity: 0.83,
+    "caustics": {
+      "enabled": true,
+      "intensity": 0.033,
+      "scale": 1,
+      "speed": 0.01,
+      "color": "#87CEFA",
+      "lineSharpness": 5,
+      "bloomIntensity": 1,
+      "lineDistortion": 0.1,
+      "lineDistortionScale": 5,
+      "intersectionBoost": 20,
+      "roughnessScale": 4.2,
+      "roughnessIntensity": 0.83
     },
-    shoreline: {
-      enabled: false,
-      detectionBlur: 1,
-      foamColor: "#FFFFFF",
-      foamIntensity: 0.5,
-      foamPattern: {
-        scale: 1,
-        speed: 0,
-        evolution: 1,
-        octaves: 4,
-        lacunarity: 2.05,
-        persistence: 0.15,
-        brightness: 0.5,
-        contrast: 1,
+    "shoreline": {
+      "enabled": false,
+      "detectionBlur": 1,
+      "foamColor": "#FFFFFF",
+      "foamIntensity": 0.5,
+      "foamPattern": {
+        "scale": 1,
+        "speed": 0,
+        "evolution": 0.01,
+        "octaves": 4,
+        "lacunarity": 2.05,
+        "persistence": 0.15,
+        "brightness": 0.5,
+        "contrast": 1
       },
-      displacement: {
-        enabled: false,
-        scale: 0.4,
-        speed: 1.1,
-        strength: 0.0025,
-      },
+      "displacement": {
+        "enabled": false,
+        "scale": 0.4,
+        "speed": 0.011,
+        "strength": 0.0025
+      }
     },
-    glintParticles: {
-      enabled: true,
-      blendMode: 9,
-      maskThreshold: 0.17,
-      maskInfluence: 1.95,
-      particleTexture: "modules/map-shine/assets/glint.webp",
-      frequency: 0.99,
-      lifetime: {
-        min: 0.8,
-        max: 0.8,
+    "glintParticles": {
+      "enabled": true,
+      "blendMode": 9,
+      "maskThreshold": 0.17,
+      "maskInfluence": 1.95,
+      "particleTexture": "modules/map-shine/assets/glint.webp",
+      "frequency": 0.99,
+      "lifetime": {
+        "min": 0.8,
+        "max": 0.8
       },
-      color: {
-        start: "#eef7ff",
-        end: "#95b3ff",
+      "color": {
+        "start": "#eef7ff",
+        "end": "#95b3ff"
       },
-      alpha: {
-        max: 0.5,
-        fadeIn: 0.25,
-        fadeOut: 0.25,
+      "alpha": {
+        "max": 0.5,
+        "fadeIn": 0.25,
+        "fadeOut": 0.25
       },
-      scale: {
-        sizeMultiplier: 1.9,
-        start: 0.76,
-        end: 0.82,
-        minMult: 0.95,
+      "scale": {
+        "sizeMultiplier": 1.9,
+        "start": 0.76,
+        "end": 0.82,
+        "minMult": 0.95
       },
-      speed: {
-        start: 5,
-        end: 11,
-        minMult: 0.47,
+      "speed": {
+        "start": 5,
+        "end": 11,
+        "minMult": 0.47
       },
-      rotation: {
-        enabled: true,
-        minSpeed: 116,
-        maxSpeed: 123,
-        accel: 52,
-      },
-    },
+      "rotation": {
+        "enabled": true,
+        "minSpeed": 116,
+        "maxSpeed": 123,
+        "accel": 52
+      }
+    }
   },
-  fire: {
-    worldBasedOnly: false,
-    enabled: true,
-    bloom: {
-      enabled: true,
-      threshold: 0.09,
-      bloomScale: 5,
-      brightness: 5,
-      blur: 0,
-      quality: 4,
+  "fire": {
+    "worldBasedOnly": false,
+    "enabled": true,
+    "bloom": {
+      "enabled": true,
+      "threshold": 0.04,
+      "bloomScale": 5,
+      "brightness": 5,
+      "blur": 0,
+      "quality": 4
     },
-    particles: {
-      enabled: true,
-      blendMode: 1,
-      maskThreshold: 0.43,
-      maskInfluence: 5,
-      particleTexture: "modules/map-shine/assets/flame.webp",
-      frequency: 0.005,
-      lifetime: {
-        min: 0.1,
-        max: 2,
+    "particles": {
+      "enabled": true,
+      "blendMode": 1,
+      "maskThreshold": 0.06,
+      "maskInfluence": 5,
+      "particleTexture": "modules/map-shine/assets/flame.webp",
+      "frequency": 0.001,
+      "lifetime": {
+        "min": 0.1,
+        "max": 1.4
       },
-      color: {
-        start: "#FFDD88",
-        end: "#ea7500",
+      "color": {
+        "start": "#FFDD88",
+        "end": "#ea7500"
       },
-      alpha: {
-        max: 0.15,
-        fadeIn: 0.01,
-        fadeOut: 1,
+      "alpha": {
+        "max": 0.68,
+        "fadeIn": 0.01,
+        "fadeOut": 1
       },
-      scale: {
-        sizeMultiplier: 0.5,
-        start: 0.08,
-        end: 1.41,
-        minMult: 0.95,
+      "scale": {
+        "sizeMultiplier": 0.1,
+        "start": 0.32,
+        "end": 1.24,
+        "minMult": 0.95
       },
-      speed: {
-        start: 5,
-        end: 10,
-        minMult: 0.5,
+      "speed": {
+        "start": 1,
+        "end": 2,
+        "minMult": 0.5
       },
-      rotation: {
-        enabled: true,
-        minSpeed: 102,
-        maxSpeed: 170,
-        accel: 20,
+      "rotation": {
+        "enabled": true,
+        "minSpeed": -180,
+        "maxSpeed": 180,
+        "accel": 4
       },
-      wind: {
-        enabled: false,
-        force: 0,
-        baseSpeed: 0,
-        gustSpeed: 0,
-        gustFrequencyMin: 3,
-        gustFrequencyMax: 8,
-        gustDurationMin: 0.2,
-        gustDurationMax: 0.8,
-        angleChangeFrequencyMin: 5,
-        angleChangeFrequencyMax: 15,
-        angleChangeRange: 20,
-      },
-    },
+      "wind": {
+        "enabled": false,
+        "force": 0,
+        "baseSpeed": 0,
+        "gustSpeed": 0,
+        "gustFrequencyMin": 3,
+        "gustFrequencyMax": 8,
+        "gustDurationMin": 0.2,
+        "gustDurationMax": 0.8,
+        "angleChangeFrequencyMin": 5,
+        "angleChangeFrequencyMax": 15,
+        "angleChangeRange": 20
+      }
+    }
   },
-  sparks: {
-    worldBasedOnly: false,
-    enabled: true,
-    blendMode: 1,
-    maskThreshold: 0.95,
-    maskInfluence: 1.12,
-    particleTexture: "modules/map-shine/assets/particle.webp",
-    frequency: 0.08,
-    lifetime: {
-      min: 1.5,
-      max: 3,
+  "sparks": {
+    "worldBasedOnly": false,
+    "enabled": true,
+    "blendMode": 1,
+    "maskThreshold": 0.95,
+    "maskInfluence": 1.12,
+    "particleTexture": "modules/map-shine/assets/particle.webp",
+    "frequency": 0.08,
+    "lifetime": {
+      "min": 1.5,
+      "max": 3
     },
-    color: {
-      start: "#ffdd88",
-      end: "#ff8800",
+    "color": {
+      "start": "#88c4ff",
+      "end": "#ffffff"
     },
-    alpha: {
-      max: 1,
-      fadeIn: 0.1,
-      fadeOut: 0.03,
+    "alpha": {
+      "max": 1,
+      "fadeIn": 0.1,
+      "fadeOut": 0.03
     },
-    scale: {
-      sizeMultiplier: 1.55,
-      start: 1,
-      end: 0.1,
-      minMult: 0.5,
+    "scale": {
+      "sizeMultiplier": 1.55,
+      "start": 1,
+      "end": 0.1,
+      "minMult": 0.5
     },
-    path: {
-      speed: {
-        start: 114,
-        end: 10,
-        minMult: 0.99,
+    "path": {
+      "speed": {
+        "start": 114,
+        "end": 27,
+        "minMult": 0.99
       },
-      amplitude: {
-        min: 10,
-        max: 40,
+      "amplitude": {
+        "min": 10,
+        "max": 100
       },
-      frequency: {
-        min: 40,
-        max: 80,
+      "frequency": {
+        "min": 40,
+        "max": 189
       },
-      offset: {
-        min: 0,
-        max: 6.28,
+      "offset": {
+        "min": 0,
+        "max": 6.28
       },
-      damping: 0.5,
-      angle: {
-        min: -20,
-        max: 20,
+      "damping": 0.05,
+      "angle": {
+        "min": -90,
+        "max": 90
       },
-      motionBlur: {
-        enabled: true,
-        strength: 0.33,
-        maxLength: 6,
-      },
-    },
+      "motionBlur": {
+        "enabled": true,
+        "strength": 0.15,
+        "maxLength": 2.4
+      }
+    }
   },
-  lightning: {
-    enabled: true,
-    offPeriodMin: 200,
-    offPeriodMax: 1000,
-    strikeDuration: 250,
-    flickerInterval: 20,
-    flickerIntensity: 0.2,
-    fadeEasePower: 2,
-    color: "#99DDFF",
-    coreColor: "#FFFFFF",
-    brightness: 1,
-    sheathOpacity: 1,
-    coreOpacity: 1,
-    width: {
-      start: 12,
-      end: 2,
-      variationEnabled: true,
-      variationAmount: 0.5,
-      variationScale: 0.1,
-      variationSpeed: 0.1,
+  "lightning": {
+    "enabled": true,
+    "offPeriodMin": 1,
+    "offPeriodMax": 1761,
+    "strikeDuration": 50,
+    "flickerInterval": 10,
+    "flickerIntensity": 0.2,
+    "fadeEasePower": 2,
+    "color": "#99DDFF",
+    "coreColor": "#FFFFFF",
+    "brightness": 3,
+    "sheathOpacity": 1,
+    "coreOpacity": 1,
+    "width": {
+      "start": 12,
+      "end": 2,
+      "variationEnabled": true,
+      "variationAmount": 0.5,
+      "variationScale": 0.1,
+      "variationSpeed": 0.1
     },
-    coreWidth: {
-      start: 4,
-      end: 0.5,
+    "coreWidth": {
+      "start": 4,
+      "end": 0.5
     },
-    path: {
-      segments: 100,
-      endPointRandomness: 15,
+    "path": {
+      "segments": 100,
+      "endPointRandomness": 15
     },
-    curve: {
-      startAngleMin: -45,
-      startAngleMax: 45,
-      endAngleMin: 135,
-      endAngleMax: 225,
-      controlPointDistanceMin: 100,
-      controlPointDistanceMax: 400,
+    "curve": {
+      "startAngleMin": -45,
+      "startAngleMax": 45,
+      "endAngleMin": 135,
+      "endAngleMax": 225,
+      "controlPointDistanceMin": 100,
+      "controlPointDistanceMax": 160
     },
-    fork: {
-      maxDepth: 3,
-      chance: 0.4,
-      angleRange: 60,
-      lengthFalloff: 0.7,
-      widthFalloff: 0.6,
+    "fork": {
+      "maxDepth": 4,
+      "chance": 1,
+      "angleRange": 168,
+      "lengthFalloff": 0.7,
+      "widthFalloff": 0.86
     },
-    displacement: {
-      enabled: true,
-      magnitude: 15,
-      speed: 0.2,
-      scale: 0.05,
+    "displacement": {
+      "enabled": true,
+      "magnitude": 15,
+      "speed": 0.2,
+      "scale": 0.05
     },
-    displacementFine: {
-      enabled: true,
-      magnitude: 5,
-      speed: 0.1,
-      scale: 0.005,
+    "displacementFine": {
+      "enabled": true,
+      "magnitude": 5,
+      "speed": 0.1,
+      "scale": 0.005
     },
-    bloom: {
-      enabled: true,
-      blendMode: 1,
-      threshold: 0.5,
-      bloomScale: 1,
-      brightness: 2,
-      blur: 8,
-      quality: 4,
-      rgbSplit: {
-        enabled: true,
-        amount: 5,
-      },
-    },
+    "bloom": {
+      "enabled": true,
+      "blendMode": 1,
+      "threshold": 0.5,
+      "bloomScale": 1,
+      "brightness": 2,
+      "blur": 8,
+      "quality": 4,
+      "rgbSplit": {
+        "enabled": true,
+        "amount": 0.5
+      }
+    }
   },
-  smellyFlies: {
-    worldBasedOnly: false,
-    enabled: true,
-    blendMode: 0,
-    particleTexture: "modules/map-shine/assets/fly.webp",
-    maxParticles: 100,
-    flying: {
-      takeoffDuration: 0.5,
-      takeoffSpeedMin: 100,
-      takeoffSpeedMax: 200,
-      noiseStrength: 2000,
-      noiseFrequency: 25,
-      tetherStrength: 15.8,
-      maxSpeed: 1000,
-      drag: 0.8,
-      landChance: 0.05,
-      landingDuration: 1,
+  "smellyFlies": {
+    "worldBasedOnly": false,
+    "enabled": true,
+    "blendMode": 0,
+    "particleTexture": "modules/map-shine/assets/fly.webp",
+    "maxParticles": 10,
+    "flying": {
+      "takeoffDuration": 0.5,
+      "takeoffSpeedMin": 100,
+      "takeoffSpeedMax": 200,
+      "noiseStrength": 2000,
+      "noiseFrequency": 25,
+      "tetherStrength": 15.8,
+      "maxSpeed": 1000,
+      "drag": 0.8,
+      "landChance": 0.05,
+      "landingDuration": 1
     },
-    walking: {
-      walkSpeed: 60,
-      minIdleTime: 0.5,
-      maxIdleTime: 2.5,
-      minRotateTime: 0.2,
-      maxRotateTime: 0.7,
-      minMoveTime: 0.3,
-      maxMoveTime: 5.3,
-      minMoveDistance: 5,
-      maxMoveDistance: 95,
-      takeoffChance: 0.05,
+    "walking": {
+      "walkSpeed": 60,
+      "minIdleTime": 0.5,
+      "maxIdleTime": 2.5,
+      "minRotateTime": 0.2,
+      "maxRotateTime": 0.7,
+      "minMoveTime": 0.3,
+      "maxMoveTime": 5.3,
+      "minMoveDistance": 5,
+      "maxMoveDistance": 95,
+      "takeoffChance": 0.05
     },
-    motionBlur: {
-      enabled: true,
-      strength: 0.5,
-      maxLength: 4,
+    "motionBlur": {
+      "enabled": true,
+      "strength": 0.03,
+      "maxLength": 1.6
+    }
+  },
+  "particleSystems": {
+    "enabled": true,
+    "globalDensityMultiplier": 0.65,
+    "globalParticleLimit": 1000
+  },
+  "buildingShadows": {
+    "worldBasedOnly": false,
+    "enabled": true,
+    "intensity": 0.31,
+    "maxOffset": 190,
+    "maxBlur": 50,
+    "sunAngle": 3
+  },
+  "timeOfDay": {
+    "worldBasedOnly": false,
+    "enabled": true,
+    "intensity": 0.2,
+    "currentTime": 12.051098446759717,
+    "keyframes": {
+      "midnight": {
+        "time": 0,
+        "temperature": -0.2,
+        "tint": -0.05,
+        "saturation": 0.8,
+        "brightness": 0,
+        "contrast": 1.1,
+        "exposure": -0.62,
+        "gamma": 1.1
+      },
+      "dawn": {
+        "time": 6,
+        "temperature": 0.3,
+        "tint": -0.09,
+        "saturation": 0.7,
+        "brightness": -0.02,
+        "contrast": 1.05,
+        "exposure": -0.31,
+        "gamma": 0.98
+      },
+      "midday": {
+        "time": 12,
+        "temperature": 0,
+        "tint": 0,
+        "saturation": 1,
+        "brightness": 0,
+        "contrast": 1,
+        "exposure": 0.21,
+        "gamma": 1
+      },
+      "dusk": {
+        "time": 18,
+        "temperature": 0.4,
+        "tint": -0.1,
+        "saturation": 0.74,
+        "brightness": -0.05,
+        "contrast": 1.1,
+        "exposure": -0.44,
+        "gamma": 1
+      },
+      "twilight": {
+        "time": 21,
+        "temperature": -0.44,
+        "tint": -0.42,
+        "saturation": 0.55,
+        "brightness": 0,
+        "contrast": 1,
+        "exposure": -0.55,
+        "gamma": 1
+      }
+    }
+  },
+  "diagnostic": {
+    "enabled": false,
+    "showMasks": true,
+    "pixelInspector": false,
+    "displaySuffix": "specular",
+    "showIlluminationPreview": false
+  },
+  "overheadEffect": {
+    "worldBasedOnly": false,
+    "enabled": true,
+    "blurMinZoom": 0,
+    "blurMidZoom": 1.5,
+    "blurMaxZoom": 18,
+    "opacityMinZoom": 1,
+    "opacityMidZoom": 0.5,
+    "opacityMaxZoom": 0.08,
+    "zoomPointMin": 0.2,
+    "zoomPointMid": 0.65,
+    "zoomPointMax": 1.5,
+    "recolor": {
+      "enabled": false,
+      "intensity": 2,
+      "tint": "#80DEEA",
+      "cloudShadowDarken": {
+        "enabled": true,
+        "intensity": 0.7
+      }
     },
+    "hoverFadeDuration": 500,
+    "tokenMasking": {
+      "enabled": true,
+      "blurAmount": 10
+    }
   },
-  particleSystems: {
-    enabled: true,
-    globalDensityMultiplier: 1,
-    globalParticleLimit: 1000,
-  },
-  buildingShadows: {
-    worldBasedOnly: false,
-    enabled: true,
-    intensity: 0.6,
-    maxOffset: 80,
-    maxBlur: 8,
-    sunAngle: 45,
-  },
-  timeOfDay: {
-    worldBasedOnly: false,
-    enabled: true,
-    intensity: 1,
-    currentTime: 12,
-    keyframes: {
-      midnight: {
-        time: 0,
-        temperature: -0.2,
-        tint: -0.05,
-        saturation: 0.8,
-        brightness: -0.2,
-        contrast: 1.1,
-        exposure: -0.25,
-        gamma: 1.1,
-      },
-      dawn: {
-        time: 6,
-        temperature: 0.3,
-        tint: 0.1,
-        saturation: 1.1,
-        brightness: -0.1,
-        contrast: 1.05,
-        exposure: 0.1,
-        gamma: 0.95,
-      },
-      midday: {
-        time: 12,
-        temperature: 0,
-        tint: 0,
-        saturation: 1,
-        brightness: 0,
-        contrast: 1,
-        exposure: 0,
-        gamma: 1,
-      },
-      dusk: {
-        time: 18,
-        temperature: 0.4,
-        tint: -0.1,
-        saturation: 1.2,
-        brightness: -0.05,
-        contrast: 1.1,
-        exposure: 0.15,
-        gamma: 0.9,
-      },
-      twilight: {
-        time: 21,
-        temperature: -0.15,
-        tint: -0.08,
-        saturation: 0.9,
-        brightness: -0.15,
-        contrast: 1,
-        exposure: -0.1,
-        gamma: 1.05,
-      },
-    },
-  },
-  diagnostic: {
-    enabled: false,
-    showMasks: false,
-    pixelInspector: false,
-    displaySuffix: "fire",
-    showIlluminationPreview: false,
-  },
-  overheadEffect: {
-    worldBasedOnly: false,
-    enabled: true,
-    blurMinZoom: 0,
-    blurMidZoom: 2,
-    blurMaxZoom: 8,
-    opacityMinZoom: 1.0,
-    opacityMidZoom: 1.0,
-    opacityMaxZoom: 0.25,
-    zoomPointMin: 0.2,
-    zoomPointMid: 0.65,
-    zoomPointMax: 1.5,
-    recolor: {
-      enabled: false,
-      intensity: 0.5,
-      tint: "#80DEEA",
-      cloudShadowDarken: {
-        enabled: false,
-        intensity: 0.5,
-      },
-    },
-    hoverFadeDuration: 500,
-    tokenMasking: {
-      enabled: true,
-      blurAmount: 10,
-    },
-  },
-  ambientLayerZIndex: 250,
-};
+  "ambientLayerZIndex": 250
+}
 
 const hexToRgbArray = (hex) => {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -4778,6 +4809,18 @@ class SceneChangeManager {
 
     this._populateOverlayContent(config, sceneName);
 
+    // GSAP Guard
+    if (typeof gsap === "undefined") {
+      console.warn("MapShine | GSAP not found. Snapping fadeOut effect.");
+      this.transitionOverlay.style.opacity = 1;
+      this.transitionOverlay.style.pointerEvents = "auto";
+      const content = this.transitionOverlay.querySelector(
+        ".transition-content"
+      );
+      if (content) content.style.opacity = 1;
+      return Promise.resolve();
+    }
+
     return new Promise((resolve) => {
       const tl = gsap.timeline({ onComplete: resolve });
       const contentElements = this.transitionOverlay.querySelectorAll(
@@ -4816,6 +4859,14 @@ class SceneChangeManager {
       console.warn(
         "[MapShine Transition] FadeIn called but overlay does not exist."
       );
+      return Promise.resolve();
+    }
+
+    // GSAP Guard
+    if (typeof gsap === "undefined") {
+      console.warn("MapShine | GSAP not found. Snapping fadeIn effect.");
+      this.transitionOverlay.style.opacity = 0;
+      this.transitionOverlay.style.pointerEvents = "none";
       return Promise.resolve();
     }
 
@@ -4863,8 +4914,21 @@ class SceneChangeManager {
       this.transitionOverlay.querySelector(".transition-status");
     const statusFadeDuration = 200;
 
+    const p = Math.min(100, Math.max(0, progress));
+
+    // GSAP Guard
+    if (typeof gsap === "undefined") {
+      if (fillElement) {
+        fillElement.style.width = `${p}%`;
+      }
+      if (message && statusTextElement) {
+        statusTextElement.innerText = message;
+        statusTextElement.style.opacity = "1";
+      }
+      return;
+    }
+
     if (fillElement) {
-      const p = Math.min(100, Math.max(0, progress));
       // Animate the progress bar fill for a smoother look
       gsap.to(fillElement, {
         width: `${p}%`,
@@ -4896,26 +4960,37 @@ class SceneChangeManager {
   }
 
   async hide() {
-    // This isn't a real hide, it just hides the progress bar elements
-    // before the main fadeIn animation starts.
-    if (this.transitionOverlay) {
-      const bar = this.transitionOverlay.querySelector(
-        ".loading-bar-container"
-      );
-      const status = this.transitionOverlay.querySelector(".transition-status");
+    if (!this.transitionOverlay) return;
 
-      // We can do a quick fade out of these elements
-      const tl = gsap.timeline();
-      tl.to([bar, status], {
-        opacity: 0,
-        duration: 0.2,
-        onComplete: () => {
-          if (bar) bar.style.display = "none";
-          if (status) status.style.display = "none";
-        },
-      });
-      await tl;
+    const bar = this.transitionOverlay.querySelector(
+      ".loading-bar-container"
+    );
+    const status = this.transitionOverlay.querySelector(".transition-status");
+
+    // GSAP Guard
+    if (typeof gsap === "undefined") {
+      if (bar) {
+        bar.style.opacity = "0";
+        bar.style.display = "none";
+      }
+      if (status) {
+        status.style.opacity = "0";
+        status.style.display = "none";
+      }
+      return Promise.resolve();
     }
+
+    // We can do a quick fade out of these elements
+    const tl = gsap.timeline();
+    tl.to([bar, status], {
+      opacity: 0,
+      duration: 0.2,
+      onComplete: () => {
+        if (bar) bar.style.display = "none";
+        if (status) status.style.display = "none";
+      },
+    });
+    await tl;
   }
 
   async handleCanvasTearDown(canvas) {
@@ -6788,7 +6863,9 @@ class AppearanceTransitionManager {
 
   stop() {
     if (this.activeTransition) {
-      this.activeTransition.kill();
+      if (typeof gsap !== "undefined") {
+        this.activeTransition.kill();
+      }
       this.activeTransition = null;
     }
     game.mapShine.transitionActive = false;
@@ -6863,7 +6940,13 @@ class AppearanceTransitionManager {
     this.stop();
     this._configBeforePreview = null; // A transition always clears any preview state.
 
-    if (duration === 0) {
+    // GSAP Guard and zero-duration handling
+    if (typeof gsap === "undefined" || duration === 0) {
+      if (typeof gsap === "undefined" && duration > 0) {
+        console.warn(
+          "MapShine | GSAP not found. Snapping appearance transition."
+        );
+      }
       this.profileManager.activeConfig = endConfig;
       await this.profileManager.updateAllSystemsFromConfig();
       // Also broadcast the final time for any listeners like the clock.
@@ -6973,7 +7056,7 @@ class AppearanceTransitionManager {
     this._setStatus("previewing", "Preview active");
 
     // Store the config that we should revert to when the preview ends.
-    this._configBeforePreview = this.profileManager._getEffectiveConfig();
+    this._configBeforePreview = this.profileManager.getCurrentConfig();
 
     // Set the active config to the one being previewed.
     this.profileManager.activeConfig = config;
@@ -6986,7 +7069,7 @@ class AppearanceTransitionManager {
 
     // Revert to the config we saved before the preview started, with a fallback.
     this.profileManager.activeConfig =
-      this._configBeforePreview || this.profileManager._getEffectiveConfig();
+      this._configBeforePreview || this.profileManager.getCurrentConfig();
     this._configBeforePreview = null; // Clean up the stored state.
 
     await this.profileManager.updateAllSystemsFromConfig();
@@ -7418,16 +7501,22 @@ class PauseEffectManager {
         game.mapShine.profileManager.activeConfig.timeControl.globalTime;
     }
 
-    this._animation = gsap.to(this._animationState, {
-      progress: targetProgress,
-      duration: peConfig.duration / 1000, // GSAP uses seconds
-      ease: "power2.inOut",
-      onUpdate: () => this._updateEffects(this._animationState.progress),
-      onComplete: () => {
-        this._animation = null;
-        this._updateEffects(targetProgress); // Final snap to value
-      },
-    });
+    if (typeof gsap === "undefined") {
+      console.warn("MapShine | GSAP not found. Snapping pause effect.");
+      this._animationState.progress = targetProgress;
+      this._updateEffects(targetProgress);
+    } else {
+      this._animation = gsap.to(this._animationState, {
+        progress: targetProgress,
+        duration: peConfig.duration / 1000, // GSAP uses seconds
+        ease: "power2.inOut",
+        onUpdate: () => this._updateEffects(this._animationState.progress),
+        onComplete: () => {
+          this._animation = null;
+          this._updateEffects(targetProgress); // Final snap to value
+        },
+      });
+    }
   }
 
   _updateEffects(progress) {
@@ -7596,16 +7685,22 @@ class CombatEffectManager {
         game.mapShine.profileManager.activeConfig.timeControl.globalTime;
     }
 
-    this._animation = gsap.to(this._animationState, {
-      progress: targetProgress,
-      duration: ceConfig.duration / 1000,
-      ease: "power2.inOut",
-      onUpdate: () => this._updateEffects(this._animationState.progress),
-      onComplete: () => {
-        this._animation = null;
-        this._updateEffects(targetProgress);
-      },
-    });
+    if (typeof gsap === "undefined") {
+      console.warn("MapShine | GSAP not found. Snapping combat effect.");
+      this._animationState.progress = targetProgress;
+      this._updateEffects(targetProgress);
+    } else {
+      this._animation = gsap.to(this._animationState, {
+        progress: targetProgress,
+        duration: ceConfig.duration / 1000,
+        ease: "power2.inOut",
+        onUpdate: () => this._updateEffects(this._animationState.progress),
+        onComplete: () => {
+          this._animation = null;
+          this._updateEffects(targetProgress);
+        },
+      });
+    }
   }
 
   _updateEffects(progress) {
@@ -18516,6 +18611,21 @@ class MetallicShineLayer extends CanvasLayer {
 
   async updateFromConfig(config) {
     const bsConfig = config.baseShine;
+
+    // Guard against an incomplete or undefined baseShine configuration object,
+    // which can occur briefly during scene transitions.
+    if (
+      !bsConfig ||
+      !bsConfig.compositing ||
+      !bsConfig.animation ||
+      !bsConfig.pattern ||
+      !bsConfig.pattern.stripes ||
+      !bsConfig.cloudOcclusion
+    ) {
+      this.visible = false;
+      return;
+    }
+
     this.visible = config.enabled && bsConfig.enabled;
 
     this.blendMode = bsConfig.compositing.layerBlendMode;
@@ -28279,7 +28389,7 @@ class DebuggerEventHandler {
 
   async _onCopySettings() {
     try {
-      const configToCopy = this.profileManager._getEffectiveConfig({
+      const configToCopy = this.profileManager.getCurrentConfig({
         excludeClientOverrides: true,
       });
       const jsonString = JSON.stringify(configToCopy, null, 2);
@@ -28313,7 +28423,7 @@ class DebuggerEventHandler {
       }
 
       // Reconcile the pasted config to ensure it matches the current data structure.
-      const reconciledConfig = this.profileManager._reconcileOverrides(
+      const reconciledConfig = ConfigBuilder._reconcile(
         foundry.utils.deepClone(MODULE_DEFAULTS),
         pastedConfig
       );
