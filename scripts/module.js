@@ -1,5 +1,3 @@
-// URGENT TODO: The Copy Settings to Clipboard button isn't working and I need it to update hard coded settings.
-// URGENT TODO: Get the hard coded settings working and in place and tested. Then release and push the map.
 // TODO: Remove all controls from 'Scene Illumination Mix-in apart from the colour correction. Everything else isn't working.
 // TODO: Add cloud shadows to Overhead Effects layer
 
@@ -27,6 +25,100 @@
 // ---------------------------------------------------------------------------------
 
 const MODULE_ID = "map-shine";
+
+const UNIVERSAL_EFFECT_DEFAULTS = {
+  sceneTransition: {
+    enabled: true,
+    fadeOutDuration: 5000,
+    fadeInDuration: 5000,
+    logoPath: "modules/map-shine/assets/mm-logo.png",
+    heading: "New Chapter",
+    subheading: "The story continues...",
+    staticDescription: "This is the default description text...",
+    showSceneName: true,
+    useRandomHint: true,
+    randomHints: [
+      "Loading Screen Hint 1",
+      "Loading Screen Hint 2",
+      "Loading Screen Hint 3",
+    ],
+  },
+  pauseEffect: {
+    enabled: true,
+    duration: 3000,
+    colorCorrection: {
+      enabled: true,
+      saturation: 0.2,
+      brightness: -0.15,
+      contrast: 1,
+      invert: false,
+      tint: {
+        color: "#FFFFFF",
+        amount: 0,
+      },
+      exposure: 0,
+      gamma: 1,
+      levels: {
+        inBlack: 0,
+        inWhite: 1,
+      },
+      whiteBalance: {
+        temperature: 0,
+        tint: 0,
+      },
+      mask: {
+        enabled: false,
+        invert: false,
+        luminanceThreshold: 0.25,
+        softness: 0.1,
+      },
+      selective: {
+        enabled: false,
+        color: "#ff0000",
+        hueRange: 0.05,
+        saturationRange: 0.3,
+      },
+    },
+  },
+  combatEffect: {
+    enabled: true,
+    duration: 10000,
+    timeScale: 0.25,
+    colorCorrection: {
+      enabled: true,
+      saturation: 1,
+      brightness: 0,
+      contrast: 1,
+      invert: false,
+      tint: {
+        color: "#ff0000",
+        amount: 0,
+      },
+      exposure: 0,
+      gamma: 1,
+      levels: {
+        inBlack: 0,
+        inWhite: 1,
+      },
+      whiteBalance: {
+        temperature: 0,
+        tint: 0,
+      },
+      mask: {
+        enabled: false,
+        invert: false,
+        luminanceThreshold: 0.25,
+        softness: 0.1,
+      },
+      selective: {
+        enabled: false,
+        color: "#ff0000",
+        hueRange: 0.05,
+        saturationRange: 0.3,
+      },
+    },
+  },
+};
 
 const PROFILES_SETTING = "profiles";
 
@@ -1314,1134 +1406,1020 @@ const COLOR_CORRECTION_PRESETS = {
 };
 
 const MODULE_DEFAULTS = {
-  "timeControl": {
-    "globalTime": 100
+  timeControl: {
+    globalTime: 100,
   },
-  "enabled": true,
-  "debug": true,
-  "showTokenMask": false,
-  "showDustMaskDebug": false,
-  "showGlintMaskDebug": false,
-  "tileOpacity": 0,
-  "baseShine": {
-    "worldBasedOnly": false,
-    "enabled": true,
-    "compositing": {
-      "layerBlendMode": 1
+  enabled: true,
+  debug: true,
+  showTokenMask: false,
+  showDustMaskDebug: false,
+  showGlintMaskDebug: false,
+  tileOpacity: 0,
+  baseShine: {
+    enabled: true,
+    compositing: {
+      layerBlendMode: 1,
     },
-    "animation": {
-      "globalIntensity": 2
+    animation: {
+      globalIntensity: 2,
     },
-    "pattern": {
-      "stripes": {
-        "enabled": true,
-        "speed": 0,
-        "angle": 140,
-        "scale": 12.5,
-        "evolution": 0.01,
-        "threshold": 0.05,
-        "softness": 0.5,
-        "widthVariationAmount": 0,
-        "widthVariationScale": 0.51,
-        "strengthVariation": 1
-      }
+    pattern: {
+      stripes: {
+        enabled: true,
+        speed: 0,
+        angle: 140,
+        scale: 12.5,
+        evolution: 0.01,
+        threshold: 0.05,
+        softness: 0.5,
+        widthVariationAmount: 0,
+        widthVariationScale: 0.51,
+        strengthVariation: 1,
+      },
     },
-    "cloudOcclusion": {
-      "enabled": true,
-      "intensity": 0.81
-    }
+    cloudOcclusion: {
+      enabled: true,
+      intensity: 0.81,
+    },
   },
-  "cloudShadows": {
-    "worldBasedOnly": false,
-    "enabled": true,
-    "blendMode": 0,
-    "shadowIntensity": 0.35,
-    "maskBlur": 0,
-    "shadowInteraction": {
-      "enabled": false,
-      "intensity": 1,
-      "luminanceThreshold": 0.97,
-      "softness": 0.01
+  cloudShadows: {
+    enabled: true,
+    blendMode: 0,
+    shadowIntensity: 0.35,
+    maskBlur: 0,
+    shadowInteraction: {
+      enabled: false,
+      intensity: 1,
+      luminanceThreshold: 0.97,
+      softness: 0.01,
     },
-    "wind": {
-      "angle": 45,
-      "speed": 0.0008
+    wind: {
+      angle: 45,
+      speed: 0.0008,
     },
-    "noise": {
-      "scale": 0.01,
-      "octaves": 7,
-      "persistence": 0.5,
-      "lacunarity": 1.9
+    noise: {
+      scale: 0.01,
+      octaves: 7,
+      persistence: 0.5,
+      lacunarity: 1.9,
     },
-    "shading": {
-      "threshold": 1,
-      "softness": 0.71,
-      "brightness": 0.14,
-      "contrast": 5,
-      "gamma": 1.6
-    }
-  },
-  "iridescence": {
-    "worldBasedOnly": false,
-    "enabled": true,
-    "texturePath": "",
-    "blendMode": 1,
-    "intensity": 0.9,
-    "speed": 0.01,
-    "scale": 0.7,
-    "parallax": 0,
-    "fbm": {
-      "octaves": 5,
-      "persistence": 0.33,
-      "lacunarity": 1.9,
-      "evolution": 0,
-      "brightness": 0.45,
-      "contrast": 0.8
+    shading: {
+      threshold: 1,
+      softness: 0.71,
+      brightness: 0.14,
+      contrast: 5,
+      gamma: 1.6,
     },
-    "distortion": {
-      "enabled": true,
-      "strength": 5.26
+  },
+  iridescence: {
+    enabled: true,
+    texturePath: "",
+    blendMode: 1,
+    intensity: 0.9,
+    speed: 0.01,
+    scale: 0.7,
+    parallax: 0,
+    fbm: {
+      octaves: 5,
+      persistence: 0.33,
+      lacunarity: 1.9,
+      evolution: 0,
+      brightness: 0.45,
+      contrast: 0.8,
     },
-    "noise": {
-      "enabled": true,
-      "speed": 0.042,
-      "scale": 9.7,
-      "threshold": 0.47,
-      "brightness": 0.74,
-      "contrast": 2.45,
-      "softness": 0.5
+    distortion: {
+      enabled: true,
+      strength: 5.26,
     },
-    "gradient": {
-      "name": "rainbow",
-      "hueShift": 0,
-      "brightness": 0.04,
-      "contrast": 0.5
-    }
-  },
-  "canopy": {
-    "worldBasedOnly": false,
-    "enabled": true,
-    "shadowIntensity": 0.3,
-    "tint": "#050805",
-    "distortion": {
-      "enabled": true,
-      "strength": 0.004,
-      "speed": 0.005,
-      "scale": 0.01,
-      "evolution": 0.01,
-      "threshold": 0,
-      "brightness": -0.37,
-      "contrast": 1,
-      "softness": 1
+    noise: {
+      enabled: true,
+      speed: 0.042,
+      scale: 9.7,
+      threshold: 0.47,
+      brightness: 0.74,
+      contrast: 2.45,
+      softness: 0.5,
     },
-    "postScale": 1
-  },
-  "structuralShadows": {
-    "worldBasedOnly": false,
-    "enabled": true,
-    "shadowIntensity": 0.57,
-    "tint": "#000000",
-    "parallax": 0,
-    "illuminationInteraction": {
-      "enabled": false,
-      "intensity": 1,
-      "luminanceThreshold": 0.1,
-      "softness": 0.15,
-      "colorCorrection": {
-        "enabled": true,
-        "saturation": 1,
-        "brightness": 0,
-        "contrast": 1,
-        "exposure": 0,
-        "gamma": 1,
-        "tint": {
-          "color": "#FFFFFF",
-          "amount": 0
-        }
-      }
+    gradient: {
+      name: "rainbow",
+      hueShift: 0,
+      brightness: 0.04,
+      contrast: 0.5,
     },
-    "rgbSplit": {
-      "enabled": true,
-      "intensity": 2.3,
-      "threshold": 0
+  },
+  canopy: {
+    enabled: true,
+    shadowIntensity: 0.3,
+    tint: "#050805",
+    distortion: {
+      enabled: true,
+      strength: 0.004,
+      speed: 0.005,
+      scale: 0.01,
+      evolution: 0.01,
+      threshold: 0,
+      brightness: -0.37,
+      contrast: 1,
+      softness: 1,
     },
-    "intensityNoise": {
-      "enabled": false,
-      "amount": 0.44,
-      "speed": 0.145,
-      "scale": 1.25,
-      "evolution": 0,
-      "threshold": 0.71,
-      "brightness": -1.13,
-      "contrast": 2.8,
-      "softness": 1
-    },
-    "cloudOcclusion": {
-      "enabled": true,
-      "intensity": 0.8
-    }
+    postScale: 1,
   },
-  "prism": {
-    "worldBasedOnly": false,
-    "enabled": true,
-    "intensity": 1,
-    "angle": 218,
-    "threshold": 0.1,
-    "softness": 0.5,
-    "distortionStrength": 1.9,
-    "distortionNoise": {
-      "enabled": true,
-      "speed": 0,
-      "scale": 3.83,
-      "evolution": 0,
-      "threshold": 0,
-      "brightness": 0.11,
-      "contrast": 1.85,
-      "softness": 1
-    }
-  },
-  "ambient": {
-    "worldBasedOnly": false,
-    "enabled": true,
-    "texturePath": "",
-    "blendMode": 1,
-    "intensity": 1,
-    "masking": {
-      "enabled": true,
-      "threshold": 0,
-      "softness": 0.25
-    },
-    "tokenMasking": {
-      "enabled": true,
-      "threshold": 0
-    },
-    "colorCorrection": {
-      "enabled": true,
-      "saturation": 1.2,
-      "brightness": 0,
-      "contrast": 1,
-      "gamma": 1,
-      "tint": {
-        "color": "#ff0209",
-        "amount": 0
-      }
-    }
-  },
-  "groundGlow": {
-    "worldBasedOnly": false,
-    "enabled": true,
-    "texturePath": "",
-    "blendMode": 1,
-    "intensity": 1.05,
-    "luminanceThreshold": 0.25,
-    "brightness": 1.2,
-    "saturation": 1.2,
-    "softness": 1,
-    "invert": false,
-    "tokenMasking": {
-      "enabled": true,
-      "threshold": 0
-    }
-  },
-  "heatDistortion": {
-    "worldBasedOnly": false,
-    "enabled": true,
-    "texturePath": "",
-    "intensity": 0.0165,
-    "noise": {
-      "primary": {
-        "speed": 0.002,
-        "scale": 0.5,
-        "octaves": 2,
-        "lacunarity": 2.2,
-        "persistence": 0.45
-      },
-      "secondary": {
-        "speed": 0.185,
-        "scale": 19.5,
-        "octaves": 7,
-        "lacunarity": 3.8,
-        "persistence": 0.3
-      },
-      "rising": {
-        "speed": 0.077,
-        "intensity": 0.4
-      }
-    }
-  },
-  "advancedBloom": {
-    "worldBasedOnly": false,
-    "enabled": false,
-    "threshold": 0.5,
-    "bloomScale": 1,
-    "brightness": 1,
-    "blur": 8,
-    "quality": 4
-  },
-  "sceneAppearance": {
-    "transitionDuration": 3500
-  },
-  "sceneTransition": {
-    "enabled": true,
-    "worldBasedOnly": true,
-    "fadeOutDuration": 5000,
-    "fadeInDuration": 5000,
-    "logoPath": "modules/map-shine/assets/mm-logo.png",
-    "heading": "New Chapter",
-    "subheading": "The story continues...",
-    "staticDescription": "This is the default description text...",
-    "showSceneName": true,
-    "useRandomHint": true,
-    "randomHints": [
-      "Loading Screen Hint 1",
-      "Loading Screen Hint 2",
-      "Loading Screen Hint 3"
-    ]
-  },
-  "pauseEffect": {
-    "enabled": true,
-    "worldBasedOnly": true,
-    "duration": 3000,
-    "colorCorrection": {
-      "enabled": true,
-      "saturation": 0.2,
-      "brightness": -0.15,
-      "contrast": 1,
-      "invert": false,
-      "tint": {
-        "color": "#FFFFFF",
-        "amount": 0
-      },
-      "exposure": 0,
-      "gamma": 1,
-      "levels": {
-        "inBlack": 0,
-        "inWhite": 1
-      },
-      "whiteBalance": {
-        "temperature": 0,
-        "tint": 0
-      },
-      "mask": {
-        "enabled": false,
-        "invert": false,
-        "luminanceThreshold": 0.25,
-        "softness": 0.1
-      },
-      "selective": {
-        "enabled": false,
-        "color": "#ff0000",
-        "hueRange": 0.05,
-        "saturationRange": 0.3
-      }
-    }
-  },
-  "combatEffect": {
-    "enabled": true,
-    "worldBasedOnly": true,
-    "duration": 10000,
-    "timeScale": 0.25,
-    "colorCorrection": {
-      "enabled": true,
-      "saturation": 1,
-      "brightness": 0,
-      "contrast": 1,
-      "invert": false,
-      "tint": {
-        "color": "#ff0000",
-        "amount": 0
-      },
-      "exposure": 0,
-      "gamma": 1,
-      "levels": {
-        "inBlack": 0,
-        "inWhite": 1
-      },
-      "whiteBalance": {
-        "temperature": 0,
-        "tint": 0
-      },
-      "mask": {
-        "enabled": false,
-        "invert": false,
-        "luminanceThreshold": 0.25,
-        "softness": 0.1
-      },
-      "selective": {
-        "enabled": false,
-        "color": "#ff0000",
-        "hueRange": 0.05,
-        "saturationRange": 0.3
-      }
-    }
-  },
-  "postProcessing": {
-    "worldBasedOnly": false,
-    "enabled": true,
-    "colorCorrection": {
-      "enabled": true,
-      "saturation": 1,
-      "brightness": 0,
-      "contrast": 1,
-      "invert": false,
-      "tint": {
-        "color": "#FFFFFF",
-        "amount": 0
-      },
-      "exposure": -0.2,
-      "gamma": 1,
-      "levels": {
-        "inBlack": 0,
-        "inWhite": 1
-      },
-      "whiteBalance": {
-        "temperature": 0,
-        "tint": 0
-      },
-      "highlightCloud": {
-        "enabled": false,
-        "brightness": 0.25
-      },
-      "highlightCanopy": {
-        "enabled": false,
-        "brightness": 0.97
-      },
-      "highlightStructural": {
-        "enabled": true,
-        "brightness": 1.61
-      },
-      "sceneIlluminationMixIn": {
-        "enabled": true,
-        "intensity": 0.95,
-        "blendMode": 1,
-        "debugMode": false,
-        "colorCorrection": {
-          "enabled": true,
-          "saturation": 3.25,
-          "brightness": -0.28,
-          "contrast": 1.8,
-          "exposure": -0.55,
-          "gamma": 0.65,
-          "tint": {
-            "color": "#FFFFFF",
-            "amount": 0
-          }
+  structuralShadows: {
+    enabled: true,
+    shadowIntensity: 0.57,
+    tint: "#000000",
+    parallax: 0,
+    illuminationInteraction: {
+      enabled: false,
+      intensity: 1,
+      luminanceThreshold: 0.1,
+      softness: 0.15,
+      colorCorrection: {
+        enabled: true,
+        saturation: 1,
+        brightness: 0,
+        contrast: 1,
+        exposure: 0,
+        gamma: 1,
+        tint: {
+          color: "#FFFFFF",
+          amount: 0,
         },
-        "noise": {
-          "enabled": false,
-          "amount": 0.01,
-          "scale": 1,
-          "speed": 0.001
+      },
+    },
+    rgbSplit: {
+      enabled: true,
+      intensity: 2.3,
+      threshold: 0,
+    },
+    intensityNoise: {
+      enabled: false,
+      amount: 0.44,
+      speed: 0.145,
+      scale: 1.25,
+      evolution: 0,
+      threshold: 0.71,
+      brightness: -1.13,
+      contrast: 2.8,
+      softness: 1,
+    },
+    cloudOcclusion: {
+      enabled: true,
+      intensity: 0.8,
+    },
+  },
+  prism: {
+    enabled: true,
+    intensity: 1,
+    angle: 218,
+    threshold: 0.1,
+    softness: 0.5,
+    distortionStrength: 1.9,
+    distortionNoise: {
+      enabled: true,
+      speed: 0,
+      scale: 3.83,
+      evolution: 0,
+      threshold: 0,
+      brightness: 0.11,
+      contrast: 1.85,
+      softness: 1,
+    },
+  },
+  ambient: {
+    enabled: true,
+    texturePath: "",
+    blendMode: 1,
+    intensity: 1,
+    masking: {
+      enabled: true,
+      threshold: 0,
+      softness: 0.25,
+    },
+    tokenMasking: {
+      enabled: true,
+      threshold: 0,
+    },
+    colorCorrection: {
+      enabled: true,
+      saturation: 1.2,
+      brightness: 0,
+      contrast: 1,
+      gamma: 1,
+      tint: {
+        color: "#ff0209",
+        amount: 0,
+      },
+    },
+  },
+  groundGlow: {
+    enabled: true,
+    texturePath: "",
+    blendMode: 1,
+    intensity: 1.05,
+    luminanceThreshold: 0.25,
+    brightness: 1.2,
+    saturation: 1.2,
+    softness: 1,
+    invert: false,
+    tokenMasking: {
+      enabled: true,
+      threshold: 0,
+    },
+  },
+  heatDistortion: {
+    enabled: true,
+    texturePath: "",
+    intensity: 0.0165,
+    noise: {
+      primary: {
+        speed: 0.002,
+        scale: 0.5,
+        octaves: 2,
+        lacunarity: 2.2,
+        persistence: 0.45,
+      },
+      secondary: {
+        speed: 0.185,
+        scale: 19.5,
+        octaves: 7,
+        lacunarity: 3.8,
+        persistence: 0.3,
+      },
+      rising: {
+        speed: 0.077,
+        intensity: 0.4,
+      },
+    },
+  },
+  advancedBloom: {
+    enabled: false,
+    threshold: 0.5,
+    bloomScale: 1,
+    brightness: 1,
+    blur: 8,
+    quality: 4,
+  },
+  sceneAppearance: {
+    transitionDuration: 3500,
+  },
+  postProcessing: {
+    enabled: true,
+    colorCorrection: {
+      enabled: true,
+      saturation: 1,
+      brightness: 0,
+      contrast: 1,
+      invert: false,
+      tint: {
+        color: "#FFFFFF",
+        amount: 0,
+      },
+      exposure: -0.2,
+      gamma: 1,
+      levels: {
+        inBlack: 0,
+        inWhite: 1,
+      },
+      whiteBalance: {
+        temperature: 0,
+        tint: 0,
+      },
+      highlightCloud: {
+        enabled: false,
+        brightness: 0.25,
+      },
+      highlightCanopy: {
+        enabled: false,
+        brightness: 0.97,
+      },
+      highlightStructural: {
+        enabled: true,
+        brightness: 1.61,
+      },
+      sceneIlluminationMixIn: {
+        enabled: true,
+        intensity: 0.95,
+        blendMode: 1,
+        debugMode: false,
+        colorCorrection: {
+          enabled: true,
+          saturation: 3.25,
+          brightness: -0.28,
+          contrast: 1.8,
+          exposure: -0.55,
+          gamma: 0.65,
+          tint: {
+            color: "#FFFFFF",
+            amount: 0,
+          },
         },
-        "shadowInteraction": {
-          "enabled": false,
-          "intensity": 1,
-          "luminanceThreshold": 0.1,
-          "softness": 0.15
+        noise: {
+          enabled: false,
+          amount: 0.01,
+          scale: 1,
+          speed: 0.001,
         },
-        "negativeMask": {
-          "enabled": false,
-          "threshold": 0.8,
-          "softness": 0.2
-        }
-      },
-      "mask": {
-        "enabled": false,
-        "invert": false,
-        "luminanceThreshold": 0.25,
-        "softness": 0.1
-      },
-      "selective": {
-        "enabled": false,
-        "color": "#fb0045",
-        "hueRange": 0.09,
-        "saturationRange": 0.5,
-        "luminanceRange": 0.5,
-        "targetLuminance": 0.04,
-        "softness": 0.1,
-        "invert": false,
-        "desaturation": 1,
-        "targetSaturation": 1,
-        "targetBrightness": 0
-      },
-      "curves": {
-        "enabled": false,
-        "activeChannel": "rgb",
-        "rgb": {
-          "points": [
-            {
-              "x": 0,
-              "y": 0
-            },
-            {
-              "x": 0.25,
-              "y": 0.25
-            },
-            {
-              "x": 0.75,
-              "y": 0.75
-            },
-            {
-              "x": 1,
-              "y": 1
-            }
-          ]
+        shadowInteraction: {
+          enabled: false,
+          intensity: 1,
+          luminanceThreshold: 0.1,
+          softness: 0.15,
         },
-        "red": {
-          "points": [
-            {
-              "x": 0,
-              "y": 0
-            },
-            {
-              "x": 0.25,
-              "y": 0.25
-            },
-            {
-              "x": 0.75,
-              "y": 0.75
-            },
-            {
-              "x": 1,
-              "y": 1
-            }
-          ]
+        negativeMask: {
+          enabled: false,
+          threshold: 0.8,
+          softness: 0.2,
         },
-        "green": {
-          "points": [
+      },
+      mask: {
+        enabled: false,
+        invert: false,
+        luminanceThreshold: 0.25,
+        softness: 0.1,
+      },
+      selective: {
+        enabled: false,
+        color: "#fb0045",
+        hueRange: 0.09,
+        saturationRange: 0.5,
+        luminanceRange: 0.5,
+        targetLuminance: 0.04,
+        softness: 0.1,
+        invert: false,
+        desaturation: 1,
+        targetSaturation: 1,
+        targetBrightness: 0,
+      },
+      curves: {
+        enabled: false,
+        activeChannel: "rgb",
+        rgb: {
+          points: [
             {
-              "x": 0,
-              "y": 0
+              x: 0,
+              y: 0,
             },
             {
-              "x": 0.25,
-              "y": 0.25
+              x: 0.25,
+              y: 0.25,
             },
             {
-              "x": 0.75,
-              "y": 0.75
+              x: 0.75,
+              y: 0.75,
             },
             {
-              "x": 1,
-              "y": 1
-            }
-          ]
+              x: 1,
+              y: 1,
+            },
+          ],
         },
-        "blue": {
-          "points": [
+        red: {
+          points: [
             {
-              "x": 0,
-              "y": 0
+              x: 0,
+              y: 0,
             },
             {
-              "x": 0.25,
-              "y": 0.25
+              x: 0.25,
+              y: 0.25,
             },
             {
-              "x": 0.75,
-              "y": 0.75
+              x: 0.75,
+              y: 0.75,
             },
             {
-              "x": 1,
-              "y": 1
-            }
-          ]
-        }
+              x: 1,
+              y: 1,
+            },
+          ],
+        },
+        green: {
+          points: [
+            {
+              x: 0,
+              y: 0,
+            },
+            {
+              x: 0.25,
+              y: 0.25,
+            },
+            {
+              x: 0.75,
+              y: 0.75,
+            },
+            {
+              x: 1,
+              y: 1,
+            },
+          ],
+        },
+        blue: {
+          points: [
+            {
+              x: 0,
+              y: 0,
+            },
+            {
+              x: 0.25,
+              y: 0.25,
+            },
+            {
+              x: 0.75,
+              y: 0.75,
+            },
+            {
+              x: 1,
+              y: 1,
+            },
+          ],
+        },
       },
-      "dynamicExposure": {
-        "enabled": false,
-        "intensity": 1.5,
-        "duration": 8000,
-        "resetPeriod": 60000
-      }
-    },
-    "vignette": {
-      "enabled": true,
-      "amount": 0.24,
-      "softness": 0.36
-    },
-    "lensDistortion": {
-      "enabled": true,
-      "amount": 0.015,
-      "centerX": 0.5,
-      "centerY": 0.5
-    },
-    "chromaticAberration": {
-      "enabled": true,
-      "amount": 0.001,
-      "centerX": 0.5,
-      "centerY": 0.5
-    },
-    "tiltShift": {
-      "enabled": false,
-      "blur": 23,
-      "gradientBlur": 3610,
-      "startX": 0,
-      "startY": 0.5,
-      "endX": 1,
-      "endY": 0.5
-    },
-    "grain": {
-      "enabled": false,
-      "intensity": 0.1,
-      "size": 1.5,
-      "monochromatic": true,
-      "luminanceResponse": {
-        "shadows": 0.8,
-        "highlights": 0.2
-      }
-    },
-    "lut": {
-      "enabled": true,
-      "texturePath": "",
-      "intensity": 1,
-      "presetName": "custom",
-      "diagnosticMode": 0,
-      "diagnosticSlice": 1,
-      "domainMin": {
-        "r": 0,
-        "g": 0,
-        "b": 0
+      dynamicExposure: {
+        enabled: false,
+        intensity: 1.5,
+        duration: 8000,
+        resetPeriod: 60000,
       },
-      "domainMax": {
-        "r": 1,
-        "g": 1,
-        "b": 1
+    },
+    vignette: {
+      enabled: true,
+      amount: 0.24,
+      softness: 0.36,
+    },
+    lensDistortion: {
+      enabled: true,
+      amount: 0.015,
+      centerX: 0.5,
+      centerY: 0.5,
+    },
+    chromaticAberration: {
+      enabled: true,
+      amount: 0.001,
+      centerX: 0.5,
+      centerY: 0.5,
+    },
+    tiltShift: {
+      enabled: false,
+      blur: 23,
+      gradientBlur: 3610,
+      startX: 0,
+      startY: 0.5,
+      endX: 1,
+      endY: 0.5,
+    },
+    grain: {
+      enabled: false,
+      intensity: 0.1,
+      size: 1.5,
+      monochromatic: true,
+      luminanceResponse: {
+        shadows: 0.8,
+        highlights: 0.2,
       },
-      "preLutBlur": {
-        "enabled": false,
-        "amount": 0
+    },
+    lut: {
+      enabled: true,
+      texturePath: "",
+      intensity: 1,
+      presetName: "custom",
+      diagnosticMode: 0,
+      diagnosticSlice: 1,
+      domainMin: {
+        r: 0,
+        g: 0,
+        b: 0,
       },
-      "inputProcessing": {
-        "enabled": false,
-        "saturation": 1,
-        "brightness": 0,
-        "contrast": 1,
-        "gamma": 0.9,
-        "hue": 0
-      }
-    }
+      domainMax: {
+        r: 1,
+        g: 1,
+        b: 1,
+      },
+      preLutBlur: {
+        enabled: false,
+        amount: 0,
+      },
+      inputProcessing: {
+        enabled: false,
+        saturation: 1,
+        brightness: 0,
+        contrast: 1,
+        gamma: 0.9,
+        hue: 0,
+      },
+    },
   },
-  "dust": {
-    "worldBasedOnly": false,
-    "enabled": true,
-    "blendMode": 0,
-    "maskThreshold": 0.39,
-    "maskInfluence": 5,
-    "particleTexture": "modules/map-shine/assets/particle.webp",
-    "frequency": 0.097,
-    "lifetime": {
-      "min": 4,
-      "max": 12
+  dust: {
+    enabled: true,
+    blendMode: 0,
+    maskThreshold: 0.39,
+    maskInfluence: 5,
+    particleTexture: "modules/map-shine/assets/particle.webp",
+    frequency: 0.097,
+    lifetime: {
+      min: 4,
+      max: 12,
     },
-    "color": {
-      "start": "#ffd275",
-      "end": "#ffe9b9"
+    color: {
+      start: "#ffd275",
+      end: "#ffe9b9",
     },
-    "alpha": {
-      "max": 0.51,
-      "fadeIn": 0.5,
-      "fadeOut": 0.5
+    alpha: {
+      max: 0.51,
+      fadeIn: 0.5,
+      fadeOut: 0.5,
     },
-    "scale": {
-      "sizeMultiplier": 0.6,
-      "start": 0.9,
-      "end": 1.09,
-      "minMult": 0.86
+    scale: {
+      sizeMultiplier: 0.6,
+      start: 0.9,
+      end: 1.09,
+      minMult: 0.86,
     },
-    "speed": {
-      "start": 3,
-      "end": 6,
-      "minMult": 0.5
+    speed: {
+      start: 3,
+      end: 6,
+      minMult: 0.5,
     },
-    "rotation": {
-      "enabled": false,
-      "minSpeed": 0,
-      "maxSpeed": 20,
-      "accel": 0
-    }
+    rotation: {
+      enabled: false,
+      minSpeed: 0,
+      maxSpeed: 20,
+      accel: 0,
+    },
   },
-  "glint": {
-    "worldBasedOnly": false,
-    "enabled": true,
-    "darknessAffectsIntensity": true,
-    "blendMode": 0,
-    "maskThreshold": 0.9,
-    "maskInfluence": 0.09,
-    "particleTexture": "modules/map-shine/assets/glint.webp",
-    "frequency": 0.932,
-    "lifetime": {
-      "min": 0.8,
-      "max": 2.9
+  glint: {
+    enabled: true,
+    darknessAffectsIntensity: true,
+    blendMode: 0,
+    maskThreshold: 0.9,
+    maskInfluence: 0.09,
+    particleTexture: "modules/map-shine/assets/glint.webp",
+    frequency: 0.932,
+    lifetime: {
+      min: 0.8,
+      max: 2.9,
     },
-    "color": {
-      "start": "#FFFFFF",
-      "end": "#FFFFFF"
+    color: {
+      start: "#FFFFFF",
+      end: "#FFFFFF",
     },
-    "alpha": {
-      "max": 0.95,
-      "fadeIn": 0.05,
-      "fadeOut": 0.94
+    alpha: {
+      max: 0.95,
+      fadeIn: 0.05,
+      fadeOut: 0.94,
     },
-    "scale": {
-      "sizeMultiplier": 9,
-      "start": 1.5,
-      "end": 0.61,
-      "minMult": 0.9
+    scale: {
+      sizeMultiplier: 9,
+      start: 1.5,
+      end: 0.61,
+      minMult: 0.9,
     },
-    "speed": {
-      "start": 0,
-      "end": 0,
-      "minMult": 0.5
+    speed: {
+      start: 0,
+      end: 0,
+      minMult: 0.5,
     },
-    "rotation": {
-      "enabled": false,
-      "minSpeed": 0,
-      "maxSpeed": 20,
-      "accel": 0
+    rotation: {
+      enabled: false,
+      minSpeed: 0,
+      maxSpeed: 20,
+      accel: 0,
     },
-    "rgbSplit": {
-      "enabled": true,
-      "amount": 8.2
-    }
+    rgbSplit: {
+      enabled: true,
+      amount: 8.2,
+    },
   },
-  "water": {
-    "worldBasedOnly": false,
-    "enabled": true,
-    "wave": {
-      "enabled": true,
-      "speed": 0.0148,
-      "scale": 37.7,
-      "intensity": 0.0018
+  water: {
+    enabled: true,
+    wave: {
+      enabled: true,
+      speed: 0.0148,
+      scale: 37.7,
+      intensity: 0.0018,
     },
-    "surface": {
-      "enabled": true,
-      "foamColor": "#33adff",
-      "foamIntensity": 0,
-      "foamCoverage": 0,
-      "foamSharpness": 0.13,
-      "fbmScale": 15.196,
-      "fbmSpeed": 0.01,
-      "fbmEvolution": 0.03,
-      "fbmOctaves": 5,
-      "fbmLacunarity": 4,
-      "fbmPersistence": 0.1,
-      "sheenEnabled": true,
-      "sheenIntensity": 0.448,
-      "sheenColor": "#FFFFFF",
-      "sheenScale": 0.5,
-      "sheenSpeed": 0.002,
-      "sheenStretch": 1,
-      "sheenSharpness": 0.8
+    surface: {
+      enabled: true,
+      foamColor: "#33adff",
+      foamIntensity: 0,
+      foamCoverage: 0,
+      foamSharpness: 0.13,
+      fbmScale: 15.196,
+      fbmSpeed: 0.01,
+      fbmEvolution: 0.03,
+      fbmOctaves: 5,
+      fbmLacunarity: 4,
+      fbmPersistence: 0.1,
+      sheenEnabled: true,
+      sheenIntensity: 0.448,
+      sheenColor: "#FFFFFF",
+      sheenScale: 0.5,
+      sheenSpeed: 0.002,
+      sheenStretch: 1,
+      sheenSharpness: 0.8,
     },
-    "caustics": {
-      "enabled": true,
-      "intensity": 0.033,
-      "scale": 1,
-      "speed": 0.01,
-      "color": "#87CEFA",
-      "lineSharpness": 5,
-      "bloomIntensity": 1,
-      "lineDistortion": 0.1,
-      "lineDistortionScale": 5,
-      "intersectionBoost": 20,
-      "roughnessScale": 4.2,
-      "roughnessIntensity": 0.83
+    caustics: {
+      enabled: true,
+      intensity: 0.033,
+      scale: 1,
+      speed: 0.01,
+      color: "#87CEFA",
+      lineSharpness: 5,
+      bloomIntensity: 1,
+      lineDistortion: 0.1,
+      lineDistortionScale: 5,
+      intersectionBoost: 20,
+      roughnessScale: 4.2,
+      roughnessIntensity: 0.83,
     },
-    "shoreline": {
-      "enabled": false,
-      "detectionBlur": 1,
-      "foamColor": "#FFFFFF",
-      "foamIntensity": 0.5,
-      "foamPattern": {
-        "scale": 1,
-        "speed": 0,
-        "evolution": 0.01,
-        "octaves": 4,
-        "lacunarity": 2.05,
-        "persistence": 0.15,
-        "brightness": 0.5,
-        "contrast": 1
+    shoreline: {
+      enabled: false,
+      detectionBlur: 1,
+      foamColor: "#FFFFFF",
+      foamIntensity: 0.5,
+      foamPattern: {
+        scale: 1,
+        speed: 0,
+        evolution: 0.01,
+        octaves: 4,
+        lacunarity: 2.05,
+        persistence: 0.15,
+        brightness: 0.5,
+        contrast: 1,
       },
-      "displacement": {
-        "enabled": false,
-        "scale": 0.4,
-        "speed": 0.011,
-        "strength": 0.0025
-      }
+      displacement: {
+        enabled: false,
+        scale: 0.4,
+        speed: 0.011,
+        strength: 0.0025,
+      },
     },
-    "glintParticles": {
-      "enabled": true,
-      "blendMode": 9,
-      "maskThreshold": 0.17,
-      "maskInfluence": 1.95,
-      "particleTexture": "modules/map-shine/assets/glint.webp",
-      "frequency": 0.99,
-      "lifetime": {
-        "min": 0.8,
-        "max": 0.8
+    glintParticles: {
+      enabled: true,
+      blendMode: 9,
+      maskThreshold: 0.17,
+      maskInfluence: 1.95,
+      particleTexture: "modules/map-shine/assets/glint.webp",
+      frequency: 0.99,
+      lifetime: {
+        min: 0.8,
+        max: 0.8,
       },
-      "color": {
-        "start": "#eef7ff",
-        "end": "#95b3ff"
+      color: {
+        start: "#eef7ff",
+        end: "#95b3ff",
       },
-      "alpha": {
-        "max": 0.5,
-        "fadeIn": 0.25,
-        "fadeOut": 0.25
+      alpha: {
+        max: 0.5,
+        fadeIn: 0.25,
+        fadeOut: 0.25,
       },
-      "scale": {
-        "sizeMultiplier": 1.9,
-        "start": 0.76,
-        "end": 0.82,
-        "minMult": 0.95
+      scale: {
+        sizeMultiplier: 1.9,
+        start: 0.76,
+        end: 0.82,
+        minMult: 0.95,
       },
-      "speed": {
-        "start": 5,
-        "end": 11,
-        "minMult": 0.47
+      speed: {
+        start: 5,
+        end: 11,
+        minMult: 0.47,
       },
-      "rotation": {
-        "enabled": true,
-        "minSpeed": 116,
-        "maxSpeed": 123,
-        "accel": 52
-      }
-    }
+      rotation: {
+        enabled: true,
+        minSpeed: 116,
+        maxSpeed: 123,
+        accel: 52,
+      },
+    },
   },
-  "fire": {
-    "worldBasedOnly": false,
-    "enabled": true,
-    "bloom": {
-      "enabled": true,
-      "threshold": 0.04,
-      "bloomScale": 5,
-      "brightness": 5,
-      "blur": 0,
-      "quality": 4
+  fire: {
+    enabled: true,
+    bloom: {
+      enabled: true,
+      threshold: 0.04,
+      bloomScale: 5,
+      brightness: 5,
+      blur: 0,
+      quality: 4,
     },
-    "particles": {
-      "enabled": true,
-      "blendMode": 1,
-      "maskThreshold": 0.06,
-      "maskInfluence": 5,
-      "particleTexture": "modules/map-shine/assets/flame.webp",
-      "frequency": 0.001,
-      "lifetime": {
-        "min": 0.1,
-        "max": 1.4
+    particles: {
+      enabled: true,
+      blendMode: 1,
+      maskThreshold: 0.06,
+      maskInfluence: 5,
+      particleTexture: "modules/map-shine/assets/flame.webp",
+      frequency: 0.001,
+      lifetime: {
+        min: 0.1,
+        max: 1.4,
       },
-      "color": {
-        "start": "#FFDD88",
-        "end": "#ea7500"
+      color: {
+        start: "#FFDD88",
+        end: "#ea7500",
       },
-      "alpha": {
-        "max": 0.68,
-        "fadeIn": 0.01,
-        "fadeOut": 1
+      alpha: {
+        max: 0.68,
+        fadeIn: 0.01,
+        fadeOut: 1,
       },
-      "scale": {
-        "sizeMultiplier": 0.1,
-        "start": 0.32,
-        "end": 1.24,
-        "minMult": 0.95
+      scale: {
+        sizeMultiplier: 0.1,
+        start: 0.32,
+        end: 1.24,
+        minMult: 0.95,
       },
-      "speed": {
-        "start": 1,
-        "end": 2,
-        "minMult": 0.5
+      speed: {
+        start: 1,
+        end: 2,
+        minMult: 0.5,
       },
-      "rotation": {
-        "enabled": true,
-        "minSpeed": -180,
-        "maxSpeed": 180,
-        "accel": 4
+      rotation: {
+        enabled: true,
+        minSpeed: -180,
+        maxSpeed: 180,
+        accel: 4,
       },
-      "wind": {
-        "enabled": false,
-        "force": 0,
-        "baseSpeed": 0,
-        "gustSpeed": 0,
-        "gustFrequencyMin": 3,
-        "gustFrequencyMax": 8,
-        "gustDurationMin": 0.2,
-        "gustDurationMax": 0.8,
-        "angleChangeFrequencyMin": 5,
-        "angleChangeFrequencyMax": 15,
-        "angleChangeRange": 20
-      }
-    }
+      wind: {
+        enabled: false,
+        force: 0,
+        baseSpeed: 0,
+        gustSpeed: 0,
+        gustFrequencyMin: 3,
+        gustFrequencyMax: 8,
+        gustDurationMin: 0.2,
+        gustDurationMax: 0.8,
+        angleChangeFrequencyMin: 5,
+        angleChangeFrequencyMax: 15,
+        angleChangeRange: 20,
+      },
+    },
   },
-  "sparks": {
-    "worldBasedOnly": false,
-    "enabled": true,
-    "blendMode": 1,
-    "maskThreshold": 0.95,
-    "maskInfluence": 1.12,
-    "particleTexture": "modules/map-shine/assets/particle.webp",
-    "frequency": 0.08,
-    "lifetime": {
-      "min": 1.5,
-      "max": 3
+  sparks: {
+    enabled: true,
+    blendMode: 1,
+    maskThreshold: 0.95,
+    maskInfluence: 1.12,
+    particleTexture: "modules/map-shine/assets/particle.webp",
+    frequency: 0.08,
+    lifetime: {
+      min: 1.5,
+      max: 3,
     },
-    "color": {
-      "start": "#88c4ff",
-      "end": "#ffffff"
+    color: {
+      start: "#88c4ff",
+      end: "#ffffff",
     },
-    "alpha": {
-      "max": 1,
-      "fadeIn": 0.1,
-      "fadeOut": 0.03
+    alpha: {
+      max: 1,
+      fadeIn: 0.1,
+      fadeOut: 0.03,
     },
-    "scale": {
-      "sizeMultiplier": 1.55,
-      "start": 1,
-      "end": 0.1,
-      "minMult": 0.5
+    scale: {
+      sizeMultiplier: 1.55,
+      start: 1,
+      end: 0.1,
+      minMult: 0.5,
     },
-    "path": {
-      "speed": {
-        "start": 114,
-        "end": 27,
-        "minMult": 0.99
+    path: {
+      speed: {
+        start: 114,
+        end: 27,
+        minMult: 0.99,
       },
-      "amplitude": {
-        "min": 10,
-        "max": 100
+      amplitude: {
+        min: 10,
+        max: 100,
       },
-      "frequency": {
-        "min": 40,
-        "max": 189
+      frequency: {
+        min: 40,
+        max: 189,
       },
-      "offset": {
-        "min": 0,
-        "max": 6.28
+      offset: {
+        min: 0,
+        max: 6.28,
       },
-      "damping": 0.05,
-      "angle": {
-        "min": -90,
-        "max": 90
+      damping: 0.05,
+      angle: {
+        min: -90,
+        max: 90,
       },
-      "motionBlur": {
-        "enabled": true,
-        "strength": 0.15,
-        "maxLength": 2.4
-      }
-    }
+      motionBlur: {
+        enabled: true,
+        strength: 0.15,
+        maxLength: 2.4,
+      },
+    },
   },
-  "lightning": {
-    "enabled": true,
-    "offPeriodMin": 1,
-    "offPeriodMax": 1761,
-    "strikeDuration": 50,
-    "flickerInterval": 10,
-    "flickerIntensity": 0.2,
-    "fadeEasePower": 2,
-    "color": "#99DDFF",
-    "coreColor": "#FFFFFF",
-    "brightness": 3,
-    "sheathOpacity": 1,
-    "coreOpacity": 1,
-    "width": {
-      "start": 12,
-      "end": 2,
-      "variationEnabled": true,
-      "variationAmount": 0.5,
-      "variationScale": 0.1,
-      "variationSpeed": 0.1
+  lightning: {
+    enabled: true,
+    offPeriodMin: 1,
+    offPeriodMax: 1761,
+    strikeDuration: 50,
+    flickerInterval: 10,
+    flickerIntensity: 0.2,
+    fadeEasePower: 2,
+    color: "#99DDFF",
+    coreColor: "#FFFFFF",
+    brightness: 3,
+    sheathOpacity: 1,
+    coreOpacity: 1,
+    width: {
+      start: 12,
+      end: 2,
+      variationEnabled: true,
+      variationAmount: 0.5,
+      variationScale: 0.1,
+      variationSpeed: 0.1,
     },
-    "coreWidth": {
-      "start": 4,
-      "end": 0.5
+    coreWidth: {
+      start: 4,
+      end: 0.5,
     },
-    "path": {
-      "segments": 100,
-      "endPointRandomness": 15
+    path: {
+      segments: 100,
+      endPointRandomness: 15,
     },
-    "curve": {
-      "startAngleMin": -45,
-      "startAngleMax": 45,
-      "endAngleMin": 135,
-      "endAngleMax": 225,
-      "controlPointDistanceMin": 100,
-      "controlPointDistanceMax": 160
+    curve: {
+      startAngleMin: -45,
+      startAngleMax: 45,
+      endAngleMin: 135,
+      endAngleMax: 225,
+      controlPointDistanceMin: 100,
+      controlPointDistanceMax: 160,
     },
-    "fork": {
-      "maxDepth": 4,
-      "chance": 1,
-      "angleRange": 168,
-      "lengthFalloff": 0.7,
-      "widthFalloff": 0.86
+    fork: {
+      maxDepth: 4,
+      chance: 1,
+      angleRange: 168,
+      lengthFalloff: 0.7,
+      widthFalloff: 0.86,
     },
-    "displacement": {
-      "enabled": true,
-      "magnitude": 15,
-      "speed": 0.2,
-      "scale": 0.05
+    displacement: {
+      enabled: true,
+      magnitude: 15,
+      speed: 0.2,
+      scale: 0.05,
     },
-    "displacementFine": {
-      "enabled": true,
-      "magnitude": 5,
-      "speed": 0.1,
-      "scale": 0.005
+    displacementFine: {
+      enabled: true,
+      magnitude: 5,
+      speed: 0.1,
+      scale: 0.005,
     },
-    "bloom": {
-      "enabled": true,
-      "blendMode": 1,
-      "threshold": 0.5,
-      "bloomScale": 1,
-      "brightness": 2,
-      "blur": 8,
-      "quality": 4,
-      "rgbSplit": {
-        "enabled": true,
-        "amount": 0.5
-      }
-    }
-  },
-  "smellyFlies": {
-    "worldBasedOnly": false,
-    "enabled": true,
-    "blendMode": 0,
-    "particleTexture": "modules/map-shine/assets/fly.webp",
-    "maxParticles": 10,
-    "flying": {
-      "takeoffDuration": 0.5,
-      "takeoffSpeedMin": 100,
-      "takeoffSpeedMax": 200,
-      "noiseStrength": 2000,
-      "noiseFrequency": 25,
-      "tetherStrength": 15.8,
-      "maxSpeed": 1000,
-      "drag": 0.8,
-      "landChance": 0.05,
-      "landingDuration": 1
-    },
-    "walking": {
-      "walkSpeed": 60,
-      "minIdleTime": 0.5,
-      "maxIdleTime": 2.5,
-      "minRotateTime": 0.2,
-      "maxRotateTime": 0.7,
-      "minMoveTime": 0.3,
-      "maxMoveTime": 5.3,
-      "minMoveDistance": 5,
-      "maxMoveDistance": 95,
-      "takeoffChance": 0.05
-    },
-    "motionBlur": {
-      "enabled": true,
-      "strength": 0.03,
-      "maxLength": 1.6
-    }
-  },
-  "particleSystems": {
-    "enabled": true,
-    "globalDensityMultiplier": 0.65,
-    "globalParticleLimit": 1000
-  },
-  "buildingShadows": {
-    "worldBasedOnly": false,
-    "enabled": true,
-    "intensity": 0.31,
-    "maxOffset": 190,
-    "maxBlur": 50,
-    "sunAngle": 3
-  },
-  "timeOfDay": {
-    "worldBasedOnly": false,
-    "enabled": true,
-    "intensity": 0.2,
-    "currentTime": 12.051098446759717,
-    "keyframes": {
-      "midnight": {
-        "time": 0,
-        "temperature": -0.2,
-        "tint": -0.05,
-        "saturation": 0.8,
-        "brightness": 0,
-        "contrast": 1.1,
-        "exposure": -0.62,
-        "gamma": 1.1
+    bloom: {
+      enabled: true,
+      blendMode: 1,
+      threshold: 0.5,
+      bloomScale: 1,
+      brightness: 2,
+      blur: 8,
+      quality: 4,
+      rgbSplit: {
+        enabled: true,
+        amount: 0.5,
       },
-      "dawn": {
-        "time": 6,
-        "temperature": 0.3,
-        "tint": -0.09,
-        "saturation": 0.7,
-        "brightness": -0.02,
-        "contrast": 1.05,
-        "exposure": -0.31,
-        "gamma": 0.98
-      },
-      "midday": {
-        "time": 12,
-        "temperature": 0,
-        "tint": 0,
-        "saturation": 1,
-        "brightness": 0,
-        "contrast": 1,
-        "exposure": 0.21,
-        "gamma": 1
-      },
-      "dusk": {
-        "time": 18,
-        "temperature": 0.4,
-        "tint": -0.1,
-        "saturation": 0.74,
-        "brightness": -0.05,
-        "contrast": 1.1,
-        "exposure": -0.44,
-        "gamma": 1
-      },
-      "twilight": {
-        "time": 21,
-        "temperature": -0.44,
-        "tint": -0.42,
-        "saturation": 0.55,
-        "brightness": 0,
-        "contrast": 1,
-        "exposure": -0.55,
-        "gamma": 1
-      }
-    }
-  },
-  "diagnostic": {
-    "enabled": false,
-    "showMasks": true,
-    "pixelInspector": false,
-    "displaySuffix": "specular",
-    "showIlluminationPreview": false
-  },
-  "overheadEffect": {
-    "worldBasedOnly": false,
-    "enabled": true,
-    "blurMinZoom": 0,
-    "blurMidZoom": 1.5,
-    "blurMaxZoom": 18,
-    "opacityMinZoom": 1,
-    "opacityMidZoom": 0.5,
-    "opacityMaxZoom": 0.08,
-    "zoomPointMin": 0.2,
-    "zoomPointMid": 0.65,
-    "zoomPointMax": 1.5,
-    "recolor": {
-      "enabled": false,
-      "intensity": 2,
-      "tint": "#80DEEA",
-      "cloudShadowDarken": {
-        "enabled": true,
-        "intensity": 0.7
-      }
     },
-    "hoverFadeDuration": 500,
-    "tokenMasking": {
-      "enabled": true,
-      "blurAmount": 10
-    }
   },
-  "ambientLayerZIndex": 250
-}
+  smellyFlies: {
+    enabled: true,
+    blendMode: 0,
+    particleTexture: "modules/map-shine/assets/fly.webp",
+    maxParticles: 10,
+    flying: {
+      takeoffDuration: 0.5,
+      takeoffSpeedMin: 100,
+      takeoffSpeedMax: 200,
+      noiseStrength: 2000,
+      noiseFrequency: 25,
+      tetherStrength: 15.8,
+      maxSpeed: 1000,
+      drag: 0.8,
+      landChance: 0.05,
+      landingDuration: 1,
+    },
+    walking: {
+      walkSpeed: 60,
+      minIdleTime: 0.5,
+      maxIdleTime: 2.5,
+      minRotateTime: 0.2,
+      maxRotateTime: 0.7,
+      minMoveTime: 0.3,
+      maxMoveTime: 5.3,
+      minMoveDistance: 5,
+      maxMoveDistance: 95,
+      takeoffChance: 0.05,
+    },
+    motionBlur: {
+      enabled: true,
+      strength: 0.03,
+      maxLength: 1.6,
+    },
+  },
+  particleSystems: {
+    enabled: true,
+    globalDensityMultiplier: 0.65,
+    globalParticleLimit: 1000,
+  },
+  buildingShadows: {
+    enabled: true,
+    intensity: 0.31,
+    maxOffset: 190,
+    maxBlur: 50,
+    sunAngle: 3,
+  },
+  timeOfDay: {
+    enabled: true,
+    intensity: 0.2,
+    currentTime: 12.051098446759717,
+    keyframes: {
+      midnight: {
+        time: 0,
+        temperature: -0.2,
+        tint: -0.05,
+        saturation: 0.8,
+        brightness: 0,
+        contrast: 1.1,
+        exposure: -0.62,
+        gamma: 1.1,
+      },
+      dawn: {
+        time: 6,
+        temperature: 0.3,
+        tint: -0.09,
+        saturation: 0.7,
+        brightness: -0.02,
+        contrast: 1.05,
+        exposure: -0.31,
+        gamma: 0.98,
+      },
+      midday: {
+        time: 12,
+        temperature: 0,
+        tint: 0,
+        saturation: 1,
+        brightness: 0,
+        contrast: 1,
+        exposure: 0.21,
+        gamma: 1,
+      },
+      dusk: {
+        time: 18,
+        temperature: 0.4,
+        tint: -0.1,
+        saturation: 0.74,
+        brightness: -0.05,
+        contrast: 1.1,
+        exposure: -0.44,
+        gamma: 1,
+      },
+      twilight: {
+        time: 21,
+        temperature: -0.44,
+        tint: -0.42,
+        saturation: 0.55,
+        brightness: 0,
+        contrast: 1,
+        exposure: -0.55,
+        gamma: 1,
+      },
+    },
+  },
+  diagnostic: {
+    enabled: false,
+    showMasks: true,
+    pixelInspector: false,
+    displaySuffix: "specular",
+    showIlluminationPreview: false,
+  },
+  overheadEffect: {
+    enabled: true,
+    blurMinZoom: 0,
+    blurMidZoom: 1.5,
+    blurMaxZoom: 18,
+    opacityMinZoom: 1,
+    opacityMidZoom: 0.5,
+    opacityMaxZoom: 0.08,
+    zoomPointMin: 0.2,
+    zoomPointMid: 0.65,
+    zoomPointMax: 1.5,
+    recolor: {
+      enabled: false,
+      intensity: 2,
+      tint: "#80DEEA",
+      cloudShadowDarken: {
+        enabled: true,
+        intensity: 0.7,
+      },
+    },
+    hoverFadeDuration: 500,
+    tokenMasking: {
+      enabled: true,
+      blurAmount: 10,
+    },
+  },
+  ambientLayerZIndex: 250,
+};
 
 const hexToRgbArray = (hex) => {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -2516,6 +2494,146 @@ class MapShineInitialiser {
       config: true,
       type: Boolean,
       default: false,
+    });
+
+    // Helper to register a universal setting
+    const registerUniversalSetting = (key, data) => {
+      game.settings.register(MODULE_ID, `universal.${key}`, {
+        ...data,
+        scope: "world",
+        config: true,
+      });
+    };
+
+    // --- Scene Transition Settings ---
+    registerUniversalSetting("sceneTransition.enabled", {
+      name: "[Universal] Scene Transition: Enabled",
+      type: Boolean,
+      default: UNIVERSAL_EFFECT_DEFAULTS.sceneTransition.enabled,
+    });
+    registerUniversalSetting("sceneTransition.fadeOutDuration", {
+      name: "[Universal] Scene Transition: Fade Out (ms)",
+      type: Number,
+      default: UNIVERSAL_EFFECT_DEFAULTS.sceneTransition.fadeOutDuration,
+    });
+    registerUniversalSetting("sceneTransition.fadeInDuration", {
+      name: "[Universal] Scene Transition: Fade In (ms)",
+      type: Number,
+      default: UNIVERSAL_EFFECT_DEFAULTS.sceneTransition.fadeInDuration,
+    });
+    registerUniversalSetting("sceneTransition.logoPath", {
+      name: "[Universal] Scene Transition: Logo Path",
+      type: String,
+      default: UNIVERSAL_EFFECT_DEFAULTS.sceneTransition.logoPath,
+      filePicker: "image",
+    });
+    registerUniversalSetting("sceneTransition.heading", {
+      name: "[Universal] Scene Transition: Heading",
+      type: String,
+      default: UNIVERSAL_EFFECT_DEFAULTS.sceneTransition.heading,
+    });
+    registerUniversalSetting("sceneTransition.subheading", {
+      name: "[Universal] Scene Transition: Subheading",
+      type: String,
+      default: UNIVERSAL_EFFECT_DEFAULTS.sceneTransition.subheading,
+    });
+    registerUniversalSetting("sceneTransition.staticDescription", {
+      name: "[Universal] Scene Transition: Description",
+      type: String,
+      default: UNIVERSAL_EFFECT_DEFAULTS.sceneTransition.staticDescription,
+    });
+    registerUniversalSetting("sceneTransition.showSceneName", {
+      name: "[Universal] Scene Transition: Show Scene Name",
+      type: Boolean,
+      default: UNIVERSAL_EFFECT_DEFAULTS.sceneTransition.showSceneName,
+    });
+    registerUniversalSetting("sceneTransition.useRandomHint", {
+      name: "[Universal] Scene Transition: Use Random Hint",
+      type: Boolean,
+      default: UNIVERSAL_EFFECT_DEFAULTS.sceneTransition.useRandomHint,
+    });
+    registerUniversalSetting("sceneTransition.randomHints", {
+      name: "[Universal] Scene Transition: Hints (one per line)",
+      type: String,
+      default: UNIVERSAL_EFFECT_DEFAULTS.sceneTransition.randomHints.join("\n"),
+    });
+
+    // --- Pause Effect Settings ---
+    const PE_CC = UNIVERSAL_EFFECT_DEFAULTS.pauseEffect.colorCorrection;
+    registerUniversalSetting("pauseEffect.enabled", {
+      name: "[Universal] Pause Effect: Enabled",
+      type: Boolean,
+      default: UNIVERSAL_EFFECT_DEFAULTS.pauseEffect.enabled,
+    });
+    registerUniversalSetting("pauseEffect.duration", {
+      name: "[Universal] Pause Effect: Duration (ms)",
+      type: Number,
+      default: UNIVERSAL_EFFECT_DEFAULTS.pauseEffect.duration,
+    });
+    registerUniversalSetting("pauseEffect.colorCorrection.enabled", {
+      name: "[Universal] Pause Effect: Color Correction Enabled",
+      type: Boolean,
+      default: PE_CC.enabled,
+    });
+    registerUniversalSetting("pauseEffect.colorCorrection.saturation", {
+      name: "[Universal] Pause Effect: Saturation",
+      type: Number,
+      range: { min: 0, max: 2, step: 0.05 },
+      default: PE_CC.saturation,
+    });
+    registerUniversalSetting("pauseEffect.colorCorrection.brightness", {
+      name: "[Universal] Pause Effect: Brightness",
+      type: Number,
+      range: { min: -1, max: 1, step: 0.01 },
+      default: PE_CC.brightness,
+    });
+    registerUniversalSetting("pauseEffect.colorCorrection.contrast", {
+      name: "[Universal] Pause Effect: Contrast",
+      type: Number,
+      range: { min: 0, max: 3, step: 0.05 },
+      default: PE_CC.contrast,
+    });
+
+    // --- Combat Effect Settings ---
+    const CE_CC = UNIVERSAL_EFFECT_DEFAULTS.combatEffect.colorCorrection;
+    registerUniversalSetting("combatEffect.enabled", {
+      name: "[Universal] Combat Effect: Enabled",
+      type: Boolean,
+      default: UNIVERSAL_EFFECT_DEFAULTS.combatEffect.enabled,
+    });
+    registerUniversalSetting("combatEffect.duration", {
+      name: "[Universal] Combat Effect: Duration (ms)",
+      type: Number,
+      default: UNIVERSAL_EFFECT_DEFAULTS.combatEffect.duration,
+    });
+    registerUniversalSetting("combatEffect.timeScale", {
+      name: "[Universal] Combat Effect: Time Scale",
+      type: Number,
+      range: { min: 0.1, max: 1, step: 0.05 },
+      default: UNIVERSAL_EFFECT_DEFAULTS.combatEffect.timeScale,
+    });
+    registerUniversalSetting("combatEffect.colorCorrection.enabled", {
+      name: "[Universal] Combat Effect: Color Correction Enabled",
+      type: Boolean,
+      default: CE_CC.enabled,
+    });
+    registerUniversalSetting("combatEffect.colorCorrection.saturation", {
+      name: "[Universal] Combat Effect: Saturation",
+      type: Number,
+      range: { min: 0, max: 2, step: 0.05 },
+      default: CE_CC.saturation,
+    });
+    registerUniversalSetting("combatEffect.colorCorrection.brightness", {
+      name: "[Universal] Combat Effect: Brightness",
+      type: Number,
+      range: { min: -1, max: 1, step: 0.01 },
+      default: CE_CC.brightness,
+    });
+    registerUniversalSetting("combatEffect.colorCorrection.contrast", {
+      name: "[Universal] Combat Effect: Contrast",
+      type: Number,
+      range: { min: 0, max: 3, step: 0.05 },
+      default: CE_CC.contrast,
     });
 
     game.settings.register(MODULE_ID, "advanced-ui-mode", {
@@ -3013,14 +3131,60 @@ class MapShineInitialiser {
         "Scene.prototype.view",
         async function (wrapped, ...args) {
           const sceneManager = game.mapShine.sceneChangeManager;
-          // Use the config from the CURRENT scene for fade-out decisions.
-          const oldSceneConfig =
-            game.mapShine.profileManager.activeConfig.sceneTransition;
+
+          // Construct the transition config from individual game settings
+          const transitionConfig = {
+            enabled: game.settings.get(
+              MODULE_ID,
+              "universal.sceneTransition.enabled"
+            ),
+            fadeOutDuration: game.settings.get(
+              MODULE_ID,
+              "universal.sceneTransition.fadeOutDuration"
+            ),
+            fadeInDuration: game.settings.get(
+              MODULE_ID,
+              "universal.sceneTransition.fadeInDuration"
+            ),
+            logoPath: game.settings.get(
+              MODULE_ID,
+              "universal.sceneTransition.logoPath"
+            ),
+            heading: game.settings.get(
+              MODULE_ID,
+              "universal.sceneTransition.heading"
+            ),
+            subheading: game.settings.get(
+              MODULE_ID,
+              "universal.sceneTransition.subheading"
+            ),
+            staticDescription: game.settings.get(
+              MODULE_ID,
+              "universal.sceneTransition.staticDescription"
+            ),
+            showSceneName: game.settings.get(
+              MODULE_ID,
+              "universal.sceneTransition.showSceneName"
+            ),
+            useRandomHint: game.settings.get(
+              MODULE_ID,
+              "universal.sceneTransition.useRandomHint"
+            ),
+            randomHints: (
+              game.settings.get(
+                MODULE_ID,
+                "universal.sceneTransition.randomHints"
+              ) || ""
+            )
+              .split("\n")
+              .filter((h) => h.trim() !== ""),
+          };
+
           const sceneToView = this;
           const currentScene = canvas.scene;
 
           if (
-            !oldSceneConfig.enabled ||
+            !transitionConfig.enabled ||
             !currentScene ||
             sceneToView.id === currentScene.id
           ) {
@@ -3033,8 +3197,8 @@ class MapShineInitialiser {
           );
           await game.scenes.preload(sceneToView.id);
           sceneManager._createOverlay();
-          // Fade out using the old scene's settings.
-          await sceneManager.fadeOut(oldSceneConfig, sceneToView.name);
+          // Fade out using the universal settings.
+          await sceneManager.fadeOut(transitionConfig, sceneToView.name);
 
           let resolveSetup;
           game.mapShine.setupCompletionPromise = new Promise((resolve) => {
@@ -3054,7 +3218,6 @@ class MapShineInitialiser {
             }, 10000)
           );
 
-          // By the time this resolves, the new scene is ready and the profileManager has the new activeConfig.
           await Promise.race([
             game.mapShine.setupCompletionPromise,
             timeoutPromise,
@@ -3062,13 +3225,9 @@ class MapShineInitialiser {
           game.mapShine.setupCompletionPromise = null;
           game.mapShine.resolveSetupCompletion = null;
 
-          // Get the config from the NEWLY loaded scene for the fade-in.
-          const newSceneConfig =
-            game.mapShine.profileManager.activeConfig.sceneTransition;
-
+          // The config is universal, so we use the same one for fade-in.
           await new Promise((resolve) => setTimeout(resolve, 2000));
-          // Fade in using the new scene's settings.
-          await sceneManager.fadeIn(newSceneConfig);
+          await sceneManager.fadeIn(transitionConfig);
           sceneManager._destroyOverlay();
           console.log(
             `%c[MapShine Transition] Transition finished.`,
@@ -3393,15 +3552,6 @@ class ConfigBuilder {
     } else {
       baseConfig = foundry.utils.deepClone(defaults);
       profileSource = "module";
-    }
-
-    const worldConfig = worldProfiles[worldDefaultProfileName]?.config;
-    if (profileSource === "scene" && worldConfig) {
-      for (const key in baseConfig) {
-        if (baseConfig[key]?.worldBasedOnly === true && worldConfig[key]) {
-          baseConfig[key] = foundry.utils.deepClone(worldConfig[key]);
-        }
-      }
     }
 
     baseConfig = this._reconcile(foundry.utils.deepClone(defaults), baseConfig);
@@ -4962,9 +5112,7 @@ class SceneChangeManager {
   async hide() {
     if (!this.transitionOverlay) return;
 
-    const bar = this.transitionOverlay.querySelector(
-      ".loading-bar-container"
-    );
+    const bar = this.transitionOverlay.querySelector(".loading-bar-container");
     const status = this.transitionOverlay.querySelector(".transition-status");
 
     // GSAP Guard
@@ -7427,7 +7575,6 @@ class PauseEffectManager {
     this._pauseFilter = null;
     this._originalGlobalTime = 100;
     this._isInitialized = false;
-    // Bind the handler once to ensure Hooks.off can find it
     this._boundOnPauseChange = this._onPauseChange.bind(this);
   }
 
@@ -7444,7 +7591,6 @@ class PauseEffectManager {
     const config = game.mapShine.profileManager.activeConfig;
     this._originalGlobalTime = config.timeControl.globalTime;
 
-    // Set initial state without animation, in case the game loads while paused.
     this._updateEffects(this._animationState.progress);
 
     Hooks.on("pauseGame", this._boundOnPauseChange);
@@ -7460,7 +7606,7 @@ class PauseEffectManager {
       this._animation.kill();
     }
     this._animation = null;
-    this._pauseFilter = null; // Don't destroy the filter itself, just release the reference
+    this._pauseFilter = null;
     this._isInitialized = false;
     console.log("Map Shine | Pause Effect Manager Destroyed.");
   }
@@ -7468,15 +7614,35 @@ class PauseEffectManager {
   _onPauseChange(paused) {
     if (!this._pauseFilter) return;
 
-    const config = game.mapShine.profileManager.activeConfig;
-    const peConfig = config.pauseEffect;
+    const peConfig = {
+      enabled: game.settings.get(MODULE_ID, "universal.pauseEffect.enabled"),
+      duration: game.settings.get(MODULE_ID, "universal.pauseEffect.duration"),
+      colorCorrection: {
+        enabled: game.settings.get(
+          MODULE_ID,
+          "universal.pauseEffect.colorCorrection.enabled"
+        ),
+        saturation: game.settings.get(
+          MODULE_ID,
+          "universal.pauseEffect.colorCorrection.saturation"
+        ),
+        brightness: game.settings.get(
+          MODULE_ID,
+          "universal.pauseEffect.colorCorrection.brightness"
+        ),
+        contrast: game.settings.get(
+          MODULE_ID,
+          "universal.pauseEffect.colorCorrection.contrast"
+        ),
+      },
+    };
 
     if (!peConfig.enabled) {
-      // If the effect is disabled, ensure time is restored and the filter is off.
       this._updateEffects(0);
-      if (config.timeControl.globalTime < this._originalGlobalTime) {
+      const activeConfig = game.mapShine.profileManager.activeConfig;
+      if (activeConfig.timeControl.globalTime < this._originalGlobalTime) {
         foundry.utils.setProperty(
-          config,
+          activeConfig,
           "timeControl.globalTime",
           this._originalGlobalTime
         );
@@ -7494,8 +7660,6 @@ class PauseEffectManager {
 
     const targetProgress = paused ? 1 : 0;
 
-    // Before starting a "pausing" animation, store the current time.
-    // But only if we aren't already paused (e.g. from a previous animation)
     if (paused && this._animationState.progress < 1) {
       this._originalGlobalTime =
         game.mapShine.profileManager.activeConfig.timeControl.globalTime;
@@ -7508,12 +7672,12 @@ class PauseEffectManager {
     } else {
       this._animation = gsap.to(this._animationState, {
         progress: targetProgress,
-        duration: peConfig.duration / 1000, // GSAP uses seconds
+        duration: peConfig.duration / 1000,
         ease: "power2.inOut",
         onUpdate: () => this._updateEffects(this._animationState.progress),
         onComplete: () => {
           this._animation = null;
-          this._updateEffects(targetProgress); // Final snap to value
+          this._updateEffects(targetProgress);
         },
       });
     }
@@ -7522,25 +7686,41 @@ class PauseEffectManager {
   _updateEffects(progress) {
     if (!this._pauseFilter) return;
 
-    const config = game.mapShine.profileManager.activeConfig;
-    const peConfig = config.pauseEffect;
+    // Construct the config object from individual game settings
+    const peConfig = {
+      colorCorrection: {
+        ...UNIVERSAL_EFFECT_DEFAULTS.pauseEffect.colorCorrection, // Start with defaults
+        enabled: game.settings.get(
+          MODULE_ID,
+          "universal.pauseEffect.colorCorrection.enabled"
+        ),
+        saturation: game.settings.get(
+          MODULE_ID,
+          "universal.pauseEffect.colorCorrection.saturation"
+        ),
+        brightness: game.settings.get(
+          MODULE_ID,
+          "universal.pauseEffect.colorCorrection.brightness"
+        ),
+        contrast: game.settings.get(
+          MODULE_ID,
+          "universal.pauseEffect.colorCorrection.contrast"
+        ),
+      },
+    };
+
+    const activeConfig = game.mapShine.profileManager.activeConfig;
     const timeControlPath = "timeControl.globalTime";
 
-    // --- 1. Update Time Control ---
     const newTime = this._originalGlobalTime * (1 - progress);
 
-    // Directly update the live timeFactor and the config object for consistency
     game.mapShine.timeControl.timeFactor = newTime / 100.0;
-    foundry.utils.setProperty(config, timeControlPath, newTime);
+    foundry.utils.setProperty(activeConfig, timeControlPath, newTime);
 
-    // We only need to call updateAllSystemsFromConfig for the time change.
-    // The color correction is handled directly on the filter below.
-    // Pass a flag to indicate this is a time-only update to prevent particle resets.
     game.mapShine.profileManager.updateAllSystemsFromConfig({
       timeOnly: true,
     });
 
-    // Update the debugger UI to reflect the change without treating it as a user override
     if (game.mapShine.debugger) {
       const slider = game.mapShine.debugger.element.querySelector(
         "#control-timeControl-globalTime"
@@ -7555,18 +7735,10 @@ class PauseEffectManager {
       }
     }
 
-    // --- 2. Update Color Correction Filter ---
     const u = this._pauseFilter.uniforms;
     const cc = peConfig.colorCorrection;
-
-    // This filter is only active during a transition or when fully paused.
     this._pauseFilter.enabled = progress > 0.001 && cc.enabled;
-
-    // Animate the overall intensity of the color correction effect.
     u.uIntensity = progress;
-
-    // Interpolate each value from its neutral state to the target "paused" state.
-    // Note: these are now effectively pre-multiplied by the uIntensity uniform in the shader.
     u.uSaturation = cc.saturation;
     u.uBrightness = cc.brightness;
     u.uContrast = cc.contrast;
@@ -7578,11 +7750,7 @@ class PauseEffectManager {
     u.uWbTint = cc.whiteBalance.tint;
     u.uTintAmount = cc.tint.amount;
     u.uTintColor = hexToRgbArray(cc.tint.color);
-
-    // Boolean values are not interpolated.
     u.uInvert = cc.invert;
-
-    // Selective Color
     u.uSelectiveEnabled = cc.selective.enabled;
     u.uSelectiveColor = hexToRgbArray(cc.selective.color);
     u.uSelectiveHueRange = cc.selective.hueRange;
@@ -7600,7 +7768,7 @@ class PauseEffectManager {
 class CombatEffectManager {
   constructor() {
     this._animationState = {
-      progress: 0, // Initialize to a safe default.
+      progress: 0,
     };
     this._animation = null;
     this._combatFilter = null;
@@ -7622,10 +7790,8 @@ class CombatEffectManager {
     const config = game.mapShine.profileManager.activeConfig;
     this._originalGlobalTime = config.timeControl.globalTime;
 
-    // Check the combat state now that game.combats is available.
     this._animationState.progress = game.combats.active?.started ? 1 : 0;
 
-    // Set initial state without animation, in case the game loads during combat.
     this._updateEffects(this._animationState.progress);
 
     Hooks.on("combatStart", () => this._boundOnCombatChange(true));
@@ -7655,14 +7821,39 @@ class CombatEffectManager {
   _onCombatChange(inCombat) {
     if (!this._combatFilter) return;
 
-    const config = game.mapShine.profileManager.activeConfig;
-    const ceConfig = config.combatEffect;
+    const ceConfig = {
+      enabled: game.settings.get(MODULE_ID, "universal.combatEffect.enabled"),
+      duration: game.settings.get(MODULE_ID, "universal.combatEffect.duration"),
+      timeScale: game.settings.get(
+        MODULE_ID,
+        "universal.combatEffect.timeScale"
+      ),
+      colorCorrection: {
+        enabled: game.settings.get(
+          MODULE_ID,
+          "universal.combatEffect.colorCorrection.enabled"
+        ),
+        saturation: game.settings.get(
+          MODULE_ID,
+          "universal.combatEffect.colorCorrection.saturation"
+        ),
+        brightness: game.settings.get(
+          MODULE_ID,
+          "universal.combatEffect.colorCorrection.brightness"
+        ),
+        contrast: game.settings.get(
+          MODULE_ID,
+          "universal.combatEffect.colorCorrection.contrast"
+        ),
+      },
+    };
 
     if (!ceConfig.enabled) {
       this._updateEffects(0);
-      if (config.timeControl.globalTime < this._originalGlobalTime) {
+      const activeConfig = game.mapShine.profileManager.activeConfig;
+      if (activeConfig.timeControl.globalTime < this._originalGlobalTime) {
         foundry.utils.setProperty(
-          config,
+          activeConfig,
           "timeControl.globalTime",
           this._originalGlobalTime
         );
@@ -7706,11 +7897,37 @@ class CombatEffectManager {
   _updateEffects(progress) {
     if (!this._combatFilter) return;
 
-    const config = game.mapShine.profileManager.activeConfig;
-    const ceConfig = config.combatEffect;
+    // Construct the config object from individual game settings
+    const ceConfig = {
+      enabled: game.settings.get(MODULE_ID, "universal.combatEffect.enabled"),
+      timeScale: game.settings.get(
+        MODULE_ID,
+        "universal.combatEffect.timeScale"
+      ),
+      colorCorrection: {
+        ...UNIVERSAL_EFFECT_DEFAULTS.combatEffect.colorCorrection, // Start with defaults
+        enabled: game.settings.get(
+          MODULE_ID,
+          "universal.combatEffect.colorCorrection.enabled"
+        ),
+        saturation: game.settings.get(
+          MODULE_ID,
+          "universal.combatEffect.colorCorrection.saturation"
+        ),
+        brightness: game.settings.get(
+          MODULE_ID,
+          "universal.combatEffect.colorCorrection.brightness"
+        ),
+        contrast: game.settings.get(
+          MODULE_ID,
+          "universal.combatEffect.colorCorrection.contrast"
+        ),
+      },
+    };
+
+    const activeConfig = game.mapShine.profileManager.activeConfig;
     const timeControlPath = "timeControl.globalTime";
 
-    // --- 1. Update Time Control ---
     const newTime = lerp(
       this._originalGlobalTime,
       this._originalGlobalTime * ceConfig.timeScale,
@@ -7718,7 +7935,7 @@ class CombatEffectManager {
     );
 
     game.mapShine.timeControl.timeFactor = newTime / 100.0;
-    foundry.utils.setProperty(config, timeControlPath, newTime);
+    foundry.utils.setProperty(activeConfig, timeControlPath, newTime);
 
     game.mapShine.profileManager.updateAllSystemsFromConfig({
       timeOnly: true,
@@ -7738,7 +7955,6 @@ class CombatEffectManager {
       }
     }
 
-    // --- 2. Update Color Correction Filter ---
     const u = this._combatFilter.uniforms;
     const cc = ceConfig.colorCorrection;
 
@@ -7758,7 +7974,6 @@ class CombatEffectManager {
     u.uTintColor = hexToRgbArray(cc.tint.color);
     u.uInvert = cc.invert;
 
-    // Selective Color
     u.uSelectiveEnabled = cc.selective.enabled;
     u.uSelectiveColor = hexToRgbArray(cc.selective.color);
     u.uSelectiveHueRange = cc.selective.hueRange;
@@ -8788,11 +9003,17 @@ class LightingEffectManager {
 
   _updatePauseEffectMask(
     pauseFilter,
-    fullConfig,
+    universalConfig,
     isIlluminationReady,
     illuminationTexture
   ) {
-    const config = fullConfig.pauseEffect.colorCorrection;
+    if (!universalConfig?.pauseEffect) return;
+
+    // The universalConfig passed in is now correctly assembled from individual settings.
+    // The structure remains the same, so no changes are needed inside this method itself,
+    // but the error originated from the CALLING method (update) passing invalid data.
+    // The key is ensuring the CALLING method assembles the `universalConfig` correctly.
+    const config = universalConfig.pauseEffect.colorCorrection;
     const u = pauseFilter.uniforms;
 
     const useIllumMask = config.mask.enabled && isIlluminationReady;
@@ -8922,9 +9143,33 @@ class LightingEffectManager {
 
     const pauseFilter = ScreenEffectsManager.getFilter("pauseEffect");
     if (pauseFilter) {
+      // Construct the universal settings object from individual settings, mirroring the default structure.
+      const universalSettings = {
+        pauseEffect: {
+          colorCorrection: {
+            ...UNIVERSAL_EFFECT_DEFAULTS.pauseEffect.colorCorrection, // Start with defaults
+            enabled: game.settings.get(
+              MODULE_ID,
+              "universal.pauseEffect.colorCorrection.enabled"
+            ),
+            saturation: game.settings.get(
+              MODULE_ID,
+              "universal.pauseEffect.colorCorrection.saturation"
+            ),
+            brightness: game.settings.get(
+              MODULE_ID,
+              "universal.pauseEffect.colorCorrection.brightness"
+            ),
+            contrast: game.settings.get(
+              MODULE_ID,
+              "universal.pauseEffect.colorCorrection.contrast"
+            ),
+          },
+        },
+      };
       this._updatePauseEffectMask(
         pauseFilter,
-        fullConfig,
+        universalSettings,
         isIlluminationReady,
         illuminationTexture
       );
@@ -14630,485 +14875,15 @@ class ScreenEffectsManager {
                         </div></details>
                     `;
 
-    const worldBasedIconHTML = (path) => `
-                        <span class="world-based-icon" data-world-based-path="${path}" title="World Based: This effect uses the world-level default profile, ignoring scene-specific settings. A default profile must be set.">
-                            <i class="fas fa-globe"></i>
-                        </span>
-                    `;
-
-    const sceneTransitionHTML = DebuggerUIBuilder._createAccordionHTML(
-      "sceneTransition",
-      "Scene Transition Effect",
-      `
-                                        <p class="description-text">Overrides the default scene change with an elegant fade-through-black effect.</p>
-                                        ${DebuggerUIBuilder._createCheckboxHTML(
-                                          "sceneTransition.worldBasedOnly",
-                                          "World Based Only",
-                                          false,
-                                          "Ignores scene-specific settings for this effect and uses the configured World Default Profile instead. A default profile must be set."
-                                        )}
-                                        <hr style="border-color: #555; margin: 6px 0;">
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "sceneTransition.fadeOutDuration",
-                                          "Fade Out Duration (ms)",
-                                          100,
-                                          5000,
-                                          50
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "sceneTransition.fadeInDuration",
-                                          "Fade In Duration (ms)",
-                                          100,
-                                          5000,
-                                          50
-                                        )}
-                                        <hr style="border-color: #555; margin: 6px 0;">
-                                        ${DebuggerUIBuilder._createTextInputWithPickerHTML(
-                                          "sceneTransition.logoPath",
-                                          "Logo Image Path",
-                                          "Path to an image file (e.g., PNG, WEBP) to display in the center.",
-                                          "image"
-                                        )}
-                                        ${DebuggerUIBuilder._createTextInputHTML(
-                                          "sceneTransition.heading",
-                                          "Heading Text"
-                                        )}
-                                        ${DebuggerUIBuilder._createTextInputHTML(
-                                          "sceneTransition.subheading",
-                                          "Subheading Text"
-                                        )}
-                                        ${DebuggerUIBuilder._createTextInputHTML(
-                                          "sceneTransition.staticDescription",
-                                          "Description Text"
-                                        )}
-                                        ${DebuggerUIBuilder._createCheckboxHTML(
-                                          "sceneTransition.showSceneName",
-                                          "Show Destination Scene Name",
-                                          false,
-                                          "If checked, the name of the scene being loaded will be displayed."
-                                        )}
-                                        <hr style="border-color: #555; margin: 6px 0;">
-                                        ${DebuggerUIBuilder._createTextInputWithPickerHTML(
-                                          "sceneTransition.staticBackgroundImage",
-                                          "Static Background",
-                                          "The background image to use when not using a random one.",
-                                          "image"
-                                        )}
-                                        <details id="details-sceneTransition-backgrounds">
-                                            <summary>
-                                                <span class="accordion-toggle"></span>
-                                                <div class="summary-control">
-                                                    ${DebuggerUIBuilder._createCheckboxHTML(
-                                                      "sceneTransition.useRandomBackgroundImage",
-                                                      "Use Random Background",
-                                                      true,
-                                                      "If checked, a random background from the pool below will be shown."
-                                                    )}
-                                                </div>
-                                            </summary>
-                                            <div style="padding-top: 5px;">
-                                                <div id="sceneTransition-backgroundImages-wrapper">
-                                                    ${DebuggerUIBuilder._createListManagerHTML(
-                                                      "sceneTransition.backgroundImages",
-                                                      "Add Background",
-                                                      "Random Background Pool"
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </details>
-                                        <details id="details-sceneTransition-bgOverlay">
-                                            <summary>
-                                                <span class="accordion-toggle"></span>
-                                                <div class="summary-control">
-                                                    ${DebuggerUIBuilder._createCheckboxHTML(
-                                                      "sceneTransition.backgroundOverlayEnabled",
-                                                      "Background Overlay",
-                                                      true,
-                                                      "Adds a dark gradient over the background image to improve text readability."
-                                                    )}
-                                                </div>
-                                            </summary>
-                                            <div style="padding-left: 15px;">
-                                                ${DebuggerUIBuilder._createSliderHTML(
-                                                  "sceneTransition.backgroundOverlayOpacity",
-                                                  "Opacity",
-                                                  0,
-                                                  1,
-                                                  0.01
-                                                )}
-                                            </div>
-                                        </details>
-                                        <hr style="border-color: #555; margin: 6px 0;">
-                                        <details id="details-sceneTransition-hints">
-                                            <summary>
-                                                <span class="accordion-toggle"></span>
-                                                <div class="summary-control">
-                                                    ${DebuggerUIBuilder._createCheckboxHTML(
-                                                      "sceneTransition.useRandomHint",
-                                                      "Show Random Hint",
-                                                      true,
-                                                      "If checked, a random hint from the pool below will be shown in addition to the description."
-                                                    )}
-                                                </div>
-                                            </summary>
-                                            <div style="padding-top: 5px;">
-                                                <div id="sceneTransition-randomHints-wrapper">
-                                                    ${DebuggerUIBuilder._createListManagerHTML(
-                                                      "sceneTransition.randomHints",
-                                                      "Add Hint",
-                                                      "Random Hint Pool"
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </details>
-                                    `,
-      worldBasedIconHTML("sceneTransition.worldBasedOnly")
-    );
-
-    const pauseEffectHTML = DebuggerUIBuilder._createAccordionHTML(
-      "pauseEffect",
-      "Pause Transition Effect",
-      `
-                        <p class="description-text">Applies a transition effect when the game is paused, including a color correction pass and slowing down all animations.</p>
-                        ${DebuggerUIBuilder._createCheckboxHTML(
-                          "pauseEffect.worldBasedOnly",
-                          "World Based Only",
-                          false,
-                          "Ignores scene-specific settings for this effect and uses the configured World Default Profile instead. A default profile must be set."
-                        )}
-                        <hr style="border-color: #555; margin: 6px 0;">
-                        ${DebuggerUIBuilder._createSliderHTML(
-                          "pauseEffect.duration",
-                          "Transition Duration (ms)",
-                          100,
-                          10000,
-                          100
-                        )}
-                        <details id="details-pauseEffect-colorCorrection"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                          "pauseEffect.colorCorrection.enabled",
-                          "Color Correction",
-                          true
-                        )}</div></summary>
-                            <div>
-                                <details id="details-pauseEffect-cc-basic"><summary><span class="accordion-toggle"></span><strong>Basic Adjustments</strong></summary><div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "pauseEffect.colorCorrection.saturation",
-                                          "Saturation",
-                                          0,
-                                          4,
-                                          0.05
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "pauseEffect.colorCorrection.brightness",
-                                          "Brightness",
-                                          -1,
-                                          1,
-                                          0.01
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "pauseEffect.colorCorrection.contrast",
-                                          "Contrast",
-                                          0,
-                                          4,
-                                          0.05
-                                        )}
-                                        ${DebuggerUIBuilder._createCheckboxHTML(
-                                          "pauseEffect.colorCorrection.invert",
-                                          "Invert Colors"
-                                        )}
-                                </div></details>
-                                <details id="details-pauseEffect-cc-advanced"><summary><span class="accordion-toggle"></span><strong>Advanced Adjustments</strong></summary><div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "pauseEffect.colorCorrection.exposure",
-                                          "Exposure",
-                                          -2,
-                                          2,
-                                          0.05,
-                                          "Multiplies scene brightness, simulating camera exposure."
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "pauseEffect.colorCorrection.gamma",
-                                          "Gamma",
-                                          0.2,
-                                          2.5,
-                                          0.05,
-                                          "Adjusts mid-tones. < 1 lightens, > 1 darkens."
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "pauseEffect.colorCorrection.levels.inBlack",
-                                          "Black Point",
-                                          0,
-                                          1,
-                                          0.01,
-                                          "Sets the darkest point of the image."
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "pauseEffect.colorCorrection.levels.inWhite",
-                                          "White Point",
-                                          0,
-                                          1,
-                                          0.01,
-                                          "Sets the brightest point of the image."
-                                        )}
-                                </div></details>
-                                <details id="details-pauseEffect-cc-whiteBalance"><summary><span class="accordion-toggle"></span><strong>White Balance</strong></summary><div style="padding-left: 15px;">
-                                        <p class="description-text">Simulates camera white balance correction.</p>
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "pauseEffect.colorCorrection.whiteBalance.temperature",
-                                          "Temperature",
-                                          -1,
-                                          1,
-                                          0.01,
-                                          "Negative values are cooler (blue), positive are warmer (orange)."
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "pauseEffect.colorCorrection.whiteBalance.tint",
-                                          "Tint",
-                                          -1,
-                                          1,
-                                          0.01,
-                                          "Negative values shift toward magenta, positive toward green."
-                                        )}
-                                </div></details>
-                                <details id="details-pauseEffect-cc-tint"><summary><span class="accordion-toggle"></span><strong>Global Tint</strong></summary><div style="padding-left: 15px;">
-                                        <p class="description-text">Applies a color overlay to the entire scene.</p>
-                                        ${DebuggerUIBuilder._createColorPickerHTML(
-                                          "pauseEffect.colorCorrection.tint.color",
-                                          "Tint Color"
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "pauseEffect.colorCorrection.tint.amount",
-                                          "Tint Amount",
-                                          0,
-                                          1,
-                                          0.01
-                                        )}
-                                </div></details>
-                                <details id="details-pauseEffect-cc-mask"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                                  "pauseEffect.colorCorrection.mask.enabled",
-                                  "Luminance Mask",
-                                  true
-                                )}</div></summary><div style="padding-left: 15px;">
-                                        <p class="description-text">Applies the color correction only to lit areas of the scene. Requires the Illumination Buffer module.</p>
-                                        ${DebuggerUIBuilder._createCheckboxHTML(
-                                          "pauseEffect.colorCorrection.mask.invert",
-                                          "Invert Mask (Affect Dark Areas)"
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "pauseEffect.colorCorrection.mask.luminanceThreshold",
-                                          "Light Threshold",
-                                          0,
-                                          1,
-                                          0.01
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "pauseEffect.colorCorrection.mask.softness",
-                                          "Edge Softness",
-                                          0.01,
-                                          1,
-                                          0.01
-                                        )}
-                                </div></details>
-                                <details id="details-pauseEffect-cc-selective"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                                  "pauseEffect.colorCorrection.selective.enabled",
-                                  "Selective Color",
-                                  true
-                                )}</div></summary><div style="padding-left: 15px;">
-                                    ${buildSelectiveControls(
-                                      "pauseEffect.colorCorrection.selective."
-                                    )}
-                                </div></details>
-                            </div>
-                        </details>
-                    `,
-      worldBasedIconHTML("pauseEffect.worldBasedOnly")
-    );
-
-    const combatEffectHTML = DebuggerUIBuilder._createAccordionHTML(
-      "combatEffect",
-      "Combat Transition Effect",
-      `
-                        <p class="description-text">Applies a transition effect when combat starts, including a color correction pass and slowing down all animations.</p>
-                        ${DebuggerUIBuilder._createCheckboxHTML(
-                          "combatEffect.worldBasedOnly",
-                          "World Based Only",
-                          false,
-                          "Ignores scene-specific settings for this effect and uses the configured World Default Profile instead. A default profile must be set."
-                        )}
-                        <hr style="border-color: #555; margin: 6px 0;">
-                        ${DebuggerUIBuilder._createSliderHTML(
-                          "combatEffect.duration",
-                          "Transition Duration (ms)",
-                          100,
-                          10000,
-                          100
-                        )}
-                        ${DebuggerUIBuilder._createSliderHTML(
-                          "combatEffect.timeScale",
-                          "Time Scale",
-                          0,
-                          1,
-                          0.01,
-                          "The target animation speed during combat (e.g., 0.25 = 25% speed)."
-                        )}
-                        <details id="details-combatEffect-colorCorrection"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                          "combatEffect.colorCorrection.enabled",
-                          "Color Correction",
-                          true
-                        )}</div></summary>
-                            <div>
-                                <details id="details-combatEffect-cc-basic"><summary><span class="accordion-toggle"></span><strong>Basic Adjustments</strong></summary><div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "combatEffect.colorCorrection.saturation",
-                                          "Saturation",
-                                          0,
-                                          4,
-                                          0.05
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "combatEffect.colorCorrection.brightness",
-                                          "Brightness",
-                                          -1,
-                                          1,
-                                          0.01
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "combatEffect.colorCorrection.contrast",
-                                          "Contrast",
-                                          0,
-                                          4,
-                                          0.05
-                                        )}
-                                        ${DebuggerUIBuilder._createCheckboxHTML(
-                                          "combatEffect.colorCorrection.invert",
-                                          "Invert Colors"
-                                        )}
-                                </div></details>
-                                <details id="details-combatEffect-cc-advanced"><summary><span class="accordion-toggle"></span><strong>Advanced Adjustments</strong></summary><div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "combatEffect.colorCorrection.exposure",
-                                          "Exposure",
-                                          -2,
-                                          2,
-                                          0.05,
-                                          "Multiplies scene brightness, simulating camera exposure."
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "combatEffect.colorCorrection.gamma",
-                                          "Gamma",
-                                          0.2,
-                                          2.5,
-                                          0.05,
-                                          "Adjusts mid-tones. < 1 lightens, > 1 darkens."
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "combatEffect.colorCorrection.levels.inBlack",
-                                          "Black Point",
-                                          0,
-                                          1,
-                                          0.01,
-                                          "Sets the darkest point of the image."
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "combatEffect.colorCorrection.levels.inWhite",
-                                          "White Point",
-                                          0,
-                                          1,
-                                          0.01,
-                                          "Sets the brightest point of the image."
-                                        )}
-                                </div></details>
-                                <details id="details-combatEffect-cc-whiteBalance"><summary><span class="accordion-toggle"></span><strong>White Balance</strong></summary><div style="padding-left: 15px;">
-                                        <p class="description-text">Simulates camera white balance correction.</p>
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "combatEffect.colorCorrection.whiteBalance.temperature",
-                                          "Temperature",
-                                          -1,
-                                          1,
-                                          0.01,
-                                          "Negative values are cooler (blue), positive are warmer (orange)."
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "combatEffect.colorCorrection.whiteBalance.tint",
-                                          "Tint",
-                                          -1,
-                                          1,
-                                          0.01,
-                                          "Negative values shift toward magenta, positive toward green."
-                                        )}
-                                </div></details>
-                                <details id="details-combatEffect-cc-tint"><summary><span class="accordion-toggle"></span><strong>Global Tint</strong></summary><div style="padding-left: 15px;">
-                                        <p class="description-text">Applies a color overlay to the entire scene.</p>
-                                        ${DebuggerUIBuilder._createColorPickerHTML(
-                                          "combatEffect.colorCorrection.tint.color",
-                                          "Tint Color"
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "combatEffect.colorCorrection.tint.amount",
-                                          "Tint Amount",
-                                          0,
-                                          1,
-                                          0.01
-                                        )}
-                                </div></details>
-                                <details id="details-combatEffect-cc-mask"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                                  "combatEffect.colorCorrection.mask.enabled",
-                                  "Luminance Mask",
-                                  true
-                                )}</div></summary><div style="padding-left: 15px;">
-                                        <p class="description-text">Applies the color correction only to lit areas of the scene. Requires the Illumination Buffer module.</p>
-                                        ${DebuggerUIBuilder._createCheckboxHTML(
-                                          "combatEffect.colorCorrection.mask.invert",
-                                          "Invert Mask (Affect Dark Areas)"
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "combatEffect.colorCorrection.mask.luminanceThreshold",
-                                          "Light Threshold",
-                                          0,
-                                          1,
-                                          0.01
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "combatEffect.colorCorrection.mask.softness",
-                                          "Edge Softness",
-                                          0.01,
-                                          1,
-                                          0.01
-                                        )}
-                                </div></details>
-                                <details id="details-combatEffect-cc-selective"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                                  "combatEffect.colorCorrection.selective.enabled",
-                                  "Selective Color",
-                                  true
-                                )}</div></summary><div style="padding-left: 15px;">
-                                    ${buildSelectiveControls(
-                                      "combatEffect.colorCorrection.selective."
-                                    )}
-                                </div></details>
-                            </div>
-                        </details>
-                    `,
-      worldBasedIconHTML("combatEffect.worldBasedOnly")
-    );
-
     const postProcessingHTML = `
                         <h3 class="pane-title">Post-Processing Pipeline</h3>
                         <div class="control-row" style="padding: 4px; background: rgba(0,0,0,0.2); border-radius: 4px; display:flex; justify-content:space-between; align-items:center;">
                             <div style="display:flex; align-items:center; gap: 5px;">
                                 <label for="control-postProcessing-enabled" class="summary-label" title="Master toggle for all effects in this panel."><strong>Enable Post-Processing</strong></label>
                                 <button type="button" class="reset-accordion-btn" data-action="reset-accordion" data-effect-key="postProcessing" title="Reset this section to defaults">R</button>
-                                ${worldBasedIconHTML(
-                                  "postProcessing.worldBasedOnly"
-                                )}
                             </div>
                             <div class="widget-group"><input type="checkbox" id="control-postProcessing-enabled" data-path="postProcessing.enabled"></div>
                         </div>
-                        ${DebuggerUIBuilder._createCheckboxHTML(
-                          "postProcessing.worldBasedOnly",
-                          "World Based Only",
-                          false,
-                          "Ignores scene-specific settings for this entire effect group and uses the configured World Default Profile instead. A default profile must be set."
-                        )}
                         <hr style="border-color:#444; margin: 6px 0;">
                         <details id="details-postProcessing-colorCorrection"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
                           "postProcessing.colorCorrection.enabled",
@@ -15431,66 +15206,7 @@ class ScreenEffectsManager {
                       "Show raw illumination texture for debugging."
                     )}
                     
-                    <details id="details-sceneIlluminationMixIn-shadowInteraction">
-                        <summary><span class="accordion-toggle"></span>
-                            <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                              "postProcessing.colorCorrection.sceneIlluminationMixIn.shadowInteraction.enabled",
-                              "Erase Shadows with Light",
-                              true
-                            )}</div>
-                        </summary>
-                        <div style="padding-left: 15px;">
-                            <p class="description-text">Uses the illumination buffer to reduce the intensity of structural and canopy shadows, simulating light overpowering darkness.</p>
-                            ${DebuggerUIBuilder._createSliderHTML(
-                              "postProcessing.colorCorrection.sceneIlluminationMixIn.shadowInteraction.intensity",
-                              "Reduction Amount",
-                              0,
-                              1,
-                              0.01
-                            )}
-                            ${DebuggerUIBuilder._createSliderHTML(
-                              "postProcessing.colorCorrection.sceneIlluminationMixIn.shadowInteraction.luminanceThreshold",
-                              "Light Threshold",
-                              0,
-                              1,
-                              0.01
-                            )}
-                            ${DebuggerUIBuilder._createSliderHTML(
-                              "postProcessing.colorCorrection.sceneIlluminationMixIn.shadowInteraction.softness",
-                              "Edge Softness",
-                              0.01,
-                              1,
-                              0.01
-                            )}
-                        </div>
-                    </details>
-        
-                    <details id="details-sceneIlluminationMixIn-negativeMask">
-                        <summary><span class="accordion-toggle"></span>
-                            <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                              "postProcessing.colorCorrection.sceneIlluminationMixIn.negativeMask.enabled",
-                              "Negative Mask (Anti-Overexposure)",
-                              true
-                            )}</div>
-                        </summary>
-                        <div style="padding-left: 15px;">
-                            <p class="description-text">Prevents the mix-in from adding light to areas of the scene that are already bright, helping to avoid blown-out highlights.</p>
-                            ${DebuggerUIBuilder._createSliderHTML(
-                              "postProcessing.colorCorrection.sceneIlluminationMixIn.negativeMask.threshold",
-                              "Scene Brightness Threshold",
-                              0,
-                              1,
-                              0.01
-                            )}
-                            ${DebuggerUIBuilder._createSliderHTML(
-                              "postProcessing.colorCorrection.sceneIlluminationMixIn.negativeMask.softness",
-                              "Mask Softness",
-                              0.01,
-                              1,
-                              0.01
-                            )}
-                        </div>
-                    </details>
+
         
                     <details id="details-sceneIlluminationMixIn-colorCorrection">
                         <summary><span class="accordion-toggle"></span>
@@ -15555,43 +15271,7 @@ class ScreenEffectsManager {
                             </details>
                         </div>
                     </details>
-                    
-                    <details id="details-sceneIlluminationMixIn-noise">
-                        <summary><span class="accordion-toggle"></span>
-                            <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                              "postProcessing.colorCorrection.sceneIlluminationMixIn.noise.enabled",
-                              "Anti-Banding Noise",
-                              true
-                            )}</div>
-                        </summary>
-                        <div style="padding-left: 15px;">
-                            <p class="description-text">Adds subtle noise to prevent color banding artifacts in gradients.</p>
-                            ${DebuggerUIBuilder._createSliderHTML(
-                              "postProcessing.colorCorrection.sceneIlluminationMixIn.noise.amount",
-                              "Noise Amount",
-                              0,
-                              0.1,
-                              0.001,
-                              "Strength of the dithering noise."
-                            )}
-                            ${DebuggerUIBuilder._createSliderHTML(
-                              "postProcessing.colorCorrection.sceneIlluminationMixIn.noise.scale",
-                              "Noise Scale",
-                              0.1,
-                              10,
-                              0.1,
-                              "Size of the noise pattern."
-                            )}
-                            ${DebuggerUIBuilder._createSliderHTML(
-                              "postProcessing.colorCorrection.sceneIlluminationMixIn.noise.speed",
-                              "Noise Speed",
-                              -0.01,
-                              0.01,
-                              0.0001,
-                              "Animation speed of the noise pattern."
-                            )}
-                        </div>
-                    </details>
+                
                 </div>
             </details>
         
@@ -15783,7 +15463,8 @@ class ScreenEffectsManager {
 
     return {
       postProcessing: postProcessingHTML,
-      otherEffects: [sceneTransitionHTML, pauseEffectHTML, combatEffectHTML],
+      // This is now empty, as universal effects are in Foundry's menu.
+      otherEffects: [],
     };
   }
 
@@ -15974,6 +15655,52 @@ class ScreenEffectsManager {
     const pp = config.postProcessing;
     const ab = config.advancedBloom;
 
+    // Construct universal settings object from individual settings, mirroring the full default structure.
+    const universalSettings = {
+      pauseEffect: {
+        colorCorrection: {
+          ...UNIVERSAL_EFFECT_DEFAULTS.pauseEffect.colorCorrection, // Start with defaults
+          enabled: game.settings.get(
+            MODULE_ID,
+            "universal.pauseEffect.colorCorrection.enabled"
+          ),
+          saturation: game.settings.get(
+            MODULE_ID,
+            "universal.pauseEffect.colorCorrection.saturation"
+          ),
+          brightness: game.settings.get(
+            MODULE_ID,
+            "universal.pauseEffect.colorCorrection.brightness"
+          ),
+          contrast: game.settings.get(
+            MODULE_ID,
+            "universal.pauseEffect.colorCorrection.contrast"
+          ),
+        },
+      },
+      combatEffect: {
+        colorCorrection: {
+          ...UNIVERSAL_EFFECT_DEFAULTS.combatEffect.colorCorrection, // Start with defaults
+          enabled: game.settings.get(
+            MODULE_ID,
+            "universal.combatEffect.colorCorrection.enabled"
+          ),
+          saturation: game.settings.get(
+            MODULE_ID,
+            "universal.combatEffect.colorCorrection.saturation"
+          ),
+          brightness: game.settings.get(
+            MODULE_ID,
+            "universal.combatEffect.colorCorrection.brightness"
+          ),
+          contrast: game.settings.get(
+            MODULE_ID,
+            "universal.combatEffect.colorCorrection.contrast"
+          ),
+        },
+      },
+    };
+
     const prismFilter = this.getFilter("prism");
     if (prismFilter instanceof PrismFilter) {
       const pConfig = config.prism;
@@ -16128,7 +15855,7 @@ class ScreenEffectsManager {
 
     const pauseFilter = this.getFilter("pauseEffect");
     if (pauseFilter instanceof ColorCorrectionFilter) {
-      const pauseConfig = config.pauseEffect.colorCorrection;
+      const pauseConfig = universalSettings.pauseEffect.colorCorrection;
       const u = pauseFilter.uniforms;
       u.uSaturation = pauseConfig.saturation;
       u.uBrightness = pauseConfig.brightness;
@@ -16159,7 +15886,7 @@ class ScreenEffectsManager {
 
     const combatFilter = this.getFilter("combatEffect");
     if (combatFilter instanceof ColorCorrectionFilter) {
-      const combatConfig = config.combatEffect.colorCorrection;
+      const combatConfig = universalSettings.combatEffect.colorCorrection;
       const u = combatFilter.uniforms;
       u.uSaturation = combatConfig.saturation;
       u.uBrightness = combatConfig.brightness;
@@ -26104,8 +25831,7 @@ class DebuggerUIBuilder {
 
     const otherEffectSections = this._getEffectSections();
 
-    const allRightSideEffects =
-      managedEffects.otherEffects.concat(otherEffectSections);
+    const allRightSideEffects = otherEffectSections;
 
     const midPoint = Math.ceil(allRightSideEffects.length / 2);
     const column1Effects = allRightSideEffects.slice(0, midPoint);
@@ -26295,8 +26021,7 @@ class DebuggerUIBuilder {
                             #material-editor-debugger summary::-webkit-details-marker { display: none; }
                             #material-editor-debugger .accordion-toggle { flex-shrink: 0; width: 0; height: 0; border-top: 4px solid transparent; border-bottom: 4px solid transparent; border-left: 5px solid #ccc; transition: transform 0.2s ease-in-out; margin-left: 2px; }
                             #material-editor-debugger .summary-control { display: flex; justify-content: space-between; align-items: center; width: 100%; }
-                            .world-based-icon { color: #aaa; display: none; margin-right: 5px; }
-                            .world-based-icon.active { display: inline-block; color: #40a0fa; }
+
                             #material-editor-debugger details details { margin-left: 8px; margin-top: 4px; border-style: dashed; }
                             #material-editor-debugger .traffic-light { width: 9px; height: 9px; border-radius: 50%; display: inline-block; box-shadow: 0 0 4px rgba(0,0,0,0.5); border: 1px solid #111; flex-shrink: 0; }
                             #material-editor-debugger .traffic-light.ok { background-color: #4cfa40; }
@@ -26697,7 +26422,7 @@ class DebuggerUIBuilder {
     const checkboxId = this._createSafeId(path);
     const labelHtml = `<span class="summary-label">${title}</span>`;
     const resetButtonHtml = `<button type="button" class="reset-accordion-btn" data-action="reset-accordion" data-effect-key="${id}" title="Reset this section to defaults">R</button>`;
-    const widgetsHtml = `<div class="widget-group"><input type="checkbox" id="${checkboxId}" data-path="${path}"></div>`;
+    const widgetsHtml = `<div class="widget-group"><input type="checkbox" name="${path}" id="${checkboxId}" data-path="${path}"></div>`;
 
     return `<details id="details-${id}">
                             <summary>
@@ -26718,7 +26443,7 @@ class DebuggerUIBuilder {
   static _createCheckboxHTML(path, label, isSummary = false, title = "") {
     const id = this._createSafeId(path);
     const titleAttr = title ? `title="${title}"` : "";
-    const checkbox = `<div class="widget-group"><input type="checkbox" id="${id}" data-path="${path}"></div>`;
+    const checkbox = `<div class="widget-group"><input type="checkbox" name="${path}" id="${id}" data-path="${path}"></div>`;
     const labelHtml = isSummary
       ? `<span class="summary-label" ${titleAttr}>${label}</span>`
       : `<label for="${id}" class="summary-label" ${titleAttr}>${label}</label>`;
@@ -26730,11 +26455,11 @@ class DebuggerUIBuilder {
   static _createSliderHTML(path, label, min, max, step, title = "") {
     const id = this._createSafeId(path);
     const titleAttr = title ? `title="${title}"` : "";
-    return `<div class="control-row control-row-slider"><label for="${id}" ${titleAttr}>${label}</label><input type="range" id="${id}" data-path="${path}" min="${min}" max="${max}" step="${step}"><span id="${id}-value" class="value-span">0.0</span></div>`;
+    return `<div class="control-row control-row-slider"><label for="${id}" ${titleAttr}>${label}</label><input type="range" name="${path}" id="${id}" data-path="${path}" min="${min}" max="${max}" step="${step}"><span id="${id}-value" class="value-span">0.0</span></div>`;
   }
   static _createColorPickerHTML(path, label) {
     const id = this._createSafeId(path);
-    return `<div class="control-row"><label for="${id}">${label}</label><div class="widget-group" style="flex-grow: 1;"><input type="color" id="${id}" data-path="${path}"></div></div>`;
+    return `<div class="control-row"><label for="${id}">${label}</label><div class="widget-group" style="flex-grow: 1;"><input type="color" name="${path}" id="${id}" data-path="${path}"></div></div>`;
   }
   static _createSelectHTML(path, label, options, title = "") {
     const id = this._createSafeId(path);
@@ -26742,7 +26467,7 @@ class DebuggerUIBuilder {
     const opts = Object.entries(options)
       .map(([k, v]) => `<option value="${v}">${k}</option>`)
       .join("");
-    return `<div class="control-row"><label for="${id}" ${titleAttr}>${label}</label><select id="${id}" data-path="${path}">${opts}</select></div>`;
+    return `<div class="control-row"><label for="${id}" ${titleAttr}>${label}</label><select name="${path}" id="${id}" data-path="${path}">${opts}</select></div>`;
   }
   static _createGradientSelectHTML(path, label) {
     const id = this._createSafeId(path);
@@ -26754,7 +26479,7 @@ class DebuggerUIBuilder {
         return `<option value="${name}" style="background: ${gradientCSS};">${name}</option>`;
       })
       .join("");
-    return `<div class="control-row"><label for="${id}">${label}</label><select id="${id}" data-path="${path}" class="gradient-picker">${opts}</select></div>`;
+    return `<div class="control-row"><label for="${id}">${label}</label><select name="${path}" id="${id}" data-path="${path}" class="gradient-picker">${opts}</select></div>`;
   }
 
   static _createPresetSelectHTML(path, label, presets) {
@@ -26762,13 +26487,13 @@ class DebuggerUIBuilder {
     const opts = Object.entries(presets)
       .map(([key, data]) => `<option value="${key}">${data.name}</option>`)
       .join("");
-    return `<div class="control-row"><label for="${id}">${label}</label><select id="${id}" data-path="${path}">${opts}</select></div>`;
+    return `<div class="control-row"><label for="${id}">${label}</label><select name="${path}" id="${id}" data-path="${path}">${opts}</select></div>`;
   }
 
   static _createTextInputHTML(path, label, title = "") {
     const id = this._createSafeId(path);
     const titleAttr = title ? `title="${title}"` : "";
-    return `<div class="control-row" style="margin-bottom: 3px;"><label for="${id}" ${titleAttr}>${label}</label><input type="text" id="${id}" data-path="${path}" style="flex-grow:1;font-family:monospace;font-size:10px;"></div>`;
+    return `<div class="control-row" style="margin-bottom: 3px;"><label for="${id}" ${titleAttr}>${label}</label><input type="text" name="${path}" id="${id}" data-path="${path}" style="flex-grow:1;font-family:monospace;font-size:10px;"></div>`;
   }
 
   static _createTextInputWithPickerHTML(
@@ -26783,7 +26508,7 @@ class DebuggerUIBuilder {
                     <div class="control-row" style="margin-bottom: 3px;">
                         <label for="${id}" ${titleAttr}>${label}</label>
                         <div class="widget-group" style="flex-grow:1; display:flex; gap: 3px;">
-                            <input type="text" id="${id}" data-path="${path}" style="flex-grow:1; font-family:monospace; font-size:10px;">
+                            <input type="text" name="${path}" id="${id}" data-path="${path}" style="flex-grow:1; font-family:monospace; font-size:10px;">
                             <button type="button" class="file-picker-btn" data-fp-target="${id}" data-fp-type="${pickerType}" title="Browse Files"><i class="fas fa-file-import"></i></button>
                         </div>
                     </div>
@@ -27156,33 +26881,42 @@ class DebuggerEventHandler {
    * @param {*} value - The new value for the setting.
    */
   async _performSystemUpdate(path, value) {
-    // First, record the change. This updates the activeConfig.
-    await this.profileManager.recordUserChange(path, value);
+    const universalEffectPrefixes = [
+      "sceneTransition.",
+      "pauseEffect.",
+      "combatEffect.",
+    ];
+    const isUniversal = universalEffectPrefixes.some((prefix) =>
+      path.startsWith(prefix)
+    );
 
-    // Update the state of the main action buttons to reflect the new "dirty" state.
-    this._updateActionButtonsState();
-
-    // Define update options based on the path.
-    const updateOptions = {
-      timeOnly: path === "timeControl.globalTime",
-    };
-
-    // Now, tell all systems to update themselves from the new activeConfig.
-    await this.profileManager.updateAllSystemsFromConfig(updateOptions);
-
-    // Special handling for particles, which might need a structural refresh.
-    const isParticleSetting =
-      Object.values(PARTICLE_EFFECT_DEFINITIONS).some((def) =>
-        path.startsWith(def.configPath)
-      ) || path.startsWith("particleSystems");
-    if (isParticleSetting && !updateOptions.timeOnly) {
-      const particleLayer = canvas.layers.find(
-        (l) => l instanceof ParticleLayer
+    if (isUniversal) {
+      const settings = foundry.utils.deepClone(
+        game.settings.get(MODULE_ID, "universal-effects")
       );
-      if (particleLayer && game.mapShine.effectTargetManager.targets) {
-        await particleLayer.updateEffectTargets(
-          game.mapShine.effectTargetManager.targets
+      foundry.utils.setProperty(settings, path, value);
+      await game.settings.set(MODULE_ID, "universal-effects", settings);
+    } else {
+      await this.profileManager.recordUserChange(path, value);
+      this._updateActionButtonsState();
+      const updateOptions = {
+        timeOnly: path === "timeControl.globalTime",
+      };
+      await this.profileManager.updateAllSystemsFromConfig(updateOptions);
+
+      const isParticleSetting =
+        Object.values(PARTICLE_EFFECT_DEFINITIONS).some((def) =>
+          path.startsWith(def.configPath)
+        ) || path.startsWith("particleSystems");
+      if (isParticleSetting && !updateOptions.timeOnly) {
+        const particleLayer = canvas.layers.find(
+          (l) => l instanceof ParticleLayer
         );
+        if (particleLayer && game.mapShine.effectTargetManager.targets) {
+          await particleLayer.updateEffectTargets(
+            game.mapShine.effectTargetManager.targets
+          );
+        }
       }
     }
   }
@@ -27258,6 +26992,54 @@ class DebuggerEventHandler {
     Hooks.on("mapShine:timeChanged", this._onTimeChangedBound);
   }
 
+  async _handleListManagerClick(event) {
+    event.preventDefault();
+    const button = event.currentTarget;
+    const action = button.dataset.action;
+    const container = button.closest(".list-manager-container");
+    if (!container) return;
+    const path = container.dataset.path;
+
+    const settings = foundry.utils.deepClone(
+      game.settings.get(MODULE_ID, "universal-effects")
+    );
+    let list = foundry.utils.getProperty(settings, path) || [];
+
+    if (action === "add-item") {
+      if (path.endsWith("randomHints")) list.push("New Hint");
+      else if (path.endsWith("backgroundImages"))
+        list.push("path/to/image.webp");
+    } else if (action === "remove-item") {
+      const index = parseInt(button.dataset.index, 10);
+      if (!isNaN(index)) list.splice(index, 1);
+    }
+
+    foundry.utils.setProperty(settings, path, list);
+    await game.settings.set(MODULE_ID, "universal-effects", settings);
+    if (game.mapShine.debugger) game.mapShine.debugger.render();
+  }
+
+  async _handleListManagerChange(event) {
+    const target = event.target;
+    const container = target.closest(".list-manager-container");
+    if (!container) return;
+
+    const path = container.dataset.path;
+    const index = parseInt(target.dataset.index, 10);
+
+    const settings = foundry.utils.deepClone(
+      game.settings.get(MODULE_ID, "universal-effects")
+    );
+    let list = foundry.utils.getProperty(settings, path) || [];
+
+    if (!isNaN(index) && list[index] !== undefined) {
+      list[index] = target.value;
+    }
+
+    foundry.utils.setProperty(settings, path, list);
+    await game.settings.set(MODULE_ID, "universal-effects", settings);
+  }
+
   // A single, robust click handler for all data-actions
   async _handleDelegatedClick(e) {
     this._handleFilePickerClick(e);
@@ -27267,35 +27049,8 @@ class DebuggerEventHandler {
 
     const action = target.dataset.action;
 
-    // List Manager Actions
-    const container = target.closest(".list-manager-container");
-    if (container && (action === "add-item" || action === "remove-item")) {
-      e.preventDefault();
-      const path = container.dataset.path;
-      let list = foundry.utils.getProperty(this.config, path) || [];
-      list = foundry.utils.deepClone(list);
-
-      if (action === "add-item") {
-        if (path === "sceneTransition.randomHints") {
-          list.push("New Hint");
-        } else if (path === "sceneTransition.backgroundImages") {
-          list.push("path/to/your/image.webp");
-        }
-      } else if (action === "remove-item") {
-        const index = parseInt(target.dataset.index, 10);
-        if (!isNaN(index)) {
-          list.splice(index, 1);
-        }
-      }
-      // Await the change to ensure the config is updated before re-rendering
-      await this.profileManager.recordUserChange(path, list);
-
-      if (path === "sceneTransition.randomHints") {
-        this._renderHintList();
-      } else if (path === "sceneTransition.backgroundImages") {
-        this._renderBackgroundList();
-      }
-
+    if (action === "add-item" || action === "remove-item") {
+      this._handleListManagerClick(e);
       return;
     }
 
@@ -27659,10 +27414,20 @@ class DebuggerEventHandler {
     const clockTime =
       time ?? this.profileManager.activeConfig.timeOfDay.currentTime ?? 12.0;
 
+    const universalSettings = game.settings.get(MODULE_ID, "universal-effects");
+
     this.element.querySelectorAll("[data-path]").forEach((el) => {
       if (el.classList.contains("list-manager-container")) return;
       const path = el.dataset.path;
-      const value = this._getPathValue(this.config, path);
+
+      const isUniversal = [
+        "sceneTransition.",
+        "pauseEffect.",
+        "combatEffect.",
+      ].some((p) => path.startsWith(p));
+      const sourceObject = isUniversal ? universalSettings : this.config;
+
+      const value = this._getPathValue(sourceObject, path);
       if (value === undefined || value === null) return;
       if (el.type === "checkbox") el.checked = Boolean(value);
       else if (el.type === "radio") el.checked = el.value === value;
@@ -28099,25 +27864,6 @@ class DebuggerEventHandler {
     }).browse(targetInput.value);
   }
 
-  _handleListManagerChange(e) {
-    const target = e.target;
-    const listItem = target.closest(".list-item-row");
-    if (!listItem) return;
-
-    const container = listItem.closest(".list-manager-container");
-    if (!container) return;
-
-    const path = container.dataset.path;
-    let list = foundry.utils.getProperty(this.config, path) || [];
-    list = foundry.utils.deepClone(list);
-
-    const index = parseInt(target.dataset.index, 10);
-    if (!isNaN(index)) {
-      list[index] = target.value;
-      this.profileManager.recordUserChange(path, list);
-    }
-  }
-
   _handleGenericInput(e) {
     const path = e.target.dataset.path;
     if (!path) return;
@@ -28181,6 +27927,7 @@ class DebuggerEventHandler {
   }
 
   _updateRandomHintVisibility() {
+    if (!this.config.sceneTransition) return;
     const useRandom = this.config.sceneTransition.useRandomHint;
     const randomWrapper = this.element.querySelector(
       "#sceneTransition-randomHints-wrapper"
@@ -28191,6 +27938,7 @@ class DebuggerEventHandler {
   }
 
   _updateRandomBackgroundVisibility() {
+    if (!this.config.sceneTransition) return;
     const useRandom = this.config.sceneTransition.useRandomBackgroundImage;
     const randomWrapper = this.element.querySelector(
       "#sceneTransition-backgroundImages-wrapper"
@@ -28201,6 +27949,7 @@ class DebuggerEventHandler {
   }
 
   _updateBackgroundOverlayVisibility() {
+    if (!this.config.sceneTransition) return;
     const isEnabled = this.config.sceneTransition.backgroundOverlayEnabled;
     const details = this.element.querySelector(
       "#details-sceneTransition-bgOverlay"
