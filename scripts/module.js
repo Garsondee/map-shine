@@ -2388,17 +2388,23 @@ const MODULE_DEFAULTS = {
     blurMinZoom: 0,
     blurMidZoom: 2,
     blurMaxZoom: 8,
+    opacityMinZoom: 1.0,
+    opacityMidZoom: 1.0,
+    opacityMaxZoom: 0.25,
+    zoomPointMin: 0.2,
+    zoomPointMid: 0.65,
+    zoomPointMax: 1.5,
     recolor: {
       enabled: false,
       intensity: 0.5,
-    tint: "#80DEEA",
+      tint: "#80DEEA",
     },
     hoverFadeDuration: 500,
     tokenMasking: {
-    enabled: true,
-    blurAmount: 10,
+      enabled: true,
+      blurAmount: 10,
     },
-    },
+  },
   ambientLayerZIndex: 250,
 };
 
@@ -12470,6 +12476,8 @@ class ParticleLayer extends CanvasLayer {
           game.mapShine.profileManager.activeConfig.particleSystems
             .globalParticleLimit;
         game.mapShine.debugger.eventHandler.updateParticleCount(count, limit);
+        // Update the zoom display for the overhead effect UI.
+        game.mapShine.debugger.eventHandler.updateZoomDisplay();
       }
     }
   }
@@ -24321,6 +24329,14 @@ class OverheadEffectLayer extends CanvasLayer {
     this.blurMinZoom = 0;
     this.blurMidZoom = 2;
     this.blurMaxZoom = 8;
+    // Opacity properties
+    this.opacityMinZoom = 1.0;
+    this.opacityMidZoom = 1.0;
+    this.opacityMaxZoom = 0.25;
+    // Zoom Point properties
+    this.zoomPointMin = 0.2;
+    this.zoomPointMid = 0.65;
+    this.zoomPointMax = 1.5;
 
     // Bound listeners for robust add/remove
     this._boundRefresh = this._refreshOverheadTiles.bind(this);
@@ -24416,32 +24432,46 @@ class OverheadEffectLayer extends CanvasLayer {
       }
     }
 
+    const currentZoom = canvas.stage.scale.x;
+    const lerp = (a, b, t) => a * (1 - t) + b * t;
+
+    let blur = 0;
+    let opacity = 1.0;
+
+    if (currentZoom <= this.zoomPointMin) {
+      blur = this.blurMinZoom;
+      opacity = this.opacityMinZoom;
+    } else if (currentZoom >= this.zoomPointMax) {
+      blur = this.blurMaxZoom;
+      opacity = this.opacityMaxZoom;
+    } else if (
+      currentZoom > this.zoomPointMin &&
+      currentZoom <= this.zoomPointMid
+    ) {
+      // Interpolate between min and mid
+      const range = this.zoomPointMid - this.zoomPointMin;
+      const progress =
+        (currentZoom - this.zoomPointMin) / (range > 0 ? range : 1);
+      blur = lerp(this.blurMinZoom, this.blurMidZoom, progress);
+      opacity = lerp(this.opacityMinZoom, this.opacityMidZoom, progress);
+    } else {
+      // currentZoom > this.zoomPointMid && currentZoom < this.zoomPointMax
+      // Interpolate between mid and max
+      const range = this.zoomPointMax - this.zoomPointMid;
+      const progress =
+        (currentZoom - this.zoomPointMid) / (range > 0 ? range : 1);
+      blur = lerp(this.blurMidZoom, this.blurMaxZoom, progress);
+      opacity = lerp(this.opacityMidZoom, this.opacityMaxZoom, progress);
+    }
+
     if (this.blurFilter) {
-      const minZoom = typeof canvas.stage.transform.minScale === 'number' ? canvas.stage.transform.minScale : 0.1;
-      const maxZoom = typeof canvas.stage.transform.maxScale === 'number' ? canvas.stage.transform.maxScale : 3.0;
-      const currentZoom = canvas.stage.scale.x;
-      const range = maxZoom - minZoom;
-      let zoomT = 0; // Zoom progress from 0 (min) to 1 (max)
-      let worldBlur = this.blurMinZoom;
-
-      if (range > 0.001) {
-        const clampedZoom = Math.max(minZoom, Math.min(maxZoom, currentZoom));
-        zoomT = (clampedZoom - minZoom) / range;
-      }
-
-      const lerp = (a, b, t) => a * (1 - t) + b * t;
-
-      if (zoomT <= 0.5) {
-        // Interpolate between min and mid
-        worldBlur = lerp(this.blurMinZoom, this.blurMidZoom, zoomT * 2);
-      } else {
-        // Interpolate between mid and max
-        worldBlur = lerp(this.blurMidZoom, this.blurMaxZoom, (zoomT - 0.5) * 2);
-      }
-      
-      const screenBlur = worldBlur * currentZoom;
+      const screenBlur = blur * currentZoom;
       this.blurFilter.blur = screenBlur;
       this.blurFilter.enabled = this.visible && screenBlur > 0.01;
+    }
+
+    if (this.compositeSprite) {
+      this.compositeSprite.alpha = opacity;
     }
 
     const renderer = canvas.app.renderer;
@@ -24450,7 +24480,7 @@ class OverheadEffectLayer extends CanvasLayer {
       clear: true,
       transform: canvas.stage.transform.worldTransform,
     });
-    
+
     const stage = canvas.stage;
     const screen = renderer.screen;
     const topLeft = stage.toLocal({ x: 0, y: 0 });
@@ -24472,10 +24502,16 @@ class OverheadEffectLayer extends CanvasLayer {
   async updateFromConfig(config) {
     const oeConfig = config.overheadEffect;
     this.visible = config.enabled && oeConfig.enabled;
-    
+
     this.blurMinZoom = oeConfig.blurMinZoom ?? 0;
     this.blurMidZoom = oeConfig.blurMidZoom ?? 2;
     this.blurMaxZoom = oeConfig.blurMaxZoom ?? 8;
+    this.opacityMinZoom = oeConfig.opacityMinZoom ?? 1.0;
+    this.opacityMidZoom = oeConfig.opacityMidZoom ?? 1.0;
+    this.opacityMaxZoom = oeConfig.opacityMaxZoom ?? 0.25;
+    this.zoomPointMin = oeConfig.zoomPointMin ?? 0.2;
+    this.zoomPointMid = oeConfig.zoomPointMid ?? 0.65;
+    this.zoomPointMax = oeConfig.zoomPointMax ?? 1.5;
   }
 
   _refreshOverheadTiles() {
@@ -24487,18 +24523,31 @@ class OverheadEffectLayer extends CanvasLayer {
         currentOverheadIds.add(tile.id);
         if (!this.overheadSprites.has(tile.id)) {
           const sprite = new PIXI.Sprite(tile.texture);
-          const oeConfig = game.mapShine.profileManager.activeConfig.overheadEffect;
+          const oeConfig =
+            game.mapShine.profileManager.activeConfig.overheadEffect;
           const duration = (oeConfig.hoverFadeDuration || 500) / 1000;
           sprite.eventMode = "static";
           sprite.cursor = "pointer";
           sprite.on("pointerover", () => {
-            if (this.activeAnimations.has(tile.id)) { this.activeAnimations.get(tile.id).kill(); }
-            const anim = gsap.to(sprite, { alpha: 0, duration: duration, ease: "power2.out" });
+            if (this.activeAnimations.has(tile.id)) {
+              this.activeAnimations.get(tile.id).kill();
+            }
+            const anim = gsap.to(sprite, {
+              alpha: 0,
+              duration: duration,
+              ease: "power2.out",
+            });
             this.activeAnimations.set(tile.id, anim);
           });
           sprite.on("pointerout", () => {
-            if (this.activeAnimations.has(tile.id)) { this.activeAnimations.get(tile.id).kill(); }
-            const anim = gsap.to(sprite, { alpha: 1, duration: duration, ease: "power2.inOut" });
+            if (this.activeAnimations.has(tile.id)) {
+              this.activeAnimations.get(tile.id).kill();
+            }
+            const anim = gsap.to(sprite, {
+              alpha: 1,
+              duration: duration,
+              ease: "power2.inOut",
+            });
             this.activeAnimations.set(tile.id, anim);
           });
           this.overheadSprites.set(tile.id, sprite);
@@ -24511,9 +24560,15 @@ class OverheadEffectLayer extends CanvasLayer {
 
     for (const [id, sprite] of this.overheadSprites.entries()) {
       if (!currentOverheadIds.has(id)) {
-        if (this.activeAnimations.has(id)) { this.activeAnimations.get(id).kill(); this.activeAnimations.delete(id); }
+        if (this.activeAnimations.has(id)) {
+          this.activeAnimations.get(id).kill();
+          this.activeAnimations.delete(id);
+        }
         const tile = canvas.tiles.get(id);
-        if (tile) { tile.isManagedByOverheadLayer = false; tile.mesh.alpha = 1.0; }
+        if (tile) {
+          tile.isManagedByOverheadLayer = false;
+          tile.mesh.alpha = 1.0;
+        }
         sprite.destroy();
         this.overheadSprites.delete(id);
       }
@@ -26721,33 +26776,90 @@ class DebuggerUIBuilder {
       "Overhead Effect",
       `
         <p class="description-text">Controls for tiles flagged as 'Overhead'. This layer re-renders them to be above all other effects.</p>
+        <div id="overhead-zoom-display" style="text-align: center; padding: 4px; background: rgba(0,0,0,0.3); border-radius: 3px; margin-bottom: 5px; font-family: monospace;">
+            Loading zoom data...
+        </div>
+        <details>
+            <summary><span class="accordion-toggle"></span><strong>Zoom Point Configuration</strong></summary>
+            <div style="padding-left: 15px;">
+                <p class="description-text">Define the zoom levels used for interpolation.</p>
+                ${DebuggerUIBuilder._createSliderHTML(
+                  "overheadEffect.zoomPointMin",
+                  "Min Zoom Point",
+                  0.1,
+                  5,
+                  0.05,
+                  "The zoom level for the 'Min' settings below."
+                )}
+                ${DebuggerUIBuilder._createSliderHTML(
+                  "overheadEffect.zoomPointMid",
+                  "Mid Zoom Point",
+                  0.1,
+                  5,
+                  0.05,
+                  "The zoom level for the 'Mid' settings below."
+                )}
+                ${DebuggerUIBuilder._createSliderHTML(
+                  "overheadEffect.zoomPointMax",
+                  "Max Zoom Point",
+                  0.1,
+                  5,
+                  0.05,
+                  "The zoom level for the 'Max' settings below."
+                )}
+            </div>
+        </details>
         <details>
             <summary><span class="accordion-toggle"></span><strong>Zoom-Based Blurring</strong></summary>
             <div style="padding-left: 15px;">
-                <p class="description-text">Define the world-space blur amount at different camera zoom levels.</p>
+                <p class="description-text">Define the world-space blur amount at the configured zoom points.</p>
                 ${DebuggerUIBuilder._createSliderHTML(
                   "overheadEffect.blurMinZoom",
-                  "Blur (Zoomed In)",
+                  "Blur (Min Zoom)",
                   0,
                   50,
-                  0.5,
-                  "The blur amount when the camera is zoomed in to its minimum scale."
+                  0.5
                 )}
                 ${DebuggerUIBuilder._createSliderHTML(
                   "overheadEffect.blurMidZoom",
-                  "Blur (Mid-Zoom)",
+                  "Blur (Mid Zoom)",
                   0,
                   50,
-                  0.5,
-                  "The blur amount when the camera is at 50% of its zoom range."
+                  0.5
                 )}
                 ${DebuggerUIBuilder._createSliderHTML(
                   "overheadEffect.blurMaxZoom",
-                  "Blur (Zoomed Out)",
+                  "Blur (Max Zoom)",
                   0,
                   50,
-                  0.5,
-                  "The blur amount when the camera is zoomed out to its maximum scale."
+                  0.5
+                )}
+            </div>
+        </details>
+        <details>
+            <summary><span class="accordion-toggle"></span><strong>Zoom-Based Opacity</strong></summary>
+            <div style="padding-left: 15px;">
+                <p class="description-text">Define the layer opacity at the configured zoom points.</p>
+                ${DebuggerUIBuilder._createSliderHTML(
+                  "overheadEffect.opacityMinZoom",
+                  "Opacity (Min Zoom)",
+                  0,
+                  1,
+                  0.01
+                )}
+                ${DebuggerUIBuilder._createSliderHTML(
+                  "overheadEffect.opacityMidZoom",
+                  "Opacity (Mid Zoom)",
+                  0,
+                  1,
+                  0.01
+                )}
+                ${DebuggerUIBuilder._createSliderHTML(
+                  "overheadEffect.opacityMaxZoom",
+                  "Opacity (Max Zoom)",
+                  0,
+                  1,
+                  0.01
                 )}
             </div>
         </details>
@@ -26791,6 +26903,31 @@ class DebuggerEventHandler {
 
   get config() {
     return this.profileManager.activeConfig;
+  }
+
+  updateZoomDisplay() {
+    if (!this.element) return;
+    const displayEl = this.element.querySelector("#overhead-zoom-display");
+    if (displayEl) {
+      const transform = canvas.stage.transform;
+      const current = transform.scale.x.toFixed(2);
+      const min = (
+        typeof transform.minScale === "number" ? transform.minScale : 0.1
+      ).toFixed(2);
+      const max = (
+        typeof transform.maxScale === "number" ? transform.maxScale : 3.0
+      ).toFixed(2);
+
+      const config = this.profileManager.activeConfig.overheadEffect;
+      const pointMin = (config.zoomPointMin || 0).toFixed(2);
+      const pointMid = (config.zoomPointMid || 0).toFixed(2);
+      const pointMax = (config.zoomPointMax || 0).toFixed(2);
+
+      displayEl.innerHTML = `
+        Current: <strong>${current}x</strong> (Canvas Min/Max: ${min}x / ${max}x)<br>
+        Effect Points: <strong>${pointMin}x</strong> | <strong>${pointMid}x</strong> | <strong>${pointMax}x</strong>
+      `;
+    }
   }
 
   initialize() {
