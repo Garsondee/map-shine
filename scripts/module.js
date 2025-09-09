@@ -1,5 +1,3 @@
-// TODO: Loading screen hints and images don't work correctly at the moment because we don't have a good method of multi-line configs. Basically it's trying to concaternate things together which breaks images and means all hints display together. Should be a simple fix.
-
 /******************************************************************************
  *
  *                            MAP SHINE
@@ -2605,8 +2603,8 @@ class MapShineInitialiser {
     });
 
     game.settings.register(MODULE_ID, "loading-screen-static-background", {
-      name: "Loading Screen: Static Background Image",
-      hint: "A single image to display on the initial world loading screen. Overridden if 'Use Random Background' is checked.",
+      name: "Loading & Transitions: Static Background Image",
+      hint: "A single image to display on the initial world loading screen and during scene transitions. Overridden if 'Use Random Background' is checked.",
       scope: "world",
       config: true,
       type: String,
@@ -2615,8 +2613,8 @@ class MapShineInitialiser {
     });
 
     game.settings.register(MODULE_ID, "loading-screen-use-random-background", {
-      name: "Loading Screen: Use Random Background",
-      hint: "If checked, a random image from the list below will be used for the initial world loading screen.",
+      name: "Loading & Transitions: Use Random Background",
+      hint: "If checked, a random image from the list below will be used for the initial world loading screen and scene transitions.",
       scope: "world",
       config: true,
       type: Boolean,
@@ -2624,7 +2622,7 @@ class MapShineInitialiser {
     });
 
     game.settings.register(MODULE_ID, "loading-screen-random-backgrounds", {
-      name: "Loading Screen: Backgrounds (one per line)",
+      name: "Loading & Transitions: Backgrounds (one per line)",
       hint: "A list of image paths. One will be chosen randomly if 'Use Random Background' is checked. One path per line.",
       scope: "world",
       config: true,
@@ -2636,7 +2634,7 @@ class MapShineInitialiser {
       MODULE_ID,
       "loading-screen-background-overlay-enabled",
       {
-        name: "Loading Screen: Enable Background Overlay",
+        name: "Loading & Transitions: Enable Background Overlay",
         hint: "Shows a semi-transparent black overlay on top of the background image to improve text readability.",
         scope: "world",
         config: true,
@@ -2649,7 +2647,7 @@ class MapShineInitialiser {
       MODULE_ID,
       "loading-screen-background-overlay-opacity",
       {
-        name: "Loading Screen: Background Overlay Opacity",
+        name: "Loading & Transitions: Background Overlay Opacity",
         hint: "How opaque the black overlay is. 0 is transparent, 1 is fully black.",
         scope: "world",
         config: true,
@@ -2720,33 +2718,6 @@ class MapShineInitialiser {
       name: "[Universal] Scene Transition: Hints (one per line)",
       type: String,
       default: ST_DEFAULTS.randomHints.join("\n"),
-    });
-    registerUniversalSetting("sceneTransition.staticBackgroundImage", {
-      name: "[Universal] Scene Transition: Static Background Image",
-      type: String,
-      default: ST_DEFAULTS.staticBackgroundImage,
-      filePicker: "image",
-    });
-    registerUniversalSetting("sceneTransition.useRandomBackgroundImage", {
-      name: "[Universal] Scene Transition: Use Random Background",
-      type: Boolean,
-      default: ST_DEFAULTS.useRandomBackgroundImage,
-    });
-    registerUniversalSetting("sceneTransition.backgroundImages", {
-      name: "[Universal] Scene Transition: Backgrounds (one per line)",
-      type: String,
-      default: ST_DEFAULTS.backgroundImages.join("\n"),
-    });
-    registerUniversalSetting("sceneTransition.backgroundOverlayEnabled", {
-      name: "[Universal] Scene Transition: Enable Background Overlay",
-      type: Boolean,
-      default: ST_DEFAULTS.backgroundOverlayEnabled,
-    });
-    registerUniversalSetting("sceneTransition.backgroundOverlayOpacity", {
-      name: "[Universal] Scene Transition: Background Overlay Opacity",
-      type: Number,
-      range: { min: 0, max: 1, step: 0.05 },
-      default: ST_DEFAULTS.backgroundOverlayOpacity,
     });
 
     // --- Pause Effect Settings ---
@@ -3372,30 +3343,33 @@ class MapShineInitialiser {
             )
               .split(/\r?\n/)
               .filter((h) => h.trim() !== ""),
+            // --- MODIFIED SECTION ---
+            // Point to the consolidated loading screen settings.
             staticBackgroundImage: game.settings.get(
               MODULE_ID,
-              "universal.sceneTransition.staticBackgroundImage"
+              "loading-screen-static-background"
             ),
             useRandomBackgroundImage: game.settings.get(
               MODULE_ID,
-              "universal.sceneTransition.useRandomBackgroundImage"
+              "loading-screen-use-random-background"
             ),
             backgroundImages: (
               game.settings.get(
                 MODULE_ID,
-                "universal.sceneTransition.backgroundImages"
+                "loading-screen-random-backgrounds"
               ) || ""
             )
               .split(/\r?\n/)
               .filter((h) => h.trim() !== ""),
             backgroundOverlayEnabled: game.settings.get(
               MODULE_ID,
-              "universal.sceneTransition.backgroundOverlayEnabled"
+              "loading-screen-background-overlay-enabled"
             ),
             backgroundOverlayOpacity: game.settings.get(
               MODULE_ID,
-              "universal.sceneTransition.backgroundOverlayOpacity"
+              "loading-screen-background-overlay-opacity"
             ),
+            // --- END MODIFIED SECTION ---
           };
 
           const sceneToView = this;
@@ -3464,39 +3438,38 @@ class MapShineInitialiser {
       );
     }
 
-// This hook ensures settings that should be textareas are rendered as such.
-Hooks.on("renderSettingsConfig", (app, html, data) => {
-  const settingsToConvert = [
-    `${MODULE_ID}.universal.sceneTransition.randomHints`,
-    `${MODULE_ID}.universal.sceneTransition.backgroundImages`,
-    `${MODULE_ID}.loading-screen-random-backgrounds`,
-  ];
+    // This hook ensures settings that should be textareas are rendered as such.
+    Hooks.on("renderSettingsConfig", (app, html, data) => {
+      const settingsToConvert = [
+        `${MODULE_ID}.universal.sceneTransition.randomHints`,
+        `${MODULE_ID}.loading-screen-random-backgrounds`,
+      ];
 
-  settingsToConvert.forEach((settingKey) => {
-    // Use the standard querySelector method, as 'html' is a raw HTMLElement.
-    const input = html.querySelector(`[name="${settingKey}"]`);
+      settingsToConvert.forEach((settingKey) => {
+        // Use the standard querySelector method, as 'html' is a raw HTMLElement.
+        const input = html.querySelector(`[name="${settingKey}"]`);
 
-    if (input) {
-      // The key for game.settings.get is the part *after* the module ID.
-      const gameSettingKey = settingKey.replace(`${MODULE_ID}.`, "");
-      let value = game.settings.get(MODULE_ID, gameSettingKey);
+        if (input) {
+          // The key for game.settings.get is the part *after* the module ID.
+          const gameSettingKey = settingKey.replace(`${MODULE_ID}.`, "");
+          let value = game.settings.get(MODULE_ID, gameSettingKey);
 
-      // If the setting was somehow saved as an array, join it back into a newline-separated string.
-      if (Array.isArray(value)) {
-        value = value.join("\n");
-      }
+          // If the setting was somehow saved as an array, join it back into a newline-separated string.
+          if (Array.isArray(value)) {
+            value = value.join("\n");
+          }
 
-      const textarea = document.createElement("textarea");
-      textarea.name = input.name;
-      textarea.id = input.id;
-      textarea.value = value; // Use the raw value.
-      textarea.rows = 5; // Set a reasonable default height.
+          const textarea = document.createElement("textarea");
+          textarea.name = input.name;
+          textarea.id = input.id;
+          textarea.value = value; // Use the raw value.
+          textarea.rows = 5; // Set a reasonable default height.
 
-      // Replace the original input element with the new textarea element.
-      input.replaceWith(textarea);
-    }
-  });
-});
+          // Replace the original input element with the new textarea element.
+          input.replaceWith(textarea);
+        }
+      });
+    });
 
     // --- Standard Hooks ---
 
@@ -26339,10 +26312,50 @@ class DebuggerUIBuilder {
     const content = `
       <p class="description-text">Configure the initial world loading screen and scene-to-scene transitions.</p>
       
-      <details id="details-loadingScreen-transition">
-        <summary><span class="accordion-toggle"></span><strong>Scene-to-Scene Transitions</strong></summary>
+      <details id="details-loadingScreen-initial">
+        <summary><span class="accordion-toggle"></span><strong>Backgrounds &amp; Overlays</strong></summary>
         <div style="padding-left: 15px;">
-          <p class="description-text">Settings for the animated transition between scenes.</p>
+          <p class="description-text">Settings for the background image and overlay for both the initial loading screen and scene transitions.</p>
+          ${DebuggerUIBuilder._createTextInputWithPickerHTML(
+            "loading-screen-static-background",
+            "Static Background"
+          )}
+          ${DebuggerUIBuilder._createCheckboxHTML(
+            "loading-screen-use-random-background",
+            "Use Random Background"
+          )}
+          <div id="loading-screen-random-backgrounds-wrapper">
+             ${DebuggerUIBuilder._createListManagerHTML(
+               "loading-screen-random-backgrounds",
+               "Background Image",
+               "image"
+             )}
+          </div>
+          <details id="details-initial-loading-bgOverlay">
+            <summary><span class="accordion-toggle"></span>
+                <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                  "loading-screen-background-overlay-enabled",
+                  "Enable Background Overlay",
+                  true
+                )}</div>
+            </summary>
+            <div style="padding-left: 15px;">
+                 ${DebuggerUIBuilder._createSliderHTML(
+                   "loading-screen-background-overlay-opacity",
+                   "Overlay Opacity",
+                   0,
+                   1,
+                   0.05
+                 )}
+            </div>
+          </details>
+        </div>
+      </details>
+      
+      <details id="details-loadingScreen-transition">
+        <summary><span class="accordion-toggle"></span><strong>Scene Transition Content</strong></summary>
+        <div style="padding-left: 15px;">
+          <p class="description-text">Settings for the text, logo, and timing of the animated transition between scenes.</p>
           ${DebuggerUIBuilder._createCheckboxHTML(
             "universal.sceneTransition.enabled",
             "Enable Scene Transitions"
@@ -26394,40 +26407,6 @@ class DebuggerUIBuilder {
                "text"
              )}
           </div>
-          <hr style="border-color: #555; margin: 6px 0;">
-          ${DebuggerUIBuilder._createTextInputWithPickerHTML(
-            "universal.sceneTransition.staticBackgroundImage",
-            "Static Background"
-          )}
-          ${DebuggerUIBuilder._createCheckboxHTML(
-            "universal.sceneTransition.useRandomBackgroundImage",
-            "Use Random Background"
-          )}
-          <div id="sceneTransition-backgroundImages-wrapper">
-             ${DebuggerUIBuilder._createListManagerHTML(
-               "universal.sceneTransition.backgroundImages",
-               "Background Image",
-               "image"
-             )}
-          </div>
-          <details id="details-sceneTransition-bgOverlay">
-            <summary><span class="accordion-toggle"></span>
-                <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                  "universal.sceneTransition.backgroundOverlayEnabled",
-                  "Enable Background Overlay",
-                  true
-                )}</div>
-            </summary>
-            <div style="padding-left: 15px;">
-                 ${DebuggerUIBuilder._createSliderHTML(
-                   "universal.sceneTransition.backgroundOverlayOpacity",
-                   "Overlay Opacity",
-                   0,
-                   1,
-                   0.05
-                 )}
-            </div>
-          </details>
         </div>
       </details>
     `;
@@ -27104,7 +27083,7 @@ class DebuggerUIBuilder {
   }
 
   static _createTextureInputHTML(key, label) {
-    return `<div class="control-row" style="margin-bottom: 5px;"><label><span id="status-textures-${key}" class="traffic-light unknown"></span>${label}</label><input type="text" id="texture-path-${key}" disabled title="This path is discovered automatically based on the base map's filename. (e.g., 'map.webp' -> 'map_Specular.webp')"></div>`;
+    return `<div class="control-row" style="margin-bottom: 5px;"><label><span id="status-textures-${key}" class="traffic-light unknown"></span>${label}</label><input type="text" id="texture-path-${key}" disabled placeholder="Not found..." title="This path is discovered automatically based on the base map's filename. (e.g., 'map.webp' -> 'map_Specular.webp')"></div>`;
   }
 
   static _createListManagerHTML(path, itemLabel, itemType = "text") {
@@ -27413,9 +27392,10 @@ class DebuggerEventHandler {
    * @param {*} value - The new value for the setting.
    */
   async _performSystemUpdate(path, value) {
-    const isUniversal = path.startsWith("universal.");
+    const isGameSetting =
+      path.startsWith("universal.") || path.startsWith("loading-screen-");
 
-    if (isUniversal) {
+    if (isGameSetting) {
       await game.settings.set(MODULE_ID, path, value);
       // A full refresh ensures any managers reading these settings are updated.
       await this.profileManager.initializeForScene();
@@ -27492,7 +27472,10 @@ class DebuggerEventHandler {
   addEventListeners() {
     // Main delegated listeners that survive re-renders
     this.element.addEventListener("input", this._handleGenericInput.bind(this));
-    this.element.addEventListener("change", this._handleGenericInput.bind(this));
+    this.element.addEventListener(
+      "change",
+      this._handleGenericInput.bind(this)
+    );
     this.element.addEventListener(
       "click",
       this._handleDelegatedClick.bind(this)
@@ -27540,7 +27523,9 @@ class DebuggerEventHandler {
         }
 
         if (!defaultsToUse) {
-          console.warn(`Map Shine | Invalid effect key for reset: ${effectKey}`);
+          console.warn(
+            `Map Shine | Invalid effect key for reset: ${effectKey}`
+          );
           return;
         }
 
@@ -27753,10 +27738,11 @@ class DebuggerEventHandler {
       if (el.closest(".list-manager-container")) return;
       const path = el.dataset.path;
 
-      const isUniversal = path.startsWith("universal.");
+      const isGameSetting =
+        path.startsWith("universal.") || path.startsWith("loading-screen-");
       let value;
 
-      if (isUniversal) {
+      if (isGameSetting) {
         value = game.settings.get(MODULE_ID, path);
       } else {
         value = this._getPathValue(this.config, path);
@@ -27797,7 +27783,6 @@ class DebuggerEventHandler {
 
     this._updatePatternControlVisibility();
     this._updateRandomHintVisibility();
-    this._updateRandomBackgroundVisibility();
     this._updateInitialRandomBackgroundVisibility();
     this._updateBackgroundOverlayVisibility();
     this._updateLutControlVisibility();
@@ -28208,9 +28193,9 @@ class DebuggerEventHandler {
     if (!container) return;
 
     const path = container.dataset.path;
+    if (!path) return;
 
     const currentString = game.settings.get(MODULE_ID, path) || "";
-    // Use a more robust regex for splitting to handle different line endings.
     let list = currentString ? currentString.split(/\r?\n/) : [];
 
     if (action === "add-list-item") {
@@ -28233,12 +28218,19 @@ class DebuggerEventHandler {
     const path = container.dataset.path;
     if (!path) return;
 
-    const itemInputs = container.querySelectorAll('.list-item-row input[type="text"]');
+    const itemInputs = container.querySelectorAll(
+      '.list-item-row input[type="text"]'
+    );
     const newList = Array.from(itemInputs).map((el) => el.value);
     const finalValue = newList.join("\n");
 
-    // Delegate the saving and refreshing to the centralized update function.
-    await this._performSystemUpdate(path, finalValue);
+    // We can just call game.settings.set directly like the click handler,
+    // since these are all game settings.
+    await game.settings.set(MODULE_ID, path, finalValue);
+    // No need to call _performSystemUpdate which does a lot more than necessary here.
+    // We do need to refresh the canvas state though.
+    await this.profileManager.initializeForScene();
+    await this.profileManager.updateAllSystemsFromConfig();
   }
 
   _renderListManagerItems(path) {
@@ -28256,7 +28248,9 @@ class DebuggerEventHandler {
 
     listContainer.innerHTML = items
       .map((item, index) => {
-        const inputId = `${DebuggerUIBuilder._createSafeId(path)}-item-${index}`;
+        const inputId = `${DebuggerUIBuilder._createSafeId(
+          path
+        )}-item-${index}`;
         const filePickerButton =
           itemType === "image"
             ? `<button type="button" class="file-picker-btn" data-fp-target="${inputId}" data-fp-type="image" title="Browse Files"><i class="fas fa-file-import"></i></button>`
@@ -28280,12 +28274,12 @@ class DebuggerEventHandler {
 
     // First, handle the special case of list managers
     if (target.closest(".list-manager-container")) {
-        // We only want to save on 'change' to avoid saving on every keystroke,
-        // which can be laggy. 'change' fires on blur or when a file picker closes.
-        if (e.type === "change") {
-            await this._handleListManagerInputChange(target);
-        }
-        return; // Stop further processing for list items
+      // We only want to save on 'change' to avoid saving on every keystroke,
+      // which can be laggy. 'change' fires on blur or when a file picker closes.
+      if (e.type === "change") {
+        await this._handleListManagerInputChange(target);
+      }
+      return; // Stop further processing for list items
     }
 
     // Now, handle all other standard controls
@@ -28322,10 +28316,7 @@ class DebuggerEventHandler {
       if (isSlider) {
         this._updateSliderValue(target.id, value, target.step);
       }
-      if (
-        target.type === "checkbox" &&
-        target.closest(".summary-control")
-      ) {
+      if (target.type === "checkbox" && target.closest(".summary-control")) {
         const detailsElement = target.closest("details");
         if (detailsElement)
           detailsElement.classList.toggle("disabled-effect", !target.checked);
@@ -28335,13 +28326,11 @@ class DebuggerEventHandler {
         this._updatePatternControlVisibility();
       if (path === "universal.sceneTransition.useRandomHint")
         this._updateRandomHintVisibility();
-      if (path === "universal.sceneTransition.useRandomBackgroundImage")
-        this._updateRandomBackgroundVisibility();
-      if (path === "universal.sceneTransition.backgroundOverlayEnabled") {
-        this._updateBackgroundOverlayVisibility();
-      }
       if (path === "loading-screen-use-random-background")
         this._updateInitialRandomBackgroundVisibility();
+      if (path === "loading-screen-background-overlay-enabled") {
+        this._updateBackgroundOverlayVisibility();
+      }
       if (path === "tileOpacity")
         game.mapShine.effectTargetManager.applyTileOpacities();
     }
@@ -28353,20 +28342,7 @@ class DebuggerEventHandler {
       "universal.sceneTransition.useRandomHint"
     );
     const wrapper = this.element.querySelector(
-      'div[data-path="universal.sceneTransition.randomHints"]'
-    );
-    if (wrapper) {
-      wrapper.style.display = useRandom ? "block" : "none";
-    }
-  }
-
-  _updateRandomBackgroundVisibility() {
-    const useRandom = game.settings.get(
-      MODULE_ID,
-      "universal.sceneTransition.useRandomBackgroundImage"
-    );
-    const wrapper = this.element.querySelector(
-      'div[data-path="universal.sceneTransition.backgroundImages"]'
+      "#sceneTransition-randomHints-wrapper"
     );
     if (wrapper) {
       wrapper.style.display = useRandom ? "block" : "none";
@@ -28389,10 +28365,10 @@ class DebuggerEventHandler {
   _updateBackgroundOverlayVisibility() {
     const isEnabled = game.settings.get(
       MODULE_ID,
-      "universal.sceneTransition.backgroundOverlayEnabled"
+      "loading-screen-background-overlay-enabled"
     );
     const details = this.element.querySelector(
-      "#details-sceneTransition-bgOverlay"
+      "#details-initial-loading-bgOverlay"
     );
     if (details) {
       const sliderContainer = details.querySelector("div");
@@ -28708,7 +28684,7 @@ class DebuggerEventHandler {
     this.curveEditor.path.setAttribute("stroke", colorMap[activeChannel]);
   }
 
-  _onApplyColorPreset() {
+  async _onApplyColorPreset() {
     const dropdown = this.element.querySelector(
       "#control-postProcessing-colorCorrection-activePreset"
     );
@@ -28934,7 +28910,6 @@ class DebuggerEventHandler {
   }
 }
 
-
 class MaterialEditorDebugger {
   constructor() {
     this.element = null;
@@ -29062,6 +29037,15 @@ class MaterialEditorDebugger {
     if (indicator) {
       indicator.className = `traffic-light ${statusObject.state}`;
       indicator.title = statusObject.message;
+    }
+
+    if (category === "textures") {
+      const input = this.element.querySelector(`#texture-path-${key}`);
+      if (input) {
+        // Only display the path if it was successfully found.
+        // The message for other states is not a path.
+        input.value = statusObject.state === "ok" ? statusObject.message : "";
+      }
     }
   }
 
