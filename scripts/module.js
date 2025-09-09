@@ -2010,10 +2010,6 @@ const MODULE_DEFAULTS = {
       min: 0.4,
       max: 1.2,
     },
-    color: {
-      start: "#FFFFFF",
-      end: "#FFFFFF",
-    },
     alpha: {
       max: 0.75,
       fadeIn: 0.1,
@@ -3315,6 +3311,7 @@ class MapShineInitialiser {
       );
       PIXI.particles.Emitter.registerBehavior(SparkPathBehavior);
       PIXI.particles.Emitter.registerBehavior(SmellyFliesBehavior);
+      PIXI.particles.Emitter.registerBehavior(ColorFromSpawnBehavior);
     } else {
       console.error(
         "FAILURE: pixi-particles library did not attach to the global PIXI object."
@@ -13119,26 +13116,35 @@ const buildParticleEmitterConfig = (
     });
   }
 
-  const colorConfig = config.color ?? {};
-  const startColor = colorConfig.start ?? "#FFFFFF";
-  const endColor = colorConfig.end ?? "#FFFFFF";
-  if (startColor === endColor) {
+// For metallic glints, use the custom behavior to sample color from the spawn texture.
+  // For all other effects, use the standard static or gradient color behaviors.
+  if (maskKey === "specular") {
     behaviors.push({
-      type: "colorStatic",
-      config: {
-        color: startColor,
-      },
+      type: "colorFromSpawn",
+      config: {},
     });
   } else {
-    behaviors.push({
-      type: "color",
-      config: {
-        color: {
-          start: startColor,
-          end: endColor,
+    const colorConfig = config.color ?? {};
+    const startColor = colorConfig.start ?? "#FFFFFF";
+    const endColor = colorConfig.end ?? "#FFFFFF";
+    if (startColor === endColor) {
+      behaviors.push({
+        type: "colorStatic",
+        config: {
+          color: startColor,
         },
-      },
-    });
+      });
+    } else {
+      behaviors.push({
+        type: "color",
+        config: {
+          color: {
+            start: startColor,
+            end: endColor,
+          },
+        },
+      });
+    }
   }
 
   const rotConfig = config.rotation ?? {};
@@ -13456,7 +13462,14 @@ class TextureMaskShape {
           if (pixelValue >= this.threshold) {
             const screenPoint = new PIXI.Point(x, y);
             const worldPoint = canvas.stage.toLocal(screenPoint);
-            this.validPoints.push(worldPoint);
+            this.validPoints.push({
+              point: worldPoint,
+              color: [
+                pixelData[index],
+                pixelData[index + 1],
+                pixelData[index + 2],
+              ],
+            });
           }
         }
       }
@@ -13473,7 +13486,14 @@ class TextureMaskShape {
             const relativeY = (y / texture.height) * this.height;
             const worldX = this.offsetX + relativeX;
             const worldY = this.offsetY + relativeY;
-            this.validPoints.push(new PIXI.Point(worldX, worldY));
+            this.validPoints.push({
+              point: new PIXI.Point(worldX, worldY),
+              color: [
+                pixelData[index],
+                pixelData[index + 1],
+                pixelData[index + 2],
+              ],
+            });
           }
         }
       }
@@ -13485,9 +13505,11 @@ class TextureMaskShape {
     if (this.validPoints.length === 0) {
       return;
     }
-    const point =
+    const data =
       this.validPoints[Math.floor(Math.random() * this.validPoints.length)];
-    particle.position.copyFrom(point);
+    particle.position.copyFrom(data.point);
+    // Attach the color data to the particle for the custom behavior to use.
+    particle.spawnColor = data.color;
   }
 }
 
@@ -14716,6 +14738,31 @@ class SmellyFliesLayer extends CanvasLayer {
           this.updateEffectTargets(targets);
         }
       }
+    }
+  }
+}
+
+/**
+ * A custom particle behavior that sets a particle's tint based on color data
+ * attached to it during the spawn process.
+ * This allows particles to inherit color from their spawn location on a texture.
+ */
+class ColorFromSpawnBehavior {
+  static type = "colorFromSpawn";
+
+  constructor(config) {
+    this.order = PIXI.particles.behaviors.BehaviorOrder.Normal;
+  }
+
+  initParticles(first) {
+    let next = first;
+    while (next) {
+      if (next.spawnColor) {
+        const color = next.spawnColor; // [r, g, b] from 0-255
+        // Convert the RGB array to a single hex number for the tint property.
+        next.tint = (color[0] << 16) + (color[1] << 8) + color[2];
+      }
+      next = next.next;
     }
   }
 }
