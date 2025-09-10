@@ -1,7 +1,7 @@
 # Map Shine Toolkit
 
 ## Watch the Youtube Videos
-[![Watch the video](https://img.youtube.com/vi/QvMMHMe4T0/0.jpg)](https://www.youtube.com/watch?v=QvMMHMe4T0)
+[![Watch the video](https://img.youtube.com/vi/5QvMMHMe4T0/0.jpg)](https://www.youtube.com/watch?v=5QvMMHMe4T0)
 
 [![Watch the video](https://img.youtube.com/vi/ddRhagP3Hlg/0.jpg)](https://www.youtube.com/watch?v=ddRhagP3Hlg)
 
