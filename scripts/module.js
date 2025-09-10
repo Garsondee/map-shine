@@ -8969,7 +8969,7 @@ class PauseScreenManager {
 
             .map-shine-pause-wrapper {
               position: relative;
-              width: 200%;
+              width: 100%;
               padding: 4rem 2rem;
               background: rgba(0,0,0,0.4);
               display: flex;
@@ -20674,7 +20674,9 @@ class CanopyLayer extends MaskedEffectLayer {
     this._generatorSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
     this._generatorSprite.width = renderer.screen.width;
     this._generatorSprite.height = renderer.screen.height;
-    this._generatorSprite.filters = this.canopyFilter ? [this.canopyFilter] : [];
+    this._generatorSprite.filters = this.canopyFilter
+      ? [this.canopyFilter]
+      : [];
     // Important: _generatorSprite is *not* added to the stage, it's used only for off-screen rendering.
 
     // effectSprite is added to the stage and displays the finalShadowTexture
