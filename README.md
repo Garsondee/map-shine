@@ -1,5 +1,7 @@
 # Map Shine Toolkit
 
+[![Watch the video](https://img.youtube.com/vi/ddRhagP3Hlg/0.jpg)](https://www.youtube.com/watch?v=ddRhagP3Hlg)
+
 ![Version](https://img.shields.io/badge/Version-1.0.15-blue)![Foundry VTT Compatibility](https://img.shields.io/badge/Foundry%20VTT-v13+-green)
 
 <p align="center">
