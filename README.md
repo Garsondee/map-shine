@@ -44,21 +44,6 @@ This toolkit includes a wide range of configurable effects that can be layered a
   - **Surface Foam & Sheen**: Generates procedural open-water foam and a reflective sheen.
   - **Shoreline Effects**: Automatically detects shorelines or uses a `_Shoreline` map to generate foam, shoreline distortion, and particle effects.
 
-<table border="0" cellspacing="15" cellpadding="15" width="100%">
-  <tr>
-    <td align="center" width="50%">
-      [Image/GIF of Water Effects]
-      <br>
-      <em>Procedural Water Effects</em>
-    </td>
-    <td align="center" width="50%">
-      [Image/GIF of Caustics]
-      <br>
-      <em>Animated Underwater Caustics</em>
-    </td>
-  </tr>
-</table>
-
 ---
 
 ### **Shadow & Atmospheric Effects**
@@ -68,20 +53,7 @@ This toolkit includes a wide range of configurable effects that can be layered a
 - **Structural Shadows**: Renders hard-edged indoor shadows for things like rafters or beams. Supports parallax shifting and animated light flicker. Requires a `_Structural` mask.
 - **Dust Motes**: Renders multi-layered, animated dust particles with configurable density, size, speed, and turbulence. Can be masked with a `_Dust` texture or sourced from the Map Point Editor.
 
-<table border="0" cellspacing="15" cellpadding="15" width="100%">
-  <tr>
-    <td align="center" width="50%">
-      [Image/GIF of Canopy Shadows]
-      <br>
-      <em>Canopy Shadows</em>
-    </td>
-    <td align="center" width="50%">
-      [Image/GIF of Structural Shadows]
-      <br>
-      <em>Structural Shadows with Parallax</em>
-    </td>
-  </tr>
-</table>
+
 
 ---
 
@@ -93,20 +65,6 @@ Create dynamic particle effects using either texture maps or the Map Point Edito
 - **Sparks**: Generates sparks that fly off in turbulent, configurable paths from a `_Sparks` mask.
 - **Glints**: Creates sparkling glints that appear in areas defined by a `_Prism` map.
 
-<table border="0" cellspacing="15" cellpadding="15" width="100%">
-  <tr>
-    <td align="center" width="50%">
-      [Image/GIF of Fire Particles]
-      <br>
-      <em>Fire Particle System</em>
-    </td>
-    <td align="center" width="50%">
-      [Image/GIF of Sparks]
-      <br>
-      <em>Sparks Effect</em>
-    </td>
-  </tr>
-</table>
 
 ---
 
@@ -125,11 +83,7 @@ Create dynamic particle effects using either texture maps or the Map Point Edito
 - **Prism Effect**: Splits the light from the brightest parts of the scene into a prismatic, chromatic aberration effect, controlled by a `_Prism` mask.
 - **Lens Distortion**: Simulates the barrel or pincushion distortion of a camera lens.
 
-<p align="center">
-  [Image/GIF of Prism Effect]
-  <br>
-  <em>Prism Effect</em>
-</p>
+
 
 ---
 
@@ -152,11 +106,6 @@ A complete collection of screen-space effects to finalize the look of your scene
 
 -   **Global Screen Bloom (Experimental)**: A powerful, screen-wide bloom effect that can create a soft, glowing atmosphere.
 
-<p align="center">
-  [Image/GIF of Advanced Color Correction UI/Effect]
-  <br>
-  <em>The advanced color correction suite offers professional-grade control.</em>
-</p>
 
 ---
 
@@ -166,11 +115,7 @@ A complete collection of screen-space effects to finalize the look of your scene
 - **Pause Effect**: Applies a configurable color grading and animation slowdown effect when the game is paused.
 - **Combat Effect**: Smoothly transitions to a different color grade and animation speed when combat begins and ends.
 
-<p align="center">
-  [Image/GIF of Scene Transition]
-  <br>
-  <em>Customizable Scene Transitions</em>
-</p>
+
 
 ---
 
