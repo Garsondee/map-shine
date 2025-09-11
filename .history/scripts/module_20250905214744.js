@@ -1,3 +1,5 @@
+// TODO: The Highlight Adjustments aren't being saved to the scene appearance profile and aren't loading accurately.
+
 /******************************************************************************
  *
  *                            MAP SHINE
@@ -22,119 +24,6 @@
 // ---------------------------------------------------------------------------------
 
 const MODULE_ID = "map-shine";
-
-const UNIVERSAL_EFFECT_DEFAULTS = {
-  sceneTransition: {
-    enabled: true,
-    fadeOutDuration: 5000,
-    fadeInDuration: 5000,
-    logoPath: "modules/map-shine/assets/mm-logo.png",
-    heading: "New Chapter",
-    subheading: "The story continues...",
-    staticDescription: "This is the default description text...",
-    showSceneName: true,
-    useRandomHint: true,
-    randomHints: [
-      "Loading Screen Hint 1",
-      "Loading Screen Hint 2",
-      "Loading Screen Hint 3",
-    ],
-  },
-  pauseEffect: {
-    enabled: true,
-    duration: 3000,
-    // --- New properties for the overlay ---
-    heading: "SESSION PAUSED",
-    subheading: "Please stand by...",
-    logoPath: "modules/map-shine/assets/mm-logo.png",
-    logoOpacity: 0.8,
-    backgroundColor: "rgba(10, 0, 0, 0.75)",
-    gradientColor1: "#ff4444",
-    gradientColor2: "rgba(255, 0, 0, 0.5)",
-    gradientShadowColor: "#ff0000",
-    headingColor: "#ffcccc",
-    subheadingColor: "#ff8888",
-    hintColor: "#dddddd",
-    useRandomHint: true,
-    randomHints: [
-      "Hint: Check your inventory for useful items.",
-      "Hint: Remember to save frequently!",
-      "Hint: Resting can restore health and spells.",
-    ],
-    // --- Existing color correction ---
-    colorCorrection: {
-      enabled: true,
-      saturation: 0.2,
-      brightness: -0.15,
-      contrast: 1,
-      invert: false,
-      tint: {
-        color: "#FFFFFF",
-        amount: 0,
-      },
-      exposure: 0,
-      gamma: 1,
-      levels: {
-        inBlack: 0,
-        inWhite: 1,
-      },
-      whiteBalance: {
-        temperature: 0,
-        tint: 0,
-      },
-      mask: {
-        enabled: false,
-        invert: false,
-        luminanceThreshold: 0.25,
-        softness: 0.1,
-      },
-      selective: {
-        enabled: false,
-        color: "#ff0000",
-        hueRange: 0.05,
-        saturationRange: 0.3,
-      },
-    },
-  },
-  combatEffect: {
-    enabled: true,
-    duration: 10000,
-    timeScale: 0.25,
-    colorCorrection: {
-      enabled: true,
-      saturation: 1,
-      brightness: 0,
-      contrast: 1,
-      invert: false,
-      tint: {
-        color: "#ff0000",
-        amount: 0,
-      },
-      exposure: 0,
-      gamma: 1,
-      levels: {
-        inBlack: 0,
-        inWhite: 1,
-      },
-      whiteBalance: {
-        temperature: 0,
-        tint: 0,
-      },
-      mask: {
-        enabled: false,
-        invert: false,
-        luminanceThreshold: 0.25,
-        softness: 0.1,
-      },
-      selective: {
-        enabled: false,
-        color: "#ff0000",
-        hueRange: 0.05,
-        saturationRange: 0.3,
-      },
-    },
-  },
-};
 
 const PROFILES_SETTING = "profiles";
 
@@ -1432,48 +1321,67 @@ const MODULE_DEFAULTS = {
   showGlintMaskDebug: false,
   tileOpacity: 0,
   baseShine: {
+    worldBasedOnly: false,
     enabled: true,
+    specularTexturePath: "",
     compositing: {
-      layerBlendMode: 1,
+      layerBlendMode: 9,
     },
     animation: {
-      globalIntensity: 1.95,
+      globalIntensity: 3.4,
+      parallaxAmount: 1.06,
+      parallaxJitter: 1.5,
+      parallaxJitterSpeed: 3,
     },
     pattern: {
+      shared: {
+        patternScale: 0.1,
+      },
       stripes: {
         enabled: true,
-        speed: 0,
-        angle: 140,
-        scale: 12.5,
-        evolution: 0,
-        threshold: 0.21,
-        softness: 0.26,
-        widthVariationAmount: 0,
-        widthVariationScale: 0.51,
-        strengthVariation: 1,
+        intensity: 0.35,
+        speed: -0.006,
+        angle: 45,
+        sharpness: 8,
+        bandDensity: 2,
+        bandWidth: 1.5,
+        gradientName: "rainbow",
+        gradientIntensity: 1,
+        subStripeCount: 4,
+        subStripeSpeedVariation: 3,
+        subStripeSharpnessVariation: 2.5,
+        subStripeTintVariation: 0.1,
       },
     },
-    colorCorrection: {
+    fbmNoise: {
       enabled: true,
-      saturation: 1.25,
-      brightness: 0.07,
-      contrast: 1.7,
-      gamma: 1,
-      tint: {
-        color: "#FFFFFF",
-        amount: 0,
-      },
-      invert: false,
+      maskIntensity: 1,
+      distortionIntensity: 2.5,
+      speed: -3,
+      scale: 0.6,
+      evolution: 1,
+      octaves: 4,
+      persistence: 0.4,
+      lacunarity: 2.2,
+      threshold: 0.5,
+      brightness: 0,
+      contrast: 2,
+      softness: 0.1,
     },
-    cloudOcclusion: {
+    rgbSplit: {
       enabled: true,
-      intensity: 0.81,
+      amount: 6.7,
+    },
+    structuralNegativeMask: {
+      enabled: false,
+      intensity: 1,
     },
   },
   cloudShadows: {
+    worldBasedOnly: true,
     enabled: true,
     blendMode: 0,
-    shadowIntensity: 0.35,
+    shadowIntensity: 0.55,
     maskBlur: 0,
     shadowInteraction: {
       enabled: false,
@@ -1483,12 +1391,12 @@ const MODULE_DEFAULTS = {
     },
     wind: {
       angle: 45,
-      speed: 0.0008,
+      speed: 0.5,
     },
     noise: {
-      scale: 0.01,
+      scale: 0.04,
       octaves: 7,
-      persistence: 0.5,
+      persistence: 0.35,
       lacunarity: 1.9,
     },
     shading: {
@@ -1500,11 +1408,12 @@ const MODULE_DEFAULTS = {
     },
   },
   iridescence: {
+    worldBasedOnly: false,
     enabled: true,
     texturePath: "",
     blendMode: 1,
     intensity: 0.9,
-    speed: 0.01,
+    speed: 1,
     scale: 0.7,
     parallax: 0,
     fbm: {
@@ -1521,7 +1430,7 @@ const MODULE_DEFAULTS = {
     },
     noise: {
       enabled: true,
-      speed: 0.042,
+      speed: 4.2,
       scale: 9.7,
       threshold: 0.47,
       brightness: 0.74,
@@ -1536,29 +1445,31 @@ const MODULE_DEFAULTS = {
     },
   },
   canopy: {
+    worldBasedOnly: false,
     enabled: true,
     shadowIntensity: 0.3,
     tint: "#050805",
     distortion: {
       enabled: true,
       strength: 0.004,
-      speed: 0.005,
-      scale: 0.01,
-      evolution: 0.01,
+      speed: 0.1,
+      scale: 1.5,
+      evolution: 0.1,
       threshold: 0,
-      brightness: -0.37,
+      brightness: 0,
       contrast: 1,
       softness: 1,
     },
     postScale: 1,
   },
   structuralShadows: {
+    worldBasedOnly: false,
     enabled: true,
-    shadowIntensity: 0.57,
+    shadowIntensity: 0.8,
     tint: "#000000",
     parallax: 0,
     illuminationInteraction: {
-      enabled: false,
+      enabled: true,
       intensity: 1,
       luminanceThreshold: 0.1,
       softness: 0.15,
@@ -1577,13 +1488,13 @@ const MODULE_DEFAULTS = {
     },
     rgbSplit: {
       enabled: true,
-      intensity: 2.3,
+      intensity: 8.8,
       threshold: 0,
     },
     intensityNoise: {
-      enabled: false,
-      amount: 0.44,
-      speed: 0.145,
+      enabled: true,
+      amount: 0,
+      speed: 1.5,
       scale: 1.25,
       evolution: 0,
       threshold: 0.71,
@@ -1593,10 +1504,15 @@ const MODULE_DEFAULTS = {
     },
     cloudOcclusion: {
       enabled: true,
-      intensity: 0.8,
+      intensity: 0.25,
+    },
+    metallicShineMixIn: {
+      enabled: false,
+      intensity: 1,
     },
   },
   prism: {
+    worldBasedOnly: false,
     enabled: true,
     intensity: 1,
     angle: 218,
@@ -1615,6 +1531,7 @@ const MODULE_DEFAULTS = {
     },
   },
   ambient: {
+    worldBasedOnly: false,
     enabled: true,
     texturePath: "",
     blendMode: 1,
@@ -1641,6 +1558,7 @@ const MODULE_DEFAULTS = {
     },
   },
   groundGlow: {
+    worldBasedOnly: false,
     enabled: true,
     texturePath: "",
     blendMode: 1,
@@ -1656,31 +1574,33 @@ const MODULE_DEFAULTS = {
     },
   },
   heatDistortion: {
+    worldBasedOnly: false,
     enabled: true,
     texturePath: "",
-    intensity: 0.0165,
+    intensity: 0.0015,
     noise: {
       primary: {
-        speed: 0.002,
-        scale: 0.5,
-        octaves: 2,
+        speed: 1,
+        scale: 1.5,
+        octaves: 3,
         lacunarity: 2.2,
         persistence: 0.45,
       },
       secondary: {
-        speed: 0.185,
-        scale: 19.5,
-        octaves: 7,
-        lacunarity: 3.8,
+        speed: 8,
+        scale: 6,
+        octaves: 2,
+        lacunarity: 2.8,
         persistence: 0.3,
       },
       rising: {
-        speed: 0.077,
+        speed: 2,
         intensity: 0.4,
       },
     },
   },
   advancedBloom: {
+    worldBasedOnly: false,
     enabled: false,
     threshold: 0.5,
     bloomScale: 1,
@@ -1689,9 +1609,104 @@ const MODULE_DEFAULTS = {
     quality: 4,
   },
   sceneAppearance: {
-    transitionDuration: 3500,
+    transitionDuration: 5000,
+  },
+  sceneTransition: {
+    enabled: true,
+    worldBasedOnly: true,
+    fadeOutDuration: 5000,
+    fadeInDuration: 5000,
+    logoPath: "modules/map-shine/assets/mm-logo.png",
+    heading: "New Chapter",
+    subheading: "The story continues...",
+    staticDescription: "This is the default description text...",
+    showSceneName: true,
+    useRandomHint: true,
+    randomHints: [
+      "Loading Screen Hint 1",
+      "Loading Screen Hint 2",
+      "Loading Screen Hint 3",
+    ],
+  },
+  pauseEffect: {
+    enabled: true,
+    worldBasedOnly: true,
+    duration: 3000,
+    colorCorrection: {
+      enabled: true,
+      saturation: 0.2,
+      brightness: -0.15,
+      contrast: 1,
+      invert: false,
+      tint: {
+        color: "#FFFFFF",
+        amount: 0,
+      },
+      exposure: 0,
+      gamma: 1,
+      levels: {
+        inBlack: 0,
+        inWhite: 1,
+      },
+      whiteBalance: {
+        temperature: 0,
+        tint: 0,
+      },
+      mask: {
+        enabled: false,
+        invert: false,
+        luminanceThreshold: 0.25,
+        softness: 0.1,
+      },
+      selective: {
+        enabled: false,
+        color: "#ff0000",
+        hueRange: 0.05,
+        saturationRange: 0.3,
+      },
+    },
+  },
+  combatEffect: {
+    enabled: true,
+    worldBasedOnly: true,
+    duration: 2000,
+    timeScale: 0.25,
+    colorCorrection: {
+      enabled: true,
+      saturation: 1,
+      brightness: 0,
+      contrast: 1,
+      invert: false,
+      tint: {
+        color: "#FFFFFF",
+        amount: 0,
+      },
+      exposure: 0,
+      gamma: 1,
+      levels: {
+        inBlack: 0,
+        inWhite: 1,
+      },
+      whiteBalance: {
+        temperature: 0,
+        tint: 0,
+      },
+      mask: {
+        enabled: false,
+        invert: false,
+        luminanceThreshold: 0.25,
+        softness: 0.1,
+      },
+      selective: {
+        enabled: false,
+        color: "#ff0000",
+        hueRange: 0.05,
+        saturationRange: 0.3,
+      },
+    },
   },
   postProcessing: {
+    worldBasedOnly: true,
     enabled: true,
     colorCorrection: {
       enabled: true,
@@ -1703,7 +1718,7 @@ const MODULE_DEFAULTS = {
         color: "#FFFFFF",
         amount: 0,
       },
-      exposure: -0.2,
+      exposure: -0.1,
       gamma: 1,
       levels: {
         inBlack: 0,
@@ -1714,42 +1729,42 @@ const MODULE_DEFAULTS = {
         tint: 0,
       },
       highlightCloud: {
-        enabled: false,
-        brightness: 0.25,
+        enabled: true,
+        brightness: 0,
       },
       highlightCanopy: {
-        enabled: false,
-        brightness: 0.97,
+        enabled: true,
+        brightness: 0,
       },
       highlightStructural: {
         enabled: true,
-        brightness: 1.61,
+        brightness: 0.5,
       },
       sceneIlluminationMixIn: {
-        enabled: true,
-        intensity: 0.95,
+        enabled: false,
+        intensity: 0.1,
         blendMode: 1,
         debugMode: false,
         colorCorrection: {
           enabled: true,
-          saturation: 3.25,
-          brightness: -0.28,
-          contrast: 1.8,
-          exposure: -0.55,
-          gamma: 0.65,
+          saturation: 1,
+          brightness: 0,
+          contrast: 1,
+          exposure: 0,
+          gamma: 1,
           tint: {
             color: "#FFFFFF",
             amount: 0,
           },
         },
         noise: {
-          enabled: false,
+          enabled: true,
           amount: 0.01,
           scale: 1,
-          speed: 0.001,
+          speed: 1,
         },
         shadowInteraction: {
-          enabled: false,
+          enabled: true,
           intensity: 1,
           luminanceThreshold: 0.1,
           softness: 0.15,
@@ -1769,7 +1784,7 @@ const MODULE_DEFAULTS = {
       selective: {
         enabled: false,
         color: "#fb0045",
-        hueRange: 0.09,
+        hueRange: 0.02,
         saturationRange: 0.5,
         luminanceRange: 0.5,
         targetLuminance: 0.04,
@@ -1789,14 +1804,6 @@ const MODULE_DEFAULTS = {
               y: 0,
             },
             {
-              x: 0.25,
-              y: 0.25,
-            },
-            {
-              x: 0.75,
-              y: 0.75,
-            },
-            {
               x: 1,
               y: 1,
             },
@@ -1807,14 +1814,6 @@ const MODULE_DEFAULTS = {
             {
               x: 0,
               y: 0,
-            },
-            {
-              x: 0.25,
-              y: 0.25,
-            },
-            {
-              x: 0.75,
-              y: 0.75,
             },
             {
               x: 1,
@@ -1829,14 +1828,6 @@ const MODULE_DEFAULTS = {
               y: 0,
             },
             {
-              x: 0.25,
-              y: 0.25,
-            },
-            {
-              x: 0.75,
-              y: 0.75,
-            },
-            {
               x: 1,
               y: 1,
             },
@@ -1847,14 +1838,6 @@ const MODULE_DEFAULTS = {
             {
               x: 0,
               y: 0,
-            },
-            {
-              x: 0.25,
-              y: 0.25,
-            },
-            {
-              x: 0.75,
-              y: 0.75,
             },
             {
               x: 1,
@@ -1871,12 +1854,12 @@ const MODULE_DEFAULTS = {
       },
     },
     vignette: {
-      enabled: true,
+      enabled: false,
       amount: 0.24,
       softness: 0.36,
     },
     lensDistortion: {
-      enabled: true,
+      enabled: false,
       amount: 0.015,
       centerX: 0.5,
       centerY: 0.5,
@@ -1888,7 +1871,7 @@ const MODULE_DEFAULTS = {
       centerY: 0.5,
     },
     tiltShift: {
-      enabled: true,
+      enabled: false,
       blur: 23,
       gradientBlur: 3610,
       startX: 0,
@@ -1938,12 +1921,13 @@ const MODULE_DEFAULTS = {
     },
   },
   dust: {
+    worldBasedOnly: false,
     enabled: true,
     blendMode: 0,
     maskThreshold: 0.39,
     maskInfluence: 5,
     particleTexture: "modules/map-shine/assets/particle.webp",
-    frequency: 0.097,
+    frequency: 0.286,
     lifetime: {
       min: 4,
       max: 12,
@@ -1958,7 +1942,7 @@ const MODULE_DEFAULTS = {
       fadeOut: 0.5,
     },
     scale: {
-      sizeMultiplier: 0.6,
+      sizeMultiplier: 1.7,
       start: 0.9,
       end: 1.09,
       minMult: 0.86,
@@ -1976,6 +1960,7 @@ const MODULE_DEFAULTS = {
     },
   },
   glint: {
+    worldBasedOnly: false,
     enabled: true,
     darknessAffectsIntensity: true,
     blendMode: 0,
@@ -2018,47 +2003,14 @@ const MODULE_DEFAULTS = {
       amount: 8.2,
     },
   },
-  metallicGlints: {
-    enabled: true,
-    blendMode: 1,
-    maskThreshold: 0.9,
-    maskInfluence: 0.1,
-    particleTexture: "modules/map-shine/assets/glint.webp",
-    frequency: 0.95,
-    lifetime: {
-      min: 0.4,
-      max: 1.2,
-    },
-    alpha: {
-      max: 0.75,
-      fadeIn: 0.1,
-      fadeOut: 0.9,
-    },
-    scale: {
-      sizeMultiplier: 4,
-      start: 1,
-      end: 0.1,
-      minMult: 0.7,
-    },
-    speed: {
-      start: 0,
-      end: 0,
-      minMult: 0.5,
-    },
-    rotation: {
-      enabled: false,
-      minSpeed: 0,
-      maxSpeed: 0,
-      accel: 0,
-    },
-  },
   water: {
+    worldBasedOnly: false,
     enabled: true,
     wave: {
       enabled: true,
-      speed: 0.0148,
-      scale: 37.7,
-      intensity: 0.0018,
+      speed: 1.48,
+      scale: 38.1,
+      intensity: 0.0004,
     },
     surface: {
       enabled: true,
@@ -2067,8 +2019,8 @@ const MODULE_DEFAULTS = {
       foamCoverage: 0,
       foamSharpness: 0.13,
       fbmScale: 15.196,
-      fbmSpeed: 0.01,
-      fbmEvolution: 0.03,
+      fbmSpeed: 1,
+      fbmEvolution: 3,
       fbmOctaves: 5,
       fbmLacunarity: 4,
       fbmPersistence: 0.1,
@@ -2076,7 +2028,7 @@ const MODULE_DEFAULTS = {
       sheenIntensity: 0.448,
       sheenColor: "#FFFFFF",
       sheenScale: 0.5,
-      sheenSpeed: 0.002,
+      sheenSpeed: 0.2,
       sheenStretch: 1,
       sheenSharpness: 0.8,
     },
@@ -2084,7 +2036,7 @@ const MODULE_DEFAULTS = {
       enabled: true,
       intensity: 0.033,
       scale: 1,
-      speed: 0.01,
+      speed: 1,
       color: "#87CEFA",
       lineSharpness: 5,
       bloomIntensity: 1,
@@ -2102,7 +2054,7 @@ const MODULE_DEFAULTS = {
       foamPattern: {
         scale: 1,
         speed: 0,
-        evolution: 0.01,
+        evolution: 1,
         octaves: 4,
         lacunarity: 2.05,
         persistence: 0.15,
@@ -2112,7 +2064,7 @@ const MODULE_DEFAULTS = {
       displacement: {
         enabled: false,
         scale: 0.4,
-        speed: 0.011,
+        speed: 1.1,
         strength: 0.0025,
       },
     },
@@ -2156,10 +2108,11 @@ const MODULE_DEFAULTS = {
     },
   },
   fire: {
+    worldBasedOnly: false,
     enabled: true,
     bloom: {
       enabled: true,
-      threshold: 0.04,
+      threshold: 0.09,
       bloomScale: 5,
       brightness: 5,
       blur: 0,
@@ -2168,39 +2121,39 @@ const MODULE_DEFAULTS = {
     particles: {
       enabled: true,
       blendMode: 1,
-      maskThreshold: 0.06,
+      maskThreshold: 0.43,
       maskInfluence: 5,
       particleTexture: "modules/map-shine/assets/flame.webp",
-      frequency: 0.001,
+      frequency: 0.005,
       lifetime: {
         min: 0.1,
-        max: 1.4,
+        max: 2,
       },
       color: {
         start: "#FFDD88",
         end: "#ea7500",
       },
       alpha: {
-        max: 0.68,
+        max: 0.15,
         fadeIn: 0.01,
         fadeOut: 1,
       },
       scale: {
-        sizeMultiplier: 0.1,
-        start: 0.32,
-        end: 1.24,
+        sizeMultiplier: 0.5,
+        start: 0.08,
+        end: 1.41,
         minMult: 0.95,
       },
       speed: {
-        start: 1,
-        end: 2,
+        start: 5,
+        end: 10,
         minMult: 0.5,
       },
       rotation: {
         enabled: true,
-        minSpeed: -180,
-        maxSpeed: 180,
-        accel: 4,
+        minSpeed: 102,
+        maxSpeed: 170,
+        accel: 20,
       },
       wind: {
         enabled: false,
@@ -2218,6 +2171,7 @@ const MODULE_DEFAULTS = {
     },
   },
   sparks: {
+    worldBasedOnly: false,
     enabled: true,
     blendMode: 1,
     maskThreshold: 0.95,
@@ -2229,8 +2183,8 @@ const MODULE_DEFAULTS = {
       max: 3,
     },
     color: {
-      start: "#88c4ff",
-      end: "#ffffff",
+      start: "#ffdd88",
+      end: "#ff8800",
     },
     alpha: {
       max: 1,
@@ -2246,44 +2200,44 @@ const MODULE_DEFAULTS = {
     path: {
       speed: {
         start: 114,
-        end: 27,
+        end: 10,
         minMult: 0.99,
       },
       amplitude: {
         min: 10,
-        max: 100,
+        max: 40,
       },
       frequency: {
         min: 40,
-        max: 189,
+        max: 80,
       },
       offset: {
         min: 0,
         max: 6.28,
       },
-      damping: 0.05,
+      damping: 0.5,
       angle: {
-        min: -90,
-        max: 90,
+        min: -20,
+        max: 20,
       },
       motionBlur: {
         enabled: true,
-        strength: 0.15,
-        maxLength: 2.4,
+        strength: 0.33,
+        maxLength: 6,
       },
     },
   },
   lightning: {
     enabled: true,
-    offPeriodMin: 1,
-    offPeriodMax: 1761,
-    strikeDuration: 50,
-    flickerInterval: 10,
+    offPeriodMin: 200,
+    offPeriodMax: 1000,
+    strikeDuration: 250,
+    flickerInterval: 20,
     flickerIntensity: 0.2,
     fadeEasePower: 2,
     color: "#99DDFF",
     coreColor: "#FFFFFF",
-    brightness: 3,
+    brightness: 1,
     sheathOpacity: 1,
     coreOpacity: 1,
     width: {
@@ -2308,14 +2262,14 @@ const MODULE_DEFAULTS = {
       endAngleMin: 135,
       endAngleMax: 225,
       controlPointDistanceMin: 100,
-      controlPointDistanceMax: 160,
+      controlPointDistanceMax: 400,
     },
     fork: {
-      maxDepth: 4,
-      chance: 1,
-      angleRange: 168,
+      maxDepth: 3,
+      chance: 0.4,
+      angleRange: 60,
       lengthFalloff: 0.7,
-      widthFalloff: 0.86,
+      widthFalloff: 0.6,
     },
     displacement: {
       enabled: true,
@@ -2339,15 +2293,16 @@ const MODULE_DEFAULTS = {
       quality: 4,
       rgbSplit: {
         enabled: true,
-        amount: 0.5,
+        amount: 5,
       },
     },
   },
   smellyFlies: {
+    worldBasedOnly: false,
     enabled: true,
     blendMode: 0,
     particleTexture: "modules/map-shine/assets/fly.webp",
-    maxParticles: 10,
+    maxParticles: 100,
     flying: {
       takeoffDuration: 0.5,
       takeoffSpeedMin: 100,
@@ -2374,46 +2329,48 @@ const MODULE_DEFAULTS = {
     },
     motionBlur: {
       enabled: true,
-      strength: 0.03,
-      maxLength: 1.6,
+      strength: 0.5,
+      maxLength: 4,
     },
   },
   particleSystems: {
     enabled: true,
-    globalDensityMultiplier: 0.65,
+    globalDensityMultiplier: 1,
     globalParticleLimit: 1000,
   },
   buildingShadows: {
+    worldBasedOnly: false,
     enabled: true,
-    intensity: 0.31,
-    maxOffset: 190,
-    maxBlur: 50,
-    sunAngle: 3,
+    intensity: 0.6,
+    maxOffset: 80,
+    maxBlur: 8,
+    sunAngle: 45,
   },
   timeOfDay: {
+    worldBasedOnly: false,
     enabled: true,
-    intensity: 0.2,
-    currentTime: 12.051098446759717,
+    intensity: 1,
+    currentTime: 12,
     keyframes: {
       midnight: {
         time: 0,
         temperature: -0.2,
         tint: -0.05,
         saturation: 0.8,
-        brightness: 0,
+        brightness: -0.2,
         contrast: 1.1,
-        exposure: -0.62,
+        exposure: -0.25,
         gamma: 1.1,
       },
       dawn: {
         time: 6,
         temperature: 0.3,
-        tint: -0.09,
-        saturation: 0.7,
-        brightness: -0.02,
+        tint: 0.1,
+        saturation: 1.1,
+        brightness: -0.1,
         contrast: 1.05,
-        exposure: -0.31,
-        gamma: 0.98,
+        exposure: 0.1,
+        gamma: 0.95,
       },
       midday: {
         time: 12,
@@ -2422,62 +2379,48 @@ const MODULE_DEFAULTS = {
         saturation: 1,
         brightness: 0,
         contrast: 1,
-        exposure: 0.21,
+        exposure: 0,
         gamma: 1,
       },
       dusk: {
         time: 18,
         temperature: 0.4,
         tint: -0.1,
-        saturation: 0.74,
+        saturation: 1.2,
         brightness: -0.05,
         contrast: 1.1,
-        exposure: -0.44,
-        gamma: 1,
+        exposure: 0.15,
+        gamma: 0.9,
       },
       twilight: {
         time: 21,
-        temperature: -0.44,
-        tint: -0.42,
-        saturation: 0.55,
-        brightness: 0,
+        temperature: -0.15,
+        tint: -0.08,
+        saturation: 0.9,
+        brightness: -0.15,
         contrast: 1,
-        exposure: -0.55,
-        gamma: 1,
+        exposure: -0.1,
+        gamma: 1.05,
       },
     },
   },
   diagnostic: {
     enabled: false,
-    showMasks: true,
+    showMasks: false,
     pixelInspector: false,
-    displaySuffix: "specular",
+    displaySuffix: "fire",
     showIlluminationPreview: false,
   },
-  overheadEffect: {
+  overheadEffects: {
     enabled: true,
-    blurMinZoom: 0,
-    blurMidZoom: 1.5,
-    blurMaxZoom: 18,
-    opacityMinZoom: 1,
-    opacityMidZoom: 0.5,
-    opacityMaxZoom: 0.08,
-    zoomPointMin: 0.2,
-    zoomPointMid: 0.65,
-    zoomPointMax: 1.5,
-    recolor: {
-      enabled: false,
-      intensity: 2,
-      tint: "#80DEEA",
-      cloudShadowDarken: {
-        enabled: true,
-        intensity: 0.7,
-      },
-    },
-    hoverFadeDuration: 500,
-    tokenMasking: {
+    parallax: {
       enabled: true,
-      blurAmount: 10,
+      amount: 0,
+    },
+    blur: {
+      enabled: true,
+      quality: 4,
+      strength: 8,
     },
   },
   ambientLayerZIndex: 250,
@@ -2502,100 +2445,6 @@ const hexToNumber = (hex) => {
   const parsed = parseInt(hexValue, 16);
   return isNaN(parsed) ? 0xffffff : parsed;
 };
-
-class NativeAnimation {
-  /**
-   * A map to store active animations, allowing them to be cancelled.
-   * The key can be any unique identifier (e.g., a PIXI object, a string).
-   */
-  static activeAnimations = new Map();
-
-  /**
-   * A collection of common easing functions.
-   * @type {Object.<string, function(number): number>}
-   */
-  static easing = {
-    linear: (t) => t,
-    power2: {
-      in: (t) => t * t,
-      out: (t) => 1 - (1 - t) * (1 - t),
-      inOut: (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2),
-    },
-    power1: {
-      inOut: (t) => (t < 0.5 ? t : 1 - t), // Simple linear ramp up/down
-    },
-  };
-
-  /**
-   * A simple GSAP `to` replacement using requestAnimationFrame.
-   * @param {object} target The object whose properties you want to animate.
-   * @param {object} config The animation configuration.
-   * @returns {{kill: function}} An object with a kill method to stop the animation.
-   */
-  static to(target, config) {
-    const { duration, onUpdate, onComplete, ease, ...properties } = config;
-    const key = config.key || target; // Use a provided key or the target object itself
-
-    // If there's an existing animation on this target, kill it.
-    if (this.activeAnimations.has(key)) {
-      this.activeAnimations.get(key).kill();
-    }
-
-    const startValues = {};
-    const endValues = {};
-    for (const prop in properties) {
-      startValues[prop] = target[prop];
-      endValues[prop] = properties[prop];
-    }
-
-    const easingFunction =
-      typeof ease === "string"
-        ? foundry.utils.getProperty(this.easing, ease) || this.easing.linear
-        : typeof ease === "function"
-        ? ease
-        : this.easing.linear;
-
-    let startTime = null;
-    let animationFrameId = null;
-
-    const animationController = {
-      kill: () => {
-        if (animationFrameId) {
-          cancelAnimationFrame(animationFrameId);
-          animationFrameId = null;
-          this.activeAnimations.delete(key);
-        }
-      },
-    };
-
-    this.activeAnimations.set(key, animationController);
-
-    const animate = (timestamp) => {
-      if (!startTime) startTime = timestamp;
-      const elapsed = timestamp - startTime;
-      const progress = Math.min(elapsed / (duration * 1000), 1);
-      const easedProgress = easingFunction(progress);
-
-      for (const prop in properties) {
-        target[prop] =
-          startValues[prop] +
-          (endValues[prop] - startValues[prop]) * easedProgress;
-      }
-
-      if (onUpdate) onUpdate();
-
-      if (progress < 1) {
-        animationFrameId = requestAnimationFrame(animate);
-      } else {
-        if (onComplete) onComplete();
-        this.activeAnimations.delete(key);
-      }
-    };
-
-    animationFrameId = requestAnimationFrame(animate);
-    return animationController;
-  }
-}
 
 // =================================================================================
 // SECTION 2: CORE SYSTEMS & MANAGERS
@@ -2650,282 +2499,6 @@ class MapShineInitialiser {
       config: true,
       type: Boolean,
       default: false,
-    });
-
-    game.settings.register(MODULE_ID, "loading-screen-subheading", {
-      name: "Loading Screen Subheading",
-      hint: "The text displayed above the world name on the initial loading screen.",
-      scope: "world",
-      config: true,
-      type: String,
-      default: "Loading the world...",
-    });
-
-    game.settings.register(MODULE_ID, "loading-screen-static-background", {
-      name: "Loading & Transitions: Static Background Image",
-      hint: "A single image to display on the initial world loading screen and during scene transitions. Overridden if 'Use Random Background' is checked.",
-      scope: "world",
-      config: true,
-      type: String,
-      default: "",
-      filePicker: "image",
-    });
-
-    game.settings.register(MODULE_ID, "loading-screen-use-random-background", {
-      name: "Loading & Transitions: Use Random Background",
-      hint: "If checked, a random image from the list below will be used for the initial world loading screen and scene transitions.",
-      scope: "world",
-      config: true,
-      type: Boolean,
-      default: false,
-    });
-
-    game.settings.register(MODULE_ID, "loading-screen-random-backgrounds", {
-      name: "Loading & Transitions: Backgrounds (one per line)",
-      hint: "A list of image paths. One will be chosen randomly if 'Use Random Background' is checked. One path per line.",
-      scope: "world",
-      config: true,
-      type: String,
-      default: "",
-    });
-
-    game.settings.register(
-      MODULE_ID,
-      "loading-screen-background-overlay-enabled",
-      {
-        name: "Loading & Transitions: Enable Background Overlay",
-        hint: "Shows a semi-transparent black overlay on top of the background image to improve text readability.",
-        scope: "world",
-        config: true,
-        type: Boolean,
-        default: true,
-      }
-    );
-
-    game.settings.register(
-      MODULE_ID,
-      "loading-screen-background-overlay-opacity",
-      {
-        name: "Loading & Transitions: Background Overlay Opacity",
-        hint: "How opaque the black overlay is. 0 is transparent, 1 is fully black.",
-        scope: "world",
-        config: true,
-        type: Number,
-        range: { min: 0, max: 1, step: 0.05 },
-        default: 0.75,
-      }
-    );
-
-    // Helper to register a universal setting
-    const registerUniversalSetting = (key, data) => {
-      game.settings.register(MODULE_ID, `universal.${key}`, {
-        ...data,
-        scope: "world",
-        config: true,
-      });
-    };
-
-    // --- Scene Transition Settings ---
-    const ST_DEFAULTS = UNIVERSAL_EFFECT_DEFAULTS.sceneTransition;
-    registerUniversalSetting("sceneTransition.enabled", {
-      name: "[Universal] Scene Transition: Enabled",
-      type: Boolean,
-      default: ST_DEFAULTS.enabled,
-    });
-    registerUniversalSetting("sceneTransition.fadeOutDuration", {
-      name: "[Universal] Scene Transition: Fade Out (ms)",
-      type: Number,
-      default: ST_DEFAULTS.fadeOutDuration,
-    });
-    registerUniversalSetting("sceneTransition.fadeInDuration", {
-      name: "[Universal] Scene Transition: Fade In (ms)",
-      type: Number,
-      default: ST_DEFAULTS.fadeInDuration,
-    });
-    registerUniversalSetting("sceneTransition.logoPath", {
-      name: "[Universal] Scene Transition: Logo Path",
-      type: String,
-      default: ST_DEFAULTS.logoPath,
-      filePicker: "image",
-    });
-    registerUniversalSetting("sceneTransition.heading", {
-      name: "[Universal] Scene Transition: Heading",
-      type: String,
-      default: ST_DEFAULTS.heading,
-    });
-    registerUniversalSetting("sceneTransition.subheading", {
-      name: "[Universal] Scene Transition: Subheading",
-      type: String,
-      default: ST_DEFAULTS.subheading,
-    });
-    registerUniversalSetting("sceneTransition.staticDescription", {
-      name: "[Universal] Scene Transition: Description",
-      type: String,
-      default: ST_DEFAULTS.staticDescription,
-    });
-    registerUniversalSetting("sceneTransition.showSceneName", {
-      name: "[Universal] Scene Transition: Show Scene Name",
-      type: Boolean,
-      default: ST_DEFAULTS.showSceneName,
-    });
-    registerUniversalSetting("sceneTransition.useRandomHint", {
-      name: "[Universal] Scene Transition: Use Random Hint",
-      type: Boolean,
-      default: ST_DEFAULTS.useRandomHint,
-    });
-    registerUniversalSetting("sceneTransition.randomHints", {
-      name: "[Universal] Scene Transition: Hints (one per line)",
-      type: String,
-      default: ST_DEFAULTS.randomHints.join("\n"),
-    });
-
-    // --- Pause Effect Settings ---
-    const PE = UNIVERSAL_EFFECT_DEFAULTS.pauseEffect;
-    const PE_CC = PE.colorCorrection;
-    registerUniversalSetting("pauseEffect.enabled", {
-      name: "[Universal] Pause Effect: Enabled",
-      type: Boolean,
-      default: PE.enabled,
-    });
-    registerUniversalSetting("pauseEffect.duration", {
-      name: "[Universal] Pause Effect: Duration (ms)",
-      type: Number,
-      default: PE.duration,
-    });
-    // Pause Overlay
-    registerUniversalSetting("pauseEffect.heading", {
-      name: "[Universal] Pause Overlay: Heading",
-      type: String,
-      default: PE.heading,
-    });
-    registerUniversalSetting("pauseEffect.subheading", {
-      name: "[Universal] Pause Overlay: Subheading",
-      type: String,
-      default: PE.subheading,
-    });
-    registerUniversalSetting("pauseEffect.logoPath", {
-      name: "[Universal] Pause Overlay: Logo Path",
-      type: String,
-      default: PE.logoPath,
-      filePicker: "image",
-    });
-    registerUniversalSetting("pauseEffect.logoOpacity", {
-      name: "[Universal] Pause Overlay: Logo Opacity",
-      type: Number,
-      range: { min: 0, max: 1, step: 0.05 },
-      default: PE.logoOpacity,
-    });
-    registerUniversalSetting("pauseEffect.backgroundColor", {
-      name: "[Universal] Pause Overlay: Background Color",
-      type: String,
-      default: PE.backgroundColor,
-    });
-    registerUniversalSetting("pauseEffect.gradientColor1", {
-      name: "[Universal] Pause Overlay: Gradient Color 1",
-      type: String,
-      default: PE.gradientColor1,
-    });
-    registerUniversalSetting("pauseEffect.gradientColor2", {
-      name: "[Universal] Pause Overlay: Gradient Color 2",
-      type: String,
-      default: PE.gradientColor2,
-    });
-    registerUniversalSetting("pauseEffect.gradientShadowColor", {
-      name: "[Universal] Pause Overlay: Gradient Shadow Color",
-      type: String,
-      default: PE.gradientShadowColor,
-    });
-    registerUniversalSetting("pauseEffect.headingColor", {
-      name: "[Universal] Pause Overlay: Heading Color",
-      type: String,
-      default: PE.headingColor,
-    });
-    registerUniversalSetting("pauseEffect.subheadingColor", {
-      name: "[Universal] Pause Overlay: Subheading Color",
-      type: String,
-      default: PE.subheadingColor,
-    });
-    registerUniversalSetting("pauseEffect.hintColor", {
-      name: "[Universal] Pause Overlay: Hint Color",
-      type: String,
-      default: PE.hintColor,
-    });
-    registerUniversalSetting("pauseEffect.useRandomHint", {
-      name: "[Universal] Pause Overlay: Use Random Hint",
-      type: Boolean,
-      default: PE.useRandomHint,
-    });
-    registerUniversalSetting("pauseEffect.randomHints", {
-      name: "[Universal] Pause Overlay: Hints (one per line)",
-      type: String,
-      default: PE.randomHints.join("\n"),
-    });
-
-    // Pause Color Correction
-    registerUniversalSetting("pauseEffect.colorCorrection.enabled", {
-      name: "[Universal] Pause Effect: Color Correction Enabled",
-      type: Boolean,
-      default: PE_CC.enabled,
-    });
-    registerUniversalSetting("pauseEffect.colorCorrection.saturation", {
-      name: "[Universal] Pause Effect: Saturation",
-      type: Number,
-      range: { min: 0, max: 2, step: 0.05 },
-      default: PE_CC.saturation,
-    });
-    registerUniversalSetting("pauseEffect.colorCorrection.brightness", {
-      name: "[Universal] Pause Effect: Brightness",
-      type: Number,
-      range: { min: -1, max: 1, step: 0.01 },
-      default: PE_CC.brightness,
-    });
-    registerUniversalSetting("pauseEffect.colorCorrection.contrast", {
-      name: "[Universal] Pause Effect: Contrast",
-      type: Number,
-      range: { min: 0, max: 3, step: 0.05 },
-      default: PE_CC.contrast,
-    });
-
-    // --- Combat Effect Settings ---
-    const CE_CC = UNIVERSAL_EFFECT_DEFAULTS.combatEffect.colorCorrection;
-    registerUniversalSetting("combatEffect.enabled", {
-      name: "[Universal] Combat Effect: Enabled",
-      type: Boolean,
-      default: UNIVERSAL_EFFECT_DEFAULTS.combatEffect.enabled,
-    });
-    registerUniversalSetting("combatEffect.duration", {
-      name: "[Universal] Combat Effect: Duration (ms)",
-      type: Number,
-      default: UNIVERSAL_EFFECT_DEFAULTS.combatEffect.duration,
-    });
-    registerUniversalSetting("combatEffect.timeScale", {
-      name: "[Universal] Combat Effect: Time Scale",
-      type: Number,
-      range: { min: 0.1, max: 1, step: 0.05 },
-      default: UNIVERSAL_EFFECT_DEFAULTS.combatEffect.timeScale,
-    });
-    registerUniversalSetting("combatEffect.colorCorrection.enabled", {
-      name: "[Universal] Combat Effect: Color Correction Enabled",
-      type: Boolean,
-      default: CE_CC.enabled,
-    });
-    registerUniversalSetting("combatEffect.colorCorrection.saturation", {
-      name: "[Universal] Combat Effect: Saturation",
-      type: Number,
-      range: { min: 0, max: 2, step: 0.05 },
-      default: CE_CC.saturation,
-    });
-    registerUniversalSetting("combatEffect.colorCorrection.brightness", {
-      name: "[Universal] Combat Effect: Brightness",
-      type: Number,
-      range: { min: -1, max: 1, step: 0.01 },
-      default: CE_CC.brightness,
-    });
-    registerUniversalSetting("combatEffect.colorCorrection.contrast", {
-      name: "[Universal] Combat Effect: Contrast",
-      type: Number,
-      range: { min: 0, max: 3, step: 0.05 },
-      default: CE_CC.contrast,
     });
 
     game.settings.register(MODULE_ID, "advanced-ui-mode", {
@@ -3043,113 +2616,85 @@ class MapShineInitialiser {
   static _registerLayers() {
     const ambientZIndex = game.settings.get(MODULE_ID, "ambientLayerZIndex");
 
-    // Define z-indices for core Foundry layers for reference.
-    // Background: 20, Tiles: 30, Drawings: 40, Tokens: 100, Lighting: 200, Weather: 300, Fog: 400.
-
     Object.assign(CONFIG.Canvas.layers, {
-      // --- Layers Below Tiles (zIndex < 30) ---
-      iridescence: {
-        layerClass: IridescenceLayer,
+      mapShineBackground: {
+        layerClass: BackgroundLayer,
         group: "primary",
-        zIndex: 24, // Surface effect, below structural shine.
-      },
-      structuralShadows: {
-        layerClass: StructuralShadowsLayer,
-        group: "primary",
-        zIndex: 26, // Contains the shine mix-in, correctly rendered under tiles.
       },
       buildingShadows: {
         layerClass: BuildingShadowsLayer,
         group: "primary",
-        zIndex: 28, // A ground-based shadow effect that should be under tiles.
-      },
-
-      // --- Layers Above Tiles but Below Tokens (30 < zIndex < 100) ---
-      metallicShine: {
-        layerClass: MetallicShineLayer,
-        group: "primary",
-        zIndex: 35, // Renders on top of tiles, but below tokens.
       },
       groundGlow: {
         layerClass: GroundGlowLayer,
-        group: "primary",
-        zIndex: 35, // Renders on top of tiles but below tokens.
-      },
-
-      // --- Layers Above Tokens (zIndex > 100) ---
-      canopy: {
-        layerClass: CanopyLayer,
         group: "environment",
-        zIndex: 110, // Environment effect, appears over tokens.
-      },
-      cloudShadows: {
-        layerClass: CloudShadowsLayer,
-        group: "environment",
-        zIndex: 120, // Environment effect, appears over tokens.
-      },
-      particleLayer: {
-        layerClass: ParticleLayer,
-        group: "environment",
-        zIndex: 180, // Particles should render above most primary elements.
-      },
-      lightningLayer: {
-        layerClass: LightningLayer,
-        group: "environment",
-        zIndex: 185,
-      },
-      smellyFliesLayer: {
-        layerClass: SmellyFliesLayer,
-        group: "environment",
-        zIndex: 190,
-      },
-
-      // --- High-Level Layers & Filters (zIndex > 200) ---
-      ambient: {
-        layerClass: AmbientLayer,
-        group: "primary",
-        zIndex: ambientZIndex, // Uses setting, defaults to 250.
       },
       prism: {
         layerClass: PrismLayer,
         group: "primary",
-        zIndex: 251,
+      },
+      iridescence: {
+        layerClass: IridescenceLayer,
+        group: "primary",
+      },
+      canopy: {
+        layerClass: CanopyLayer,
+        group: "environment",
+      },
+      metallicShine: {
+        layerClass: MetallicShineLayer,
+        group: "primary",
+      },
+      cloudShadows: {
+        layerClass: CloudShadowsLayer,
+        group: "environment",
+      },
+      structuralShadows: {
+        layerClass: StructuralShadowsLayer,
+        group: "primary",
       },
       waterFX: {
         layerClass: WaterFXLayer,
         group: "primary",
-        zIndex: 252,
       },
       heatDistortion: {
         layerClass: HeatDistortionLayer,
         group: "primary",
-        zIndex: 253,
+      },
+      diagnostic: {
+        layerClass: DiagnosticLayer,
+        group: "primary",
       },
       timeOfDay: {
         layerClass: TimeOfDayLayer,
         group: "primary",
-        zIndex: 254,
       },
-      overheadEffect: {
-        layerClass: OverheadEffectLayer,
+      ambient: {
+        layerClass: AmbientLayer,
+        group: "primary",
+        zIndex: ambientZIndex,
+      },
+      particleLayer: {
+        layerClass: ParticleLayer,
         group: "environment",
-        zIndex: 700,
       },
-
-      // --- UI & Debugging Layers (Highest zIndex) ---
+      lightningLayer: {
+        layerClass: LightningLayer,
+        group: "primary",
+      },
+      smellyFliesLayer: {
+        layerClass: SmellyFliesLayer,
+        group: "environment",
+        zIndex: 190, // Below Fog (200), above the Primary group (e.g., Tokens at 100)
+      },
       mapPoints: {
         layerClass: MapPointsLayer,
-        group: "interface",
-        zIndex: 800,
-      },
-      diagnostic: {
-        layerClass: DiagnosticLayer,
-        group: "interface",
-        zIndex: 900,
+        group: "primary",
       },
     });
 
     console.log(
-      `MapShine | Registered all layers with explicit z-indices. AmbientLayer zIndex set to: ${ambientZIndex}.`
+      `MaterialToolkit | Registered all layers. AmbientLayer zIndex set to: ${ambientZIndex}.`
     );
   }
 
@@ -3316,7 +2861,7 @@ class MapShineInitialiser {
       applyTileOpacities() {
         const config = game.mapShine.profileManager.activeConfig;
         for (const tile of canvas.tiles.placeables) {
-          if (!tile.mesh || tile.isManagedByOverheadLayer) continue;
+          if (!tile.mesh) continue;
           const isTargetWithEffects =
             this.targets.tiles.has(tile.id) && config.enabled;
           if (isTargetWithEffects && !tile.document.overhead) {
@@ -3381,9 +2926,6 @@ class MapShineInitialiser {
   /**
    * Registers libWrapper patches, hooks, and other event listeners.
    */
-  /**
-   * Registers libWrapper patches, hooks, and other event listeners.
-   */
   static _registerIntegrationsAndHooks() {
     // --- Particle Library Integration ---
     console.log("Map Shine | Library Test: Verifying PIXI.particles global.");
@@ -3401,7 +2943,6 @@ class MapShineInitialiser {
       );
       PIXI.particles.Emitter.registerBehavior(SparkPathBehavior);
       PIXI.particles.Emitter.registerBehavior(SmellyFliesBehavior);
-      PIXI.particles.Emitter.registerBehavior(ColorFromSpawnBehavior);
     } else {
       console.error(
         "FAILURE: pixi-particles library did not attach to the global PIXI object."
@@ -3427,87 +2968,14 @@ class MapShineInitialiser {
         "Scene.prototype.view",
         async function (wrapped, ...args) {
           const sceneManager = game.mapShine.sceneChangeManager;
-
-          // Construct the transition config from individual game settings
-          const transitionConfig = {
-            enabled: game.settings.get(
-              MODULE_ID,
-              "universal.sceneTransition.enabled"
-            ),
-            fadeOutDuration: game.settings.get(
-              MODULE_ID,
-              "universal.sceneTransition.fadeOutDuration"
-            ),
-            fadeInDuration: game.settings.get(
-              MODULE_ID,
-              "universal.sceneTransition.fadeInDuration"
-            ),
-            logoPath: game.settings.get(
-              MODULE_ID,
-              "universal.sceneTransition.logoPath"
-            ),
-            heading: game.settings.get(
-              MODULE_ID,
-              "universal.sceneTransition.heading"
-            ),
-            subheading: game.settings.get(
-              MODULE_ID,
-              "universal.sceneTransition.subheading"
-            ),
-            staticDescription: game.settings.get(
-              MODULE_ID,
-              "universal.sceneTransition.staticDescription"
-            ),
-            showSceneName: game.settings.get(
-              MODULE_ID,
-              "universal.sceneTransition.showSceneName"
-            ),
-            useRandomHint: game.settings.get(
-              MODULE_ID,
-              "universal.sceneTransition.useRandomHint"
-            ),
-            randomHints: (
-              game.settings.get(
-                MODULE_ID,
-                "universal.sceneTransition.randomHints"
-              ) || ""
-            )
-              .split(/\r?\n/)
-              .filter((h) => h.trim() !== ""),
-            // --- MODIFIED SECTION ---
-            // Point to the consolidated loading screen settings.
-            staticBackgroundImage: game.settings.get(
-              MODULE_ID,
-              "loading-screen-static-background"
-            ),
-            useRandomBackgroundImage: game.settings.get(
-              MODULE_ID,
-              "loading-screen-use-random-background"
-            ),
-            backgroundImages: (
-              game.settings.get(
-                MODULE_ID,
-                "loading-screen-random-backgrounds"
-              ) || ""
-            )
-              .split(/\r?\n/)
-              .filter((h) => h.trim() !== ""),
-            backgroundOverlayEnabled: game.settings.get(
-              MODULE_ID,
-              "loading-screen-background-overlay-enabled"
-            ),
-            backgroundOverlayOpacity: game.settings.get(
-              MODULE_ID,
-              "loading-screen-background-overlay-opacity"
-            ),
-            // --- END MODIFIED SECTION ---
-          };
-
+          // Use the config from the CURRENT scene for fade-out decisions.
+          const oldSceneConfig =
+            game.mapShine.profileManager.activeConfig.sceneTransition;
           const sceneToView = this;
           const currentScene = canvas.scene;
 
           if (
-            !transitionConfig.enabled ||
+            !oldSceneConfig.enabled ||
             !currentScene ||
             sceneToView.id === currentScene.id
           ) {
@@ -3520,8 +2988,8 @@ class MapShineInitialiser {
           );
           await game.scenes.preload(sceneToView.id);
           sceneManager._createOverlay();
-          // Fade out using the universal settings.
-          await sceneManager.fadeOut(transitionConfig, sceneToView.name);
+          // Fade out using the old scene's settings.
+          await sceneManager.fadeOut(oldSceneConfig, sceneToView.name);
 
           let resolveSetup;
           game.mapShine.setupCompletionPromise = new Promise((resolve) => {
@@ -3541,6 +3009,7 @@ class MapShineInitialiser {
             }, 10000)
           );
 
+          // By the time this resolves, the new scene is ready and the profileManager has the new activeConfig.
           await Promise.race([
             game.mapShine.setupCompletionPromise,
             timeoutPromise,
@@ -3548,9 +3017,13 @@ class MapShineInitialiser {
           game.mapShine.setupCompletionPromise = null;
           game.mapShine.resolveSetupCompletion = null;
 
-          // The config is universal, so we use the same one for fade-in.
+          // Get the config from the NEWLY loaded scene for the fade-in.
+          const newSceneConfig =
+            game.mapShine.profileManager.activeConfig.sceneTransition;
+
           await new Promise((resolve) => setTimeout(resolve, 2000));
-          await sceneManager.fadeIn(transitionConfig);
+          // Fade in using the new scene's settings.
+          await sceneManager.fadeIn(newSceneConfig);
           sceneManager._destroyOverlay();
           console.log(
             `%c[MapShine Transition] Transition finished.`,
@@ -3569,45 +3042,7 @@ class MapShineInitialiser {
       );
     }
 
-    // This hook ensures settings that should be textareas are rendered as such.
-    Hooks.on("renderSettingsConfig", (app, html, data) => {
-      const settingsToConvert = [
-        `${MODULE_ID}.universal.sceneTransition.randomHints`,
-        `${MODULE_ID}.loading-screen-random-backgrounds`,
-        `${MODULE_ID}.universal.pauseEffect.randomHints`,
-      ];
-
-      settingsToConvert.forEach((settingKey) => {
-        // Use the standard querySelector method, as 'html' is a raw HTMLElement.
-        const input = html.querySelector(`[name="${settingKey}"]`);
-
-        if (input) {
-          // The key for game.settings.get is the part *after* the module ID.
-          const gameSettingKey = settingKey.replace(`${MODULE_ID}.`, "");
-          let value = game.settings.get(MODULE_ID, gameSettingKey);
-
-          // If the setting was somehow saved as an array, join it back into a newline-separated string.
-          if (Array.isArray(value)) {
-            value = value.join("\n");
-          }
-
-          const textarea = document.createElement("textarea");
-          textarea.name = input.name;
-          textarea.id = input.id;
-          textarea.value = value; // Use the raw value.
-          textarea.rows = 5; // Set a reasonable default height.
-
-          // Replace the original input element with the new textarea element.
-          input.replaceWith(textarea);
-        }
-      });
-    });
-
     // --- Standard Hooks ---
-
-    // Initialize the self-contained manager for the custom pause screen.
-    PauseScreenManager.initialize();
-
     Hooks.on("createTile", () => game.mapShine?.effectTargetManager.refresh());
     Hooks.on("updateTile", () => game.mapShine?.effectTargetManager.refresh());
     Hooks.on("deleteTile", () => game.mapShine?.effectTargetManager.refresh());
@@ -3664,280 +3099,6 @@ class MapShineInitialiser {
       canvas.stage.addChild(worldContainer);
       game.mapShine.worldContainer = worldContainer;
     });
-    Hooks.on("canvasReady", () => {
-      if (canvas.roofs) {
-        // Set a high z-index to render above most custom effect layers.
-        // Ambient is 250, Prism 251, etc. This places roofs above them.
-        canvas.roofs.zIndex = 260;
-        // The stage's children need to be re-sorted for the new z-index to take effect.
-        canvas.stage.sortChildren();
-        console.log(
-          "Map Shine | Elevated RoofsLayer z-index to 260 to ensure overhead tiles render on top of effects."
-        );
-      }
-    });
-  }
-}
-
-class ProfileDataManager {
-  constructor(moduleId) {
-    this.moduleId = moduleId;
-  }
-
-  /**
-   * Loads world-level profiles and the world default setting.
-   * @returns {{profiles: object, defaultProfileName: string}}
-   */
-  loadWorldData() {
-    const profiles = game.settings.get(this.moduleId, PROFILES_SETTING) || {};
-    const defaultProfileName =
-      game.settings.get(this.moduleId, DEFAULT_PROFILE_SETTING) || "";
-    return { profiles, defaultProfileName };
-  }
-
-  /**
-   * Saves world-level profiles and the world default setting.
-   * @param {object} profiles - The entire world profiles object to save.
-   * @param {string} [defaultProfileName] - If provided, saves the new world default profile name.
-   */
-  async saveWorldData(profiles, defaultProfileName) {
-    await game.settings.set(this.moduleId, PROFILES_SETTING, profiles);
-    if (defaultProfileName !== undefined) {
-      await game.settings.set(
-        this.moduleId,
-        DEFAULT_PROFILE_SETTING,
-        defaultProfileName
-      );
-    }
-  }
-
-  /**
-   * Loads scene-specific profile data from flags.
-   * @returns {{profiles: Array<object>, activeProfileId: string|null}}
-   */
-  loadSceneData() {
-    if (!canvas.scene) return { profiles: [], activeProfileId: null };
-    const profiles = canvas.scene.getFlag(this.moduleId, "profiles") || [];
-    const activeProfileId =
-      canvas.scene.getFlag(this.moduleId, "activeProfileId") || null;
-    return {
-      profiles: Array.isArray(profiles) ? profiles : [],
-      activeProfileId,
-    };
-  }
-
-  /**
-   * Saves scene-specific profile data to flags.
-   * @param {object} saveData - The data to save.
-   * @param {Array<object>} [saveData.profiles] - The array of scene profiles.
-   * @param {string|null} [saveData.activeProfileId] - The ID of the active profile.
-   */
-  async saveSceneData({ profiles, activeProfileId }) {
-    if (!canvas.scene) return;
-    const updates = {};
-    if (profiles !== undefined) {
-      updates[`flags.${this.moduleId}.profiles`] = profiles;
-    }
-    if (activeProfileId !== undefined) {
-      updates[`flags.${this.moduleId}.activeProfileId`] = activeProfileId;
-    }
-
-    if (!foundry.utils.isEmpty(updates)) {
-      await canvas.scene.update(updates, { diff: false });
-    }
-  }
-
-  /**
-   * Loads user-specific temporary overrides for a given scene.
-   * @param {string} sceneId - The ID of the scene.
-   * @returns {object} The user overrides object for that scene.
-   */
-  loadUserOverrides(sceneId) {
-    if (!sceneId) return {};
-    const allUserOverrides =
-      game.settings.get(this.moduleId, "user-adjustments") || {};
-    return allUserOverrides[sceneId] || {};
-  }
-
-  /**
-   * Saves user-specific temporary overrides for a given scene.
-   * @param {string} sceneId - The ID of the scene.
-   * @param {object} overrides - The user overrides object to save.
-   */
-  async saveUserOverrides(sceneId, overrides) {
-    if (!sceneId) return;
-    const allUserOverrides =
-      game.settings.get(this.moduleId, "user-adjustments") || {};
-    allUserOverrides[sceneId] = overrides;
-    await game.settings.set(
-      this.moduleId,
-      "user-adjustments",
-      allUserOverrides
-    );
-  }
-
-  /**
-   * Clears user-specific temporary overrides for a given scene.
-   * @param {string} sceneId - The ID of the scene.
-   */
-  async clearUserOverrides(sceneId) {
-    if (!sceneId) return;
-    const allUserOverrides =
-      game.settings.get(this.moduleId, "user-adjustments") || {};
-    delete allUserOverrides[sceneId];
-    await game.settings.set(
-      this.moduleId,
-      "user-adjustments",
-      allUserOverrides
-    );
-  }
-}
-
-class ConfigBuilder {
-  /**
-   * Removes properties from `settings` that do not exist in `template`.
-   * @param {object} template - The reference object with the correct structure.
-   * @param {object} settings - The object to clean.
-   * @returns {object} The cleaned settings object.
-   */
-  static _reconcile(template, settings) {
-    for (const key in settings) {
-      if (!(key in template)) {
-        delete settings[key];
-        continue;
-      }
-      const templateValue = template[key];
-      const settingValue = settings[key];
-      const isTemplateObject =
-        typeof templateValue === "object" &&
-        templateValue !== null &&
-        !Array.isArray(templateValue);
-      const isSettingObject =
-        typeof settingValue === "object" &&
-        settingValue !== null &&
-        !Array.isArray(settingValue);
-      if (isTemplateObject && !isSettingObject) {
-        delete settings[key];
-        continue;
-      }
-      if (isTemplateObject && isSettingObject) {
-        this._reconcile(templateValue, settingValue);
-        if (Object.keys(settingValue).length === 0) {
-          delete settings[key];
-        }
-      }
-    }
-    return settings;
-  }
-
-  /**
-   * A custom merge function that handles nested objects correctly.
-   * @param {object} target - The object to merge into.
-   * @param {object} source - The object to merge from.
-   */
-  static _customMerge(target, source) {
-    for (const key of Object.keys(source)) {
-      const sourceValue = source[key];
-      const targetValue = target[key];
-      if (Array.isArray(sourceValue)) {
-        target[key] = foundry.utils.deepClone(sourceValue);
-        continue;
-      }
-      if (typeof sourceValue === "object" && sourceValue !== null) {
-        if (
-          typeof targetValue !== "object" ||
-          targetValue === null ||
-          Array.isArray(targetValue)
-        ) {
-          target[key] = {};
-        }
-        this._customMerge(target[key], sourceValue);
-      } else {
-        target[key] = sourceValue;
-      }
-    }
-  }
-
-  /**
-   * Builds the final, live configuration by layering all data sources.
-   * @param {object} data - An object containing all the raw data.
-   * @param {object} options - Options for the build process.
-   * @returns {object} An object containing the final config and status information.
-   */
-  static buildEffectiveConfig(
-    {
-      sceneProfiles,
-      activeProfileId,
-      worldProfiles,
-      worldDefaultProfileName,
-      rawUserOverrides,
-    },
-    options = {}
-  ) {
-    const defaults = foundry.utils.deepClone(MODULE_DEFAULTS);
-    let baseConfig;
-    let profileSource;
-    let finalActiveProfileId = activeProfileId;
-
-    const sceneHasProfiles = sceneProfiles.length > 0;
-
-    if (sceneHasProfiles) {
-      let activeProfile = sceneProfiles.find((p) => p.id === activeProfileId);
-      if (!activeProfile && sceneProfiles.length > 0) {
-        activeProfile = sceneProfiles[0];
-        finalActiveProfileId = activeProfile.id;
-      }
-      if (activeProfile?.config) {
-        baseConfig = foundry.utils.mergeObject(
-          foundry.utils.deepClone(defaults),
-          activeProfile.config
-        );
-        profileSource = "scene";
-      } else {
-        baseConfig = foundry.utils.deepClone(defaults);
-        profileSource = "module";
-      }
-    } else if (
-      worldDefaultProfileName &&
-      worldProfiles[worldDefaultProfileName]?.config
-    ) {
-      baseConfig = foundry.utils.mergeObject(
-        foundry.utils.deepClone(defaults),
-        worldProfiles[worldDefaultProfileName].config
-      );
-      profileSource = "world";
-    } else {
-      baseConfig = foundry.utils.deepClone(defaults);
-      profileSource = "module";
-    }
-
-    baseConfig = this._reconcile(foundry.utils.deepClone(defaults), baseConfig);
-    const userOverrides = this._reconcile(
-      foundry.utils.deepClone(defaults),
-      rawUserOverrides
-    );
-
-    let effectiveConfig = foundry.utils.deepClone(baseConfig);
-    this._customMerge(effectiveConfig, userOverrides);
-
-    if (!options.excludeClientOverrides) {
-      effectiveConfig = ClientOverrides.apply(effectiveConfig);
-    }
-
-    const isDirty = !foundry.utils.isEmpty(userOverrides);
-
-    return {
-      activeConfig: effectiveConfig,
-      userOverrides,
-      baseConfig,
-      activeProfileId: finalActiveProfileId,
-      status: {
-        sceneHasProfiles,
-        isDirty,
-        profileSource,
-        error: null,
-      },
-    };
   }
 }
 
@@ -3945,32 +3106,37 @@ class ProfileManager {
   constructor() {
     this.moduleId = MODULE_ID;
     this.ui = null;
-    this.dataManager = new ProfileDataManager(this.moduleId);
-
-    // Live state
     this.activeConfig = foundry.utils.deepClone(MODULE_DEFAULTS);
+
+    // New data model for scene profiles
+    this._sceneProfiles = []; // Array of {id, name, config}
+    this._activeProfileId = null;
+
+    this._userOverrides = {};
     this.activeSceneId = null;
+
     this.status = {
       sceneHasProfiles: false,
       isDirty: false,
       error: null,
-      profileSource: "none",
+      profileSource: "none", // "scene", "world", "module"
     };
 
-    // Raw data stores
-    this._sceneProfiles = [];
-    this._activeProfileId = null;
-    this._userOverrides = {};
+    // World profiles remain the same
     this._worldProfiles = {};
     this._worldDefaultProfileName = "";
   }
 
+  /**
+   * Resets the manager to its initial state, clearing all scene-specific data.
+   */
   reset() {
+    console.log("Map Shine | ProfileManager reset.");
     this.activeConfig = foundry.utils.deepClone(MODULE_DEFAULTS);
-    this.activeSceneId = null;
     this._sceneProfiles = [];
     this._activeProfileId = null;
     this._userOverrides = {};
+    this.activeSceneId = null;
     this.status = {
       sceneHasProfiles: false,
       isDirty: false,
@@ -3983,40 +3149,118 @@ class ProfileManager {
     return game.user?.isGM;
   }
 
+  /**
+   * Builds the live configuration for the current scene by layering settings
+   * in the correct order: Module Defaults -> World/Scene Profile -> User Overrides -> Client Overrides.
+   * This is the single source of truth for the module's settings at runtime.
+   */
   initializeForScene() {
     this.activeSceneId = canvas.scene?.id;
     if (!this.activeSceneId) {
       console.error("MapShine | ProfileManager: No active scene.");
+      this.activeConfig = this._getEffectiveConfig();
       return;
     }
 
-    // 1. Load all raw data
-    const worldData = this.dataManager.loadWorldData();
-    this._worldProfiles = worldData.profiles;
-    this._worldDefaultProfileName = worldData.defaultProfileName;
+    // Load all data sources
+    this._worldProfiles =
+      game.settings.get(this.moduleId, PROFILES_SETTING) || {};
+    this._worldDefaultProfileName =
+      game.settings.get(this.moduleId, DEFAULT_PROFILE_SETTING) || "";
+    const allUserOverrides =
+      game.settings.get(this.moduleId, "user-adjustments") || {};
+    const rawUserOverrides = allUserOverrides[this.activeSceneId] || {};
 
-    const sceneData = this.dataManager.loadSceneData();
-    this._sceneProfiles = sceneData.profiles;
-    this._activeProfileId = sceneData.activeProfileId;
+    const sceneProfilesData =
+      canvas.scene?.getFlag(this.moduleId, "profiles") || [];
+    this._sceneProfiles = Array.isArray(sceneProfilesData)
+      ? sceneProfilesData
+      : [];
+    this._activeProfileId =
+      canvas.scene?.getFlag(this.moduleId, "activeProfileId") || null;
 
-    const rawUserOverrides = this.dataManager.loadUserOverrides(
-      this.activeSceneId
+    this.status.sceneHasProfiles = this._sceneProfiles.length > 0;
+
+    // Determine the base configuration based on the new hierarchy
+    let baseConfig;
+    if (this.status.sceneHasProfiles) {
+      // 1. Scene has its own profiles, use the active one
+      let activeProfile = this._sceneProfiles.find(
+        (p) => p.id === this._activeProfileId
+      );
+      if (!activeProfile && this._sceneProfiles.length > 0) {
+        activeProfile = this._sceneProfiles[0];
+        this._activeProfileId = activeProfile.id; // Correct the active ID if it was invalid
+      }
+
+      if (activeProfile?.config) {
+        baseConfig = foundry.utils.mergeObject(
+          foundry.utils.deepClone(MODULE_DEFAULTS),
+          activeProfile.config
+        );
+        this.status.profileSource = "scene";
+      } else {
+        baseConfig = foundry.utils.deepClone(MODULE_DEFAULTS);
+        this.status.profileSource = "module"; // Fallback
+      }
+    } else if (
+      this._worldDefaultProfileName &&
+      this._worldProfiles[this._worldDefaultProfileName]?.config
+    ) {
+      // 2. No scene profiles, use world default
+      baseConfig = foundry.utils.mergeObject(
+        foundry.utils.deepClone(MODULE_DEFAULTS),
+        this._worldProfiles[this._worldDefaultProfileName].config
+      );
+      this.status.profileSource = "world";
+    } else {
+      // 3. No scene or world profiles, use module defaults
+      baseConfig = foundry.utils.deepClone(MODULE_DEFAULTS);
+      this.status.profileSource = "module";
+    }
+
+    // --- World-Based Overrides ---
+    // If the current profile source is from the scene, check the world profile for effects flagged as 'worldBasedOnly'.
+    if (
+      this.status.profileSource === "scene" &&
+      this._worldDefaultProfileName &&
+      this._worldProfiles[this._worldDefaultProfileName]?.config
+    ) {
+      const worldConfig =
+        this._worldProfiles[this._worldDefaultProfileName].config;
+      // Iterate over the keys in the world configuration.
+      for (const key in worldConfig) {
+        // Check if an effect in the world config is flagged as 'worldBasedOnly' and also exists in the scene's config.
+        if (worldConfig[key]?.worldBasedOnly === true && baseConfig[key]) {
+          // This merges the world settings for the effect on top of the scene settings.
+          this._customMerge(
+            baseConfig[key],
+            foundry.utils.deepClone(worldConfig[key])
+          );
+          console.log(
+            `Map Shine | Effect '${key}' is world-based. Overriding scene settings with world settings.`
+          );
+        }
+      }
+    }
+
+    // Reconcile the loaded config against the module defaults to ensure all keys exist and remove obsolete ones.
+    baseConfig = this._reconcileOverrides(
+      foundry.utils.deepClone(MODULE_DEFAULTS),
+      baseConfig
     );
 
-    // 2. Build the effective configuration
-    const result = ConfigBuilder.buildEffectiveConfig({
-      sceneProfiles: this._sceneProfiles,
-      activeProfileId: this._activeProfileId,
-      worldProfiles: this._worldProfiles,
-      worldDefaultProfileName: this._worldDefaultProfileName,
-      rawUserOverrides: rawUserOverrides,
-    });
+    // Sanitize user overrides and determine dirty state
+    this._userOverrides = this._reconcileOverrides(
+      foundry.utils.deepClone(MODULE_DEFAULTS),
+      rawUserOverrides
+    );
+    this.status.isDirty = !foundry.utils.isEmpty(this._userOverrides);
 
-    // 3. Update the manager's state with the result
-    this.activeConfig = result.activeConfig;
-    this._userOverrides = result.userOverrides;
-    this._activeProfileId = result.activeProfileId;
-    this.status = result.status;
+    // Build the final, active configuration
+    this.activeConfig = foundry.utils.deepClone(baseConfig);
+    this._customMerge(this.activeConfig, this._userOverrides);
+    this.activeConfig = ClientOverrides.apply(this.activeConfig); // Apply client-side performance/accessibility overrides last
 
     console.log(
       `Map Shine | Live configuration built. Source: ${this.status.profileSource}.`
@@ -4027,30 +3271,36 @@ class ProfileManager {
   // SECTION: Scene Profile Management (GM Actions)
   // =========================================================================
 
+  /**
+   * Creates the initial, default profile for a scene that doesn't have one yet.
+   * This "unlocks" scene-specific management.
+   * @returns {Promise<void>}
+   */
   async createInitialSceneProfiles() {
     if (!this.isGm || this.status.sceneHasProfiles) return;
 
-    const { baseConfig } = ConfigBuilder.buildEffectiveConfig({
-      sceneProfiles: [],
-      activeProfileId: null,
-      worldProfiles: this._worldProfiles,
-      worldDefaultProfileName: this._worldDefaultProfileName,
-      rawUserOverrides: {},
+    const baseConfig = this._getEffectiveConfig({
+      excludeClientOverrides: true,
     });
-
     const newProfile = {
       id: foundry.utils.randomID(),
       name: "Default Look",
       config: baseConfig,
     };
 
-    await this.dataManager.saveSceneData({
-      profiles: [newProfile],
-      activeProfileId: newProfile.id,
+    await canvas.scene.update({
+      [`flags.${this.moduleId}.profiles`]: [newProfile],
+      [`flags.${this.moduleId}.activeProfileId`]: newProfile.id,
     });
+    // The updateScene hook will handle re-initialization and UI refresh for all clients.
     ui.notifications.info("Scene-specific appearances created.");
   }
 
+  /**
+   * Creates a new scene profile based on the current active settings (including unsaved changes).
+   * @param {string} name - The name for the new profile.
+   * @returns {Promise<void>}
+   */
   async createSceneProfile(name) {
     if (!this.isGm) return;
     if (!name || !name.trim()) {
@@ -4058,21 +3308,28 @@ class ProfileManager {
       return;
     }
 
-    const configToSave = this.getCurrentConfig({
-      excludeClientOverrides: true,
-    });
     const newProfile = {
       id: foundry.utils.randomID(),
       name: name.trim(),
-      config: configToSave,
+      config: this._getEffectiveConfig({
+        excludeClientOverrides: true,
+      }),
     };
 
-    await this.dataManager.saveSceneData({
-      profiles: [...this._sceneProfiles, newProfile],
-    });
+    const newProfiles = [...this._sceneProfiles, newProfile];
+
+    await canvas.scene.update(
+      { [`flags.${this.moduleId}.profiles`]: newProfiles },
+      { diff: false }
+    );
     ui.notifications.info(`Scene appearance "${name.trim()}" created.`);
   }
 
+  /**
+   * Creates a new scene profile based only on the module's hard-coded default settings.
+   * @param {string} name - The name for the new profile.
+   * @returns {Promise<void>}
+   */
   async createCleanSceneProfile(name) {
     if (!this.isGm) return;
     if (!name || !name.trim()) {
@@ -4087,20 +3344,29 @@ class ProfileManager {
     };
 
     const newProfiles = [...this._sceneProfiles, newProfile];
-    const updates = { profiles: newProfiles };
+
+    const updates = {
+      [`flags.${this.moduleId}.profiles`]: newProfiles,
+    };
+
+    // If this is the *first* profile being created for the scene, also set it as the active one.
     if (!this._activeProfileId && newProfiles.length === 1) {
-      updates.activeProfileId = newProfile.id;
+      updates[`flags.${this.moduleId}.activeProfileId`] = newProfile.id;
     }
 
-    await this.dataManager.saveSceneData(updates);
+    await canvas.scene.update(updates);
     ui.notifications.info(`Clean scene appearance "${name.trim()}" created.`);
   }
 
+  /**
+   * Saves the current settings (including unsaved changes) by overwriting the currently active scene profile.
+   * @returns {Promise<void>}
+   */
   async updateActiveSceneProfile() {
     if (!this.isGm || !this.status.sceneHasProfiles || !this._activeProfileId)
       return;
 
-    const configToSave = this.getCurrentConfig({
+    const configToSave = this._getEffectiveConfig({
       excludeClientOverrides: true,
     });
     const profileIndex = this._sceneProfiles.findIndex(
@@ -4111,15 +3377,32 @@ class ProfileManager {
       return;
     }
 
-    const profileName = this._sceneProfiles[profileIndex].name;
     const updatedProfiles = foundry.utils.deepClone(this._sceneProfiles);
     updatedProfiles[profileIndex].config = configToSave;
 
-    await this.dataManager.saveSceneData({ profiles: updatedProfiles });
-    await this.dataManager.clearUserOverrides(this.activeSceneId);
-    ui.notifications.info(`Saved changes to appearance: "${profileName}"`);
+    await canvas.scene.update(
+      { [`flags.${this.moduleId}.profiles`]: updatedProfiles },
+      { diff: false }
+    );
+
+    // Clear user overrides as they are now saved
+    await this._clearUserOverrides();
+
+    // Re-initialize to load the new clean state and re-render the UI
+    this.initializeForScene();
+    if (this.ui) this.ui.render();
+
+    ui.notifications.info(
+      `Saved changes to appearance: "${this._sceneProfiles[profileIndex].name}"`
+    );
   }
 
+  /**
+   * Renames a specific scene profile.
+   * @param {string} profileId - The ID of the profile to rename.
+   * @param {string} newName - The new name for the profile.
+   * @returns {Promise<void>}
+   */
   async renameSceneProfile(profileId, newName) {
     if (!this.isGm || !newName?.trim()) return;
     const profileIndex = this._sceneProfiles.findIndex(
@@ -4130,10 +3413,18 @@ class ProfileManager {
     const updatedProfiles = foundry.utils.deepClone(this._sceneProfiles);
     updatedProfiles[profileIndex].name = newName.trim();
 
-    await this.dataManager.saveSceneData({ profiles: updatedProfiles });
+    await canvas.scene.update(
+      { [`flags.${this.moduleId}.profiles`]: updatedProfiles },
+      { diff: false }
+    );
     ui.notifications.info(`Renamed appearance to "${newName.trim()}".`);
   }
 
+  /**
+   * Deletes a specific scene profile.
+   * @param {string} profileId - The ID of the profile to delete.
+   * @returns {Promise<void>}
+   */
   async deleteSceneProfile(profileId) {
     if (!this.isGm) return;
     if (this._sceneProfiles.length <= 1) {
@@ -4144,62 +3435,92 @@ class ProfileManager {
     const updatedProfiles = this._sceneProfiles.filter(
       (p) => p.id !== profileId
     );
-    const updates = { profiles: updatedProfiles };
+    const updates = {
+      [`flags.${this.moduleId}.profiles`]: updatedProfiles,
+    };
+
+    // If we deleted the active profile, activate the first one in the new list.
     if (this._activeProfileId === profileId) {
-      updates.activeProfileId = updatedProfiles[0]?.id || null;
+      updates[`flags.${this.moduleId}.activeProfileId`] =
+        updatedProfiles[0]?.id || null;
     }
 
-    await this.dataManager.saveSceneData(updates);
+    await canvas.scene.update(updates);
     ui.notifications.info(`Deleted scene appearance.`);
   }
 
+  /**
+   * Activates a scene profile for all clients, triggering a smooth transition.
+   * @param {string} profileId - The ID of the profile to activate.
+   * @returns {Promise<void>}
+   */
   async activateSceneProfile(profileId) {
     if (!this.isGm || profileId === this._activeProfileId) return;
 
     const endProfile = this._sceneProfiles.find((p) => p.id === profileId);
-    if (!endProfile) return;
+    if (!endProfile) {
+      ui.notifications.error("Invalid profile ID for activation.");
+      return;
+    }
 
-    const startConfig = this.getCurrentConfig({
+    const startConfig = this._getEffectiveConfig({
       excludeClientOverrides: true,
     });
-    const endConfig = ConfigBuilder._reconcile(
+    // Create a fully realized endConfig by merging the sparse profile with defaults.
+    const endConfig = this._reconcileOverrides(
       foundry.utils.deepClone(MODULE_DEFAULTS),
       foundry.utils.deepClone(endProfile.config)
     );
     const duration =
       this.activeConfig.sceneAppearance.transitionDuration ?? 5000;
 
+    // GM triggers the transition locally first and sets flag for others concurrently
     const transitionPromise = game.mapShine.transitionManager.transition(
       startConfig,
       endConfig,
       duration
     );
-    await this.dataManager.saveSceneData({ activeProfileId: profileId });
-    await transitionPromise;
-    await this.dataManager.clearUserOverrides(this.activeSceneId);
+    await canvas.scene.setFlag(this.moduleId, "activeProfileId", profileId);
 
+    // Wait for the local transition to visually complete
+    await transitionPromise;
+
+    // After transition, clear the GM's user overrides as we've committed to a new clean state
+    await this._clearUserOverrides();
+
+    // The GM's config is now based on the clean, newly activated profile. Re-initialize and
+    // run a final update to ensure perfect state consistency.
     this.initializeForScene();
     await this.updateAllSystemsFromConfig();
-    if (this.ui) this.ui.render();
+
+    // Re-render the UI to reflect the new active profile state.
+    if (this.ui) {
+      this.ui.render();
+    }
   }
 
+  /**
+   * Handles the `updateScene` hook for non-GM clients when the active profile changes.
+   * @returns {Promise<void>}
+   */
   async handleRemoteProfileChange() {
-    const { activeProfileId: newActiveId, profiles: sceneProfiles } =
-      this.dataManager.loadSceneData();
+    const newActiveId = canvas.scene.getFlag(this.moduleId, "activeProfileId");
     if (this._activeProfileId === newActiveId) return;
 
     const startConfig = this.activeConfig;
-    const endProfile = sceneProfiles.find((p) => p.id === newActiveId);
+    const endProfile = (
+      canvas.scene.getFlag(this.moduleId, "profiles") || []
+    ).find((p) => p.id === newActiveId);
     if (!endProfile) return;
 
-    const endConfigResult = ConfigBuilder.buildEffectiveConfig({
-      sceneProfiles: sceneProfiles,
-      activeProfileId: newActiveId,
-      worldProfiles: this._worldProfiles,
-      worldDefaultProfileName: this._worldDefaultProfileName,
-      rawUserOverrides: this._userOverrides, // Client's own overrides
-    });
-    const endConfig = endConfigResult.activeConfig;
+    // Build the final target config for this client, including their overrides
+    let endConfig = this._reconcileOverrides(
+      foundry.utils.deepClone(MODULE_DEFAULTS),
+      foundry.utils.deepClone(endProfile.config)
+    );
+    this._customMerge(endConfig, this._userOverrides);
+    endConfig = ClientOverrides.apply(endConfig);
+
     const duration = endConfig.sceneAppearance.transitionDuration ?? 5000;
 
     await game.mapShine.transitionManager.transition(
@@ -4207,56 +3528,79 @@ class ProfileManager {
       endConfig,
       duration
     );
+
     this.initializeForScene();
     await this.updateAllSystemsFromConfig();
-    if (this.ui) this.ui.render();
-  }
 
-  // =========================================================================
-  // SECTION: Previewing & World Profiles
-  // =========================================================================
-
-  async previewProfile(profileId) {
-    const profile = this._sceneProfiles.find((p) => p.id === profileId);
-    if (profile?.config) {
-      const configToPreview = ConfigBuilder.buildEffectiveConfig(
-        {
-          sceneProfiles: this._sceneProfiles,
-          activeProfileId: profileId,
-          worldProfiles: this._worldProfiles,
-          worldDefaultProfileName: this._worldDefaultProfileName,
-          rawUserOverrides: {}, // Previews ignore user overrides
-        },
-        { excludeClientOverrides: false }
-      ).activeConfig;
-      await game.mapShine.transitionManager.preview(configToPreview);
+    // Re-render the UI to reflect the new active profile state for non-GM clients.
+    if (this.ui) {
+      this.ui.render();
     }
   }
 
+  // =========================================================================
+  // SECTION: Previewing
+  // =========================================================================
+
+  /**
+   * Temporarily displays a scene profile's settings without activating it for others.
+   * @param {string} profileId - The ID of the profile to preview.
+   * @returns {Promise<void>}
+   */
+  async previewProfile(profileId) {
+    const profile = this._sceneProfiles.find((p) => p.id === profileId);
+    if (profile?.config) {
+      // Build a clean config for preview, ignoring any temporary user overrides.
+      let configToPreview = this._reconcileOverrides(
+        foundry.utils.deepClone(MODULE_DEFAULTS),
+        foundry.utils.deepClone(profile.config)
+      );
+      const finalPreviewConfig = ClientOverrides.apply(configToPreview);
+      await game.mapShine.transitionManager.preview(finalPreviewConfig);
+    }
+  }
+
+  /**
+   * Ends an active preview and reverts to the current active profile's settings.
+   * @returns {Promise<void>}
+   */
   async endPreview() {
     await game.mapShine.transitionManager.endPreview();
   }
 
+  // =========================================================================
+  // SECTION: World Profile Management
+  // =========================================================================
+
+  /**
+   * Imports a world profile as a new scene-specific profile.
+   * @param {string} worldProfileName - The name of the world profile to import.
+   * @returns {Promise<void>}
+   */
   async importWorldProfile(worldProfileName) {
     if (!this.isGm) return;
     const profileData = this._worldProfiles[worldProfileName];
     if (!profileData?.config) {
-      ui.notifications.warn("Could not find world profile to import.");
+      ui.notifications.warn(
+        "Could not find the selected world profile to import."
+      );
       return;
     }
 
     const newProfile = {
       id: foundry.utils.randomID(),
       name: worldProfileName,
-      config: ConfigBuilder._reconcile(
+      config: this._reconcileOverrides(
         foundry.utils.deepClone(MODULE_DEFAULTS),
         foundry.utils.deepClone(profileData.config)
       ),
     };
 
-    await this.dataManager.saveSceneData({
-      profiles: [...this._sceneProfiles, newProfile],
-    });
+    const newProfiles = [...this._sceneProfiles, newProfile];
+    await canvas.scene.update(
+      { [`flags.${this.moduleId}.profiles`]: newProfiles },
+      { diff: false }
+    );
     ui.notifications.info(
       `Imported "${worldProfileName}" as a new scene appearance.`
     );
@@ -4272,51 +3616,82 @@ class ProfileManager {
       });
       if (!overwrite) return false;
     }
-    const newWorldProfiles = foundry.utils.deepClone(this._worldProfiles);
-    newWorldProfiles[name] = {
-      config: this.getCurrentConfig({ excludeClientOverrides: true }),
+    this._worldProfiles[name] = {
+      config: this._getEffectiveConfig({ excludeClientOverrides: true }),
       ui: uiState,
     };
-    await this.dataManager.saveWorldData(newWorldProfiles);
-    this._worldProfiles = newWorldProfiles;
+    await game.settings.set(
+      this.moduleId,
+      PROFILES_SETTING,
+      this._worldProfiles
+    );
     ui.notifications.info(`World Profile "${name}" saved!`);
     return true;
   }
 
   async applyWorldProfileAsOverrides(name) {
     const profileData = this._worldProfiles[name];
-    if (!profileData?.config) return;
+    if (!profileData?.config) {
+      ui.notifications.warn(`World Profile "${name}" could not be found.`);
+      return;
+    }
 
-    const configToApply = ConfigBuilder._reconcile(
+    // Deep clone the config to avoid any reference issues.
+    let configToApply = foundry.utils.deepClone(profileData.config);
+
+    // Reconcile it against the defaults to ensure it's clean and up-to-date.
+    configToApply = this._reconcileOverrides(
       foundry.utils.deepClone(MODULE_DEFAULTS),
-      foundry.utils.deepClone(profileData.config)
+      configToApply
     );
-    await this.dataManager.saveUserOverrides(this.activeSceneId, configToApply);
+
+    // Get all current user overrides from settings.
+    const allUserOverrides =
+      game.settings.get(this.moduleId, "user-adjustments") || {};
+
+    // Overwrite the overrides for the current scene with the loaded profile's config.
+    // This makes the entire world profile a "dirty" state for the scene.
+    allUserOverrides[this.activeSceneId] = configToApply;
+
+    // Save this new "dirty" state back to settings.
+    await game.settings.set(
+      this.moduleId,
+      "user-adjustments",
+      allUserOverrides
+    );
+
+    // Re-initialize the entire configuration from the new state.
     this.initializeForScene();
+
+    // Push the changes to all active systems.
     await this.updateAllSystemsFromConfig();
-    if (this.ui) this.ui.render();
+
+    // Re-render the UI to show the new values from the applied overrides.
+    if (this.ui) {
+      this.ui.render();
+    }
+
     ui.notifications.info(`Applied "${name}" as temporary changes.`);
   }
 
   async deleteWorldProfile(name) {
     if (!this.isGm || !name) return false;
-    const newWorldProfiles = foundry.utils.deepClone(this._worldProfiles);
-    delete newWorldProfiles[name];
-    let newDefault = this._worldDefaultProfileName;
-    if (newDefault === name) {
-      newDefault = "";
-      this._worldDefaultProfileName = "";
-      await this.dataManager.saveWorldData(undefined, newDefault);
+    delete this._worldProfiles[name];
+    if (this._worldDefaultProfileName === name) {
+      await this.setWorldDefaultProfile("");
     }
-    await this.dataManager.saveWorldData(newWorldProfiles);
-    this._worldProfiles = newWorldProfiles;
+    await game.settings.set(
+      this.moduleId,
+      PROFILES_SETTING,
+      this._worldProfiles
+    );
     ui.notifications.info(`World Profile "${name}" deleted.`);
     return true;
   }
 
   async setWorldDefaultProfile(name) {
     if (!this.isGm) return;
-    await this.dataManager.saveWorldData(undefined, name);
+    await game.settings.set(this.moduleId, DEFAULT_PROFILE_SETTING, name);
     this._worldDefaultProfileName = name;
     ui.notifications.info(`"${name}" is now the World Default Profile.`);
   }
@@ -4325,21 +3700,48 @@ class ProfileManager {
   // SECTION: User Overrides & State Management
   // =========================================================================
 
+  /**
+   * Records a temporary change made by the user in the UI.
+   * @param {string} path - The object path to the setting (e.g., "baseShine.intensity").
+   * @param {*} value - The new value for the setting.
+   */
   async recordUserChange(path, value) {
     foundry.utils.setProperty(this._userOverrides, path, value);
-    await this.dataManager.saveUserOverrides(
-      this.activeSceneId,
-      this._userOverrides
+    const allUserOverrides =
+      game.settings.get(this.moduleId, "user-adjustments") || {};
+    allUserOverrides[this.activeSceneId] = this._userOverrides;
+    await game.settings.set(
+      this.moduleId,
+      "user-adjustments",
+      allUserOverrides
     );
-    this.initializeForScene();
+    this.activeConfig = this._getEffectiveConfig();
+    this.status.isDirty = true;
   }
 
+  /**
+   * Discards all temporary user changes for the current scene.
+   * @returns {Promise<void>}
+   */
   async revertToSceneDefault() {
-    await this.dataManager.clearUserOverrides(this.activeSceneId);
+    await this._clearUserOverrides();
     this.initializeForScene();
     await this.updateAllSystemsFromConfig();
     if (this.ui) this.ui.render();
     ui.notifications.info("Reverted to saved profile state.");
+  }
+
+  async _clearUserOverrides() {
+    this._userOverrides = {};
+    const allUserOverrides =
+      game.settings.get(this.moduleId, "user-adjustments") || {};
+    delete allUserOverrides[this.activeSceneId];
+    await game.settings.set(
+      this.moduleId,
+      "user-adjustments",
+      allUserOverrides
+    );
+    this.status.isDirty = false;
   }
 
   // =========================================================================
@@ -4362,26 +3764,12 @@ class ProfileManager {
     return this._worldDefaultProfileName;
   }
 
-  getCurrentConfig(options = {}) {
-    const buildData = {
-      sceneProfiles: this._sceneProfiles,
-      activeProfileId: this._activeProfileId,
-      worldProfiles: this._worldProfiles,
-      worldDefaultProfileName: this._worldDefaultProfileName,
-      rawUserOverrides: this._userOverrides,
-    };
-    const { activeConfig } = ConfigBuilder.buildEffectiveConfig(
-      buildData,
-      options
-    );
-    return activeConfig;
-  }
-
   async updateAllSystemsFromConfig(options = {}) {
     if (!canvas?.ready) return;
     const config = this.activeConfig;
     game.mapShine.timeControl.timeFactor =
       config.timeControl.globalTime / 100.0;
+    game.mapShine.overheadEffectsManager?.updateFromConfig(config);
     for (const layer of canvas.layers) {
       if (
         options.skipParticles &&
@@ -4403,6 +3791,112 @@ class ProfileManager {
     ScreenEffectsManager.updateAllFiltersFromConfig(config);
     if (game.mapShine.effectTargetManager) {
       game.mapShine.effectTargetManager.applyTileOpacities();
+    }
+  }
+
+  _getEffectiveConfig(options = {}) {
+    this.initializeForScene(); // Ensure we're working with the latest data
+    let finalConfig = foundry.utils.deepClone(this.activeConfig);
+    if (options.excludeClientOverrides) {
+      // This is complex: we need to re-build without client overrides
+      const baseConfig = this._getBaseConfig();
+      finalConfig = foundry.utils.deepClone(baseConfig);
+      this._customMerge(finalConfig, this._userOverrides);
+    }
+    return finalConfig;
+  }
+
+  _getBaseConfig() {
+    // A helper to get the config before user and client overrides are applied.
+    // This logic is duplicated from initializeForScene for this specific purpose.
+    if (this.status.sceneHasProfiles) {
+      const activeProfile =
+        this._sceneProfiles.find((p) => p.id === this._activeProfileId) ||
+        this._sceneProfiles[0];
+      if (activeProfile?.config) {
+        return this._reconcileOverrides(
+          foundry.utils.deepClone(MODULE_DEFAULTS),
+          foundry.utils.deepClone(activeProfile.config)
+        );
+      }
+    } else if (
+      this._worldDefaultProfileName &&
+      this._worldProfiles[this._worldDefaultProfileName]?.config
+    ) {
+      return this._reconcileOverrides(
+        foundry.utils.deepClone(MODULE_DEFAULTS),
+        foundry.utils.deepClone(
+          this._worldProfiles[this._worldDefaultProfileName].config
+        )
+      );
+    }
+    return foundry.utils.deepClone(MODULE_DEFAULTS);
+  }
+
+  /**
+   * Removes properties from `settings` that do not exist in `template`.
+   * This is used to clean up stale data from older module versions.
+   */
+  _reconcileOverrides(template, settings) {
+    for (const key in settings) {
+      if (!(key in template)) {
+        delete settings[key];
+        continue;
+      }
+      const templateValue = template[key];
+      const settingValue = settings[key];
+      const isTemplateObject =
+        typeof templateValue === "object" &&
+        templateValue !== null &&
+        !Array.isArray(templateValue);
+      const isSettingObject =
+        typeof settingValue === "object" &&
+        settingValue !== null &&
+        !Array.isArray(settingValue);
+      if (isTemplateObject && !isSettingObject) {
+        delete settings[key];
+        continue;
+      }
+      if (isTemplateObject && isSettingObject) {
+        this._reconcileOverrides(templateValue, settingValue);
+        if (Object.keys(settingValue).length === 0) {
+          delete settings[key];
+        }
+      }
+    }
+    return settings;
+  }
+
+  /**
+   * A custom merge function that handles nested objects correctly without overwriting entire sub-objects.
+   */
+  _customMerge(target, source) {
+    for (const key of Object.keys(source)) {
+      const sourceValue = source[key];
+      const targetValue = target[key];
+
+      // If source value is an array, deep clone it to overwrite the target.
+      if (Array.isArray(sourceValue)) {
+        target[key] = foundry.utils.deepClone(sourceValue);
+        continue;
+      }
+
+      // If source value is a non-array object, recurse.
+      if (typeof sourceValue === "object" && sourceValue !== null) {
+        // If the target doesn't have a corresponding object, create one.
+        if (
+          typeof targetValue !== "object" ||
+          targetValue === null ||
+          Array.isArray(targetValue)
+        ) {
+          target[key] = {};
+        }
+        // Recurse into the nested objects.
+        this._customMerge(target[key], sourceValue);
+      } else {
+        // If source value is a primitive (string, number, boolean), overwrite the target's value.
+        target[key] = sourceValue;
+      }
     }
   }
 }
@@ -4686,7 +4180,7 @@ class ResourceManager {
     // This is the key change: we actively command the layer to update its mask
     // if it has flagged that an update is needed (e.g., due to a pan).
     if (layer._needsMaskUpdate) {
-      layer.renderMask();
+        layer.renderMask();
     }
 
     // This now gets the guaranteed up-to-date combinedMaskTexture
@@ -4869,34 +4363,7 @@ class ResourceManager {
     return texture;
   }
 
-  /**
-   * Retrieves the final rendered animated metallic shine texture.
-   * If not generated this frame, commands the MetallicShineLayer to render it.
-   * @param {number} deltaTime - The time since the last frame.
-   * @returns {PIXI.RenderTexture|null} The animated shine texture.
-   */
-  getAnimatedShineTexture(deltaTime) {
-    if (this._destroyed) return null;
-    if (this._frameCache.animatedShineTexture) {
-      return this._frameCache.animatedShineTexture;
-    }
-
-    const layer = canvas.layers.find((l) => l instanceof MetallicShineLayer);
-    if (!layer) return null;
-
-    if (typeof layer.renderEffectNow === "function") {
-      layer.renderEffectNow(deltaTime);
-    } else {
-      console.warn(
-        "ResourceManager: MetallicShineLayer is missing renderEffectNow()"
-      );
-      return null;
-    }
-
-    const texture = layer.getEffectTexture();
-    this._frameCache.animatedShineTexture = texture;
-    return texture;
-  }
+  // --- NEW: WATER EFFECT RESOURCES ---
 
   /**
    * Retrieves the primary water mask (_Water textures).
@@ -5013,12 +4480,6 @@ class SceneChangeManager {
     this._teardownPromise = Promise.resolve(); // Start with a resolved promise for the initial load.
     this._resolveTeardown = null;
     this.transitionOverlay = null;
-
-    // State for the hint cycling system
-    this._hintInterval = null;
-    this._shuffledHints = [];
-    this._currentHintIndex = 0;
-    this._hintAnimation = null; // To hold the animation controller
   }
 
   initialize() {
@@ -5121,7 +4582,6 @@ class SceneChangeManager {
                                 border-top: 1px solid #444;
                                 padding-top: 1rem;
                                 max-width: 50ch;
-                                min-height: 2.2em; /* Reserve space to prevent layout shift */
                             }
                             /* NEW STYLES for loading bar */
                             #map-shine-scene-transition .loading-bar-container {
@@ -5145,7 +4605,6 @@ class SceneChangeManager {
                                 background-color: rgba(255, 255, 255, 0.9);
                                 transform-origin: left;
                                 box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-                                transition: width 0.2s ease-out;
                             }
                             #map-shine-scene-transition .transition-status {
                                 position: absolute;
@@ -5157,7 +4616,6 @@ class SceneChangeManager {
                                 opacity: 1;
                                 display: none; /* Hidden by default */
                                 z-index: 3;
-                                transition: opacity 0.2s ease-in-out;
                             }
                         </style>
                         <div class="background-overlay"></div>
@@ -5180,114 +4638,10 @@ class SceneChangeManager {
   }
 
   _destroyOverlay() {
-    this._stopHintCycle(); // Stop the hint animation when the overlay is removed.
     if (!this.transitionOverlay) return;
     console.log(`[MapShine Transition] Destroying overlay element.`);
     this.transitionOverlay.remove();
     this.transitionOverlay = null;
-  }
-
-  /**
-   * Manages the hint cycling animation during a scene transition.
-   * @param {object} config The sceneTransition configuration object.
-   * @private
-   */
-  _cycleHints(config) {
-    if (!this.transitionOverlay) return;
-    const hintElement =
-      this.transitionOverlay.querySelector(".transition-hint");
-    if (!hintElement || !config.useRandomHint || !config.randomHints?.length) {
-      if (hintElement) hintElement.style.display = "none";
-      return;
-    }
-
-    // Fisher-Yates shuffle algorithm to randomize the hint order.
-    this._shuffledHints = [...config.randomHints];
-    for (let i = this._shuffledHints.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [this._shuffledHints[i], this._shuffledHints[j]] = [
-        this._shuffledHints[j],
-        this._shuffledHints[i],
-      ];
-    }
-
-    this._currentHintIndex = 0;
-
-    // If there is only one hint (or none), display it statically without animations.
-    if (this._shuffledHints.length <= 1) {
-      if (this._shuffledHints.length === 1) {
-        hintElement.innerText = this._shuffledHints[0];
-        hintElement.style.display = "block";
-        hintElement.style.opacity = "1";
-      }
-      return; // Do not start the animation cycle.
-    }
-
-    const HINT_FADE_DURATION = 1000; // in ms
-    const HINT_PAUSE_DURATION = 5000; // in ms
-
-    const showNextHint = () => {
-      if (
-        !this.transitionOverlay ||
-        !hintElement ||
-        this._hintInterval === null
-      ) {
-        this._stopHintCycle();
-        return;
-      }
-
-      this._hintAnimation = hintElement.animate(
-        [{ opacity: 1 }, { opacity: 0 }],
-        {
-          duration: HINT_FADE_DURATION,
-          easing: "ease-in",
-        }
-      );
-
-      this._hintAnimation.finished
-        .then(() => {
-          this._currentHintIndex =
-            (this._currentHintIndex + 1) % this._shuffledHints.length;
-          hintElement.innerText = this._shuffledHints[this._currentHintIndex];
-
-          hintElement.animate([{ opacity: 0 }, { opacity: 1 }], {
-            duration: HINT_FADE_DURATION,
-            easing: "ease-out",
-          });
-
-          this._hintInterval = setTimeout(showNextHint, HINT_PAUSE_DURATION);
-        })
-        .catch(() => {}); // Catch the expected cancellation error
-    };
-
-    // Set the initial state for the first hint
-    hintElement.innerText = this._shuffledHints[this._currentHintIndex];
-    hintElement.style.display = "block";
-    hintElement.style.opacity = "1"; // Ensure it's fully visible for the main fade-in
-
-    // Start the first animation cycle after the initial pause
-    this._hintInterval = setTimeout(showNextHint, HINT_PAUSE_DURATION);
-  }
-
-  /**
-   * Clears the hint cycling interval/timeline and resets state.
-   * @private
-   */
-  _stopHintCycle() {
-    if (this._hintInterval) {
-      clearTimeout(this._hintInterval);
-      this._hintInterval = null;
-    }
-    if (this._hintAnimation) {
-      try {
-        this._hintAnimation.cancel();
-      } catch (e) {
-        // This is an expected DOMException when cancelling an animation, so we can ignore it.
-      }
-      this._hintAnimation = null;
-    }
-    this._shuffledHints = [];
-    this._currentHintIndex = 0;
   }
 
   /**
@@ -5351,6 +4705,8 @@ class SceneChangeManager {
       showSceneName,
       backgroundOverlayEnabled,
       backgroundOverlayOpacity,
+      useRandomHint,
+      randomHints,
     } = config;
 
     const setContent = (selector, text, display = "block") => {
@@ -5383,11 +4739,12 @@ class SceneChangeManager {
     setContent(".transition-description", staticDescription);
     setContent(".transition-scenename", showSceneName ? sceneName : "");
 
-    // The hint element is now managed by the _cycleHints method.
-    const hintEl = this.transitionOverlay.querySelector(".transition-hint");
-    if (hintEl) {
-      hintEl.style.display = "none"; // Hide initially, cycle will manage it
+    let hintText = "";
+    if (useRandomHint && randomHints?.length > 0) {
+      const randomIndex = Math.floor(Math.random() * randomHints.length);
+      hintText = randomHints[randomIndex];
     }
+    setContent(".transition-hint", hintText);
 
     const bgOverlay = this.transitionOverlay.querySelector(
       ".background-overlay"
@@ -5419,54 +4776,39 @@ class SceneChangeManager {
       this.transitionOverlay.style.backgroundImage = "none";
     }
 
-    // Populate all content EXCEPT the hint
     this._populateOverlayContent(config, sceneName);
 
-    // Start the hint cycling process
-    this._cycleHints(config);
-
-    this.transitionOverlay.style.pointerEvents = "auto";
-    const content = this.transitionOverlay.querySelector(".transition-content");
-
-    // Animate the main overlay fade-in
-    const overlayAnimation = this.transitionOverlay.animate(
-      [{ opacity: 0 }, { opacity: 1 }],
-      {
-        duration: config.fadeOutDuration,
-        easing: "ease-in-out",
-        fill: "forwards",
-      }
-    );
-
-    // Animate the content fade-in
-    if (content) {
-      content.animate([{ opacity: 0 }, { opacity: 1 }], {
-        duration: config.fadeOutDuration,
-        easing: "ease-in-out",
-        fill: "forwards",
-      });
-    }
-
-    // Animate individual content elements
-    const contentElements = this.transitionOverlay.querySelectorAll(
-      ".transition-content > *"
-    );
-    contentElements.forEach((el, index) => {
-      el.animate(
-        [
-          { opacity: 0, transform: "translateY(-20px)" },
-          { opacity: 1, transform: "translateY(0)" },
-        ],
-        {
-          duration: config.fadeOutDuration * 0.6,
-          delay: config.fadeOutDuration * 0.2 + index * 100,
-          easing: "ease-out",
-          fill: "forwards",
-        }
+    return new Promise((resolve) => {
+      const tl = gsap.timeline({ onComplete: resolve });
+      const contentElements = this.transitionOverlay.querySelectorAll(
+        ".transition-content > *"
       );
-    });
+      const fadeOutDurationSec = config.fadeOutDuration / 1000;
 
-    await overlayAnimation.finished;
+      tl.to(this.transitionOverlay, {
+        opacity: 1,
+        duration: fadeOutDurationSec,
+        ease: "power2.inOut",
+        onStart: () => (this.transitionOverlay.style.pointerEvents = "auto"),
+      })
+        .to(
+          this.transitionOverlay.querySelector(".transition-content"),
+          { opacity: 1 },
+          0
+        )
+        .fromTo(
+          contentElements,
+          { opacity: 0, y: -20 },
+          {
+            opacity: 1,
+            y: 0,
+            duration: fadeOutDurationSec * 0.6,
+            ease: "power2.out",
+            stagger: 0.1,
+          },
+          fadeOutDurationSec * 0.2
+        );
+    });
   }
 
   async fadeIn(config) {
@@ -5477,43 +4819,39 @@ class SceneChangeManager {
       return Promise.resolve();
     }
 
-    const contentElements = this.transitionOverlay.querySelectorAll(
-      ".transition-content > *"
-    );
+    return new Promise((resolve) => {
+      const tl = gsap.timeline({
+        onComplete: () => {
+          if (this.transitionOverlay)
+            this.transitionOverlay.style.pointerEvents = "none";
+          resolve();
+        },
+      });
+      const contentElements = this.transitionOverlay.querySelectorAll(
+        ".transition-content > *"
+      );
+      const fadeInDurationSec = config.fadeInDuration / 1000;
 
-    // Animate individual elements fading out
-    const elementAnimations = Array.from(contentElements).map((el, index) => {
-      return el.animate(
-        [
-          { opacity: 1, transform: "translateY(0)" },
-          { opacity: 0, transform: "translateY(20px)" },
-        ],
+      tl.to(
+        contentElements,
         {
-          duration: config.fadeInDuration * 0.5,
-          delay: index * 50,
-          easing: "ease-in",
-          fill: "forwards",
-        }
-      ).finished;
+          opacity: 0,
+          y: 20,
+          duration: fadeInDurationSec * 0.5,
+          ease: "power2.in",
+          stagger: 0.05,
+        },
+        0
+      ).to(
+        this.transitionOverlay,
+        {
+          opacity: 0,
+          duration: fadeInDurationSec,
+          ease: "power2.inOut",
+        },
+        0
+      );
     });
-
-    // Animate the main overlay fading out
-    const overlayAnimation = this.transitionOverlay.animate(
-      [{ opacity: 1 }, { opacity: 0 }],
-      {
-        duration: config.fadeInDuration,
-        easing: "ease-in-out",
-        fill: "forwards",
-      }
-    );
-
-    overlayAnimation.finished.then(() => {
-      if (this.transitionOverlay)
-        this.transitionOverlay.style.pointerEvents = "none";
-    });
-
-    // Wait for the main fade-out to complete
-    await overlayAnimation.finished;
   }
 
   setProgress(progress, message) {
@@ -5525,10 +4863,14 @@ class SceneChangeManager {
       this.transitionOverlay.querySelector(".transition-status");
     const statusFadeDuration = 200;
 
-    const p = Math.min(100, Math.max(0, progress));
-
     if (fillElement) {
-      fillElement.style.width = `${p}%`;
+      const p = Math.min(100, Math.max(0, progress));
+      // Animate the progress bar fill for a smoother look
+      gsap.to(fillElement, {
+        width: `${p}%`,
+        duration: 0.2,
+        ease: "power2.out",
+      });
     }
 
     if (
@@ -5537,44 +4879,43 @@ class SceneChangeManager {
       statusTextElement.innerText !== message
     ) {
       // Fade out, change text, then fade in for a smooth transition.
-      statusTextElement.style.opacity = "0";
-      setTimeout(() => {
-        if (statusTextElement) {
-          statusTextElement.innerText = message;
-          statusTextElement.style.opacity = "1";
-        }
-      }, statusFadeDuration / 2);
+      gsap.to(statusTextElement, {
+        opacity: 0,
+        duration: statusFadeDuration / 2000,
+        onComplete: () => {
+          if (statusTextElement) {
+            statusTextElement.innerText = message;
+            gsap.to(statusTextElement, {
+              opacity: 1,
+              duration: statusFadeDuration / 2000,
+            });
+          }
+        },
+      });
     }
   }
 
   async hide() {
-    if (!this.transitionOverlay) return;
-
-    const bar = this.transitionOverlay.querySelector(".loading-bar-container");
-    const status = this.transitionOverlay.querySelector(".transition-status");
-
-    const animations = [];
-    if (bar) {
-      animations.push(
-        bar.animate([{ opacity: 1 }, { opacity: 0 }], {
-          duration: 200,
-          fill: "forwards",
-        }).finished
+    // This isn't a real hide, it just hides the progress bar elements
+    // before the main fadeIn animation starts.
+    if (this.transitionOverlay) {
+      const bar = this.transitionOverlay.querySelector(
+        ".loading-bar-container"
       );
-    }
-    if (status) {
-      animations.push(
-        status.animate([{ opacity: 1 }, { opacity: 0 }], {
-          duration: 200,
-          fill: "forwards",
-        }).finished
-      );
-    }
+      const status = this.transitionOverlay.querySelector(".transition-status");
 
-    await Promise.all(animations);
-
-    if (bar) bar.style.display = "none";
-    if (status) status.style.display = "none";
+      // We can do a quick fade out of these elements
+      const tl = gsap.timeline();
+      tl.to([bar, status], {
+        opacity: 0,
+        duration: 0.2,
+        onComplete: () => {
+          if (bar) bar.style.display = "none";
+          if (status) status.style.display = "none";
+        },
+      });
+      await tl;
+    }
   }
 
   async handleCanvasTearDown(canvas) {
@@ -5682,7 +5023,10 @@ class SceneChangeManager {
       game.mapShine.fireWindManager.destroy();
       game.mapShine.fireWindManager = null;
     }
-
+    if (game.mapShine.overheadEffectsManager) {
+      game.mapShine.overheadEffectsManager.destroy();
+      game.mapShine.overheadEffectsManager = null;
+    }
     if (game.mapShine.effectsBloomLayer) {
       game.mapShine.effectsBloomLayer.destroy();
       game.mapShine.effectsBloomLayer = null;
@@ -5708,10 +5052,6 @@ class SceneChangeManager {
     if (game.mapShine.resourceManager) {
       game.mapShine.resourceManager.destroy();
       game.mapShine.resourceManager = null;
-    }
-    // Nullify the reference to the world container so it can be recreated for the new scene.
-    if (game.mapShine.worldContainer) {
-      game.mapShine.worldContainer = null;
     }
 
     // Destroy remaining canvas-specific managers
@@ -5800,7 +5140,6 @@ class SceneChangeManager {
         SCREEN_FX_INIT: 75,
         MANAGERS_INIT: 85,
         CANVAS_MANAGERS_INIT: 95,
-        STRUCTURAL_HIGHLIGHTS: 98,
         SETUP_COMPLETE: 100,
       },
       messages: {
@@ -5816,7 +5155,6 @@ class SceneChangeManager {
         SCREEN_FX_INIT: "Initializing screen effects...",
         MANAGERS_INIT: "Initializing system managers...",
         CANVAS_MANAGERS_INIT: "Initializing canvas managers...",
-        STRUCTURAL_HIGHLIGHTS: "Rendering structural highlights...",
         SETUP_COMPLETE: "Finalizing scene...",
       },
       setProgress(waypoint) {
@@ -5902,1453 +5240,6 @@ class SceneChangeManager {
         resolve(); // Signal that the deferred setup is complete.
       });
     });
-  }
-}
-
-class AppearanceTransitionManager {
-  constructor(profileManager) {
-    this.profileManager = profileManager;
-    this.activeTransition = null;
-    this.status = "idle"; // "idle", "transitioning", "previewing"
-    this.statusMessage = "Idle";
-    this._updateUICallback = () => {};
-    this._configBeforePreview = null;
-  }
-
-  onStatusUpdate(callback) {
-    this._updateUICallback = callback;
-  }
-
-  _setStatus(status, message) {
-    this.status = status;
-    this.statusMessage = message;
-    if (typeof this._updateUICallback === "function") {
-      this._updateUICallback(status, message);
-    }
-  }
-
-  stop() {
-    if (this.activeTransition) {
-      this.activeTransition.kill();
-      this.activeTransition = null;
-    }
-    game.mapShine.transitionActive = false;
-  }
-
-  _interpolateConfigs(startConfig, endConfig, progress) {
-    const interpolated = foundry.utils.deepClone(startConfig);
-    this._recursiveInterpolate(interpolated, startConfig, endConfig, progress);
-    return interpolated;
-  }
-
-  _recursiveInterpolate(target, start, end, progress) {
-    for (const key in end) {
-      // Exclude buildingShadows from the interpolation process.
-      if (key === "buildingShadows") continue;
-
-      if (start?.[key] === undefined) {
-        target[key] = foundry.utils.deepClone(end[key]);
-        continue;
-      }
-
-      const startVal = start[key];
-      const endVal = end[key];
-      const endType = typeof endVal;
-
-      if (endType === "number" && typeof startVal === "number") {
-        target[key] = lerp(startVal, endVal, progress);
-      } else if (
-        endType === "string" &&
-        endVal.startsWith("#") &&
-        typeof startVal === "string" &&
-        startVal.startsWith("#")
-      ) {
-        const startRgb = hexToRgbArray(startVal);
-        const endRgb = hexToRgbArray(endVal);
-        const lerpedRgb = [
-          lerp(startRgb[0], endRgb[0], progress),
-          lerp(startRgb[1], endRgb[1], progress),
-          lerp(startRgb[2], endRgb[2], progress),
-        ];
-        // Use the PIXI.Color constructor instead of the deprecated fromRGB method.
-        target[key] = new PIXI.Color(lerpedRgb).toHex();
-      } else if (
-        endType === "object" &&
-        endVal !== null &&
-        !Array.isArray(endVal)
-      ) {
-        if (
-          typeof startVal === "object" &&
-          startVal !== null &&
-          !Array.isArray(startVal)
-        ) {
-          this._recursiveInterpolate(target[key], startVal, endVal, progress);
-        } else {
-          // Type mismatch (e.g., number to object), snap at the end
-          target[key] =
-            progress >= 1.0
-              ? foundry.utils.deepClone(endVal)
-              : foundry.utils.deepClone(startVal);
-        }
-      } else {
-        // Snap booleans, strings, arrays, etc. at the end of the transition
-        target[key] =
-          progress >= 1.0
-            ? foundry.utils.deepClone(endVal)
-            : foundry.utils.deepClone(startVal);
-      }
-    }
-  }
-
-  async transition(startConfig, endConfig, duration, isPreview = false) {
-    this.stop();
-    this._configBeforePreview = null; // A transition always clears any preview state.
-
-    // Handle zero-duration transitions instantly without animation.
-    if (duration === 0) {
-      this.profileManager.activeConfig = endConfig;
-      await this.profileManager.updateAllSystemsFromConfig();
-      // Also broadcast the final time for any listeners like the clock.
-      Hooks.callAll("mapShine:timeChanged", endConfig.timeOfDay.currentTime);
-      this._setStatus("idle", "Transition complete (instant)");
-      return;
-    }
-
-    game.mapShine.transitionActive = true;
-
-    // Instantly update particle systems to their final state.
-    this.profileManager.activeConfig = endConfig;
-    const particleLayers = canvas.layers.filter(
-      (l) => l instanceof ParticleLayer || l instanceof SmellyFliesLayer
-    );
-    for (const layer of particleLayers) {
-      if (typeof layer.updateFromConfig === "function") {
-        await layer.updateFromConfig(endConfig, {});
-      }
-    }
-    this.profileManager.activeConfig = startConfig;
-
-    return new Promise((resolve) => {
-      const transitionState = {
-        progress: 0,
-      };
-      const statusType = isPreview ? "previewing" : "transitioning";
-      const startMessage = isPreview
-        ? "Previewing transition..."
-        : "Transitioning...";
-      this._setStatus(statusType, startMessage);
-
-      this.activeTransition = NativeAnimation.to(transitionState, {
-        progress: 1,
-        duration: duration / 1000,
-        ease: "power1.inOut",
-        onUpdate: () => {
-          const interpolatedConfig = this._interpolateConfigs(
-            startConfig,
-            endConfig,
-            transitionState.progress
-          );
-          this.profileManager.activeConfig = interpolatedConfig;
-          this.profileManager.updateAllSystemsFromConfig({
-            skipParticles: true,
-          });
-          Hooks.callAll(
-            "mapShine:timeChanged",
-            interpolatedConfig.timeOfDay.currentTime
-          );
-          const percent = Math.round(transitionState.progress * 100);
-          this._setStatus(
-            statusType,
-            `${isPreview ? "Previewing" : "Transitioning"}... (${percent}%)`
-          );
-        },
-        onComplete: async () => {
-          this.profileManager.activeConfig = endConfig;
-          game.mapShine.transitionActive = false;
-
-          const buildingShadowsLayer = canvas.layers.find(
-            (l) => l instanceof BuildingShadowsLayer
-          );
-          if (buildingShadowsLayer) {
-            await buildingShadowsLayer.rebuildEffect();
-          }
-          const timeOfDayLayer = canvas.layers.find(
-            (l) => l instanceof TimeOfDayLayer
-          );
-          if (timeOfDayLayer) {
-            await timeOfDayLayer.rebuildEffect();
-          }
-
-          for (const layer of canvas.layers) {
-            if (layer instanceof MaskedEffectLayer) {
-              layer._needsMaskUpdate = true;
-            }
-          }
-          await this.profileManager.updateAllSystemsFromConfig();
-          Hooks.callAll(
-            "mapShine:timeChanged",
-            endConfig.timeOfDay.currentTime
-          );
-          this._setStatus("idle", "Transition complete");
-          this.activeTransition = null;
-          resolve();
-        },
-      });
-    });
-  }
-
-  async preview(config) {
-    this.stop();
-    this._setStatus("previewing", "Preview active");
-
-    // Store the config that we should revert to when the preview ends.
-    this._configBeforePreview = this.profileManager.getCurrentConfig();
-
-    // Set the active config to the one being previewed.
-    this.profileManager.activeConfig = config;
-    await this.profileManager.updateAllSystemsFromConfig();
-  }
-
-  async endPreview() {
-    if (this.status !== "previewing") return;
-    this.stop();
-
-    // Revert to the config we saved before the preview started, with a fallback.
-    this.profileManager.activeConfig =
-      this._configBeforePreview || this.profileManager.getCurrentConfig();
-    this._configBeforePreview = null; // Clean up the stored state.
-
-    await this.profileManager.updateAllSystemsFromConfig();
-    this._setStatus("idle", "Preview ended");
-  }
-}
-
-class DynamicExposureManager {
-  constructor() {
-    this.tokenManager = game.mapShine.tokenManager;
-
-    // State
-    this.isInitialized = false;
-    this.isIndoors = null; // null, true, or false
-    this.lastTriggerTimestamp = 0;
-    this.dazzleAnimation = null;
-    this.activeTokenId = null;
-
-    // Effect parameters (will be loaded from config)
-    this.config = {};
-
-    // PIXI Objects
-    this.ccFilter = null;
-  }
-
-  initialize() {
-    if (this.isInitialized) return;
-
-    this.ccFilter = ScreenEffectsManager.getFilter("colorCorrection");
-    if (!this.ccFilter) {
-      console.error(
-        "Map Shine | DynamicExposureManager: Could not find ColorCorrectionFilter."
-      );
-      return;
-    }
-
-    // Ensure the uniform exists on the filter
-    if (this.ccFilter.uniforms.uDynamicExposureBoost === undefined) {
-      this.ccFilter.uniforms.uDynamicExposureBoost = 0.0;
-    }
-
-    // Bind hooks
-    this._boundOnControlToken = this._onControlToken.bind(this);
-    this._boundOnUpdateToken = this._onUpdateToken.bind(this);
-    Hooks.on("controlToken", this._boundOnControlToken);
-    Hooks.on("updateToken", this._boundOnUpdateToken);
-
-    this.isInitialized = true;
-
-    // Perform an initial check on the currently controlled token, if any
-    const currentToken = this.tokenManager.getActiveToken();
-    if (currentToken) {
-      this._onControlToken(currentToken, true);
-    }
-  }
-
-  _onControlToken(token, controlled) {
-    if (this.dazzleAnimation) {
-      this.dazzleAnimation.kill();
-      this.dazzleAnimation = null;
-    }
-
-    if (controlled && token) {
-      this.activeTokenId = token.id;
-      // Establish the initial state without triggering the effect
-      this._updateInitialTokenState(token);
-    } else if (!canvas.tokens.controlled.length) {
-      this.activeTokenId = null;
-      this.isIndoors = null;
-    }
-  }
-
-  _onUpdateToken(tokenDoc, change) {
-    this.config =
-      game.mapShine.profileManager.activeConfig.postProcessing.colorCorrection.dynamicExposure;
-
-    if (
-      !this.isInitialized ||
-      tokenDoc.id !== this.activeTokenId ||
-      !this.config.enabled
-    ) {
-      return;
-    }
-
-    // Only react to movement
-    if (change.x !== undefined || change.y !== undefined) {
-      // We need to check the state at the destination, not the current position.
-      // Create a point representing the destination center in world coordinates.
-      const dest = {
-        x: change.x ?? tokenDoc.x,
-        y: change.y ?? tokenDoc.y,
-        w: tokenDoc.width * canvas.scene.grid.size,
-        h: tokenDoc.height * canvas.scene.grid.size,
-      };
-      const destCenter = {
-        x: dest.x + dest.w / 2,
-        y: dest.y + dest.h / 2,
-      };
-      this._checkTokenStateAtPoint(destCenter, true);
-    }
-  }
-
-  _updateInitialTokenState(token) {
-    if (!token || !game.mapShine.resourceManager) {
-      this.isIndoors = null;
-      return;
-    }
-
-    const outdoorsMask = game.mapShine.resourceManager.getOutdoorsMask();
-
-    if (!outdoorsMask?.valid) {
-      this.isIndoors = null;
-      return;
-    }
-
-    const screenPos = canvas.stage.toGlobal(token.center);
-    const screen = canvas.app.renderer.screen;
-    const x = Math.max(0, Math.min(screen.width - 1, Math.round(screenPos.x)));
-    const y = Math.max(0, Math.min(screen.height - 1, Math.round(screenPos.y)));
-
-    try {
-      const pixelData = canvas.app.renderer.extract.pixels(
-        outdoorsMask,
-        new PIXI.Rectangle(x, y, 1, 1)
-      );
-      const maskValue = pixelData[0];
-      const isNowOutdoors = maskValue > 128;
-      this.isIndoors = !isNowOutdoors;
-    } catch (e) {
-      // It's safe to ignore extraction errors here, as this is just setting an initial state.
-    }
-  }
-
-  _checkTokenStateAtPoint(worldPoint, canTriggerEffect = false) {
-    if (!worldPoint || !game.mapShine.resourceManager) {
-      this.isIndoors = null;
-      return;
-    }
-
-    const outdoorsMask = game.mapShine.resourceManager.getOutdoorsMask();
-
-    if (!outdoorsMask?.valid) {
-      this.isIndoors = null;
-      return;
-    }
-
-    const screenPos = canvas.stage.toGlobal(worldPoint);
-    const screen = canvas.app.renderer.screen;
-    const x = Math.max(0, Math.min(screen.width - 1, Math.round(screenPos.x)));
-    const y = Math.max(0, Math.min(screen.height - 1, Math.round(screenPos.y)));
-
-    try {
-      const pixelData = canvas.app.renderer.extract.pixels(
-        outdoorsMask,
-        new PIXI.Rectangle(x, y, 1, 1)
-      );
-      const maskValue = pixelData[0];
-
-      // Corrected Logic: "Outdoors" is where the _Outdoors mask is bright.
-      const isNowOutdoors = maskValue > 128;
-      const wasIndoors = this.isIndoors === true;
-
-      // Update the state for the *next* check, based on the destination of the *current* move.
-      this.isIndoors = !isNowOutdoors;
-
-      // Check for the specific transition from indoors (dark) to outdoors (bright).
-      if (canTriggerEffect && wasIndoors && isNowOutdoors) {
-        this._triggerDazzleEffect();
-      }
-    } catch (e) {
-      // This can happen if the texture is not yet ready on the GPU.
-      // It's safe to ignore and try again on the next movement.
-    }
-  }
-
-  _triggerDazzleEffect() {
-    this.config =
-      game.mapShine.profileManager.activeConfig.postProcessing.colorCorrection.dynamicExposure;
-
-    if (Date.now() - this.lastTriggerTimestamp < this.config.resetPeriod) {
-      return; // Effect is on cooldown
-    }
-
-    this.lastTriggerTimestamp = Date.now();
-
-    if (this.dazzleAnimation) {
-      this.dazzleAnimation.kill();
-    }
-
-    // Animate the exposure boost using the native animation helper
-    this.ccFilter.uniforms.uDynamicExposureBoost = this.config.intensity;
-    this.dazzleAnimation = NativeAnimation.to(this.ccFilter.uniforms, {
-      uDynamicExposureBoost: 0,
-      duration: this.config.duration / 1000,
-      ease: "power2.out",
-      onComplete: () => {
-        this.dazzleAnimation = null;
-      },
-    });
-  }
-
-  destroy() {
-    if (!this.isInitialized) return;
-    this.isInitialized = false;
-
-    Hooks.off("controlToken", this._boundOnControlToken);
-    Hooks.off("updateToken", this._boundOnUpdateToken);
-
-    if (this.dazzleAnimation) {
-      this.dazzleAnimation.kill();
-      this.dazzleAnimation = null;
-    }
-
-    if (this.ccFilter && !this.ccFilter.destroyed) {
-      this.ccFilter.uniforms.uDynamicExposureBoost = 0.0;
-    }
-
-    this.ccFilter = null;
-    this.activeTokenId = null;
-  }
-}
-
-class PauseEffectManager {
-  constructor() {
-    this._animationState = {
-      progress: game.paused ? 1 : 0,
-    };
-    this._animation = null;
-    this._pauseFilter = null;
-    this._originalGlobalTime = 100;
-    this._isInitialized = false;
-    this._boundOnPauseChange = this._onPauseChange.bind(this);
-  }
-
-  initialize() {
-    if (this._isInitialized) return;
-    this._pauseFilter = ScreenEffectsManager.getFilter("pauseEffect");
-    if (!this._pauseFilter) {
-      console.error(
-        "Map Shine | PauseEffectManager could not find its dedicated filter."
-      );
-      return;
-    }
-
-    const config = game.mapShine.profileManager.activeConfig;
-    this._originalGlobalTime = config.timeControl.globalTime;
-
-    this._updateEffects(this._animationState.progress);
-
-    Hooks.on("pauseGame", this._boundOnPauseChange);
-    this._isInitialized = true;
-    console.log("Map Shine | Pause Effect Manager Initialized.");
-  }
-
-  destroy() {
-    if (!this._isInitialized) return;
-
-    Hooks.off("pauseGame", this._boundOnPauseChange);
-    if (this._animation) {
-      this._animation.kill();
-    }
-    this._animation = null;
-    this._pauseFilter = null;
-    this._isInitialized = false;
-    console.log("Map Shine | Pause Effect Manager Destroyed.");
-  }
-
-  _onPauseChange(paused) {
-    if (!this._pauseFilter) return;
-
-    const peConfig = {
-      enabled: game.settings.get(MODULE_ID, "universal.pauseEffect.enabled"),
-      duration: game.settings.get(MODULE_ID, "universal.pauseEffect.duration"),
-      colorCorrection: {
-        enabled: game.settings.get(
-          MODULE_ID,
-          "universal.pauseEffect.colorCorrection.enabled"
-        ),
-        saturation: game.settings.get(
-          MODULE_ID,
-          "universal.pauseEffect.colorCorrection.saturation"
-        ),
-        brightness: game.settings.get(
-          MODULE_ID,
-          "universal.pauseEffect.colorCorrection.brightness"
-        ),
-        contrast: game.settings.get(
-          MODULE_ID,
-          "universal.pauseEffect.colorCorrection.contrast"
-        ),
-      },
-    };
-
-    if (!peConfig.enabled) {
-      this._updateEffects(0);
-      const activeConfig = game.mapShine.profileManager.activeConfig;
-      if (activeConfig.timeControl.globalTime < this._originalGlobalTime) {
-        foundry.utils.setProperty(
-          activeConfig,
-          "timeControl.globalTime",
-          this._originalGlobalTime
-        );
-        game.mapShine.profileManager.updateAllSystemsFromConfig();
-        if (game.mapShine.debugger) {
-          game.mapShine.debugger.eventHandler.updateAllControls();
-        }
-      }
-      return;
-    }
-
-    if (this._animation) {
-      this._animation.kill();
-    }
-
-    const targetProgress = paused ? 1 : 0;
-
-    if (paused && this._animationState.progress < 1) {
-      this._originalGlobalTime =
-        game.mapShine.profileManager.activeConfig.timeControl.globalTime;
-    }
-
-    this._animation = NativeAnimation.to(this._animationState, {
-      progress: targetProgress,
-      duration: peConfig.duration / 1000,
-      ease: "power2.inOut",
-      onUpdate: () => this._updateEffects(this._animationState.progress),
-      onComplete: () => {
-        this._animation = null;
-        this._updateEffects(targetProgress);
-      },
-    });
-  }
-
-  _updateEffects(progress) {
-    if (!this._pauseFilter) return;
-
-    // Construct the config object from individual game settings
-    const peConfig = {
-      colorCorrection: {
-        ...UNIVERSAL_EFFECT_DEFAULTS.pauseEffect.colorCorrection, // Start with defaults
-        enabled: game.settings.get(
-          MODULE_ID,
-          "universal.pauseEffect.colorCorrection.enabled"
-        ),
-        saturation: game.settings.get(
-          MODULE_ID,
-          "universal.pauseEffect.colorCorrection.saturation"
-        ),
-        brightness: game.settings.get(
-          MODULE_ID,
-          "universal.pauseEffect.colorCorrection.brightness"
-        ),
-        contrast: game.settings.get(
-          MODULE_ID,
-          "universal.pauseEffect.colorCorrection.contrast"
-        ),
-      },
-    };
-
-    const activeConfig = game.mapShine.profileManager.activeConfig;
-    const timeControlPath = "timeControl.globalTime";
-
-    const newTime = this._originalGlobalTime * (1 - progress);
-
-    game.mapShine.timeControl.timeFactor = newTime / 100.0;
-    foundry.utils.setProperty(activeConfig, timeControlPath, newTime);
-
-    game.mapShine.profileManager.updateAllSystemsFromConfig({
-      timeOnly: true,
-    });
-
-    if (game.mapShine.debugger) {
-      const slider = game.mapShine.debugger.element.querySelector(
-        "#control-timeControl-globalTime"
-      );
-      if (slider) {
-        slider.value = newTime;
-        game.mapShine.debugger.eventHandler._updateSliderValue(
-          slider.id,
-          newTime,
-          slider.step
-        );
-      }
-    }
-
-    const u = this._pauseFilter.uniforms;
-    const cc = peConfig.colorCorrection;
-    this._pauseFilter.enabled = progress > 0.001 && cc.enabled;
-    u.uIntensity = progress;
-    u.uSaturation = cc.saturation;
-    u.uBrightness = cc.brightness;
-    u.uContrast = cc.contrast;
-    u.uExposure = cc.exposure;
-    u.uGamma = cc.gamma;
-    u.uInBlack = cc.levels.inBlack;
-    u.uInWhite = cc.levels.inWhite;
-    u.uTemperature = cc.whiteBalance.temperature;
-    u.uWbTint = cc.whiteBalance.tint;
-    u.uTintAmount = cc.tint.amount;
-    u.uTintColor = hexToRgbArray(cc.tint.color);
-    u.uInvert = cc.invert;
-    u.uSelectiveEnabled = cc.selective.enabled;
-    u.uSelectiveColor = hexToRgbArray(cc.selective.color);
-    u.uSelectiveHueRange = cc.selective.hueRange;
-    u.uSelectiveSatRange = cc.selective.saturationRange;
-    u.uSelectiveLumRange = cc.selective.luminanceRange;
-    u.uSelectiveTargetLum = cc.selective.targetLuminance;
-    u.uSelectiveSoftness = cc.selective.softness;
-    u.uSelectiveInvert = cc.selective.invert;
-    u.uSelectiveDesaturation = cc.selective.desaturation;
-    u.uSelectiveTargetSaturation = cc.selective.targetSaturation;
-    u.uSelectiveTargetBrightness = cc.selective.targetBrightness;
-  }
-}
-
-class CombatEffectManager {
-  constructor() {
-    this._animationState = {
-      progress: 0,
-    };
-    this._animation = null;
-    this._combatFilter = null;
-    this._originalGlobalTime = 100;
-    this._isInitialized = false;
-    this._boundOnCombatChange = this._onCombatChange.bind(this);
-  }
-
-  initialize() {
-    if (this._isInitialized) return;
-    this._combatFilter = ScreenEffectsManager.getFilter("combatEffect");
-    if (!this._combatFilter) {
-      console.error(
-        "Map Shine | CombatEffectManager could not find its dedicated filter."
-      );
-      return;
-    }
-
-    const config = game.mapShine.profileManager.activeConfig;
-    this._originalGlobalTime = config.timeControl.globalTime;
-
-    this._animationState.progress = game.combats.active?.started ? 1 : 0;
-
-    this._updateEffects(this._animationState.progress);
-
-    Hooks.on("combatStart", () => this._boundOnCombatChange(true));
-    Hooks.on("combatEnd", () => this._boundOnCombatChange(false));
-    Hooks.on("deleteCombat", () => this._boundOnCombatChange(false));
-
-    this._isInitialized = true;
-    console.log("Map Shine | Combat Effect Manager Initialized.");
-  }
-
-  destroy() {
-    if (!this._isInitialized) return;
-
-    Hooks.off("combatStart", this._boundOnCombatChange);
-    Hooks.off("combatEnd", this._boundOnCombatChange);
-    Hooks.off("deleteCombat", this._boundOnCombatChange);
-
-    if (this._animation) {
-      this._animation.kill();
-    }
-    this._animation = null;
-    this._combatFilter = null;
-    this._isInitialized = false;
-    console.log("Map Shine | Combat Effect Manager Destroyed.");
-  }
-
-  _onCombatChange(inCombat) {
-    if (!this._combatFilter) return;
-
-    const ceConfig = {
-      enabled: game.settings.get(MODULE_ID, "universal.combatEffect.enabled"),
-      duration: game.settings.get(MODULE_ID, "universal.combatEffect.duration"),
-      timeScale: game.settings.get(
-        MODULE_ID,
-        "universal.combatEffect.timeScale"
-      ),
-      colorCorrection: {
-        enabled: game.settings.get(
-          MODULE_ID,
-          "universal.combatEffect.colorCorrection.enabled"
-        ),
-        saturation: game.settings.get(
-          MODULE_ID,
-          "universal.combatEffect.colorCorrection.saturation"
-        ),
-        brightness: game.settings.get(
-          MODULE_ID,
-          "universal.combatEffect.colorCorrection.brightness"
-        ),
-        contrast: game.settings.get(
-          MODULE_ID,
-          "universal.combatEffect.colorCorrection.contrast"
-        ),
-      },
-    };
-
-    if (!ceConfig.enabled) {
-      this._updateEffects(0);
-      const activeConfig = game.mapShine.profileManager.activeConfig;
-      if (activeConfig.timeControl.globalTime < this._originalGlobalTime) {
-        foundry.utils.setProperty(
-          activeConfig,
-          "timeControl.globalTime",
-          this._originalGlobalTime
-        );
-        game.mapShine.profileManager.updateAllSystemsFromConfig();
-        if (game.mapShine.debugger) {
-          game.mapShine.debugger.eventHandler.updateAllControls();
-        }
-      }
-      return;
-    }
-
-    if (this._animation) {
-      this._animation.kill();
-    }
-
-    const targetProgress = inCombat ? 1 : 0;
-
-    if (inCombat && this._animationState.progress < 1) {
-      this._originalGlobalTime =
-        game.mapShine.profileManager.activeConfig.timeControl.globalTime;
-    }
-
-    this._animation = NativeAnimation.to(this._animationState, {
-      progress: targetProgress,
-      duration: ceConfig.duration / 1000,
-      ease: "power2.inOut",
-      onUpdate: () => this._updateEffects(this._animationState.progress),
-      onComplete: () => {
-        this._animation = null;
-        this._updateEffects(targetProgress);
-      },
-    });
-  }
-
-  _updateEffects(progress) {
-    if (!this._combatFilter) return;
-
-    // Construct the config object from individual game settings
-    const ceConfig = {
-      enabled: game.settings.get(MODULE_ID, "universal.combatEffect.enabled"),
-      timeScale: game.settings.get(
-        MODULE_ID,
-        "universal.combatEffect.timeScale"
-      ),
-      colorCorrection: {
-        ...UNIVERSAL_EFFECT_DEFAULTS.combatEffect.colorCorrection, // Start with defaults
-        enabled: game.settings.get(
-          MODULE_ID,
-          "universal.combatEffect.colorCorrection.enabled"
-        ),
-        saturation: game.settings.get(
-          MODULE_ID,
-          "universal.combatEffect.colorCorrection.saturation"
-        ),
-        brightness: game.settings.get(
-          MODULE_ID,
-          "universal.combatEffect.colorCorrection.brightness"
-        ),
-        contrast: game.settings.get(
-          MODULE_ID,
-          "universal.combatEffect.colorCorrection.contrast"
-        ),
-      },
-    };
-
-    const activeConfig = game.mapShine.profileManager.activeConfig;
-    const timeControlPath = "timeControl.globalTime";
-
-    const newTime = lerp(
-      this._originalGlobalTime,
-      this._originalGlobalTime * ceConfig.timeScale,
-      progress
-    );
-
-    game.mapShine.timeControl.timeFactor = newTime / 100.0;
-    foundry.utils.setProperty(activeConfig, timeControlPath, newTime);
-
-    game.mapShine.profileManager.updateAllSystemsFromConfig({
-      timeOnly: true,
-    });
-
-    if (game.mapShine.debugger) {
-      const slider = game.mapShine.debugger.element.querySelector(
-        "#control-timeControl-globalTime"
-      );
-      if (slider) {
-        slider.value = newTime;
-        game.mapShine.debugger.eventHandler._updateSliderValue(
-          slider.id,
-          newTime,
-          slider.step
-        );
-      }
-    }
-
-    const u = this._combatFilter.uniforms;
-    const cc = ceConfig.colorCorrection;
-
-    this._combatFilter.enabled = progress > 0.001 && cc.enabled;
-    u.uIntensity = progress;
-
-    u.uSaturation = cc.saturation;
-    u.uBrightness = cc.brightness;
-    u.uContrast = cc.contrast;
-    u.uExposure = cc.exposure;
-    u.uGamma = cc.gamma;
-    u.uInBlack = cc.levels.inBlack;
-    u.uInWhite = cc.levels.inWhite;
-    u.uTemperature = cc.whiteBalance.temperature;
-    u.uWbTint = cc.whiteBalance.tint;
-    u.uTintAmount = cc.tint.amount;
-    u.uTintColor = hexToRgbArray(cc.tint.color);
-    u.uInvert = cc.invert;
-
-    u.uSelectiveEnabled = cc.selective.enabled;
-    u.uSelectiveColor = hexToRgbArray(cc.selective.color);
-    u.uSelectiveHueRange = cc.selective.hueRange;
-    u.uSelectiveSatRange = cc.selective.saturationRange;
-    u.uSelectiveLumRange = cc.selective.luminanceRange;
-    u.uSelectiveTargetLum = cc.selective.targetLuminance;
-    u.uSelectiveSoftness = cc.selective.softness;
-    u.uSelectiveInvert = cc.selective.invert;
-    u.uSelectiveDesaturation = cc.desaturation;
-    u.uSelectiveTargetSaturation = cc.targetSaturation;
-    u.uSelectiveTargetBrightness = cc.targetBrightness;
-  }
-}
-
-class OverheadEffectLayer extends CanvasLayer {
-  constructor() {
-    super();
-    this.overheadSprites = new Map();
-    this.spritesContainer = null;
-    this.blurFilter = null;
-    this.recolorFilter = null;
-    this.compositeTexture = null;
-    this.compositeSprite = null;
-    this.activeAnimations = new Map();
-    // Blur properties
-    this.blurMinZoom = 0;
-    this.blurMidZoom = 2;
-    this.blurMaxZoom = 8;
-    // Opacity properties
-    this.opacityMinZoom = 1.0;
-    this.opacityMidZoom = 1.0;
-    this.opacityMaxZoom = 0.25;
-    // Zoom Point properties
-    this.zoomPointMin = 0.2;
-    this.zoomPointMid = 0.65;
-    this.zoomPointMax = 1.5;
-
-    // Bound listeners for robust add/remove
-    this._boundRefresh = this._refreshOverheadTiles.bind(this);
-    this._boundOnAnimate = this._onAnimate.bind(this);
-    this._boundOnResize = this._onResize.bind(this);
-    this._boundOnCanvasReady = this._refreshOverheadTiles.bind(this);
-  }
-
-  async _draw(options) {
-    this._destroyed = false;
-    this.eventMode = "auto";
-
-    const renderer = canvas.app.renderer;
-    const screen = renderer.screen;
-
-    this.spritesContainer = new PIXI.Container();
-    this.compositeTexture = PIXI.RenderTexture.create({
-      width: screen.width,
-      height: screen.height,
-    });
-
-    this.blurFilter = new PIXI.BlurFilter();
-    this.recolorFilter = new OverheadRecolorFilter();
-
-    this.compositeSprite = new PIXI.Sprite(this.compositeTexture);
-    this.compositeSprite.filters = [this.blurFilter, this.recolorFilter];
-    this.compositeSprite.filterArea = renderer.screen;
-    this.addChild(this.compositeSprite);
-
-    Hooks.on("createTile", this._boundRefresh);
-    Hooks.on("updateTile", this._boundRefresh);
-    Hooks.on("deleteTile", this._boundRefresh);
-    Hooks.on("canvasReady", this._boundOnCanvasReady);
-    canvas.app.ticker.add(this._boundOnAnimate);
-    window.addEventListener("resize", this._boundOnResize);
-
-    this.updateFromConfig(game.mapShine.profileManager.activeConfig);
-  }
-
-  async _tearDown(options) {
-    this._destroyed = true;
-
-    for (const anim of this.activeAnimations.values()) {
-      anim.kill();
-    }
-    this.activeAnimations.clear();
-
-    for (const tileId of this.overheadSprites.keys()) {
-      const tile = canvas.tiles.get(tileId);
-      if (tile && tile.isManagedByOverheadLayer) {
-        tile.isManagedByOverheadLayer = false;
-        tile.mesh.alpha = 1.0;
-      }
-    }
-
-    Hooks.off("createTile", this._boundRefresh);
-    Hooks.off("updateTile", this._boundRefresh);
-    Hooks.off("deleteTile", this._boundRefresh);
-    Hooks.off("canvasReady", this._boundOnCanvasReady);
-    canvas.app.ticker.remove(this._boundOnAnimate);
-    window.removeEventListener("resize", this._boundOnResize);
-
-    this.spritesContainer?.destroy({ children: true });
-    this.blurFilter?.destroy();
-    this.recolorFilter?.destroy();
-    this.compositeTexture?.destroy(true);
-    this.compositeSprite?.destroy();
-    this.overheadSprites.clear();
-
-    return super._tearDown(options);
-  }
-
-  _onAnimate(deltaTime) {
-    if (this._destroyed || !this.visible) {
-      if (this.compositeSprite) this.compositeSprite.visible = false;
-      return;
-    }
-
-    if (this.overheadSprites.size === 0) {
-      if (this.compositeSprite) this.compositeSprite.visible = false;
-      return;
-    }
-
-    this.compositeSprite.visible = true;
-
-    for (const [id, sprite] of this.overheadSprites.entries()) {
-      const tile = canvas.tiles.get(id);
-      if (tile?.texture?.valid) {
-        sprite.position.copyFrom(tile.mesh.position);
-        sprite.width = tile.document.width;
-        sprite.height = tile.document.height;
-        sprite.rotation = tile.mesh.rotation;
-        sprite.texture = tile.texture;
-        sprite.anchor.copyFrom(tile.mesh.anchor);
-      }
-    }
-
-    const currentZoom = canvas.stage.scale.x;
-    const lerp = (a, b, t) => a * (1 - t) + b * t;
-
-    let blur = 0;
-    let opacity = 1.0;
-
-    if (currentZoom <= this.zoomPointMin) {
-      blur = this.blurMinZoom;
-      opacity = this.opacityMinZoom;
-    } else if (currentZoom >= this.zoomPointMax) {
-      blur = this.blurMaxZoom;
-      opacity = this.opacityMaxZoom;
-    } else if (
-      currentZoom > this.zoomPointMin &&
-      currentZoom <= this.zoomPointMid
-    ) {
-      // Interpolate between min and mid
-      const range = this.zoomPointMid - this.zoomPointMin;
-      const progress =
-        (currentZoom - this.zoomPointMin) / (range > 0 ? range : 1);
-      blur = lerp(this.blurMinZoom, this.blurMidZoom, progress);
-      opacity = lerp(this.opacityMinZoom, this.opacityMidZoom, progress);
-    } else {
-      // currentZoom > this.zoomPointMid && currentZoom < this.zoomPointMax
-      // Interpolate between mid and max
-      const range = this.zoomPointMax - this.zoomPointMid;
-      const progress =
-        (currentZoom - this.zoomPointMid) / (range > 0 ? range : 1);
-      blur = lerp(this.blurMidZoom, this.blurMaxZoom, progress);
-      opacity = lerp(this.opacityMidZoom, this.opacityMaxZoom, progress);
-    }
-
-    if (this.blurFilter) {
-      const screenBlur = blur * currentZoom;
-      this.blurFilter.blur = screenBlur;
-      this.blurFilter.enabled = this.visible && screenBlur > 0.01;
-    }
-
-    if (this.compositeSprite) {
-      this.compositeSprite.alpha = opacity;
-    }
-
-    if (this.recolorFilter) {
-      const resourceManager = game.mapShine.resourceManager;
-      if (resourceManager) {
-        this.recolorFilter.uniforms.uStructuralMask =
-          resourceManager.getStructuralMask() ?? PIXI.Texture.WHITE;
-        this.recolorFilter.uniforms.uCloudShadows =
-          resourceManager.getRawCloudTexture(deltaTime) ?? PIXI.Texture.WHITE;
-      }
-    }
-
-    const renderer = canvas.app.renderer;
-    renderer.render(this.spritesContainer, {
-      renderTexture: this.compositeTexture,
-      clear: true,
-      transform: canvas.stage.transform.worldTransform,
-    });
-
-    const stage = canvas.stage;
-    const screen = renderer.screen;
-    const topLeft = stage.toLocal({ x: 0, y: 0 });
-    this.compositeSprite.position.copyFrom(topLeft);
-    this.compositeSprite.width = screen.width / stage.scale.x;
-    this.compositeSprite.height = screen.height / stage.scale.y;
-  }
-
-  _onResize() {
-    if (this._destroyed) return;
-    const renderer = canvas.app.renderer;
-    const screen = renderer.screen;
-    this.compositeTexture?.resize(screen.width, screen.height);
-    if (this.compositeSprite) {
-      this.compositeSprite.filterArea = screen;
-    }
-  }
-
-  async updateFromConfig(config) {
-    const oeConfig = config.overheadEffect;
-    this.visible = config.enabled && oeConfig.enabled;
-
-    this.blurMinZoom = oeConfig.blurMinZoom ?? 0;
-    this.blurMidZoom = oeConfig.blurMidZoom ?? 2;
-    this.blurMaxZoom = oeConfig.blurMaxZoom ?? 8;
-    this.opacityMinZoom = oeConfig.opacityMinZoom ?? 1.0;
-    this.opacityMidZoom = oeConfig.opacityMidZoom ?? 1.0;
-    this.opacityMaxZoom = oeConfig.opacityMaxZoom ?? 0.25;
-    this.zoomPointMin = oeConfig.zoomPointMin ?? 0.2;
-    this.zoomPointMid = oeConfig.zoomPointMid ?? 0.65;
-    this.zoomPointMax = oeConfig.zoomPointMax ?? 1.5;
-
-    if (this.recolorFilter) {
-      const rConfig = oeConfig.recolor;
-      this.recolorFilter.uniforms.uRecolorEnabled = rConfig.enabled;
-      this.recolorFilter.uniforms.uRecolorTint = hexToRgbArray(rConfig.tint);
-      this.recolorFilter.uniforms.uRecolorIntensity = rConfig.intensity;
-
-      const csdConfig = rConfig.cloudShadowDarken;
-      if (csdConfig) {
-        this.recolorFilter.uniforms.uCloudShadowDarkenEnabled =
-          csdConfig.enabled;
-        this.recolorFilter.uniforms.uCloudShadowDarkenIntensity =
-          csdConfig.intensity;
-      }
-    }
-  }
-
-  _refreshOverheadTiles() {
-    if (!this.spritesContainer) return;
-
-    const currentOverheadIds = new Set();
-    for (const tile of canvas.tiles.placeables) {
-      if (tile.document.overhead) {
-        currentOverheadIds.add(tile.id);
-        if (!this.overheadSprites.has(tile.id)) {
-          const sprite = new PIXI.Sprite(tile.texture);
-          const oeConfig =
-            game.mapShine.profileManager.activeConfig.overheadEffect;
-          const duration = (oeConfig.hoverFadeDuration || 500) / 1000;
-          sprite.eventMode = "static";
-          sprite.cursor = "pointer";
-
-          sprite.on("pointerover", () => {
-            const anim = NativeAnimation.to(sprite, {
-              key: `overhead-${tile.id}`,
-              alpha: 0,
-              duration: duration,
-              ease: "power2.out",
-            });
-            this.activeAnimations.set(tile.id, anim);
-          });
-          sprite.on("pointerout", () => {
-            const anim = NativeAnimation.to(sprite, {
-              key: `overhead-${tile.id}`,
-              alpha: 1,
-              duration: duration,
-              ease: "power2.inOut",
-            });
-            this.activeAnimations.set(tile.id, anim);
-          });
-
-          this.overheadSprites.set(tile.id, sprite);
-          this.spritesContainer.addChild(sprite);
-          tile.isManagedByOverheadLayer = true;
-          tile.mesh.alpha = 0;
-        }
-      }
-    }
-
-    for (const [id, sprite] of this.overheadSprites.entries()) {
-      if (!currentOverheadIds.has(id)) {
-        if (this.activeAnimations.has(id)) {
-          this.activeAnimations.get(id).kill();
-          this.activeAnimations.delete(id);
-        }
-        const tile = canvas.tiles.get(id);
-        if (tile) {
-          tile.isManagedByOverheadLayer = false;
-          tile.mesh.alpha = 1.0;
-        }
-        sprite.destroy();
-        this.overheadSprites.delete(id);
-      }
-    }
-  }
-}
-
-class LoadingScreen {
-  constructor() {
-    this.element = null;
-    this.fadeOutDuration = 500;
-    this.minDisplayTime = 1500;
-    this.startTime = 0;
-    this.fillElement = null;
-    this.statusTextElement = null;
-    this.statusFadeDuration = 200; // Faster text fade
-
-    // Properties for hint cycling
-    this._hintInterval = null;
-    this._shuffledHints = [];
-    this._currentHintIndex = 0;
-    this._hintAnimation = null;
-  }
-
-  show() {
-    if (this.element) return;
-    this.startTime = Date.now();
-
-    this.element = document.createElement("div");
-    this.element.id = "map-shine-loading-screen";
-    this.element.style.opacity = "0";
-
-    // Background Image Logic
-    const useRandom = game.settings.get(
-      MODULE_ID,
-      "loading-screen-use-random-background"
-    );
-    const staticBg = game.settings.get(
-      MODULE_ID,
-      "loading-screen-static-background"
-    );
-    const randomBgs = (
-      game.settings.get(MODULE_ID, "loading-screen-random-backgrounds") || ""
-    )
-      .split(/\r?\n/)
-      .filter((l) => l.trim());
-    const overlayEnabled = game.settings.get(
-      MODULE_ID,
-      "loading-screen-background-overlay-enabled"
-    );
-    const overlayOpacity = game.settings.get(
-      MODULE_ID,
-      "loading-screen-background-overlay-opacity"
-    );
-
-    let bgPath = "";
-    if (useRandom && randomBgs.length > 0) {
-      bgPath = randomBgs[Math.floor(Math.random() * randomBgs.length)];
-    } else if (staticBg) {
-      bgPath = staticBg;
-    }
-
-    if (bgPath) {
-      this.element.style.backgroundImage = `url('${bgPath}')`;
-      this.element.style.backgroundSize = "cover";
-      this.element.style.backgroundPosition = "center center";
-    }
-
-    const subheading = game.settings.get(
-      MODULE_ID,
-      "loading-screen-subheading"
-    );
-
-    this.element.innerHTML = `
-                        <div class="loading-background-overlay"></div>
-                        <div class="loading-content">
-                            <img src="modules/map-shine/assets/fvtt.png" class="loading-logo" alt="Foundry VTT Logo">
-                            <h2 class="loading-subhead">${subheading}</h2>
-                            <h1 class="loading-title">${game.world.title}</h1>
-                            <div class="loading-bar-container">
-                                <div class="loading-bar-fill"></div>
-                            </div>
-                            <div id="loading-status-text" class="loading-status"></div>
-                            <p id="loading-hint-text" class="loading-hint"></p>
-                        </div>
-                        <style>
-                            #map-shine-loading-screen { 
-                                position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
-                                background-color: rgba(0, 0, 0, 1); 
-                                z-index: 100000; display: flex; 
-                                justify-content: center; align-items: center; 
-                                color: white; font-family: Signika, sans-serif; 
-                                transition: opacity ${
-                                  this.fadeOutDuration / 1000
-                                }s ease-in-out; 
-                            }
-                            .loading-background-overlay {
-                                display: ${
-                                  overlayEnabled && bgPath ? "block" : "none"
-                                };
-                                opacity: ${overlayOpacity};
-                                position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-                                background-color: #000;
-                                z-index: 1; /* Behind content */
-                            }
-                            .loading-content { text-align: center; position: relative; z-index: 2; }
-                            .loading-logo { width: 150px; height: auto; margin: 0 auto 10px auto; display: block; filter: drop-shadow(0 0 10px rgba(0,0,0,0.6)); }
-                            .loading-subhead { font-size: 24px; font-weight: normal; color: #bbb; margin: 0 0 10px 0; text-shadow: 0 0 5px #111; }
-                            .loading-title { font-size: 72px; margin: 0 0 30px 0; text-shadow: 0 0 10px #222; color: #fff; }
-                            .loading-bar-container { width: 400px; height: 20px; border: 2px solid rgba(255, 255, 255, 0.5); margin: 0 auto; background-color: rgba(0,0,0,0.5); border-radius: 5px; overflow: hidden; }
-                            .loading-bar-fill { width: 0%; height: 100%; background-color: rgba(255, 255, 255, 0.9); transform-origin: left; transition: width 0.2s ease-out; box-shadow: 0 0 10px rgba(255, 255, 255, 0.5); }
-                            .loading-status { margin-top: 15px; font-size: 16px; color: #ddd; height: 20px; line-height: 20px; opacity: 0; transition: opacity ${
-                              this.statusFadeDuration / 1000
-                            }s ease-in-out; }
-                            .loading-hint {
-                                margin-top: 25px;
-                                font-size: 16px;
-                                color: #aaa;
-                                font-style: italic;
-                                max-width: 50ch;
-                                margin-left: auto;
-                                margin-right: auto;
-                                min-height: 3em; /* Reserve space to prevent layout shifts */
-                                opacity: 0; /* Initially hidden */
-                            }
-                        </style>
-                    `;
-
-    document.body.appendChild(this.element);
-    this.fillElement = this.element.querySelector(".loading-bar-fill");
-    this.statusTextElement = this.element.querySelector("#loading-status-text");
-
-    this.statusTextElement.innerText = "Initializing...";
-    this.statusTextElement.style.opacity = "1";
-
-    // Force a reflow before applying the final opacity to ensure the transition plays.
-    void this.element.offsetHeight;
-    this.element.style.opacity = "1";
-
-    // Hide the default Foundry VTT loading element
-    const foundryLoading = document.getElementById("loading");
-    if (foundryLoading) {
-      foundryLoading.style.display = "none";
-    }
-
-    // Start the hint cycle
-    this._cycleHints();
-  }
-
-  /**
-   * Manages the hint cycling animation.
-   * @private
-   */
-  _cycleHints() {
-    if (!this.element) return;
-
-    const hintElement = this.element.querySelector(".loading-hint");
-    const config = {
-      useRandomHint: game.settings.get(
-        MODULE_ID,
-        "universal.sceneTransition.useRandomHint"
-      ),
-      randomHints: (
-        game.settings.get(MODULE_ID, "universal.sceneTransition.randomHints") ||
-        ""
-      )
-        .split(/\r?\n/)
-        .filter((h) => h.trim() !== ""),
-    };
-
-    if (!hintElement || !config.useRandomHint || !config.randomHints.length) {
-      return;
-    }
-
-    // Fisher-Yates shuffle algorithm
-    this._shuffledHints = [...config.randomHints];
-    for (let i = this._shuffledHints.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [this._shuffledHints[i], this._shuffledHints[j]] = [
-        this._shuffledHints[j],
-        this._shuffledHints[i],
-      ];
-    }
-
-    this._currentHintIndex = 0;
-
-    if (this._shuffledHints.length <= 1) {
-      if (this._shuffledHints.length === 1) {
-        hintElement.innerText = this._shuffledHints[0];
-        hintElement.animate([{ opacity: 0 }, { opacity: 1 }], {
-          duration: 1000,
-          fill: "forwards",
-        });
-      }
-      return;
-    }
-
-    const HINT_FADE_DURATION = 1000;
-    const HINT_PAUSE_DURATION = 5000;
-
-    const showNextHint = () => {
-      if (!this.element || !hintElement || this._hintInterval === null) {
-        this._stopHintCycle();
-        return;
-      }
-
-      this._hintAnimation = hintElement.animate(
-        [{ opacity: 1 }, { opacity: 0 }],
-        {
-          duration: HINT_FADE_DURATION,
-          easing: "ease-in",
-        }
-      );
-
-      this._hintAnimation.finished
-        .then(() => {
-          if (!this.element) return; // Guard against element being removed during animation
-          this._currentHintIndex =
-            (this._currentHintIndex + 1) % this._shuffledHints.length;
-          hintElement.innerText = this._shuffledHints[this._currentHintIndex];
-
-          hintElement.animate([{ opacity: 0 }, { opacity: 1 }], {
-            duration: HINT_FADE_DURATION,
-            easing: "ease-out",
-            fill: "forwards",
-          });
-
-          this._hintInterval = setTimeout(showNextHint, HINT_PAUSE_DURATION);
-        })
-        .catch(() => {}); // Catch the expected cancellation error
-    };
-
-    hintElement.innerText = this._shuffledHints[this._currentHintIndex];
-    const initialAnimation = hintElement.animate(
-      [{ opacity: 0 }, { opacity: 1 }],
-      { duration: 1000, fill: "forwards" }
-    );
-    initialAnimation.finished.then(() => {
-      if (!this.element) return;
-      this._hintInterval = setTimeout(showNextHint, HINT_PAUSE_DURATION);
-    });
-  }
-
-  /**
-   * Clears the hint cycling interval/timeline.
-   * @private
-   */
-  _stopHintCycle() {
-    if (this._hintInterval) {
-      clearTimeout(this._hintInterval);
-      this._hintInterval = null;
-    }
-    if (this._hintAnimation) {
-      try {
-        this._hintAnimation.cancel();
-      } catch (e) {
-        // This is an expected DOMException when cancelling an animation, so we can ignore it.
-      }
-      this._hintAnimation = null;
-    }
-    this._shuffledHints = [];
-    this._currentHintIndex = 0;
-  }
-
-  setProgress(progress, message) {
-    if (!this.fillElement) return;
-    const p = Math.min(100, Math.max(0, progress));
-    this.fillElement.style.width = `${p}%`;
-
-    if (
-      message &&
-      this.statusTextElement &&
-      this.statusTextElement.innerText !== message
-    ) {
-      // Fade out, change text, then fade in for a smooth transition.
-      this.statusTextElement.style.opacity = "0";
-      setTimeout(() => {
-        if (this.statusTextElement) {
-          this.statusTextElement.innerText = message;
-          this.statusTextElement.style.opacity = "1";
-        }
-      }, this.statusFadeDuration);
-    }
-  }
-
-  setStatus(message) {
-    if (this.statusTextElement) {
-      this.statusTextElement.innerText = message;
-      // Ensure text is visible, in case a fade-out from setProgress was in progress.
-      if (this.statusTextElement.style.opacity !== "1") {
-        this.statusTextElement.style.opacity = "1";
-      }
-    }
-  }
-
-  async hide() {
-    this._stopHintCycle();
-    if (!this.element) return;
-
-    // Ensure we wait for the minimum display time before starting the fade out.
-    const elapsed = Date.now() - this.startTime;
-    const remainingTime = Math.max(0, this.minDisplayTime - elapsed);
-    await new Promise((resolve) => setTimeout(resolve, remainingTime));
-
-    if (this.element) {
-      this.element.style.opacity = "0";
-      // Wait for the fade-out transition to complete before removing the element.
-      await new Promise((resolve) =>
-        setTimeout(resolve, this.fadeOutDuration + 50)
-      );
-    }
-
-    this.element?.remove();
-    this.element = null;
-    this.fillElement = null;
-    this.statusTextElement = null;
-
-    // Restore foundry loading screen in case it's needed later (e.g. returning to setup)
-    const foundryLoading = document.getElementById("loading");
-    if (foundryLoading) {
-      foundryLoading.style.display = "";
-    }
   }
 }
 
@@ -7495,6 +5386,9 @@ class MapShineLifecycle {
     game.mapShine.effectsBloomLayer = new EffectsBloomLayer();
     game.mapShine.effectsBloomLayer.initialize();
 
+    game.mapShine.overheadEffectsManager = new OverheadEffectsManager();
+    game.mapShine.overheadEffectsManager.initialize();
+
     await loadingManager?.tick("MANAGERS_INIT");
 
     // 6. (NEW) Update the UI controls to reflect the finalized configuration.
@@ -7507,16 +5401,6 @@ class MapShineLifecycle {
     canvas.mapShine.ambientMaskManager = new AmbientMaskManager(canvas);
     canvas.mapShine.tokenMaskManager = new DynamicTokenMaskManager(canvas);
     await loadingManager?.tick("CANVAS_MANAGERS_INIT");
-
-    // Pre-warm the structural shadows layer to prevent pop-in after loading.
-    await loadingManager?.tick("STRUCTURAL_HIGHLIGHTS");
-    const structuralLayer = canvas.layers.find(
-      (l) => l instanceof StructuralShadowsLayer
-    );
-    if (structuralLayer?.visible) {
-      // Pass a delta time of 0 for a single-frame, non-animated render.
-      structuralLayer.renderEffectNow(0);
-    }
 
     // 8. Hide the loading screen.
     if (loadingScreen) {
@@ -7607,7 +5491,6 @@ class MapShineLifecycle {
       prism: "prism",
       dust: "dust",
       glint: "prism",
-      metallicGlints: "specular",
       fire: "fire",
       sparks: "sparks",
     };
@@ -8871,23 +6754,97 @@ function lerp(start, end, amount) {
   return (1 - amount) * start + amount * end;
 }
 
-class PauseScreenManager {
-  /**
-   * Registers the necessary hooks to manage the custom pause screen.
-   * This is the single entry point for this system.
-   */
-  static initialize() {
-    Hooks.on("pauseGame", (paused) => {
-      if (paused) {
-        this._applyCustomPauseScreen();
-      } else {
-        this._revertCustomPauseScreen();
-      }
-    });
+class AppearanceTransitionManager {
+  constructor(profileManager) {
+    this.profileManager = profileManager;
+    this.activeTransition = null;
+    this.status = "idle"; // "idle", "transitioning", "previewing"
+    this.statusMessage = "Idle";
+    this._updateUICallback = () => {};
+    this._configBeforePreview = null;
+  }
 
-    Hooks.once("ready", () => {
-      if (game.paused) {
-        this._applyCustomPauseScreen();
+  onStatusUpdate(callback) {
+    this._updateUICallback = callback;
+  }
+
+  _setStatus(status, message) {
+    this.status = status;
+    this.statusMessage = message;
+    if (typeof this._updateUICallback === "function") {
+      this._updateUICallback(status, message);
+    }
+  }
+
+  stop() {
+    if (this.activeTransition) {
+      this.activeTransition.kill();
+      this.activeTransition = null;
+    }
+    game.mapShine.transitionActive = false;
+  }
+
+  _interpolateConfigs(startConfig, endConfig, progress) {
+    const interpolated = foundry.utils.deepClone(startConfig);
+    this._recursiveInterpolate(interpolated, startConfig, endConfig, progress);
+    return interpolated;
+  }
+
+  _recursiveInterpolate(target, start, end, progress) {
+    for (const key in end) {
+      // Exclude buildingShadows from the interpolation process.
+      if (key === "buildingShadows") continue;
+
+      if (start?.[key] === undefined) {
+        target[key] = foundry.utils.deepClone(end[key]);
+        continue;
+      }
+
+      const startVal = start[key];
+      const endVal = end[key];
+      const endType = typeof endVal;
+
+      if (endType === "number" && typeof startVal === "number") {
+        target[key] = lerp(startVal, endVal, progress);
+      } else if (
+        endType === "string" &&
+        endVal.startsWith("#") &&
+        typeof startVal === "string" &&
+        startVal.startsWith("#")
+      ) {
+        const startRgb = hexToRgbArray(startVal);
+        const endRgb = hexToRgbArray(endVal);
+        const lerpedRgb = [
+          lerp(startRgb[0], endRgb[0], progress),
+          lerp(startRgb[1], endRgb[1], progress),
+          lerp(startRgb[2], endRgb[2], progress),
+        ];
+        // Use the PIXI.Color constructor instead of the deprecated fromRGB method.
+        target[key] = new PIXI.Color(lerpedRgb).toHex();
+      } else if (
+        endType === "object" &&
+        endVal !== null &&
+        !Array.isArray(endVal)
+      ) {
+        if (
+          typeof startVal === "object" &&
+          startVal !== null &&
+          !Array.isArray(startVal)
+        ) {
+          this._recursiveInterpolate(target[key], startVal, endVal, progress);
+        } else {
+          // Type mismatch (e.g., number to object), snap at the end
+          target[key] =
+            progress >= 1.0
+              ? foundry.utils.deepClone(endVal)
+              : foundry.utils.deepClone(startVal);
+        }
+      } else {
+        // Snap booleans, strings, arrays, etc. at the end of the transition
+        target[key] =
+          progress >= 1.0
+            ? foundry.utils.deepClone(endVal)
+            : foundry.utils.deepClone(startVal);
       }
     }
   }
@@ -9027,81 +6984,6 @@ class PauseScreenManager {
   }
 }
 
-class CorrectedIlluminationManager {
-  constructor(canvas) {
-    this.canvas = canvas;
-    this.renderer = canvas.app.renderer;
-    const screen = this.renderer.screen;
-
-    this.renderTexture = PIXI.RenderTexture.create({
-      width: screen.width,
-      height: screen.height,
-    });
-
-    this.filter = new CorrectedIlluminationFilter();
-    this.sourceSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
-    this.sourceSprite.width = screen.width;
-    this.sourceSprite.height = screen.height;
-    this.sourceSprite.filters = [this.filter];
-
-    this._destroyed = false;
-
-    // No ticker needed; this manager will be updated manually by LightingEffectManager
-    // to ensure correct render order.
-  }
-
-  update() {
-    if (this._destroyed) return;
-
-    const illuminationTexture = IlluminationManager.getLightingTexture();
-    if (!illuminationTexture?.valid) return;
-
-    const cloudLayer = this.canvas.layers.find(
-      (l) => l instanceof CloudShadowsLayer
-    );
-    // An outdoors mask is considered valid if the layer has discovered any source textures for it.
-    const hasOutdoorsMask = cloudLayer?.maskSprites.size > 0;
-
-    // If an outdoors mask exists and the scene has global light, perform the correction.
-    if (hasOutdoorsMask && this.canvas.scene.globalLight) {
-      const outdoorsMask = cloudLayer.getMaskTexture();
-      if (!outdoorsMask?.valid) return;
-
-      this.filter.enabled = true;
-      const u = this.filter.uniforms;
-      u.uIlluminationBuffer = illuminationTexture;
-      u.uOutdoorsMask = outdoorsMask;
-      u.uHasGlobalIllumination = this.canvas.scene.globalLight;
-      u.uSunlightColor = this.canvas.scene.environment.sunlightColor;
-
-      this.renderer.render(this.sourceSprite, {
-        renderTexture: this.renderTexture,
-        clear: true,
-      });
-    } else {
-      // Otherwise, just copy the original illumination buffer directly.
-      // This is more efficient than running a disabled filter and handles the "no mask" case.
-      this.renderer.render(illuminationTexture, {
-        renderTexture: this.renderTexture,
-        clear: true,
-      });
-    }
-  }
-
-  getCorrectedTexture() {
-    return this.renderTexture;
-  }
-
-  destroy() {
-    if (this._destroyed) return;
-    this._destroyed = true;
-
-    this.renderTexture?.destroy(true);
-    this.filter?.destroy();
-    this.sourceSprite?.destroy();
-  }
-}
-
 class DynamicExposureManager {
   constructor() {
     this.tokenManager = game.mapShine.tokenManager;
@@ -9198,15 +7080,12 @@ class DynamicExposureManager {
   }
 
   _updateInitialTokenState(token) {
-    if (!token) {
+    if (!token || !game.mapShine.resourceManager) {
       this.isIndoors = null;
       return;
     }
 
-    const cloudLayer = canvas.layers.find(
-      (l) => l instanceof CloudShadowsLayer
-    );
-    const outdoorsMask = cloudLayer?.getMaskTexture();
+    const outdoorsMask = game.mapShine.resourceManager.getOutdoorsMask();
 
     if (!outdoorsMask?.valid) {
       this.isIndoors = null;
@@ -9232,15 +7111,12 @@ class DynamicExposureManager {
   }
 
   _checkTokenStateAtPoint(worldPoint, canTriggerEffect = false) {
-    if (!worldPoint) {
+    if (!worldPoint || !game.mapShine.resourceManager) {
       this.isIndoors = null;
       return;
     }
 
-    const cloudLayer = canvas.layers.find(
-      (l) => l instanceof CloudShadowsLayer
-    );
-    const outdoorsMask = cloudLayer?.getMaskTexture();
+    const outdoorsMask = game.mapShine.resourceManager.getOutdoorsMask();
 
     if (!outdoorsMask?.valid) {
       this.isIndoors = null;
@@ -9950,18 +7826,144 @@ class OverheadEffectsManager {
     parallaxFilter?.destroy();
   }
 
-  /**
-   * Resets the #pause element by removing our custom class and content.
-   * This allows Foundry to repopulate it with its defaults if needed later.
-   * @private
-   */
-  static _revertCustomPauseScreen() {
-    const pauseElement = document.getElementById("pause");
-    if (pauseElement) {
-      pauseElement.classList.remove("custom-pause-screen");
-      // Clear our custom content to let Foundry's code take over again cleanly
-      pauseElement.innerHTML = "";
+  _onAnimate() {
+    if (this._destroyed || this.managedTiles.size === 0) return;
+
+    const currentCamera = {
+      x: canvas.stage.pivot.x,
+      y: canvas.stage.pivot.y,
+      scale: canvas.stage.scale.x,
+    };
+
+    const hasPanned =
+      currentCamera.x !== this.lastCamera.x ||
+      currentCamera.y !== this.lastCamera.y;
+    const hasZoomed = currentCamera.scale !== this.lastCamera.scale;
+
+    for (const tileId of this.managedTiles.keys()) {
+      this._updateAndSyncClone(tileId, hasPanned, hasZoomed);
     }
+
+    this.lastCamera = currentCamera;
+  }
+
+  _updateAndSyncClone(tileId, updateParallax, updateBlur) {
+    if (!this.managedTiles.has(tileId)) return;
+
+    const { tile, clone, blurFilter, blurFilterOriginal, parallaxFilter } =
+      this.managedTiles.get(tileId);
+
+    if (!tile || tile.destroyed || !tile.mesh || tile.mesh.destroyed) {
+      this._removeManagedTile(tileId);
+      return;
+    }
+
+    clone.alpha = tile.alpha;
+    clone.visible = tile.visible;
+    clone.zIndex = tile.document.sort;
+
+    const config = game.mapShine.profileManager.activeConfig;
+    const oeConfig = config.overheadEffects;
+
+    if (updateParallax) {
+      const parallaxConfig = oeConfig.parallax;
+      const isParallaxActive = this.visible && parallaxConfig.enabled;
+      parallaxFilter.enabled = isParallaxActive;
+
+      if (isParallaxActive) {
+        const source = canvas.app.renderer.screen;
+        parallaxFilter.uniforms.uInputSize[0] = source.width;
+        parallaxFilter.uniforms.uInputSize[1] = source.height;
+
+        const amount = parallaxConfig.amount;
+        const contentRect = canvas.scene.dimensions.sceneRect;
+        if (contentRect?.width && contentRect?.height) {
+          const origin = {
+            x: contentRect.x + contentRect.width / 2,
+            y: contentRect.y + contentRect.height / 2,
+          };
+          const cameraOffset = {
+            x: canvas.stage.pivot.x - origin.x,
+            y: canvas.stage.pivot.y - origin.y,
+          };
+          const parallaxOffsetPixels = {
+            x: cameraOffset.x * amount * canvas.stage.scale.x,
+            y: cameraOffset.y * amount * canvas.stage.scale.y,
+          };
+          parallaxFilter.uniforms.uParallaxOffset = [
+            parallaxOffsetPixels.x,
+            parallaxOffsetPixels.y,
+          ];
+        }
+      }
+    }
+
+    if (updateBlur) {
+      const blurConfig = oeConfig.blur;
+      const isBlurActive =
+        this.visible && blurConfig.enabled && blurConfig.strength > 0;
+
+      blurFilter.enabled = isBlurActive;
+      if (blurFilterOriginal) {
+        blurFilterOriginal.enabled = isBlurActive;
+      }
+
+      if (isBlurActive) {
+        const quality = blurConfig.quality;
+        blurFilter.quality = quality;
+        if (blurFilterOriginal) {
+          blurFilterOriginal.quality = quality;
+        }
+
+        const currentZoom = canvas.stage.scale.x;
+        const maxBlurAmount = blurConfig.strength;
+        const minZoomForBlur = 0.5;
+        const maxZoomForBlur = canvas.scene?.maxScale ?? 3.0;
+        let blurFactor = 0;
+        if (maxZoomForBlur > minZoomForBlur) {
+          blurFactor =
+            (currentZoom - minZoomForBlur) / (maxZoomForBlur - minZoomForBlur);
+        }
+        blurFactor = Math.max(0, Math.min(1, blurFactor));
+        const dynamicBlurAmount = maxBlurAmount * blurFactor;
+
+        blurFilter.blur = dynamicBlurAmount;
+        if (blurFilterOriginal) {
+          blurFilterOriginal.blur = dynamicBlurAmount;
+        }
+
+        const padding = dynamicBlurAmount * 2;
+        blurFilter.padding = padding;
+        if (blurFilterOriginal) {
+          blurFilterOriginal.padding = padding;
+        }
+      }
+    }
+  }
+
+  _onCreateTile(tileDoc) {
+    setTimeout(async () => {
+      const tile = tileDoc.object;
+      if (tile) await this._manageTile(tile);
+    }, 100);
+  }
+
+  _onUpdateTile(tileDoc) {
+    const tile = tileDoc.object;
+    if (tile) {
+      this._manageTile(tile);
+      this.lastCamera.scale = null;
+    }
+  }
+
+  _onDeleteTile(tileDoc) {
+    this._removeManagedTile(tileDoc.id);
+  }
+
+  updateFromConfig(config) {
+    const oeConfig = config.overheadEffects;
+    this.visible = config.enabled && oeConfig.enabled;
+    this.lastCamera.scale = null;
   }
 }
 
@@ -10980,17 +8982,11 @@ class LightingEffectManager {
 
   _updatePauseEffectMask(
     pauseFilter,
-    universalConfig,
+    fullConfig,
     isIlluminationReady,
     illuminationTexture
   ) {
-    if (!universalConfig?.pauseEffect) return;
-
-    // The universalConfig passed in is now correctly assembled from individual settings.
-    // The structure remains the same, so no changes are needed inside this method itself,
-    // but the error originated from the CALLING method (update) passing invalid data.
-    // The key is ensuring the CALLING method assembles the `universalConfig` correctly.
-    const config = universalConfig.pauseEffect.colorCorrection;
+    const config = fullConfig.pauseEffect.colorCorrection;
     const u = pauseFilter.uniforms;
 
     const useIllumMask = config.mask.enabled && isIlluminationReady;
@@ -11120,33 +9116,9 @@ class LightingEffectManager {
 
     const pauseFilter = ScreenEffectsManager.getFilter("pauseEffect");
     if (pauseFilter) {
-      // Construct the universal settings object from individual settings, mirroring the default structure.
-      const universalSettings = {
-        pauseEffect: {
-          colorCorrection: {
-            ...UNIVERSAL_EFFECT_DEFAULTS.pauseEffect.colorCorrection, // Start with defaults
-            enabled: game.settings.get(
-              MODULE_ID,
-              "universal.pauseEffect.colorCorrection.enabled"
-            ),
-            saturation: game.settings.get(
-              MODULE_ID,
-              "universal.pauseEffect.colorCorrection.saturation"
-            ),
-            brightness: game.settings.get(
-              MODULE_ID,
-              "universal.pauseEffect.colorCorrection.brightness"
-            ),
-            contrast: game.settings.get(
-              MODULE_ID,
-              "universal.pauseEffect.colorCorrection.contrast"
-            ),
-          },
-        },
-      };
       this._updatePauseEffectMask(
         pauseFilter,
-        universalSettings,
+        fullConfig,
         isIlluminationReady,
         illuminationTexture
       );
@@ -12515,15 +10487,6 @@ const PARTICLE_EFFECT_DEFINITIONS = {
     buildEmitterConfig: (effectConfig, targetData) =>
       buildParticleEmitterConfig(effectConfig, targetData, "fire"),
   },
-  metallicGlints: {
-    title: "Metallic Glints",
-    description:
-      "Sparkling glints that appear on specular surfaces. Requires a _Specular.webp map.",
-    configPath: "metallicGlints",
-    triggerTexture: "specular",
-    buildEmitterConfig: (effectConfig, targetData) =>
-      buildParticleEmitterConfig(effectConfig, targetData, "specular"),
-  },
   sparks: {
     title: "Sparks",
     description:
@@ -13682,22 +11645,6 @@ class ParticleEffectController {
       this.pendingTargets.clear();
     }
 
-    // Periodically update the spawn points for metallic glints
-    if (this.definition.configPath === "metallicGlints") {
-      for (const { emitter } of this.emitters.values()) {
-        // Add a guard to ensure the emitter and its behaviors are valid before access.
-        // This can prevent errors if an emitter is destroyed but its reference persists for a frame.
-        if (!emitter || !emitter.behaviors) continue;
-
-        const spawnBehavior = emitter.behaviors.find(
-          (b) => b.type === "spawnShape"
-        );
-        if (spawnBehavior?.shape?.update) {
-          spawnBehavior.shape.update();
-        }
-      }
-    }
-
     for (const { emitter } of this.emitters.values()) {
       emitter.update(deltaTime);
     }
@@ -14175,35 +12122,26 @@ const buildParticleEmitterConfig = (
     });
   }
 
-  // For metallic glints, use the custom behavior to sample color from the spawn texture.
-  // For all other effects, use the standard static or gradient color behaviors.
-  if (maskKey === "specular") {
+  const colorConfig = config.color ?? {};
+  const startColor = colorConfig.start ?? "#FFFFFF";
+  const endColor = colorConfig.end ?? "#FFFFFF";
+  if (startColor === endColor) {
     behaviors.push({
-      type: "colorFromSpawn",
-      config: {},
+      type: "colorStatic",
+      config: {
+        color: startColor,
+      },
     });
   } else {
-    const colorConfig = config.color ?? {};
-    const startColor = colorConfig.start ?? "#FFFFFF";
-    const endColor = colorConfig.end ?? "#FFFFFF";
-    if (startColor === endColor) {
-      behaviors.push({
-        type: "colorStatic",
-        config: {
-          color: startColor,
+    behaviors.push({
+      type: "color",
+      config: {
+        color: {
+          start: startColor,
+          end: endColor,
         },
-      });
-    } else {
-      behaviors.push({
-        type: "color",
-        config: {
-          color: {
-            start: startColor,
-            end: endColor,
-          },
-        },
-      });
-    }
+      },
+    });
   }
 
   const rotConfig = config.rotation ?? {};
@@ -14521,14 +12459,7 @@ class TextureMaskShape {
           if (pixelValue >= this.threshold) {
             const screenPoint = new PIXI.Point(x, y);
             const worldPoint = canvas.stage.toLocal(screenPoint);
-            this.validPoints.push({
-              point: worldPoint,
-              color: [
-                pixelData[index],
-                pixelData[index + 1],
-                pixelData[index + 2],
-              ],
-            });
+            this.validPoints.push(worldPoint);
           }
         }
       }
@@ -14545,14 +12476,7 @@ class TextureMaskShape {
             const relativeY = (y / texture.height) * this.height;
             const worldX = this.offsetX + relativeX;
             const worldY = this.offsetY + relativeY;
-            this.validPoints.push({
-              point: new PIXI.Point(worldX, worldY),
-              color: [
-                pixelData[index],
-                pixelData[index + 1],
-                pixelData[index + 2],
-              ],
-            });
+            this.validPoints.push(new PIXI.Point(worldX, worldY));
           }
         }
       }
@@ -14564,11 +12488,9 @@ class TextureMaskShape {
     if (this.validPoints.length === 0) {
       return;
     }
-    const data =
+    const point =
       this.validPoints[Math.floor(Math.random() * this.validPoints.length)];
-    particle.position.copyFrom(data.point);
-    // Attach the color data to the particle for the custom behavior to use.
-    particle.spawnColor = data.color;
+    particle.position.copyFrom(point);
   }
 }
 
@@ -14847,8 +12769,6 @@ class ParticleLayer extends CanvasLayer {
           game.mapShine.profileManager.activeConfig.particleSystems
             .globalParticleLimit;
         game.mapShine.debugger.eventHandler.updateParticleCount(count, limit);
-        // Update the zoom display for the overhead effect UI.
-        game.mapShine.debugger.eventHandler.updateZoomDisplay();
       }
     }
   }
@@ -15797,31 +13717,6 @@ class SmellyFliesLayer extends CanvasLayer {
           this.updateEffectTargets(targets);
         }
       }
-    }
-  }
-}
-
-/**
- * A custom particle behavior that sets a particle's tint based on color data
- * attached to it during the spawn process.
- * This allows particles to inherit color from their spawn location on a texture.
- */
-class ColorFromSpawnBehavior {
-  static type = "colorFromSpawn";
-
-  constructor(config) {
-    this.order = PIXI.particles.behaviors.BehaviorOrder.Normal;
-  }
-
-  initParticles(first) {
-    let next = first;
-    while (next) {
-      if (next.spawnColor) {
-        const color = next.spawnColor; // [r, g, b] from 0-255
-        // Convert the RGB array to a single hex number for the tint property.
-        next.tint = (color[0] << 16) + (color[1] << 8) + color[2];
-      }
-      next = next.next;
     }
   }
 }
@@ -16927,15 +14822,484 @@ class ScreenEffectsManager {
                         </div></details>
                     `;
 
+    const worldBasedIconHTML = (path) => `
+                        <span class="world-based-icon" data-world-based-path="${path}" title="World Based: This effect uses the world-level default profile, ignoring scene-specific settings. A default profile must be set.">
+                            <i class="fas fa-globe"></i>
+                        </span>
+                    `;
+
+    const sceneTransitionHTML = DebuggerUIBuilder._createAccordionHTML(
+      "sceneTransition",
+      "Scene Transition Effect",
+      `
+                                        <p class="description-text">Overrides the default scene change with an elegant fade-through-black effect.</p>
+                                        ${DebuggerUIBuilder._createCheckboxHTML(
+                                          "sceneTransition.worldBasedOnly",
+                                          "World Based Only",
+                                          false,
+                                          "Ignores scene-specific settings for this effect and uses the configured World Default Profile instead. A default profile must be set."
+                                        )}
+                                        <hr style="border-color: #555; margin: 6px 0;">
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "sceneTransition.fadeOutDuration",
+                                          "Fade Out Duration (ms)",
+                                          100,
+                                          5000,
+                                          50
+                                        )}
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "sceneTransition.fadeInDuration",
+                                          "Fade In Duration (ms)",
+                                          100,
+                                          5000,
+                                          50
+                                        )}
+                                        <hr style="border-color: #555; margin: 6px 0;">
+                                        ${DebuggerUIBuilder._createTextInputWithPickerHTML(
+                                          "sceneTransition.logoPath",
+                                          "Logo Image Path",
+                                          "Path to an image file (e.g., PNG, WEBP) to display in the center.",
+                                          "image"
+                                        )}
+                                        ${DebuggerUIBuilder._createTextInputHTML(
+                                          "sceneTransition.heading",
+                                          "Heading Text"
+                                        )}
+                                        ${DebuggerUIBuilder._createTextInputHTML(
+                                          "sceneTransition.subheading",
+                                          "Subheading Text"
+                                        )}
+                                        ${DebuggerUIBuilder._createTextInputHTML(
+                                          "sceneTransition.staticDescription",
+                                          "Description Text"
+                                        )}
+                                        ${DebuggerUIBuilder._createCheckboxHTML(
+                                          "sceneTransition.showSceneName",
+                                          "Show Destination Scene Name",
+                                          false,
+                                          "If checked, the name of the scene being loaded will be displayed."
+                                        )}
+                                        <hr style="border-color: #555; margin: 6px 0;">
+                                        ${DebuggerUIBuilder._createTextInputWithPickerHTML(
+                                          "sceneTransition.staticBackgroundImage",
+                                          "Static Background",
+                                          "The background image to use when not using a random one.",
+                                          "image"
+                                        )}
+                                        <details id="details-sceneTransition-backgrounds">
+                                            <summary>
+                                                <span class="accordion-toggle"></span>
+                                                <div class="summary-control">
+                                                    ${DebuggerUIBuilder._createCheckboxHTML(
+                                                      "sceneTransition.useRandomBackgroundImage",
+                                                      "Use Random Background",
+                                                      true,
+                                                      "If checked, a random background from the pool below will be shown."
+                                                    )}
+                                                </div>
+                                            </summary>
+                                            <div style="padding-top: 5px;">
+                                                <div id="sceneTransition-backgroundImages-wrapper">
+                                                    ${DebuggerUIBuilder._createListManagerHTML(
+                                                      "sceneTransition.backgroundImages",
+                                                      "Add Background",
+                                                      "Random Background Pool"
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </details>
+                                        <details id="details-sceneTransition-bgOverlay">
+                                            <summary>
+                                                <span class="accordion-toggle"></span>
+                                                <div class="summary-control">
+                                                    ${DebuggerUIBuilder._createCheckboxHTML(
+                                                      "sceneTransition.backgroundOverlayEnabled",
+                                                      "Background Overlay",
+                                                      true,
+                                                      "Adds a dark gradient over the background image to improve text readability."
+                                                    )}
+                                                </div>
+                                            </summary>
+                                            <div style="padding-left: 15px;">
+                                                ${DebuggerUIBuilder._createSliderHTML(
+                                                  "sceneTransition.backgroundOverlayOpacity",
+                                                  "Opacity",
+                                                  0,
+                                                  1,
+                                                  0.01
+                                                )}
+                                            </div>
+                                        </details>
+                                        <hr style="border-color: #555; margin: 6px 0;">
+                                        <details id="details-sceneTransition-hints">
+                                            <summary>
+                                                <span class="accordion-toggle"></span>
+                                                <div class="summary-control">
+                                                    ${DebuggerUIBuilder._createCheckboxHTML(
+                                                      "sceneTransition.useRandomHint",
+                                                      "Show Random Hint",
+                                                      true,
+                                                      "If checked, a random hint from the pool below will be shown in addition to the description."
+                                                    )}
+                                                </div>
+                                            </summary>
+                                            <div style="padding-top: 5px;">
+                                                <div id="sceneTransition-randomHints-wrapper">
+                                                    ${DebuggerUIBuilder._createListManagerHTML(
+                                                      "sceneTransition.randomHints",
+                                                      "Add Hint",
+                                                      "Random Hint Pool"
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </details>
+                                    `,
+      worldBasedIconHTML("sceneTransition.worldBasedOnly")
+    );
+
+    const pauseEffectHTML = DebuggerUIBuilder._createAccordionHTML(
+      "pauseEffect",
+      "Pause Transition Effect",
+      `
+                        <p class="description-text">Applies a transition effect when the game is paused, including a color correction pass and slowing down all animations.</p>
+                        ${DebuggerUIBuilder._createCheckboxHTML(
+                          "pauseEffect.worldBasedOnly",
+                          "World Based Only",
+                          false,
+                          "Ignores scene-specific settings for this effect and uses the configured World Default Profile instead. A default profile must be set."
+                        )}
+                        <hr style="border-color: #555; margin: 6px 0;">
+                        ${DebuggerUIBuilder._createSliderHTML(
+                          "pauseEffect.duration",
+                          "Transition Duration (ms)",
+                          100,
+                          10000,
+                          100
+                        )}
+                        <details id="details-pauseEffect-colorCorrection"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                          "pauseEffect.colorCorrection.enabled",
+                          "Color Correction",
+                          true
+                        )}</div></summary>
+                            <div>
+                                <details id="details-pauseEffect-cc-basic"><summary><span class="accordion-toggle"></span><strong>Basic Adjustments</strong></summary><div style="padding-left: 15px;">
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "pauseEffect.colorCorrection.saturation",
+                                          "Saturation",
+                                          0,
+                                          4,
+                                          0.05
+                                        )}
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "pauseEffect.colorCorrection.brightness",
+                                          "Brightness",
+                                          -1,
+                                          1,
+                                          0.01
+                                        )}
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "pauseEffect.colorCorrection.contrast",
+                                          "Contrast",
+                                          0,
+                                          4,
+                                          0.05
+                                        )}
+                                        ${DebuggerUIBuilder._createCheckboxHTML(
+                                          "pauseEffect.colorCorrection.invert",
+                                          "Invert Colors"
+                                        )}
+                                </div></details>
+                                <details id="details-pauseEffect-cc-advanced"><summary><span class="accordion-toggle"></span><strong>Advanced Adjustments</strong></summary><div style="padding-left: 15px;">
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "pauseEffect.colorCorrection.exposure",
+                                          "Exposure",
+                                          -2,
+                                          2,
+                                          0.05,
+                                          "Multiplies scene brightness, simulating camera exposure."
+                                        )}
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "pauseEffect.colorCorrection.gamma",
+                                          "Gamma",
+                                          0.2,
+                                          2.5,
+                                          0.05,
+                                          "Adjusts mid-tones. < 1 lightens, > 1 darkens."
+                                        )}
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "pauseEffect.colorCorrection.levels.inBlack",
+                                          "Black Point",
+                                          0,
+                                          1,
+                                          0.01,
+                                          "Sets the darkest point of the image."
+                                        )}
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "pauseEffect.colorCorrection.levels.inWhite",
+                                          "White Point",
+                                          0,
+                                          1,
+                                          0.01,
+                                          "Sets the brightest point of the image."
+                                        )}
+                                </div></details>
+                                <details id="details-pauseEffect-cc-whiteBalance"><summary><span class="accordion-toggle"></span><strong>White Balance</strong></summary><div style="padding-left: 15px;">
+                                        <p class="description-text">Simulates camera white balance correction.</p>
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "pauseEffect.colorCorrection.whiteBalance.temperature",
+                                          "Temperature",
+                                          -1,
+                                          1,
+                                          0.01,
+                                          "Negative values are cooler (blue), positive are warmer (orange)."
+                                        )}
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "pauseEffect.colorCorrection.whiteBalance.tint",
+                                          "Tint",
+                                          -1,
+                                          1,
+                                          0.01,
+                                          "Negative values shift toward magenta, positive toward green."
+                                        )}
+                                </div></details>
+                                <details id="details-pauseEffect-cc-tint"><summary><span class="accordion-toggle"></span><strong>Global Tint</strong></summary><div style="padding-left: 15px;">
+                                        <p class="description-text">Applies a color overlay to the entire scene.</p>
+                                        ${DebuggerUIBuilder._createColorPickerHTML(
+                                          "pauseEffect.colorCorrection.tint.color",
+                                          "Tint Color"
+                                        )}
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "pauseEffect.colorCorrection.tint.amount",
+                                          "Tint Amount",
+                                          0,
+                                          1,
+                                          0.01
+                                        )}
+                                </div></details>
+                                <details id="details-pauseEffect-cc-mask"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                                  "pauseEffect.colorCorrection.mask.enabled",
+                                  "Luminance Mask",
+                                  true
+                                )}</div></summary><div style="padding-left: 15px;">
+                                        <p class="description-text">Applies the color correction only to lit areas of the scene. Requires the Illumination Buffer module.</p>
+                                        ${DebuggerUIBuilder._createCheckboxHTML(
+                                          "pauseEffect.colorCorrection.mask.invert",
+                                          "Invert Mask (Affect Dark Areas)"
+                                        )}
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "pauseEffect.colorCorrection.mask.luminanceThreshold",
+                                          "Light Threshold",
+                                          0,
+                                          1,
+                                          0.01
+                                        )}
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "pauseEffect.colorCorrection.mask.softness",
+                                          "Edge Softness",
+                                          0.01,
+                                          1,
+                                          0.01
+                                        )}
+                                </div></details>
+                                <details id="details-pauseEffect-cc-selective"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                                  "pauseEffect.colorCorrection.selective.enabled",
+                                  "Selective Color",
+                                  true
+                                )}</div></summary><div style="padding-left: 15px;">
+                                    ${buildSelectiveControls(
+                                      "pauseEffect.colorCorrection.selective."
+                                    )}
+                                </div></details>
+                            </div>
+                        </details>
+                    `,
+      worldBasedIconHTML("pauseEffect.worldBasedOnly")
+    );
+
+    const combatEffectHTML = DebuggerUIBuilder._createAccordionHTML(
+      "combatEffect",
+      "Combat Transition Effect",
+      `
+                        <p class="description-text">Applies a transition effect when combat starts, including a color correction pass and slowing down all animations.</p>
+                        ${DebuggerUIBuilder._createCheckboxHTML(
+                          "combatEffect.worldBasedOnly",
+                          "World Based Only",
+                          false,
+                          "Ignores scene-specific settings for this effect and uses the configured World Default Profile instead. A default profile must be set."
+                        )}
+                        <hr style="border-color: #555; margin: 6px 0;">
+                        ${DebuggerUIBuilder._createSliderHTML(
+                          "combatEffect.duration",
+                          "Transition Duration (ms)",
+                          100,
+                          10000,
+                          100
+                        )}
+                        ${DebuggerUIBuilder._createSliderHTML(
+                          "combatEffect.timeScale",
+                          "Time Scale",
+                          0,
+                          1,
+                          0.01,
+                          "The target animation speed during combat (e.g., 0.25 = 25% speed)."
+                        )}
+                        <details id="details-combatEffect-colorCorrection"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                          "combatEffect.colorCorrection.enabled",
+                          "Color Correction",
+                          true
+                        )}</div></summary>
+                            <div>
+                                <details id="details-combatEffect-cc-basic"><summary><span class="accordion-toggle"></span><strong>Basic Adjustments</strong></summary><div style="padding-left: 15px;">
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "combatEffect.colorCorrection.saturation",
+                                          "Saturation",
+                                          0,
+                                          4,
+                                          0.05
+                                        )}
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "combatEffect.colorCorrection.brightness",
+                                          "Brightness",
+                                          -1,
+                                          1,
+                                          0.01
+                                        )}
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "combatEffect.colorCorrection.contrast",
+                                          "Contrast",
+                                          0,
+                                          4,
+                                          0.05
+                                        )}
+                                        ${DebuggerUIBuilder._createCheckboxHTML(
+                                          "combatEffect.colorCorrection.invert",
+                                          "Invert Colors"
+                                        )}
+                                </div></details>
+                                <details id="details-combatEffect-cc-advanced"><summary><span class="accordion-toggle"></span><strong>Advanced Adjustments</strong></summary><div style="padding-left: 15px;">
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "combatEffect.colorCorrection.exposure",
+                                          "Exposure",
+                                          -2,
+                                          2,
+                                          0.05,
+                                          "Multiplies scene brightness, simulating camera exposure."
+                                        )}
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "combatEffect.colorCorrection.gamma",
+                                          "Gamma",
+                                          0.2,
+                                          2.5,
+                                          0.05,
+                                          "Adjusts mid-tones. < 1 lightens, > 1 darkens."
+                                        )}
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "combatEffect.colorCorrection.levels.inBlack",
+                                          "Black Point",
+                                          0,
+                                          1,
+                                          0.01,
+                                          "Sets the darkest point of the image."
+                                        )}
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "combatEffect.colorCorrection.levels.inWhite",
+                                          "White Point",
+                                          0,
+                                          1,
+                                          0.01,
+                                          "Sets the brightest point of the image."
+                                        )}
+                                </div></details>
+                                <details id="details-combatEffect-cc-whiteBalance"><summary><span class="accordion-toggle"></span><strong>White Balance</strong></summary><div style="padding-left: 15px;">
+                                        <p class="description-text">Simulates camera white balance correction.</p>
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "combatEffect.colorCorrection.whiteBalance.temperature",
+                                          "Temperature",
+                                          -1,
+                                          1,
+                                          0.01,
+                                          "Negative values are cooler (blue), positive are warmer (orange)."
+                                        )}
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "combatEffect.colorCorrection.whiteBalance.tint",
+                                          "Tint",
+                                          -1,
+                                          1,
+                                          0.01,
+                                          "Negative values shift toward magenta, positive toward green."
+                                        )}
+                                </div></details>
+                                <details id="details-combatEffect-cc-tint"><summary><span class="accordion-toggle"></span><strong>Global Tint</strong></summary><div style="padding-left: 15px;">
+                                        <p class="description-text">Applies a color overlay to the entire scene.</p>
+                                        ${DebuggerUIBuilder._createColorPickerHTML(
+                                          "combatEffect.colorCorrection.tint.color",
+                                          "Tint Color"
+                                        )}
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "combatEffect.colorCorrection.tint.amount",
+                                          "Tint Amount",
+                                          0,
+                                          1,
+                                          0.01
+                                        )}
+                                </div></details>
+                                <details id="details-combatEffect-cc-mask"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                                  "combatEffect.colorCorrection.mask.enabled",
+                                  "Luminance Mask",
+                                  true
+                                )}</div></summary><div style="padding-left: 15px;">
+                                        <p class="description-text">Applies the color correction only to lit areas of the scene. Requires the Illumination Buffer module.</p>
+                                        ${DebuggerUIBuilder._createCheckboxHTML(
+                                          "combatEffect.colorCorrection.mask.invert",
+                                          "Invert Mask (Affect Dark Areas)"
+                                        )}
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "combatEffect.colorCorrection.mask.luminanceThreshold",
+                                          "Light Threshold",
+                                          0,
+                                          1,
+                                          0.01
+                                        )}
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "combatEffect.colorCorrection.mask.softness",
+                                          "Edge Softness",
+                                          0.01,
+                                          1,
+                                          0.01
+                                        )}
+                                </div></details>
+                                <details id="details-combatEffect-cc-selective"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                                  "combatEffect.colorCorrection.selective.enabled",
+                                  "Selective Color",
+                                  true
+                                )}</div></summary><div style="padding-left: 15px;">
+                                    ${buildSelectiveControls(
+                                      "combatEffect.colorCorrection.selective."
+                                    )}
+                                </div></details>
+                            </div>
+                        </details>
+                    `,
+      worldBasedIconHTML("combatEffect.worldBasedOnly")
+    );
+
     const postProcessingHTML = `
                         <h3 class="pane-title">Post-Processing Pipeline</h3>
                         <div class="control-row" style="padding: 4px; background: rgba(0,0,0,0.2); border-radius: 4px; display:flex; justify-content:space-between; align-items:center;">
                             <div style="display:flex; align-items:center; gap: 5px;">
                                 <label for="control-postProcessing-enabled" class="summary-label" title="Master toggle for all effects in this panel."><strong>Enable Post-Processing</strong></label>
-                                <button type="button" class="reset-accordion-btn" data-action="reset-accordion" data-effect-key="postProcessing" title="Reset this section to defaults">R</button>
+                                ${worldBasedIconHTML(
+                                  "postProcessing.worldBasedOnly"
+                                )}
                             </div>
                             <div class="widget-group"><input type="checkbox" id="control-postProcessing-enabled" data-path="postProcessing.enabled"></div>
                         </div>
+                        ${DebuggerUIBuilder._createCheckboxHTML(
+                          "postProcessing.worldBasedOnly",
+                          "World Based Only",
+                          false,
+                          "Ignores scene-specific settings for this entire effect group and uses the configured World Default Profile instead. A default profile must be set."
+                        )}
                         <hr style="border-color:#444; margin: 6px 0;">
                         <details id="details-postProcessing-colorCorrection"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
                           "postProcessing.colorCorrection.enabled",
@@ -17258,7 +15622,66 @@ class ScreenEffectsManager {
                       "Show raw illumination texture for debugging."
                     )}
                     
-
+                    <details id="details-sceneIlluminationMixIn-shadowInteraction">
+                        <summary><span class="accordion-toggle"></span>
+                            <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                              "postProcessing.colorCorrection.sceneIlluminationMixIn.shadowInteraction.enabled",
+                              "Erase Shadows with Light",
+                              true
+                            )}</div>
+                        </summary>
+                        <div style="padding-left: 15px;">
+                            <p class="description-text">Uses the illumination buffer to reduce the intensity of structural and canopy shadows, simulating light overpowering darkness.</p>
+                            ${DebuggerUIBuilder._createSliderHTML(
+                              "postProcessing.colorCorrection.sceneIlluminationMixIn.shadowInteraction.intensity",
+                              "Reduction Amount",
+                              0,
+                              1,
+                              0.01
+                            )}
+                            ${DebuggerUIBuilder._createSliderHTML(
+                              "postProcessing.colorCorrection.sceneIlluminationMixIn.shadowInteraction.luminanceThreshold",
+                              "Light Threshold",
+                              0,
+                              1,
+                              0.01
+                            )}
+                            ${DebuggerUIBuilder._createSliderHTML(
+                              "postProcessing.colorCorrection.sceneIlluminationMixIn.shadowInteraction.softness",
+                              "Edge Softness",
+                              0.01,
+                              1,
+                              0.01
+                            )}
+                        </div>
+                    </details>
+        
+                    <details id="details-sceneIlluminationMixIn-negativeMask">
+                        <summary><span class="accordion-toggle"></span>
+                            <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                              "postProcessing.colorCorrection.sceneIlluminationMixIn.negativeMask.enabled",
+                              "Negative Mask (Anti-Overexposure)",
+                              true
+                            )}</div>
+                        </summary>
+                        <div style="padding-left: 15px;">
+                            <p class="description-text">Prevents the mix-in from adding light to areas of the scene that are already bright, helping to avoid blown-out highlights.</p>
+                            ${DebuggerUIBuilder._createSliderHTML(
+                              "postProcessing.colorCorrection.sceneIlluminationMixIn.negativeMask.threshold",
+                              "Scene Brightness Threshold",
+                              0,
+                              1,
+                              0.01
+                            )}
+                            ${DebuggerUIBuilder._createSliderHTML(
+                              "postProcessing.colorCorrection.sceneIlluminationMixIn.negativeMask.softness",
+                              "Mask Softness",
+                              0.01,
+                              1,
+                              0.01
+                            )}
+                        </div>
+                    </details>
         
                     <details id="details-sceneIlluminationMixIn-colorCorrection">
                         <summary><span class="accordion-toggle"></span>
@@ -17323,7 +15746,43 @@ class ScreenEffectsManager {
                             </details>
                         </div>
                     </details>
-                
+                    
+                    <details id="details-sceneIlluminationMixIn-noise">
+                        <summary><span class="accordion-toggle"></span>
+                            <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                              "postProcessing.colorCorrection.sceneIlluminationMixIn.noise.enabled",
+                              "Anti-Banding Noise",
+                              true
+                            )}</div>
+                        </summary>
+                        <div style="padding-left: 15px;">
+                            <p class="description-text">Adds subtle noise to prevent color banding artifacts in gradients.</p>
+                            ${DebuggerUIBuilder._createSliderHTML(
+                              "postProcessing.colorCorrection.sceneIlluminationMixIn.noise.amount",
+                              "Noise Amount",
+                              0,
+                              0.1,
+                              0.001,
+                              "Strength of the dithering noise."
+                            )}
+                            ${DebuggerUIBuilder._createSliderHTML(
+                              "postProcessing.colorCorrection.sceneIlluminationMixIn.noise.scale",
+                              "Noise Scale",
+                              0.1,
+                              10,
+                              0.1,
+                              "Size of the noise pattern."
+                            )}
+                            ${DebuggerUIBuilder._createSliderHTML(
+                              "postProcessing.colorCorrection.sceneIlluminationMixIn.noise.speed",
+                              "Noise Speed",
+                              -0.01,
+                              0.01,
+                              0.0001,
+                              "Animation speed of the noise pattern."
+                            )}
+                        </div>
+                    </details>
                 </div>
             </details>
         
@@ -17515,8 +15974,7 @@ class ScreenEffectsManager {
 
     return {
       postProcessing: postProcessingHTML,
-      // This is now empty, as universal effects are in Foundry's menu.
-      otherEffects: [],
+      otherEffects: [sceneTransitionHTML, pauseEffectHTML, combatEffectHTML],
     };
   }
 
@@ -17707,52 +16165,6 @@ class ScreenEffectsManager {
     const pp = config.postProcessing;
     const ab = config.advancedBloom;
 
-    // Construct universal settings object from individual settings, mirroring the full default structure.
-    const universalSettings = {
-      pauseEffect: {
-        colorCorrection: {
-          ...UNIVERSAL_EFFECT_DEFAULTS.pauseEffect.colorCorrection, // Start with defaults
-          enabled: game.settings.get(
-            MODULE_ID,
-            "universal.pauseEffect.colorCorrection.enabled"
-          ),
-          saturation: game.settings.get(
-            MODULE_ID,
-            "universal.pauseEffect.colorCorrection.saturation"
-          ),
-          brightness: game.settings.get(
-            MODULE_ID,
-            "universal.pauseEffect.colorCorrection.brightness"
-          ),
-          contrast: game.settings.get(
-            MODULE_ID,
-            "universal.pauseEffect.colorCorrection.contrast"
-          ),
-        },
-      },
-      combatEffect: {
-        colorCorrection: {
-          ...UNIVERSAL_EFFECT_DEFAULTS.combatEffect.colorCorrection, // Start with defaults
-          enabled: game.settings.get(
-            MODULE_ID,
-            "universal.combatEffect.colorCorrection.enabled"
-          ),
-          saturation: game.settings.get(
-            MODULE_ID,
-            "universal.combatEffect.colorCorrection.saturation"
-          ),
-          brightness: game.settings.get(
-            MODULE_ID,
-            "universal.combatEffect.colorCorrection.brightness"
-          ),
-          contrast: game.settings.get(
-            MODULE_ID,
-            "universal.combatEffect.colorCorrection.contrast"
-          ),
-        },
-      },
-    };
-
     const prismFilter = this.getFilter("prism");
     if (prismFilter instanceof PrismFilter) {
       const pConfig = config.prism;
@@ -17907,7 +16319,7 @@ class ScreenEffectsManager {
 
     const pauseFilter = this.getFilter("pauseEffect");
     if (pauseFilter instanceof ColorCorrectionFilter) {
-      const pauseConfig = universalSettings.pauseEffect.colorCorrection;
+      const pauseConfig = config.pauseEffect.colorCorrection;
       const u = pauseFilter.uniforms;
       u.uSaturation = pauseConfig.saturation;
       u.uBrightness = pauseConfig.brightness;
@@ -17938,7 +16350,7 @@ class ScreenEffectsManager {
 
     const combatFilter = this.getFilter("combatEffect");
     if (combatFilter instanceof ColorCorrectionFilter) {
-      const combatConfig = universalSettings.combatEffect.colorCorrection;
+      const combatConfig = config.combatEffect.colorCorrection;
       const u = combatFilter.uniforms;
       u.uSaturation = combatConfig.saturation;
       u.uBrightness = combatConfig.brightness;
@@ -19878,263 +18290,317 @@ class MapPointsInteractionManager {
   }
 }
 
+class BackgroundLayer extends CanvasLayer {
+  constructor() {
+    super();
+
+    this.effectSprites = new Map();
+    this._onResizeBound = this._onResize.bind(this);
+  }
+
+  async _draw(options) {
+    console.log("BackgroundLayer | Drawing layer.");
+    this.eventMode = "none";
+
+    this.container = new PIXI.Container();
+    this.addChild(this.container);
+
+    window.addEventListener("resize", this._onResizeBound);
+  }
+
+  async updateEffectTargets(targets) {
+    const validTargetIds = new Set();
+    const allTargets = new Map([
+      ["background", targets.background],
+      ...targets.tiles.entries(),
+    ]);
+
+    for (const [id, targetData] of allTargets.entries()) {
+      if (!targetData?.baseTexturePath) continue;
+
+      validTargetIds.add(id);
+      let sprite = this.effectSprites.get(id);
+
+      if (!sprite) {
+        sprite = new PIXI.Sprite(PIXI.Texture.EMPTY);
+        this.effectSprites.set(id, sprite);
+        this.container.addChild(sprite);
+      }
+      await this._updateSpriteTransform(
+        sprite,
+        targetData.baseTexturePath,
+        targetData.rect
+      );
+    }
+
+    for (const [id, sprite] of this.effectSprites.entries()) {
+      if (!validTargetIds.has(id)) {
+        sprite.destroy();
+        this.effectSprites.delete(id);
+      }
+    }
+  }
+
+  async _updateSpriteTransform(sprite, texturePath, rect) {
+    const currentPath = sprite.texture?.baseTexture?.resource?.src;
+    if (texturePath !== currentPath) {
+      try {
+        sprite.texture = await foundry.canvas.loadTexture(texturePath);
+      } catch (e) {
+        sprite.texture = PIXI.Texture.EMPTY;
+      }
+    }
+
+    if (!sprite.texture.valid || !rect) return;
+
+    sprite.anchor.set(0.5);
+    sprite.position.set(rect.x + rect.width / 2, rect.y + rect.height / 2);
+    sprite.width = rect.width;
+    sprite.height = rect.height;
+    sprite.rotation = rect.rotation || 0;
+  }
+
+  _onResize() {
+    if (game.mapShine?.effectTargetManager?.targets) {
+      this.updateEffectTargets(game.mapShine.effectTargetManager.targets);
+    }
+  }
+
+  _tearDown(options) {
+    console.log("BackgroundLayer | Tearing down layer.");
+    window.removeEventListener("resize", this._onResizeBound);
+
+    // The container holds all the effect sprites. Destroying it will destroy them.
+    this.container?.destroy({
+      children: true,
+    });
+
+    // Clear the map and nullify references
+    this.effectSprites.clear();
+    this.container = null;
+  }
+}
+
+    
 class MetallicShineFilter extends PIXI.Filter {
   constructor(options = {}) {
     const vertexSrc = `
-          attribute vec2 aVertexPosition;
-          attribute vec2 aTextureCoord;
-          uniform mat3 projectionMatrix;
-          varying vec2 vTextureCoord;
-          varying vec2 vScreenCoord;
+            attribute vec2 aVertexPosition;
+            attribute vec2 aTextureCoord;
+            uniform mat3 projectionMatrix;
+            varying vec2 vTextureCoord;
+            varying vec2 vScreenCoord;
 
-          void main(void) {
-              gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
-              vTextureCoord = aTextureCoord;
-              vScreenCoord = gl_Position.xy * 0.5 + 0.5; // Normalized screen coords [0-1]
-          }
-      `;
+            void main(void) {
+                gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
+                vTextureCoord = aTextureCoord;
+                vScreenCoord = gl_Position.xy * 0.5 + 0.5;
+            }
+        `;
 
     const fragmentSrc = `
-          precision mediump float;
-          varying vec2 vTextureCoord;
-          varying vec2 vScreenCoord;
+            precision mediump float;
+            varying vec2 vTextureCoord;
+            varying vec2 vScreenCoord;
 
-          // Input Textures
-          uniform sampler2D uSpecularMap;      // The composite colored specular texture
-          uniform sampler2D uStripePattern;    // The animated B&W stripe pattern
-          uniform sampler2D uCloudOcclusionMask; // The cloud shadow texture
+            // Samplers
+            uniform sampler2D uSpecularMask;
+            uniform sampler2D uIlluminationMask;
+            uniform sampler2D uFbmNoiseTexture;
+            uniform sampler2D uStructuralNegativeMaskTexture;
+            uniform sampler2D uOutdoorsMask;
 
-          // Control Uniforms
-          uniform bool uCloudOcclusionEnabled;
-          uniform float uCloudOcclusionIntensity;
+            // Time & Camera
+            uniform float uTime;
+            uniform vec2 uCameraOffset;
+            uniform vec2 uViewSize;
+            uniform vec2 uParallaxOffset;
 
-          // Color Correction Uniforms
-          uniform bool uColorCorrectionEnabled;
-          uniform float uSaturation;
-          uniform float uBrightness;
-          uniform float uContrast;
-          uniform float uGamma;
-          uniform vec3 uTintColor;
-          uniform float uTintAmount;
-          uniform bool uInvert;
+            // Global pattern controls
+            uniform float uGlobalIntensity;
+            uniform float uPatternScale;
+            
+            // Stripes
+            uniform bool uStripesEnabled;
+            uniform float uStripesIntensity;
+            uniform float uStripesSpeed;
+            uniform float uStripesAngle;
+            uniform float uStripesSharpness;
+            uniform float uStripesBandDensity;
+            uniform float uStripesBandWidth;
+            uniform int uSubStripeCount;
+            uniform float uSubStripeSpeedVariation;
+            uniform float uSubStripeSharpnessVariation;
+            uniform float uSubStripeTintVariation;
 
-          // A constant vector for calculating luminance from an RGB color.
-          const vec3 LUM_WEIGHTS = vec3(0.299, 0.587, 0.114);
+            // Gradient
+            const int MAX_COLORS = 8;
+            uniform vec3 uGradientColors[MAX_COLORS];
+            uniform int uNumColors;
+            uniform float uGradientIntensity;
 
-          void main() {
-              // Sample the color and alpha from the specular map at the current screen position.
-              vec4 specularColor = texture2D(uSpecularMap, vScreenCoord);
-              vec3 workingColor = specularColor.rgb;
+            // FBM Noise Mask
+            uniform bool uFbmNoiseEnabled;
+            uniform float uFbmMaskIntensity;
+            uniform float uFbmDistortionIntensity;
 
-              // Calculate the luminance (brightness) of the specular color.
-              float specularLuminance = dot(workingColor, LUM_WEIGHTS);
+            // Structural Negative Mask
+            uniform bool uStructuralNegativeMaskEnabled;
+            uniform float uStructuralNegativeMaskIntensity;
 
-              // Create a combined mask from both the texture's alpha channel and its brightness.
-              // This ensures the shine appears only in areas that are both non-transparent AND bright.
-              float specularMask = specularColor.a * specularLuminance;
+            // --- UTILITY FUNCTIONS ---
+            float random(vec2 st) {
+                return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
+            }
 
-              // If the combined mask value is very low, discard the pixel entirely.
-              if (specularMask < 0.01) {
-                  discard;
-              }
+            vec2 rotate(vec2 uv, float angle) {
+                float s = sin(angle);
+                float c = cos(angle);
+                mat2 m = mat2(c, -s, s, c);
+                return m * uv;
+            }
 
-              // Apply Color Correction if enabled
-              if (uColorCorrectionEnabled) {
-                  if (uGamma > 0.0) workingColor = pow(workingColor, vec3(1.0 / uGamma));
-                  workingColor += uBrightness;
-                  workingColor = (workingColor - 0.5) * uContrast + 0.5;
-                  float luminance = dot(workingColor, LUM_WEIGHTS);
-                  workingColor = mix(vec3(luminance), workingColor, uSaturation);
-                  workingColor = mix(workingColor, uTintColor, uTintAmount);
-                  if (uInvert) workingColor = 1.0 - workingColor;
-              }
+            vec3 getGradientColor(float t) {
+                if (uNumColors <= 1) { return uGradientColors[0]; }
+                
+                float pos = t * float(uNumColors - 1);
+                float mix_factor = fract(pos);
 
-              // Sample the stripe intensity from the pre-rendered pattern.
-              float stripeIntensity = texture2D(uStripePattern, vScreenCoord).r;
+                if (pos < 1.0) { return mix(uGradientColors[0], uGradientColors[1], mix_factor); }
+                else if (pos < 2.0) { return mix(uGradientColors[1], uGradientColors[2], mix_factor); }
+                else if (pos < 3.0) { return mix(uGradientColors[2], uGradientColors[3], mix_factor); }
+                else if (pos < 4.0) { return mix(uGradientColors[3], uGradientColors[4], mix_factor); }
+                else if (pos < 5.0) { return mix(uGradientColors[4], uGradientColors[5], mix_factor); }
+                else if (pos < 6.0) { return mix(uGradientColors[5], uGradientColors[6], mix_factor); }
+                else { return mix(uGradientColors[6], uGradientColors[7], mix_factor); }
+            }
 
-              // The final alpha is modulated by our new combined mask and the stripe intensity.
-              float finalAlpha = specularMask * stripeIntensity;
-              
-              if (uCloudOcclusionEnabled) {
-                  // The cloud shadow texture value is between 0 (full shadow) and 1 (no shadow).
-                  float cloudValue = texture2D(uCloudOcclusionMask, vScreenCoord).r;
-                  // We mix between the original alpha (1.0) and the cloud-reduced alpha based on the effect's intensity.
-                  finalAlpha *= mix(1.0, cloudValue, uCloudOcclusionIntensity);
-              }
+            // --- MAIN PATTERN FUNCTION ---
+            vec4 getComplexStripePattern(vec2 worldCoord) {
+                if (!uStripesEnabled) { return vec4(0.0); }
 
-              // The output color is the original color from the specular map.
-              // We multiply by finalAlpha for premultiplied alpha, which is standard for PIXI filters
-              // and ensures correct blending with the scene.
-              gl_FragColor = vec4(clamp(workingColor, 0.0, 1.0) * finalAlpha, finalAlpha);
-          }
-      `;
+                vec2 baseUV = worldCoord * uPatternScale * 0.01;
+
+                if (uFbmNoiseEnabled && uFbmDistortionIntensity > 0.0) {
+                    vec2 distortionVec = (texture2D(uFbmNoiseTexture, vScreenCoord).rg - 0.5) * 2.0;
+                    baseUV += distortionVec * uFbmDistortionIntensity;
+                }
+                
+                float totalBrightness = 0.0;
+                vec3 totalColor = vec3(0.0);
+                
+                vec2 mainUv = rotate(baseUV, uStripesAngle);
+                float mainStripe = pow(abs(sin((mainUv.x + uTime * uStripesSpeed) * uStripesBandDensity)), uStripesSharpness) * uStripesBandWidth;
+
+                totalBrightness += mainStripe;
+
+                if (uSubStripeCount > 0) {
+                    for (int i = 1; i <= 10; ++i) {
+                        if (i > uSubStripeCount) break;
+                        float fi = float(i);
+                        
+                        vec2 seed = vec2(fi * 0.123, fi * 0.456);
+                        
+                        float speedRand = (random(seed) - 0.5) * 2.0;
+                        float sharpRand = random(seed + 0.1);
+                        float freqRand = random(seed + 0.2);
+
+                        float subSpeed = uStripesSpeed * (1.0 + speedRand * uSubStripeSpeedVariation);
+                        float subSharp = uStripesSharpness * (1.0 + sharpRand * uSubStripeSharpnessVariation);
+                        float subFreq = pow(2.0, fi * (0.8 + freqRand * 0.4));
+                        float subAmp = 1.0 / fi;
+
+                        float subStripe = pow(abs(sin((mainUv.x + uTime * subSpeed) * uStripesBandDensity * subFreq)), subSharp) * subAmp;
+                        
+                        totalBrightness += subStripe;
+                        
+                        vec3 subStripeColor = getGradientColor(clamp(subStripe, 0.0, 1.0));
+                        if (uSubStripeTintVariation > 0.0) {
+                            vec3 randColor = vec3(random(seed + 0.3), random(seed + 0.4), random(seed + 0.5));
+                            subStripeColor = mix(subStripeColor, randColor, uSubStripeTintVariation);
+                        }
+                        totalColor += subStripeColor * subStripe;
+                    }
+                }
+                
+                totalBrightness = clamp(totalBrightness * uStripesIntensity, 0.0, 1.0);
+                vec3 mainColor = getGradientColor(totalBrightness);
+                totalColor = mix(mainColor, totalColor / max(1.0, totalBrightness), 0.5);
+                totalColor = mix(vec3(1.0), totalColor, uGradientIntensity);
+
+                return vec4(totalColor, totalBrightness);
+            }
+
+
+            void main() {
+                vec2 worldCoord = uCameraOffset + (vScreenCoord * uViewSize) + uParallaxOffset;
+                vec4 stripePattern = getComplexStripePattern(worldCoord);
+                
+                float fbmMaskValue = 1.0;
+                if (uFbmNoiseEnabled) {
+                    fbmMaskValue = texture2D(uFbmNoiseTexture, vScreenCoord).r;
+                    fbmMaskValue = mix(1.0 - uFbmMaskIntensity, 1.0, fbmMaskValue);
+                }
+                
+                float specularMaskValue = texture2D(uSpecularMask, vScreenCoord).r;
+                float illuminationMaskValue = texture2D(uIlluminationMask, vScreenCoord).r;
+                
+                float finalMask = specularMaskValue * illuminationMaskValue * fbmMaskValue;
+
+                if (uStructuralNegativeMaskEnabled) {
+                    float structuralMaskValue = texture2D(uStructuralNegativeMaskTexture, vScreenCoord).r;
+                    float reductionFactor = mix(1.0, structuralMaskValue, uStructuralNegativeMaskIntensity);
+                    finalMask *= clamp(reductionFactor, 0.0, 1.0);
+                }
+                
+                vec3 finalResult = stripePattern.rgb * stripePattern.a * finalMask * uGlobalIntensity;
+                gl_FragColor = vec4(finalResult, stripePattern.a * finalMask * uGlobalIntensity);
+            }
+        `;
 
     super(vertexSrc, fragmentSrc, {
-      uSpecularMap: PIXI.Texture.EMPTY,
-      uStripePattern: PIXI.Texture.EMPTY,
-      uCloudOcclusionMask: PIXI.Texture.EMPTY,
-      uCloudOcclusionEnabled: false,
-      uCloudOcclusionIntensity: 1.0,
-      uColorCorrectionEnabled: true,
-      uSaturation: 1.0,
-      uBrightness: 0.0,
-      uContrast: 1.0,
-      uGamma: 1.0,
-      uTintColor: [1.0, 1.0, 1.0],
-      uTintAmount: 0.0,
-      uInvert: false,
+      uSpecularMask: PIXI.Texture.EMPTY,
+      uIlluminationMask: PIXI.Texture.EMPTY,
+      uFbmNoiseTexture: PIXI.Texture.EMPTY,
+      uStructuralNegativeMaskTexture: PIXI.Texture.EMPTY,
+      uOutdoorsMask: PIXI.Texture.EMPTY,
+      uTime: 0.0,
+      uCameraOffset: [0, 0],
+      uViewSize: [1, 1],
+      uParallaxOffset: [0, 0],
+      uGlobalIntensity: 1.0,
+      uPatternScale: 0.1,
+      uStripesEnabled: true,
+      uStripesIntensity: 1.0,
+      uStripesSpeed: 0.01,
+      uStripesAngle: 0.0,
+      uStripesSharpness: 4.0,
+      uStripesBandDensity: 2.0,
+      uStripesBandWidth: 1.0,
+      uSubStripeCount: 3,
+      uSubStripeSpeedVariation: 1.0,
+      uSubStripeSharpnessVariation: 1.0,
+      uSubStripeTintVariation: 0.1,
+      uGradientColors: [],
+      uNumColors: 0,
+      uGradientIntensity: 1.0,
+      uFbmNoiseEnabled: true,
+      uFbmMaskIntensity: 1.0,
+      uFbmDistortionIntensity: 0.0,
+      uStructuralNegativeMaskEnabled: false,
+      uStructuralNegativeMaskIntensity: 1.0,
       ...options,
     });
   }
 }
 
-class MetallicStripePatternFilter extends PIXI.Filter {
-  constructor(options = {}) {
-    const vertexSrc = PIXI.Filter.defaultVertexSrc;
-    const fragmentSrc = `
-          precision mediump float;
-          varying vec2 vTextureCoord;
+  
 
-          uniform float uTime;
-          uniform float uSpeed;
-          uniform float uAngle;
-          uniform float uScale;
-          uniform float uEvolution;
-          uniform float uThreshold;
-          uniform float uSoftness;
-          uniform float uWidthVariationAmount;
-          uniform float uWidthVariationScale;
-          uniform float uStrengthVariation;
-
-          // Simplex noise function to generate organic patterns.
-          vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 289.0);}
-          vec4 taylorInvSqrt(vec4 r){return 1.79284291400159 - 0.85373472095314 * r;}
-          float snoise(vec3 v) {
-              const vec2 C = vec2(1.0/6.0, 1.0/3.0);
-              const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
-              vec3 i  = floor(v + dot(v, C.yyy) );
-              vec3 x0 =   v - i + dot(i, C.xxx) ;
-              vec3 g = step(x0.yzx, x0.xyz);
-              vec3 l = 1.0 - g;
-              vec3 i1 = min( g.xyz, l.zxy );
-              vec3 i2 = max( g.xyz, l.zxy );
-              vec3 x1 = x0 - i1 + C.xxx;
-              vec3 x2 = x0 - i2 + C.yyy;
-              vec3 x3 = x0 - D.yyy;
-              i = mod(i, 289.0);
-              vec4 p = permute( permute( i.z + vec4(0.0, i1.z, i2.z, 1.0 ))
-                  + i.y + vec4(0.0, i1.y, i2.y, 1.0 ))
-                  + i.x + vec4(0.0, i1.x, i2.x, 1.0 );
-              float n_ = 0.142857142857;
-              vec3  ns = n_ * D.wyz - D.xzx;
-              vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
-              vec4 x_ = floor(j * ns.z);
-              vec4 y_ = floor(j - 7.0 * x_ );
-              vec4 x = x_ *ns.x + ns.yyyy;
-              vec4 y = y_ *ns.x + ns.yyyy;
-              vec4 h = 1.0 - abs(x) - abs(y);
-              vec4 b0 = vec4( x.xy, y.xy );
-              vec4 b1 = vec4( x.zw, y.zw );
-              vec4 s0 = floor(b0)*2.0 + 1.0;
-              vec4 s1 = floor(b1)*2.0 + 1.0;
-              vec4 sh = -step(h, vec4(0.0));
-              vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;
-              vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;
-              vec3 p0 = vec3(a0.xy,h.x);
-              vec3 p1 = vec3(a0.zw,h.y);
-              vec3 p2 = vec3(a1.xy,h.z);
-              vec3 p3 = vec3(a1.zw,h.w);
-              vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
-              p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
-              vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
-              m = m * m;
-              return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3) ) );
-          }
-
-          void main() {
-              // Rotate and scale coordinates to control pattern direction and size.
-              float angleRad = uAngle * 3.1415926535 / 180.0;
-              mat2 rotationMatrix = mat2(cos(angleRad), -sin(angleRad), sin(angleRad), cos(angleRad));
-              vec2 rotated_st = rotationMatrix * vTextureCoord * uScale;
-
-              // Animate coordinates for scrolling and internal "boiling".
-              rotated_st.x += uTime * uSpeed;
-              float evolution_time = uTime * uEvolution;
-
-              // Main noise for stripe generation.
-              float mainNoise = snoise(vec3(rotated_st, evolution_time)); // -1 to 1
-
-              // Secondary, lower-frequency noise to vary the stripe width.
-              float widthNoise = snoise(vec3(rotated_st * uWidthVariationScale, evolution_time)); // -1 to 1
-
-              // Create a dynamic threshold. Higher values create thinner stripes/more gaps.
-              float dynamicThreshold = uThreshold + widthNoise * uWidthVariationAmount * 0.5;
-
-              // Remap main noise from [-1, 1] to [0, 1] for thresholding.
-              float mainNoise01 = mainNoise * 0.5 + 0.5;
-
-              // Create the stripe using smoothstep for soft edges.
-              float stripe = smoothstep(dynamicThreshold - uSoftness, dynamicThreshold + uSoftness, mainNoise01);
-
-              // Use the main noise to also modulate the final brightness of the stripe.
-              float strengthModulator = 1.0 - uStrengthVariation + (mainNoise01 * uStrengthVariation);
-              stripe *= strengthModulator;
-              
-              gl_FragColor = vec4(vec3(stripe), 1.0);
-          }
-      `;
-
-    super(vertexSrc, fragmentSrc, {
-      uTime: 0.0,
-      uSpeed: options.uSpeed ?? 0.1,
-      uAngle: options.uAngle ?? 45.0,
-      uScale: options.uScale ?? 8.0,
-      uEvolution: options.uEvolution ?? 0.2,
-      uThreshold: options.uThreshold ?? 0.6,
-      uSoftness: options.uSoftness ?? 0.1,
-      uWidthVariationAmount: options.uWidthVariationAmount ?? 0.4,
-      uWidthVariationScale: options.uWidthVariationScale ?? 0.2,
-      uStrengthVariation: options.uStrengthVariation ?? 0.3,
-    });
-  }
-}
-
+    
 class MetallicShineLayer extends CanvasLayer {
   constructor() {
     super();
-    // For compositing _Specular maps
-    this.sourceContainer = null;
-    this.specularCompositeTexture = null;
-
-    // For generating the stripe pattern
-    this.stripePatternFilter = null;
-    this.stripeGeneratorSprite = null;
-    this.stripePatternTexture = null;
-
-    // For the final composition
-    this.shineFilter = null;
-    this.effectSprite = null;
-
-    // New texture to hold the final rendered output
-    this.finalShineTexture = null;
-
-    this.time = 0;
-    this._needsMaskUpdate = true;
-  }
-
-  // Add a getter for the final texture
-  getEffectTexture() {
-    return this.finalShineTexture;
-  }
-
-  // Add a getter for the specular map texture
-  getSpecularMaskTexture() {
-    return this.specularCompositeTexture;
-  }
-
-  // NEW METHOD: Exposes the internal mask rendering logic to the ResourceManager.
-  renderSpecularMask() {
-    this._renderSpecularCompositeTexture();
+    this._initMembers();
   }
 
   static getSettingsHTML() {
@@ -20149,191 +18615,346 @@ class MetallicShineLayer extends CanvasLayer {
     const iconHTML = `<span class="world-based-icon" data-world-based-path="${path}" title="World Based: This effect uses the world-level default profile, ignoring scene-specific settings."><i class="fas fa-globe"></i></span>`;
 
     const content = `
-      ${checkboxHTML}
-      <hr style="border-color: #555; margin: 6px 0;">
-      ${DebuggerUIBuilder._createTextureInputHTML(
-        "specular",
-        "Specular Map (_Specular)"
-      )}
-      <p class="description-text">Displays an animated stripe pattern, masked by the specular map.</p>
-      
-      ${DebuggerUIBuilder._createSelectHTML(
-        "baseShine.compositing.layerBlendMode",
-        "Blend Mode",
-        BLEND_MODE_OPTIONS
-      )}
+            ${checkboxHTML}
+            <hr style="border-color: #555; margin: 6px 0;">
+            ${DebuggerUIBuilder._createTextureInputHTML(
+              "specular",
+              "Specular Map (_Specular)"
+            )}
+            <p class="description-text">Creates an animated, reflective sheen on surfaces, like polished metal or wet stone.</p>
+            ${DebuggerUIBuilder._createSelectHTML(
+              "baseShine.compositing.layerBlendMode",
+              "Blend Mode",
+              BLEND_MODE_OPTIONS
+            )}
+            
+            <details id="details-baseShine-animation">
+                <summary><span class="accordion-toggle"></span><strong>Animation & Parallax</strong></summary>
+                <div style="padding-left: 15px;">
+                    ${DebuggerUIBuilder._createSliderHTML(
+                      "baseShine.animation.globalIntensity",
+                      "Global Intensity",
+                      0,
+                      10,
+                      0.1
+                    )}
+                    ${DebuggerUIBuilder._createSliderHTML(
+                      "baseShine.animation.parallaxAmount",
+                      "Parallax Amount",
+                      0,
+                      2,
+                      0.01,
+                      "How much the shine pattern moves with the camera. 0 = fixed to map, 1 = fixed to screen."
+                    )}
+                    ${DebuggerUIBuilder._createSliderHTML(
+                      "baseShine.animation.parallaxJitter",
+                      "Parallax Jitter",
+                      0,
+                      5,
+                      0.1,
+                      "Adds random, drifting motion to the parallax effect."
+                    )}
+                    ${DebuggerUIBuilder._createSliderHTML(
+                      "baseShine.animation.parallaxJitterSpeed",
+                      "Jitter Speed",
+                      0,
+                      1,
+                      0.05,
+                      "How quickly the jitter motion changes."
+                    )}
+                </div>
+            </details>
 
-      ${DebuggerUIBuilder._createSliderHTML(
-        "baseShine.animation.globalIntensity",
-        "Global Intensity (Alpha)",
-        0,
-        2,
-        0.05,
-        "Controls the opacity of the final effect."
-      )}
+            <details id="details-baseShine-pattern">
+                <summary><span class="accordion-toggle"></span><strong>Stripe Pattern</strong></summary>
+                <div style="padding-left: 15px;">
+                    <details id="details-baseShine-pattern-shared">
+                        <summary><span class="accordion-toggle"></span><strong>Shared Settings</strong></summary>
+                        <div style="padding-left: 15px;">
+                            ${DebuggerUIBuilder._createSliderHTML(
+                              "baseShine.pattern.shared.patternScale",
+                              "Pattern Scale",
+                              0.001,
+                              2,
+                              0.001,
+                              "Overall zoom level of the stripe patterns."
+                            )}
+                        </div>
+                    </details>
+                    <details id="details-baseShine-pattern-stripes">
+                        <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                          "baseShine.pattern.stripes.enabled",
+                          "Stripe Generation",
+                          true
+                        )}</div></summary>
+                        <div style="padding-left: 15px;">
+                            <p class="description-text">Generates the primary light pattern for the effect.</p>
+                            ${DebuggerUIBuilder._createSliderHTML(
+                              "baseShine.pattern.stripes.intensity",
+                              "Intensity",
+                              0,
+                              2,
+                              0.05
+                            )}
+                            ${DebuggerUIBuilder._createSliderHTML(
+                              "baseShine.pattern.stripes.speed",
+                              "Speed",
+                              -0.05,
+                              0.05,
+                              0.001
+                            )}
+                            ${DebuggerUIBuilder._createGradientSelectHTML(
+                              "baseShine.pattern.stripes.gradientName",
+                              "Color Gradient"
+                            )}
+                            ${DebuggerUIBuilder._createSliderHTML(
+                              "baseShine.pattern.stripes.gradientIntensity",
+                              "Gradient Intensity",
+                              0,
+                              10,
+                              0.1,
+                              "Controls the saturation of the gradient color. 0 = white, 1 = full color."
+                            )}
+                            ${DebuggerUIBuilder._createSliderHTML(
+                              "baseShine.pattern.stripes.angle",
+                              "Angle",
+                              0,
+                              180,
+                              1
+                            )}
+                            ${DebuggerUIBuilder._createSliderHTML(
+                              "baseShine.pattern.stripes.sharpness",
+                              "Sharpness",
+                              1,
+                              20,
+                              0.5
+                            )}
+                            ${DebuggerUIBuilder._createSliderHTML(
+                              "baseShine.pattern.stripes.bandDensity",
+                              "Band Density",
+                              0.1,
+                              10,
+                              0.1
+                            )}
+                            ${DebuggerUIBuilder._createSliderHTML(
+                              "baseShine.pattern.stripes.bandWidth",
+                              "Band Width",
+                              0.1,
+                              5,
+                              0.1
+                            )}
+                            <details><summary><span class="accordion-toggle"></span><strong>Procedural Sub-Stripes</strong></summary>
+                            <div style="padding-left: 15px;">
+                                <p class="description-text">Adds randomized smaller stripes for more complexity.</p>
+                                ${DebuggerUIBuilder._createSliderHTML(
+                                  "baseShine.pattern.stripes.subStripeCount",
+                                  "Count",
+                                  0,
+                                  10,
+                                  1
+                                )}
+                                ${DebuggerUIBuilder._createSliderHTML(
+                                  "baseShine.pattern.stripes.subStripeSpeedVariation",
+                                  "Speed Variation",
+                                  0,
+                                  5,
+                                  0.1
+                                )}
+                                ${DebuggerUIBuilder._createSliderHTML(
+                                  "baseShine.pattern.stripes.subStripeSharpnessVariation",
+                                  "Sharpness Variation",
+                                  0,
+                                  5,
+                                  0.1
+                                )}
+                                ${DebuggerUIBuilder._createSliderHTML(
+                                  "baseShine.pattern.stripes.subStripeTintVariation",
+                                  "Tint Variation",
+                                  0,
+                                  1,
+                                  0.05
+                                )}
+                            </div>
+                            </details>
+                        </div>
+                    </details>
+                </div>
+            </details>
 
-      <details id="details-baseShine-pattern-stripes">
-          <summary><span class="accordion-toggle"></span><strong>Stripe Pattern (Noise)</strong></summary>
-          <div style="padding-left: 15px;">
-              <p class="description-text">Uses procedural noise to create organic, varied stripes.</p>
-              ${DebuggerUIBuilder._createSliderHTML(
-                "baseShine.pattern.stripes.speed",
-                "Scroll Speed",
-                -2.0,
-                2.0,
-                0.01,
-                "How fast the pattern scrolls along its angle."
-              )}
-              ${DebuggerUIBuilder._createSliderHTML(
-                "baseShine.pattern.stripes.angle",
-                "Angle",
-                0,
-                180,
-                1,
-                "The direction of the stripes."
-              )}
-              ${DebuggerUIBuilder._createSliderHTML(
-                "baseShine.pattern.stripes.scale",
-                "Scale",
-                1,
-                50,
-                0.5,
-                "Overall size of the stripes and gaps. Higher values mean smaller features."
-              )}
-              ${DebuggerUIBuilder._createSliderHTML(
-                "baseShine.pattern.stripes.evolution",
-                "Evolution",
-                0,
-                1,
-                0.01,
-                "The 'boiling' or internal animation speed of the noise."
-              )}
-              <hr style="border-color: #555; margin: 6px 0;">
-              ${DebuggerUIBuilder._createSliderHTML(
-                "baseShine.pattern.stripes.threshold",
-                "Threshold",
-                0,
-                1,
-                0.01,
-                "The cutoff point for noise to become a stripe. Higher values create thinner stripes."
-              )}
-              ${DebuggerUIBuilder._createSliderHTML(
-                "baseShine.pattern.stripes.softness",
-                "Edge Softness",
-                0.01,
-                0.5,
-                0.005,
-                "How blurry the edges of the stripes are."
-              )}
-              <hr style="border-color: #555; margin: 6px 0;">
-              ${DebuggerUIBuilder._createSliderHTML(
-                "baseShine.pattern.stripes.widthVariationAmount",
-                "Width Variation",
-                0,
-                1,
-                0.01,
-                "The amount of randomness in stripe and gap widths."
-              )}
-              ${DebuggerUIBuilder._createSliderHTML(
-                "baseShine.pattern.stripes.widthVariationScale",
-                "Width Variation Scale",
-                0.05,
-                1,
-                0.01,
-                "The scale of the noise that controls width variation. Should be smaller than the main scale."
-              )}
-              ${DebuggerUIBuilder._createSliderHTML(
-                "baseShine.pattern.stripes.strengthVariation",
-                "Strength Variation",
-                0,
-                1,
-                0.01,
-                "How much the brightness of individual stripes varies."
-              )}
-          </div>
-      </details>
-      <details id="details-baseShine-colorCorrection">
-          <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-            "baseShine.colorCorrection.enabled",
-            "Color Correction",
-            true
-          )}</div></summary>
-          <div style="padding-left: 15px;">
-              <p class="description-text">Adjusts the color of the final shine effect.</p>
-              ${DebuggerUIBuilder._createSliderHTML(
-                "baseShine.colorCorrection.saturation",
-                "Saturation",
-                0,
-                4,
-                0.05
-              )}
-              ${DebuggerUIBuilder._createSliderHTML(
-                "baseShine.colorCorrection.brightness",
-                "Brightness",
-                -1,
-                1,
-                0.01
-              )}
-              ${DebuggerUIBuilder._createSliderHTML(
-                "baseShine.colorCorrection.contrast",
-                "Contrast",
-                0,
-                4,
-                0.05
-              )}
-              ${DebuggerUIBuilder._createSliderHTML(
-                "baseShine.colorCorrection.gamma",
-                "Gamma",
-                0.2,
-                2.5,
-                0.05
-              )}
-              ${DebuggerUIBuilder._createCheckboxHTML(
-                "baseShine.colorCorrection.invert",
-                "Invert Colors"
-              )}
-              <details id="details-baseShine-cc-tint"><summary><span class="accordion-toggle"></span><strong>Color Tint</strong></summary><div style="padding-left: 15px;">
-                  ${DebuggerUIBuilder._createColorPickerHTML(
-                    "baseShine.colorCorrection.tint.color",
-                    "Tint Color"
-                  )}
-                  ${DebuggerUIBuilder._createSliderHTML(
-                    "baseShine.colorCorrection.tint.amount",
-                    "Tint Amount",
-                    0,
-                    1,
-                    0.01
-                  )}
-              </div></details>
-          </div>
-      </details>
-      <details id="details-baseShine-cloudOcclusion">
-          <summary><span class="accordion-toggle"></span>
-              <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                "baseShine.cloudOcclusion.enabled",
-                "Cloud Occlusion",
-                true
-              )}</div>
-          </summary>
-          <div style="padding-left: 15px;">
-              <p class="description-text">Reduces shine intensity based on cloud cover, making metal less reflective under overcast skies. Requires the Cloud Shadows effect to be active.</p>
-              ${DebuggerUIBuilder._createSliderHTML(
-                "baseShine.cloudOcclusion.intensity",
-                "Intensity",
-                0,
-                1,
-                0.01,
-                "How strongly the clouds block the shine. 1.0 means a full shadow completely removes the shine."
-              )}
-          </div>
-      </details>
-  `;
+            <details id="details-baseShine-fbmNoise">
+                <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                  "baseShine.fbmNoise.enabled",
+                  "FBM Noise Mask & Distortion",
+                  true
+                )}</div></summary>
+                <div style="padding-left: 15px;">
+                    <p class="description-text">Applies a procedural noise pattern to both warp the stripes and mask their intensity, creating an organic appearance.</p>
+                    ${DebuggerUIBuilder._createSliderHTML(
+                      "baseShine.fbmNoise.maskIntensity",
+                      "Mask Intensity",
+                      0,
+                      1,
+                      0.01,
+                      "How strongly the noise hides the stripes. 1.0 = full masking."
+                    )}
+                    ${DebuggerUIBuilder._createSliderHTML(
+                      "baseShine.fbmNoise.distortionIntensity",
+                      "Distortion Intensity",
+                      0,
+                      20,
+                      0.1,
+                      "How much the noise warps the shape of the stripes."
+                    )}
+                    ${DebuggerUIBuilder._createSliderHTML(
+                      "baseShine.fbmNoise.speed",
+                      "Speed",
+                      -0.05,
+                      0.05,
+                      0.001
+                    )}
+                    ${DebuggerUIBuilder._createSliderHTML(
+                      "baseShine.fbmNoise.scale",
+                      "Scale",
+                      0.1,
+                      5,
+                      0.05
+                    )}
+                    ${DebuggerUIBuilder._createSliderHTML(
+                      "baseShine.fbmNoise.evolution",
+                      "Evolution",
+                      0,
+                      1,
+                      0.01
+                    )}
+                    <details><summary><span class="accordion-toggle"></span><strong>FBM Parameters</strong></summary>
+                        <div style="padding-left: 15px;">
+                            ${DebuggerUIBuilder._createSliderHTML(
+                              "baseShine.fbmNoise.octaves",
+                              "Complexity (Octaves)",
+                              1,
+                              8,
+                              1
+                            )}
+                            ${DebuggerUIBuilder._createSliderHTML(
+                              "baseShine.fbmNoise.persistence",
+                              "Roughness",
+                              0.1,
+                              1,
+                              0.05
+                            )}
+                            ${DebuggerUIBuilder._createSliderHTML(
+                              "baseShine.fbmNoise.lacunarity",
+                              "Detail Scale",
+                              1.5,
+                              4,
+                              0.05
+                            )}
+                        </div>
+                    </details>
+                    <details><summary><span class="accordion-toggle"></span><strong>Noise Shaping</strong></summary>
+                        <div style="padding-left: 15px;">
+                            ${DebuggerUIBuilder._createSliderHTML(
+                              "baseShine.fbmNoise.threshold",
+                              "Threshold",
+                              0,
+                              1,
+                              0.01
+                            )}
+                            ${DebuggerUIBuilder._createSliderHTML(
+                              "baseShine.fbmNoise.brightness",
+                              "Brightness",
+                              -1,
+                              1,
+                              0.01
+                            )}
+                            ${DebuggerUIBuilder._createSliderHTML(
+                              "baseShine.fbmNoise.contrast",
+                              "Contrast",
+                              0,
+                              10,
+                              0.05
+                            )}
+                            ${DebuggerUIBuilder._createSliderHTML(
+                              "baseShine.fbmNoise.softness",
+                              "Softness",
+                              0.01,
+                              1,
+                              0.01
+                            )}
+                        </div>
+                    </details>
+                </div>
+            </details>
+            <details id="details-baseShine-structuralNegativeMask">
+                <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                  "baseShine.structuralNegativeMask.enabled",
+                  "Structural Negative Mask",
+                  true
+                )}</div></summary>
+                <div style="padding-left: 15px;">
+                    <p class="description-text">Uses the dark areas of the _Structural map to reduce the intensity of the shine effect.</p>
+                    ${DebuggerUIBuilder._createSliderHTML(
+                      "baseShine.structuralNegativeMask.intensity",
+                      "Intensity",
+                      0,
+                      100,
+                      1,
+                      "How strongly the dark areas of the structural map reduce the shine."
+                    )}
+                </div>
+            </details>
+            <details id="details-baseShine-rgbSplit">
+                <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                  "baseShine.rgbSplit.enabled",
+                  "RGB Split",
+                  true
+                )}</div></summary>
+                <div style="padding-left: 15px;">
+                    <p class="description-text">Applies a chromatic aberration effect to the final shine, splitting the color channels.</p>
+                     ${DebuggerUIBuilder._createSliderHTML(
+                       "baseShine.rgbSplit.amount",
+                       "Amount",
+                       0,
+                       20,
+                       0.1
+                     )}
+                </div>
+            </details>
+        `;
     return DebuggerUIBuilder._createAccordionHTML(
       effectKey,
       "Metallic Shine",
       content,
       iconHTML
     );
+  }
+
+  _initMembers() {
+    this.sourceContainer = null;
+    this.specularMaskTexture = null;
+    this.effectSprites = new Map();
+    this.effectSprite = null;
+    this.metallicShineFilter = null;
+    this.fbmNoiseManager = null;
+    this.time = 0;
+    this.jitter = { x: 0, y: 0 };
+    this._destroyed = false;
+    this._needsMaskUpdate = true;
+  }
+
+  getSpecularMaskTexture() {
+    return this.specularMaskTexture;
+  }
+
+  renderSpecularMask() {
+    if (this._destroyed || !this.sourceContainer || !this.specularMaskTexture)
+      return;
+    canvas.app.renderer.render(this.sourceContainer, {
+      renderTexture: this.specularMaskTexture,
+      clear: true,
+      transform: canvas.stage.transform.worldTransform,
+    });
+    this._needsMaskUpdate = false;
   }
 
   async _draw(options) {
@@ -20343,157 +18964,200 @@ class MetallicShineLayer extends CanvasLayer {
     this.time = 0;
 
     const renderer = canvas.app.renderer;
-    const screen = renderer.screen;
-
     this.sourceContainer = new PIXI.Container();
-    this.specularCompositeTexture = PIXI.RenderTexture.create({
-      width: screen.width,
-      height: screen.height,
+    this.specularMaskTexture = PIXI.RenderTexture.create({
+      width: renderer.screen.width,
+      height: renderer.screen.height,
     });
+    this.fbmNoiseManager = new FBMNoiseManager(
+      renderer,
+      "baseShine.fbmNoise",
+      true
+    );
 
     try {
-      this.stripePatternFilter = new MetallicStripePatternFilter();
-      this.shineFilter = new MetallicShineFilter();
+      this.metallicShineFilter = new MetallicShineFilter();
     } catch (e) {
-      console.error("MapShine | Failed to create Metallic Shine filters.", e);
+      console.error("MapShine | Failed to create MetallicShineFilter.", e);
+      this.metallicShineFilter = null;
     }
 
-    this.stripePatternTexture = PIXI.RenderTexture.create({
-      width: screen.width,
-      height: screen.height,
-    });
-    this.stripeGeneratorSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
-    this.stripeGeneratorSprite.width = screen.width;
-    this.stripeGeneratorSprite.height = screen.height;
-    this.stripeGeneratorSprite.filters = [this.stripePatternFilter];
-
     this.effectSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
-    this.effectSprite.filters = this.shineFilter ? [this.shineFilter] : [];
+    this.effectSprite.filters = this.metallicShineFilter
+      ? [this.metallicShineFilter]
+      : [];
     this.addChild(this.effectSprite);
-
-    // New texture to hold the final rendered output
-    this.finalShineTexture = PIXI.RenderTexture.create({
-      width: screen.width,
-      height: screen.height,
-    });
 
     this._onAnimateBound = this._onAnimate.bind(this);
     this._onResizeBound = this._onResize.bind(this);
-    this._onPanBound = () => {
-      this._needsMaskUpdate = true;
-    };
+    this._onPanBound = this._onPan.bind(this);
 
     canvas.app.ticker.add(this._onAnimateBound);
     window.addEventListener("resize", this._onResizeBound);
     Hooks.on("canvasPan", this._onPanBound);
   }
 
+  _onPan() {
+    this._needsMaskUpdate = true;
+    this.fbmNoiseManager?.requestUpdate();
+  }
+
+  _onResize() {
+    if (this._destroyed) return;
+    const renderer = canvas.app.renderer;
+    this.specularMaskTexture?.resize(
+      renderer.screen.width,
+      renderer.screen.height
+    );
+    this.fbmNoiseManager?.resize(renderer);
+    this._needsMaskUpdate = true;
+  }
+
   _onAnimate(deltaTime) {
-    if (this._destroyed || !this.visible || !this.shineFilter) return;
+    if (this._destroyed || !this.visible || !this.metallicShineFilter) return;
+
+    if (this._needsMaskUpdate) {
+      this.renderSpecularMask();
+    }
+
     const resourceManager = game.mapShine.resourceManager;
     if (!resourceManager) return;
 
-    // This layer is now driven by the ResourceManager.
-    // This call will trigger renderEffectNow if needed for this frame.
-    resourceManager.getAnimatedShineTexture(deltaTime);
+    this.fbmNoiseManager.update(deltaTime, canvas.app.renderer);
 
-    // The effectSprite no longer needs its texture set here,
-    // as it's just a dummy sprite to hold the filter.
-    // We will render it directly to the stage.
-  }
-
-  renderEffectNow(deltaTime) {
-    if (this._destroyed || !this.visible || !this.shineFilter) return;
-
-    // Re-render the composite specular map if camera moved
-    if (this._needsMaskUpdate) {
-      this._renderSpecularCompositeTexture();
-    }
-
-    // Update and render the B&W stripe pattern
     const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
     this.time += deltaTime * timeFactor;
-    this.stripePatternFilter.uniforms.uTime = this.time;
-    canvas.app.renderer.render(this.stripeGeneratorSprite, {
-      renderTexture: this.stripePatternTexture,
-      clear: true,
-    });
 
-    const resourceManager = game.mapShine.resourceManager;
-    const cloudTexture =
-      resourceManager.getCloudShadowTexture(deltaTime) || PIXI.Texture.WHITE;
+    const config = game.mapShine.profileManager.activeConfig.baseShine;
+    const animConfig = config.animation;
+    const u = this.metallicShineFilter.uniforms;
 
-    // Update the final composition filter's uniforms
-    const u = this.shineFilter.uniforms;
-    u.uSpecularMap = this.specularCompositeTexture;
-    u.uStripePattern = this.stripePatternTexture;
-    u.uCloudOcclusionMask = cloudTexture;
-
-    // Position the final effect sprite to cover the screen
+    u.uTime = this.time;
     const stage = canvas.stage;
     const screen = canvas.app.screen;
     const topLeft = stage.toLocal({ x: 0, y: 0 });
+    u.uCameraOffset = [topLeft.x, topLeft.y];
+    u.uViewSize = [screen.width / stage.scale.x, screen.height / stage.scale.y];
+
+    const parallaxOffsetX =
+      (screen.width / 2 - stage.pivot.x * stage.scale.x) *
+      animConfig.parallaxAmount;
+    const parallaxOffsetY =
+      (screen.height / 2 - stage.pivot.y * stage.scale.y) *
+      animConfig.parallaxAmount;
+
+    const scaledJitterSpeed = (animConfig.parallaxJitterSpeed ?? 3.0) * 0.1;
+    this.jitter.x += (Math.random() - 0.5) * scaledJitterSpeed * timeFactor;
+    this.jitter.y += (Math.random() - 0.5) * scaledJitterSpeed * timeFactor;
+    this.jitter.x *= 0.95;
+    this.jitter.y *= 0.95;
+    u.uParallaxOffset = [
+      parallaxOffsetX + this.jitter.x * animConfig.parallaxJitter,
+      parallaxOffsetY + this.jitter.y * animConfig.parallaxJitter,
+    ];
+
+    u.uSpecularMask = this.specularMaskTexture;
+    u.uIlluminationMask = resourceManager.getCompositeLightMask(deltaTime);
+    u.uFbmNoiseTexture = this.fbmNoiseManager.getTexture();
+    u.uOutdoorsMask = resourceManager.getOutdoorsMask();
+
+    const structuralMask = resourceManager.getStructuralMask();
+    const snmConfig = config.structuralNegativeMask;
+    u.uStructuralNegativeMaskEnabled =
+      snmConfig.enabled && !!structuralMask?.valid;
+    if (u.uStructuralNegativeMaskEnabled) {
+      u.uStructuralNegativeMaskTexture = structuralMask;
+    }
 
     this.effectSprite.position.copyFrom(topLeft);
     this.effectSprite.width = screen.width / stage.scale.x;
     this.effectSprite.height = screen.height / stage.scale.y;
-
-    // Render the final effect to our output texture
-    canvas.app.renderer.render(this.effectSprite, {
-      renderTexture: this.finalShineTexture,
-      clear: true,
-    });
   }
 
-  _renderSpecularCompositeTexture() {
-    if (!this.sourceContainer || !this.specularCompositeTexture) return;
-    canvas.app.renderer.render(this.sourceContainer, {
-      renderTexture: this.specularCompositeTexture,
-      clear: true,
-      transform: canvas.stage.transform.worldTransform,
-    });
-    this._needsMaskUpdate = false;
+  async updateFromConfig(config) {
+    const bsConfig = config.baseShine;
+    this.visible = config.enabled && bsConfig.enabled;
+
+    this.fbmNoiseManager?.updateFromConfig(config);
+
+    if (this.effectSprite) {
+      this.effectSprite.blendMode = bsConfig.compositing.layerBlendMode;
+    }
+
+    if (this.metallicShineFilter) {
+      const u = this.metallicShineFilter.uniforms;
+      const anim = bsConfig.animation;
+      const shared = bsConfig.pattern.shared;
+      const stripes = bsConfig.pattern.stripes;
+      const noise = bsConfig.fbmNoise;
+      const snmConfig = bsConfig.structuralNegativeMask;
+
+      u.uGlobalIntensity = anim.globalIntensity;
+      u.uPatternScale = shared.patternScale;
+
+      u.uStripesEnabled = stripes.enabled;
+      u.uStripesIntensity = stripes.intensity;
+      u.uStripesSpeed = stripes.speed;
+      u.uStripesAngle = stripes.angle * (Math.PI / 180.0);
+      u.uStripesSharpness = stripes.sharpness;
+      u.uStripesBandDensity = stripes.bandDensity;
+      u.uStripesBandWidth = stripes.bandWidth;
+      u.uSubStripeCount = stripes.subStripeCount;
+      u.uSubStripeSpeedVariation = stripes.subStripeSpeedVariation;
+      u.uSubStripeSharpnessVariation = stripes.subStripeSharpnessVariation;
+      u.uSubStripeTintVariation = stripes.subStripeTintVariation;
+      u.uGradientIntensity = stripes.gradientIntensity ?? 1.0;
+
+      const gradientData = GRADIENT_PRESETS[stripes.gradientName];
+      if (gradientData) {
+        u.uGradientColors = gradientData.colors.flatMap((hex) =>
+          hexToRgbArray(hex)
+        );
+        u.uNumColors = gradientData.colors.length;
+      }
+
+      u.uFbmNoiseEnabled = noise.enabled;
+      u.uFbmMaskIntensity = noise.maskIntensity;
+      u.uFbmDistortionIntensity = noise.distortionIntensity;
+      
+      u.uStructuralNegativeMaskEnabled = snmConfig.enabled;
+      u.uStructuralNegativeMaskIntensity = snmConfig.intensity / 100.0;
+    }
   }
 
   async updateEffectTargets(targets) {
-    if (this._destroyed || !this.sourceContainer) return;
-
+    if (!this.sourceContainer) return;
+    const validTargetIds = new Set();
     const allTargets = new Map([
       ["background", targets.background],
       ...targets.tiles.entries(),
     ]);
-
-    const spritesToKeep = new Set();
     for (const [id, targetData] of allTargets.entries()) {
-      if (targetData?.specular) {
-        let sprite = this.sourceContainer.children.find(
-          (child) => child.name === id
-        );
-        if (!sprite) {
-          sprite = new PIXI.Sprite();
-          sprite.name = id;
-          this.sourceContainer.addChild(sprite);
-        }
-        spritesToKeep.add(sprite);
-        await this._updateSpriteTransform(
-          sprite,
-          targetData.specular,
-          targetData.rect
-        );
+      if (!targetData?.specular) continue;
+      validTargetIds.add(id);
+      let sprite = this.effectSprites.get(id);
+      if (!sprite) {
+        sprite = new PIXI.Sprite(PIXI.Texture.EMPTY);
+        this.effectSprites.set(id, sprite);
+        this.sourceContainer.addChild(sprite);
+      }
+      await this._updateSpriteTransform(
+        sprite,
+        targetData.specular,
+        targetData.rect
+      );
+    }
+    for (const [id, sprite] of this.effectSprites.entries()) {
+      if (!validTargetIds.has(id)) {
+        sprite.destroy();
+        this.effectSprites.delete(id);
       }
     }
-
-    this.sourceContainer.children.slice().forEach((child) => {
-      if (!spritesToKeep.has(child)) {
-        this.sourceContainer.removeChild(child);
-        child.destroy();
-      }
-    });
-
     this._needsMaskUpdate = true;
   }
 
   async _updateSpriteTransform(sprite, texturePath, rect) {
+    if (!sprite || sprite.destroyed) return;
     const currentPath = sprite.texture?.baseTexture?.resource?.src;
     if (texturePath !== currentPath) {
       try {
@@ -20502,102 +19166,19 @@ class MetallicShineLayer extends CanvasLayer {
         sprite.texture = PIXI.Texture.EMPTY;
       }
     }
-    if (!sprite.texture.valid || !rect) return;
+    if (
+      !sprite ||
+      sprite.destroyed ||
+      !sprite.anchor ||
+      !sprite.texture.valid ||
+      !rect
+    )
+      return;
     sprite.anchor.set(0.5);
     sprite.position.set(rect.x + rect.width / 2, rect.y + rect.height / 2);
     sprite.width = rect.width;
     sprite.height = rect.height;
     sprite.rotation = rect.rotation || 0;
-  }
-
-  async updateFromConfig(config) {
-    const bsConfig = config.baseShine;
-
-    if (
-      !bsConfig ||
-      !bsConfig.compositing ||
-      !bsConfig.animation ||
-      !bsConfig.pattern ||
-      !bsConfig.pattern.stripes ||
-      !bsConfig.cloudOcclusion ||
-      !bsConfig.colorCorrection
-    ) {
-      this.visible = false;
-      return;
-    }
-
-    this.visible = config.enabled && bsConfig.enabled;
-
-    this.blendMode = bsConfig.compositing.layerBlendMode;
-
-    if (this.effectSprite) {
-      this.effectSprite.alpha = bsConfig.animation.globalIntensity;
-    }
-
-    if (this.stripePatternFilter) {
-      const stripes = bsConfig.pattern.stripes;
-      const u = this.stripePatternFilter.uniforms;
-      u.uSpeed = stripes.speed;
-      u.uAngle = stripes.angle;
-      u.uScale = stripes.scale;
-      u.uEvolution = stripes.evolution;
-      u.uThreshold = stripes.threshold;
-      u.uSoftness = stripes.softness;
-      u.uWidthVariationAmount = stripes.widthVariationAmount;
-      u.uWidthVariationScale = stripes.widthVariationScale;
-      u.uStrengthVariation = stripes.strengthVariation;
-    }
-
-    if (this.shineFilter) {
-      const cloudOcclusion = bsConfig.cloudOcclusion;
-      const colorCorrection = bsConfig.colorCorrection;
-      const u = this.shineFilter.uniforms;
-      u.uCloudOcclusionEnabled = cloudOcclusion.enabled;
-      u.uCloudOcclusionIntensity = cloudOcclusion.intensity;
-
-      if (colorCorrection) {
-        u.uColorCorrectionEnabled = colorCorrection.enabled;
-        u.uSaturation = colorCorrection.saturation;
-        u.uBrightness = colorCorrection.brightness;
-        u.uContrast = colorCorrection.contrast;
-        u.uGamma = colorCorrection.gamma;
-        u.uTintColor = hexToRgbArray(colorCorrection.tint.color);
-        u.uTintAmount = colorCorrection.tint.amount;
-        u.uInvert = colorCorrection.invert;
-      }
-    }
-  }
-
-  _onResize() {
-    if (this._destroyed) return;
-    const renderer = canvas.app.renderer;
-    this.specularCompositeTexture?.resize(
-      renderer.screen.width,
-      renderer.screen.height
-    );
-    this.stripePatternTexture?.resize(
-      renderer.screen.width,
-      renderer.screen.height
-    );
-    this.finalShineTexture?.resize(
-      renderer.screen.width,
-      renderer.screen.height
-    );
-
-    if (this.stripeGeneratorSprite) {
-      this.stripeGeneratorSprite.width = renderer.screen.width;
-      this.stripeGeneratorSprite.height = renderer.screen.height;
-    }
-
-    if (this.effectSprite) {
-      const stage = canvas.stage;
-      const screen = canvas.app.screen;
-      const topLeft = stage.toLocal({ x: 0, y: 0 });
-      this.effectSprite.position.copyFrom(topLeft);
-      this.effectSprite.width = screen.width / stage.scale.x;
-      this.effectSprite.height = screen.height / stage.scale.y;
-    }
-    this._needsMaskUpdate = true;
   }
 
   async _tearDown(options) {
@@ -20608,27 +19189,18 @@ class MetallicShineLayer extends CanvasLayer {
     window.removeEventListener("resize", this._onResizeBound);
     Hooks.off("canvasPan", this._onPanBound);
 
+    this.fbmNoiseManager?.destroy();
+    this.metallicShineFilter?.destroy();
     this.sourceContainer?.destroy({ children: true });
-    this.specularCompositeTexture?.destroy(true);
-    this.stripePatternFilter?.destroy();
-    this.stripeGeneratorSprite?.destroy();
-    this.stripePatternTexture?.destroy(true);
-    this.shineFilter?.destroy();
+    this.specularMaskTexture?.destroy(true);
     this.effectSprite?.destroy();
-    this.finalShineTexture?.destroy(true);
+    this.effectSprites.clear();
 
-    this.sourceContainer = null;
-    this.specularCompositeTexture = null;
-    this.stripePatternFilter = null;
-    this.stripeGeneratorSprite = null;
-    this.stripePatternTexture = null;
-    this.shineFilter = null;
-    this.effectSprite = null;
-    this.finalShineTexture = null;
-
-    await super._tearDown(options);
+    this._initMembers();
+    return super._tearDown(options);
   }
 }
+
 
 class CloudShadowsFilter extends PIXI.Filter {
   constructor(options = {}) {
@@ -21557,9 +20129,7 @@ class CanopyLayer extends MaskedEffectLayer {
     this._generatorSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
     this._generatorSprite.width = renderer.screen.width;
     this._generatorSprite.height = renderer.screen.height;
-    this._generatorSprite.filters = this.canopyFilter
-      ? [this.canopyFilter]
-      : [];
+    this._generatorSprite.filters = this.canopyFilter ? [this.canopyFilter] : [];
     // Important: _generatorSprite is *not* added to the stage, it's used only for off-screen rendering.
 
     // effectSprite is added to the stage and displays the finalShadowTexture
@@ -21791,6 +20361,7 @@ class StructuralShadowsFilter extends PIXI.Filter {
             uniform sampler2D uOutdoorsMask;
             uniform sampler2D u_intensityNoise;
             uniform sampler2D uIlluminationBuffer;
+            uniform sampler2D uMetallicShineTexture;
             uniform sampler2D uCloudOcclusionTexture;
 
             // Main Uniforms
@@ -21809,6 +20380,8 @@ class StructuralShadowsFilter extends PIXI.Filter {
             uniform float u_intensityNoise_amount;
             uniform bool u_illum_enabled;
             uniform bool u_outputHighlightMask;
+            uniform bool uMetallicShineMixIn_enabled;
+            uniform float uMetallicShineMixIn_intensity;
             uniform bool uCloudOcclusionEnabled;
             uniform float uCloudOcclusionIntensity;
 
@@ -21865,6 +20438,12 @@ class StructuralShadowsFilter extends PIXI.Filter {
                     lightAmount = min(1.0, lightAmount + flicker * u_intensityNoise_amount);
                 }
 
+                if (uMetallicShineMixIn_enabled) {
+                    vec3 shineColor = texture2D(uMetallicShineTexture, vScreenCoord).rgb;
+                    float shineLuminance = dot(shineColor, lum_weights);
+                    lightAmount += shineLuminance * uMetallicShineMixIn_intensity;
+                }
+
                 if (uCloudOcclusionEnabled) {
                     float cloudOcclusionValue = texture2D(uCloudOcclusionTexture, vScreenCoord).r;
                     lightAmount *= (1.0 - cloudOcclusionValue * uCloudOcclusionIntensity);
@@ -21912,6 +20491,7 @@ class StructuralShadowsFilter extends PIXI.Filter {
       uOutdoorsMask: PIXI.Texture.EMPTY,
       u_intensityNoise: PIXI.Texture.EMPTY,
       uIlluminationBuffer: PIXI.Texture.EMPTY,
+      uMetallicShineTexture: PIXI.Texture.EMPTY,
       uCloudOcclusionTexture: PIXI.Texture.EMPTY,
       u_time: 0.0,
       u_tint: [0.0, 0.0, 0.0],
@@ -21924,6 +20504,8 @@ class StructuralShadowsFilter extends PIXI.Filter {
       u_illum_enabled: false,
       u_outputHighlightMask: false,
       u_intensityNoise_amount: 0.4,
+      uMetallicShineMixIn_enabled: false,
+      uMetallicShineMixIn_intensity: 1.0,
       uCloudOcclusionEnabled: false,
       uCloudOcclusionIntensity: 1.0,
 
@@ -22148,6 +20730,22 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
                                   1,
                                   0.01,
                                   "Only highlights brighter than this will be split."
+                                )}
+                            </div>
+                        </details>
+                        <details id="details-structuralShadows-metallicShineMixIn"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                          "structuralShadows.metallicShineMixIn.enabled",
+                          "Metallic Shine Mix-In",
+                          true
+                        )}</div></summary>
+                            <div style="padding-left: 15px;">
+                                <p class="description-text">Adds the brightness from the Metallic Shine effect to the light areas of the structural shadows, helping to prevent shine from being darkened by shadows.</p>
+                                ${DebuggerUIBuilder._createSliderHTML(
+                                  "structuralShadows.metallicShineMixIn.intensity",
+                                  "Intensity",
+                                  0,
+                                  5,
+                                  0.05
                                 )}
                             </div>
                         </details>
@@ -22476,6 +21074,17 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
     u.u_illum_enabled = isIlluminationReady;
     if (isIlluminationReady) {
       u.uIlluminationBuffer = illuminationTexture;
+    }
+
+    const mixInConfig = config.structuralShadows.metallicShineMixIn;
+    const metallicSpecularMask = resourceManager.getMetallicSpecularMask();
+
+    const wantsMixIn = mixInConfig?.enabled;
+    const isMixInReady = wantsMixIn && metallicSpecularMask?.valid;
+
+    u.uMetallicShineMixIn_enabled = isMixInReady;
+    if (isMixInReady) {
+      u.uMetallicShineTexture = metallicSpecularMask;
     }
 
     const cloudOcclusionConfig = config.structuralShadows.cloudOcclusion;
@@ -26271,105 +24880,6 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
   }
 }
 
-class OverheadRecolorFilter extends PIXI.Filter {
-  constructor(options = {}) {
-    const vertexSrc = `
-            attribute vec2 aVertexPosition;
-            attribute vec2 aTextureCoord;
-            uniform mat3 projectionMatrix;
-            varying vec2 vTextureCoord;
-            varying vec2 vScreenCoord;
-
-            void main(void) {
-                gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
-                vTextureCoord = aTextureCoord;
-                vScreenCoord = gl_Position.xy * 0.5 + 0.5;
-            }
-        `;
-
-    const fragmentSrc = `
-            precision mediump float;
-            varying vec2 vTextureCoord;
-            varying vec2 vScreenCoord;
-
-            uniform sampler2D uSampler;
-
-            // Original tinting uniforms
-            uniform sampler2D uStructuralMask;
-            uniform vec3 uRecolorTint;
-            uniform float uRecolorIntensity;
-            uniform bool uRecolorEnabled;
-
-            // New cloud darkening uniforms
-            uniform sampler2D uCloudShadows;
-            uniform float uCloudShadowDarkenIntensity;
-            uniform bool uCloudShadowDarkenEnabled;
-
-            void main() {
-                vec4 originalColor = texture2D(uSampler, vTextureCoord);
-                if (originalColor.a == 0.0) {
-                    discard;
-                }
-                
-                vec3 workingColor = originalColor.rgb;
-
-                if (uRecolorEnabled) {
-                    float structuralMask = texture2D(uStructuralMask, vScreenCoord).r;
-                    workingColor = mix(workingColor, uRecolorTint, structuralMask * uRecolorIntensity);
-                }
-
-                if (uCloudShadowDarkenEnabled) {
-                    // uCloudShadows texture has high values (near 1.0) for clouds and low values (near 0.0) for clear sky.
-                    float cloudValue = texture2D(uCloudShadows, vScreenCoord).r;
-                    
-                    // We want to darken the color where cloudValue is high.
-                    // A darkeningFactor of 1.0 means no change. A factor of 0.0 is fully black.
-                    // This formula creates the correct factor based on cloud presence and intensity.
-                    float darkeningFactor = 1.0 - (cloudValue * uCloudShadowDarkenIntensity);
-                    
-                    // Apply the darkening factor.
-                    workingColor *= darkeningFactor;
-                }
-                
-                gl_FragColor = vec4(workingColor, originalColor.a);
-            }
-        `;
-
-    super(vertexSrc, fragmentSrc, {
-      uStructuralMask: PIXI.Texture.EMPTY,
-      uRecolorTint: [1.0, 1.0, 1.0],
-      uRecolorIntensity: 0.5,
-      uRecolorEnabled: false,
-      // New uniforms
-      uCloudShadows: PIXI.Texture.EMPTY,
-      uCloudShadowDarkenIntensity: 0.5,
-      uCloudShadowDarkenEnabled: false,
-    });
-  }
-}
-
-class InvertAlphaMaskFilter extends PIXI.Filter {
-  constructor() {
-    super(
-      PIXI.Filter.defaultVertexSrc,
-      `
-            precision mediump float;
-            varying vec2 vTextureCoord;
-            uniform sampler2D uSampler;
-
-            void main(void) {
-                vec4 color = texture2D(uSampler, vTextureCoord);
-                // The shape of the mask is in its alpha channel after blurring.
-                // We want the output alpha to be the inverse of the input alpha.
-                float invertedAlpha = 1.0 - color.a;
-                // Output RGB doesn't matter for a mask, but let's set it to the alpha for visualization.
-                gl_FragColor = vec4(vec3(invertedAlpha), invertedAlpha);
-            }
-        `
-    );
-  }
-}
-
 class DayNightClock extends Application {
   constructor(options = {}) {
     super(options);
@@ -27220,6 +25730,129 @@ class TimeOfDayLayer extends MaskedEffectLayer {
 //              and client-side settings overrides.
 // ---------------------------------------------------------------------------------
 
+class LoadingScreen {
+  constructor() {
+    this.element = null;
+    this.fadeOutDuration = 500;
+    this.minDisplayTime = 1500;
+    this.startTime = 0;
+    this.fillElement = null;
+    this.statusTextElement = null;
+    this.statusFadeDuration = 200; // Faster text fade
+  }
+
+  show() {
+    if (this.element) return;
+    this.startTime = Date.now();
+
+    this.element = document.createElement("div");
+    this.element.id = "map-shine-loading-screen";
+    this.element.style.opacity = "0";
+
+    this.element.innerHTML = `
+                        <div class="loading-content">
+                            <img src="modules/map-shine/assets/fvtt.png" class="loading-logo" alt="Foundry VTT Logo">
+                            <h2 class="loading-subhead">Mythica Machina Presents...</h2>
+                            <h1 class="loading-title">Map Shine</h1>
+                            <div class="loading-bar-container">
+                                <div class="loading-bar-fill"></div>
+                            </div>
+                            <div id="loading-status-text" class="loading-status"></div>
+                        </div>
+                        <style>
+                            #map-shine-loading-screen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 1); z-index: 100000; display: flex; justify-content: center; align-items: center; color: white; font-family: Signika, sans-serif; transition: opacity ${
+                              this.fadeOutDuration / 1000
+                            }s ease-in-out; }
+                            .loading-content { text-align: center; }
+                            .loading-logo { width: 150px; height: auto; margin: 0 auto 10px auto; display: block; filter: drop-shadow(0 0 10px rgba(0,0,0,0.6)); }
+                            .loading-subhead { font-size: 24px; font-weight: normal; color: #bbb; margin: 0 0 10px 0; text-shadow: 0 0 5px #111; }
+                            .loading-title { font-size: 72px; margin: 0 0 30px 0; text-shadow: 0 0 10px #222; }
+                            .loading-bar-container { width: 400px; height: 20px; border: 2px solid rgba(255, 255, 255, 0.5); margin: 0 auto; background-color: rgba(0,0,0,0.5); border-radius: 5px; overflow: hidden; }
+                            .loading-bar-fill { width: 0%; height: 100%; background-color: rgba(255, 255, 255, 0.9); transform-origin: left; transition: width 0.2s ease-out; box-shadow: 0 0 10px rgba(255, 255, 255, 0.5); }
+                            .loading-status { margin-top: 15px; font-size: 16px; color: #ddd; height: 20px; line-height: 20px; opacity: 0; transition: opacity ${
+                              this.statusFadeDuration / 1000
+                            }s ease-in-out; }
+                        </style>
+                    `;
+
+    document.body.appendChild(this.element);
+    this.fillElement = this.element.querySelector(".loading-bar-fill");
+    this.statusTextElement = this.element.querySelector("#loading-status-text");
+
+    this.statusTextElement.innerText = "Initializing...";
+    this.statusTextElement.style.opacity = "1";
+
+    // Force a reflow before applying the final opacity to ensure the transition plays.
+    void this.element.offsetHeight;
+    this.element.style.opacity = "1";
+
+    // Hide the default Foundry VTT loading element
+    const foundryLoading = document.getElementById("loading");
+    if (foundryLoading) {
+      foundryLoading.style.display = "none";
+    }
+  }
+
+  setProgress(progress, message) {
+    if (!this.fillElement) return;
+    const p = Math.min(100, Math.max(0, progress));
+    this.fillElement.style.width = `${p}%`;
+
+    if (
+      message &&
+      this.statusTextElement &&
+      this.statusTextElement.innerText !== message
+    ) {
+      // Fade out, change text, then fade in for a smooth transition.
+      this.statusTextElement.style.opacity = "0";
+      setTimeout(() => {
+        if (this.statusTextElement) {
+          this.statusTextElement.innerText = message;
+          this.statusTextElement.style.opacity = "1";
+        }
+      }, this.statusFadeDuration);
+    }
+  }
+
+  setStatus(message) {
+    if (this.statusTextElement) {
+      this.statusTextElement.innerText = message;
+      // Ensure text is visible, in case a fade-out from setProgress was in progress.
+      if (this.statusTextElement.style.opacity !== "1") {
+        this.statusTextElement.style.opacity = "1";
+      }
+    }
+  }
+
+  async hide() {
+    if (!this.element) return;
+
+    // Ensure we wait for the minimum display time before starting the fade out.
+    const elapsed = Date.now() - this.startTime;
+    const remainingTime = Math.max(0, this.minDisplayTime - elapsed);
+    await new Promise((resolve) => setTimeout(resolve, remainingTime));
+
+    if (this.element) {
+      this.element.style.opacity = "0";
+      // Wait for the fade-out transition to complete before removing the element.
+      await new Promise((resolve) =>
+        setTimeout(resolve, this.fadeOutDuration + 50)
+      );
+    }
+
+    this.element?.remove();
+    this.element = null;
+    this.fillElement = null;
+    this.statusTextElement = null;
+
+    // Restore foundry loading screen in case it's needed later (e.g. returning to setup)
+    const foundryLoading = document.getElementById("loading");
+    if (foundryLoading) {
+      foundryLoading.style.display = "";
+    }
+  }
+}
+
 const CLIENT_OVERRIDES_CONFIG = {
   baseShine: {
     name: "Metallic Shine",
@@ -27243,11 +25876,49 @@ const CLIENT_OVERRIDES_CONFIG = {
       "Creates dappled, animated shadows, as if light is filtering through a forest canopy.",
   },
   structuralShadows: {
-    name: "Structural Shadows",
-    path: "structuralShadows",
-    intensitySubPath: "shadowIntensity",
-    tooltip:
-      "Creates indoor shadows from structural elements like rafters, beams, and pillars.",
+    worldBasedOnly: false,
+    enabled: true,
+    shadowIntensity: 0.32,
+    tint: "#000000",
+    parallax: 0,
+    illuminationInteraction: {
+      enabled: false,
+      intensity: 1,
+      luminanceThreshold: 0.1,
+      softness: 0.15,
+      colorCorrection: {
+        enabled: true,
+        saturation: 1,
+        brightness: 0,
+        contrast: 1,
+        exposure: 0,
+        gamma: 1,
+        tint: {
+          color: "#FFFFFF",
+          amount: 0,
+        },
+      },
+    },
+    rgbSplit: {
+      enabled: true,
+      intensity: 8.8,
+      threshold: 0,
+    },
+    intensityNoise: {
+      enabled: true,
+      amount: 0,
+      speed: 0.15,
+      scale: 1.25,
+      evolution: 0,
+      threshold: 0.71,
+      brightness: -1.13,
+      contrast: 2.8,
+      softness: 1,
+    },
+    metallicShineMixIn: {
+      enabled: true,
+      intensity: 1,
+    },
   },
   iridescence: {
     name: "Iridescence",
@@ -27302,13 +25973,6 @@ const CLIENT_OVERRIDES_CONFIG = {
     intensitySubPath: "maskInfluence",
     tooltip:
       "Adds tiny, bright sparkles to highly reflective or magical surfaces.",
-  },
-  metallicGlints: {
-    name: "Metallic Glints",
-    path: "metallicGlints",
-    intensitySubPath: "maskInfluence",
-    tooltip:
-      "Adds colored sparkles to the brightest highlights on metallic surfaces.",
   },
   fire: {
     name: "Fire Particles",
@@ -27612,17 +26276,14 @@ class DebuggerUIBuilder {
     const mainContentArea = element.querySelector(".main-content-area");
 
     const managedEffects = ScreenEffectsManager.getManagedEffectsHTML();
-    const loadingScreenHTML = this._buildLoadingScreenSection();
-    const pauseEffectHTML = this._buildPauseEffectSection();
 
     postProcessingPane.innerHTML = managedEffects.postProcessing;
     postProcessingPane.innerHTML += this._buildParticleSystemSection();
-    postProcessingPane.innerHTML += loadingScreenHTML;
-    postProcessingPane.innerHTML += pauseEffectHTML;
 
     const otherEffectSections = this._getEffectSections();
 
-    const allRightSideEffects = otherEffectSections;
+    const allRightSideEffects =
+      managedEffects.otherEffects.concat(otherEffectSections);
 
     const midPoint = Math.ceil(allRightSideEffects.length / 2);
     const column1Effects = allRightSideEffects.slice(0, midPoint);
@@ -27637,115 +26298,6 @@ class DebuggerUIBuilder {
       DebuggerUIBuilder._buildBottomBar();
 
     return element;
-  }
-
-  _buildLoadingScreenSection() {
-    const content = `
-      <p class="description-text">Configure the initial world loading screen and scene-to-scene transitions.</p>
-      
-      <details id="details-loadingScreen-initial">
-        <summary><span class="accordion-toggle"></span><strong>Backgrounds &amp; Overlays</strong></summary>
-        <div style="padding-left: 15px;">
-          <p class="description-text">Settings for the background image and overlay for both the initial loading screen and scene transitions.</p>
-          ${DebuggerUIBuilder._createTextInputWithPickerHTML(
-            "loading-screen-static-background",
-            "Static Background"
-          )}
-          ${DebuggerUIBuilder._createCheckboxHTML(
-            "loading-screen-use-random-background",
-            "Use Random Background"
-          )}
-          <div id="loading-screen-random-backgrounds-wrapper">
-             ${DebuggerUIBuilder._createListManagerHTML(
-               "loading-screen-random-backgrounds",
-               "Background Image",
-               "image"
-             )}
-          </div>
-          <details id="details-initial-loading-bgOverlay">
-            <summary><span class="accordion-toggle"></span>
-                <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                  "loading-screen-background-overlay-enabled",
-                  "Enable Background Overlay",
-                  true
-                )}</div>
-            </summary>
-            <div style="padding-left: 15px;">
-                 ${DebuggerUIBuilder._createSliderHTML(
-                   "loading-screen-background-overlay-opacity",
-                   "Overlay Opacity",
-                   0,
-                   1,
-                   0.05
-                 )}
-            </div>
-          </details>
-        </div>
-      </details>
-      
-      <details id="details-loadingScreen-transition">
-        <summary><span class="accordion-toggle"></span><strong>Scene Transition Content</strong></summary>
-        <div style="padding-left: 15px;">
-          <p class="description-text">Settings for the text, logo, and timing of the animated transition between scenes.</p>
-          ${DebuggerUIBuilder._createCheckboxHTML(
-            "universal.sceneTransition.enabled",
-            "Enable Scene Transitions"
-          )}
-          ${DebuggerUIBuilder._createSliderHTML(
-            "universal.sceneTransition.fadeOutDuration",
-            "Fade Out (ms)",
-            0,
-            10000,
-            100
-          )}
-          ${DebuggerUIBuilder._createSliderHTML(
-            "universal.sceneTransition.fadeInDuration",
-            "Fade In (ms)",
-            0,
-            10000,
-            100
-          )}
-          <hr style="border-color: #555; margin: 6px 0;">
-          ${DebuggerUIBuilder._createTextInputWithPickerHTML(
-            "universal.sceneTransition.logoPath",
-            "Logo Path"
-          )}
-          ${DebuggerUIBuilder._createTextInputHTML(
-            "universal.sceneTransition.heading",
-            "Heading"
-          )}
-          ${DebuggerUIBuilder._createTextInputHTML(
-            "universal.sceneTransition.subheading",
-            "Subheading"
-          )}
-          ${DebuggerUIBuilder._createTextInputHTML(
-            "universal.sceneTransition.staticDescription",
-            "Description"
-          )}
-          ${DebuggerUIBuilder._createCheckboxHTML(
-            "universal.sceneTransition.showSceneName",
-            "Show Scene Name"
-          )}
-          <hr style="border-color: #555; margin: 6px 0;">
-          ${DebuggerUIBuilder._createCheckboxHTML(
-            "universal.sceneTransition.useRandomHint",
-            "Use Random Hint"
-          )}
-          <div id="sceneTransition-randomHints-wrapper">
-             ${DebuggerUIBuilder._createListManagerHTML(
-               "universal.sceneTransition.randomHints",
-               "Hint",
-               "text"
-             )}
-          </div>
-        </div>
-      </details>
-    `;
-    return DebuggerUIBuilder._createAccordionHTML(
-      "loadingScreen",
-      "Loading Screen & Transitions",
-      content
-    );
   }
 
   _buildParticleSystemSection() {
@@ -27795,49 +26347,8 @@ class DebuggerUIBuilder {
 
   _getStyles() {
     return `<style>
-/* --- Reset Button --- */
-#material-editor-debugger .reset-accordion-btn {
-    width: 20px;
-    height: 20px;
-    font-size: 10px;
-    font-weight: bold;
-    padding: 0;
-    line-height: 18px; /* vertically center text */
-    border-radius: 50%;
-    background: #4a4a4a;
-    border: 1px solid #777;
-    color: #ddd;
-    margin-right: 5px;
-    flex-shrink: 0; /* prevent shrinking */
-}
-#material-editor-debugger .reset-accordion-btn:hover {
-    background: #803030;
-    color: #fff;
-    border-color: #c06060;
-}
+
 /* --- Main Controls Styles --- */
-
-/* --- Reset Button --- */
-#material-editor-debugger .reset-accordion-btn {
-    width: 20px;
-    height: 20px;
-    font-size: 10px;
-    font-weight: bold;
-    padding: 0;
-    line-height: 18px; /* vertically center text */
-    border-radius: 50%;
-    background: #4a4a4a;
-    border: 1px solid #777;
-    color: #ddd;
-    margin-right: 5px;
-    flex-shrink: 0; /* prevent shrinking */
-}
-#material-editor-debugger .reset-accordion-btn:hover {
-    background: #803030;
-    color: #fff;
-    border-color: #c06060;
-}
-
 #main-controls-section {
     padding: 8px;
     background: rgba(10, 10, 10, 0.4);
@@ -27921,7 +26432,8 @@ class DebuggerUIBuilder {
                             #material-editor-debugger summary::-webkit-details-marker { display: none; }
                             #material-editor-debugger .accordion-toggle { flex-shrink: 0; width: 0; height: 0; border-top: 4px solid transparent; border-bottom: 4px solid transparent; border-left: 5px solid #ccc; transition: transform 0.2s ease-in-out; margin-left: 2px; }
                             #material-editor-debugger .summary-control { display: flex; justify-content: space-between; align-items: center; width: 100%; }
-
+                            .world-based-icon { color: #aaa; display: none; margin-right: 5px; }
+                            .world-based-icon.active { display: inline-block; color: #40a0fa; }
                             #material-editor-debugger details details { margin-left: 8px; margin-top: 4px; border-style: dashed; }
                             #material-editor-debugger .traffic-light { width: 9px; height: 9px; border-radius: 50%; display: inline-block; box-shadow: 0 0 4px rgba(0,0,0,0.5); border: 1px solid #111; flex-shrink: 0; }
                             #material-editor-debugger .traffic-light.ok { background-color: #4cfa40; }
@@ -28176,97 +26688,27 @@ class DebuggerUIBuilder {
         `;
   }
 
-  _buildPauseEffectSection() {
-    const content = `
-      <p class="description-text">Configure the visual appearance of the screen that appears when the game is paused.</p>
-      
-      <details id="details-pauseEffect-content">
-        <summary><span class="accordion-toggle"></span><strong>Content &amp; Text</strong></summary>
-        <div style="padding-left: 15px;">
-          ${DebuggerUIBuilder._createTextInputHTML(
-            "universal.pauseEffect.heading",
-            "Heading"
-          )}
-          ${DebuggerUIBuilder._createTextInputHTML(
-            "universal.pauseEffect.subheading",
-            "Subheading"
-          )}
-        </div>
-      </details>
-      
-      <details id="details-pauseEffect-styling">
-        <summary><span class="accordion-toggle"></span><strong>Styling &amp; Colors</strong></summary>
-        <div style="padding-left: 15px;">
-          ${DebuggerUIBuilder._createTextInputWithPickerHTML(
-            "universal.pauseEffect.logoPath",
-            "Logo Path"
-          )}
-          ${DebuggerUIBuilder._createSliderHTML(
-            "universal.pauseEffect.logoOpacity",
-            "Logo Opacity",
-            0,
-            1,
-            0.05
-          )}
-          <hr style="border-color: #555; margin: 6px 0;">
-          ${DebuggerUIBuilder._createTextInputHTML(
-            "universal.pauseEffect.backgroundColor",
-            "Background"
-          )}
-          ${DebuggerUIBuilder._createColorPickerHTML(
-            "universal.pauseEffect.gradientColor1",
-            "Gradient Color 1"
-          )}
-          ${DebuggerUIBuilder._createTextInputHTML(
-            "universal.pauseEffect.gradientColor2",
-            "Gradient Color 2"
-          )}
-          <hr style="border-color: #555; margin: 6px 0;">
-          ${DebuggerUIBuilder._createColorPickerHTML(
-            "universal.pauseEffect.headingColor",
-            "Heading Color"
-          )}
-          ${DebuggerUIBuilder._createColorPickerHTML(
-            "universal.pauseEffect.subheadingColor",
-            "Subheading Color"
-          )}
-          ${DebuggerUIBuilder._createColorPickerHTML(
-            "universal.pauseEffect.hintColor",
-            "Hint Color"
-          )}
-        </div>
-      </details>
-      
-      <details id="details-pauseEffect-hints">
-        <summary><span class="accordion-toggle"></span><strong>Random Hints</strong></summary>
-        <div style="padding-left: 15px;">
-          ${DebuggerUIBuilder._createCheckboxHTML(
-            "universal.pauseEffect.useRandomHint",
-            "Show Random Hint"
-          )}
-          <div id="pauseEffect-randomHints-wrapper">
-             ${DebuggerUIBuilder._createListManagerHTML(
-               "universal.pauseEffect.randomHints",
-               "Hint",
-               "text"
-             )}
-          </div>
-        </div>
-      </details>
-    `;
-    return DebuggerUIBuilder._createAccordionHTML(
-      "pauseEffectOverlay",
-      "Pause Effect Overlay",
-      content
-    );
-  }
-
   _buildProfileSection() {
     const isGm = game.user.isGM;
     const worldProfileSection = isGm
       ? `
                     <div class="profile-group">
-                        <strong class="profile-group-title">Hard Coded Values</strong>
+                        <strong class="profile-group-title">World Profile Library</strong>
+                        <p class="description-text" style="text-align: center;">Load, save, and manage reusable profiles for your entire world.</p>
+                        <div class="profile-controls">
+                            <select id="profiles-dropdown"></select>
+                            <div style="display: flex; gap: 5px;">
+                                <button id="profile-load" data-action="load-profile" title="Load the selected world profile into your current settings. This will create unsaved changes.">Load as Temporary</button>
+                                <button id="profile-set-default" data-action="set-default-profile" title="Set the selected profile as the default for new scenes." style="flex-grow: 1;">Set as World Default</button>
+                            </div>
+                            <hr style="border-color: #555; margin: 2px 0;">
+                            <input type="text" id="profile-name" placeholder="New/Existing Profile Name...">
+                            <div style="display: flex; gap: 5px;">
+                                <button id="profile-save" data-action="save-profile" title="Save the current settings as a NEW world-level profile.">Save as New</button>
+                                <button id="profile-update" data-action="update-profile" title="Overwrite the selected world profile with the current settings.">Update Selected</button>
+                                <button id="profile-delete" data-action="delete-profile" style="color: #ff8080;" title="Permanently delete the selected world profile.">Delete</button>
+                            </div>
+                        </div>
                         <div style="display: flex; gap: 5px; margin-top: 5px;">
                             <button id="profile-copy-settings" data-action="copy-settings" style="flex: 1;" title="Copy the current active settings to the clipboard as JSON text.">Copy Settings</button>
                             <button id="profile-paste-settings" data-action="paste-settings" style="flex: 1;" title="Load settings from JSON text on the clipboard as temporary changes.">Paste Settings</button>
@@ -28274,14 +26716,23 @@ class DebuggerUIBuilder {
                     </div>
                 `
       : `
-
+                    <div class="profile-group">
+                        <strong class="profile-group-title">World Profile Library</strong>
+                        <p class="description-text" style="text-align: center;">World profiles can be loaded by the GM.</p>
+                        <div class="profile-controls">
+                            <select id="profiles-dropdown"></select>
+                            <div style="display: flex; gap: 5px;">
+                                <button id="profile-load" data-action="load-profile" title="Load the selected world profile into your current settings. This will create unsaved changes.">Load as Temporary</button>
+                            </div>
+                        </div>
+                    </div>
                 `;
 
     return `
                     <details id="details-profile-management">
                         <summary>
                             <span class="accordion-toggle"></span>
-                            <strong style="font-size: 1.1em;">Map Point Tools and Debug Options</strong>
+                            <strong style="font-size: 1.1em;">World Profiles and Diagnostics</strong>
                         </summary>
                         <div class="profile-grid">
                             ${worldProfileSection}
@@ -28379,33 +26830,10 @@ class DebuggerUIBuilder {
   }
 
   static _createAccordionHTML(id, title, content, headerExtra = "") {
-    let path = `${id}.enabled`;
-    if (id === "loadingScreen") {
-      // The loading screen accordion doesn't have a single master toggle.
-      // We'll create a dummy path for the ID and not render a checkbox.
-      path = "loadingScreen.accordion";
-      const labelHtml = `<span class="summary-label">${title}</span>`;
-      const resetButtonHtml = `<button type="button" class="reset-accordion-btn" data-action="reset-accordion" data-effect-key="${id}" title="Reset this section to defaults">R</button>`;
-
-      return `<details id="details-${id}">
-                              <summary>
-                                  <span class="accordion-toggle"></span>
-                                  <div class="summary-control" style="justify-content: flex-start;">
-                                      <div style="display: flex; align-items: center; gap: 5px;">
-                                          ${labelHtml}
-                                          ${resetButtonHtml}
-                                          ${headerExtra}
-                                      </div>
-                                  </div>
-                              </summary>
-                              <div style="padding-top: 5px;">${content}</div>
-                          </details>`;
-    }
-
+    const path = `${id}.enabled`;
     const checkboxId = this._createSafeId(path);
     const labelHtml = `<span class="summary-label">${title}</span>`;
-    const resetButtonHtml = `<button type="button" class="reset-accordion-btn" data-action="reset-accordion" data-effect-key="${id}" title="Reset this section to defaults">R</button>`;
-    const widgetsHtml = `<div class="widget-group"><input type="checkbox" name="${path}" id="${checkboxId}" data-path="${path}"></div>`;
+    const checkboxHtml = `<div class="widget-group"><input type="checkbox" id="${checkboxId}" data-path="${path}"></div>`;
 
     return `<details id="details-${id}">
                             <summary>
@@ -28413,10 +26841,9 @@ class DebuggerUIBuilder {
                                 <div class="summary-control">
                                     <div style="display: flex; align-items: center; gap: 5px;">
                                         ${labelHtml}
-                                        ${resetButtonHtml}
                                         ${headerExtra}
                                     </div>
-                                    ${widgetsHtml}
+                                    ${checkboxHtml}
                                 </div>
                             </summary>
                             <div style="padding-top: 5px;">${content}</div>
@@ -28426,7 +26853,7 @@ class DebuggerUIBuilder {
   static _createCheckboxHTML(path, label, isSummary = false, title = "") {
     const id = this._createSafeId(path);
     const titleAttr = title ? `title="${title}"` : "";
-    const checkbox = `<div class="widget-group"><input type="checkbox" name="${path}" id="${id}" data-path="${path}"></div>`;
+    const checkbox = `<div class="widget-group"><input type="checkbox" id="${id}" data-path="${path}"></div>`;
     const labelHtml = isSummary
       ? `<span class="summary-label" ${titleAttr}>${label}</span>`
       : `<label for="${id}" class="summary-label" ${titleAttr}>${label}</label>`;
@@ -28438,11 +26865,11 @@ class DebuggerUIBuilder {
   static _createSliderHTML(path, label, min, max, step, title = "") {
     const id = this._createSafeId(path);
     const titleAttr = title ? `title="${title}"` : "";
-    return `<div class="control-row control-row-slider"><label for="${id}" ${titleAttr}>${label}</label><input type="range" name="${path}" id="${id}" data-path="${path}" min="${min}" max="${max}" step="${step}"><span id="${id}-value" class="value-span">0.0</span></div>`;
+    return `<div class="control-row control-row-slider"><label for="${id}" ${titleAttr}>${label}</label><input type="range" id="${id}" data-path="${path}" min="${min}" max="${max}" step="${step}"><span id="${id}-value" class="value-span">0.0</span></div>`;
   }
   static _createColorPickerHTML(path, label) {
     const id = this._createSafeId(path);
-    return `<div class="control-row"><label for="${id}">${label}</label><div class="widget-group" style="flex-grow: 1;"><input type="color" name="${path}" id="${id}" data-path="${path}"></div></div>`;
+    return `<div class="control-row"><label for="${id}">${label}</label><div class="widget-group" style="flex-grow: 1;"><input type="color" id="${id}" data-path="${path}"></div></div>`;
   }
   static _createSelectHTML(path, label, options, title = "") {
     const id = this._createSafeId(path);
@@ -28450,7 +26877,7 @@ class DebuggerUIBuilder {
     const opts = Object.entries(options)
       .map(([k, v]) => `<option value="${v}">${k}</option>`)
       .join("");
-    return `<div class="control-row"><label for="${id}" ${titleAttr}>${label}</label><select name="${path}" id="${id}" data-path="${path}">${opts}</select></div>`;
+    return `<div class="control-row"><label for="${id}" ${titleAttr}>${label}</label><select id="${id}" data-path="${path}">${opts}</select></div>`;
   }
   static _createGradientSelectHTML(path, label) {
     const id = this._createSafeId(path);
@@ -28462,7 +26889,7 @@ class DebuggerUIBuilder {
         return `<option value="${name}" style="background: ${gradientCSS};">${name}</option>`;
       })
       .join("");
-    return `<div class="control-row"><label for="${id}">${label}</label><select name="${path}" id="${id}" data-path="${path}" class="gradient-picker">${opts}</select></div>`;
+    return `<div class="control-row"><label for="${id}">${label}</label><select id="${id}" data-path="${path}" class="gradient-picker">${opts}</select></div>`;
   }
 
   static _createPresetSelectHTML(path, label, presets) {
@@ -28470,13 +26897,13 @@ class DebuggerUIBuilder {
     const opts = Object.entries(presets)
       .map(([key, data]) => `<option value="${key}">${data.name}</option>`)
       .join("");
-    return `<div class="control-row"><label for="${id}">${label}</label><select name="${path}" id="${id}" data-path="${path}">${opts}</select></div>`;
+    return `<div class="control-row"><label for="${id}">${label}</label><select id="${id}" data-path="${path}">${opts}</select></div>`;
   }
 
   static _createTextInputHTML(path, label, title = "") {
     const id = this._createSafeId(path);
     const titleAttr = title ? `title="${title}"` : "";
-    return `<div class="control-row" style="margin-bottom: 3px;"><label for="${id}" ${titleAttr}>${label}</label><input type="text" name="${path}" id="${id}" data-path="${path}" style="flex-grow:1;font-family:monospace;font-size:10px;"></div>`;
+    return `<div class="control-row" style="margin-bottom: 3px;"><label for="${id}" ${titleAttr}>${label}</label><input type="text" id="${id}" data-path="${path}" style="flex-grow:1;font-family:monospace;font-size:10px;"></div>`;
   }
 
   static _createTextInputWithPickerHTML(
@@ -28491,7 +26918,7 @@ class DebuggerUIBuilder {
                     <div class="control-row" style="margin-bottom: 3px;">
                         <label for="${id}" ${titleAttr}>${label}</label>
                         <div class="widget-group" style="flex-grow:1; display:flex; gap: 3px;">
-                            <input type="text" name="${path}" id="${id}" data-path="${path}" style="flex-grow:1; font-family:monospace; font-size:10px;">
+                            <input type="text" id="${id}" data-path="${path}" style="flex-grow:1; font-family:monospace; font-size:10px;">
                             <button type="button" class="file-picker-btn" data-fp-target="${id}" data-fp-type="${pickerType}" title="Browse Files"><i class="fas fa-file-import"></i></button>
                         </div>
                     </div>
@@ -28499,40 +26926,34 @@ class DebuggerUIBuilder {
   }
 
   static _createTextureInputHTML(key, label) {
-    return `<div class="control-row" style="margin-bottom: 5px;"><label><span id="status-textures-${key}" class="traffic-light unknown"></span>${label}</label><input type="text" id="texture-path-${key}" disabled placeholder="Not found..." title="This path is discovered automatically based on the base map's filename. (e.g., 'map.webp' -> 'map_Specular.webp')"></div>`;
+    return `<div class="control-row" style="margin-bottom: 5px;"><label><span id="status-textures-${key}" class="traffic-light unknown"></span>${label}</label><input type="text" id="texture-path-${key}" disabled title="This path is discovered automatically based on the base map's filename. (e.g., 'map.webp' -> 'map_Specular.webp')"></div>`;
   }
 
-  static _createListManagerHTML(path, itemLabel, itemType = "text") {
+  static _createListManagerHTML(path, addButtonLabel, itemLabel) {
     const id = this._createSafeId(path);
     const listContainerId = `${id}-list-container`;
     const addButtonId = `${id}-add-btn`;
-    const addButtonLabel = `Add ${itemLabel}`;
 
     return `
-      <div id="${id}" class="list-manager-container" data-path="${path}" data-item-type="${itemType}">
-        <div class="control-row">
-          <label>${itemLabel}s</label>
-          <button type="button" id="${addButtonId}" data-action="add-list-item" class="add-item-btn">${addButtonLabel}</button>
-        </div>
-        <div id="${listContainerId}" class="list-items-container" style="display: flex; flex-direction: column; gap: 4px; margin-top: 5px; padding-left: 10px;">
-          <!-- Items will be populated by JS -->
-        </div>
-      </div>
-      <style>
-        .list-manager-container .list-item-row { display: flex; align-items: center; gap: 5px; }
-        .list-manager-container .list-item-row input[type=text] { flex-grow: 1; }
-        .list-manager-container .list-item-row .remove-item-btn { 
-          flex-shrink: 0; background: #662222; border: 1px solid #aa6666; color: #ffcccc; 
-          font-weight: bold; width: 22px; height: 22px; line-height: 20px; text-align: center; 
-          cursor: pointer; border-radius: 4px; padding: 0;
-        }
-        .list-manager-container .list-item-row .remove-item-btn:hover { background: #883333; }
-        .list-manager-container .add-item-btn {
-            background-color: #2a552a; border-color: #6aaa6a; color: #ccffcc;
-        }
-        .list-manager-container .add-item-btn:hover { background-color: #3a753a; }
-      </style>
-    `;
+                    <div id="${id}" class="list-manager-container" data-path="${path}">
+                        <div class="control-row">
+                            <label>${itemLabel}</label>
+                            <button id="${addButtonId}" data-action="add-item" class="add-item-btn">${addButtonLabel}</button>
+                        </div>
+                        <div id="${listContainerId}" class="list-items-container" style="display: flex; flex-direction: column; gap: 4px; margin-top: 5px; padding-left: 10px;">
+                        </div>
+                    </div>
+                    <style>
+                        .list-manager-container .list-item-row { display: flex; align-items: center; gap: 5px; }
+                        .list-manager-container .list-item-row input[type=text] { flex-grow: 1; }
+                        .list-manager-container .list-item-row .remove-item-btn { 
+                            flex-shrink: 0; background: #662222; border: 1px solid #aa6666; color: #ffcccc; 
+                            font-weight: bold; width: 22px; height: 22px; line-height: 22px; text-align: center; 
+                            cursor: pointer; border-radius: 4px; padding: 0;
+                        }
+                        .list-manager-container .list-item-row .remove-item-btn:hover { background: #883333; }
+                    </style>
+                `;
   }
 
   static _createDayNightClockHTML() {
@@ -28561,10 +26982,73 @@ class DebuggerUIBuilder {
         `;
   }
 
+  _buildProfileSection() {
+    const isGm = game.user.isGM;
+    const worldProfileSection = isGm
+      ? `
+                    <div class="profile-group">
+                        <strong class="profile-group-title">World Profile Library</strong>
+                        <p class="description-text" style="text-align: center;">Load, save, and manage reusable profiles for your entire world.</p>
+
+                        
+
+                        <div class="profile-controls">
+                            <select id="profiles-dropdown"></select>
+                            <div style="display: flex; gap: 5px;">
+                                <button id="profile-load" title="Load the selected world profile into your current settings. This will create unsaved changes.">Load as Temporary</button>
+                                <button id="profile-set-default" title="Set the selected profile as the default for new scenes." style="flex-grow: 1;">Set as World Default</button>
+                            </div>
+                            <hr style="border-color: #555; margin: 2px 0;">
+                            <input type="text" id="profile-name" placeholder="New/Existing Profile Name...">
+                            <div style="display: flex; gap: 5px;">
+                                <button id="profile-save" title="Save the current settings as a NEW world-level profile.">Save as New</button>
+                                <button id="profile-update" title="Overwrite the selected world profile with the current settings.">Update Selected</button>
+                                <button id="profile-delete" style="color: #ff8080;" title="Permanently delete the selected world profile.">Delete</button>
+                            </div>
+                        </div>
+                        <button id="profile-copy-settings" title="Copy the current active settings to the clipboard as JSON text.">Copy Settings</button>
+                                <button id="profile-paste-settings" title="Load settings from JSON text on the clipboard as temporary changes.">Paste Settings</button>
+                    </div>
+                `
+      : `
+                    <div class="profile-group">
+                        <strong class="profile-group-title">World Profile Library</strong>
+                        <p class="description-text" style="text-align: center;">World profiles can be loaded by the GM.</p>
+                        <div class="profile-controls">
+                            <select id="profiles-dropdown"></select>
+                            <div style="display: flex; gap: 5px;">
+                                <button id="profile-load" title="Load the selected world profile into your current settings. This will create unsaved changes.">Load as Temporary</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+    return `
+                    <details id="details-profile-management">
+                        <summary>
+                            <span class="accordion-toggle"></span>
+                            <strong style="font-size: 1.1em;">World Profiles and Diagnostics</strong>
+                        </summary>
+
+
+
+                            
+                            ${worldProfileSection}
+                            <div class="profile-group">
+                                <strong class="profile-group-title">Tools & Diagnostics</strong>
+                                ${this._buildMapToolsSection()}
+                                ${this._buildDiagnosticSection()}
+                            </div>
+                        </div>
+                    </details>
+                `;
+  }
+
   _getEffectSections() {
     return [
       MetallicShineLayer.getSettingsHTML(),
       TimeOfDayLayer.getSettingsHTML(),
+      OverheadEffectsManager.getSettingsHTML(),
       BuildingShadowsLayer.getSettingsHTML(),
       WaterFXLayer.getSettingsHTML(),
       CloudShadowsLayer.getSettingsHTML(),
@@ -28579,160 +27063,9 @@ class DebuggerUIBuilder {
       ParticleEffectController.getSettingsHTML("sparks"),
       ParticleEffectController.getSettingsHTML("dust"),
       ParticleEffectController.getSettingsHTML("glint"),
-      ParticleEffectController.getSettingsHTML("metallicGlints"),
       ParticleEffectController.getSmellyFliesSettingsHTML(),
       LightningManager.getSettingsHTML(),
-      this._getOverheadEffectHTML(),
     ];
-  }
-
-  _getOverheadEffectHTML() {
-    const effectKey = "overheadEffect";
-    return DebuggerUIBuilder._createAccordionHTML(
-      effectKey,
-      "Overhead Effect",
-      `
-        <p class="description-text">Controls for tiles flagged as 'Overhead'. This layer re-renders them to be above all other effects.</p>
-        <div id="overhead-zoom-display" style="text-align: center; padding: 4px; background: rgba(0,0,0,0.3); border-radius: 3px; margin-bottom: 5px; font-family: monospace;">
-            Loading zoom data...
-        </div>
-        <details>
-            <summary><span class="accordion-toggle"></span><strong>Zoom Point Configuration</strong></summary>
-            <div style="padding-left: 15px;">
-                <p class="description-text">Define the zoom levels used for interpolation.</p>
-                ${DebuggerUIBuilder._createSliderHTML(
-                  "overheadEffect.zoomPointMin",
-                  "Min Zoom Point",
-                  0.1,
-                  5,
-                  0.05,
-                  "The zoom level for the 'Min' settings below."
-                )}
-                ${DebuggerUIBuilder._createSliderHTML(
-                  "overheadEffect.zoomPointMid",
-                  "Mid Zoom Point",
-                  0.1,
-                  5,
-                  0.05,
-                  "The zoom level for the 'Mid' settings below."
-                )}
-                ${DebuggerUIBuilder._createSliderHTML(
-                  "overheadEffect.zoomPointMax",
-                  "Max Zoom Point",
-                  0.1,
-                  5,
-                  0.05,
-                  "The zoom level for the 'Max' settings below."
-                )}
-            </div>
-        </details>
-        <details>
-            <summary><span class="accordion-toggle"></span><strong>Zoom-Based Blurring</strong></summary>
-            <div style="padding-left: 15px;">
-                <p class="description-text">Define the world-space blur amount at the configured zoom points.</p>
-                ${DebuggerUIBuilder._createSliderHTML(
-                  "overheadEffect.blurMinZoom",
-                  "Blur (Min Zoom)",
-                  0,
-                  50,
-                  0.5
-                )}
-                ${DebuggerUIBuilder._createSliderHTML(
-                  "overheadEffect.blurMidZoom",
-                  "Blur (Mid Zoom)",
-                  0,
-                  50,
-                  0.5
-                )}
-                ${DebuggerUIBuilder._createSliderHTML(
-                  "overheadEffect.blurMaxZoom",
-                  "Blur (Max Zoom)",
-                  0,
-                  50,
-                  0.5
-                )}
-            </div>
-        </details>
-        <details>
-            <summary><span class="accordion-toggle"></span><strong>Zoom-Based Opacity</strong></summary>
-            <div style="padding-left: 15px;">
-                <p class="description-text">Define the layer opacity at the configured zoom points.</p>
-                ${DebuggerUIBuilder._createSliderHTML(
-                  "overheadEffect.opacityMinZoom",
-                  "Opacity (Min Zoom)",
-                  0,
-                  1,
-                  0.01
-                )}
-                ${DebuggerUIBuilder._createSliderHTML(
-                  "overheadEffect.opacityMidZoom",
-                  "Opacity (Mid Zoom)",
-                  0,
-                  1,
-                  0.01
-                )}
-                ${DebuggerUIBuilder._createSliderHTML(
-                  "overheadEffect.opacityMaxZoom",
-                  "Opacity (Max Zoom)",
-                  0,
-                  1,
-                  0.01
-                )}
-            </div>
-        </details>
-        ${DebuggerUIBuilder._createSliderHTML(
-          "overheadEffect.hoverFadeDuration",
-          "Hover Fade Duration (ms)",
-          0,
-          2000,
-          50,
-          "How long it takes for the overhead tile to fade in/out on hover."
-        )}
-        <details id="details-overheadEffect-recolor">
-            <summary><span class="accordion-toggle"></span><strong>Recoloration</strong></summary>
-            <div style="padding-left: 15px;">
-                <details id="details-overheadEffect-recolor-tint">
-                    <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                      "overheadEffect.recolor.enabled",
-                      "Tint with Structural Mask",
-                      true
-                    )}</div></summary>
-                    <div style="padding-left: 15px;">
-                        <p class="description-text">Applies a color tint to overhead tiles based on the _Structural mask.</p>
-                        ${DebuggerUIBuilder._createColorPickerHTML(
-                          "overheadEffect.recolor.tint",
-                          "Tint Color"
-                        )}
-                        ${DebuggerUIBuilder._createSliderHTML(
-                          "overheadEffect.recolor.intensity",
-                          "Intensity",
-                          0,
-                          1,
-                          0.01
-                        )}
-                    </div>
-                </details>
-                <details id="details-overheadEffect-recolor-cloudShadowDarken">
-                    <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                      "overheadEffect.recolor.cloudShadowDarken.enabled",
-                      "Darken with Cloud Shadows",
-                      true
-                    )}</div></summary>
-                    <div style="padding-left: 15px;">
-                        <p class="description-text">Darkens overhead tiles using the cloud shadow pattern. Requires Cloud Shadows effect to be active.</p>
-                        ${DebuggerUIBuilder._createSliderHTML(
-                          "overheadEffect.recolor.cloudShadowDarken.intensity",
-                          "Intensity",
-                          0,
-                          1,
-                          0.01
-                        )}
-                    </div>
-                </details>
-            </div>
-        </details>
-        `
-    );
   }
 
   _getColumnCounts(totalItems, maxColumns) {
@@ -28765,31 +27098,6 @@ class DebuggerEventHandler {
     return this.profileManager.activeConfig;
   }
 
-  updateZoomDisplay() {
-    if (!this.element) return;
-    const displayEl = this.element.querySelector("#overhead-zoom-display");
-    if (displayEl) {
-      const transform = canvas.stage.transform;
-      const current = transform.scale.x.toFixed(2);
-      const min = (
-        typeof transform.minScale === "number" ? transform.minScale : 0.1
-      ).toFixed(2);
-      const max = (
-        typeof transform.maxScale === "number" ? transform.maxScale : 3.0
-      ).toFixed(2);
-
-      const config = this.profileManager.activeConfig.overheadEffect;
-      const pointMin = (config.zoomPointMin || 0).toFixed(2);
-      const pointMid = (config.zoomPointMid || 0).toFixed(2);
-      const pointMax = (config.zoomPointMax || 0).toFixed(2);
-
-      displayEl.innerHTML = `
-        Current: <strong>${current}x</strong> (Canvas Min/Max: ${min}x / ${max}x)<br>
-        Effect Points: <strong>${pointMin}x</strong> | <strong>${pointMid}x</strong> | <strong>${pointMax}x</strong>
-      `;
-    }
-  }
-
   initialize() {
     // Create the throttled update function. It will wait 100ms between executions.
     this.throttledSystemUpdate = foundry.utils.throttle(
@@ -28809,35 +27117,33 @@ class DebuggerEventHandler {
    * @param {*} value - The new value for the setting.
    */
   async _performSystemUpdate(path, value) {
-    const isGameSetting =
-      path.startsWith("universal.") || path.startsWith("loading-screen-");
+    // First, record the change. This updates the activeConfig.
+    await this.profileManager.recordUserChange(path, value);
 
-    if (isGameSetting) {
-      await game.settings.set(MODULE_ID, path, value);
-      // A full refresh ensures any managers reading these settings are updated.
-      await this.profileManager.initializeForScene();
-      await this.profileManager.updateAllSystemsFromConfig();
-    } else {
-      await this.profileManager.recordUserChange(path, value);
-      this._updateActionButtonsState();
-      const updateOptions = {
-        timeOnly: path === "timeControl.globalTime",
-      };
-      await this.profileManager.updateAllSystemsFromConfig(updateOptions);
+    // Update the state of the main action buttons to reflect the new "dirty" state.
+    this._updateActionButtonsState();
 
-      const isParticleSetting =
-        Object.values(PARTICLE_EFFECT_DEFINITIONS).some((def) =>
-          path.startsWith(def.configPath)
-        ) || path.startsWith("particleSystems");
-      if (isParticleSetting && !updateOptions.timeOnly) {
-        const particleLayer = canvas.layers.find(
-          (l) => l instanceof ParticleLayer
+    // Define update options based on the path.
+    const updateOptions = {
+      timeOnly: path === "timeControl.globalTime",
+    };
+
+    // Now, tell all systems to update themselves from the new activeConfig.
+    await this.profileManager.updateAllSystemsFromConfig(updateOptions);
+
+    // Special handling for particles, which might need a structural refresh.
+    const isParticleSetting =
+      Object.values(PARTICLE_EFFECT_DEFINITIONS).some((def) =>
+        path.startsWith(def.configPath)
+      ) || path.startsWith("particleSystems");
+    if (isParticleSetting && !updateOptions.timeOnly) {
+      const particleLayer = canvas.layers.find(
+        (l) => l instanceof ParticleLayer
+      );
+      if (particleLayer && game.mapShine.effectTargetManager.targets) {
+        await particleLayer.updateEffectTargets(
+          game.mapShine.effectTargetManager.targets
         );
-        if (particleLayer && game.mapShine.effectTargetManager.targets) {
-          await particleLayer.updateEffectTargets(
-            game.mapShine.effectTargetManager.targets
-          );
-        }
       }
     }
   }
@@ -28889,10 +27195,10 @@ class DebuggerEventHandler {
   addEventListeners() {
     // Main delegated listeners that survive re-renders
     this.element.addEventListener("input", this._handleGenericInput.bind(this));
-    this.element.addEventListener(
-      "change",
-      this._handleGenericInput.bind(this)
-    );
+    this.element.addEventListener("change", (e) => {
+      this._handleGenericInput(e);
+      this._handleListManagerChange(e);
+    });
     this.element.addEventListener(
       "click",
       this._handleDelegatedClick.bind(this)
@@ -28922,66 +27228,40 @@ class DebuggerEventHandler {
 
     const action = target.dataset.action;
 
-    if (action === "add-list-item" || action === "remove-list-item") {
-      this._handleListManagerClick(e);
+    // List Manager Actions
+    const container = target.closest(".list-manager-container");
+    if (container && (action === "add-item" || action === "remove-item")) {
+      e.preventDefault();
+      const path = container.dataset.path;
+      let list = foundry.utils.getProperty(this.config, path) || [];
+      list = foundry.utils.deepClone(list);
+
+      if (action === "add-item") {
+        if (path === "sceneTransition.randomHints") {
+          list.push("New Hint");
+        } else if (path === "sceneTransition.backgroundImages") {
+          list.push("path/to/your/image.webp");
+        }
+      } else if (action === "remove-item") {
+        const index = parseInt(target.dataset.index, 10);
+        if (!isNaN(index)) {
+          list.splice(index, 1);
+        }
+      }
+      // Await the change to ensure the config is updated before re-rendering
+      await this.profileManager.recordUserChange(path, list);
+
+      if (path === "sceneTransition.randomHints") {
+        this._renderHintList();
+      } else if (path === "sceneTransition.backgroundImages") {
+        this._renderBackgroundList();
+      }
+
       return;
     }
 
     // All other actions
     switch (action) {
-      case "reset-accordion": {
-        const effectKey = target.dataset.effectKey;
-        if (!effectKey) return;
-
-        let defaultsToUse = MODULE_DEFAULTS[effectKey];
-        if (effectKey === "loadingScreen") {
-          // Special handling for the combined accordion
-          defaultsToUse = UNIVERSAL_EFFECT_DEFAULTS.sceneTransition;
-        }
-
-        if (!defaultsToUse) {
-          console.warn(
-            `Map Shine | Invalid effect key for reset: ${effectKey}`
-          );
-          return;
-        }
-
-        Dialog.confirm({
-          title: `Reset ${effectKey} Settings`,
-          content: `<p>Are you sure you want to reset all settings in the "<strong>${effectKey}</strong>" section to their default values? This will create unsaved changes.</p>`,
-          yes: async () => {
-            if (effectKey === "loadingScreen") {
-              for (const key in defaultsToUse) {
-                const path = `universal.sceneTransition.${key}`;
-                const settingKey = `universal.sceneTransition.${key}`;
-                const defaultValue = defaultsToUse[key];
-                if (Array.isArray(defaultValue)) {
-                  await game.settings.set(
-                    MODULE_ID,
-                    settingKey,
-                    defaultValue.join("\n")
-                  );
-                } else {
-                  await game.settings.set(MODULE_ID, settingKey, defaultValue);
-                }
-              }
-            } else {
-              const defaultSection = foundry.utils.deepClone(defaultsToUse);
-              await this.profileManager.recordUserChange(
-                effectKey,
-                defaultSection
-              );
-            }
-            await this.profileManager.updateAllSystemsFromConfig();
-            this.updateAllControls();
-            ui.notifications.info(
-              `"${effectKey}" section has been reset to defaults.`
-            );
-          },
-          defaultYes: false,
-        });
-        break;
-      }
       case "open-map-points-editor":
         e.preventDefault();
         if (
@@ -29079,6 +27359,160 @@ class DebuggerEventHandler {
     }
   }
 
+  async _onImportWorldProfile() {
+    const dropdown = this.element.querySelector("#profiles-dropdown");
+    if (!dropdown || !dropdown.value) return;
+    await this.profileManager.importWorldProfile(dropdown.value);
+  }
+
+  async _onNewCleanProfileClick() {
+    if (!this.profileManager.isGm) {
+      ui.notifications.warn("Only GMs can create new profiles.");
+      return;
+    }
+
+    new Dialog({
+      title: "Create New Clean Profile",
+      content: `<p>Enter a name for the new profile. It will be created using only the module's hard-coded default settings.</p><input type="text" name="profileName" placeholder="e.g., Clean Day"/>`,
+      buttons: {
+        create: {
+          icon: '<i class="fas fa-plus-square"></i>',
+          label: "Create",
+          callback: async (html) => {
+            const name = html.find('input[name="profileName"]').val();
+            if (name && name.trim()) {
+              await this.profileManager.createCleanSceneProfile(name.trim());
+            } else {
+              ui.notifications.warn("Profile name cannot be empty.");
+            }
+          },
+        },
+        cancel: {
+          icon: '<i class="fas fa-times"></i>',
+          label: "Cancel",
+        },
+      },
+      default: "create",
+      render: (html) => html.find('input[name="profileName"]').focus(),
+    }).render(true);
+  }
+
+  async _onRenameSceneProfileClick() {
+    const dropdown = this.element.querySelector("#scene-profile-select");
+    if (!dropdown || !dropdown.value || dropdown.value === "-1") return;
+    const profileId = dropdown.value;
+    const profiles = this.profileManager.getSceneProfiles();
+    const currentProfile = profiles.find((p) => p.id === profileId);
+    if (!currentProfile) return;
+
+    new Dialog({
+      title: "Rename Scene Appearance",
+      content: `<p>Enter a new name for "${Handlebars.escapeExpression(
+        currentProfile.name
+      )}".</p><input type="text" name="profileName" value="${Handlebars.escapeExpression(
+        currentProfile.name
+      )}"/>`,
+      buttons: {
+        save: {
+          icon: '<i class="fas fa-save"></i>',
+          label: "Rename",
+          callback: async (html) => {
+            const name = html.find('input[name="profileName"]').val();
+            await this.profileManager.renameSceneProfile(profileId, name);
+          },
+        },
+        cancel: {
+          icon: '<i class="fas fa-times"></i>',
+          label: "Cancel",
+        },
+      },
+      default: "save",
+      render: (html) => html.find('input[name="profileName"]').focus(),
+    }).render(true);
+  }
+
+  async _onDeleteSceneProfileClick() {
+    const dropdown = this.element.querySelector("#scene-profile-select");
+    if (!dropdown || !dropdown.value || dropdown.value === "-1") return;
+    const profileId = dropdown.value;
+    const profiles = this.profileManager.getSceneProfiles();
+    const profileToDelete = profiles.find((p) => p.id === profileId);
+    if (!profileToDelete) return;
+
+    Dialog.confirm({
+      title: "Delete Scene Appearance",
+      content: `<p>Are you sure you want to delete the appearance profile "<strong>${Handlebars.escapeExpression(
+        profileToDelete.name
+      )}</strong>"? This cannot be undone.</p>`,
+      yes: async () => {
+        await this.profileManager.deleteSceneProfile(profileId);
+      },
+      defaultYes: false,
+    });
+  }
+
+  async _onSaveSceneProfileClick() {
+    const nameInput = this.element.querySelector("#new-scene-profile-name");
+    if (!nameInput) return;
+    const name = nameInput.value.trim();
+    if (name) {
+      await this.profileManager.createSceneProfile(name);
+      nameInput.value = ""; // Clear the input after creation
+    } else {
+      ui.notifications.warn("Profile name cannot be empty.");
+    }
+  }
+
+  _onOpenUserGuide() {
+    game.mapShine.showUserGuide();
+  }
+
+  _renderHintList() {
+    const path = "sceneTransition.randomHints";
+    const container = this.element.querySelector(
+      `#${DebuggerUIBuilder._createSafeId(path)}-list-container`
+    );
+    if (!container) return;
+
+    const hints = foundry.utils.getProperty(this.config, path) || [];
+    container.innerHTML = hints
+      .map(
+        (hint, index) => `
+                    <div class="list-item-row">
+                        <input type="text" data-index="${index}" value="${Handlebars.escapeExpression(
+          hint
+        )}">
+                        <button class="remove-item-btn" data-action="remove-item" data-index="${index}" title="Remove Hint">X</button>
+                    </div>
+                `
+      )
+      .join("");
+  }
+
+  _renderBackgroundList() {
+    const path = "sceneTransition.backgroundImages";
+    const container = this.element.querySelector(
+      `#${DebuggerUIBuilder._createSafeId(path)}-list-container`
+    );
+    if (!container) return;
+
+    const backgrounds = foundry.utils.getProperty(this.config, path) || [];
+    container.innerHTML = backgrounds
+      .map((bg, index) => {
+        const inputId = `background-image-path-${index}`;
+        return `
+                    <div class="list-item-row">
+                        <input type="text" id="${inputId}" data-index="${index}" value="${Handlebars.escapeExpression(
+          bg
+        )}">
+                        <button type="button" class="file-picker-btn" data-fp-target="${inputId}" data-fp-type="image" title="Browse Files"><i class="fas fa-file-import"></i></button>
+                        <button class="remove-item-btn" data-action="remove-item" data-index="${index}" title="Remove Background">X</button>
+                    </div>
+                `;
+      })
+      .join("");
+  }
+
   _onTimeChanged(time) {
     this.updateAllControls(time);
   }
@@ -29152,27 +27586,16 @@ class DebuggerEventHandler {
       time ?? this.profileManager.activeConfig.timeOfDay.currentTime ?? 12.0;
 
     this.element.querySelectorAll("[data-path]").forEach((el) => {
-      if (el.closest(".list-manager-container")) return;
+      if (el.classList.contains("list-manager-container")) return;
       const path = el.dataset.path;
-
-      const isGameSetting =
-        path.startsWith("universal.") || path.startsWith("loading-screen-");
-      let value;
-
-      if (isGameSetting) {
-        value = game.settings.get(MODULE_ID, path);
-      } else {
-        value = this._getPathValue(this.config, path);
-      }
-
+      const value = this._getPathValue(this.config, path);
       if (value === undefined || value === null) return;
-
       if (el.type === "checkbox") el.checked = Boolean(value);
-      else if (el.type === "radio") el.checked = el.value === String(value);
+      else if (el.type === "radio") el.checked = el.value === value;
       else el.value = value;
 
-      if (el.id === "control-sceneAppearance-transitionDuration") {
-        const seconds = Math.round(Number(value) / 1000);
+      if (el.id === "scene-transition-duration") {
+        const seconds = Math.round(value / 1000);
         this._updateSliderValue(el.id, `${seconds}s`);
       } else if (el.type === "range") {
         this._updateSliderValue(el.id, value, el.step);
@@ -29191,16 +27614,11 @@ class DebuggerEventHandler {
       icon.classList.toggle("active", isWorldBased);
     });
 
-    this.element
-      .querySelectorAll(".list-manager-container")
-      .forEach((container) => {
-        const path = container.dataset.path;
-        this._renderListManagerItems(path);
-      });
-
+    this._updatePatternControlVisibility();
+    this._renderHintList();
+    this._renderBackgroundList();
     this._updateRandomHintVisibility();
-    this._updatePauseHintVisibility();
-    this._updateInitialRandomBackgroundVisibility();
+    this._updateRandomBackgroundVisibility();
     this._updateBackgroundOverlayVisibility();
     this._updateLutControlVisibility();
     this._updateCurveEditorView();
@@ -29277,6 +27695,10 @@ class DebuggerEventHandler {
       dropdown.add(new Option("No scene profiles", "-1"));
       dropdown.disabled = true;
     }
+  }
+
+  _onProfileSelectChange(event) {
+    // This doesn't need to do anything immediately. The preview/activate buttons will read the dropdown's value when clicked.
   }
 
   async _onPreviewClick(event) {
@@ -29603,202 +28025,111 @@ class DebuggerEventHandler {
     }).browse(targetInput.value);
   }
 
-  async _handleListManagerClick(event) {
-    const button = event.target.closest("button[data-action]");
-    const action = button.dataset.action;
-    const container = button.closest(".list-manager-container");
-    if (!container) return;
-
-    const path = container.dataset.path;
-    if (!path) return;
-
-    const currentString = game.settings.get(MODULE_ID, path) || "";
-    let list = currentString ? currentString.split(/\r?\n/) : [];
-
-    if (action === "add-list-item") {
-      list.push(""); // Add a new empty item to be filled
-    } else if (action === "remove-list-item") {
-      const index = parseInt(button.dataset.index, 10);
-      if (!isNaN(index)) {
-        list.splice(index, 1);
-      }
-    }
-
-    await game.settings.set(MODULE_ID, path, list.join("\n"));
-    this._renderListManagerItems(path); // Re-render the list in the UI
-  }
-
-  async _handleListManagerInputChange(input) {
-    const container = input.closest(".list-manager-container");
-    if (!container) return;
-
-    const path = container.dataset.path;
-    if (!path) return;
-
-    const itemInputs = container.querySelectorAll(
-      '.list-item-row input[type="text"]'
-    );
-    const newList = Array.from(itemInputs).map((el) => el.value);
-    const finalValue = newList.join("\n");
-
-    // We can just call game.settings.set directly like the click handler,
-    // since these are all game settings.
-    await game.settings.set(MODULE_ID, path, finalValue);
-    // No need to call _performSystemUpdate which does a lot more than necessary here.
-    // We do need to refresh the canvas state though.
-    await this.profileManager.initializeForScene();
-    await this.profileManager.updateAllSystemsFromConfig();
-  }
-
-  _renderListManagerItems(path) {
-    const container = this.element.querySelector(`[data-path="${path}"]`);
-    if (!container) return;
-    const listContainer = container.querySelector(".list-items-container");
-    const itemType = container.dataset.itemType;
-    if (!listContainer) return;
-
-    const valueString = game.settings.get(MODULE_ID, path) || "";
-    let items = valueString ? valueString.split(/\r?\n/) : [];
-    if (items.length === 1 && items[0] === "") {
-      items.length = 0;
-    }
-
-    listContainer.innerHTML = items
-      .map((item, index) => {
-        const inputId = `${DebuggerUIBuilder._createSafeId(
-          path
-        )}-item-${index}`;
-        const filePickerButton =
-          itemType === "image"
-            ? `<button type="button" class="file-picker-btn" data-fp-target="${inputId}" data-fp-type="image" title="Browse Files"><i class="fas fa-file-import"></i></button>`
-            : "";
-
-        return `
-        <div class="list-item-row">
-            <input type="text" id="${inputId}" data-index="${index}" value="${Handlebars.escapeExpression(
-          item
-        )}">
-            ${filePickerButton}
-            <button type="button" class="remove-item-btn" data-action="remove-list-item" data-index="${index}" title="Remove Item">X</button>
-        </div>
-      `;
-      })
-      .join("");
-  }
-
-  async _handleGenericInput(e) {
+  _handleListManagerChange(e) {
     const target = e.target;
+    const listItem = target.closest(".list-item-row");
+    if (!listItem) return;
 
-    // First, handle the special case of list managers
-    if (target.closest(".list-manager-container")) {
-      // We only want to save on 'change' to avoid saving on every keystroke,
-      // which can be laggy. 'change' fires on blur or when a file picker closes.
-      if (e.type === "change") {
-        await this._handleListManagerInputChange(target);
-      }
-      return; // Stop further processing for list items
+    const container = listItem.closest(".list-manager-container");
+    if (!container) return;
+
+    const path = container.dataset.path;
+    let list = foundry.utils.getProperty(this.config, path) || [];
+    list = foundry.utils.deepClone(list);
+
+    const index = parseInt(target.dataset.index, 10);
+    if (!isNaN(index)) {
+      list[index] = target.value;
+      this.profileManager.recordUserChange(path, list);
     }
+  }
 
-    // Now, handle all other standard controls
-    const path = target.dataset.path;
+  _handleGenericInput(e) {
+    const path = e.target.dataset.path;
     if (!path) return;
 
-    const isSlider = target.type === "range";
-    let value =
-      target.type === "checkbox"
-        ? target.checked
-        : isSlider
-        ? Number(target.value)
-        : target.value;
+    if (e.target.closest(".list-manager-container")) return;
 
-    if (target.type === "radio") {
-      if (!target.checked) return;
+    const isSlider = e.target.type === "range";
+    let value =
+      e.target.type === "checkbox"
+        ? e.target.checked
+        : isSlider
+        ? Number(e.target.value)
+        : e.target.value;
+
+    if (e.target.type === "radio") {
+      if (!e.target.checked) return;
     }
 
     let processedValue = value;
-    if (target.tagName === "SELECT" && !isNaN(Number(value))) {
+    if (e.target.tagName === "SELECT" && !isNaN(Number(value))) {
       processedValue = Number(value);
     }
 
+    // --- Start of throttled logic ---
     if (isSlider && e.type === "input") {
-      if (target.id === "control-sceneAppearance-transitionDuration") {
-        this._updateSliderValue(target.id, `${Math.round(value / 1000)}s`);
+      // For slider drags, only update the UI text value instantly.
+      if (e.target.id === "scene-transition-duration") {
+        this._updateSliderValue(e.target.id, `${Math.round(value / 1000)}s`);
       } else {
-        this._updateSliderValue(target.id, value, target.step);
+        this._updateSliderValue(e.target.id, value, e.target.step);
       }
+      // Then, call the throttled function for the expensive update.
       this.throttledSystemUpdate(path, processedValue);
     } else {
-      await this._performSystemUpdate(path, processedValue);
+      // For all other 'change' events (clicks, dropdowns, finishing a drag),
+      // perform the update immediately for responsiveness.
+      this._performSystemUpdate(path, processedValue);
 
+      // Also update the UI for these direct changes.
       if (isSlider) {
-        this._updateSliderValue(target.id, value, target.step);
+        this._updateSliderValue(e.target.id, value, e.target.step);
       }
-      if (target.type === "checkbox" && target.closest(".summary-control")) {
-        const detailsElement = target.closest("details");
+      if (
+        e.target.type === "checkbox" &&
+        e.target.closest(".summary-control")
+      ) {
+        const detailsElement = e.target.closest("details");
         if (detailsElement)
-          detailsElement.classList.toggle("disabled-effect", !target.checked);
+          detailsElement.classList.toggle("disabled-effect", !e.target.checked);
       }
 
-      if (path === "universal.sceneTransition.useRandomHint")
+      if (path === "baseShine.patternType")
+        this._updatePatternControlVisibility();
+      if (path === "sceneTransition.useRandomHint")
         this._updateRandomHintVisibility();
-      if (path === "universal.pauseEffect.useRandomHint")
-        this._updatePauseHintVisibility();
-      if (path === "loading-screen-use-random-background")
-        this._updateInitialRandomBackgroundVisibility();
-      if (path === "loading-screen-background-overlay-enabled") {
-        this._updateBackgroundOverlayVisibility();
-      }
+      if (path === "sceneTransition.useRandomBackgroundImage")
+        this._updateRandomBackgroundVisibility();
       if (path === "tileOpacity")
         game.mapShine.effectTargetManager.applyTileOpacities();
     }
   }
 
-  _updatePauseHintVisibility() {
-    const useRandom = game.settings.get(
-      MODULE_ID,
-      "universal.pauseEffect.useRandomHint"
-    );
-    const wrapper = this.element.querySelector(
-      "#pauseEffect-randomHints-wrapper"
-    );
-    if (wrapper) {
-      wrapper.style.display = useRandom ? "block" : "none";
-    }
-  }
-
   _updateRandomHintVisibility() {
-    const useRandom = game.settings.get(
-      MODULE_ID,
-      "universal.sceneTransition.useRandomHint"
-    );
-    const wrapper = this.element.querySelector(
+    const useRandom = this.config.sceneTransition.useRandomHint;
+    const randomWrapper = this.element.querySelector(
       "#sceneTransition-randomHints-wrapper"
     );
-    if (wrapper) {
-      wrapper.style.display = useRandom ? "block" : "none";
+    if (randomWrapper) {
+      randomWrapper.style.display = useRandom ? "block" : "none";
     }
   }
 
-  _updateInitialRandomBackgroundVisibility() {
-    const useRandom = game.settings.get(
-      MODULE_ID,
-      "loading-screen-use-random-background"
+  _updateRandomBackgroundVisibility() {
+    const useRandom = this.config.sceneTransition.useRandomBackgroundImage;
+    const randomWrapper = this.element.querySelector(
+      "#sceneTransition-backgroundImages-wrapper"
     );
-    const wrapper = this.element.querySelector(
-      "#loading-screen-random-backgrounds-wrapper"
-    );
-    if (wrapper) {
-      wrapper.style.display = useRandom ? "block" : "none";
+    if (randomWrapper) {
+      randomWrapper.style.display = useRandom ? "block" : "none";
     }
   }
 
   _updateBackgroundOverlayVisibility() {
-    const isEnabled = game.settings.get(
-      MODULE_ID,
-      "loading-screen-background-overlay-enabled"
-    );
+    const isEnabled = this.config.sceneTransition.backgroundOverlayEnabled;
     const details = this.element.querySelector(
-      "#details-initial-loading-bgOverlay"
+      "#details-sceneTransition-bgOverlay"
     );
     if (details) {
       const sliderContainer = details.querySelector("div");
@@ -29875,6 +28206,25 @@ class DebuggerEventHandler {
         : 0;
       valueEl.textContent = Number(value).toFixed(decimals);
     }
+  }
+
+  _updatePatternControlVisibility() {
+    const patternType = this._getPathValue(
+      this.config,
+      "baseShine.patternType"
+    );
+    const isStripes = patternType === "stripes";
+    const stripesControls = this.element.querySelector(
+      "#pattern-stripes-controls"
+    );
+    const checkerControls = this.element.querySelector(
+      "#pattern-checkerboard-controls"
+    );
+
+    if (stripesControls)
+      stripesControls.style.display = isStripes ? "" : "none";
+    if (checkerControls)
+      checkerControls.style.display = isStripes ? "none" : "";
   }
 
   _populateProfilesDropdown() {
@@ -29965,7 +28315,7 @@ class DebuggerEventHandler {
 
   async _onCopySettings() {
     try {
-      const configToCopy = this.profileManager.getCurrentConfig({
+      const configToCopy = this.profileManager._getEffectiveConfig({
         excludeClientOverrides: true,
       });
       const jsonString = JSON.stringify(configToCopy, null, 2);
@@ -29999,7 +28349,7 @@ class DebuggerEventHandler {
       }
 
       // Reconcile the pasted config to ensure it matches the current data structure.
-      const reconciledConfig = ConfigBuilder._reconcile(
+      const reconciledConfig = this.profileManager._reconcileOverrides(
         foundry.utils.deepClone(MODULE_DEFAULTS),
         pastedConfig
       );
@@ -30095,7 +28445,7 @@ class DebuggerEventHandler {
     this.curveEditor.path.setAttribute("stroke", colorMap[activeChannel]);
   }
 
-  async _onApplyColorPreset() {
+  _onApplyColorPreset() {
     const dropdown = this.element.querySelector(
       "#control-postProcessing-colorCorrection-activePreset"
     );
@@ -30449,15 +28799,6 @@ class MaterialEditorDebugger {
       indicator.className = `traffic-light ${statusObject.state}`;
       indicator.title = statusObject.message;
     }
-
-    if (category === "textures") {
-      const input = this.element.querySelector(`#texture-path-${key}`);
-      if (input) {
-        // Only display the path if it was successfully found.
-        // The message for other states is not a path.
-        input.value = statusObject.state === "ok" ? statusObject.message : "";
-      }
-    }
   }
 
   destroy() {
@@ -30575,7 +28916,6 @@ class SimpleUIPanel extends Application {
                                     <input type="checkbox" id="simple-enabled-${key}" data-key="${key}" data-type="enabled" ${
         isEnabled ? "checked" : ""
       }>
-                                    <button type="button" class="simple-reset-btn" data-action="reset-setting" data-key="${key}" title="Reset to Default">R</button>
                                 </div>
                             </div>
                         `;
@@ -30599,20 +28939,15 @@ class SimpleUIPanel extends Application {
                         .simple-ui-footer button:hover { background: #555; border-color: #888; }
                         .simple-ui-footer button.advanced-btn { background-color: #224466; border-color: #6688aa; color: #cceeff; }
                         .simple-ui-footer button.advanced-btn:hover { background-color: #336699; }
-                        .simple-reset-btn { width: 22px; height: 22px; font-size: 10px; font-weight: bold; padding: 0; line-height: 20px; border-radius: 50%; background: #4a4a4a; border: 1px solid #777; color: #ddd; flex-shrink: 0; }
-                        .simple-reset-btn:hover { background: #803030; color: #fff; border-color: #c06060; }
                     </style>
                     <div class="simple-ui-wrapper">
                         <div class="simple-control-row" title="Adjust the overall brightness of the scene. Higher values are brighter.">
                             <label for="simple-gamma-slider">Brightness (Gamma)</label>
-                            <div class="simple-widgets">
-                                <div class="simple-slider-wrapper">
-                                    <input type="range" id="simple-gamma-slider" data-path="postProcessing.colorCorrection.gamma" min="0.5" max="1.5" step="0.01" value="${gammaValue}">
-                                    <span class="value-span" id="simple-gamma-slider-value">${gammaValue.toFixed(
-                                      2
-                                    )}</span>
-                                </div>
-                                <button type="button" class="simple-reset-btn" data-action="reset-setting" data-path="postProcessing.colorCorrection.gamma" title="Reset to Default">R</button>
+                            <div class="simple-slider-wrapper">
+                                <input type="range" id="simple-gamma-slider" data-path="postProcessing.colorCorrection.gamma" min="0.5" max="1.5" step="0.01" value="${gammaValue}">
+                                <span class="value-span" id="simple-gamma-slider-value">${gammaValue.toFixed(
+                                  2
+                                )}</span>
                             </div>
                         </div>
                         <hr style="border-color: #555;">
@@ -30640,6 +28975,11 @@ class SimpleUIPanel extends Application {
         : 0;
       valueEl.text(Number(value).toFixed(decimals));
     }
+  }
+
+  _onSliderInput(event) {
+    const el = event.currentTarget;
+    this._updateSliderValue(el.id, el.value, el.step);
   }
 
   async _onInputChange(event) {
@@ -30671,44 +29011,6 @@ class SimpleUIPanel extends Application {
       await game.settings.set(MODULE_ID, "advanced-ui-mode", true);
       await this.close();
       game.mapShine.showEditor();
-    } else if (action === "reset-setting") {
-      const el = event.currentTarget;
-      const path = el.dataset.path;
-      const key = el.dataset.key;
-
-      if (path) {
-        // It's a profile setting like Gamma
-        const defaultValue = foundry.utils.getProperty(MODULE_DEFAULTS, path);
-        if (defaultValue !== undefined) {
-          await this.profileManager.recordUserChange(path, defaultValue);
-          await this.profileManager.updateAllSystemsFromConfig();
-          this.render(); // Re-render this panel to show the updated value
-        }
-      } else if (key) {
-        // It's a client override setting
-        // We need to reset both the enabled and intensity settings for this key
-        const enabledSettingName = `user-${key}-enabled`;
-        const defaultEnabled = game.settings.settings.get(
-          `${MODULE_ID}.${enabledSettingName}`
-        ).default;
-        await game.settings.set(MODULE_ID, enabledSettingName, defaultEnabled);
-
-        const configData = CLIENT_OVERRIDES_CONFIG[key];
-        if (configData.intensitySubPath) {
-          const intensitySettingName = `user-${key}-intensity`;
-          const defaultIntensity = game.settings.settings.get(
-            `${MODULE_ID}.${intensitySettingName}`
-          ).default;
-          await game.settings.set(
-            MODULE_ID,
-            intensitySettingName,
-            defaultIntensity
-          );
-        }
-        // The onChange hooks for these settings handle refreshing the canvas.
-        // We just need to re-render this panel to show the new values.
-        this.render();
-      }
     }
   }
 
@@ -30819,63 +29121,36 @@ Hooks.once("ready", () => {
   }
 });
 
-Hooks.on("updateScene", (scene, data, options) => {
+Hooks.on("updateScene", (scene, data) => {
+  // Only react to updates on the currently viewed scene.
   if (!scene.isView) return;
 
+  // Check if our specific flag was changed, or if the background image was changed.
   const flagPath = `flags.${MODULE_ID}`;
   const backgroundPath = "background.src";
-  const profileIdPath = `flags.${MODULE_ID}.activeProfileId`;
-  const sceneProfilesPath = `flags.${MODULE_ID}.profiles`;
-
-  // Check for texture discovery updates from the GM.
   if (
-    foundry.utils.hasProperty(data, `${flagPath}.mapShineTargets`) ||
+    foundry.utils.hasProperty(data, flagPath) ||
     foundry.utils.hasProperty(data, backgroundPath)
   ) {
+    console.log(
+      "Map Shine | Detected relevant scene update. Refreshing targets for all clients."
+    );
     game.mapShine?.effectTargetManager.refresh();
-  }
-
-  // This is the main synchronization logic for profile changes.
-  if (foundry.utils.hasProperty(data, sceneProfilesPath)) {
-    // Check if the current user initiated this update. If so, they have already cleared their
-    // own overrides, and their UI will be updated by their original action.
-    // This prevents the race condition. Other clients will proceed.
-    if (options.userId === game.user.id) return;
-
-    game.mapShine?.profileManager.initializeForScene();
-    game.mapShine?.profileManager.updateAllSystemsFromConfig();
-    if (game.mapShine.debugger) {
-      game.mapShine.debugger.render();
-    }
-  }
-
-  // Check for a change in the active profile ID to trigger transitions for non-GM clients.
-  if (foundry.utils.hasProperty(data, profileIdPath)) {
-    if (!game.user.isGM) {
-      game.mapShine?.profileManager.handleRemoteProfileChange();
-    }
   }
 });
 
-Hooks.on("canvasDraw", (canvas) => {
-  // This hook should only run once per scene load. We guard against it re-running on simple redraws.
-  if (game.mapShine.worldContainer) return;
-
+Hooks.on("canvasInit", (canvas) => {
+  // Create a new container for all world-related layers that should be post-processed.
   const worldContainer = new PIXI.Container();
   worldContainer.name = "mapShineWorldContainer";
+
+  // Move all existing children from the main stage into our new world container.
+  // This includes canvas.primary, canvas.effects, etc.
+  worldContainer.addChild(...canvas.stage.children);
+
+  // Add the world container back to the main stage.
   canvas.stage.addChild(worldContainer);
+
+  // Store this container for the ScreenEffectsManager to use.
   game.mapShine.worldContainer = worldContainer;
-
-  // Identify all layers that should be part of the "world" to be post-processed.
-  // This excludes the container itself and the main UI layer (canvas.interface).
-  const layersToWrap = canvas.stage.children.filter(
-    (child) => child !== worldContainer && child !== canvas.interface
-  );
-
-  // Move them into the container. This ensures all custom layers are properly sorted
-  // with core layers and are affected by post-processing effects.
-  if (layersToWrap.length > 0) {
-    worldContainer.addChild(...layersToWrap);
-    worldContainer.sortChildren();
-  }
 });
