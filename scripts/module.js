@@ -176,87 +176,87 @@ const FONT_CHOICES = {
   "-- Accessible --": { disabled: true },
   "Atkinson Hyperlegible": "Atkinson Hyperlegible",
   "Comic Sans MS": "Comic Sans MS",
-  "Inter": "Inter",
-  "Lexend": "Lexend",
+  Inter: "Inter",
+  Lexend: "Lexend",
   "Noto Sans": "Noto Sans",
   "Open Sans": "Open Sans",
-  "Verdana": "Verdana",
+  Verdana: "Verdana",
   "-- Body Text --": { disabled: true },
-  "Alegreya": "Alegreya",
+  Alegreya: "Alegreya",
   "Crimson Text": "Crimson Text",
   "EB Garamond": "EB Garamond",
-  "Lato": "Lato",
+  Lato: "Lato",
   "Libre Baskerville": "Libre Baskerville",
-  "Lora": "Lora",
-  "Merriweather": "Merriweather",
+  Lora: "Lora",
+  Merriweather: "Merriweather",
   "PT Serif": "PT Serif",
-  "Roboto": "Roboto",
+  Roboto: "Roboto",
   "Source Sans Pro": "Source Sans Pro",
   "-- Fantasy --": { disabled: true },
-  "Cinzel": "Cinzel",
+  Cinzel: "Cinzel",
   "Cormorant Garamond": "Cormorant Garamond",
   "Gentium Book Basic": "Gentium Book Basic",
   "IM Fell English": "IM Fell English",
-  "Lancelot": "Lancelot",
-  "MedievalSharp": "MedievalSharp",
+  Lancelot: "Lancelot",
+  MedievalSharp: "MedievalSharp",
   "Old Standard TT": "Old Standard TT",
   "Playfair Display": "Playfair Display",
   "Uncial Antiqua": "Uncial Antiqua",
   "-- Handwritten/Cursive --": { disabled: true },
-  "Caveat": "Caveat",
+  Caveat: "Caveat",
   "Dancing Script": "Dancing Script",
-  "Kalam": "Kalam",
+  Kalam: "Kalam",
   "Patrick Hand": "Patrick Hand",
   "Permanent Marker": "Permanent Marker",
   "Rock Salt": "Rock Salt",
-  "Sacramento": "Sacramento",
+  Sacramento: "Sacramento",
   "-- Headers --": { disabled: true },
   "Abril Fatface": "Abril Fatface",
-  "Anton": "Anton",
+  Anton: "Anton",
   "Archivo Black": "Archivo Black",
-  "Arvo": "Arvo",
-  "Bangers": "Bangers",
+  Arvo: "Arvo",
+  Bangers: "Bangers",
   "Bebas Neue": "Bebas Neue",
-  "Montserrat": "Montserrat",
-  "Oswald": "Oswald",
+  Montserrat: "Montserrat",
+  Oswald: "Oswald",
   "Passion One": "Passion One",
-  "Raleway": "Raleway",
+  Raleway: "Raleway",
   "Roboto Slab": "Roboto Slab",
   "-- Horror/Gothic --": { disabled: true },
-  "Butcherman": "Butcherman",
-  "Creepster": "Creepster",
+  Butcherman: "Butcherman",
+  Creepster: "Creepster",
   "Metal Mania": "Metal Mania",
-  "Nosifier": "Nosifier",
-  "UnifrakturMaguntia": "UnifrakturMaguntia",
+  Nosifier: "Nosifier",
+  UnifrakturMaguntia: "UnifrakturMaguntia",
   "-- Modern/Clean --": { disabled: true },
   "Exo 2": "Exo 2",
   "Nunito Sans": "Nunito Sans",
-  "Poppins": "Poppins",
+  Poppins: "Poppins",
   "Titillium Web": "Titillium Web",
   "Work Sans": "Work Sans",
   "-- Monospaced --": { disabled: true },
   "Anonymous Pro": "Anonymous Pro",
   "Cutive Mono": "Cutive Mono",
   "IBM Plex Mono": "IBM Plex Mono",
-  "Inconsolata": "Inconsolata",
+  Inconsolata: "Inconsolata",
   "Roboto Mono": "Roboto Mono",
   "Source Code Pro": "Source Code Pro",
-  "VT323": "VT323",
+  VT323: "VT323",
   "-- Science Fiction --": { disabled: true },
-  "Audiowide": "Audiowide",
-  "Geo": "Geo",
+  Audiowide: "Audiowide",
+  Geo: "Geo",
   "Keania One": "Keania One",
-  "Orbitron": "Orbitron",
+  Orbitron: "Orbitron",
   "Share Tech Mono": "Share Tech Mono",
   "Space Mono": "Space Mono",
   "Stalinist One": "Stalinist One",
-  "Teko": "Teko",
+  Teko: "Teko",
   "-- Miscellaneous --": { disabled: true },
-  "Bungee": "Bungee",
-  "Lobster": "Lobster",
-  "Pacifico": "Pacifico",
+  Bungee: "Bungee",
+  Lobster: "Lobster",
+  Pacifico: "Pacifico",
   "Press Start 2P": "Press Start 2P",
-  "Signika": "Signika",
+  Signika: "Signika",
 };
 
 const GRADIENT_PRESETS = {
@@ -2712,19 +2712,22 @@ class FontLoader {
     const uniqueFontsToLoad = [...new Set(fontFamilies)].filter(Boolean);
     if (uniqueFontsToLoad.length === 0) return;
 
-    const link = document.getElementById(this.STYLESHEET_ID) || this._createLink();
+    const link =
+      document.getElementById(this.STYLESHEET_ID) || this._createLink();
     const currentlyLoadedFonts = this._getLoadedFonts(link);
 
-    const newFonts = uniqueFontsToLoad.filter(font => !currentlyLoadedFonts.has(font));
+    const newFonts = uniqueFontsToLoad.filter(
+      (font) => !currentlyLoadedFonts.has(font)
+    );
 
     if (newFonts.length === 0) return;
 
     const allFonts = new Set([...currentlyLoadedFonts, ...newFonts]);
-    
+
     const fontQuery = Array.from(allFonts)
       .map((font) => `family=${font.replace(/ /g, "+")}:wght@400;700`)
       .join("&");
-      
+
     link.href = `https://fonts.googleapis.com/css2?${fontQuery}&display=swap`;
   }
 
@@ -26994,12 +26997,16 @@ class DebuggerUIBuilder {
 
   buildRootElement() {
     // Load only the fonts currently in use by the module's settings.
-    const getFont = (style) => game.settings.get(MODULE_ID, `universal.fontManager.styles.${style}.fontFamily`);
+    const getFont = (style) =>
+      game.settings.get(
+        MODULE_ID,
+        `universal.fontManager.styles.${style}.fontFamily`
+      );
     const fontsInUse = [
-        getFont("heading1"),
-        getFont("heading2"),
-        getFont("body"),
-        getFont("hint"),
+      getFont("heading1"),
+      getFont("heading2"),
+      getFont("body"),
+      getFont("hint"),
     ];
     FontLoader.load(fontsInUse);
 
@@ -27417,7 +27424,18 @@ class DebuggerUIBuilder {
                             .profile-controls { display: flex; flex-direction: column; gap: 4px; }
                             #material-editor-debugger select { width: 100%; text-transform: capitalize; background-color: #222; color: #fff; border: 1px solid #555; border-radius: 2px; height: 20px; font-size: 11px; }
                             .star-icon { font-size: 0 !important; background-color: #ccc; width: 12px; height: 12px; clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); margin: auto; }
-                            #material-editor-debugger.minimized { width: auto; height: auto; padding: 4px; gap: 0; box-shadow: 0 0 10px rgba(0,0,0,0.5); right: auto; }
+                            #material-editor-debugger.minimized { 
+                                width: auto; 
+                                height: auto; 
+                                padding: 4px; 
+                                gap: 0; 
+                                box-shadow: 0 0 10px rgba(0,0,0,0.5); 
+                                right: auto; 
+                                min-width: 0;
+                                min-height: 0;
+                                resize: none;
+                                overflow: hidden;
+                            }
                             #material-editor-debugger.minimized #material-editor-header { padding: 0; cursor: move; }
                             #material-editor-debugger.minimized > *:not(#material-editor-header) { display: none; }
                             #material-editor-debugger.minimized #material-editor-help-btn, #material-editor-debugger.minimized #material-editor-user-guide-btn, #material-editor-debugger.minimized #material-editor-title { display: none; }
@@ -27750,7 +27768,6 @@ class DebuggerUIBuilder {
             </div>
         `;
   }
-
 
   _buildProfileSection() {
     const isGm = game.user.isGM;
@@ -29382,7 +29399,37 @@ class DebuggerEventHandler {
   }
 
   _onMinimize() {
-    this.element.classList.toggle("minimized");
+    const debuggerInstance = game.mapShine.debugger;
+    if (!debuggerInstance) return;
+
+    const isMinimized = this.element.classList.toggle("minimized");
+
+    if (isMinimized) {
+      // Store current size before minimizing
+      debuggerInstance.preMinimizeSize = {
+        width: this.element.style.width,
+        height: this.element.style.height,
+      };
+      // Remove inline styles to allow CSS to take over
+      this.element.style.width = "";
+      this.element.style.height = "";
+    } else {
+      // Restore size if it was stored
+      if (debuggerInstance.preMinimizeSize) {
+        this.element.style.width = debuggerInstance.preMinimizeSize.width;
+        this.element.style.height = debuggerInstance.preMinimizeSize.height;
+      } else {
+        // Fallback if no size was stored (e.g., if minimized on first load)
+        const defaultWidth = 1000;
+        const defaultHeight = 1150;
+        this.element.style.width = `${defaultWidth}px`;
+        const calculatedHeight = Math.min(
+          defaultHeight,
+          window.innerHeight - 120
+        );
+        this.element.style.height = `${calculatedHeight}px`;
+      }
+    }
   }
 
   _getPathValue(obj, path) {
@@ -29870,6 +29917,7 @@ class MaterialEditorDebugger {
     this.resizeObserver = null;
     this.resizeTimeout = null;
     this._updateSceneHookId = null; // To store the hook ID for cleanup
+    this.preMinimizeSize = null;
   }
 
   /**
@@ -29906,10 +29954,8 @@ class MaterialEditorDebugger {
     );
     this.eventHandler.initialize();
 
-    // Call render() to build the initial state of the dynamic UI sections
     this.render();
 
-    // ... (The rest of the `initialize` method, including position/size restoration and resize observer, remains the same)
     const savedPosition = game.settings.get(MODULE_ID, "debugger-position");
     const defaultWidth = 1000;
     const defaultHeight = 1150;
@@ -29920,7 +29966,11 @@ class MaterialEditorDebugger {
       this.element.style.left = `${savedPosition.left}px`;
     } else {
       this.element.style.width = `${defaultWidth}px`;
-      this.element.style.height = `${defaultHeight}px`;
+      const calculatedHeight = Math.min(
+        defaultHeight,
+        window.innerHeight - 120
+      );
+      this.element.style.height = `${calculatedHeight}px`;
       const initialTop = 80;
       const initialLeft = (window.innerWidth - defaultWidth) / 2;
       this.element.style.top = `${initialTop}px`;
