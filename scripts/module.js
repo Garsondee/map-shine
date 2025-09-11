@@ -8889,1065 +8889,182 @@ class PauseScreenManager {
       if (game.paused) {
         this._applyCustomPauseScreen();
       }
-    }
-  }
-
-  async transition(startConfig, endConfig, duration, isPreview = false) {
-    this.stop();
-    this._configBeforePreview = null; // A transition always clears any preview state.
-
-    if (duration === 0) {
-      this.profileManager.activeConfig = endConfig;
-      await this.profileManager.updateAllSystemsFromConfig();
-      // Also broadcast the final time for any listeners like the clock.
-      Hooks.callAll("mapShine:timeChanged", endConfig.timeOfDay.currentTime);
-      this._setStatus("idle", "Transition complete (instant)");
-      return;
-    }
-
-    game.mapShine.transitionActive = true;
-
-    // Instantly update particle systems to their final state.
-    // Temporarily set the active config to the end state to ensure all sub-functions (like emitter builders) use the correct final values.
-    this.profileManager.activeConfig = endConfig;
-    const particleLayers = canvas.layers.filter(
-      (l) => l instanceof ParticleLayer || l instanceof SmellyFliesLayer
-    );
-    for (const layer of particleLayers) {
-      if (typeof layer.updateFromConfig === "function") {
-        // Pass empty options to ensure a full, destructive update for the particle systems.
-        await layer.updateFromConfig(endConfig, {});
-      }
-    }
-    // Restore the active config to the start state for the smooth transition of other effects.
-    this.profileManager.activeConfig = startConfig;
-
-    return new Promise((resolve) => {
-      const transitionState = {
-        progress: 0,
-      };
-      const statusType = isPreview ? "previewing" : "transitioning";
-      const startMessage = isPreview
-        ? "Previewing transition..."
-        : "Transitioning...";
-      this._setStatus(statusType, startMessage);
-
-      this.activeTransition = gsap.to(transitionState, {
-        progress: 1,
-        duration: duration / 1000,
-        ease: "power1.inOut",
-        onUpdate: () => {
-          const interpolatedConfig = this._interpolateConfigs(
-            startConfig,
-            endConfig,
-            transitionState.progress
-          );
-          this.profileManager.activeConfig = interpolatedConfig;
-          // Update all systems EXCEPT for particles during the transition.
-          this.profileManager.updateAllSystemsFromConfig({
-            skipParticles: true,
-          });
-          // Broadcast the interpolated time to keep the clock and other time-based systems in sync.
-          Hooks.callAll(
-            "mapShine:timeChanged",
-            interpolatedConfig.timeOfDay.currentTime
-          );
-          const percent = Math.round(transitionState.progress * 100);
-          this._setStatus(
-            statusType,
-            `${isPreview ? "Previewing" : "Transitioning"}... (${percent}%)`
-          );
-        },
-        onComplete: async () => {
-          this.profileManager.activeConfig = endConfig;
-          // Disable the transition flag BEFORE the final update.
-          game.mapShine.transitionActive = false;
-
-          // --- SPECIAL HANDLING: Rebuild transition-sensitive layers ---
-          // These effects are not interpolated. Instead, they get a full teardown and
-          // rebuild here to ensure they initialize correctly with the final state.
-          const buildingShadowsLayer = canvas.layers.find(
-            (l) => l instanceof BuildingShadowsLayer
-          );
-          if (buildingShadowsLayer) {
-            await buildingShadowsLayer.rebuildEffect();
-          }
-          const timeOfDayLayer = canvas.layers.find(
-            (l) => l instanceof TimeOfDayLayer
-          );
-          if (timeOfDayLayer) {
-            await timeOfDayLayer.rebuildEffect();
-          }
-          // --- END SPECIAL HANDLING ---
-
-          // Force all masked layers to re-render their masks on the next frame.
-          for (const layer of canvas.layers) {
-            if (layer instanceof MaskedEffectLayer) {
-              layer._needsMaskUpdate = true;
-            }
-          }
-          // Perform a final, full update of all systems to ensure consistency.
-          await this.profileManager.updateAllSystemsFromConfig();
-          // Broadcast the final time to ensure perfect sync.
-          Hooks.callAll(
-            "mapShine:timeChanged",
-            endConfig.timeOfDay.currentTime
-          );
-          this._setStatus("idle", "Transition complete");
-          this.activeTransition = null;
-          resolve();
-        },
-      });
     });
   }
 
-  async preview(config) {
-    this.stop();
-    this._setStatus("previewing", "Preview active");
-
-    // Store the config that we should revert to when the preview ends.
-    this._configBeforePreview = this.profileManager._getEffectiveConfig();
-
-    // Set the active config to the one being previewed.
-    this.profileManager.activeConfig = config;
-    await this.profileManager.updateAllSystemsFromConfig();
-  }
-
-  async endPreview() {
-    if (this.status !== "previewing") return;
-    this.stop();
-
-    // Revert to the config we saved before the preview started, with a fallback.
-    this.profileManager.activeConfig =
-      this._configBeforePreview || this.profileManager._getEffectiveConfig();
-    this._configBeforePreview = null; // Clean up the stored state.
-
-    await this.profileManager.updateAllSystemsFromConfig();
-    this._setStatus("idle", "Preview ended");
-  }
-}
-
-class CorrectedIlluminationManager {
-  constructor(canvas) {
-    this.canvas = canvas;
-    this.renderer = canvas.app.renderer;
-    const screen = this.renderer.screen;
-
-    this.renderTexture = PIXI.RenderTexture.create({
-      width: screen.width,
-      height: screen.height,
-    });
-
-    this.filter = new CorrectedIlluminationFilter();
-    this.sourceSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
-    this.sourceSprite.width = screen.width;
-    this.sourceSprite.height = screen.height;
-    this.sourceSprite.filters = [this.filter];
-
-    this._destroyed = false;
-
-    // No ticker needed; this manager will be updated manually by LightingEffectManager
-    // to ensure correct render order.
-  }
-
-  update() {
-    if (this._destroyed) return;
-
-    const illuminationTexture = IlluminationManager.getLightingTexture();
-    if (!illuminationTexture?.valid) return;
-
-    const cloudLayer = this.canvas.layers.find(
-      (l) => l instanceof CloudShadowsLayer
-    );
-    // An outdoors mask is considered valid if the layer has discovered any source textures for it.
-    const hasOutdoorsMask = cloudLayer?.maskSprites.size > 0;
-
-    // If an outdoors mask exists and the scene has global light, perform the correction.
-    if (hasOutdoorsMask && this.canvas.scene.globalLight) {
-      const outdoorsMask = cloudLayer.getMaskTexture();
-      if (!outdoorsMask?.valid) return;
-
-      this.filter.enabled = true;
-      const u = this.filter.uniforms;
-      u.uIlluminationBuffer = illuminationTexture;
-      u.uOutdoorsMask = outdoorsMask;
-      u.uHasGlobalIllumination = this.canvas.scene.globalLight;
-      u.uSunlightColor = this.canvas.scene.environment.sunlightColor;
-
-      this.renderer.render(this.sourceSprite, {
-        renderTexture: this.renderTexture,
-        clear: true,
-      });
-    } else {
-      // Otherwise, just copy the original illumination buffer directly.
-      // This is more efficient than running a disabled filter and handles the "no mask" case.
-      this.renderer.render(illuminationTexture, {
-        renderTexture: this.renderTexture,
-        clear: true,
-      });
-    }
-  }
-
-  getCorrectedTexture() {
-    return this.renderTexture;
-  }
-
-  destroy() {
-    if (this._destroyed) return;
-    this._destroyed = true;
-
-    this.renderTexture?.destroy(true);
-    this.filter?.destroy();
-    this.sourceSprite?.destroy();
-  }
-}
-
-class DynamicExposureManager {
-  constructor() {
-    this.tokenManager = game.mapShine.tokenManager;
-
-    // State
-    this.isInitialized = false;
-    this.isIndoors = null; // null, true, or false
-    this.lastTriggerTimestamp = 0;
-    this.dazzleAnimation = null;
-    this.activeTokenId = null;
-
-    // Effect parameters (will be loaded from config)
-    this.config = {};
-
-    // PIXI Objects
-    this.ccFilter = null;
-  }
-
-  initialize() {
-    if (this.isInitialized) return;
-
-    this.ccFilter = ScreenEffectsManager.getFilter("colorCorrection");
-    if (!this.ccFilter) {
-      console.error(
-        "Map Shine | DynamicExposureManager: Could not find ColorCorrectionFilter."
-      );
-      return;
-    }
-
-    // Ensure the uniform exists on the filter
-    if (this.ccFilter.uniforms.uDynamicExposureBoost === undefined) {
-      this.ccFilter.uniforms.uDynamicExposureBoost = 0.0;
-    }
-
-    // Bind hooks
-    this._boundOnControlToken = this._onControlToken.bind(this);
-    this._boundOnUpdateToken = this._onUpdateToken.bind(this);
-    Hooks.on("controlToken", this._boundOnControlToken);
-    Hooks.on("updateToken", this._boundOnUpdateToken);
-
-    this.isInitialized = true;
-
-    // Perform an initial check on the currently controlled token, if any
-    const currentToken = this.tokenManager.getActiveToken();
-    if (currentToken) {
-      this._onControlToken(currentToken, true);
-    }
-  }
-
-  _onControlToken(token, controlled) {
-    if (this.dazzleAnimation) {
-      this.dazzleAnimation.kill();
-      this.dazzleAnimation = null;
-    }
-
-    if (controlled && token) {
-      this.activeTokenId = token.id;
-      // Establish the initial state without triggering the effect
-      this._updateInitialTokenState(token);
-    } else if (!canvas.tokens.controlled.length) {
-      this.activeTokenId = null;
-      this.isIndoors = null;
-    }
-  }
-
-  _onUpdateToken(tokenDoc, change) {
-    this.config =
-      game.mapShine.profileManager.activeConfig.postProcessing.colorCorrection.dynamicExposure;
-
-    if (
-      !this.isInitialized ||
-      tokenDoc.id !== this.activeTokenId ||
-      !this.config.enabled
-    ) {
-      return;
-    }
-
-    // Only react to movement
-    if (change.x !== undefined || change.y !== undefined) {
-      // We need to check the state at the destination, not the current position.
-      // Create a point representing the destination center in world coordinates.
-      const dest = {
-        x: change.x ?? tokenDoc.x,
-        y: change.y ?? tokenDoc.y,
-        w: tokenDoc.width * canvas.scene.grid.size,
-        h: tokenDoc.height * canvas.scene.grid.size,
-      };
-      const destCenter = {
-        x: dest.x + dest.w / 2,
-        y: dest.y + dest.h / 2,
-      };
-      this._checkTokenStateAtPoint(destCenter, true);
-    }
-  }
-
-  _updateInitialTokenState(token) {
-    if (!token) {
-      this.isIndoors = null;
-      return;
-    }
-
-    const cloudLayer = canvas.layers.find(
-      (l) => l instanceof CloudShadowsLayer
-    );
-    const outdoorsMask = cloudLayer?.getMaskTexture();
-
-    if (!outdoorsMask?.valid) {
-      this.isIndoors = null;
-      return;
-    }
-
-    const screenPos = canvas.stage.toGlobal(token.center);
-    const screen = canvas.app.renderer.screen;
-    const x = Math.max(0, Math.min(screen.width - 1, Math.round(screenPos.x)));
-    const y = Math.max(0, Math.min(screen.height - 1, Math.round(screenPos.y)));
-
-    try {
-      const pixelData = canvas.app.renderer.extract.pixels(
-        outdoorsMask,
-        new PIXI.Rectangle(x, y, 1, 1)
-      );
-      const maskValue = pixelData[0];
-      const isNowOutdoors = maskValue > 128;
-      this.isIndoors = !isNowOutdoors;
-    } catch (e) {
-      // It's safe to ignore extraction errors here, as this is just setting an initial state.
-    }
-  }
-
-  _checkTokenStateAtPoint(worldPoint, canTriggerEffect = false) {
-    if (!worldPoint) {
-      this.isIndoors = null;
-      return;
-    }
-
-    const cloudLayer = canvas.layers.find(
-      (l) => l instanceof CloudShadowsLayer
-    );
-    const outdoorsMask = cloudLayer?.getMaskTexture();
-
-    if (!outdoorsMask?.valid) {
-      this.isIndoors = null;
-      return;
-    }
-
-    const screenPos = canvas.stage.toGlobal(worldPoint);
-    const screen = canvas.app.renderer.screen;
-    const x = Math.max(0, Math.min(screen.width - 1, Math.round(screenPos.x)));
-    const y = Math.max(0, Math.min(screen.height - 1, Math.round(screenPos.y)));
-
-    try {
-      const pixelData = canvas.app.renderer.extract.pixels(
-        outdoorsMask,
-        new PIXI.Rectangle(x, y, 1, 1)
-      );
-      const maskValue = pixelData[0];
-
-      // Corrected Logic: "Outdoors" is where the _Outdoors mask is bright.
-      const isNowOutdoors = maskValue > 128;
-      const wasIndoors = this.isIndoors === true;
-
-      // Update the state for the *next* check, based on the destination of the *current* move.
-      this.isIndoors = !isNowOutdoors;
-
-      // Check for the specific transition from indoors (dark) to outdoors (bright).
-      if (canTriggerEffect && wasIndoors && isNowOutdoors) {
-        this._triggerDazzleEffect();
-      }
-    } catch (e) {
-      // This can happen if the texture is not yet ready on the GPU.
-      // It's safe to ignore and try again on the next movement.
-    }
-  }
-
-  _triggerDazzleEffect() {
-    this.config =
-      game.mapShine.profileManager.activeConfig.postProcessing.colorCorrection.dynamicExposure;
-
-    if (Date.now() - this.lastTriggerTimestamp < this.config.resetPeriod) {
-      return; // Effect is on cooldown
-    }
-
-    this.lastTriggerTimestamp = Date.now();
-
-    if (this.dazzleAnimation) {
-      this.dazzleAnimation.kill();
-    }
-
-    // Animate the exposure boost using GSAP
-    this.ccFilter.uniforms.uDynamicExposureBoost = this.config.intensity;
-    this.dazzleAnimation = gsap.to(this.ccFilter.uniforms, {
-      uDynamicExposureBoost: 0,
-      duration: this.config.duration / 1000, // GSAP uses seconds
-      ease: "power2.out",
-      onComplete: () => {
-        this.dazzleAnimation = null;
-      },
-    });
-  }
-
-  destroy() {
-    if (!this.isInitialized) return;
-    this.isInitialized = false;
-
-    Hooks.off("controlToken", this._boundOnControlToken);
-    Hooks.off("updateToken", this._boundOnUpdateToken);
-
-    if (this.dazzleAnimation) {
-      this.dazzleAnimation.kill();
-      this.dazzleAnimation = null;
-    }
-
-    if (this.ccFilter && !this.ccFilter.destroyed) {
-      this.ccFilter.uniforms.uDynamicExposureBoost = 0.0;
-    }
-
-    this.ccFilter = null;
-    this.activeTokenId = null;
-  }
-}
-
-class PauseEffectManager {
-  constructor() {
-    this._animationState = {
-      progress: game.paused ? 1 : 0,
+  /**
+   * Retrieves all necessary settings for the pause screen from the game settings.
+   * @returns {object} An object containing all the configured values.
+   * @private
+   */
+  static _getSettings() {
+    const getSetting = (key) =>
+      game.settings.get(MODULE_ID, `universal.pauseEffect.${key}`);
+    return {
+      heading: getSetting("heading"),
+      subheading: getSetting("subheading"),
+      logoPath: getSetting("logoPath"),
+      logoOpacity: getSetting("logoOpacity"),
+      backgroundColor: getSetting("backgroundColor"),
+      gradientColor1: getSetting("gradientColor1"),
+      gradientColor2: getSetting("gradientColor2"),
+      gradientShadowColor: getSetting("gradientShadowColor"),
+      headingColor: getSetting("headingColor"),
+      subheadingColor: getSetting("subheadingColor"),
+      hintColor: getSetting("hintColor"),
+      useRandomHint: getSetting("useRandomHint"),
+      randomHints: (getSetting("randomHints") || "")
+        .split(/\r?\n/)
+        .filter((h) => h.trim() !== ""),
     };
-    this._animation = null;
-    this._pauseFilter = null;
-    this._originalGlobalTime = 100;
-    this._isInitialized = false;
-    // Bind the handler once to ensure Hooks.off can find it
-    this._boundOnPauseChange = this._onPauseChange.bind(this);
   }
 
-  initialize() {
-    if (this._isInitialized) return;
-    this._pauseFilter = ScreenEffectsManager.getFilter("pauseEffect");
-    if (!this._pauseFilter) {
-      console.error(
-        "Map Shine | PauseEffectManager could not find its dedicated filter."
-      );
-      return;
-    }
+  /**
+   * Finds the #pause element, clears it, and injects our fully custom content and styles.
+   * @private
+   */
+  static _applyCustomPauseScreen() {
+    const MAX_ATTEMPTS = 120;
+    let attempts = 0;
 
-    const config = game.mapShine.profileManager.activeConfig;
-    this._originalGlobalTime = config.timeControl.globalTime;
+    const findAndModify = () => {
+      const pauseElement = document.getElementById("pause");
+      if (pauseElement) {
+        // Clear any default content (like the Foundry logo and "Game Paused" text)
+        pauseElement.innerHTML = "";
 
-    // Set initial state without animation, in case the game loads while paused.
-    this._updateEffects(this._animationState.progress);
-
-    Hooks.on("pauseGame", this._boundOnPauseChange);
-    this._isInitialized = true;
-    console.log("Map Shine | Pause Effect Manager Initialized.");
-  }
-
-  destroy() {
-    if (!this._isInitialized) return;
-
-    Hooks.off("pauseGame", this._boundOnPauseChange);
-    if (this._animation) {
-      this._animation.kill();
-    }
-    this._animation = null;
-    this._pauseFilter = null; // Don't destroy the filter itself, just release the reference
-    this._isInitialized = false;
-    console.log("Map Shine | Pause Effect Manager Destroyed.");
-  }
-
-  _onPauseChange(paused) {
-    if (!this._pauseFilter) return;
-
-    const config = game.mapShine.profileManager.activeConfig;
-    const peConfig = config.pauseEffect;
-
-    if (!peConfig.enabled) {
-      // If the effect is disabled, ensure time is restored and the filter is off.
-      this._updateEffects(0);
-      if (config.timeControl.globalTime < this._originalGlobalTime) {
-        foundry.utils.setProperty(
-          config,
-          "timeControl.globalTime",
-          this._originalGlobalTime
-        );
-        game.mapShine.profileManager.updateAllSystemsFromConfig();
-        if (game.mapShine.debugger) {
-          game.mapShine.debugger.eventHandler.updateAllControls();
+        const settings = this._getSettings();
+        let hintHTML = "";
+        if (settings.useRandomHint && settings.randomHints.length > 0) {
+          const hint =
+            settings.randomHints[
+              Math.floor(Math.random() * settings.randomHints.length)
+            ];
+          hintHTML = `<p class="map-shine-pause-hint">${hint}</p>`;
         }
+
+        const logoHTML = settings.logoPath
+          ? `<div class="map-shine-pause-logo"></div>`
+          : "";
+
+        const customHTML = `
+          <div class="map-shine-pause-wrapper">
+            <h1 class="map-shine-pause-title">${settings.heading}</h1>
+            <p class="map-shine-pause-subtitle">${settings.subheading}</p>
+            ${logoHTML}
+            ${hintHTML}
+          </div>
+        `;
+
+        const customCSS = `
+          <style>
+            #pause.custom-pause-screen {
+              /* Override Foundry defaults to make it a simple backdrop */
+              background: ${settings.backgroundColor} !important;
+              backdrop-filter: blur(8px) grayscale(0.5);
+              border: none !important;
+              animation: none !important;
+              padding: 0 5vw; /* Prevent content from touching screen edges */
+            }
+
+            .map-shine-pause-wrapper {
+              position: relative;
+              width: 200%;
+              padding: 4rem 2rem;
+              background: rgba(0,0,0,0.4);
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              gap: 1rem;
+              animation: fadeInContent 1.5s ease-out forwards;
+            }
+
+            .map-shine-pause-wrapper::before,
+            .map-shine-pause-wrapper::after {
+              content: '';
+              position: absolute;
+              left: 0;
+              right: 0;
+              height: 3px;
+              background: linear-gradient(to right, transparent, ${
+                settings.gradientColor1
+              }, ${settings.gradientColor2}, ${
+          settings.gradientColor1
+        }, transparent);
+            }
+
+            .map-shine-pause-wrapper::before {
+              top: 0;
+              box-shadow: 0 0 8px 1px ${settings.gradientShadowColor};
+            }
+
+            .map-shine-pause-wrapper::after {
+              bottom: 0;
+              box-shadow: 0 0 8px 1px ${settings.gradientShadowColor};
+            }
+
+            .map-shine-pause-title {
+              font-size: 4em; margin: 0; letter-spacing: 5px; color: ${
+                settings.headingColor
+              }; text-transform: uppercase;
+              text-shadow: 0 0 10px #000;
+            }
+            .map-shine-pause-subtitle {
+              font-size: 1.5em; margin: 10px 0 20px 0; color: ${
+                settings.subheadingColor
+              }; font-style: italic;
+              text-shadow: 0 0 10px #000;
+            }
+            .map-shine-pause-logo {
+              width: 80px; height: 80px;
+              background-image: url('${settings.logoPath}');
+              background-size: contain; background-repeat: no-repeat; background-position: center;
+              margin: 0 auto; opacity: ${
+                settings.logoOpacity
+              }; animation: pulseLogo 4s ease-in-out infinite;
+            }
+            .map-shine-pause-hint {
+              margin-top: 25px;
+              padding-top: 15px;
+              border-top: 1px solid rgba(255, 255, 255, 0.2);
+              font-style: italic;
+              color: ${settings.hintColor};
+              max-width: 40ch;
+              margin-left: auto;
+              margin-right: auto;
+            }
+            @keyframes fadeInContent {
+              from { opacity: 0; transform: translateY(20px); }
+              to { opacity: 1; transform: translateY(0); }
+            }
+            @keyframes pulseLogo {
+              0%, 100% { transform: scale(1); opacity: ${
+                settings.logoOpacity
+              }; }
+              50% { transform: scale(1.1); opacity: ${Math.min(
+                1,
+                settings.logoOpacity + 0.2
+              )}; }
+            }
+          </style>
+        `;
+
+        pauseElement.classList.add("custom-pause-screen");
+        pauseElement.innerHTML = customCSS + customHTML;
+        return;
       }
-      return;
-    }
 
-    if (this._animation) {
-      this._animation.kill();
-    }
-
-    const targetProgress = paused ? 1 : 0;
-
-    // Before starting a "pausing" animation, store the current time.
-    // But only if we aren't already paused (e.g. from a previous animation)
-    if (paused && this._animationState.progress < 1) {
-      this._originalGlobalTime =
-        game.mapShine.profileManager.activeConfig.timeControl.globalTime;
-    }
-
-    this._animation = gsap.to(this._animationState, {
-      progress: targetProgress,
-      duration: peConfig.duration / 1000, // GSAP uses seconds
-      ease: "power2.inOut",
-      onUpdate: () => this._updateEffects(this._animationState.progress),
-      onComplete: () => {
-        this._animation = null;
-        this._updateEffects(targetProgress); // Final snap to value
-      },
-    });
-  }
-
-  _updateEffects(progress) {
-    if (!this._pauseFilter) return;
-
-    const config = game.mapShine.profileManager.activeConfig;
-    const peConfig = config.pauseEffect;
-    const timeControlPath = "timeControl.globalTime";
-
-    // --- 1. Update Time Control ---
-    const newTime = this._originalGlobalTime * (1 - progress);
-
-    // Directly update the live timeFactor and the config object for consistency
-    game.mapShine.timeControl.timeFactor = newTime / 100.0;
-    foundry.utils.setProperty(config, timeControlPath, newTime);
-
-    // We only need to call updateAllSystemsFromConfig for the time change.
-    // The color correction is handled directly on the filter below.
-    // Pass a flag to indicate this is a time-only update to prevent particle resets.
-    game.mapShine.profileManager.updateAllSystemsFromConfig({
-      timeOnly: true,
-    });
-
-    // Update the debugger UI to reflect the change without treating it as a user override
-    if (game.mapShine.debugger) {
-      const slider = game.mapShine.debugger.element.querySelector(
-        "#control-timeControl-globalTime"
-      );
-      if (slider) {
-        slider.value = newTime;
-        game.mapShine.debugger.eventHandler._updateSliderValue(
-          slider.id,
-          newTime,
-          slider.step
+      attempts++;
+      if (attempts < MAX_ATTEMPTS) {
+        requestAnimationFrame(findAndModify);
+      } else {
+        console.warn(
+          "Map Shine | Timed out waiting for the #pause element to be added to the DOM."
         );
       }
-    }
-
-    // --- 2. Update Color Correction Filter ---
-    const u = this._pauseFilter.uniforms;
-    const cc = peConfig.colorCorrection;
-
-    // This filter is only active during a transition or when fully paused.
-    this._pauseFilter.enabled = progress > 0.001 && cc.enabled;
-
-    // Animate the overall intensity of the color correction effect.
-    u.uIntensity = progress;
-
-    // Interpolate each value from its neutral state to the target "paused" state.
-    // Note: these are now effectively pre-multiplied by the uIntensity uniform in the shader.
-    u.uSaturation = cc.saturation;
-    u.uBrightness = cc.brightness;
-    u.uContrast = cc.contrast;
-    u.uExposure = cc.exposure;
-    u.uGamma = cc.gamma;
-    u.uInBlack = cc.levels.inBlack;
-    u.uInWhite = cc.levels.inWhite;
-    u.uTemperature = cc.whiteBalance.temperature;
-    u.uWbTint = cc.whiteBalance.tint;
-    u.uTintAmount = cc.tint.amount;
-    u.uTintColor = hexToRgbArray(cc.tint.color);
-
-    // Boolean values are not interpolated.
-    u.uInvert = cc.invert;
-
-    // Selective Color
-    u.uSelectiveEnabled = cc.selective.enabled;
-    u.uSelectiveColor = hexToRgbArray(cc.selective.color);
-    u.uSelectiveHueRange = cc.selective.hueRange;
-    u.uSelectiveSatRange = cc.selective.saturationRange;
-    u.uSelectiveLumRange = cc.selective.luminanceRange;
-    u.uSelectiveTargetLum = cc.selective.targetLuminance;
-    u.uSelectiveSoftness = cc.selective.softness;
-    u.uSelectiveInvert = cc.selective.invert;
-    u.uSelectiveDesaturation = cc.selective.desaturation;
-    u.uSelectiveTargetSaturation = cc.selective.targetSaturation;
-    u.uSelectiveTargetBrightness = cc.selective.targetBrightness;
-  }
-}
-
-class CombatEffectManager {
-  constructor() {
-    this._animationState = {
-      progress: 0, // Initialize to a safe default.
     };
-    this._animation = null;
-    this._combatFilter = null;
-    this._originalGlobalTime = 100;
-    this._isInitialized = false;
-    this._boundOnCombatChange = this._onCombatChange.bind(this);
-  }
-
-  initialize() {
-    if (this._isInitialized) return;
-    this._combatFilter = ScreenEffectsManager.getFilter("combatEffect");
-    if (!this._combatFilter) {
-      console.error(
-        "Map Shine | CombatEffectManager could not find its dedicated filter."
-      );
-      return;
-    }
-
-    const config = game.mapShine.profileManager.activeConfig;
-    this._originalGlobalTime = config.timeControl.globalTime;
-
-    // Check the combat state now that game.combats is available.
-    this._animationState.progress = game.combats.active?.started ? 1 : 0;
-
-    // Set initial state without animation, in case the game loads during combat.
-    this._updateEffects(this._animationState.progress);
-
-    Hooks.on("combatStart", () => this._boundOnCombatChange(true));
-    Hooks.on("combatEnd", () => this._boundOnCombatChange(false));
-    Hooks.on("deleteCombat", () => this._boundOnCombatChange(false));
-
-    this._isInitialized = true;
-    console.log("Map Shine | Combat Effect Manager Initialized.");
-  }
-
-  destroy() {
-    if (!this._isInitialized) return;
-
-    Hooks.off("combatStart", this._boundOnCombatChange);
-    Hooks.off("combatEnd", this._boundOnCombatChange);
-    Hooks.off("deleteCombat", this._boundOnCombatChange);
-
-    if (this._animation) {
-      this._animation.kill();
-    }
-    this._animation = null;
-    this._combatFilter = null;
-    this._isInitialized = false;
-    console.log("Map Shine | Combat Effect Manager Destroyed.");
-  }
-
-  _onCombatChange(inCombat) {
-    if (!this._combatFilter) return;
-
-    const config = game.mapShine.profileManager.activeConfig;
-    const ceConfig = config.combatEffect;
-
-    if (!ceConfig.enabled) {
-      this._updateEffects(0);
-      if (config.timeControl.globalTime < this._originalGlobalTime) {
-        foundry.utils.setProperty(
-          config,
-          "timeControl.globalTime",
-          this._originalGlobalTime
-        );
-        game.mapShine.profileManager.updateAllSystemsFromConfig();
-        if (game.mapShine.debugger) {
-          game.mapShine.debugger.eventHandler.updateAllControls();
-        }
-      }
-      return;
-    }
-
-    if (this._animation) {
-      this._animation.kill();
-    }
-
-    const targetProgress = inCombat ? 1 : 0;
-
-    if (inCombat && this._animationState.progress < 1) {
-      this._originalGlobalTime =
-        game.mapShine.profileManager.activeConfig.timeControl.globalTime;
-    }
-
-    this._animation = gsap.to(this._animationState, {
-      progress: targetProgress,
-      duration: ceConfig.duration / 1000,
-      ease: "power2.inOut",
-      onUpdate: () => this._updateEffects(this._animationState.progress),
-      onComplete: () => {
-        this._animation = null;
-        this._updateEffects(targetProgress);
-      },
-    });
-  }
-
-  _updateEffects(progress) {
-    if (!this._combatFilter) return;
-
-    const config = game.mapShine.profileManager.activeConfig;
-    const ceConfig = config.combatEffect;
-    const timeControlPath = "timeControl.globalTime";
-
-    // --- 1. Update Time Control ---
-    const newTime = lerp(
-      this._originalGlobalTime,
-      this._originalGlobalTime * ceConfig.timeScale,
-      progress
-    );
-
-    game.mapShine.timeControl.timeFactor = newTime / 100.0;
-    foundry.utils.setProperty(config, timeControlPath, newTime);
-
-    game.mapShine.profileManager.updateAllSystemsFromConfig({
-      timeOnly: true,
-    });
-
-    if (game.mapShine.debugger) {
-      const slider = game.mapShine.debugger.element.querySelector(
-        "#control-timeControl-globalTime"
-      );
-      if (slider) {
-        slider.value = newTime;
-        game.mapShine.debugger.eventHandler._updateSliderValue(
-          slider.id,
-          newTime,
-          slider.step
-        );
-      }
-    }
-
-    // --- 2. Update Color Correction Filter ---
-    const u = this._combatFilter.uniforms;
-    const cc = ceConfig.colorCorrection;
-
-    this._combatFilter.enabled = progress > 0.001 && cc.enabled;
-    u.uIntensity = progress;
-
-    u.uSaturation = cc.saturation;
-    u.uBrightness = cc.brightness;
-    u.uContrast = cc.contrast;
-    u.uExposure = cc.exposure;
-    u.uGamma = cc.gamma;
-    u.uInBlack = cc.levels.inBlack;
-    u.uInWhite = cc.levels.inWhite;
-    u.uTemperature = cc.whiteBalance.temperature;
-    u.uWbTint = cc.whiteBalance.tint;
-    u.uTintAmount = cc.tint.amount;
-    u.uTintColor = hexToRgbArray(cc.tint.color);
-    u.uInvert = cc.invert;
-
-    // Selective Color
-    u.uSelectiveEnabled = cc.selective.enabled;
-    u.uSelectiveColor = hexToRgbArray(cc.selective.color);
-    u.uSelectiveHueRange = cc.selective.hueRange;
-    u.uSelectiveSatRange = cc.selective.saturationRange;
-    u.uSelectiveLumRange = cc.selective.luminanceRange;
-    u.uSelectiveTargetLum = cc.selective.targetLuminance;
-    u.uSelectiveSoftness = cc.selective.softness;
-    u.uSelectiveInvert = cc.selective.invert;
-    u.uSelectiveDesaturation = cc.desaturation;
-    u.uSelectiveTargetSaturation = cc.targetSaturation;
-    u.uSelectiveTargetBrightness = cc.targetBrightness;
-  }
-}
-
-class ParallaxFilter extends PIXI.Filter {
-  constructor(options = {}) {
-    const vertexSrc = `
-            attribute vec2 aVertexPosition;
-            attribute vec2 aTextureCoord;
-            uniform mat3 projectionMatrix;
-            varying vec2 vTextureCoord;
-
-            void main(void) {
-                gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
-                vTextureCoord = aTextureCoord;
-            }
-        `;
-    const fragmentSrc = `
-            precision mediump float;
-            varying vec2 vTextureCoord;
-
-            uniform sampler2D uSampler;
-            uniform vec2 uParallaxOffset; // The desired pixel offset from the manager.
-            uniform vec2 uInputSize;      // Manually provided size of the input texture.
-
-            void main(void) {
-                // If the input size is zero, do nothing to prevent division by zero.
-                if (uInputSize.x == 0.0 || uInputSize.y == 0.0) {
-                    gl_FragColor = texture2D(uSampler, vTextureCoord);
-                    return;
-                }
-            
-                // Calculate how much to shift the texture coordinates (which are 0.0 to 1.0)
-                // based on the pixel offset.
-                vec2 uvOffset = uParallaxOffset / uInputSize;
-
-                // To move the image right (positive offset), we need to sample from the left (negative UV change).
-                vec2 sampleCoord = vTextureCoord - uvOffset;
-
-                // Clamp the coordinates to the valid 0.0-1.0 range.
-                // This prevents the texture from becoming transparent if the offset is large,
-                // instead causing the edge pixels to "smear", which is a safer default behavior.
-                sampleCoord = clamp(sampleCoord, 0.0, 1.0);
-
-                gl_FragColor = texture2D(uSampler, sampleCoord);
-            }
-        `;
-
-    super(vertexSrc, fragmentSrc, {
-      uParallaxOffset: [0, 0],
-      uInputSize: [1, 1], // Default non-zero value
-    });
-  }
-}
-
-class NullRenderFilter extends PIXI.Filter {
-  constructor() {
-    super(
-      PIXI.Filter.defaultVertexSrc,
-      `
-            precision mediump float;
-            varying vec2 vTextureCoord;
-            uniform sampler2D uSampler;
-
-            void main(void) {
-                // Read the original texture color to preserve its alpha for the mask
-                vec4 originalColor = texture2D(uSampler, vTextureCoord);
-                // Output a completely transparent pixel, effectively hiding the object
-                gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
-            }
-        `
-    );
-  }
-}
-
-class OverheadEffectsManager {
-  constructor() {
-    this.managedTiles = new Map(); // key: tile.id, value: { tile, clone, blurFilter, blurFilterOriginal, parallaxFilter, originalVisibility }
-    this.overheadContainer = null;
-    this._boundOnCreateTile = this._onCreateTile.bind(this);
-    this._boundOnUpdateTile = this._onUpdateTile.bind(this);
-    this._boundOnDeleteTile = this._onDeleteTile.bind(this);
-    this._boundOnAnimate = this._onAnimate.bind(this);
-    this._destroyed = false;
-    // New state for tracking camera transform to optimize updates
-    this.lastCamera = { x: null, y: null, scale: null };
-  }
-
-  static getSettingsHTML() {
-    const effectKey = "overheadEffects";
-    const content = `
-            <p class="description-text">Applies effects like parallax and blur to tiles flagged as 'Overhead'.</p>
-            <details id="details-overheadEffects-parallax">
-                <summary>
-                    <span class="accordion-toggle"></span>
-                    <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                      `${effectKey}.parallax.enabled`,
-                      "Parallax",
-                      true
-                    )}</div>
-                </summary>
-                <div style="padding-left: 15px;">
-                    <p class="description-text">Shifts the overhead tiles opposite to camera movement, creating a sense of depth.</p>
-                    ${DebuggerUIBuilder._createSliderHTML(
-                      `${effectKey}.parallax.amount`,
-                      "Amount",
-                      0,
-                      1,
-                      0.01,
-                      "How strongly the tiles shift. 0 = no parallax, 1 = moves with camera."
-                    )}
-                </div>
-            </details>
-            <details id="details-overheadEffects-blur">
-                <summary>
-                    <span class="accordion-toggle"></span>
-                    <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                      `${effectKey}.blur.enabled`,
-                      "Blur",
-                      true
-                    )}</div>
-                </summary>
-                <div style="padding-left: 15px;">
-                    <p class="description-text">Applies a blur to the overhead tiles.</p>
-                    ${DebuggerUIBuilder._createSliderHTML(
-                      `${effectKey}.blur.quality`,
-                      "Quality",
-                      1,
-                      8,
-                      1,
-                      "The number of blur passes. Higher is smoother but more performance-intensive."
-                    )}
-                    ${DebuggerUIBuilder._createSliderHTML(
-                      `${effectKey}.blur.strength`,
-                      "Strength",
-                      0,
-                      16,
-                      1,
-                      "The strength of the blur effect."
-                    )}
-                </div>
-            </details>
-        `;
-    return DebuggerUIBuilder._createAccordionHTML(
-      effectKey,
-      "Overhead Effects",
-      content
-    );
-  }
-
-  async initialize() {
-    if (this._destroyed) return;
-    console.log(
-      "Map Shine | Initializing OverheadEffectsManager (Optimized Update Strategy)."
-    );
-
-    this.overheadContainer = new PIXI.Container();
-    this.overheadContainer.sortableChildren = true;
-    canvas.interface.addChild(this.overheadContainer);
-
-    for (const tileDoc of canvas.scene.tiles) {
-      const tile = tileDoc.object;
-      if (tile) {
-        await this._manageTile(tile);
-      }
-    }
-
-    Hooks.on("createTile", this._boundOnCreateTile);
-    Hooks.on("updateTile", this._boundOnUpdateTile);
-    Hooks.on("deleteTile", this._boundOnDeleteTile);
-    canvas.app.ticker.add(this._boundOnAnimate);
-
-    this.updateFromConfig(game.mapShine.profileManager.activeConfig);
-  }
-
-  destroy() {
-    if (this._destroyed) return;
-    this._destroyed = true;
-    console.log("Map Shine | Destroying OverheadEffectsManager.");
-
-    canvas.app.ticker.remove(this._boundOnAnimate);
-
-    for (const tileId of this.managedTiles.keys()) {
-      this._removeManagedTile(tileId);
-    }
-    this.managedTiles.clear();
-
-    if (this.overheadContainer) {
-      canvas.interface.removeChild(this.overheadContainer);
-      this.overheadContainer.destroy({
-        children: true,
-      });
-      this.overheadContainer = null;
-    }
-
-    Hooks.off("createTile", this._boundOnCreateTile);
-    Hooks.off("updateTile", this._boundOnUpdateTile);
-    Hooks.off("deleteTile", this._boundOnDeleteTile);
-  }
-
-  async _manageTile(tile) {
-    if (!tile?.mesh) return;
-
-    const isOverhead = tile.document.overhead;
-    const isManaged = this.managedTiles.has(tile.id);
-
-    if (isOverhead && !isManaged) {
-      await this._addManagedTile(tile);
-    } else if (!isOverhead && isManaged) {
-      this._removeManagedTile(tile.id);
-    }
-  }
-
-  async _addManagedTile(tile) {
-    if (!tile.mesh || this.managedTiles.has(tile.id) || !tile.texture?.valid)
-      return;
-
-    await tile.draw();
-    if (!tile.mesh) return;
-
-    const clone = tile.clone();
-
-    await clone.draw();
-
-    if (!clone.mesh) {
-      console.warn(
-        `Map Shine | Cloned tile '${tile.id}' failed to create a mesh. Aborting overhead effect for this tile.`
-      );
-      clone.destroy();
-      return;
-    }
-
-    clone.eventMode = "none";
-
-    const blurFilterForOriginal = new PIXI.BlurFilter();
-    const blurFilterForClone = new PIXI.BlurFilter();
-    const parallaxFilter = new ParallaxFilter();
-
-    blurFilterForOriginal.padding = 16;
-    blurFilterForClone.padding = 16;
-
-    tile.mesh.filters = [blurFilterForOriginal];
-    clone.mesh.filters = [blurFilterForClone, parallaxFilter];
-
-    const originalVisibility = tile.mesh.visible;
-
-    this.overheadContainer.addChild(clone);
-
-    this.managedTiles.set(tile.id, {
-      tile,
-      clone,
-      blurFilter: blurFilterForClone,
-      blurFilterOriginal: blurFilterForOriginal,
-      parallaxFilter,
-      originalVisibility,
-    });
-
-    this.lastCamera.scale = null;
-  }
-
-  _removeManagedTile(tileId) {
-    if (!this.managedTiles.has(tileId)) return;
-
-    const {
-      tile,
-      clone,
-      blurFilter,
-      blurFilterOriginal,
-      parallaxFilter,
-      originalVisibility,
-    } = this.managedTiles.get(tileId);
-
-    if (tile?.mesh && !tile.mesh.destroyed) {
-      tile.mesh.visible = originalVisibility;
-      tile.mesh.filters = null;
-    }
-
-    this.managedTiles.delete(tileId);
-
-    if (clone) {
-      this.overheadContainer?.removeChild(clone);
-      clone.destroy();
-    }
-    blurFilter?.destroy();
-    blurFilterOriginal?.destroy();
-    parallaxFilter?.destroy();
+    requestAnimationFrame(findAndModify);
   }
 
   /**
@@ -30640,6 +29757,11 @@ class SimpleUIPanel extends Application {
         : 0;
       valueEl.text(Number(value).toFixed(decimals));
     }
+  }
+
+  _onSliderInput(event) {
+    const el = event.currentTarget;
+    this._updateSliderValue(el.id, el.value, el.step);
   }
 
   async _onInputChange(event) {
