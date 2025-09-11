@@ -134,6 +134,22 @@ const UNIVERSAL_EFFECT_DEFAULTS = {
       },
     },
   },
+  fontManager: {
+    styles: {
+      heading1: {
+        fontFamily: "Lexend",
+      },
+      heading2: {
+        fontFamily: "Lexend",
+      },
+      body: {
+        fontFamily: "Roboto",
+      },
+      hint: {
+        fontFamily: "Special Elite",
+      },
+    },
+  },
 };
 
 const PROFILES_SETTING = "profiles";
@@ -154,6 +170,93 @@ const BLEND_MODE_OPTIONS = {
   SOFT_LIGHT: PIXI.BLEND_MODES.SOFT_LIGHT,
   DIFFERENCE: PIXI.BLEND_MODES.DIFFERENCE,
   EXCLUSION: PIXI.BLEND_MODES.EXCLUSION,
+};
+
+const FONT_CHOICES = {
+  "-- Accessible --": { disabled: true },
+  "Atkinson Hyperlegible": "Atkinson Hyperlegible",
+  "Comic Sans MS": "Comic Sans MS",
+  "Inter": "Inter",
+  "Lexend": "Lexend",
+  "Noto Sans": "Noto Sans",
+  "Open Sans": "Open Sans",
+  "Verdana": "Verdana",
+  "-- Body Text --": { disabled: true },
+  "Alegreya": "Alegreya",
+  "Crimson Text": "Crimson Text",
+  "EB Garamond": "EB Garamond",
+  "Lato": "Lato",
+  "Libre Baskerville": "Libre Baskerville",
+  "Lora": "Lora",
+  "Merriweather": "Merriweather",
+  "PT Serif": "PT Serif",
+  "Roboto": "Roboto",
+  "Source Sans Pro": "Source Sans Pro",
+  "-- Fantasy --": { disabled: true },
+  "Cinzel": "Cinzel",
+  "Cormorant Garamond": "Cormorant Garamond",
+  "Gentium Book Basic": "Gentium Book Basic",
+  "IM Fell English": "IM Fell English",
+  "Lancelot": "Lancelot",
+  "MedievalSharp": "MedievalSharp",
+  "Old Standard TT": "Old Standard TT",
+  "Playfair Display": "Playfair Display",
+  "Uncial Antiqua": "Uncial Antiqua",
+  "-- Handwritten/Cursive --": { disabled: true },
+  "Caveat": "Caveat",
+  "Dancing Script": "Dancing Script",
+  "Kalam": "Kalam",
+  "Patrick Hand": "Patrick Hand",
+  "Permanent Marker": "Permanent Marker",
+  "Rock Salt": "Rock Salt",
+  "Sacramento": "Sacramento",
+  "-- Headers --": { disabled: true },
+  "Abril Fatface": "Abril Fatface",
+  "Anton": "Anton",
+  "Archivo Black": "Archivo Black",
+  "Arvo": "Arvo",
+  "Bangers": "Bangers",
+  "Bebas Neue": "Bebas Neue",
+  "Montserrat": "Montserrat",
+  "Oswald": "Oswald",
+  "Passion One": "Passion One",
+  "Raleway": "Raleway",
+  "Roboto Slab": "Roboto Slab",
+  "-- Horror/Gothic --": { disabled: true },
+  "Butcherman": "Butcherman",
+  "Creepster": "Creepster",
+  "Metal Mania": "Metal Mania",
+  "Nosifier": "Nosifier",
+  "UnifrakturMaguntia": "UnifrakturMaguntia",
+  "-- Modern/Clean --": { disabled: true },
+  "Exo 2": "Exo 2",
+  "Nunito Sans": "Nunito Sans",
+  "Poppins": "Poppins",
+  "Titillium Web": "Titillium Web",
+  "Work Sans": "Work Sans",
+  "-- Monospaced --": { disabled: true },
+  "Anonymous Pro": "Anonymous Pro",
+  "Cutive Mono": "Cutive Mono",
+  "IBM Plex Mono": "IBM Plex Mono",
+  "Inconsolata": "Inconsolata",
+  "Roboto Mono": "Roboto Mono",
+  "Source Code Pro": "Source Code Pro",
+  "VT323": "VT323",
+  "-- Science Fiction --": { disabled: true },
+  "Audiowide": "Audiowide",
+  "Geo": "Geo",
+  "Keania One": "Keania One",
+  "Orbitron": "Orbitron",
+  "Share Tech Mono": "Share Tech Mono",
+  "Space Mono": "Space Mono",
+  "Stalinist One": "Stalinist One",
+  "Teko": "Teko",
+  "-- Miscellaneous --": { disabled: true },
+  "Bungee": "Bungee",
+  "Lobster": "Lobster",
+  "Pacifico": "Pacifico",
+  "Press Start 2P": "Press Start 2P",
+  "Signika": "Signika",
 };
 
 const GRADIENT_PRESETS = {
@@ -2597,6 +2700,72 @@ class NativeAnimation {
   }
 }
 
+class FontLoader {
+  static STYLESHEET_ID = "map-shine-google-fonts";
+
+  /**
+   * Loads one or more Google Fonts by injecting or updating a stylesheet link in the document head.
+   * This function is additive and idempotent.
+   * @param {string[]} fontFamilies - An array of font family names to load.
+   */
+  static load(fontFamilies) {
+    const uniqueFontsToLoad = [...new Set(fontFamilies)].filter(Boolean);
+    if (uniqueFontsToLoad.length === 0) return;
+
+    const link = document.getElementById(this.STYLESHEET_ID) || this._createLink();
+    const currentlyLoadedFonts = this._getLoadedFonts(link);
+
+    const newFonts = uniqueFontsToLoad.filter(font => !currentlyLoadedFonts.has(font));
+
+    if (newFonts.length === 0) return;
+
+    const allFonts = new Set([...currentlyLoadedFonts, ...newFonts]);
+    
+    const fontQuery = Array.from(allFonts)
+      .map((font) => `family=${font.replace(/ /g, "+")}:wght@400;700`)
+      .join("&");
+      
+    link.href = `https://fonts.googleapis.com/css2?${fontQuery}&display=swap`;
+  }
+
+  /**
+   * Creates and appends the stylesheet link element if it doesn't exist.
+   * @returns {HTMLLinkElement} The link element.
+   * @private
+   */
+  static _createLink() {
+    const link = document.createElement("link");
+    link.id = this.STYLESHEET_ID;
+    link.rel = "stylesheet";
+    document.head.appendChild(link);
+    return link;
+  }
+
+  /**
+   * Parses the href of the stylesheet link to determine which fonts are already being loaded.
+   * @param {HTMLLinkElement} link - The stylesheet link element.
+   * @returns {Set<string>} A set of font family names.
+   * @private
+   */
+  static _getLoadedFonts(link) {
+    const loaded = new Set();
+    if (!link.href) return loaded;
+
+    try {
+      const url = new URL(link.href);
+      const families = url.searchParams.getAll("family");
+      for (const family of families) {
+        // Remove weight/style specifications to get the base family name
+        const name = family.split(":")[0].replace(/\+/g, " ");
+        loaded.add(name);
+      }
+    } catch (e) {
+      // The URL might be invalid if the href is not set yet, which is fine.
+    }
+    return loaded;
+  }
+}
+
 // =================================================================================
 // SECTION 2: CORE SYSTEMS & MANAGERS
 // =================================================================================
@@ -2926,6 +3095,29 @@ class MapShineInitialiser {
       type: Number,
       range: { min: 0, max: 3, step: 0.05 },
       default: CE_CC.contrast,
+    });
+
+    // --- Font Manager Settings ---
+    const FM = UNIVERSAL_EFFECT_DEFAULTS.fontManager.styles;
+    registerUniversalSetting("fontManager.styles.heading1.fontFamily", {
+      name: "[Universal] Font Manager: Heading 1",
+      type: String,
+      default: FM.heading1.fontFamily,
+    });
+    registerUniversalSetting("fontManager.styles.heading2.fontFamily", {
+      name: "[Universal] Font Manager: Heading 2",
+      type: String,
+      default: FM.heading2.fontFamily,
+    });
+    registerUniversalSetting("fontManager.styles.body.fontFamily", {
+      name: "[Universal] Font Manager: Body Text",
+      type: String,
+      default: FM.body.fontFamily,
+    });
+    registerUniversalSetting("fontManager.styles.hint.fontFamily", {
+      name: "[Universal] Font Manager: Hint Text",
+      type: String,
+      default: FM.hint.fontFamily,
     });
 
     game.settings.register(MODULE_ID, "advanced-ui-mode", {
@@ -5033,6 +5225,16 @@ class SceneChangeManager {
   _createOverlay() {
     if (this.transitionOverlay) return;
 
+    const getFont = (style) =>
+      game.settings.get(
+        MODULE_ID,
+        `universal.fontManager.styles.${style}.fontFamily`
+      );
+    const headingFont = getFont("heading1");
+    const subheadingFont = getFont("heading2");
+    const bodyFont = getFont("body");
+    const hintFont = getFont("hint");
+
     console.log(`[MapShine Transition] Creating overlay element.`);
     this.transitionOverlay = document.createElement("div");
     this.transitionOverlay.id = "map-shine-scene-transition";
@@ -5051,7 +5253,7 @@ class SceneChangeManager {
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
-      fontFamily: "Signika, sans-serif",
+      fontFamily: `${bodyFont}, Signika, sans-serif`,
       color: "white",
       textAlign: "center",
     });
@@ -5087,18 +5289,21 @@ class SceneChangeManager {
                                 margin-bottom: 1rem;
                             }
                             #map-shine-scene-transition .transition-heading {
+                            font-family: "${headingFont}", sans-serif;
                                 font-size: 3.5rem;
                                 margin: 0;
                                 line-height: 1.1;
                                 text-shadow: 0 0 10px rgba(0,0,0,0.5);
                             }
                             #map-shine-scene-transition .transition-subheading {
+                            font-family: "${subheadingFont}", sans-serif;
                                 font-size: 1.75rem;
                                 margin: 0;
                                 color: #ccc;
                                 font-weight: normal;
                             }
                             #map-shine-scene-transition .transition-scenename {
+                            font-family: "${bodyFont}", sans-serif;
                                 font-size: 1.25rem;
                                 margin: 1rem 0 0 0;
                                 color: #aaa;
@@ -5107,6 +5312,7 @@ class SceneChangeManager {
                                 padding-top: 1rem;
                             }
                             #map-shine-scene-transition .transition-description {
+                            font-family: "${bodyFont}", sans-serif;
                                 font-size: 1rem;
                                 color: #bbb;
                                 margin-top: 1rem;
@@ -5114,6 +5320,7 @@ class SceneChangeManager {
                                 line-height: 1.6;
                             }
                             #map-shine-scene-transition .transition-hint {
+                            font-family: "${hintFont}", sans-serif;
                                 font-size: 0.9rem;
                                 color: #aaa;
                                 margin-top: 1.5rem;
@@ -5407,6 +5614,18 @@ class SceneChangeManager {
       );
       return;
     }
+
+    const getFont = (style) =>
+      game.settings.get(
+        MODULE_ID,
+        `universal.fontManager.styles.${style}.fontFamily`
+      );
+    FontLoader.load([
+      getFont("heading1"),
+      getFont("heading2"),
+      getFont("body"),
+      getFont("hint"),
+    ]);
 
     const { bgPath } = await this._preloadAssets(config);
 
@@ -7055,6 +7274,17 @@ class LoadingScreen {
     if (this.element) return;
     this.startTime = Date.now();
 
+    const getFont = (style) =>
+      game.settings.get(
+        MODULE_ID,
+        `universal.fontManager.styles.${style}.fontFamily`
+      );
+    const headingFont = getFont("heading1");
+    const subheadingFont = getFont("heading2");
+    const hintFont = getFont("hint");
+
+    FontLoader.load([headingFont, subheadingFont, hintFont]);
+
     this.element = document.createElement("div");
     this.element.id = "map-shine-loading-screen";
     this.element.style.opacity = "0";
@@ -7113,16 +7343,21 @@ class LoadingScreen {
                             <p id="loading-hint-text" class="loading-hint"></p>
                         </div>
                         <style>
-                            #map-shine-loading-screen { 
+#map-shine-loading-screen { 
                                 position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
                                 background-color: rgba(0, 0, 0, 1); 
                                 z-index: 100000; display: flex; 
                                 justify-content: center; align-items: center; 
-                                color: white; font-family: Signika, sans-serif; 
+                                color: white; font-family: ${subheadingFont}, Lexend, sans-serif; 
                                 transition: opacity ${
                                   this.fadeOutDuration / 1000
                                 }s ease-in-out; 
                             }
+
+
+
+
+
                             .loading-background-overlay {
                                 display: ${
                                   overlayEnabled && bgPath ? "block" : "none"
@@ -7134,14 +7369,15 @@ class LoadingScreen {
                             }
                             .loading-content { text-align: center; position: relative; z-index: 2; }
                             .loading-logo { width: 150px; height: auto; margin: 0 auto 10px auto; display: block; filter: drop-shadow(0 0 10px rgba(0,0,0,0.6)); }
-                            .loading-subhead { font-size: 24px; font-weight: normal; color: #bbb; margin: 0 0 10px 0; text-shadow: 0 0 5px #111; }
-                            .loading-title { font-size: 72px; margin: 0 0 30px 0; text-shadow: 0 0 10px #222; color: #fff; }
+                            .loading-subhead { font-family: "${subheadingFont}", sans-serif; font-size: 24px; font-weight: normal; color: #bbb; margin: 0 0 10px 0; text-shadow: 0 0 5px #111; }
+                            .loading-title { font-family: "${headingFont}", sans-serif; font-size: 72px; margin: 0 0 30px 0; text-shadow: 0 0 10px #222; color: #fff; }
                             .loading-bar-container { width: 400px; height: 20px; border: 2px solid rgba(255, 255, 255, 0.5); margin: 0 auto; background-color: rgba(0,0,0,0.5); border-radius: 5px; overflow: hidden; }
                             .loading-bar-fill { width: 0%; height: 100%; background-color: rgba(255, 255, 255, 0.9); transform-origin: left; transition: width 0.2s ease-out; box-shadow: 0 0 10px rgba(255, 255, 255, 0.5); }
                             .loading-status { margin-top: 15px; font-size: 16px; color: #ddd; height: 20px; line-height: 20px; opacity: 0; transition: opacity ${
                               this.statusFadeDuration / 1000
                             }s ease-in-out; }
                             .loading-hint {
+                            font-family: "${hintFont}", sans-serif;
                                 margin-top: 25px;
                                 font-size: 16px;
                                 color: #aaa;
@@ -8878,6 +9114,17 @@ class PauseScreenManager {
    */
   static initialize() {
     Hooks.on("pauseGame", (paused) => {
+      // Only apply the custom screen if the pause effect is enabled in settings.
+      const isEnabled = game.settings.get(
+        MODULE_ID,
+        "universal.pauseEffect.enabled"
+      );
+      if (!isEnabled) {
+        // If our effect is disabled, ensure we clean up just in case.
+        this._revertCustomPauseScreen();
+        return;
+      }
+
       if (paused) {
         this._applyCustomPauseScreen();
       } else {
@@ -8885,8 +9132,13 @@ class PauseScreenManager {
       }
     });
 
+    // This hook handles the case where a user reloads into an already-paused game.
     Hooks.once("ready", () => {
-      if (game.paused) {
+      const isEnabled = game.settings.get(
+        MODULE_ID,
+        "universal.pauseEffect.enabled"
+      );
+      if (game.paused && isEnabled) {
         this._applyCustomPauseScreen();
       }
     });
@@ -8900,6 +9152,11 @@ class PauseScreenManager {
   static _getSettings() {
     const getSetting = (key) =>
       game.settings.get(MODULE_ID, `universal.pauseEffect.${key}`);
+    const getFont = (style) =>
+      game.settings.get(
+        MODULE_ID,
+        `universal.fontManager.styles.${style}.fontFamily`
+      );
     return {
       heading: getSetting("heading"),
       subheading: getSetting("subheading"),
@@ -8916,6 +9173,9 @@ class PauseScreenManager {
       randomHints: (getSetting("randomHints") || "")
         .split(/\r?\n/)
         .filter((h) => h.trim() !== ""),
+      headingFont: getFont("heading1"),
+      subheadingFont: getFont("heading2"),
+      hintFont: getFont("hint"),
     };
   }
 
@@ -8924,7 +9184,7 @@ class PauseScreenManager {
    * @private
    */
   static _applyCustomPauseScreen() {
-    const MAX_ATTEMPTS = 120;
+    const MAX_ATTEMPTS = 120; // Try for ~2 seconds
     let attempts = 0;
 
     const findAndModify = () => {
@@ -8934,6 +9194,14 @@ class PauseScreenManager {
         pauseElement.innerHTML = "";
 
         const settings = this._getSettings();
+
+        // Load the selected fonts from Google Fonts
+        FontLoader.load([
+          settings.headingFont,
+          settings.subheadingFont,
+          settings.hintFont,
+        ]);
+
         let hintHTML = "";
         if (settings.useRandomHint && settings.randomHints.length > 0) {
           const hint =
@@ -8965,11 +9233,14 @@ class PauseScreenManager {
               border: none !important;
               animation: none !important;
               padding: 0 5vw; /* Prevent content from touching screen edges */
+              display: flex; /* Use flexbox for centering */
+              justify-content: center;
+              align-items: center;
             }
 
             .map-shine-pause-wrapper {
               position: relative;
-              width: 200%;
+              width: 1000%; /* Please leave this intact */
               padding: 4rem 2rem;
               background: rgba(0,0,0,0.4);
               display: flex;
@@ -8978,14 +9249,15 @@ class PauseScreenManager {
               justify-content: center;
               gap: 1rem;
               animation: fadeInContent 1.5s ease-out forwards;
+              text-align: center;
             }
 
             .map-shine-pause-wrapper::before,
             .map-shine-pause-wrapper::after {
               content: '';
               position: absolute;
-              left: 0;
-              right: 0;
+              left: -50vw; /* Extend beyond the wrapper to span the screen */
+              right: -50vw;
               height: 3px;
               background: linear-gradient(to right, transparent, ${
                 settings.gradientColor1
@@ -9005,12 +9277,14 @@ class PauseScreenManager {
             }
 
             .map-shine-pause-title {
+              font-family: "${settings.headingFont}", sans-serif;
               font-size: 4em; margin: 0; letter-spacing: 5px; color: ${
                 settings.headingColor
               }; text-transform: uppercase;
               text-shadow: 0 0 10px #000;
             }
             .map-shine-pause-subtitle {
+              font-family: "${settings.subheadingFont}", sans-serif;
               font-size: 1.5em; margin: 10px 0 20px 0; color: ${
                 settings.subheadingColor
               }; font-style: italic;
@@ -9025,6 +9299,7 @@ class PauseScreenManager {
               }; animation: pulseLogo 4s ease-in-out infinite;
             }
             .map-shine-pause-hint {
+              font-family: "${settings.hintFont}", sans-serif;
               margin-top: 25px;
               padding-top: 15px;
               border-top: 1px solid rgba(255, 255, 255, 0.2);
@@ -9079,6 +9354,7 @@ class PauseScreenManager {
       // Clear our custom content to let Foundry's code take over again cleanly
       pauseElement.innerHTML = "";
     }
+    // The font stylesheet is no longer removed here to prevent conflicts with the debugger UI.
   }
 }
 
@@ -26717,6 +26993,16 @@ class DebuggerUIBuilder {
   constructor() {}
 
   buildRootElement() {
+    // Load only the fonts currently in use by the module's settings.
+    const getFont = (style) => game.settings.get(MODULE_ID, `universal.fontManager.styles.${style}.fontFamily`);
+    const fontsInUse = [
+        getFont("heading1"),
+        getFont("heading2"),
+        getFont("body"),
+        getFont("hint"),
+    ];
+    FontLoader.load(fontsInUse);
+
     const element = document.createElement("div");
     element.id = "material-editor-debugger";
     element.innerHTML = this._getStyles() + this._getBaseHTML();
@@ -26734,6 +27020,7 @@ class DebuggerUIBuilder {
 
     postProcessingPane.innerHTML = managedEffects.postProcessing;
     postProcessingPane.innerHTML += this._buildParticleSystemSection();
+    postProcessingPane.innerHTML += this._buildFontManagerSection();
     postProcessingPane.innerHTML += loadingScreenHTML;
     postProcessingPane.innerHTML += pauseEffectHTML;
 
@@ -26754,6 +27041,70 @@ class DebuggerUIBuilder {
       DebuggerUIBuilder._buildBottomBar();
 
     return element;
+  }
+
+  _buildFontManagerSection() {
+    const content = `
+      <p class="description-text">Define the default fonts for different text styles used throughout the module.</p>
+      
+      <details id="details-fontManager-preview">
+        <summary><span class="accordion-toggle"></span><strong>Font Preview</strong></summary>
+        <div style="padding-left: 15px;">
+          <div class="control-row">
+            <label for="font-preview-selector">Preview Font</label>
+            ${DebuggerUIBuilder._createSelectHTML(
+              "fontManager.previewFont",
+              "",
+              FONT_CHOICES,
+              "Select a font to preview it below.",
+              "font-selector-dropdown"
+            )}
+          </div>
+          <div id="font-preview-text" style="font-size: 24px; margin-top: 10px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 3px; text-align: center; font-family: 'Signika';">
+            The quick brown fox jumps over the lazy dog.
+          </div>
+        </div>
+      </details>
+      
+      <details id="details-fontManager-styles" open>
+        <summary><span class="accordion-toggle"></span><strong>Style Assignments</strong></summary>
+        <div style="padding-left: 15px;">
+          ${DebuggerUIBuilder._createSelectHTML(
+            "universal.fontManager.styles.heading1.fontFamily",
+            "Heading 1",
+            FONT_CHOICES,
+            "Font for primary headings (e.g., Pause Screen title).",
+            "font-selector-dropdown"
+          )}
+          ${DebuggerUIBuilder._createSelectHTML(
+            "universal.fontManager.styles.heading2.fontFamily",
+            "Heading 2",
+            FONT_CHOICES,
+            "Font for secondary headings (e.g., Pause Screen subtitle).",
+            "font-selector-dropdown"
+          )}
+          ${DebuggerUIBuilder._createSelectHTML(
+            "universal.fontManager.styles.body.fontFamily",
+            "Body Text",
+            FONT_CHOICES,
+            "Font for general body or description text.",
+            "font-selector-dropdown"
+          )}
+          ${DebuggerUIBuilder._createSelectHTML(
+            "universal.fontManager.styles.hint.fontFamily",
+            "Hint Text",
+            FONT_CHOICES,
+            "Font for hint text on loading and pause screens.",
+            "font-selector-dropdown"
+          )}
+        </div>
+      </details>
+    `;
+    return DebuggerUIBuilder._createAccordionHTML(
+      "fontManager",
+      "Font Manager",
+      content
+    );
   }
 
   _buildLoadingScreenSection() {
@@ -27070,6 +27421,7 @@ class DebuggerUIBuilder {
                             #material-editor-debugger.minimized #material-editor-header { padding: 0; cursor: move; }
                             #material-editor-debugger.minimized > *:not(#material-editor-header) { display: none; }
                             #material-editor-debugger.minimized #material-editor-help-btn, #material-editor-debugger.minimized #material-editor-user-guide-btn, #material-editor-debugger.minimized #material-editor-title { display: none; }
+                            #material-editor-debugger .font-selector-dropdown { height: 24px; padding-left: 8px; }
                             
                             /* --- Clock Styles --- */
                             #debugger-clock-container { position: relative; width: 100px; height: 100px; margin: 0 auto; border-radius: 50%; cursor: grab; user-select: none; }
@@ -27165,6 +27517,112 @@ class DebuggerUIBuilder {
                             .toolbar-status .status-active { color: #ccffcc; background-color: #226622; animation: pulse 2s infinite; }
                             @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(102, 170, 102, 0.7); } 70% { box-shadow: 0 0 0 8px rgba(102, 170, 102, 0); } 100% { box-shadow: 0 0 0 0 rgba(102, 170, 102, 0); } }
                         </style>`;
+  }
+
+  _buildPauseEffectSection() {
+    const content = `
+      <p class="description-text">Configure the visual appearance of the screen that appears when the game is paused.</p>
+      
+      <details id="details-pauseEffect-content">
+        <summary><span class="accordion-toggle"></span><strong>Content &amp; Text</strong></summary>
+        <div style="padding-left: 15px;">
+          ${DebuggerUIBuilder._createTextInputHTML(
+            "universal.pauseEffect.heading",
+            "Heading"
+          )}
+          <hr style="border-color: #555; margin: 6px 0;">
+          ${DebuggerUIBuilder._createTextInputHTML(
+            "universal.pauseEffect.subheading",
+            "Subheading"
+          )}
+        </div>
+      </details>
+      
+      <details id="details-pauseEffect-styling">
+        <summary><span class="accordion-toggle"></span><strong>Styling &amp; Colors</strong></summary>
+        <div style="padding-left: 15px;">
+          ${DebuggerUIBuilder._createTextInputWithPickerHTML(
+            "universal.pauseEffect.logoPath",
+            "Logo Path"
+          )}
+          ${DebuggerUIBuilder._createSliderHTML(
+            "universal.pauseEffect.logoOpacity",
+            "Logo Opacity",
+            0,
+            1,
+            0.05
+          )}
+          <hr style="border-color: #555; margin: 6px 0;">
+          ${DebuggerUIBuilder._createTextInputHTML(
+            "universal.pauseEffect.backgroundColor",
+            "Background"
+          )}
+          ${DebuggerUIBuilder._createColorPickerHTML(
+            "universal.pauseEffect.gradientColor1",
+            "Gradient Color 1"
+          )}
+          ${DebuggerUIBuilder._createTextInputHTML(
+            "universal.pauseEffect.gradientColor2",
+            "Gradient Color 2"
+          )}
+          <hr style="border-color: #555; margin: 6px 0;">
+          ${DebuggerUIBuilder._createColorPickerHTML(
+            "universal.pauseEffect.headingColor",
+            "Heading Color"
+          )}
+          ${DebuggerUIBuilder._createColorPickerHTML(
+            "universal.pauseEffect.subheadingColor",
+            "Subheading Color"
+          )}
+          ${DebuggerUIBuilder._createColorPickerHTML(
+            "universal.pauseEffect.hintColor",
+            "Hint Color"
+          )}
+        </div>
+      </details>
+      
+      <details id="details-pauseEffect-hints">
+        <summary><span class="accordion-toggle"></span><strong>Random Hints</strong></summary>
+        <div style="padding-left: 15px;">
+          ${DebuggerUIBuilder._createCheckboxHTML(
+            "universal.pauseEffect.useRandomHint",
+            "Show Random Hint"
+          )}
+          <div id="pauseEffect-randomHints-wrapper">
+             ${DebuggerUIBuilder._createListManagerHTML(
+               "universal.pauseEffect.randomHints",
+               "Hint",
+               "text"
+             )}
+          </div>
+        </div>
+      </details>
+    `;
+    return DebuggerUIBuilder._createAccordionHTML(
+      "pauseEffectOverlay",
+      "Pause Effect Overlay",
+      content
+    );
+  }
+
+  static _createSelectHTML(path, label, options, title = "", className = "") {
+    const id = this._createSafeId(path);
+    const titleAttr = title ? `title="${title}"` : "";
+    const classAttr = className ? `class="${className}"` : "";
+
+    // This new logic handles both flat lists and lists with disabled headers.
+    const opts = Object.entries(options)
+      .map(([name, value]) => {
+        // Check for the special disabled header format
+        if (typeof value === "object" && value !== null && value.disabled) {
+          return `<option disabled>${name}</option>`;
+        }
+        // Otherwise, create a normal option
+        return `<option value="${value}">${name}</option>`;
+      })
+      .join("");
+
+    return `<div class="control-row"><label for="${id}" ${titleAttr}>${label}</label><select name="${path}" id="${id}" data-path="${path}" ${classAttr}>${opts}</select></div>`;
   }
 
   _getBaseHTML() {
@@ -27293,90 +27751,6 @@ class DebuggerUIBuilder {
         `;
   }
 
-  _buildPauseEffectSection() {
-    const content = `
-      <p class="description-text">Configure the visual appearance of the screen that appears when the game is paused.</p>
-      
-      <details id="details-pauseEffect-content">
-        <summary><span class="accordion-toggle"></span><strong>Content &amp; Text</strong></summary>
-        <div style="padding-left: 15px;">
-          ${DebuggerUIBuilder._createTextInputHTML(
-            "universal.pauseEffect.heading",
-            "Heading"
-          )}
-          ${DebuggerUIBuilder._createTextInputHTML(
-            "universal.pauseEffect.subheading",
-            "Subheading"
-          )}
-        </div>
-      </details>
-      
-      <details id="details-pauseEffect-styling">
-        <summary><span class="accordion-toggle"></span><strong>Styling &amp; Colors</strong></summary>
-        <div style="padding-left: 15px;">
-          ${DebuggerUIBuilder._createTextInputWithPickerHTML(
-            "universal.pauseEffect.logoPath",
-            "Logo Path"
-          )}
-          ${DebuggerUIBuilder._createSliderHTML(
-            "universal.pauseEffect.logoOpacity",
-            "Logo Opacity",
-            0,
-            1,
-            0.05
-          )}
-          <hr style="border-color: #555; margin: 6px 0;">
-          ${DebuggerUIBuilder._createTextInputHTML(
-            "universal.pauseEffect.backgroundColor",
-            "Background"
-          )}
-          ${DebuggerUIBuilder._createColorPickerHTML(
-            "universal.pauseEffect.gradientColor1",
-            "Gradient Color 1"
-          )}
-          ${DebuggerUIBuilder._createTextInputHTML(
-            "universal.pauseEffect.gradientColor2",
-            "Gradient Color 2"
-          )}
-          <hr style="border-color: #555; margin: 6px 0;">
-          ${DebuggerUIBuilder._createColorPickerHTML(
-            "universal.pauseEffect.headingColor",
-            "Heading Color"
-          )}
-          ${DebuggerUIBuilder._createColorPickerHTML(
-            "universal.pauseEffect.subheadingColor",
-            "Subheading Color"
-          )}
-          ${DebuggerUIBuilder._createColorPickerHTML(
-            "universal.pauseEffect.hintColor",
-            "Hint Color"
-          )}
-        </div>
-      </details>
-      
-      <details id="details-pauseEffect-hints">
-        <summary><span class="accordion-toggle"></span><strong>Random Hints</strong></summary>
-        <div style="padding-left: 15px;">
-          ${DebuggerUIBuilder._createCheckboxHTML(
-            "universal.pauseEffect.useRandomHint",
-            "Show Random Hint"
-          )}
-          <div id="pauseEffect-randomHints-wrapper">
-             ${DebuggerUIBuilder._createListManagerHTML(
-               "universal.pauseEffect.randomHints",
-               "Hint",
-               "text"
-             )}
-          </div>
-        </div>
-      </details>
-    `;
-    return DebuggerUIBuilder._createAccordionHTML(
-      "pauseEffectOverlay",
-      "Pause Effect Overlay",
-      content
-    );
-  }
 
   _buildProfileSection() {
     const isGm = game.user.isGM;
@@ -27497,7 +27871,7 @@ class DebuggerUIBuilder {
 
   static _createAccordionHTML(id, title, content, headerExtra = "") {
     let path = `${id}.enabled`;
-    if (id === "loadingScreen") {
+    if (id === "loadingScreen" || id === "fontManager") {
       // The loading screen accordion doesn't have a single master toggle.
       // We'll create a dummy path for the ID and not render a checkbox.
       path = "loadingScreen.accordion";
@@ -27919,6 +28293,18 @@ class DebuggerEventHandler {
     // rebindDynamicControls is now called by the main editor's render method
   }
 
+  async _onSaveSceneProfileClick() {
+    const nameInput = this.element.querySelector("#new-scene-profile-name");
+    if (!nameInput) return;
+    const name = nameInput.value.trim();
+    if (!name) {
+      ui.notifications.warn("Please enter a name for the new appearance.");
+      return;
+    }
+    await this.profileManager.createSceneProfile(name);
+    nameInput.value = ""; // Clear the input after saving
+  }
+
   /**
    * The core logic for saving a change and refreshing all visual systems.
    * This is the expensive operation we want to rate-limit.
@@ -27933,28 +28319,29 @@ class DebuggerEventHandler {
       await game.settings.set(MODULE_ID, path, value);
       // A full refresh ensures any managers reading these settings are updated.
       await this.profileManager.initializeForScene();
-      await this.profileManager.updateAllSystemsFromConfig();
     } else {
       await this.profileManager.recordUserChange(path, value);
-      this._updateActionButtonsState();
-      const updateOptions = {
-        timeOnly: path === "timeControl.globalTime",
-      };
-      await this.profileManager.updateAllSystemsFromConfig(updateOptions);
+    }
 
-      const isParticleSetting =
-        Object.values(PARTICLE_EFFECT_DEFINITIONS).some((def) =>
-          path.startsWith(def.configPath)
-        ) || path.startsWith("particleSystems");
-      if (isParticleSetting && !updateOptions.timeOnly) {
-        const particleLayer = canvas.layers.find(
-          (l) => l instanceof ParticleLayer
+    // Update all visual systems with the new configuration
+    await this.profileManager.updateAllSystemsFromConfig();
+
+    // After the update, re-render all UI controls to ensure they are in sync with the new state.
+    // This is the key step to guarantee the font preview updates correctly.
+    this.updateAllControls();
+
+    const isParticleSetting =
+      Object.values(PARTICLE_EFFECT_DEFINITIONS).some((def) =>
+        path.startsWith(def.configPath)
+      ) || path.startsWith("particleSystems");
+    if (isParticleSetting) {
+      const particleLayer = canvas.layers.find(
+        (l) => l instanceof ParticleLayer
+      );
+      if (particleLayer && game.mapShine.effectTargetManager.targets) {
+        await particleLayer.updateEffectTargets(
+          game.mapShine.effectTargetManager.targets
         );
-        if (particleLayer && game.mapShine.effectTargetManager.targets) {
-          await particleLayer.updateEffectTargets(
-            game.mapShine.effectTargetManager.targets
-          );
-        }
       }
     }
   }
@@ -28262,6 +28649,16 @@ class DebuggerEventHandler {
     game.mapShine.updateTimeOfDay(currentTime);
   }
 
+  _updateFontSelectorStyle(selectElement) {
+    if (!selectElement) return;
+    const fontName = selectElement.value;
+    if (FONT_CHOICES[fontName]) {
+      selectElement.style.fontFamily = fontName;
+    } else {
+      selectElement.style.fontFamily = ""; // Revert to default if font is invalid
+    }
+  }
+
   updateAllControls(time) {
     if (!this.element || !this.uiBuilder) return;
 
@@ -28321,6 +28718,11 @@ class DebuggerEventHandler {
     this._updateBackgroundOverlayVisibility();
     this._updateLutControlVisibility();
     this._updateCurveEditorView();
+
+    // Ensure font selectors are styled correctly on load/update.
+    this.element
+      .querySelectorAll(".font-selector-dropdown")
+      .forEach((el) => this._updateFontSelectorStyle(el));
 
     const timeSlider = this.element.querySelector(
       "#control-timeControl-globalTime"
@@ -28819,6 +29221,26 @@ class DebuggerEventHandler {
     // Now, handle all other standard controls
     const path = target.dataset.path;
     if (!path) return;
+
+    // Instant UI feedback for font selectors
+    if (
+      target.tagName === "SELECT" &&
+      target.classList.contains("font-selector-dropdown")
+    ) {
+      this._updateFontSelectorStyle(target);
+    }
+
+    // Instant UI feedback for the font previewer
+    if (path === "fontManager.previewFont") {
+      const previewText = this.element.querySelector("#font-preview-text");
+      if (previewText) {
+        const fontName = target.value;
+        // Load the selected font on demand for the preview.
+        FontLoader.load([fontName]);
+        previewText.style.fontFamily = fontName;
+      }
+      return; // This is a UI-only control, no need to save or refresh systems
+    }
 
     const isSlider = target.type === "range";
     let value =
