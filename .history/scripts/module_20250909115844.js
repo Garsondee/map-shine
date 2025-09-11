@@ -43,25 +43,6 @@ const UNIVERSAL_EFFECT_DEFAULTS = {
   pauseEffect: {
     enabled: true,
     duration: 3000,
-    // --- New properties for the overlay ---
-    heading: "SESSION PAUSED",
-    subheading: "Please stand by...",
-    logoPath: "modules/map-shine/assets/mm-logo.png",
-    logoOpacity: 0.8,
-    backgroundColor: "rgba(10, 0, 0, 0.75)",
-    gradientColor1: "#ff4444",
-    gradientColor2: "rgba(255, 0, 0, 0.5)",
-    gradientShadowColor: "#ff0000",
-    headingColor: "#ffcccc",
-    subheadingColor: "#ff8888",
-    hintColor: "#dddddd",
-    useRandomHint: true,
-    randomHints: [
-      "Hint: Check your inventory for useful items.",
-      "Hint: Remember to save frequently!",
-      "Hint: Resting can restore health and spells.",
-    ],
-    // --- Existing color correction ---
     colorCorrection: {
       enabled: true,
       saturation: 0.2,
@@ -2029,6 +2010,10 @@ const MODULE_DEFAULTS = {
       min: 0.4,
       max: 1.2,
     },
+    color: {
+      start: "#FFFFFF",
+      end: "#FFFFFF",
+    },
     alpha: {
       max: 0.75,
       fadeIn: 0.1,
@@ -2780,88 +2765,17 @@ class MapShineInitialiser {
     });
 
     // --- Pause Effect Settings ---
-    const PE = UNIVERSAL_EFFECT_DEFAULTS.pauseEffect;
-    const PE_CC = PE.colorCorrection;
+    const PE_CC = UNIVERSAL_EFFECT_DEFAULTS.pauseEffect.colorCorrection;
     registerUniversalSetting("pauseEffect.enabled", {
       name: "[Universal] Pause Effect: Enabled",
       type: Boolean,
-      default: PE.enabled,
+      default: UNIVERSAL_EFFECT_DEFAULTS.pauseEffect.enabled,
     });
     registerUniversalSetting("pauseEffect.duration", {
       name: "[Universal] Pause Effect: Duration (ms)",
       type: Number,
-      default: PE.duration,
+      default: UNIVERSAL_EFFECT_DEFAULTS.pauseEffect.duration,
     });
-    // Pause Overlay
-    registerUniversalSetting("pauseEffect.heading", {
-      name: "[Universal] Pause Overlay: Heading",
-      type: String,
-      default: PE.heading,
-    });
-    registerUniversalSetting("pauseEffect.subheading", {
-      name: "[Universal] Pause Overlay: Subheading",
-      type: String,
-      default: PE.subheading,
-    });
-    registerUniversalSetting("pauseEffect.logoPath", {
-      name: "[Universal] Pause Overlay: Logo Path",
-      type: String,
-      default: PE.logoPath,
-      filePicker: "image",
-    });
-    registerUniversalSetting("pauseEffect.logoOpacity", {
-      name: "[Universal] Pause Overlay: Logo Opacity",
-      type: Number,
-      range: { min: 0, max: 1, step: 0.05 },
-      default: PE.logoOpacity,
-    });
-    registerUniversalSetting("pauseEffect.backgroundColor", {
-      name: "[Universal] Pause Overlay: Background Color",
-      type: String,
-      default: PE.backgroundColor,
-    });
-    registerUniversalSetting("pauseEffect.gradientColor1", {
-      name: "[Universal] Pause Overlay: Gradient Color 1",
-      type: String,
-      default: PE.gradientColor1,
-    });
-    registerUniversalSetting("pauseEffect.gradientColor2", {
-      name: "[Universal] Pause Overlay: Gradient Color 2",
-      type: String,
-      default: PE.gradientColor2,
-    });
-    registerUniversalSetting("pauseEffect.gradientShadowColor", {
-      name: "[Universal] Pause Overlay: Gradient Shadow Color",
-      type: String,
-      default: PE.gradientShadowColor,
-    });
-    registerUniversalSetting("pauseEffect.headingColor", {
-      name: "[Universal] Pause Overlay: Heading Color",
-      type: String,
-      default: PE.headingColor,
-    });
-    registerUniversalSetting("pauseEffect.subheadingColor", {
-      name: "[Universal] Pause Overlay: Subheading Color",
-      type: String,
-      default: PE.subheadingColor,
-    });
-    registerUniversalSetting("pauseEffect.hintColor", {
-      name: "[Universal] Pause Overlay: Hint Color",
-      type: String,
-      default: PE.hintColor,
-    });
-    registerUniversalSetting("pauseEffect.useRandomHint", {
-      name: "[Universal] Pause Overlay: Use Random Hint",
-      type: Boolean,
-      default: PE.useRandomHint,
-    });
-    registerUniversalSetting("pauseEffect.randomHints", {
-      name: "[Universal] Pause Overlay: Hints (one per line)",
-      type: String,
-      default: PE.randomHints.join("\n"),
-    });
-
-    // Pause Color Correction
     registerUniversalSetting("pauseEffect.colorCorrection.enabled", {
       name: "[Universal] Pause Effect: Color Correction Enabled",
       type: Boolean,
@@ -3401,7 +3315,6 @@ class MapShineInitialiser {
       );
       PIXI.particles.Emitter.registerBehavior(SparkPathBehavior);
       PIXI.particles.Emitter.registerBehavior(SmellyFliesBehavior);
-      PIXI.particles.Emitter.registerBehavior(ColorFromSpawnBehavior);
     } else {
       console.error(
         "FAILURE: pixi-particles library did not attach to the global PIXI object."
@@ -3574,7 +3487,6 @@ class MapShineInitialiser {
       const settingsToConvert = [
         `${MODULE_ID}.universal.sceneTransition.randomHints`,
         `${MODULE_ID}.loading-screen-random-backgrounds`,
-        `${MODULE_ID}.universal.pauseEffect.randomHints`,
       ];
 
       settingsToConvert.forEach((settingKey) => {
@@ -8877,6 +8789,7 @@ class PauseScreenManager {
    * This is the single entry point for this system.
    */
   static initialize() {
+    // HOOK 1: Listen for in-session pause state changes.
     Hooks.on("pauseGame", (paused) => {
       if (paused) {
         this._applyCustomPauseScreen();
@@ -8885,173 +8798,88 @@ class PauseScreenManager {
       }
     });
 
+    // HOOK 2: Check the initial state once the UI is fully ready.
     Hooks.once("ready", () => {
       if (game.paused) {
+        console.log(
+          "Map Shine | Game loaded in a paused state. Applying custom pause screen."
+        );
         this._applyCustomPauseScreen();
       }
     });
+
+    console.log(
+      "Map Shine | Pause Screen Manager initialized and hooks are active."
+    );
   }
 
   /**
-   * Retrieves all necessary settings for the pause screen from the game settings.
-   * @returns {object} An object containing all the configured values.
-   * @private
-   */
-  static _getSettings() {
-    const getSetting = (key) =>
-      game.settings.get(MODULE_ID, `universal.pauseEffect.${key}`);
-    return {
-      heading: getSetting("heading"),
-      subheading: getSetting("subheading"),
-      logoPath: getSetting("logoPath"),
-      logoOpacity: getSetting("logoOpacity"),
-      backgroundColor: getSetting("backgroundColor"),
-      gradientColor1: getSetting("gradientColor1"),
-      gradientColor2: getSetting("gradientColor2"),
-      gradientShadowColor: getSetting("gradientShadowColor"),
-      headingColor: getSetting("headingColor"),
-      subheadingColor: getSetting("subheadingColor"),
-      hintColor: getSetting("hintColor"),
-      useRandomHint: getSetting("useRandomHint"),
-      randomHints: (getSetting("randomHints") || "")
-        .split(/\r?\n/)
-        .filter((h) => h.trim() !== ""),
-    };
-  }
-
-  /**
-   * Finds the #pause element, clears it, and injects our fully custom content and styles.
+   * Finds the #pause element in the DOM and applies custom styling.
+   * This function uses requestAnimationFrame to poll for the element, making it
+   * resilient to race conditions.
    * @private
    */
   static _applyCustomPauseScreen() {
-    const MAX_ATTEMPTS = 120;
+    const MAX_ATTEMPTS = 120; // A generous timeout (approx. 2 seconds at 60fps)
     let attempts = 0;
 
     const findAndModify = () => {
       const pauseElement = document.getElementById("pause");
+
       if (pauseElement) {
-        // Clear any default content (like the Foundry logo and "Game Paused" text)
-        pauseElement.innerHTML = "";
-
-        const settings = this._getSettings();
-        let hintHTML = "";
-        if (settings.useRandomHint && settings.randomHints.length > 0) {
-          const hint =
-            settings.randomHints[
-              Math.floor(Math.random() * settings.randomHints.length)
-            ];
-          hintHTML = `<p class="map-shine-pause-hint">${hint}</p>`;
-        }
-
-        const logoHTML = settings.logoPath
-          ? `<div class="map-shine-pause-logo"></div>`
-          : "";
+        console.log(
+          `MapShine | Found and applying custom style to #pause element after ${attempts} attempts.`
+        );
 
         const customHTML = `
-          <div class="map-shine-pause-wrapper">
-            <h1 class="map-shine-pause-title">${settings.heading}</h1>
-            <p class="map-shine-pause-subtitle">${settings.subheading}</p>
-            ${logoHTML}
-            ${hintHTML}
+          <div class="map-shine-pause-container">
+            <h1 class="map-shine-pause-title">SESSION PAUSED</h1>
+            <p class="map-shine-pause-subtitle">Please stand by...</p>
+            <div class="map-shine-pause-logo"></div>
           </div>
         `;
 
         const customCSS = `
           <style>
-            #pause.custom-pause-screen {
-              /* Override Foundry defaults to make it a simple backdrop */
-              background: ${settings.backgroundColor} !important;
+            .custom-pause-screen {
+              display: flex; flex-direction: column; justify-content: center; align-items: center;
+              background: rgba(10, 0, 0, 0.75) !important;
               backdrop-filter: blur(8px) grayscale(0.5);
-              border: none !important;
+              border-top: 2px solid #ff4444; border-bottom: 2px solid #ff4444;
+              box-shadow: 0 0 20px rgba(255, 0, 0, 0.5) inset;
               animation: none !important;
-              padding: 0 5vw; /* Prevent content from touching screen edges */
             }
-
-            .map-shine-pause-wrapper {
-              position: relative;
-              width: 200%;
-              padding: 4rem 2rem;
-              background: rgba(0,0,0,0.4);
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              justify-content: center;
-              gap: 1rem;
-              animation: fadeInContent 1.5s ease-out forwards;
+            .map-shine-pause-container {
+              text-align: center; color: #fff; font-family: "Signika", sans-serif;
+              text-shadow: 0 0 10px #000; animation: fadeInContent 1.5s ease-out forwards;
             }
-
-            .map-shine-pause-wrapper::before,
-            .map-shine-pause-wrapper::after {
-              content: '';
-              position: absolute;
-              left: 0;
-              right: 0;
-              height: 3px;
-              background: linear-gradient(to right, transparent, ${
-                settings.gradientColor1
-              }, ${settings.gradientColor2}, ${
-          settings.gradientColor1
-        }, transparent);
-            }
-
-            .map-shine-pause-wrapper::before {
-              top: 0;
-              box-shadow: 0 0 8px 1px ${settings.gradientShadowColor};
-            }
-
-            .map-shine-pause-wrapper::after {
-              bottom: 0;
-              box-shadow: 0 0 8px 1px ${settings.gradientShadowColor};
-            }
-
             .map-shine-pause-title {
-              font-size: 4em; margin: 0; letter-spacing: 5px; color: ${
-                settings.headingColor
-              }; text-transform: uppercase;
-              text-shadow: 0 0 10px #000;
+              font-size: 4em; margin: 0; letter-spacing: 5px; color: #ffcccc; text-transform: uppercase;
             }
             .map-shine-pause-subtitle {
-              font-size: 1.5em; margin: 10px 0 20px 0; color: ${
-                settings.subheadingColor
-              }; font-style: italic;
-              text-shadow: 0 0 10px #000;
+              font-size: 1.5em; margin: 10px 0 20px 0; color: #ff8888; font-style: italic;
             }
             .map-shine-pause-logo {
               width: 80px; height: 80px;
-              background-image: url('${settings.logoPath}');
+              background-image: url('modules/map-shine/assets/mm-logo.png');
               background-size: contain; background-repeat: no-repeat; background-position: center;
-              margin: 0 auto; opacity: ${
-                settings.logoOpacity
-              }; animation: pulseLogo 4s ease-in-out infinite;
-            }
-            .map-shine-pause-hint {
-              margin-top: 25px;
-              padding-top: 15px;
-              border-top: 1px solid rgba(255, 255, 255, 0.2);
-              font-style: italic;
-              color: ${settings.hintColor};
-              max-width: 40ch;
-              margin-left: auto;
-              margin-right: auto;
+              margin: 0 auto; opacity: 0.8; animation: pulseLogo 4s ease-in-out infinite;
             }
             @keyframes fadeInContent {
               from { opacity: 0; transform: translateY(20px); }
               to { opacity: 1; transform: translateY(0); }
             }
             @keyframes pulseLogo {
-              0%, 100% { transform: scale(1); opacity: ${
-                settings.logoOpacity
-              }; }
-              50% { transform: scale(1.1); opacity: ${Math.min(
-                1,
-                settings.logoOpacity + 0.2
-              )}; }
+              0%, 100% { transform: scale(1); opacity: 0.8; }
+              50% { transform: scale(1.1); opacity: 1; }
             }
           </style>
         `;
 
+        // Add our custom class instead of replacing the entire class list.
         pauseElement.classList.add("custom-pause-screen");
         pauseElement.innerHTML = customCSS + customHTML;
+
         return;
       }
 
@@ -9064,20 +8892,19 @@ class PauseScreenManager {
         );
       }
     };
+
     requestAnimationFrame(findAndModify);
   }
 
   /**
-   * Resets the #pause element by removing our custom class and content.
-   * This allows Foundry to repopulate it with its defaults if needed later.
+   * Resets the #pause element by removing our custom class. This allows Foundry's
+   * core scripts to manage it correctly and prepares it for the next pause.
    * @private
    */
   static _revertCustomPauseScreen() {
     const pauseElement = document.getElementById("pause");
     if (pauseElement) {
       pauseElement.classList.remove("custom-pause-screen");
-      // Clear our custom content to let Foundry's code take over again cleanly
-      pauseElement.innerHTML = "";
     }
   }
 }
@@ -13292,35 +13119,26 @@ const buildParticleEmitterConfig = (
     });
   }
 
-  // For metallic glints, use the custom behavior to sample color from the spawn texture.
-  // For all other effects, use the standard static or gradient color behaviors.
-  if (maskKey === "specular") {
+  const colorConfig = config.color ?? {};
+  const startColor = colorConfig.start ?? "#FFFFFF";
+  const endColor = colorConfig.end ?? "#FFFFFF";
+  if (startColor === endColor) {
     behaviors.push({
-      type: "colorFromSpawn",
-      config: {},
+      type: "colorStatic",
+      config: {
+        color: startColor,
+      },
     });
   } else {
-    const colorConfig = config.color ?? {};
-    const startColor = colorConfig.start ?? "#FFFFFF";
-    const endColor = colorConfig.end ?? "#FFFFFF";
-    if (startColor === endColor) {
-      behaviors.push({
-        type: "colorStatic",
-        config: {
-          color: startColor,
+    behaviors.push({
+      type: "color",
+      config: {
+        color: {
+          start: startColor,
+          end: endColor,
         },
-      });
-    } else {
-      behaviors.push({
-        type: "color",
-        config: {
-          color: {
-            start: startColor,
-            end: endColor,
-          },
-        },
-      });
-    }
+      },
+    });
   }
 
   const rotConfig = config.rotation ?? {};
@@ -13638,14 +13456,7 @@ class TextureMaskShape {
           if (pixelValue >= this.threshold) {
             const screenPoint = new PIXI.Point(x, y);
             const worldPoint = canvas.stage.toLocal(screenPoint);
-            this.validPoints.push({
-              point: worldPoint,
-              color: [
-                pixelData[index],
-                pixelData[index + 1],
-                pixelData[index + 2],
-              ],
-            });
+            this.validPoints.push(worldPoint);
           }
         }
       }
@@ -13662,14 +13473,7 @@ class TextureMaskShape {
             const relativeY = (y / texture.height) * this.height;
             const worldX = this.offsetX + relativeX;
             const worldY = this.offsetY + relativeY;
-            this.validPoints.push({
-              point: new PIXI.Point(worldX, worldY),
-              color: [
-                pixelData[index],
-                pixelData[index + 1],
-                pixelData[index + 2],
-              ],
-            });
+            this.validPoints.push(new PIXI.Point(worldX, worldY));
           }
         }
       }
@@ -13681,11 +13485,9 @@ class TextureMaskShape {
     if (this.validPoints.length === 0) {
       return;
     }
-    const data =
+    const point =
       this.validPoints[Math.floor(Math.random() * this.validPoints.length)];
-    particle.position.copyFrom(data.point);
-    // Attach the color data to the particle for the custom behavior to use.
-    particle.spawnColor = data.color;
+    particle.position.copyFrom(point);
   }
 }
 
@@ -14914,31 +14716,6 @@ class SmellyFliesLayer extends CanvasLayer {
           this.updateEffectTargets(targets);
         }
       }
-    }
-  }
-}
-
-/**
- * A custom particle behavior that sets a particle's tint based on color data
- * attached to it during the spawn process.
- * This allows particles to inherit color from their spawn location on a texture.
- */
-class ColorFromSpawnBehavior {
-  static type = "colorFromSpawn";
-
-  constructor(config) {
-    this.order = PIXI.particles.behaviors.BehaviorOrder.Normal;
-  }
-
-  initParticles(first) {
-    let next = first;
-    while (next) {
-      if (next.spawnColor) {
-        const color = next.spawnColor; // [r, g, b] from 0-255
-        // Convert the RGB array to a single hex number for the tint property.
-        next.tint = (color[0] << 16) + (color[1] << 8) + color[2];
-      }
-      next = next.next;
     }
   }
 }
@@ -26730,12 +26507,10 @@ class DebuggerUIBuilder {
 
     const managedEffects = ScreenEffectsManager.getManagedEffectsHTML();
     const loadingScreenHTML = this._buildLoadingScreenSection();
-    const pauseEffectHTML = this._buildPauseEffectSection();
 
     postProcessingPane.innerHTML = managedEffects.postProcessing;
     postProcessingPane.innerHTML += this._buildParticleSystemSection();
-    postProcessingPane.innerHTML += loadingScreenHTML;
-    postProcessingPane.innerHTML += pauseEffectHTML;
+    postProcessingPane.innerHTML += loadingScreenHTML; // Add the new accordion here
 
     const otherEffectSections = this._getEffectSections();
 
@@ -27291,91 +27066,6 @@ class DebuggerUIBuilder {
                 ${contentHTML}
             </div>
         `;
-  }
-
-  _buildPauseEffectSection() {
-    const content = `
-      <p class="description-text">Configure the visual appearance of the screen that appears when the game is paused.</p>
-      
-      <details id="details-pauseEffect-content">
-        <summary><span class="accordion-toggle"></span><strong>Content &amp; Text</strong></summary>
-        <div style="padding-left: 15px;">
-          ${DebuggerUIBuilder._createTextInputHTML(
-            "universal.pauseEffect.heading",
-            "Heading"
-          )}
-          ${DebuggerUIBuilder._createTextInputHTML(
-            "universal.pauseEffect.subheading",
-            "Subheading"
-          )}
-        </div>
-      </details>
-      
-      <details id="details-pauseEffect-styling">
-        <summary><span class="accordion-toggle"></span><strong>Styling &amp; Colors</strong></summary>
-        <div style="padding-left: 15px;">
-          ${DebuggerUIBuilder._createTextInputWithPickerHTML(
-            "universal.pauseEffect.logoPath",
-            "Logo Path"
-          )}
-          ${DebuggerUIBuilder._createSliderHTML(
-            "universal.pauseEffect.logoOpacity",
-            "Logo Opacity",
-            0,
-            1,
-            0.05
-          )}
-          <hr style="border-color: #555; margin: 6px 0;">
-          ${DebuggerUIBuilder._createTextInputHTML(
-            "universal.pauseEffect.backgroundColor",
-            "Background"
-          )}
-          ${DebuggerUIBuilder._createColorPickerHTML(
-            "universal.pauseEffect.gradientColor1",
-            "Gradient Color 1"
-          )}
-          ${DebuggerUIBuilder._createTextInputHTML(
-            "universal.pauseEffect.gradientColor2",
-            "Gradient Color 2"
-          )}
-          <hr style="border-color: #555; margin: 6px 0;">
-          ${DebuggerUIBuilder._createColorPickerHTML(
-            "universal.pauseEffect.headingColor",
-            "Heading Color"
-          )}
-          ${DebuggerUIBuilder._createColorPickerHTML(
-            "universal.pauseEffect.subheadingColor",
-            "Subheading Color"
-          )}
-          ${DebuggerUIBuilder._createColorPickerHTML(
-            "universal.pauseEffect.hintColor",
-            "Hint Color"
-          )}
-        </div>
-      </details>
-      
-      <details id="details-pauseEffect-hints">
-        <summary><span class="accordion-toggle"></span><strong>Random Hints</strong></summary>
-        <div style="padding-left: 15px;">
-          ${DebuggerUIBuilder._createCheckboxHTML(
-            "universal.pauseEffect.useRandomHint",
-            "Show Random Hint"
-          )}
-          <div id="pauseEffect-randomHints-wrapper">
-             ${DebuggerUIBuilder._createListManagerHTML(
-               "universal.pauseEffect.randomHints",
-               "Hint",
-               "text"
-             )}
-          </div>
-        </div>
-      </details>
-    `;
-    return DebuggerUIBuilder._createAccordionHTML(
-      "pauseEffectOverlay",
-      "Pause Effect Overlay",
-      content
-    );
   }
 
   _buildProfileSection() {
@@ -28316,7 +28006,6 @@ class DebuggerEventHandler {
       });
 
     this._updateRandomHintVisibility();
-    this._updatePauseHintVisibility();
     this._updateInitialRandomBackgroundVisibility();
     this._updateBackgroundOverlayVisibility();
     this._updateLutControlVisibility();
@@ -28858,8 +28547,6 @@ class DebuggerEventHandler {
 
       if (path === "universal.sceneTransition.useRandomHint")
         this._updateRandomHintVisibility();
-      if (path === "universal.pauseEffect.useRandomHint")
-        this._updatePauseHintVisibility();
       if (path === "loading-screen-use-random-background")
         this._updateInitialRandomBackgroundVisibility();
       if (path === "loading-screen-background-overlay-enabled") {
@@ -28867,19 +28554,6 @@ class DebuggerEventHandler {
       }
       if (path === "tileOpacity")
         game.mapShine.effectTargetManager.applyTileOpacities();
-    }
-  }
-
-  _updatePauseHintVisibility() {
-    const useRandom = game.settings.get(
-      MODULE_ID,
-      "universal.pauseEffect.useRandomHint"
-    );
-    const wrapper = this.element.querySelector(
-      "#pauseEffect-randomHints-wrapper"
-    );
-    if (wrapper) {
-      wrapper.style.display = useRandom ? "block" : "none";
     }
   }
 
@@ -29757,11 +29431,6 @@ class SimpleUIPanel extends Application {
         : 0;
       valueEl.text(Number(value).toFixed(decimals));
     }
-  }
-
-  _onSliderInput(event) {
-    const el = event.currentTarget;
-    this._updateSliderValue(el.id, el.value, el.step);
   }
 
   async _onInputChange(event) {

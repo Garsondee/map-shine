@@ -43,25 +43,17 @@ const UNIVERSAL_EFFECT_DEFAULTS = {
   pauseEffect: {
     enabled: true,
     duration: 3000,
-    // --- New properties for the overlay ---
-    heading: "SESSION PAUSED",
-    subheading: "Please stand by...",
+    // Screen Appearance Settings
+    titleText: "SESSION PAUSED",
+    subtitleText: "Please stand by...",
     logoPath: "modules/map-shine/assets/mm-logo.png",
-    logoOpacity: 0.8,
-    backgroundColor: "rgba(10, 0, 0, 0.75)",
-    gradientColor1: "#ff4444",
-    gradientColor2: "rgba(255, 0, 0, 0.5)",
-    gradientShadowColor: "#ff0000",
-    headingColor: "#ffcccc",
-    subheadingColor: "#ff8888",
-    hintColor: "#dddddd",
     useRandomHint: true,
-    randomHints: [
-      "Hint: Check your inventory for useful items.",
-      "Hint: Remember to save frequently!",
-      "Hint: Resting can restore health and spells.",
-    ],
-    // --- Existing color correction ---
+    backgroundColor: "rgba(10, 0, 0, 0.75)",
+    borderColor: "#ff4444",
+    titleColor: "#ffcccc",
+    subtitleColor: "#ff8888",
+    hintColor: "#aaaaaa",
+    // Color Correction for the scene behind the screen
     colorCorrection: {
       enabled: true,
       saturation: 0.2,
@@ -2453,6 +2445,10 @@ const MODULE_DEFAULTS = {
     pixelInspector: false,
     displaySuffix: "specular",
     showIlluminationPreview: false,
+    brightnessMask: {
+      threshold: 0.9,
+      softness: 0.05,
+    },
   },
   overheadEffect: {
     enabled: true,
@@ -2780,88 +2776,18 @@ class MapShineInitialiser {
     });
 
     // --- Pause Effect Settings ---
-    const PE = UNIVERSAL_EFFECT_DEFAULTS.pauseEffect;
-    const PE_CC = PE.colorCorrection;
+    const PE_DEFAULTS = UNIVERSAL_EFFECT_DEFAULTS.pauseEffect;
+    const PE_CC = PE_DEFAULTS.colorCorrection;
     registerUniversalSetting("pauseEffect.enabled", {
       name: "[Universal] Pause Effect: Enabled",
       type: Boolean,
-      default: PE.enabled,
+      default: PE_DEFAULTS.enabled,
     });
     registerUniversalSetting("pauseEffect.duration", {
       name: "[Universal] Pause Effect: Duration (ms)",
       type: Number,
-      default: PE.duration,
+      default: PE_DEFAULTS.duration,
     });
-    // Pause Overlay
-    registerUniversalSetting("pauseEffect.heading", {
-      name: "[Universal] Pause Overlay: Heading",
-      type: String,
-      default: PE.heading,
-    });
-    registerUniversalSetting("pauseEffect.subheading", {
-      name: "[Universal] Pause Overlay: Subheading",
-      type: String,
-      default: PE.subheading,
-    });
-    registerUniversalSetting("pauseEffect.logoPath", {
-      name: "[Universal] Pause Overlay: Logo Path",
-      type: String,
-      default: PE.logoPath,
-      filePicker: "image",
-    });
-    registerUniversalSetting("pauseEffect.logoOpacity", {
-      name: "[Universal] Pause Overlay: Logo Opacity",
-      type: Number,
-      range: { min: 0, max: 1, step: 0.05 },
-      default: PE.logoOpacity,
-    });
-    registerUniversalSetting("pauseEffect.backgroundColor", {
-      name: "[Universal] Pause Overlay: Background Color",
-      type: String,
-      default: PE.backgroundColor,
-    });
-    registerUniversalSetting("pauseEffect.gradientColor1", {
-      name: "[Universal] Pause Overlay: Gradient Color 1",
-      type: String,
-      default: PE.gradientColor1,
-    });
-    registerUniversalSetting("pauseEffect.gradientColor2", {
-      name: "[Universal] Pause Overlay: Gradient Color 2",
-      type: String,
-      default: PE.gradientColor2,
-    });
-    registerUniversalSetting("pauseEffect.gradientShadowColor", {
-      name: "[Universal] Pause Overlay: Gradient Shadow Color",
-      type: String,
-      default: PE.gradientShadowColor,
-    });
-    registerUniversalSetting("pauseEffect.headingColor", {
-      name: "[Universal] Pause Overlay: Heading Color",
-      type: String,
-      default: PE.headingColor,
-    });
-    registerUniversalSetting("pauseEffect.subheadingColor", {
-      name: "[Universal] Pause Overlay: Subheading Color",
-      type: String,
-      default: PE.subheadingColor,
-    });
-    registerUniversalSetting("pauseEffect.hintColor", {
-      name: "[Universal] Pause Overlay: Hint Color",
-      type: String,
-      default: PE.hintColor,
-    });
-    registerUniversalSetting("pauseEffect.useRandomHint", {
-      name: "[Universal] Pause Overlay: Use Random Hint",
-      type: Boolean,
-      default: PE.useRandomHint,
-    });
-    registerUniversalSetting("pauseEffect.randomHints", {
-      name: "[Universal] Pause Overlay: Hints (one per line)",
-      type: String,
-      default: PE.randomHints.join("\n"),
-    });
-
-    // Pause Color Correction
     registerUniversalSetting("pauseEffect.colorCorrection.enabled", {
       name: "[Universal] Pause Effect: Color Correction Enabled",
       type: Boolean,
@@ -2884,6 +2810,53 @@ class MapShineInitialiser {
       type: Number,
       range: { min: 0, max: 3, step: 0.05 },
       default: PE_CC.contrast,
+    });
+    // New granular settings for pause screen appearance
+    registerUniversalSetting("pauseEffect.titleText", {
+      name: "[Universal] Pause Screen: Title Text",
+      type: String,
+      default: PE_DEFAULTS.titleText,
+    });
+    registerUniversalSetting("pauseEffect.subtitleText", {
+      name: "[Universal] Pause Screen: Subtitle Text",
+      type: String,
+      default: PE_DEFAULTS.subtitleText,
+    });
+    registerUniversalSetting("pauseEffect.logoPath", {
+      name: "[Universal] Pause Screen: Logo Path",
+      type: String,
+      default: PE_DEFAULTS.logoPath,
+      filePicker: "image",
+    });
+    registerUniversalSetting("pauseEffect.useRandomHint", {
+      name: "[Universal] Pause Screen: Show Random Hint",
+      type: Boolean,
+      default: PE_DEFAULTS.useRandomHint,
+    });
+    registerUniversalSetting("pauseEffect.backgroundColor", {
+      name: "[Universal] Pause Screen: Background Color",
+      type: String,
+      default: PE_DEFAULTS.backgroundColor,
+    });
+    registerUniversalSetting("pauseEffect.borderColor", {
+      name: "[Universal] Pause Screen: Border Color",
+      type: String,
+      default: PE_DEFAULTS.borderColor,
+    });
+    registerUniversalSetting("pauseEffect.titleColor", {
+      name: "[Universal] Pause Screen: Title Color",
+      type: String,
+      default: PE_DEFAULTS.titleColor,
+    });
+    registerUniversalSetting("pauseEffect.subtitleColor", {
+      name: "[Universal] Pause Screen: Subtitle Color",
+      type: String,
+      default: PE_DEFAULTS.subtitleColor,
+    });
+    registerUniversalSetting("pauseEffect.hintColor", {
+      name: "[Universal] Pause Screen: Hint Color",
+      type: String,
+      default: PE_DEFAULTS.hintColor,
     });
 
     // --- Combat Effect Settings ---
@@ -3574,7 +3547,6 @@ class MapShineInitialiser {
       const settingsToConvert = [
         `${MODULE_ID}.universal.sceneTransition.randomHints`,
         `${MODULE_ID}.loading-screen-random-backgrounds`,
-        `${MODULE_ID}.universal.pauseEffect.randomHints`,
       ];
 
       settingsToConvert.forEach((settingKey) => {
@@ -4450,6 +4422,9 @@ class ResourceManager {
     this._compositeLightMaskTexture = null;
     this._compositeLightMaskFilter = null;
     this._lightMaskSprite = null;
+
+    // Properties for final scene capture to resolve the error
+    this._finalSceneTexture = null;
   }
 
   /**
@@ -4461,7 +4436,7 @@ class ResourceManager {
     const renderer = canvas.app.renderer;
     const screen = renderer.screen;
 
-    // --- NEW: Initialize resources for the composite light mask ---
+    // --- Initialize resources for the composite light mask ---
     this._compositeLightMaskTexture = PIXI.RenderTexture.create({
       width: screen.width,
       height: screen.height,
@@ -4471,6 +4446,12 @@ class ResourceManager {
     this._lightMaskSprite.width = screen.width;
     this._lightMaskSprite.height = screen.height;
     this._lightMaskSprite.filters = [this._compositeLightMaskFilter];
+
+    // --- Initialize texture for final scene capture ---
+    this._finalSceneTexture = PIXI.RenderTexture.create({
+      width: screen.width,
+      height: screen.height,
+    });
 
     console.log("Map Shine | ResourceManager initialized.");
   }
@@ -4482,13 +4463,17 @@ class ResourceManager {
     this._frameCache = {};
     this.illuminationManager = null;
 
-    // --- NEW: Destroy composite light mask resources ---
+    // --- Destroy composite light mask resources ---
     this._compositeLightMaskTexture?.destroy(true);
     this._compositeLightMaskFilter?.destroy();
     this._lightMaskSprite?.destroy();
     this._compositeLightMaskTexture = null;
     this._compositeLightMaskFilter = null;
     this._lightMaskSprite = null;
+
+    // --- Destroy final scene capture resources ---
+    this._finalSceneTexture?.destroy(true);
+    this._finalSceneTexture = null;
 
     this._destroyed = true;
     console.log("Map Shine | ResourceManager destroyed.");
@@ -4499,6 +4484,48 @@ class ResourceManager {
    */
   onFrameStart() {
     this._frameCache = {};
+  }
+
+  captureFinalScene(containerToCapture) {
+    if (this._destroyed || !this._finalSceneTexture || !canvas.app?.renderer) {
+      return;
+    }
+
+    const container = containerToCapture || game.mapShine.worldContainer;
+    const renderer = canvas.app.renderer;
+
+    // Add extensive safety checks to prevent rendering an object in an invalid state.
+    // This is the primary defense against the error.
+    if (!container || container.destroyed || !container.parent || !container.renderable || !container.visible) {
+      return;
+    }
+    
+    // An object cannot be rendered if its transform is invalid. Forcing an update of the bounds
+    // ensures the world transform matrix is up-to-date. We wrap this in a try-catch
+    // as it can fail if the scene graph is in a deeply broken state during transition.
+    try {
+        container.getBounds(true);
+    } catch(e) {
+        return; // Abort if getting bounds fails.
+    }
+
+    // Use the modern, more robust PIXI API for render-to-texture operations.
+    // This is more stable than passing an options object for this specific use case.
+    renderer.renderTexture.bind(this._finalSceneTexture);
+    renderer.renderTexture.clear();
+    
+    // We render the container directly, letting the renderer handle its transform.
+    renderer.render(container);
+    
+    renderer.renderTexture.unbind();
+  }
+
+  /**
+   * Retrieves the texture containing the last captured scene frame.
+   * @returns {PIXI.RenderTexture|null}
+   */
+  getFinalSceneTexture() {
+    return this._finalSceneTexture;
   }
 
   /**
@@ -4870,6 +4897,25 @@ class ResourceManager {
   }
 
   /**
+   * Ensures the MetallicShineLayer has rendered all its outputs for the current frame.
+   * This is a private helper to avoid redundant render calls.
+   * @param {number} deltaTime - The time since the last frame.
+   * @returns {MetallicShineLayer|null} The layer instance, or null if not found.
+   */
+  _ensureMetallicShineRendered(deltaTime) {
+    if (this._frameCache.metallicShineRendered) {
+      return canvas.layers.find((l) => l instanceof MetallicShineLayer);
+    }
+    const layer = canvas.layers.find((l) => l instanceof MetallicShineLayer);
+    if (layer && typeof layer._renderAllOutputs === "function") {
+      layer._renderAllOutputs(deltaTime);
+      this._frameCache.metallicShineRendered = true;
+      return layer;
+    }
+    return null;
+  }
+
+  /**
    * Retrieves the final rendered animated metallic shine texture.
    * If not generated this frame, commands the MetallicShineLayer to render it.
    * @param {number} deltaTime - The time since the last frame.
@@ -4881,20 +4927,30 @@ class ResourceManager {
       return this._frameCache.animatedShineTexture;
     }
 
-    const layer = canvas.layers.find((l) => l instanceof MetallicShineLayer);
+    const layer = this._ensureMetallicShineRendered(deltaTime);
     if (!layer) return null;
-
-    if (typeof layer.renderEffectNow === "function") {
-      layer.renderEffectNow(deltaTime);
-    } else {
-      console.warn(
-        "ResourceManager: MetallicShineLayer is missing renderEffectNow()"
-      );
-      return null;
-    }
 
     const texture = layer.getEffectTexture();
     this._frameCache.animatedShineTexture = texture;
+    return texture;
+  }
+
+  /**
+   * Retrieves the world-space animated mask of the shine's bright parts.
+   * @param {number} deltaTime - The time since the last frame.
+   * @returns {PIXI.RenderTexture|null} The animated shine mask texture.
+   */
+  getAnimatedShineMaskTexture(deltaTime) {
+    if (this._destroyed) return null;
+    if (this._frameCache.animatedShineMaskTexture) {
+      return this._frameCache.animatedShineMaskTexture;
+    }
+
+    const layer = this._ensureMetallicShineRendered(deltaTime);
+    if (!layer) return null;
+
+    const texture = layer.getAnimatedShineMaskTexture();
+    this._frameCache.animatedShineMaskTexture = texture;
     return texture;
   }
 
@@ -8213,6 +8269,49 @@ class IlluminationManager {
   }
 }
 
+class BrightnessMaskGenerator {
+  constructor() {
+    const screen = canvas.app.screen;
+    this.renderTexture = PIXI.RenderTexture.create({
+      width: screen.width,
+      height: screen.height,
+    });
+    this.maskFilter = new BrightnessMaskFilter();
+    this.sourceSprite = new PIXI.Sprite(PIXI.Texture.EMPTY);
+    this.sourceSprite.width = screen.width;
+    this.sourceSprite.height = screen.height;
+    this.sourceSprite.filters = [this.maskFilter];
+  }
+
+  update(renderer, sourceTexture, threshold, softness) {
+    if (!this.sourceSprite || !sourceTexture || !sourceTexture.valid) return;
+    this.sourceSprite.texture = sourceTexture;
+    this.maskFilter.uniforms.uThreshold = threshold;
+    this.maskFilter.uniforms.uSoftness = softness;
+    renderer.render(this.sourceSprite, {
+      renderTexture: this.renderTexture,
+      clear: true,
+    });
+  }
+
+  getMaskTexture() {
+    return this.renderTexture;
+  }
+
+  resize(width, height) {
+    this.renderTexture.resize(width, height);
+    this.sourceSprite.width = width;
+    this.sourceSprite.height = height;
+  }
+
+  destroy() {
+    this.renderTexture?.destroy(true);
+    this.maskFilter?.destroy();
+    this.sourceSprite?.destroy();
+    this.renderTexture = this.maskFilter = this.sourceSprite = null;
+  }
+}
+
 class EffectsBloomLayer {
   constructor() {
     this.container = null;
@@ -8877,6 +8976,7 @@ class PauseScreenManager {
    * This is the single entry point for this system.
    */
   static initialize() {
+    // HOOK 1: Listen for in-session pause state changes.
     Hooks.on("pauseGame", (paused) => {
       if (paused) {
         this._applyCustomPauseScreen();
@@ -8885,173 +8985,162 @@ class PauseScreenManager {
       }
     });
 
+    // HOOK 2: Check the initial state once the UI is fully ready.
     Hooks.once("ready", () => {
       if (game.paused) {
+        console.log(
+          "Map Shine | Game loaded in a paused state. Applying custom pause screen."
+        );
         this._applyCustomPauseScreen();
       }
     });
+
+    console.log(
+      "Map Shine | Pause Screen Manager initialized and hooks are active."
+    );
   }
 
   /**
-   * Retrieves all necessary settings for the pause screen from the game settings.
-   * @returns {object} An object containing all the configured values.
-   * @private
-   */
-  static _getSettings() {
-    const getSetting = (key) =>
-      game.settings.get(MODULE_ID, `universal.pauseEffect.${key}`);
-    return {
-      heading: getSetting("heading"),
-      subheading: getSetting("subheading"),
-      logoPath: getSetting("logoPath"),
-      logoOpacity: getSetting("logoOpacity"),
-      backgroundColor: getSetting("backgroundColor"),
-      gradientColor1: getSetting("gradientColor1"),
-      gradientColor2: getSetting("gradientColor2"),
-      gradientShadowColor: getSetting("gradientShadowColor"),
-      headingColor: getSetting("headingColor"),
-      subheadingColor: getSetting("subheadingColor"),
-      hintColor: getSetting("hintColor"),
-      useRandomHint: getSetting("useRandomHint"),
-      randomHints: (getSetting("randomHints") || "")
-        .split(/\r?\n/)
-        .filter((h) => h.trim() !== ""),
-    };
-  }
-
-  /**
-   * Finds the #pause element, clears it, and injects our fully custom content and styles.
+   * Finds the #pause element in the DOM and applies custom styling.
+   * This function uses requestAnimationFrame to poll for the element, making it
+   * resilient to race conditions.
    * @private
    */
   static _applyCustomPauseScreen() {
-    const MAX_ATTEMPTS = 120;
+    const MAX_ATTEMPTS = 120; // A generous timeout (approx. 2 seconds at 60fps)
     let attempts = 0;
 
     const findAndModify = () => {
       const pauseElement = document.getElementById("pause");
-      if (pauseElement) {
-        // Clear any default content (like the Foundry logo and "Game Paused" text)
-        pauseElement.innerHTML = "";
 
-        const settings = this._getSettings();
+      if (pauseElement) {
+        console.log(
+          `MapShine | Found and applying custom style to #pause element after ${attempts} attempts.`
+        );
+
+        // Fetch all the granular settings
+        const settings = {
+          titleText: game.settings.get(
+            MODULE_ID,
+            "universal.pauseEffect.titleText"
+          ),
+          subtitleText: game.settings.get(
+            MODULE_ID,
+            "universal.pauseEffect.subtitleText"
+          ),
+          logoPath: game.settings.get(
+            MODULE_ID,
+            "universal.pauseEffect.logoPath"
+          ),
+          useRandomHint: game.settings.get(
+            MODULE_ID,
+            "universal.pauseEffect.useRandomHint"
+          ),
+          backgroundColor: game.settings.get(
+            MODULE_ID,
+            "universal.pauseEffect.backgroundColor"
+          ),
+          borderColor: game.settings.get(
+            MODULE_ID,
+            "universal.pauseEffect.borderColor"
+          ),
+          titleColor: game.settings.get(
+            MODULE_ID,
+            "universal.pauseEffect.titleColor"
+          ),
+          subtitleColor: game.settings.get(
+            MODULE_ID,
+            "universal.pauseEffect.subtitleColor"
+          ),
+          hintColor: game.settings.get(
+            MODULE_ID,
+            "universal.pauseEffect.hintColor"
+          ),
+        };
+
+        // Handle Random Hint
         let hintHTML = "";
-        if (settings.useRandomHint && settings.randomHints.length > 0) {
-          const hint =
-            settings.randomHints[
-              Math.floor(Math.random() * settings.randomHints.length)
-            ];
-          hintHTML = `<p class="map-shine-pause-hint">${hint}</p>`;
+        if (settings.useRandomHint) {
+          const hintsString =
+            game.settings.get(
+              MODULE_ID,
+              "universal.sceneTransition.randomHints"
+            ) || "";
+          const hints = hintsString.split(/\r?\n/).filter((h) => h.trim());
+          if (hints.length > 0) {
+            const randomHint = hints[Math.floor(Math.random() * hints.length)];
+            hintHTML = `<p class="map-shine-pause-hint">${Handlebars.escapeExpression(
+              randomHint
+            )}</p>`;
+          }
         }
 
-        const logoHTML = settings.logoPath
-          ? `<div class="map-shine-pause-logo"></div>`
-          : "";
-
         const customHTML = `
-          <div class="map-shine-pause-wrapper">
-            <h1 class="map-shine-pause-title">${settings.heading}</h1>
-            <p class="map-shine-pause-subtitle">${settings.subheading}</p>
-            ${logoHTML}
+          <div class="map-shine-pause-container">
+            <div class="map-shine-pause-logo"></div>
+            <h1 class="map-shine-pause-title">${Handlebars.escapeExpression(
+              settings.titleText
+            )}</h1>
+            <p class="map-shine-pause-subtitle">${Handlebars.escapeExpression(
+              settings.subtitleText
+            )}</p>
             ${hintHTML}
           </div>
         `;
 
         const customCSS = `
           <style>
-            #pause.custom-pause-screen {
-              /* Override Foundry defaults to make it a simple backdrop */
+            .custom-pause-screen {
+              display: flex; flex-direction: column; justify-content: center; align-items: center;
               background: ${settings.backgroundColor} !important;
               backdrop-filter: blur(8px) grayscale(0.5);
-              border: none !important;
+              border-top: 2px solid ${settings.borderColor};
+              border-bottom: 2px solid ${settings.borderColor};
+              box-shadow: 0 0 20px rgba(255, 0, 0, 0.5) inset;
               animation: none !important;
-              padding: 0 5vw; /* Prevent content from touching screen edges */
             }
-
-            .map-shine-pause-wrapper {
-              position: relative;
-              width: 200%;
-              padding: 4rem 2rem;
-              background: rgba(0,0,0,0.4);
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              justify-content: center;
-              gap: 1rem;
-              animation: fadeInContent 1.5s ease-out forwards;
+            .map-shine-pause-container {
+              text-align: center; color: #fff; font-family: "Signika", sans-serif;
+              text-shadow: 0 0 10px #000; animation: fadeInContent 1.5s ease-out forwards;
             }
-
-            .map-shine-pause-wrapper::before,
-            .map-shine-pause-wrapper::after {
-              content: '';
-              position: absolute;
-              left: 0;
-              right: 0;
-              height: 3px;
-              background: linear-gradient(to right, transparent, ${
-                settings.gradientColor1
-              }, ${settings.gradientColor2}, ${
-          settings.gradientColor1
-        }, transparent);
-            }
-
-            .map-shine-pause-wrapper::before {
-              top: 0;
-              box-shadow: 0 0 8px 1px ${settings.gradientShadowColor};
-            }
-
-            .map-shine-pause-wrapper::after {
-              bottom: 0;
-              box-shadow: 0 0 8px 1px ${settings.gradientShadowColor};
-            }
-
             .map-shine-pause-title {
               font-size: 4em; margin: 0; letter-spacing: 5px; color: ${
-                settings.headingColor
+                settings.titleColor
               }; text-transform: uppercase;
-              text-shadow: 0 0 10px #000;
             }
             .map-shine-pause-subtitle {
               font-size: 1.5em; margin: 10px 0 20px 0; color: ${
-                settings.subheadingColor
+                settings.subtitleColor
               }; font-style: italic;
-              text-shadow: 0 0 10px #000;
             }
             .map-shine-pause-logo {
               width: 80px; height: 80px;
               background-image: url('${settings.logoPath}');
               background-size: contain; background-repeat: no-repeat; background-position: center;
-              margin: 0 auto; opacity: ${
-                settings.logoOpacity
-              }; animation: pulseLogo 4s ease-in-out infinite;
+              margin: 0 auto; opacity: 0.8; animation: pulseLogo 4s ease-in-out infinite;
             }
             .map-shine-pause-hint {
-              margin-top: 25px;
-              padding-top: 15px;
-              border-top: 1px solid rgba(255, 255, 255, 0.2);
-              font-style: italic;
-              color: ${settings.hintColor};
-              max-width: 40ch;
-              margin-left: auto;
-              margin-right: auto;
+                font-size: 1.1em; color: ${
+                  settings.hintColor
+                }; margin-top: 2rem; font-style: italic;
+                border-top: 1px solid #777; padding-top: 1rem;
+                max-width: 60ch; line-height: 1.6;
             }
             @keyframes fadeInContent {
               from { opacity: 0; transform: translateY(20px); }
               to { opacity: 1; transform: translateY(0); }
             }
             @keyframes pulseLogo {
-              0%, 100% { transform: scale(1); opacity: ${
-                settings.logoOpacity
-              }; }
-              50% { transform: scale(1.1); opacity: ${Math.min(
-                1,
-                settings.logoOpacity + 0.2
-              )}; }
+              0%, 100% { transform: scale(1); opacity: 0.8; }
+              50% { transform: scale(1.1); opacity: 1; }
             }
           </style>
         `;
 
+        // Add our custom class instead of replacing the entire class list.
         pauseElement.classList.add("custom-pause-screen");
         pauseElement.innerHTML = customCSS + customHTML;
+
         return;
       }
 
@@ -9064,20 +9153,19 @@ class PauseScreenManager {
         );
       }
     };
+
     requestAnimationFrame(findAndModify);
   }
 
   /**
-   * Resets the #pause element by removing our custom class and content.
-   * This allows Foundry to repopulate it with its defaults if needed later.
+   * Resets the #pause element by removing our custom class. This allows Foundry's
+   * core scripts to manage it correctly and prepares it for the next pause.
    * @private
    */
   static _revertCustomPauseScreen() {
     const pauseElement = document.getElementById("pause");
     if (pauseElement) {
       pauseElement.classList.remove("custom-pause-screen");
-      // Clear our custom content to let Foundry's code take over again cleanly
-      pauseElement.innerHTML = "";
     }
   }
 }
@@ -12675,8 +12763,16 @@ class ParticleEffectController {
     const localTargetData = {
       ...targetData,
     };
-
-    if (
+    
+    // --- NEW: Special handling for metallicGlints ---
+    if (this.definition.configPath === "metallicGlints") {
+        const resourceManager = game.mapShine.resourceManager;
+        if (resourceManager) {
+            const deltaTime = canvas.app.ticker.deltaTime;
+            // Get the new animated mask and assign it to the correct key.
+            localTargetData.specular = resourceManager.getAnimatedShineMaskTexture(deltaTime);
+        }
+    } else if (
       this.definition.configPath === "dust" &&
       localTargetData.dust &&
       localTargetData.structural
@@ -12689,41 +12785,6 @@ class ParticleEffectController {
       if (customMaskTexture) {
         localTargetData.dust = customMaskTexture;
       }
-    }
-
-    const particleTexPath =
-      this.config.particleTexture ?? "modules/map-shine/assets/particle.webp";
-    if (!particleTexPath || typeof particleTexPath !== "string") return;
-
-    try {
-      const texture = await foundry.canvas.loadTexture(particleTexPath);
-      const emitterConfig = this.definition.buildEmitterConfig(
-        this.config,
-        localTargetData
-      );
-      if (emitterConfig.maxParticles === 0) {
-        customMaskTexture?.destroy(true);
-        return;
-      }
-      const textureBehavior = emitterConfig.behaviors.find(
-        (b) => b.type === "textureSingle"
-      );
-      if (textureBehavior) textureBehavior.config.texture = texture;
-
-      const emitterParent = this.particleOnlyContainer || this.parentContainer;
-      const emitter = new PIXI.particles.Emitter(emitterParent, emitterConfig);
-      if (customMaskTexture) emitter._customMaskTexture = customMaskTexture;
-      emitter.autoUpdate = false;
-
-      this.emitters.set(targetId, {
-        emitter,
-      });
-    } catch (err) {
-      console.error(
-        `Map Shine | Failed to load particle texture: "${particleTexPath}"`,
-        err
-      );
-      customMaskTexture?.destroy(true);
     }
   }
 
@@ -12970,13 +13031,14 @@ const buildSparkEmitterConfig = (effectConfig, targetData, maskKey) => {
     config: {
       type: "textureMask",
       data: {
-        texture: spawnMaskTexture,
+        texture: spawnMaskTexture, // This now accepts either a string path or a PIXI.Texture object
         width: rect.width,
         height: rect.height,
         x: 0,
         y: 0,
-        threshold: (config.maskThreshold ?? 0.95) * 255,
-        isDynamicScreenMask: isScreenSpaceMask,
+        threshold: (config.maskThreshold ?? 0.5) * 255,
+        // The mask for metallic glints is now world-space, so this must be false.
+        isDynamicScreenMask: maskKey === 'specular' ? false : isScreenSpaceMask,
       },
     },
   };
@@ -13168,8 +13230,6 @@ const buildParticleEmitterConfig = (
   }
 
   const spawnMaskTexture = targetData[maskKey];
-  // This guard clause ensures that if the expected texture map (e.g., _Water.webp)
-  // is not found for a given target, we do not proceed to create an invalid emitter configuration.
   if (!spawnMaskTexture) {
     return {
       maxParticles: 0,
@@ -13177,21 +13237,20 @@ const buildParticleEmitterConfig = (
     };
   }
 
-  // Determine if the mask is a pre-rendered screen-space texture.
+  // --- MODIFIED: Detect if the mask is a texture object or a path string ---
   const isScreenSpaceMask = spawnMaskTexture instanceof PIXI.RenderTexture;
-
+  
   const spawnBehavior = {
     type: "spawnShape",
     config: {
       type: "textureMask",
       data: {
-        texture: spawnMaskTexture,
+        texture: spawnMaskTexture, // This now accepts either a string path or a PIXI.Texture object
         width: rect.width,
         height: rect.height,
         x: 0,
         y: 0,
         threshold: (config.maskThreshold ?? 0.5) * 255,
-        // Set the flag based on whether the mask is a screen-space RenderTexture.
         isDynamicScreenMask: isScreenSpaceMask,
       },
     },
@@ -15244,6 +15303,10 @@ class HeatDistortionNoiseFilter extends PIXI.Filter {
             uniform float u_time;
             uniform vec2 u_resolution;
 
+            // World Space Uniforms
+            uniform vec2 u_camera_offset;
+            uniform vec2 u_view_size;
+
             // Primary Noise Layer
             uniform float u_primarySpeed;
             uniform float u_primaryScale;
@@ -15322,21 +15385,23 @@ class HeatDistortionNoiseFilter extends PIXI.Filter {
             }
 
             void main() {
+                vec2 world_coord = u_camera_offset + (vTextureCoord * u_view_size);
+
                 // Primary, slower, larger waves for X and Y displacement
-                vec2 primary_uv = vTextureCoord * u_primaryScale;
+                vec2 primary_uv = world_coord * u_primaryScale * 0.01;
                 float primary_time = u_time * u_primarySpeed;
                 float primary_noise_x = fbm(vec3(primary_uv, primary_time), u_primaryOctaves, u_primaryLacunarity, u_primaryPersistence);
                 float primary_noise_y = fbm(vec3(primary_uv + vec2(13.7, 5.9), primary_time), u_primaryOctaves, u_primaryLacunarity, u_primaryPersistence);
 
                 // Secondary, faster, smaller waves for detail
-                vec2 secondary_uv = vTextureCoord * u_secondaryScale;
+                vec2 secondary_uv = world_coord * u_secondaryScale * 0.01;
                 float secondary_time = u_time * u_secondarySpeed;
                 float secondary_noise_x = fbm(vec3(secondary_uv, secondary_time), u_secondaryOctaves, u_secondaryLacunarity, u_secondaryPersistence);
                 float secondary_noise_y = fbm(vec3(secondary_uv + vec2(-8.2, -19.1), secondary_time), u_secondaryOctaves, u_secondaryLacunarity, u_secondaryPersistence);
 
                 // Rising motion (vertical pull)
                 float rising_time = u_time * u_risingSpeed;
-                float rising_noise = (snoise(vec3(vTextureCoord * 3.0, rising_time)) * 0.5 + 0.5); // 0 to 1 range
+                float rising_noise = (snoise(vec3(world_coord * 0.03, rising_time)) * 0.5 + 0.5); // 0 to 1 range
                 float rising_pull = -rising_noise * u_risingIntensity;
 
                 // Combine noises
@@ -15351,6 +15416,8 @@ class HeatDistortionNoiseFilter extends PIXI.Filter {
     super(PIXI.Filter.defaultVertexSrc, fragmentSrc, {
       u_time: 0.0,
       u_resolution: [1, 1],
+      u_camera_offset: [0, 0],
+      u_view_size: [1, 1],
       u_primarySpeed: 0.01,
       u_primaryScale: 1.5,
       u_primaryOctaves: 3,
@@ -17891,9 +17958,15 @@ class DiagnosticLayer extends CanvasLayer {
     } else if (displaySuffix.startsWith("intermediate_")) {
       const key = displaySuffix.replace("intermediate_", "");
       const layerMap = {
+        // --- ADDED NEW OPTION ---
+        animatedShineMask: {
+            resourceManagerMethod: "getAnimatedShineMaskTexture",
+            name: "Metallic Shine (Animated Mask)"
+        },
         metallicShinePattern: {
           class: MetallicShineLayer,
           method: "getPatternTexture",
+          name: "Metallic Shine Pattern",
         },
         waterDisplacement: {
           class: WaterFXLayer,
@@ -17914,11 +17987,16 @@ class DiagnosticLayer extends CanvasLayer {
       };
       if (layerMap[key]) {
         const info = layerMap[key];
-        const layer = canvas.layers.find((l) => l instanceof info.class);
-        if (layer) {
-          if (info.method) fullscreenTexture = layer[info.method]();
-          else if (info.property && layer[info.property]?.getTexture)
-            fullscreenTexture = layer[info.property].getTexture();
+        // --- MODIFIED to handle new resource manager method ---
+        if (info.resourceManagerMethod) {
+            fullscreenTexture = game.mapShine.resourceManager?.[info.resourceManagerMethod](canvas.app.ticker.deltaTime);
+        } else {
+            const layer = canvas.layers.find((l) => l instanceof info.class);
+            if (layer) {
+              if (info.method) fullscreenTexture = layer[info.method]();
+              else if (info.property && layer[info.property]?.getTexture)
+                fullscreenTexture = layer[info.property].getTexture();
+            }
         }
       }
       isFullscreenView = true;
@@ -19017,9 +19095,9 @@ class MetallicShineFilter extends PIXI.Filter {
           varying vec2 vScreenCoord;
 
           // Input Textures
-          uniform sampler2D uSpecularMap;      // The composite colored specular texture
-          uniform sampler2D uStripePattern;    // The animated B&W stripe pattern
-          uniform sampler2D uCloudOcclusionMask; // The cloud shadow texture
+          uniform sampler2D uSpecularMap;        // Screen-space snapshot of world specular maps
+          uniform sampler2D uStripePattern;      // Screen-space animated stripe pattern
+          uniform sampler2D uCloudOcclusionMask; // Screen-space snapshot of world cloud shadows
 
           // Control Uniforms
           uniform bool uCloudOcclusionEnabled;
@@ -19035,27 +19113,33 @@ class MetallicShineFilter extends PIXI.Filter {
           uniform float uTintAmount;
           uniform bool uInvert;
 
-          // A constant vector for calculating luminance from an RGB color.
           const vec3 LUM_WEIGHTS = vec3(0.299, 0.587, 0.114);
 
           void main() {
-              // Sample the color and alpha from the specular map at the current screen position.
-              vec4 specularColor = texture2D(uSpecularMap, vScreenCoord);
-              vec3 workingColor = specularColor.rgb;
-
-              // Calculate the luminance (brightness) of the specular color.
-              float specularLuminance = dot(workingColor, LUM_WEIGHTS);
-
-              // Create a combined mask from both the texture's alpha channel and its brightness.
-              // This ensures the shine appears only in areas that are both non-transparent AND bright.
-              float specularMask = specularColor.a * specularLuminance;
-
-              // If the combined mask value is very low, discard the pixel entirely.
-              if (specularMask < 0.01) {
+              // Sample the specular map. This is a screen-space snapshot of world content.
+              // We sample it with vTextureCoord, which represents the UV of our world-space sprite,
+              // correctly mapping the world position to the snapshot position.
+              vec4 specularColor = texture2D(uSpecularMap, vTextureCoord);
+              
+              if (specularColor.a < 0.01) {
                   discard;
               }
 
-              // Apply Color Correction if enabled
+              float specularLuminance = dot(specularColor.rgb, LUM_WEIGHTS);
+              float baseMask = specularColor.a * specularLuminance;
+
+              // Sample the animated stripe pattern. This is a screen-fixed effect,
+              // so we must sample it with the screen-space coordinate.
+              float stripeIntensity = texture2D(uStripePattern, vScreenCoord).r;
+              
+              float shineMaskValue = baseMask * stripeIntensity;
+              
+              if (shineMaskValue < 0.01) {
+                  discard;
+              }
+
+              vec3 workingColor = specularColor.rgb;
+
               if (uColorCorrectionEnabled) {
                   if (uGamma > 0.0) workingColor = pow(workingColor, vec3(1.0 / uGamma));
                   workingColor += uBrightness;
@@ -19066,29 +19150,22 @@ class MetallicShineFilter extends PIXI.Filter {
                   if (uInvert) workingColor = 1.0 - workingColor;
               }
 
-              // Sample the stripe intensity from the pre-rendered pattern.
-              float stripeIntensity = texture2D(uStripePattern, vScreenCoord).r;
-
-              // The final alpha is modulated by our new combined mask and the stripe intensity.
-              float finalAlpha = specularMask * stripeIntensity;
+              float finalAlpha = shineMaskValue;
               
               if (uCloudOcclusionEnabled) {
-                  // The cloud shadow texture value is between 0 (full shadow) and 1 (no shadow).
-                  float cloudValue = texture2D(uCloudOcclusionMask, vScreenCoord).r;
-                  // We mix between the original alpha (1.0) and the cloud-reduced alpha based on the effect's intensity.
+                  // The cloud shadow texture is also a screen-space snapshot of world content.
+                  // We sample it with vTextureCoord to keep it aligned with the world.
+                  float cloudValue = texture2D(uCloudOcclusionMask, vTextureCoord).r;
                   finalAlpha *= mix(1.0, cloudValue, uCloudOcclusionIntensity);
               }
 
-              // The output color is the original color from the specular map.
-              // We multiply by finalAlpha for premultiplied alpha, which is standard for PIXI filters
-              // and ensures correct blending with the scene.
               gl_FragColor = vec4(clamp(workingColor, 0.0, 1.0) * finalAlpha, finalAlpha);
           }
       `;
 
     super(vertexSrc, fragmentSrc, {
       uSpecularMap: PIXI.Texture.EMPTY,
-      uStripePattern: PIXI.Texture.EMPTY,
+      uStripePattern: PIXI.Texture.EMPTY, // New uniform for the stripe pattern
       uCloudOcclusionMask: PIXI.Texture.EMPTY,
       uCloudOcclusionEnabled: false,
       uCloudOcclusionIntensity: 1.0,
@@ -19228,6 +19305,11 @@ class MetallicShineLayer extends CanvasLayer {
     this.stripeGeneratorSprite = null;
     this.stripePatternTexture = null;
 
+    // For generating the glint mask on-demand
+    this.shineMaskGenerationFilter = null;
+    this.shineMaskGenerationSprite = null;
+    this.animatedShineMaskTexture = null;
+
     // For the final composition
     this.shineFilter = null;
     this.effectSprite = null;
@@ -19239,17 +19321,41 @@ class MetallicShineLayer extends CanvasLayer {
     this._needsMaskUpdate = true;
   }
 
-  // Add a getter for the final texture
   getEffectTexture() {
     return this.finalShineTexture;
   }
 
-  // Add a getter for the specular map texture
   getSpecularMaskTexture() {
     return this.specularCompositeTexture;
   }
+  
+  // This method now generates the mask on-demand for the glint particles.
+  getAnimatedShineMaskTexture() {
+    if (this._destroyed || !this.visible || !this.shineMaskGenerationFilter) {
+      return null;
+    }
 
-  // NEW METHOD: Exposes the internal mask rendering logic to the ResourceManager.
+    // This method assumes the stripe and specular textures for the current frame are ready.
+    // The resource manager ensures this by calling _renderAllOutputs first.
+    const u = this.shineMaskGenerationFilter.uniforms;
+    u.uSpecularMap = this.specularCompositeTexture;
+    u.uStripePattern = this.stripePatternTexture;
+
+    // Pass camera uniforms to allow the filter to map between coordinate spaces
+    const stage = canvas.stage;
+    const screen = canvas.app.screen;
+    const topLeft = stage.toLocal({ x: 0, y: 0 });
+    u.uCameraOffset = [topLeft.x, topLeft.y];
+    u.uViewSize = [screen.width / stage.scale.x, screen.height / stage.scale.y];
+
+    canvas.app.renderer.render(this.shineMaskGenerationSprite, {
+        renderTexture: this.animatedShineMaskTexture,
+        clear: true,
+    });
+    
+    return this.animatedShineMaskTexture;
+  }
+
   renderSpecularMask() {
     this._renderSpecularCompositeTexture();
   }
@@ -19470,6 +19576,7 @@ class MetallicShineLayer extends CanvasLayer {
 
     try {
       this.stripePatternFilter = new MetallicStripePatternFilter();
+      this.shineMaskGenerationFilter = new ShineMaskGenerationFilter();
       this.shineFilter = new MetallicShineFilter();
     } catch (e) {
       console.error("MapShine | Failed to create Metallic Shine filters.", e);
@@ -19483,12 +19590,20 @@ class MetallicShineLayer extends CanvasLayer {
     this.stripeGeneratorSprite.width = screen.width;
     this.stripeGeneratorSprite.height = screen.height;
     this.stripeGeneratorSprite.filters = [this.stripePatternFilter];
+    
+    this.animatedShineMaskTexture = PIXI.RenderTexture.create({
+      width: screen.width,
+      height: screen.height,
+    });
+    this.shineMaskGenerationSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
+    this.shineMaskGenerationSprite.width = screen.width;
+    this.shineMaskGenerationSprite.height = screen.height;
+    this.shineMaskGenerationSprite.filters = this.shineMaskGenerationFilter ? [this.shineMaskGenerationFilter] : [];
 
     this.effectSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
     this.effectSprite.filters = this.shineFilter ? [this.shineFilter] : [];
     this.addChild(this.effectSprite);
 
-    // New texture to hold the final rendered output
     this.finalShineTexture = PIXI.RenderTexture.create({
       width: screen.width,
       height: screen.height,
@@ -19510,24 +19625,16 @@ class MetallicShineLayer extends CanvasLayer {
     const resourceManager = game.mapShine.resourceManager;
     if (!resourceManager) return;
 
-    // This layer is now driven by the ResourceManager.
-    // This call will trigger renderEffectNow if needed for this frame.
     resourceManager.getAnimatedShineTexture(deltaTime);
-
-    // The effectSprite no longer needs its texture set here,
-    // as it's just a dummy sprite to hold the filter.
-    // We will render it directly to the stage.
   }
-
-  renderEffectNow(deltaTime) {
+  
+  _renderAllOutputs(deltaTime) {
     if (this._destroyed || !this.visible || !this.shineFilter) return;
 
-    // Re-render the composite specular map if camera moved
     if (this._needsMaskUpdate) {
       this._renderSpecularCompositeTexture();
     }
 
-    // Update and render the B&W stripe pattern
     const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
     this.time += deltaTime * timeFactor;
     this.stripePatternFilter.uniforms.uTime = this.time;
@@ -19537,16 +19644,13 @@ class MetallicShineLayer extends CanvasLayer {
     });
 
     const resourceManager = game.mapShine.resourceManager;
-    const cloudTexture =
-      resourceManager.getCloudShadowTexture(deltaTime) || PIXI.Texture.WHITE;
+    const cloudTexture = resourceManager.getCloudShadowTexture(deltaTime) || PIXI.Texture.WHITE;
 
-    // Update the final composition filter's uniforms
     const u = this.shineFilter.uniforms;
     u.uSpecularMap = this.specularCompositeTexture;
     u.uStripePattern = this.stripePatternTexture;
     u.uCloudOcclusionMask = cloudTexture;
 
-    // Position the final effect sprite to cover the screen
     const stage = canvas.stage;
     const screen = canvas.app.screen;
     const topLeft = stage.toLocal({ x: 0, y: 0 });
@@ -19555,7 +19659,6 @@ class MetallicShineLayer extends CanvasLayer {
     this.effectSprite.width = screen.width / stage.scale.x;
     this.effectSprite.height = screen.height / stage.scale.y;
 
-    // Render the final effect to our output texture
     canvas.app.renderer.render(this.effectSprite, {
       renderTexture: this.finalShineTexture,
       clear: true,
@@ -19696,6 +19799,10 @@ class MetallicShineLayer extends CanvasLayer {
       renderer.screen.width,
       renderer.screen.height
     );
+    this.animatedShineMaskTexture?.resize(
+        renderer.screen.width,
+        renderer.screen.height
+    );
     this.finalShineTexture?.resize(
       renderer.screen.width,
       renderer.screen.height
@@ -19704,6 +19811,11 @@ class MetallicShineLayer extends CanvasLayer {
     if (this.stripeGeneratorSprite) {
       this.stripeGeneratorSprite.width = renderer.screen.width;
       this.stripeGeneratorSprite.height = renderer.screen.height;
+    }
+    
+    if (this.shineMaskGenerationSprite) {
+        this.shineMaskGenerationSprite.width = renderer.screen.width;
+        this.shineMaskGenerationSprite.height = renderer.screen.height;
     }
 
     if (this.effectSprite) {
@@ -19730,6 +19842,9 @@ class MetallicShineLayer extends CanvasLayer {
     this.stripePatternFilter?.destroy();
     this.stripeGeneratorSprite?.destroy();
     this.stripePatternTexture?.destroy(true);
+    this.shineMaskGenerationFilter?.destroy();
+    this.shineMaskGenerationSprite?.destroy();
+    this.animatedShineMaskTexture?.destroy(true);
     this.shineFilter?.destroy();
     this.effectSprite?.destroy();
     this.finalShineTexture?.destroy(true);
@@ -19739,11 +19854,78 @@ class MetallicShineLayer extends CanvasLayer {
     this.stripePatternFilter = null;
     this.stripeGeneratorSprite = null;
     this.stripePatternTexture = null;
+    this.shineMaskGenerationFilter = null;
+    this.shineMaskGenerationSprite = null;
+    this.animatedShineMaskTexture = null;
     this.shineFilter = null;
     this.effectSprite = null;
     this.finalShineTexture = null;
 
     await super._tearDown(options);
+  }
+}
+
+class ShineMaskGenerationFilter extends PIXI.Filter {
+  constructor(options = {}) {
+    const vertexSrc = `
+            attribute vec2 aVertexPosition;
+            attribute vec2 aTextureCoord;
+            uniform mat3 projectionMatrix;
+            varying vec2 vTextureCoord;
+            varying vec2 vScreenCoord;
+
+            void main(void) {
+                gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
+                vTextureCoord = aTextureCoord;
+                vScreenCoord = gl_Position.xy * 0.5 + 0.5;
+            }
+        `;
+    
+    const fragmentSrc = `
+            precision mediump float;
+            varying vec2 vTextureCoord;
+            varying vec2 vScreenCoord;
+
+            uniform sampler2D uSampler;          // The rendered world-space specular sprites
+            uniform sampler2D uStripePattern;    // The screen-space stripe pattern
+            
+            // Camera uniforms to map world->screen
+            uniform vec2 uCameraOffset;
+            uniform vec2 uViewSize;
+
+            const vec3 LUM_WEIGHTS = vec3(0.299, 0.587, 0.114);
+
+            void main() {
+                // The input uSampler is the rendered container of specular sprites.
+                // vTextureCoord gives us the world-space UV.
+                vec4 specularColor = texture2D(uSampler, vTextureCoord);
+
+                if (specularColor.a < 0.01) {
+                    gl_FragColor = vec4(0.0);
+                    return;
+                }
+
+                float specularLuminance = dot(specularColor.rgb, LUM_WEIGHTS);
+                float baseMask = specularColor.a * specularLuminance;
+                
+                // We need to sample the stripe pattern based on the screen position of this world fragment.
+                // Reconstruct the screen UV from the world coordinate.
+                vec2 screenUV = (vTextureCoord - uCameraOffset) / uViewSize;
+
+                float stripeIntensity = texture2D(uStripePattern, screenUV).r;
+                
+                float finalMaskValue = baseMask * stripeIntensity;
+
+                // Output the raw mask value. The particle system will handle thresholding.
+                gl_FragColor = vec4(vec3(finalMaskValue), 1.0);
+            }
+        `;
+        
+    super(vertexSrc, fragmentSrc, {
+        uStripePattern: PIXI.Texture.EMPTY,
+        uCameraOffset: [0, 0],
+        uViewSize: [1, 1],
+    });
   }
 }
 
@@ -23329,17 +23511,29 @@ class HeatDistortionLayer extends CanvasLayer {
     // Update and render the noise displacement map
     const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
     this.time += deltaTime * timeFactor;
-    this.noiseFilter.uniforms.u_time = this.time;
+    const u = this.noiseFilter.uniforms;
+    u.u_time = this.time;
+
+    // Pass world-space uniforms
+    const stage = canvas.stage;
+    const screen = canvas.app.renderer.screen;
+    const topLeft = stage.toLocal({ x: 0, y: 0 });
+    u.u_camera_offset = [topLeft.x, topLeft.y];
+    u.u_view_size = [
+      screen.width / stage.scale.x,
+      screen.height / stage.scale.y,
+    ];
+
     canvas.app.renderer.render(this.noiseSprite, {
       renderTexture: this.noiseTexture,
       clear: true,
     });
 
     // Update the main distortion filter with the results
-    const u = heatFilter.uniforms;
-    u.u_intensity = config.intensity;
-    u.u_displacementMap = this.noiseTexture;
-    u.u_intensityMask = this.combinedMaskTexture;
+    const h_u = heatFilter.uniforms;
+    h_u.u_intensity = config.intensity;
+    h_u.u_displacementMap = this.noiseTexture;
+    h_u.u_intensityMask = this.combinedMaskTexture;
   }
 
   async updateFromConfig(config) {
@@ -24779,10 +24973,16 @@ class WaterFXLayer extends MaskedEffectLayer {
       screen.height / stage.scale.y,
     ];
 
+    const d_u = this.displacementFilter.uniforms;
+    d_u.u_time = this.time;
+    d_u.u_camera_offset = [topLeft.x, topLeft.y];
+    d_u.u_view_size = viewSize;
+
     renderer.render(this.displacementSprite, {
       renderTexture: this.displacementTexture,
       clear: true,
     });
+
     if (this._needsShorelineMaskUpdate) {
       renderer.render(this.shorelineMaskContainer, {
         renderTexture: this.shorelineMaskTexture,
@@ -24798,7 +24998,6 @@ class WaterFXLayer extends MaskedEffectLayer {
     });
 
     const useShorelineMask = this.shorelineMaskSprites.size > 0;
-    this.displacementFilter.uniforms.u_time = this.time;
 
     const u = waterEffectsFilter.uniforms;
 
@@ -24808,8 +25007,8 @@ class WaterFXLayer extends MaskedEffectLayer {
         x: rect.x,
         y: rect.y,
       });
-      const sceneWidthPixels = rect.width * canvas.stage.scale.x;
-      const sceneHeightPixels = rect.height * canvas.stage.scale.y;
+      const sceneWidthPixels = rect.width * stage.scale.x;
+      const sceneHeightPixels = rect.height * stage.scale.y;
       u.uSceneRectNorm = [
         topLeftScreen.x / screen.width,
         topLeftScreen.y / screen.height,
@@ -24911,6 +25110,10 @@ class WaveDisplacementFilter extends PIXI.Filter {
                         uniform float u_time;
                         uniform float u_speed;
                         uniform float u_scale;
+
+                        // World Space Uniforms
+                        uniform vec2 u_camera_offset;
+                        uniform vec2 u_view_size;
             
                         //
                         // Description : Array and textureless GLSL 3D simplex noise function.
@@ -24991,9 +25194,12 @@ class WaveDisplacementFilter extends PIXI.Filter {
                         }
             
                         void main() {
+                            // Reconstruct world coordinates from screen UVs
+                            vec2 world_coord = u_camera_offset + (vTextureCoord * u_view_size);
+
                             float time = u_time * u_speed;
-                            vec2 uv1 = vTextureCoord * u_scale + vec2(time * 0.5, time * 0.2);
-                            vec2 uv2 = vTextureCoord * u_scale * 1.5 - vec2(time * -0.2, time * 0.5);
+                            vec2 uv1 = world_coord * u_scale * 0.01 + vec2(time * 0.5, time * 0.2);
+                            vec2 uv2 = world_coord * u_scale * 0.015 - vec2(time * -0.2, time * 0.5);
             
                             float noise1_x = snoise(vec3(uv1, time));
                             float noise1_y = snoise(vec3(uv1 + 10.0, time));
@@ -25012,6 +25218,8 @@ class WaveDisplacementFilter extends PIXI.Filter {
       u_time: 0.0,
       u_speed: options.speed ?? 0.05,
       u_scale: options.scale ?? 4.0,
+      u_camera_offset: [0, 0],
+      u_view_size: [1, 1],
     });
   }
 }
@@ -26730,12 +26938,12 @@ class DebuggerUIBuilder {
 
     const managedEffects = ScreenEffectsManager.getManagedEffectsHTML();
     const loadingScreenHTML = this._buildLoadingScreenSection();
-    const pauseEffectHTML = this._buildPauseEffectSection();
+    const pauseScreenHTML = this._buildPauseEffectSection();
 
     postProcessingPane.innerHTML = managedEffects.postProcessing;
     postProcessingPane.innerHTML += this._buildParticleSystemSection();
     postProcessingPane.innerHTML += loadingScreenHTML;
-    postProcessingPane.innerHTML += pauseEffectHTML;
+    postProcessingPane.innerHTML += pauseScreenHTML;
 
     const otherEffectSections = this._getEffectSections();
 
@@ -26754,6 +26962,106 @@ class DebuggerUIBuilder {
       DebuggerUIBuilder._buildBottomBar();
 
     return element;
+  }
+
+  _buildPauseEffectSection() {
+    const content = `
+      <p class="description-text">Controls for the animated pause effect and the appearance of the pause screen overlay.</p>
+      
+      <details id="details-pauseEffect-colorCorrection">
+        <summary><span class="accordion-toggle"></span>
+            <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+              "universal.pauseEffect.colorCorrection.enabled",
+              "Color Correction",
+              true
+            )}</div>
+        </summary>
+        <div style="padding-left: 15px;">
+          <p class="description-text">Applies a color grade to the scene when paused.</p>
+          ${DebuggerUIBuilder._createSliderHTML(
+            "universal.pauseEffect.duration",
+            "Transition (ms)",
+            0,
+            10000,
+            100
+          )}
+          ${DebuggerUIBuilder._createSliderHTML(
+            "universal.pauseEffect.colorCorrection.saturation",
+            "Saturation",
+            0,
+            2,
+            0.05
+          )}
+          ${DebuggerUIBuilder._createSliderHTML(
+            "universal.pauseEffect.colorCorrection.brightness",
+            "Brightness",
+            -1,
+            1,
+            0.01
+          )}
+          ${DebuggerUIBuilder._createSliderHTML(
+            "universal.pauseEffect.colorCorrection.contrast",
+            "Contrast",
+            0,
+            3,
+            0.05
+          )}
+        </div>
+      </details>
+
+      <details id="details-pauseEffect-appearance">
+        <summary><span class="accordion-toggle"></span><strong>Screen Appearance</strong></summary>
+        <div style="padding-left: 15px;">
+          <p class="description-text">Customize the visual elements of the pause screen overlay.</p>
+          ${DebuggerUIBuilder._createTextInputHTML(
+            "universal.pauseEffect.titleText",
+            "Title"
+          )}
+          ${DebuggerUIBuilder._createTextInputHTML(
+            "universal.pauseEffect.subtitleText",
+            "Subtitle"
+          )}
+          ${DebuggerUIBuilder._createTextInputWithPickerHTML(
+            "universal.pauseEffect.logoPath",
+            "Logo"
+          )}
+          <hr style="border-color: #555; margin: 6px 0;">
+          ${DebuggerUIBuilder._createColorPickerHTML(
+            "universal.pauseEffect.backgroundColor",
+            "Background"
+          )}
+          ${DebuggerUIBuilder._createColorPickerHTML(
+            "universal.pauseEffect.borderColor",
+            "Borders"
+          )}
+          ${DebuggerUIBuilder._createColorPickerHTML(
+            "universal.pauseEffect.titleColor",
+            "Title Color"
+          )}
+          ${DebuggerUIBuilder._createColorPickerHTML(
+            "universal.pauseEffect.subtitleColor",
+            "Subtitle Color"
+          )}
+          <hr style="border-color: #555; margin: 6px 0;">
+          ${DebuggerUIBuilder._createCheckboxHTML(
+            "universal.pauseEffect.useRandomHint",
+            "Show Random Hint"
+          )}
+          <div id="pause-screen-hint-color-wrapper">
+            ${DebuggerUIBuilder._createColorPickerHTML(
+              "universal.pauseEffect.hintColor",
+              "Hint Color"
+            )}
+          </div>
+        </div>
+      </details>
+    `;
+
+    return DebuggerUIBuilder._createAccordionHTML(
+      "pauseEffect",
+      "Pause Effect",
+      content
+    );
   }
 
   _buildLoadingScreenSection() {
@@ -27293,91 +27601,6 @@ class DebuggerUIBuilder {
         `;
   }
 
-  _buildPauseEffectSection() {
-    const content = `
-      <p class="description-text">Configure the visual appearance of the screen that appears when the game is paused.</p>
-      
-      <details id="details-pauseEffect-content">
-        <summary><span class="accordion-toggle"></span><strong>Content &amp; Text</strong></summary>
-        <div style="padding-left: 15px;">
-          ${DebuggerUIBuilder._createTextInputHTML(
-            "universal.pauseEffect.heading",
-            "Heading"
-          )}
-          ${DebuggerUIBuilder._createTextInputHTML(
-            "universal.pauseEffect.subheading",
-            "Subheading"
-          )}
-        </div>
-      </details>
-      
-      <details id="details-pauseEffect-styling">
-        <summary><span class="accordion-toggle"></span><strong>Styling &amp; Colors</strong></summary>
-        <div style="padding-left: 15px;">
-          ${DebuggerUIBuilder._createTextInputWithPickerHTML(
-            "universal.pauseEffect.logoPath",
-            "Logo Path"
-          )}
-          ${DebuggerUIBuilder._createSliderHTML(
-            "universal.pauseEffect.logoOpacity",
-            "Logo Opacity",
-            0,
-            1,
-            0.05
-          )}
-          <hr style="border-color: #555; margin: 6px 0;">
-          ${DebuggerUIBuilder._createTextInputHTML(
-            "universal.pauseEffect.backgroundColor",
-            "Background"
-          )}
-          ${DebuggerUIBuilder._createColorPickerHTML(
-            "universal.pauseEffect.gradientColor1",
-            "Gradient Color 1"
-          )}
-          ${DebuggerUIBuilder._createTextInputHTML(
-            "universal.pauseEffect.gradientColor2",
-            "Gradient Color 2"
-          )}
-          <hr style="border-color: #555; margin: 6px 0;">
-          ${DebuggerUIBuilder._createColorPickerHTML(
-            "universal.pauseEffect.headingColor",
-            "Heading Color"
-          )}
-          ${DebuggerUIBuilder._createColorPickerHTML(
-            "universal.pauseEffect.subheadingColor",
-            "Subheading Color"
-          )}
-          ${DebuggerUIBuilder._createColorPickerHTML(
-            "universal.pauseEffect.hintColor",
-            "Hint Color"
-          )}
-        </div>
-      </details>
-      
-      <details id="details-pauseEffect-hints">
-        <summary><span class="accordion-toggle"></span><strong>Random Hints</strong></summary>
-        <div style="padding-left: 15px;">
-          ${DebuggerUIBuilder._createCheckboxHTML(
-            "universal.pauseEffect.useRandomHint",
-            "Show Random Hint"
-          )}
-          <div id="pauseEffect-randomHints-wrapper">
-             ${DebuggerUIBuilder._createListManagerHTML(
-               "universal.pauseEffect.randomHints",
-               "Hint",
-               "text"
-             )}
-          </div>
-        </div>
-      </details>
-    `;
-    return DebuggerUIBuilder._createAccordionHTML(
-      "pauseEffectOverlay",
-      "Pause Effect Overlay",
-      content
-    );
-  }
-
   _buildProfileSection() {
     const isGm = game.user.isGM;
     const worldProfileSection = isGm
@@ -27497,10 +27720,9 @@ class DebuggerUIBuilder {
 
   static _createAccordionHTML(id, title, content, headerExtra = "") {
     let path = `${id}.enabled`;
-    if (id === "loadingScreen") {
-      // The loading screen accordion doesn't have a single master toggle.
-      // We'll create a dummy path for the ID and not render a checkbox.
-      path = "loadingScreen.accordion";
+    if (id === "loadingScreen" || id === "pauseScreen") {
+      // These accordions don't have a single master toggle.
+      path = `${id}.accordion`;
       const labelHtml = `<span class="summary-label">${title}</span>`;
       const resetButtonHtml = `<button type="button" class="reset-accordion-btn" data-action="reset-accordion" data-effect-key="${id}" title="Reset this section to defaults">R</button>`;
 
@@ -28051,9 +28273,15 @@ class DebuggerEventHandler {
         if (!effectKey) return;
 
         let defaultsToUse = MODULE_DEFAULTS[effectKey];
-        if (effectKey === "loadingScreen") {
+        if (
+          effectKey === "loadingScreen" ||
+          effectKey === "pauseScreen" // Add pauseScreen
+        ) {
           // Special handling for the combined accordion
-          defaultsToUse = UNIVERSAL_EFFECT_DEFAULTS.sceneTransition;
+          defaultsToUse =
+            effectKey === "loadingScreen"
+              ? UNIVERSAL_EFFECT_DEFAULTS.sceneTransition
+              : UNIVERSAL_EFFECT_DEFAULTS.pauseEffect;
         }
 
         if (!defaultsToUse) {
@@ -28067,10 +28295,16 @@ class DebuggerEventHandler {
           title: `Reset ${effectKey} Settings`,
           content: `<p>Are you sure you want to reset all settings in the "<strong>${effectKey}</strong>" section to their default values? This will create unsaved changes.</p>`,
           yes: async () => {
-            if (effectKey === "loadingScreen") {
+            if (
+              effectKey === "loadingScreen" ||
+              effectKey === "pauseScreen"
+            ) {
+              const baseSettingPath =
+                effectKey === "loadingScreen"
+                  ? "universal.sceneTransition"
+                  : "universal.pauseEffect";
               for (const key in defaultsToUse) {
-                const path = `universal.sceneTransition.${key}`;
-                const settingKey = `universal.sceneTransition.${key}`;
+                const settingKey = `${baseSettingPath}.${key}`;
                 const defaultValue = defaultsToUse[key];
                 if (Array.isArray(defaultValue)) {
                   await game.settings.set(
@@ -28302,11 +28536,13 @@ class DebuggerEventHandler {
       }
     });
 
-    this.element.querySelectorAll("[data-world-based-path]").forEach((icon) => {
-      const path = icon.dataset.worldBasedPath;
-      const isWorldBased = this._getPathValue(this.config, path);
-      icon.classList.toggle("active", isWorldBased);
-    });
+    this.element
+      .querySelectorAll("[data-world-based-path]")
+      .forEach((icon) => {
+        const path = icon.dataset.worldBasedPath;
+        const isWorldBased = this._getPathValue(this.config, path);
+        icon.classList.toggle("active", isWorldBased);
+      });
 
     this.element
       .querySelectorAll(".list-manager-container")
@@ -28316,7 +28552,7 @@ class DebuggerEventHandler {
       });
 
     this._updateRandomHintVisibility();
-    this._updatePauseHintVisibility();
+    this._updatePauseRandomHintVisibility();
     this._updateInitialRandomBackgroundVisibility();
     this._updateBackgroundOverlayVisibility();
     this._updateLutControlVisibility();
@@ -28803,6 +29039,17 @@ class DebuggerEventHandler {
       .join("");
   }
 
+  _updatePauseScreenCustomVisibility() {
+    const useCustom = game.settings.get(
+      MODULE_ID,
+      "universal.pauseEffect.useCustom"
+    );
+    const wrapper = this.element.querySelector("#pause-screen-custom-wrapper");
+    if (wrapper) {
+      wrapper.style.display = useCustom ? "block" : "none";
+    }
+  }
+
   async _handleGenericInput(e) {
     const target = e.target;
 
@@ -28859,7 +29106,7 @@ class DebuggerEventHandler {
       if (path === "universal.sceneTransition.useRandomHint")
         this._updateRandomHintVisibility();
       if (path === "universal.pauseEffect.useRandomHint")
-        this._updatePauseHintVisibility();
+        this._updatePauseRandomHintVisibility();
       if (path === "loading-screen-use-random-background")
         this._updateInitialRandomBackgroundVisibility();
       if (path === "loading-screen-background-overlay-enabled") {
@@ -28867,19 +29114,6 @@ class DebuggerEventHandler {
       }
       if (path === "tileOpacity")
         game.mapShine.effectTargetManager.applyTileOpacities();
-    }
-  }
-
-  _updatePauseHintVisibility() {
-    const useRandom = game.settings.get(
-      MODULE_ID,
-      "universal.pauseEffect.useRandomHint"
-    );
-    const wrapper = this.element.querySelector(
-      "#pauseEffect-randomHints-wrapper"
-    );
-    if (wrapper) {
-      wrapper.style.display = useRandom ? "block" : "none";
     }
   }
 
@@ -28893,6 +29127,19 @@ class DebuggerEventHandler {
     );
     if (wrapper) {
       wrapper.style.display = useRandom ? "block" : "none";
+    }
+  }
+
+  _updatePauseRandomHintVisibility() {
+    const useRandom = game.settings.get(
+      MODULE_ID,
+      "universal.pauseEffect.useRandomHint"
+    );
+    const wrapper = this.element.querySelector(
+      "#pause-screen-hint-color-wrapper"
+    );
+    if (wrapper) {
+      wrapper.style.display = useRandom ? "flex" : "none";
     }
   }
 
@@ -29757,11 +30004,6 @@ class SimpleUIPanel extends Application {
         : 0;
       valueEl.text(Number(value).toFixed(decimals));
     }
-  }
-
-  _onSliderInput(event) {
-    const el = event.currentTarget;
-    this._updateSliderValue(el.id, el.value, el.step);
   }
 
   async _onInputChange(event) {

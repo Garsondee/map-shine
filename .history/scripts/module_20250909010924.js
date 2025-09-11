@@ -1,3 +1,7 @@
+// TODO: The bottom 'Add Background Image' button is broken. Maybe just have a single list that's driven from the working loading screen version?
+
+
+
 /******************************************************************************
  *
  *                            MAP SHINE
@@ -39,29 +43,16 @@ const UNIVERSAL_EFFECT_DEFAULTS = {
       "Loading Screen Hint 2",
       "Loading Screen Hint 3",
     ],
+    // New properties for background images and overlays
+    staticBackgroundImage: "",
+    useRandomBackgroundImage: false,
+    backgroundImages: [],
+    backgroundOverlayEnabled: true,
+    backgroundOverlayOpacity: 0.75,
   },
   pauseEffect: {
     enabled: true,
     duration: 3000,
-    // --- New properties for the overlay ---
-    heading: "SESSION PAUSED",
-    subheading: "Please stand by...",
-    logoPath: "modules/map-shine/assets/mm-logo.png",
-    logoOpacity: 0.8,
-    backgroundColor: "rgba(10, 0, 0, 0.75)",
-    gradientColor1: "#ff4444",
-    gradientColor2: "rgba(255, 0, 0, 0.5)",
-    gradientShadowColor: "#ff0000",
-    headingColor: "#ffcccc",
-    subheadingColor: "#ff8888",
-    hintColor: "#dddddd",
-    useRandomHint: true,
-    randomHints: [
-      "Hint: Check your inventory for useful items.",
-      "Hint: Remember to save frequently!",
-      "Hint: Resting can restore health and spells.",
-    ],
-    // --- Existing color correction ---
     colorCorrection: {
       enabled: true,
       saturation: 0.2,
@@ -1437,7 +1428,7 @@ const MODULE_DEFAULTS = {
       layerBlendMode: 1,
     },
     animation: {
-      globalIntensity: 1.95,
+      globalIntensity: 2,
     },
     pattern: {
       stripes: {
@@ -1445,25 +1436,13 @@ const MODULE_DEFAULTS = {
         speed: 0,
         angle: 140,
         scale: 12.5,
-        evolution: 0,
-        threshold: 0.21,
-        softness: 0.26,
+        evolution: 0.01,
+        threshold: 0.05,
+        softness: 0.5,
         widthVariationAmount: 0,
         widthVariationScale: 0.51,
         strengthVariation: 1,
       },
-    },
-    colorCorrection: {
-      enabled: true,
-      saturation: 1.25,
-      brightness: 0.07,
-      contrast: 1.7,
-      gamma: 1,
-      tint: {
-        color: "#FFFFFF",
-        amount: 0,
-      },
-      invert: false,
     },
     cloudOcclusion: {
       enabled: true,
@@ -1864,7 +1843,7 @@ const MODULE_DEFAULTS = {
         },
       },
       dynamicExposure: {
-        enabled: true,
+        enabled: false,
         intensity: 1.5,
         duration: 8000,
         resetPeriod: 60000,
@@ -1888,7 +1867,7 @@ const MODULE_DEFAULTS = {
       centerY: 0.5,
     },
     tiltShift: {
-      enabled: true,
+      enabled: false,
       blur: 23,
       gradientBlur: 3610,
       startX: 0,
@@ -2016,40 +1995,6 @@ const MODULE_DEFAULTS = {
     rgbSplit: {
       enabled: true,
       amount: 8.2,
-    },
-  },
-  metallicGlints: {
-    enabled: true,
-    blendMode: 1,
-    maskThreshold: 0.9,
-    maskInfluence: 0.1,
-    particleTexture: "modules/map-shine/assets/glint.webp",
-    frequency: 0.95,
-    lifetime: {
-      min: 0.4,
-      max: 1.2,
-    },
-    alpha: {
-      max: 0.75,
-      fadeIn: 0.1,
-      fadeOut: 0.9,
-    },
-    scale: {
-      sizeMultiplier: 4,
-      start: 1,
-      end: 0.1,
-      minMult: 0.7,
-    },
-    speed: {
-      start: 0,
-      end: 0,
-      minMult: 0.5,
-    },
-    rotation: {
-      enabled: false,
-      minSpeed: 0,
-      maxSpeed: 0,
-      accel: 0,
     },
   },
   water: {
@@ -2662,8 +2607,8 @@ class MapShineInitialiser {
     });
 
     game.settings.register(MODULE_ID, "loading-screen-static-background", {
-      name: "Loading & Transitions: Static Background Image",
-      hint: "A single image to display on the initial world loading screen and during scene transitions. Overridden if 'Use Random Background' is checked.",
+      name: "Loading Screen: Static Background Image",
+      hint: "A single image to display on the initial world loading screen. Overridden if 'Use Random Background' is checked.",
       scope: "world",
       config: true,
       type: String,
@@ -2672,8 +2617,8 @@ class MapShineInitialiser {
     });
 
     game.settings.register(MODULE_ID, "loading-screen-use-random-background", {
-      name: "Loading & Transitions: Use Random Background",
-      hint: "If checked, a random image from the list below will be used for the initial world loading screen and scene transitions.",
+      name: "Loading Screen: Use Random Background",
+      hint: "If checked, a random image from the list below will be used for the initial world loading screen.",
       scope: "world",
       config: true,
       type: Boolean,
@@ -2681,7 +2626,7 @@ class MapShineInitialiser {
     });
 
     game.settings.register(MODULE_ID, "loading-screen-random-backgrounds", {
-      name: "Loading & Transitions: Backgrounds (one per line)",
+      name: "Loading Screen: Backgrounds (one per line)",
       hint: "A list of image paths. One will be chosen randomly if 'Use Random Background' is checked. One path per line.",
       scope: "world",
       config: true,
@@ -2693,7 +2638,7 @@ class MapShineInitialiser {
       MODULE_ID,
       "loading-screen-background-overlay-enabled",
       {
-        name: "Loading & Transitions: Enable Background Overlay",
+        name: "Loading Screen: Enable Background Overlay",
         hint: "Shows a semi-transparent black overlay on top of the background image to improve text readability.",
         scope: "world",
         config: true,
@@ -2706,7 +2651,7 @@ class MapShineInitialiser {
       MODULE_ID,
       "loading-screen-background-overlay-opacity",
       {
-        name: "Loading & Transitions: Background Overlay Opacity",
+        name: "Loading Screen: Background Overlay Opacity",
         hint: "How opaque the black overlay is. 0 is transparent, 1 is fully black.",
         scope: "world",
         config: true,
@@ -2778,90 +2723,46 @@ class MapShineInitialiser {
       type: String,
       default: ST_DEFAULTS.randomHints.join("\n"),
     });
+    registerUniversalSetting("sceneTransition.staticBackgroundImage", {
+      name: "[Universal] Scene Transition: Static Background Image",
+      type: String,
+      default: ST_DEFAULTS.staticBackgroundImage,
+      filePicker: "image",
+    });
+    registerUniversalSetting("sceneTransition.useRandomBackgroundImage", {
+      name: "[Universal] Scene Transition: Use Random Background",
+      type: Boolean,
+      default: ST_DEFAULTS.useRandomBackgroundImage,
+    });
+    registerUniversalSetting("sceneTransition.backgroundImages", {
+      name: "[Universal] Scene Transition: Backgrounds (one per line)",
+      type: String,
+      default: ST_DEFAULTS.backgroundImages.join("\n"),
+    });
+    registerUniversalSetting("sceneTransition.backgroundOverlayEnabled", {
+      name: "[Universal] Scene Transition: Enable Background Overlay",
+      type: Boolean,
+      default: ST_DEFAULTS.backgroundOverlayEnabled,
+    });
+    registerUniversalSetting("sceneTransition.backgroundOverlayOpacity", {
+      name: "[Universal] Scene Transition: Background Overlay Opacity",
+      type: Number,
+      range: { min: 0, max: 1, step: 0.05 },
+      default: ST_DEFAULTS.backgroundOverlayOpacity,
+    });
 
     // --- Pause Effect Settings ---
-    const PE = UNIVERSAL_EFFECT_DEFAULTS.pauseEffect;
-    const PE_CC = PE.colorCorrection;
+    const PE_CC = UNIVERSAL_EFFECT_DEFAULTS.pauseEffect.colorCorrection;
     registerUniversalSetting("pauseEffect.enabled", {
       name: "[Universal] Pause Effect: Enabled",
       type: Boolean,
-      default: PE.enabled,
+      default: UNIVERSAL_EFFECT_DEFAULTS.pauseEffect.enabled,
     });
     registerUniversalSetting("pauseEffect.duration", {
       name: "[Universal] Pause Effect: Duration (ms)",
       type: Number,
-      default: PE.duration,
+      default: UNIVERSAL_EFFECT_DEFAULTS.pauseEffect.duration,
     });
-    // Pause Overlay
-    registerUniversalSetting("pauseEffect.heading", {
-      name: "[Universal] Pause Overlay: Heading",
-      type: String,
-      default: PE.heading,
-    });
-    registerUniversalSetting("pauseEffect.subheading", {
-      name: "[Universal] Pause Overlay: Subheading",
-      type: String,
-      default: PE.subheading,
-    });
-    registerUniversalSetting("pauseEffect.logoPath", {
-      name: "[Universal] Pause Overlay: Logo Path",
-      type: String,
-      default: PE.logoPath,
-      filePicker: "image",
-    });
-    registerUniversalSetting("pauseEffect.logoOpacity", {
-      name: "[Universal] Pause Overlay: Logo Opacity",
-      type: Number,
-      range: { min: 0, max: 1, step: 0.05 },
-      default: PE.logoOpacity,
-    });
-    registerUniversalSetting("pauseEffect.backgroundColor", {
-      name: "[Universal] Pause Overlay: Background Color",
-      type: String,
-      default: PE.backgroundColor,
-    });
-    registerUniversalSetting("pauseEffect.gradientColor1", {
-      name: "[Universal] Pause Overlay: Gradient Color 1",
-      type: String,
-      default: PE.gradientColor1,
-    });
-    registerUniversalSetting("pauseEffect.gradientColor2", {
-      name: "[Universal] Pause Overlay: Gradient Color 2",
-      type: String,
-      default: PE.gradientColor2,
-    });
-    registerUniversalSetting("pauseEffect.gradientShadowColor", {
-      name: "[Universal] Pause Overlay: Gradient Shadow Color",
-      type: String,
-      default: PE.gradientShadowColor,
-    });
-    registerUniversalSetting("pauseEffect.headingColor", {
-      name: "[Universal] Pause Overlay: Heading Color",
-      type: String,
-      default: PE.headingColor,
-    });
-    registerUniversalSetting("pauseEffect.subheadingColor", {
-      name: "[Universal] Pause Overlay: Subheading Color",
-      type: String,
-      default: PE.subheadingColor,
-    });
-    registerUniversalSetting("pauseEffect.hintColor", {
-      name: "[Universal] Pause Overlay: Hint Color",
-      type: String,
-      default: PE.hintColor,
-    });
-    registerUniversalSetting("pauseEffect.useRandomHint", {
-      name: "[Universal] Pause Overlay: Use Random Hint",
-      type: Boolean,
-      default: PE.useRandomHint,
-    });
-    registerUniversalSetting("pauseEffect.randomHints", {
-      name: "[Universal] Pause Overlay: Hints (one per line)",
-      type: String,
-      default: PE.randomHints.join("\n"),
-    });
-
-    // Pause Color Correction
     registerUniversalSetting("pauseEffect.colorCorrection.enabled", {
       name: "[Universal] Pause Effect: Color Correction Enabled",
       type: Boolean,
@@ -3401,7 +3302,6 @@ class MapShineInitialiser {
       );
       PIXI.particles.Emitter.registerBehavior(SparkPathBehavior);
       PIXI.particles.Emitter.registerBehavior(SmellyFliesBehavior);
-      PIXI.particles.Emitter.registerBehavior(ColorFromSpawnBehavior);
     } else {
       console.error(
         "FAILURE: pixi-particles library did not attach to the global PIXI object."
@@ -3474,33 +3374,30 @@ class MapShineInitialiser {
             )
               .split(/\r?\n/)
               .filter((h) => h.trim() !== ""),
-            // --- MODIFIED SECTION ---
-            // Point to the consolidated loading screen settings.
             staticBackgroundImage: game.settings.get(
               MODULE_ID,
-              "loading-screen-static-background"
+              "universal.sceneTransition.staticBackgroundImage"
             ),
             useRandomBackgroundImage: game.settings.get(
               MODULE_ID,
-              "loading-screen-use-random-background"
+              "universal.sceneTransition.useRandomBackgroundImage"
             ),
             backgroundImages: (
               game.settings.get(
                 MODULE_ID,
-                "loading-screen-random-backgrounds"
+                "universal.sceneTransition.backgroundImages"
               ) || ""
             )
               .split(/\r?\n/)
               .filter((h) => h.trim() !== ""),
             backgroundOverlayEnabled: game.settings.get(
               MODULE_ID,
-              "loading-screen-background-overlay-enabled"
+              "universal.sceneTransition.backgroundOverlayEnabled"
             ),
             backgroundOverlayOpacity: game.settings.get(
               MODULE_ID,
-              "loading-screen-background-overlay-opacity"
+              "universal.sceneTransition.backgroundOverlayOpacity"
             ),
-            // --- END MODIFIED SECTION ---
           };
 
           const sceneToView = this;
@@ -3569,39 +3466,39 @@ class MapShineInitialiser {
       );
     }
 
-    // This hook ensures settings that should be textareas are rendered as such.
-    Hooks.on("renderSettingsConfig", (app, html, data) => {
-      const settingsToConvert = [
-        `${MODULE_ID}.universal.sceneTransition.randomHints`,
-        `${MODULE_ID}.loading-screen-random-backgrounds`,
-        `${MODULE_ID}.universal.pauseEffect.randomHints`,
-      ];
+// This hook ensures settings that should be textareas are rendered as such.
+Hooks.on("renderSettingsConfig", (app, html, data) => {
+  const settingsToConvert = [
+    `${MODULE_ID}.universal.sceneTransition.randomHints`,
+    `${MODULE_ID}.universal.sceneTransition.backgroundImages`,
+    `${MODULE_ID}.loading-screen-random-backgrounds`,
+  ];
 
-      settingsToConvert.forEach((settingKey) => {
-        // Use the standard querySelector method, as 'html' is a raw HTMLElement.
-        const input = html.querySelector(`[name="${settingKey}"]`);
+  settingsToConvert.forEach((settingKey) => {
+    // Use the standard querySelector method, as 'html' is a raw HTMLElement.
+    const input = html.querySelector(`[name="${settingKey}"]`);
 
-        if (input) {
-          // The key for game.settings.get is the part *after* the module ID.
-          const gameSettingKey = settingKey.replace(`${MODULE_ID}.`, "");
-          let value = game.settings.get(MODULE_ID, gameSettingKey);
+    if (input) {
+      // The key for game.settings.get is the part *after* the module ID.
+      const gameSettingKey = settingKey.replace(`${MODULE_ID}.`, "");
+      let value = game.settings.get(MODULE_ID, gameSettingKey);
 
-          // If the setting was somehow saved as an array, join it back into a newline-separated string.
-          if (Array.isArray(value)) {
-            value = value.join("\n");
-          }
+      // If the setting was somehow saved as an array, join it back into a newline-separated string.
+      if (Array.isArray(value)) {
+        value = value.join("\n");
+      }
 
-          const textarea = document.createElement("textarea");
-          textarea.name = input.name;
-          textarea.id = input.id;
-          textarea.value = value; // Use the raw value.
-          textarea.rows = 5; // Set a reasonable default height.
+      const textarea = document.createElement("textarea");
+      textarea.name = input.name;
+      textarea.id = input.id;
+      textarea.value = value; // Use the raw value.
+      textarea.rows = 5; // Set a reasonable default height.
 
-          // Replace the original input element with the new textarea element.
-          input.replaceWith(textarea);
-        }
-      });
-    });
+      // Replace the original input element with the new textarea element.
+      input.replaceWith(textarea);
+    }
+  });
+});
 
     // --- Standard Hooks ---
 
@@ -4884,19 +4781,24 @@ class ResourceManager {
     const layer = canvas.layers.find((l) => l instanceof MetallicShineLayer);
     if (!layer) return null;
 
+    // Command the layer to perform its render logic for this frame.
     if (typeof layer.renderEffectNow === "function") {
       layer.renderEffectNow(deltaTime);
     } else {
+      // Fallback or error if the method doesn't exist
       console.warn(
         "ResourceManager: MetallicShineLayer is missing renderEffectNow()"
       );
       return null;
     }
 
+    // Now get the resulting texture.
     const texture = layer.getEffectTexture();
     this._frameCache.animatedShineTexture = texture;
     return texture;
   }
+
+  // --- NEW: WATER EFFECT RESOURCES ---
 
   /**
    * Retrieves the primary water mask (_Water textures).
@@ -5244,20 +5146,18 @@ class SceneChangeManager {
         }
       );
 
-      this._hintAnimation.finished
-        .then(() => {
-          this._currentHintIndex =
-            (this._currentHintIndex + 1) % this._shuffledHints.length;
-          hintElement.innerText = this._shuffledHints[this._currentHintIndex];
+      this._hintAnimation.finished.then(() => {
+        this._currentHintIndex =
+          (this._currentHintIndex + 1) % this._shuffledHints.length;
+        hintElement.innerText = this._shuffledHints[this._currentHintIndex];
 
-          hintElement.animate([{ opacity: 0 }, { opacity: 1 }], {
-            duration: HINT_FADE_DURATION,
-            easing: "ease-out",
-          });
+        hintElement.animate([{ opacity: 0 }, { opacity: 1 }], {
+          duration: HINT_FADE_DURATION,
+          easing: "ease-out",
+        });
 
-          this._hintInterval = setTimeout(showNextHint, HINT_PAUSE_DURATION);
-        })
-        .catch(() => {}); // Catch the expected cancellation error
+        this._hintInterval = setTimeout(showNextHint, HINT_PAUSE_DURATION);
+      });
     };
 
     // Set the initial state for the first hint
@@ -5279,11 +5179,7 @@ class SceneChangeManager {
       this._hintInterval = null;
     }
     if (this._hintAnimation) {
-      try {
-        this._hintAnimation.cancel();
-      } catch (e) {
-        // This is an expected DOMException when cancelling an animation, so we can ignore it.
-      }
+      this._hintAnimation.cancel();
       this._hintAnimation = null;
     }
     this._shuffledHints = [];
@@ -7241,22 +7137,20 @@ class LoadingScreen {
         }
       );
 
-      this._hintAnimation.finished
-        .then(() => {
-          if (!this.element) return; // Guard against element being removed during animation
-          this._currentHintIndex =
-            (this._currentHintIndex + 1) % this._shuffledHints.length;
-          hintElement.innerText = this._shuffledHints[this._currentHintIndex];
+      this._hintAnimation.finished.then(() => {
+        if (!this.element) return; // Guard against element being removed during animation
+        this._currentHintIndex =
+          (this._currentHintIndex + 1) % this._shuffledHints.length;
+        hintElement.innerText = this._shuffledHints[this._currentHintIndex];
 
-          hintElement.animate([{ opacity: 0 }, { opacity: 1 }], {
-            duration: HINT_FADE_DURATION,
-            easing: "ease-out",
-            fill: "forwards",
-          });
+        hintElement.animate([{ opacity: 0 }, { opacity: 1 }], {
+          duration: HINT_FADE_DURATION,
+          easing: "ease-out",
+          fill: "forwards",
+        });
 
-          this._hintInterval = setTimeout(showNextHint, HINT_PAUSE_DURATION);
-        })
-        .catch(() => {}); // Catch the expected cancellation error
+        this._hintInterval = setTimeout(showNextHint, HINT_PAUSE_DURATION);
+      });
     };
 
     hintElement.innerText = this._shuffledHints[this._currentHintIndex];
@@ -7280,11 +7174,7 @@ class LoadingScreen {
       this._hintInterval = null;
     }
     if (this._hintAnimation) {
-      try {
-        this._hintAnimation.cancel();
-      } catch (e) {
-        // This is an expected DOMException when cancelling an animation, so we can ignore it.
-      }
+      this._hintAnimation.cancel();
       this._hintAnimation = null;
     }
     this._shuffledHints = [];
@@ -7607,7 +7497,6 @@ class MapShineLifecycle {
       prism: "prism",
       dust: "dust",
       glint: "prism",
-      metallicGlints: "specular",
       fire: "fire",
       sparks: "sparks",
     };
@@ -8877,6 +8766,7 @@ class PauseScreenManager {
    * This is the single entry point for this system.
    */
   static initialize() {
+    // HOOK 1: Listen for in-session pause state changes.
     Hooks.on("pauseGame", (paused) => {
       if (paused) {
         this._applyCustomPauseScreen();
@@ -8885,173 +8775,88 @@ class PauseScreenManager {
       }
     });
 
+    // HOOK 2: Check the initial state once the UI is fully ready.
     Hooks.once("ready", () => {
       if (game.paused) {
+        console.log(
+          "Map Shine | Game loaded in a paused state. Applying custom pause screen."
+        );
         this._applyCustomPauseScreen();
       }
     });
+
+    console.log(
+      "Map Shine | Pause Screen Manager initialized and hooks are active."
+    );
   }
 
   /**
-   * Retrieves all necessary settings for the pause screen from the game settings.
-   * @returns {object} An object containing all the configured values.
-   * @private
-   */
-  static _getSettings() {
-    const getSetting = (key) =>
-      game.settings.get(MODULE_ID, `universal.pauseEffect.${key}`);
-    return {
-      heading: getSetting("heading"),
-      subheading: getSetting("subheading"),
-      logoPath: getSetting("logoPath"),
-      logoOpacity: getSetting("logoOpacity"),
-      backgroundColor: getSetting("backgroundColor"),
-      gradientColor1: getSetting("gradientColor1"),
-      gradientColor2: getSetting("gradientColor2"),
-      gradientShadowColor: getSetting("gradientShadowColor"),
-      headingColor: getSetting("headingColor"),
-      subheadingColor: getSetting("subheadingColor"),
-      hintColor: getSetting("hintColor"),
-      useRandomHint: getSetting("useRandomHint"),
-      randomHints: (getSetting("randomHints") || "")
-        .split(/\r?\n/)
-        .filter((h) => h.trim() !== ""),
-    };
-  }
-
-  /**
-   * Finds the #pause element, clears it, and injects our fully custom content and styles.
+   * Finds the #pause element in the DOM and applies custom styling.
+   * This function uses requestAnimationFrame to poll for the element, making it
+   * resilient to race conditions.
    * @private
    */
   static _applyCustomPauseScreen() {
-    const MAX_ATTEMPTS = 120;
+    const MAX_ATTEMPTS = 120; // A generous timeout (approx. 2 seconds at 60fps)
     let attempts = 0;
 
     const findAndModify = () => {
       const pauseElement = document.getElementById("pause");
+
       if (pauseElement) {
-        // Clear any default content (like the Foundry logo and "Game Paused" text)
-        pauseElement.innerHTML = "";
-
-        const settings = this._getSettings();
-        let hintHTML = "";
-        if (settings.useRandomHint && settings.randomHints.length > 0) {
-          const hint =
-            settings.randomHints[
-              Math.floor(Math.random() * settings.randomHints.length)
-            ];
-          hintHTML = `<p class="map-shine-pause-hint">${hint}</p>`;
-        }
-
-        const logoHTML = settings.logoPath
-          ? `<div class="map-shine-pause-logo"></div>`
-          : "";
+        console.log(
+          `MapShine | Found and applying custom style to #pause element after ${attempts} attempts.`
+        );
 
         const customHTML = `
-          <div class="map-shine-pause-wrapper">
-            <h1 class="map-shine-pause-title">${settings.heading}</h1>
-            <p class="map-shine-pause-subtitle">${settings.subheading}</p>
-            ${logoHTML}
-            ${hintHTML}
+          <div class="map-shine-pause-container">
+            <h1 class="map-shine-pause-title">SESSION PAUSED</h1>
+            <p class="map-shine-pause-subtitle">Please stand by...</p>
+            <div class="map-shine-pause-logo"></div>
           </div>
         `;
 
         const customCSS = `
           <style>
-            #pause.custom-pause-screen {
-              /* Override Foundry defaults to make it a simple backdrop */
-              background: ${settings.backgroundColor} !important;
+            .custom-pause-screen {
+              display: flex; flex-direction: column; justify-content: center; align-items: center;
+              background: rgba(10, 0, 0, 0.75) !important;
               backdrop-filter: blur(8px) grayscale(0.5);
-              border: none !important;
+              border-top: 2px solid #ff4444; border-bottom: 2px solid #ff4444;
+              box-shadow: 0 0 20px rgba(255, 0, 0, 0.5) inset;
               animation: none !important;
-              padding: 0 5vw; /* Prevent content from touching screen edges */
             }
-
-            .map-shine-pause-wrapper {
-              position: relative;
-              width: 200%;
-              padding: 4rem 2rem;
-              background: rgba(0,0,0,0.4);
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              justify-content: center;
-              gap: 1rem;
-              animation: fadeInContent 1.5s ease-out forwards;
+            .map-shine-pause-container {
+              text-align: center; color: #fff; font-family: "Signika", sans-serif;
+              text-shadow: 0 0 10px #000; animation: fadeInContent 1.5s ease-out forwards;
             }
-
-            .map-shine-pause-wrapper::before,
-            .map-shine-pause-wrapper::after {
-              content: '';
-              position: absolute;
-              left: 0;
-              right: 0;
-              height: 3px;
-              background: linear-gradient(to right, transparent, ${
-                settings.gradientColor1
-              }, ${settings.gradientColor2}, ${
-          settings.gradientColor1
-        }, transparent);
-            }
-
-            .map-shine-pause-wrapper::before {
-              top: 0;
-              box-shadow: 0 0 8px 1px ${settings.gradientShadowColor};
-            }
-
-            .map-shine-pause-wrapper::after {
-              bottom: 0;
-              box-shadow: 0 0 8px 1px ${settings.gradientShadowColor};
-            }
-
             .map-shine-pause-title {
-              font-size: 4em; margin: 0; letter-spacing: 5px; color: ${
-                settings.headingColor
-              }; text-transform: uppercase;
-              text-shadow: 0 0 10px #000;
+              font-size: 4em; margin: 0; letter-spacing: 5px; color: #ffcccc; text-transform: uppercase;
             }
             .map-shine-pause-subtitle {
-              font-size: 1.5em; margin: 10px 0 20px 0; color: ${
-                settings.subheadingColor
-              }; font-style: italic;
-              text-shadow: 0 0 10px #000;
+              font-size: 1.5em; margin: 10px 0 20px 0; color: #ff8888; font-style: italic;
             }
             .map-shine-pause-logo {
               width: 80px; height: 80px;
-              background-image: url('${settings.logoPath}');
+              background-image: url('modules/map-shine/assets/mm-logo.png');
               background-size: contain; background-repeat: no-repeat; background-position: center;
-              margin: 0 auto; opacity: ${
-                settings.logoOpacity
-              }; animation: pulseLogo 4s ease-in-out infinite;
-            }
-            .map-shine-pause-hint {
-              margin-top: 25px;
-              padding-top: 15px;
-              border-top: 1px solid rgba(255, 255, 255, 0.2);
-              font-style: italic;
-              color: ${settings.hintColor};
-              max-width: 40ch;
-              margin-left: auto;
-              margin-right: auto;
+              margin: 0 auto; opacity: 0.8; animation: pulseLogo 4s ease-in-out infinite;
             }
             @keyframes fadeInContent {
               from { opacity: 0; transform: translateY(20px); }
               to { opacity: 1; transform: translateY(0); }
             }
             @keyframes pulseLogo {
-              0%, 100% { transform: scale(1); opacity: ${
-                settings.logoOpacity
-              }; }
-              50% { transform: scale(1.1); opacity: ${Math.min(
-                1,
-                settings.logoOpacity + 0.2
-              )}; }
+              0%, 100% { transform: scale(1); opacity: 0.8; }
+              50% { transform: scale(1.1); opacity: 1; }
             }
           </style>
         `;
 
+        // Add our custom class instead of replacing the entire class list.
         pauseElement.classList.add("custom-pause-screen");
         pauseElement.innerHTML = customCSS + customHTML;
+
         return;
       }
 
@@ -9064,20 +8869,19 @@ class PauseScreenManager {
         );
       }
     };
+
     requestAnimationFrame(findAndModify);
   }
 
   /**
-   * Resets the #pause element by removing our custom class and content.
-   * This allows Foundry to repopulate it with its defaults if needed later.
+   * Resets the #pause element by removing our custom class. This allows Foundry's
+   * core scripts to manage it correctly and prepares it for the next pause.
    * @private
    */
   static _revertCustomPauseScreen() {
     const pauseElement = document.getElementById("pause");
     if (pauseElement) {
       pauseElement.classList.remove("custom-pause-screen");
-      // Clear our custom content to let Foundry's code take over again cleanly
-      pauseElement.innerHTML = "";
     }
   }
 }
@@ -11632,15 +11436,6 @@ const PARTICLE_EFFECT_DEFINITIONS = {
     buildEmitterConfig: (effectConfig, targetData) =>
       buildParticleEmitterConfig(effectConfig, targetData, "fire"),
   },
-  metallicGlints: {
-    title: "Metallic Glints",
-    description:
-      "Sparkling glints that appear on specular surfaces. Requires a _Specular.webp map.",
-    configPath: "metallicGlints",
-    triggerTexture: "specular",
-    buildEmitterConfig: (effectConfig, targetData) =>
-      buildParticleEmitterConfig(effectConfig, targetData, "specular"),
-  },
   sparks: {
     title: "Sparks",
     description:
@@ -12799,22 +12594,6 @@ class ParticleEffectController {
       this.pendingTargets.clear();
     }
 
-    // Periodically update the spawn points for metallic glints
-    if (this.definition.configPath === "metallicGlints") {
-      for (const { emitter } of this.emitters.values()) {
-        // Add a guard to ensure the emitter and its behaviors are valid before access.
-        // This can prevent errors if an emitter is destroyed but its reference persists for a frame.
-        if (!emitter || !emitter.behaviors) continue;
-
-        const spawnBehavior = emitter.behaviors.find(
-          (b) => b.type === "spawnShape"
-        );
-        if (spawnBehavior?.shape?.update) {
-          spawnBehavior.shape.update();
-        }
-      }
-    }
-
     for (const { emitter } of this.emitters.values()) {
       emitter.update(deltaTime);
     }
@@ -13292,35 +13071,26 @@ const buildParticleEmitterConfig = (
     });
   }
 
-  // For metallic glints, use the custom behavior to sample color from the spawn texture.
-  // For all other effects, use the standard static or gradient color behaviors.
-  if (maskKey === "specular") {
+  const colorConfig = config.color ?? {};
+  const startColor = colorConfig.start ?? "#FFFFFF";
+  const endColor = colorConfig.end ?? "#FFFFFF";
+  if (startColor === endColor) {
     behaviors.push({
-      type: "colorFromSpawn",
-      config: {},
+      type: "colorStatic",
+      config: {
+        color: startColor,
+      },
     });
   } else {
-    const colorConfig = config.color ?? {};
-    const startColor = colorConfig.start ?? "#FFFFFF";
-    const endColor = colorConfig.end ?? "#FFFFFF";
-    if (startColor === endColor) {
-      behaviors.push({
-        type: "colorStatic",
-        config: {
-          color: startColor,
+    behaviors.push({
+      type: "color",
+      config: {
+        color: {
+          start: startColor,
+          end: endColor,
         },
-      });
-    } else {
-      behaviors.push({
-        type: "color",
-        config: {
-          color: {
-            start: startColor,
-            end: endColor,
-          },
-        },
-      });
-    }
+      },
+    });
   }
 
   const rotConfig = config.rotation ?? {};
@@ -13638,14 +13408,7 @@ class TextureMaskShape {
           if (pixelValue >= this.threshold) {
             const screenPoint = new PIXI.Point(x, y);
             const worldPoint = canvas.stage.toLocal(screenPoint);
-            this.validPoints.push({
-              point: worldPoint,
-              color: [
-                pixelData[index],
-                pixelData[index + 1],
-                pixelData[index + 2],
-              ],
-            });
+            this.validPoints.push(worldPoint);
           }
         }
       }
@@ -13662,14 +13425,7 @@ class TextureMaskShape {
             const relativeY = (y / texture.height) * this.height;
             const worldX = this.offsetX + relativeX;
             const worldY = this.offsetY + relativeY;
-            this.validPoints.push({
-              point: new PIXI.Point(worldX, worldY),
-              color: [
-                pixelData[index],
-                pixelData[index + 1],
-                pixelData[index + 2],
-              ],
-            });
+            this.validPoints.push(new PIXI.Point(worldX, worldY));
           }
         }
       }
@@ -13681,11 +13437,9 @@ class TextureMaskShape {
     if (this.validPoints.length === 0) {
       return;
     }
-    const data =
+    const point =
       this.validPoints[Math.floor(Math.random() * this.validPoints.length)];
-    particle.position.copyFrom(data.point);
-    // Attach the color data to the particle for the custom behavior to use.
-    particle.spawnColor = data.color;
+    particle.position.copyFrom(point);
   }
 }
 
@@ -14914,31 +14668,6 @@ class SmellyFliesLayer extends CanvasLayer {
           this.updateEffectTargets(targets);
         }
       }
-    }
-  }
-}
-
-/**
- * A custom particle behavior that sets a particle's tint based on color data
- * attached to it during the spawn process.
- * This allows particles to inherit color from their spawn location on a texture.
- */
-class ColorFromSpawnBehavior {
-  static type = "colorFromSpawn";
-
-  constructor(config) {
-    this.order = PIXI.particles.behaviors.BehaviorOrder.Normal;
-  }
-
-  initParticles(first) {
-    let next = first;
-    while (next) {
-      if (next.spawnColor) {
-        const color = next.spawnColor; // [r, g, b] from 0-255
-        // Convert the RGB array to a single hex number for the tint property.
-        next.tint = (color[0] << 16) + (color[1] << 8) + color[2];
-      }
-      next = next.next;
     }
   }
 }
@@ -19025,26 +18754,15 @@ class MetallicShineFilter extends PIXI.Filter {
           uniform bool uCloudOcclusionEnabled;
           uniform float uCloudOcclusionIntensity;
 
-          // Color Correction Uniforms
-          uniform bool uColorCorrectionEnabled;
-          uniform float uSaturation;
-          uniform float uBrightness;
-          uniform float uContrast;
-          uniform float uGamma;
-          uniform vec3 uTintColor;
-          uniform float uTintAmount;
-          uniform bool uInvert;
-
           // A constant vector for calculating luminance from an RGB color.
           const vec3 LUM_WEIGHTS = vec3(0.299, 0.587, 0.114);
 
           void main() {
               // Sample the color and alpha from the specular map at the current screen position.
               vec4 specularColor = texture2D(uSpecularMap, vScreenCoord);
-              vec3 workingColor = specularColor.rgb;
 
               // Calculate the luminance (brightness) of the specular color.
-              float specularLuminance = dot(workingColor, LUM_WEIGHTS);
+              float specularLuminance = dot(specularColor.rgb, LUM_WEIGHTS);
 
               // Create a combined mask from both the texture's alpha channel and its brightness.
               // This ensures the shine appears only in areas that are both non-transparent AND bright.
@@ -19053,17 +18771,6 @@ class MetallicShineFilter extends PIXI.Filter {
               // If the combined mask value is very low, discard the pixel entirely.
               if (specularMask < 0.01) {
                   discard;
-              }
-
-              // Apply Color Correction if enabled
-              if (uColorCorrectionEnabled) {
-                  if (uGamma > 0.0) workingColor = pow(workingColor, vec3(1.0 / uGamma));
-                  workingColor += uBrightness;
-                  workingColor = (workingColor - 0.5) * uContrast + 0.5;
-                  float luminance = dot(workingColor, LUM_WEIGHTS);
-                  workingColor = mix(vec3(luminance), workingColor, uSaturation);
-                  workingColor = mix(workingColor, uTintColor, uTintAmount);
-                  if (uInvert) workingColor = 1.0 - workingColor;
               }
 
               // Sample the stripe intensity from the pre-rendered pattern.
@@ -19082,7 +18789,7 @@ class MetallicShineFilter extends PIXI.Filter {
               // The output color is the original color from the specular map.
               // We multiply by finalAlpha for premultiplied alpha, which is standard for PIXI filters
               // and ensures correct blending with the scene.
-              gl_FragColor = vec4(clamp(workingColor, 0.0, 1.0) * finalAlpha, finalAlpha);
+              gl_FragColor = vec4(specularColor.rgb * finalAlpha, finalAlpha);
           }
       `;
 
@@ -19092,14 +18799,6 @@ class MetallicShineFilter extends PIXI.Filter {
       uCloudOcclusionMask: PIXI.Texture.EMPTY,
       uCloudOcclusionEnabled: false,
       uCloudOcclusionIntensity: 1.0,
-      uColorCorrectionEnabled: true,
-      uSaturation: 1.0,
-      uBrightness: 0.0,
-      uContrast: 1.0,
-      uGamma: 1.0,
-      uTintColor: [1.0, 1.0, 1.0],
-      uTintAmount: 0.0,
-      uInvert: false,
       ...options,
     });
   }
@@ -19224,34 +18923,16 @@ class MetallicShineLayer extends CanvasLayer {
     this.specularCompositeTexture = null;
 
     // For generating the stripe pattern
-    this.stripePatternFilter = null;
+    this.stripePatternFilter = null; // The original B&W stripe generator
     this.stripeGeneratorSprite = null;
     this.stripePatternTexture = null;
 
     // For the final composition
-    this.shineFilter = null;
-    this.effectSprite = null;
-
-    // New texture to hold the final rendered output
-    this.finalShineTexture = null;
+    this.shineFilter = null; // The new filter that combines the two textures
+    this.effectSprite = null; // The final sprite that gets rendered
 
     this.time = 0;
     this._needsMaskUpdate = true;
-  }
-
-  // Add a getter for the final texture
-  getEffectTexture() {
-    return this.finalShineTexture;
-  }
-
-  // Add a getter for the specular map texture
-  getSpecularMaskTexture() {
-    return this.specularCompositeTexture;
-  }
-
-  // NEW METHOD: Exposes the internal mask rendering logic to the ResourceManager.
-  renderSpecularMask() {
-    this._renderSpecularCompositeTexture();
   }
 
   static getSettingsHTML() {
@@ -19369,61 +19050,6 @@ class MetallicShineLayer extends CanvasLayer {
               )}
           </div>
       </details>
-      <details id="details-baseShine-colorCorrection">
-          <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-            "baseShine.colorCorrection.enabled",
-            "Color Correction",
-            true
-          )}</div></summary>
-          <div style="padding-left: 15px;">
-              <p class="description-text">Adjusts the color of the final shine effect.</p>
-              ${DebuggerUIBuilder._createSliderHTML(
-                "baseShine.colorCorrection.saturation",
-                "Saturation",
-                0,
-                4,
-                0.05
-              )}
-              ${DebuggerUIBuilder._createSliderHTML(
-                "baseShine.colorCorrection.brightness",
-                "Brightness",
-                -1,
-                1,
-                0.01
-              )}
-              ${DebuggerUIBuilder._createSliderHTML(
-                "baseShine.colorCorrection.contrast",
-                "Contrast",
-                0,
-                4,
-                0.05
-              )}
-              ${DebuggerUIBuilder._createSliderHTML(
-                "baseShine.colorCorrection.gamma",
-                "Gamma",
-                0.2,
-                2.5,
-                0.05
-              )}
-              ${DebuggerUIBuilder._createCheckboxHTML(
-                "baseShine.colorCorrection.invert",
-                "Invert Colors"
-              )}
-              <details id="details-baseShine-cc-tint"><summary><span class="accordion-toggle"></span><strong>Color Tint</strong></summary><div style="padding-left: 15px;">
-                  ${DebuggerUIBuilder._createColorPickerHTML(
-                    "baseShine.colorCorrection.tint.color",
-                    "Tint Color"
-                  )}
-                  ${DebuggerUIBuilder._createSliderHTML(
-                    "baseShine.colorCorrection.tint.amount",
-                    "Tint Amount",
-                    0,
-                    1,
-                    0.01
-                  )}
-              </div></details>
-          </div>
-      </details>
       <details id="details-baseShine-cloudOcclusion">
           <summary><span class="accordion-toggle"></span>
               <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
@@ -19484,15 +19110,9 @@ class MetallicShineLayer extends CanvasLayer {
     this.stripeGeneratorSprite.height = screen.height;
     this.stripeGeneratorSprite.filters = [this.stripePatternFilter];
 
-    this.effectSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
+    this.effectSprite = new PIXI.Sprite(PIXI.Texture.WHITE); // Texture is irrelevant, filter generates output
     this.effectSprite.filters = this.shineFilter ? [this.shineFilter] : [];
     this.addChild(this.effectSprite);
-
-    // New texture to hold the final rendered output
-    this.finalShineTexture = PIXI.RenderTexture.create({
-      width: screen.width,
-      height: screen.height,
-    });
 
     this._onAnimateBound = this._onAnimate.bind(this);
     this._onResizeBound = this._onResize.bind(this);
@@ -19506,21 +19126,13 @@ class MetallicShineLayer extends CanvasLayer {
   }
 
   _onAnimate(deltaTime) {
-    if (this._destroyed || !this.visible || !this.shineFilter) return;
-    const resourceManager = game.mapShine.resourceManager;
-    if (!resourceManager) return;
-
-    // This layer is now driven by the ResourceManager.
-    // This call will trigger renderEffectNow if needed for this frame.
-    resourceManager.getAnimatedShineTexture(deltaTime);
-
-    // The effectSprite no longer needs its texture set here,
-    // as it's just a dummy sprite to hold the filter.
-    // We will render it directly to the stage.
-  }
-
-  renderEffectNow(deltaTime) {
-    if (this._destroyed || !this.visible || !this.shineFilter) return;
+    if (
+      this._destroyed ||
+      !this.visible ||
+      !this.shineFilter ||
+      !game.mapShine.resourceManager
+    )
+      return;
 
     // Re-render the composite specular map if camera moved
     if (this._needsMaskUpdate) {
@@ -19536,15 +19148,16 @@ class MetallicShineLayer extends CanvasLayer {
       clear: true,
     });
 
-    const resourceManager = game.mapShine.resourceManager;
+    // Get the cloud shadow texture from the resource manager
     const cloudTexture =
-      resourceManager.getCloudShadowTexture(deltaTime) || PIXI.Texture.WHITE;
+      game.mapShine.resourceManager.getCloudShadowTexture(deltaTime);
 
     // Update the final composition filter's uniforms
     const u = this.shineFilter.uniforms;
     u.uSpecularMap = this.specularCompositeTexture;
     u.uStripePattern = this.stripePatternTexture;
-    u.uCloudOcclusionMask = cloudTexture;
+    // Pass the cloud texture to the shader
+    u.uCloudOcclusionMask = cloudTexture || PIXI.Texture.WHITE;
 
     // Position the final effect sprite to cover the screen
     const stage = canvas.stage;
@@ -19554,12 +19167,6 @@ class MetallicShineLayer extends CanvasLayer {
     this.effectSprite.position.copyFrom(topLeft);
     this.effectSprite.width = screen.width / stage.scale.x;
     this.effectSprite.height = screen.height / stage.scale.y;
-
-    // Render the final effect to our output texture
-    canvas.app.renderer.render(this.effectSprite, {
-      renderTexture: this.finalShineTexture,
-      clear: true,
-    });
   }
 
   _renderSpecularCompositeTexture() {
@@ -19630,14 +19237,15 @@ class MetallicShineLayer extends CanvasLayer {
   async updateFromConfig(config) {
     const bsConfig = config.baseShine;
 
+    // Guard against an incomplete or undefined baseShine configuration object,
+    // which can occur briefly during scene transitions.
     if (
       !bsConfig ||
       !bsConfig.compositing ||
       !bsConfig.animation ||
       !bsConfig.pattern ||
       !bsConfig.pattern.stripes ||
-      !bsConfig.cloudOcclusion ||
-      !bsConfig.colorCorrection
+      !bsConfig.cloudOcclusion
     ) {
       this.visible = false;
       return;
@@ -19667,21 +19275,9 @@ class MetallicShineLayer extends CanvasLayer {
 
     if (this.shineFilter) {
       const cloudOcclusion = bsConfig.cloudOcclusion;
-      const colorCorrection = bsConfig.colorCorrection;
       const u = this.shineFilter.uniforms;
       u.uCloudOcclusionEnabled = cloudOcclusion.enabled;
       u.uCloudOcclusionIntensity = cloudOcclusion.intensity;
-
-      if (colorCorrection) {
-        u.uColorCorrectionEnabled = colorCorrection.enabled;
-        u.uSaturation = colorCorrection.saturation;
-        u.uBrightness = colorCorrection.brightness;
-        u.uContrast = colorCorrection.contrast;
-        u.uGamma = colorCorrection.gamma;
-        u.uTintColor = hexToRgbArray(colorCorrection.tint.color);
-        u.uTintAmount = colorCorrection.tint.amount;
-        u.uInvert = colorCorrection.invert;
-      }
     }
   }
 
@@ -19693,10 +19289,6 @@ class MetallicShineLayer extends CanvasLayer {
       renderer.screen.height
     );
     this.stripePatternTexture?.resize(
-      renderer.screen.width,
-      renderer.screen.height
-    );
-    this.finalShineTexture?.resize(
       renderer.screen.width,
       renderer.screen.height
     );
@@ -19732,7 +19324,6 @@ class MetallicShineLayer extends CanvasLayer {
     this.stripePatternTexture?.destroy(true);
     this.shineFilter?.destroy();
     this.effectSprite?.destroy();
-    this.finalShineTexture?.destroy(true);
 
     this.sourceContainer = null;
     this.specularCompositeTexture = null;
@@ -19741,7 +19332,6 @@ class MetallicShineLayer extends CanvasLayer {
     this.stripePatternTexture = null;
     this.shineFilter = null;
     this.effectSprite = null;
-    this.finalShineTexture = null;
 
     await super._tearDown(options);
   }
@@ -26420,13 +26010,6 @@ const CLIENT_OVERRIDES_CONFIG = {
     tooltip:
       "Adds tiny, bright sparkles to highly reflective or magical surfaces.",
   },
-  metallicGlints: {
-    name: "Metallic Glints",
-    path: "metallicGlints",
-    intensitySubPath: "maskInfluence",
-    tooltip:
-      "Adds colored sparkles to the brightest highlights on metallic surfaces.",
-  },
   fire: {
     name: "Fire Particles",
     path: "fire.particles",
@@ -26730,12 +26313,10 @@ class DebuggerUIBuilder {
 
     const managedEffects = ScreenEffectsManager.getManagedEffectsHTML();
     const loadingScreenHTML = this._buildLoadingScreenSection();
-    const pauseEffectHTML = this._buildPauseEffectSection();
 
     postProcessingPane.innerHTML = managedEffects.postProcessing;
     postProcessingPane.innerHTML += this._buildParticleSystemSection();
-    postProcessingPane.innerHTML += loadingScreenHTML;
-    postProcessingPane.innerHTML += pauseEffectHTML;
+    postProcessingPane.innerHTML += loadingScreenHTML; // Add the new accordion here
 
     const otherEffectSections = this._getEffectSections();
 
@@ -26761,9 +26342,9 @@ class DebuggerUIBuilder {
       <p class="description-text">Configure the initial world loading screen and scene-to-scene transitions.</p>
       
       <details id="details-loadingScreen-initial">
-        <summary><span class="accordion-toggle"></span><strong>Backgrounds &amp; Overlays</strong></summary>
+        <summary><span class="accordion-toggle"></span><strong>Initial World Loading Screen</strong></summary>
         <div style="padding-left: 15px;">
-          <p class="description-text">Settings for the background image and overlay for both the initial loading screen and scene transitions.</p>
+          <p class="description-text">Settings for the very first loading screen when joining the world.</p>
           ${DebuggerUIBuilder._createTextInputWithPickerHTML(
             "loading-screen-static-background",
             "Static Background"
@@ -26801,9 +26382,9 @@ class DebuggerUIBuilder {
       </details>
       
       <details id="details-loadingScreen-transition">
-        <summary><span class="accordion-toggle"></span><strong>Scene Transition Content</strong></summary>
+        <summary><span class="accordion-toggle"></span><strong>Scene-to-Scene Transitions</strong></summary>
         <div style="padding-left: 15px;">
-          <p class="description-text">Settings for the text, logo, and timing of the animated transition between scenes.</p>
+          <p class="description-text">Settings for the animated transition between scenes.</p>
           ${DebuggerUIBuilder._createCheckboxHTML(
             "universal.sceneTransition.enabled",
             "Enable Scene Transitions"
@@ -26855,6 +26436,40 @@ class DebuggerUIBuilder {
                "text"
              )}
           </div>
+          <hr style="border-color: #555; margin: 6px 0;">
+          ${DebuggerUIBuilder._createTextInputWithPickerHTML(
+            "universal.sceneTransition.staticBackgroundImage",
+            "Static Background"
+          )}
+          ${DebuggerUIBuilder._createCheckboxHTML(
+            "universal.sceneTransition.useRandomBackgroundImage",
+            "Use Random Background"
+          )}
+          <div id="sceneTransition-backgroundImages-wrapper">
+             ${DebuggerUIBuilder._createListManagerHTML(
+               "universal.sceneTransition.backgroundImages",
+               "Background Image",
+               "image"
+             )}
+          </div>
+          <details id="details-sceneTransition-bgOverlay">
+            <summary><span class="accordion-toggle"></span>
+                <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                  "universal.sceneTransition.backgroundOverlayEnabled",
+                  "Enable Background Overlay",
+                  true
+                )}</div>
+            </summary>
+            <div style="padding-left: 15px;">
+                 ${DebuggerUIBuilder._createSliderHTML(
+                   "universal.sceneTransition.backgroundOverlayOpacity",
+                   "Overlay Opacity",
+                   0,
+                   1,
+                   0.05
+                 )}
+            </div>
+          </details>
         </div>
       </details>
     `;
@@ -27293,91 +26908,6 @@ class DebuggerUIBuilder {
         `;
   }
 
-  _buildPauseEffectSection() {
-    const content = `
-      <p class="description-text">Configure the visual appearance of the screen that appears when the game is paused.</p>
-      
-      <details id="details-pauseEffect-content">
-        <summary><span class="accordion-toggle"></span><strong>Content &amp; Text</strong></summary>
-        <div style="padding-left: 15px;">
-          ${DebuggerUIBuilder._createTextInputHTML(
-            "universal.pauseEffect.heading",
-            "Heading"
-          )}
-          ${DebuggerUIBuilder._createTextInputHTML(
-            "universal.pauseEffect.subheading",
-            "Subheading"
-          )}
-        </div>
-      </details>
-      
-      <details id="details-pauseEffect-styling">
-        <summary><span class="accordion-toggle"></span><strong>Styling &amp; Colors</strong></summary>
-        <div style="padding-left: 15px;">
-          ${DebuggerUIBuilder._createTextInputWithPickerHTML(
-            "universal.pauseEffect.logoPath",
-            "Logo Path"
-          )}
-          ${DebuggerUIBuilder._createSliderHTML(
-            "universal.pauseEffect.logoOpacity",
-            "Logo Opacity",
-            0,
-            1,
-            0.05
-          )}
-          <hr style="border-color: #555; margin: 6px 0;">
-          ${DebuggerUIBuilder._createTextInputHTML(
-            "universal.pauseEffect.backgroundColor",
-            "Background"
-          )}
-          ${DebuggerUIBuilder._createColorPickerHTML(
-            "universal.pauseEffect.gradientColor1",
-            "Gradient Color 1"
-          )}
-          ${DebuggerUIBuilder._createTextInputHTML(
-            "universal.pauseEffect.gradientColor2",
-            "Gradient Color 2"
-          )}
-          <hr style="border-color: #555; margin: 6px 0;">
-          ${DebuggerUIBuilder._createColorPickerHTML(
-            "universal.pauseEffect.headingColor",
-            "Heading Color"
-          )}
-          ${DebuggerUIBuilder._createColorPickerHTML(
-            "universal.pauseEffect.subheadingColor",
-            "Subheading Color"
-          )}
-          ${DebuggerUIBuilder._createColorPickerHTML(
-            "universal.pauseEffect.hintColor",
-            "Hint Color"
-          )}
-        </div>
-      </details>
-      
-      <details id="details-pauseEffect-hints">
-        <summary><span class="accordion-toggle"></span><strong>Random Hints</strong></summary>
-        <div style="padding-left: 15px;">
-          ${DebuggerUIBuilder._createCheckboxHTML(
-            "universal.pauseEffect.useRandomHint",
-            "Show Random Hint"
-          )}
-          <div id="pauseEffect-randomHints-wrapper">
-             ${DebuggerUIBuilder._createListManagerHTML(
-               "universal.pauseEffect.randomHints",
-               "Hint",
-               "text"
-             )}
-          </div>
-        </div>
-      </details>
-    `;
-    return DebuggerUIBuilder._createAccordionHTML(
-      "pauseEffectOverlay",
-      "Pause Effect Overlay",
-      content
-    );
-  }
-
   _buildProfileSection() {
     const isGm = game.user.isGM;
     const worldProfileSection = isGm
@@ -27616,7 +27146,7 @@ class DebuggerUIBuilder {
   }
 
   static _createTextureInputHTML(key, label) {
-    return `<div class="control-row" style="margin-bottom: 5px;"><label><span id="status-textures-${key}" class="traffic-light unknown"></span>${label}</label><input type="text" id="texture-path-${key}" disabled placeholder="Not found..." title="This path is discovered automatically based on the base map's filename. (e.g., 'map.webp' -> 'map_Specular.webp')"></div>`;
+    return `<div class="control-row" style="margin-bottom: 5px;"><label><span id="status-textures-${key}" class="traffic-light unknown"></span>${label}</label><input type="text" id="texture-path-${key}" disabled title="This path is discovered automatically based on the base map's filename. (e.g., 'map.webp' -> 'map_Specular.webp')"></div>`;
   }
 
   static _createListManagerHTML(path, itemLabel, itemType = "text") {
@@ -27696,7 +27226,6 @@ class DebuggerUIBuilder {
       ParticleEffectController.getSettingsHTML("sparks"),
       ParticleEffectController.getSettingsHTML("dust"),
       ParticleEffectController.getSettingsHTML("glint"),
-      ParticleEffectController.getSettingsHTML("metallicGlints"),
       ParticleEffectController.getSmellyFliesSettingsHTML(),
       LightningManager.getSettingsHTML(),
       this._getOverheadEffectHTML(),
@@ -27926,8 +27455,7 @@ class DebuggerEventHandler {
    * @param {*} value - The new value for the setting.
    */
   async _performSystemUpdate(path, value) {
-    const isGameSetting =
-      path.startsWith("universal.") || path.startsWith("loading-screen-");
+    const isGameSetting = path.startsWith("universal.") || path.startsWith("loading-screen-");
 
     if (isGameSetting) {
       await game.settings.set(MODULE_ID, path, value);
@@ -28006,10 +27534,7 @@ class DebuggerEventHandler {
   addEventListeners() {
     // Main delegated listeners that survive re-renders
     this.element.addEventListener("input", this._handleGenericInput.bind(this));
-    this.element.addEventListener(
-      "change",
-      this._handleGenericInput.bind(this)
-    );
+    this.element.addEventListener("change", this._handleGenericInput.bind(this));
     this.element.addEventListener(
       "click",
       this._handleDelegatedClick.bind(this)
@@ -28057,9 +27582,7 @@ class DebuggerEventHandler {
         }
 
         if (!defaultsToUse) {
-          console.warn(
-            `Map Shine | Invalid effect key for reset: ${effectKey}`
-          );
+          console.warn(`Map Shine | Invalid effect key for reset: ${effectKey}`);
           return;
         }
 
@@ -28272,8 +27795,7 @@ class DebuggerEventHandler {
       if (el.closest(".list-manager-container")) return;
       const path = el.dataset.path;
 
-      const isGameSetting =
-        path.startsWith("universal.") || path.startsWith("loading-screen-");
+      const isGameSetting = path.startsWith("universal.") || path.startsWith("loading-screen-");
       let value;
 
       if (isGameSetting) {
@@ -28315,8 +27837,9 @@ class DebuggerEventHandler {
         this._renderListManagerItems(path);
       });
 
+    this._updatePatternControlVisibility();
     this._updateRandomHintVisibility();
-    this._updatePauseHintVisibility();
+    this._updateRandomBackgroundVisibility();
     this._updateInitialRandomBackgroundVisibility();
     this._updateBackgroundOverlayVisibility();
     this._updateLutControlVisibility();
@@ -28752,9 +28275,7 @@ class DebuggerEventHandler {
     const path = container.dataset.path;
     if (!path) return;
 
-    const itemInputs = container.querySelectorAll(
-      '.list-item-row input[type="text"]'
-    );
+    const itemInputs = container.querySelectorAll('.list-item-row input[type="text"]');
     const newList = Array.from(itemInputs).map((el) => el.value);
     const finalValue = newList.join("\n");
 
@@ -28782,9 +28303,7 @@ class DebuggerEventHandler {
 
     listContainer.innerHTML = items
       .map((item, index) => {
-        const inputId = `${DebuggerUIBuilder._createSafeId(
-          path
-        )}-item-${index}`;
+        const inputId = `${DebuggerUIBuilder._createSafeId(path)}-item-${index}`;
         const filePickerButton =
           itemType === "image"
             ? `<button type="button" class="file-picker-btn" data-fp-target="${inputId}" data-fp-type="image" title="Browse Files"><i class="fas fa-file-import"></i></button>`
@@ -28808,12 +28327,12 @@ class DebuggerEventHandler {
 
     // First, handle the special case of list managers
     if (target.closest(".list-manager-container")) {
-      // We only want to save on 'change' to avoid saving on every keystroke,
-      // which can be laggy. 'change' fires on blur or when a file picker closes.
-      if (e.type === "change") {
-        await this._handleListManagerInputChange(target);
-      }
-      return; // Stop further processing for list items
+        // We only want to save on 'change' to avoid saving on every keystroke,
+        // which can be laggy. 'change' fires on blur or when a file picker closes.
+        if (e.type === "change") {
+            await this._handleListManagerInputChange(target);
+        }
+        return; // Stop further processing for list items
     }
 
     // Now, handle all other standard controls
@@ -28850,36 +28369,28 @@ class DebuggerEventHandler {
       if (isSlider) {
         this._updateSliderValue(target.id, value, target.step);
       }
-      if (target.type === "checkbox" && target.closest(".summary-control")) {
+      if (
+        target.type === "checkbox" &&
+        target.closest(".summary-control")
+      ) {
         const detailsElement = target.closest("details");
         if (detailsElement)
           detailsElement.classList.toggle("disabled-effect", !target.checked);
       }
 
+      if (path === "baseShine.patternType")
+        this._updatePatternControlVisibility();
       if (path === "universal.sceneTransition.useRandomHint")
         this._updateRandomHintVisibility();
-      if (path === "universal.pauseEffect.useRandomHint")
-        this._updatePauseHintVisibility();
-      if (path === "loading-screen-use-random-background")
-        this._updateInitialRandomBackgroundVisibility();
-      if (path === "loading-screen-background-overlay-enabled") {
+      if (path === "universal.sceneTransition.useRandomBackgroundImage")
+        this._updateRandomBackgroundVisibility();
+      if (path === "universal.sceneTransition.backgroundOverlayEnabled") {
         this._updateBackgroundOverlayVisibility();
       }
+      if (path === "loading-screen-use-random-background")
+        this._updateInitialRandomBackgroundVisibility();
       if (path === "tileOpacity")
         game.mapShine.effectTargetManager.applyTileOpacities();
-    }
-  }
-
-  _updatePauseHintVisibility() {
-    const useRandom = game.settings.get(
-      MODULE_ID,
-      "universal.pauseEffect.useRandomHint"
-    );
-    const wrapper = this.element.querySelector(
-      "#pauseEffect-randomHints-wrapper"
-    );
-    if (wrapper) {
-      wrapper.style.display = useRandom ? "block" : "none";
     }
   }
 
@@ -28889,7 +28400,20 @@ class DebuggerEventHandler {
       "universal.sceneTransition.useRandomHint"
     );
     const wrapper = this.element.querySelector(
-      "#sceneTransition-randomHints-wrapper"
+      '#sceneTransition-randomHints-wrapper'
+    );
+    if (wrapper) {
+      wrapper.style.display = useRandom ? "block" : "none";
+    }
+  }
+
+  _updateRandomBackgroundVisibility() {
+    const useRandom = game.settings.get(
+      MODULE_ID,
+      "universal.sceneTransition.useRandomBackgroundImage"
+    );
+    const wrapper = this.element.querySelector(
+      '#sceneTransition-backgroundImages-wrapper'
     );
     if (wrapper) {
       wrapper.style.display = useRandom ? "block" : "none";
@@ -28912,10 +28436,10 @@ class DebuggerEventHandler {
   _updateBackgroundOverlayVisibility() {
     const isEnabled = game.settings.get(
       MODULE_ID,
-      "loading-screen-background-overlay-enabled"
+      "universal.sceneTransition.backgroundOverlayEnabled"
     );
     const details = this.element.querySelector(
-      "#details-initial-loading-bgOverlay"
+      "#details-sceneTransition-bgOverlay"
     );
     if (details) {
       const sliderContainer = details.querySelector("div");
@@ -28992,6 +28516,25 @@ class DebuggerEventHandler {
         : 0;
       valueEl.textContent = Number(value).toFixed(decimals);
     }
+  }
+
+  _updatePatternControlVisibility() {
+    const patternType = this._getPathValue(
+      this.config,
+      "baseShine.patternType"
+    );
+    const isStripes = patternType === "stripes";
+    const stripesControls = this.element.querySelector(
+      "#pattern-stripes-controls"
+    );
+    const checkerControls = this.element.querySelector(
+      "#pattern-checkerboard-controls"
+    );
+
+    if (stripesControls)
+      stripesControls.style.display = isStripes ? "" : "none";
+    if (checkerControls)
+      checkerControls.style.display = isStripes ? "none" : "";
   }
 
   _populateProfilesDropdown() {
@@ -29212,7 +28755,7 @@ class DebuggerEventHandler {
     this.curveEditor.path.setAttribute("stroke", colorMap[activeChannel]);
   }
 
-  async _onApplyColorPreset() {
+  _onApplyColorPreset() {
     const dropdown = this.element.querySelector(
       "#control-postProcessing-colorCorrection-activePreset"
     );
@@ -29438,6 +28981,7 @@ class DebuggerEventHandler {
   }
 }
 
+
 class MaterialEditorDebugger {
   constructor() {
     this.element = null;
@@ -29565,15 +29109,6 @@ class MaterialEditorDebugger {
     if (indicator) {
       indicator.className = `traffic-light ${statusObject.state}`;
       indicator.title = statusObject.message;
-    }
-
-    if (category === "textures") {
-      const input = this.element.querySelector(`#texture-path-${key}`);
-      if (input) {
-        // Only display the path if it was successfully found.
-        // The message for other states is not a path.
-        input.value = statusObject.state === "ok" ? statusObject.message : "";
-      }
     }
   }
 
@@ -29757,11 +29292,6 @@ class SimpleUIPanel extends Application {
         : 0;
       valueEl.text(Number(value).toFixed(decimals));
     }
-  }
-
-  _onSliderInput(event) {
-    const el = event.currentTarget;
-    this._updateSliderValue(el.id, el.value, el.step);
   }
 
   async _onInputChange(event) {

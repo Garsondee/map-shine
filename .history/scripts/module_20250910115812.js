@@ -29759,11 +29759,6 @@ class SimpleUIPanel extends Application {
     }
   }
 
-  _onSliderInput(event) {
-    const el = event.currentTarget;
-    this._updateSliderValue(el.id, el.value, el.step);
-  }
-
   async _onInputChange(event) {
     const el = event.currentTarget;
     const path = el.dataset.path;

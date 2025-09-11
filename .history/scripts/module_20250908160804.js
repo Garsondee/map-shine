@@ -1,3 +1,6 @@
+// TODO: Remove all controls from 'Scene Illumination Mix-in apart from the colour correction. Everything else isn't working.
+// TODO: Add cloud shadows to Overhead Effects layer
+
 /******************************************************************************
  *
  *                            MAP SHINE
@@ -39,29 +42,16 @@ const UNIVERSAL_EFFECT_DEFAULTS = {
       "Loading Screen Hint 2",
       "Loading Screen Hint 3",
     ],
+    // New properties for background images and overlays
+    staticBackgroundImage: "",
+    useRandomBackgroundImage: false,
+    backgroundImages: [],
+    backgroundOverlayEnabled: true,
+    backgroundOverlayOpacity: 0.75,
   },
   pauseEffect: {
     enabled: true,
     duration: 3000,
-    // --- New properties for the overlay ---
-    heading: "SESSION PAUSED",
-    subheading: "Please stand by...",
-    logoPath: "modules/map-shine/assets/mm-logo.png",
-    logoOpacity: 0.8,
-    backgroundColor: "rgba(10, 0, 0, 0.75)",
-    gradientColor1: "#ff4444",
-    gradientColor2: "rgba(255, 0, 0, 0.5)",
-    gradientShadowColor: "#ff0000",
-    headingColor: "#ffcccc",
-    subheadingColor: "#ff8888",
-    hintColor: "#dddddd",
-    useRandomHint: true,
-    randomHints: [
-      "Hint: Check your inventory for useful items.",
-      "Hint: Remember to save frequently!",
-      "Hint: Resting can restore health and spells.",
-    ],
-    // --- Existing color correction ---
     colorCorrection: {
       enabled: true,
       saturation: 0.2,
@@ -1437,7 +1427,7 @@ const MODULE_DEFAULTS = {
       layerBlendMode: 1,
     },
     animation: {
-      globalIntensity: 1.95,
+      globalIntensity: 2,
     },
     pattern: {
       stripes: {
@@ -1445,25 +1435,13 @@ const MODULE_DEFAULTS = {
         speed: 0,
         angle: 140,
         scale: 12.5,
-        evolution: 0,
-        threshold: 0.21,
-        softness: 0.26,
+        evolution: 0.01,
+        threshold: 0.05,
+        softness: 0.5,
         widthVariationAmount: 0,
         widthVariationScale: 0.51,
         strengthVariation: 1,
       },
-    },
-    colorCorrection: {
-      enabled: true,
-      saturation: 1.25,
-      brightness: 0.07,
-      contrast: 1.7,
-      gamma: 1,
-      tint: {
-        color: "#FFFFFF",
-        amount: 0,
-      },
-      invert: false,
     },
     cloudOcclusion: {
       enabled: true,
@@ -1864,7 +1842,7 @@ const MODULE_DEFAULTS = {
         },
       },
       dynamicExposure: {
-        enabled: true,
+        enabled: false,
         intensity: 1.5,
         duration: 8000,
         resetPeriod: 60000,
@@ -1888,7 +1866,7 @@ const MODULE_DEFAULTS = {
       centerY: 0.5,
     },
     tiltShift: {
-      enabled: true,
+      enabled: false,
       blur: 23,
       gradientBlur: 3610,
       startX: 0,
@@ -2016,40 +1994,6 @@ const MODULE_DEFAULTS = {
     rgbSplit: {
       enabled: true,
       amount: 8.2,
-    },
-  },
-  metallicGlints: {
-    enabled: true,
-    blendMode: 1,
-    maskThreshold: 0.9,
-    maskInfluence: 0.1,
-    particleTexture: "modules/map-shine/assets/glint.webp",
-    frequency: 0.95,
-    lifetime: {
-      min: 0.4,
-      max: 1.2,
-    },
-    alpha: {
-      max: 0.75,
-      fadeIn: 0.1,
-      fadeOut: 0.9,
-    },
-    scale: {
-      sizeMultiplier: 4,
-      start: 1,
-      end: 0.1,
-      minMult: 0.7,
-    },
-    speed: {
-      start: 0,
-      end: 0,
-      minMult: 0.5,
-    },
-    rotation: {
-      enabled: false,
-      minSpeed: 0,
-      maxSpeed: 0,
-      accel: 0,
     },
   },
   water: {
@@ -2503,100 +2447,6 @@ const hexToNumber = (hex) => {
   return isNaN(parsed) ? 0xffffff : parsed;
 };
 
-class NativeAnimation {
-  /**
-   * A map to store active animations, allowing them to be cancelled.
-   * The key can be any unique identifier (e.g., a PIXI object, a string).
-   */
-  static activeAnimations = new Map();
-
-  /**
-   * A collection of common easing functions.
-   * @type {Object.<string, function(number): number>}
-   */
-  static easing = {
-    linear: (t) => t,
-    power2: {
-      in: (t) => t * t,
-      out: (t) => 1 - (1 - t) * (1 - t),
-      inOut: (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2),
-    },
-    power1: {
-      inOut: (t) => (t < 0.5 ? t : 1 - t), // Simple linear ramp up/down
-    },
-  };
-
-  /**
-   * A simple GSAP `to` replacement using requestAnimationFrame.
-   * @param {object} target The object whose properties you want to animate.
-   * @param {object} config The animation configuration.
-   * @returns {{kill: function}} An object with a kill method to stop the animation.
-   */
-  static to(target, config) {
-    const { duration, onUpdate, onComplete, ease, ...properties } = config;
-    const key = config.key || target; // Use a provided key or the target object itself
-
-    // If there's an existing animation on this target, kill it.
-    if (this.activeAnimations.has(key)) {
-      this.activeAnimations.get(key).kill();
-    }
-
-    const startValues = {};
-    const endValues = {};
-    for (const prop in properties) {
-      startValues[prop] = target[prop];
-      endValues[prop] = properties[prop];
-    }
-
-    const easingFunction =
-      typeof ease === "string"
-        ? foundry.utils.getProperty(this.easing, ease) || this.easing.linear
-        : typeof ease === "function"
-        ? ease
-        : this.easing.linear;
-
-    let startTime = null;
-    let animationFrameId = null;
-
-    const animationController = {
-      kill: () => {
-        if (animationFrameId) {
-          cancelAnimationFrame(animationFrameId);
-          animationFrameId = null;
-          this.activeAnimations.delete(key);
-        }
-      },
-    };
-
-    this.activeAnimations.set(key, animationController);
-
-    const animate = (timestamp) => {
-      if (!startTime) startTime = timestamp;
-      const elapsed = timestamp - startTime;
-      const progress = Math.min(elapsed / (duration * 1000), 1);
-      const easedProgress = easingFunction(progress);
-
-      for (const prop in properties) {
-        target[prop] =
-          startValues[prop] +
-          (endValues[prop] - startValues[prop]) * easedProgress;
-      }
-
-      if (onUpdate) onUpdate();
-
-      if (progress < 1) {
-        animationFrameId = requestAnimationFrame(animate);
-      } else {
-        if (onComplete) onComplete();
-        this.activeAnimations.delete(key);
-      }
-    };
-
-    animationFrameId = requestAnimationFrame(animate);
-    return animationController;
-  }
-}
-
 // =================================================================================
 // SECTION 2: CORE SYSTEMS & MANAGERS
 // =================================================================================
@@ -2661,61 +2511,6 @@ class MapShineInitialiser {
       default: "Loading the world...",
     });
 
-    game.settings.register(MODULE_ID, "loading-screen-static-background", {
-      name: "Loading & Transitions: Static Background Image",
-      hint: "A single image to display on the initial world loading screen and during scene transitions. Overridden if 'Use Random Background' is checked.",
-      scope: "world",
-      config: true,
-      type: String,
-      default: "",
-      filePicker: "image",
-    });
-
-    game.settings.register(MODULE_ID, "loading-screen-use-random-background", {
-      name: "Loading & Transitions: Use Random Background",
-      hint: "If checked, a random image from the list below will be used for the initial world loading screen and scene transitions.",
-      scope: "world",
-      config: true,
-      type: Boolean,
-      default: false,
-    });
-
-    game.settings.register(MODULE_ID, "loading-screen-random-backgrounds", {
-      name: "Loading & Transitions: Backgrounds (one per line)",
-      hint: "A list of image paths. One will be chosen randomly if 'Use Random Background' is checked. One path per line.",
-      scope: "world",
-      config: true,
-      type: String,
-      default: "",
-    });
-
-    game.settings.register(
-      MODULE_ID,
-      "loading-screen-background-overlay-enabled",
-      {
-        name: "Loading & Transitions: Enable Background Overlay",
-        hint: "Shows a semi-transparent black overlay on top of the background image to improve text readability.",
-        scope: "world",
-        config: true,
-        type: Boolean,
-        default: true,
-      }
-    );
-
-    game.settings.register(
-      MODULE_ID,
-      "loading-screen-background-overlay-opacity",
-      {
-        name: "Loading & Transitions: Background Overlay Opacity",
-        hint: "How opaque the black overlay is. 0 is transparent, 1 is fully black.",
-        scope: "world",
-        config: true,
-        type: Number,
-        range: { min: 0, max: 1, step: 0.05 },
-        default: 0.75,
-      }
-    );
-
     // Helper to register a universal setting
     const registerUniversalSetting = (key, data) => {
       game.settings.register(MODULE_ID, `universal.${key}`, {
@@ -2778,90 +2573,46 @@ class MapShineInitialiser {
       type: String,
       default: ST_DEFAULTS.randomHints.join("\n"),
     });
+    registerUniversalSetting("sceneTransition.staticBackgroundImage", {
+      name: "[Universal] Scene Transition: Static Background Image",
+      type: String,
+      default: ST_DEFAULTS.staticBackgroundImage,
+      filePicker: "image",
+    });
+    registerUniversalSetting("sceneTransition.useRandomBackgroundImage", {
+      name: "[Universal] Scene Transition: Use Random Background",
+      type: Boolean,
+      default: ST_DEFAULTS.useRandomBackgroundImage,
+    });
+    registerUniversalSetting("sceneTransition.backgroundImages", {
+      name: "[Universal] Scene Transition: Backgrounds (one per line)",
+      type: String,
+      default: ST_DEFAULTS.backgroundImages.join("\n"),
+    });
+    registerUniversalSetting("sceneTransition.backgroundOverlayEnabled", {
+      name: "[Universal] Scene Transition: Enable Background Overlay",
+      type: Boolean,
+      default: ST_DEFAULTS.backgroundOverlayEnabled,
+    });
+    registerUniversalSetting("sceneTransition.backgroundOverlayOpacity", {
+      name: "[Universal] Scene Transition: Background Overlay Opacity",
+      type: Number,
+      range: { min: 0, max: 1, step: 0.05 },
+      default: ST_DEFAULTS.backgroundOverlayOpacity,
+    });
 
     // --- Pause Effect Settings ---
-    const PE = UNIVERSAL_EFFECT_DEFAULTS.pauseEffect;
-    const PE_CC = PE.colorCorrection;
+    const PE_CC = UNIVERSAL_EFFECT_DEFAULTS.pauseEffect.colorCorrection;
     registerUniversalSetting("pauseEffect.enabled", {
       name: "[Universal] Pause Effect: Enabled",
       type: Boolean,
-      default: PE.enabled,
+      default: UNIVERSAL_EFFECT_DEFAULTS.pauseEffect.enabled,
     });
     registerUniversalSetting("pauseEffect.duration", {
       name: "[Universal] Pause Effect: Duration (ms)",
       type: Number,
-      default: PE.duration,
+      default: UNIVERSAL_EFFECT_DEFAULTS.pauseEffect.duration,
     });
-    // Pause Overlay
-    registerUniversalSetting("pauseEffect.heading", {
-      name: "[Universal] Pause Overlay: Heading",
-      type: String,
-      default: PE.heading,
-    });
-    registerUniversalSetting("pauseEffect.subheading", {
-      name: "[Universal] Pause Overlay: Subheading",
-      type: String,
-      default: PE.subheading,
-    });
-    registerUniversalSetting("pauseEffect.logoPath", {
-      name: "[Universal] Pause Overlay: Logo Path",
-      type: String,
-      default: PE.logoPath,
-      filePicker: "image",
-    });
-    registerUniversalSetting("pauseEffect.logoOpacity", {
-      name: "[Universal] Pause Overlay: Logo Opacity",
-      type: Number,
-      range: { min: 0, max: 1, step: 0.05 },
-      default: PE.logoOpacity,
-    });
-    registerUniversalSetting("pauseEffect.backgroundColor", {
-      name: "[Universal] Pause Overlay: Background Color",
-      type: String,
-      default: PE.backgroundColor,
-    });
-    registerUniversalSetting("pauseEffect.gradientColor1", {
-      name: "[Universal] Pause Overlay: Gradient Color 1",
-      type: String,
-      default: PE.gradientColor1,
-    });
-    registerUniversalSetting("pauseEffect.gradientColor2", {
-      name: "[Universal] Pause Overlay: Gradient Color 2",
-      type: String,
-      default: PE.gradientColor2,
-    });
-    registerUniversalSetting("pauseEffect.gradientShadowColor", {
-      name: "[Universal] Pause Overlay: Gradient Shadow Color",
-      type: String,
-      default: PE.gradientShadowColor,
-    });
-    registerUniversalSetting("pauseEffect.headingColor", {
-      name: "[Universal] Pause Overlay: Heading Color",
-      type: String,
-      default: PE.headingColor,
-    });
-    registerUniversalSetting("pauseEffect.subheadingColor", {
-      name: "[Universal] Pause Overlay: Subheading Color",
-      type: String,
-      default: PE.subheadingColor,
-    });
-    registerUniversalSetting("pauseEffect.hintColor", {
-      name: "[Universal] Pause Overlay: Hint Color",
-      type: String,
-      default: PE.hintColor,
-    });
-    registerUniversalSetting("pauseEffect.useRandomHint", {
-      name: "[Universal] Pause Overlay: Use Random Hint",
-      type: Boolean,
-      default: PE.useRandomHint,
-    });
-    registerUniversalSetting("pauseEffect.randomHints", {
-      name: "[Universal] Pause Overlay: Hints (one per line)",
-      type: String,
-      default: PE.randomHints.join("\n"),
-    });
-
-    // Pause Color Correction
     registerUniversalSetting("pauseEffect.colorCorrection.enabled", {
       name: "[Universal] Pause Effect: Color Correction Enabled",
       type: Boolean,
@@ -3381,9 +3132,6 @@ class MapShineInitialiser {
   /**
    * Registers libWrapper patches, hooks, and other event listeners.
    */
-  /**
-   * Registers libWrapper patches, hooks, and other event listeners.
-   */
   static _registerIntegrationsAndHooks() {
     // --- Particle Library Integration ---
     console.log("Map Shine | Library Test: Verifying PIXI.particles global.");
@@ -3401,7 +3149,6 @@ class MapShineInitialiser {
       );
       PIXI.particles.Emitter.registerBehavior(SparkPathBehavior);
       PIXI.particles.Emitter.registerBehavior(SmellyFliesBehavior);
-      PIXI.particles.Emitter.registerBehavior(ColorFromSpawnBehavior);
     } else {
       console.error(
         "FAILURE: pixi-particles library did not attach to the global PIXI object."
@@ -3472,35 +3219,32 @@ class MapShineInitialiser {
                 "universal.sceneTransition.randomHints"
               ) || ""
             )
-              .split(/\r?\n/)
+              .split("\n")
               .filter((h) => h.trim() !== ""),
-            // --- MODIFIED SECTION ---
-            // Point to the consolidated loading screen settings.
             staticBackgroundImage: game.settings.get(
               MODULE_ID,
-              "loading-screen-static-background"
+              "universal.sceneTransition.staticBackgroundImage"
             ),
             useRandomBackgroundImage: game.settings.get(
               MODULE_ID,
-              "loading-screen-use-random-background"
+              "universal.sceneTransition.useRandomBackgroundImage"
             ),
             backgroundImages: (
               game.settings.get(
                 MODULE_ID,
-                "loading-screen-random-backgrounds"
+                "universal.sceneTransition.backgroundImages"
               ) || ""
             )
-              .split(/\r?\n/)
+              .split("\n")
               .filter((h) => h.trim() !== ""),
             backgroundOverlayEnabled: game.settings.get(
               MODULE_ID,
-              "loading-screen-background-overlay-enabled"
+              "universal.sceneTransition.backgroundOverlayEnabled"
             ),
             backgroundOverlayOpacity: game.settings.get(
               MODULE_ID,
-              "loading-screen-background-overlay-opacity"
+              "universal.sceneTransition.backgroundOverlayOpacity"
             ),
-            // --- END MODIFIED SECTION ---
           };
 
           const sceneToView = this;
@@ -3569,38 +3313,25 @@ class MapShineInitialiser {
       );
     }
 
-    // This hook ensures settings that should be textareas are rendered as such.
+    // This hook ensures the random hints setting always renders as a textarea.
     Hooks.on("renderSettingsConfig", (app, html, data) => {
-      const settingsToConvert = [
-        `${MODULE_ID}.universal.sceneTransition.randomHints`,
-        `${MODULE_ID}.loading-screen-random-backgrounds`,
-        `${MODULE_ID}.universal.pauseEffect.randomHints`,
-      ];
+      const settingKey = `${MODULE_ID}.universal.sceneTransition.randomHints`;
+      // Use querySelector on the HTMLElement, which is the standard DOM API
+      const input = html.querySelector(`[name="${settingKey}"]`);
 
-      settingsToConvert.forEach((settingKey) => {
-        // Use the standard querySelector method, as 'html' is a raw HTMLElement.
-        const input = html.querySelector(`[name="${settingKey}"]`);
+      // Check if the input exists and is a single-line text input using standard properties
+      if (input && input.tagName === "INPUT" && input.type === "text") {
+        // Create a new textarea element
+        const textarea = document.createElement("textarea");
+        // Copy attributes from the old input to the new textarea using standard properties
+        textarea.name = input.name;
+        textarea.id = input.id;
+        textarea.value = input.value;
+        textarea.rows = 5; // Set a reasonable default height
 
-        if (input) {
-          // The key for game.settings.get is the part *after* the module ID.
-          const gameSettingKey = settingKey.replace(`${MODULE_ID}.`, "");
-          let value = game.settings.get(MODULE_ID, gameSettingKey);
-
-          // If the setting was somehow saved as an array, join it back into a newline-separated string.
-          if (Array.isArray(value)) {
-            value = value.join("\n");
-          }
-
-          const textarea = document.createElement("textarea");
-          textarea.name = input.name;
-          textarea.id = input.id;
-          textarea.value = value; // Use the raw value.
-          textarea.rows = 5; // Set a reasonable default height.
-
-          // Replace the original input element with the new textarea element.
-          input.replaceWith(textarea);
-        }
-      });
+        // Replace the original input with the new textarea using the standard DOM API method
+        input.replaceWith(textarea);
+      }
     });
 
     // --- Standard Hooks ---
@@ -4884,19 +4615,24 @@ class ResourceManager {
     const layer = canvas.layers.find((l) => l instanceof MetallicShineLayer);
     if (!layer) return null;
 
+    // Command the layer to perform its render logic for this frame.
     if (typeof layer.renderEffectNow === "function") {
       layer.renderEffectNow(deltaTime);
     } else {
+      // Fallback or error if the method doesn't exist
       console.warn(
         "ResourceManager: MetallicShineLayer is missing renderEffectNow()"
       );
       return null;
     }
 
+    // Now get the resulting texture.
     const texture = layer.getEffectTexture();
     this._frameCache.animatedShineTexture = texture;
     return texture;
   }
+
+  // --- NEW: WATER EFFECT RESOURCES ---
 
   /**
    * Retrieves the primary water mask (_Water textures).
@@ -5018,7 +4754,6 @@ class SceneChangeManager {
     this._hintInterval = null;
     this._shuffledHints = [];
     this._currentHintIndex = 0;
-    this._hintAnimation = null; // To hold the animation controller
   }
 
   initialize() {
@@ -5145,7 +4880,6 @@ class SceneChangeManager {
                                 background-color: rgba(255, 255, 255, 0.9);
                                 transform-origin: left;
                                 box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-                                transition: width 0.2s ease-out;
                             }
                             #map-shine-scene-transition .transition-status {
                                 position: absolute;
@@ -5157,7 +4891,6 @@ class SceneChangeManager {
                                 opacity: 1;
                                 display: none; /* Hidden by default */
                                 z-index: 3;
-                                transition: opacity 0.2s ease-in-out;
                             }
                         </style>
                         <div class="background-overlay"></div>
@@ -5223,10 +4956,11 @@ class SceneChangeManager {
       return; // Do not start the animation cycle.
     }
 
-    const HINT_FADE_DURATION = 1000; // in ms
-    const HINT_PAUSE_DURATION = 5000; // in ms
+    const HINT_FADE_DURATION = 1.0; // in seconds
+    const HINT_PAUSE_DURATION = 5.0; // in seconds
 
     const showNextHint = () => {
+      // Check for teardown conditions
       if (
         !this.transitionOverlay ||
         !hintElement ||
@@ -5236,28 +4970,34 @@ class SceneChangeManager {
         return;
       }
 
-      this._hintAnimation = hintElement.animate(
-        [{ opacity: 1 }, { opacity: 0 }],
-        {
-          duration: HINT_FADE_DURATION,
-          easing: "ease-in",
-        }
-      );
+      // Create a GSAP timeline for the fade-out, change, and fade-in sequence
+      const tl = gsap.timeline({
+        onComplete: () => {
+          // After the fade-in is complete, schedule the next call after the pause.
+          this._hintInterval = gsap.delayedCall(
+            HINT_PAUSE_DURATION,
+            showNextHint
+          );
+        },
+      });
 
-      this._hintAnimation.finished
-        .then(() => {
-          this._currentHintIndex =
-            (this._currentHintIndex + 1) % this._shuffledHints.length;
-          hintElement.innerText = this._shuffledHints[this._currentHintIndex];
+      tl.to(hintElement, {
+        opacity: 0,
+        duration: HINT_FADE_DURATION,
+        ease: "power2.in",
+      });
 
-          hintElement.animate([{ opacity: 0 }, { opacity: 1 }], {
-            duration: HINT_FADE_DURATION,
-            easing: "ease-out",
-          });
+      tl.call(() => {
+        this._currentHintIndex =
+          (this._currentHintIndex + 1) % this._shuffledHints.length;
+        hintElement.innerText = this._shuffledHints[this._currentHintIndex];
+      });
 
-          this._hintInterval = setTimeout(showNextHint, HINT_PAUSE_DURATION);
-        })
-        .catch(() => {}); // Catch the expected cancellation error
+      tl.to(hintElement, {
+        opacity: 1,
+        duration: HINT_FADE_DURATION,
+        ease: "power2.out",
+      });
     };
 
     // Set the initial state for the first hint
@@ -5266,7 +5006,7 @@ class SceneChangeManager {
     hintElement.style.opacity = "1"; // Ensure it's fully visible for the main fade-in
 
     // Start the first animation cycle after the initial pause
-    this._hintInterval = setTimeout(showNextHint, HINT_PAUSE_DURATION);
+    this._hintInterval = gsap.delayedCall(HINT_PAUSE_DURATION, showNextHint);
   }
 
   /**
@@ -5275,16 +5015,8 @@ class SceneChangeManager {
    */
   _stopHintCycle() {
     if (this._hintInterval) {
-      clearTimeout(this._hintInterval);
+      this._hintInterval.kill(); // Use gsap's kill() for delayed calls
       this._hintInterval = null;
-    }
-    if (this._hintAnimation) {
-      try {
-        this._hintAnimation.cancel();
-      } catch (e) {
-        // This is an expected DOMException when cancelling an animation, so we can ignore it.
-      }
-      this._hintAnimation = null;
     }
     this._shuffledHints = [];
     this._currentHintIndex = 0;
@@ -5425,48 +5157,49 @@ class SceneChangeManager {
     // Start the hint cycling process
     this._cycleHints(config);
 
-    this.transitionOverlay.style.pointerEvents = "auto";
-    const content = this.transitionOverlay.querySelector(".transition-content");
-
-    // Animate the main overlay fade-in
-    const overlayAnimation = this.transitionOverlay.animate(
-      [{ opacity: 0 }, { opacity: 1 }],
-      {
-        duration: config.fadeOutDuration,
-        easing: "ease-in-out",
-        fill: "forwards",
-      }
-    );
-
-    // Animate the content fade-in
-    if (content) {
-      content.animate([{ opacity: 0 }, { opacity: 1 }], {
-        duration: config.fadeOutDuration,
-        easing: "ease-in-out",
-        fill: "forwards",
-      });
+    // GSAP Guard
+    if (typeof gsap === "undefined") {
+      console.warn("MapShine | GSAP not found. Snapping fadeOut effect.");
+      this.transitionOverlay.style.opacity = 1;
+      this.transitionOverlay.style.pointerEvents = "auto";
+      const content = this.transitionOverlay.querySelector(
+        ".transition-content"
+      );
+      if (content) content.style.opacity = 1;
+      return Promise.resolve();
     }
 
-    // Animate individual content elements
-    const contentElements = this.transitionOverlay.querySelectorAll(
-      ".transition-content > *"
-    );
-    contentElements.forEach((el, index) => {
-      el.animate(
-        [
-          { opacity: 0, transform: "translateY(-20px)" },
-          { opacity: 1, transform: "translateY(0)" },
-        ],
-        {
-          duration: config.fadeOutDuration * 0.6,
-          delay: config.fadeOutDuration * 0.2 + index * 100,
-          easing: "ease-out",
-          fill: "forwards",
-        }
+    return new Promise((resolve) => {
+      const tl = gsap.timeline({ onComplete: resolve });
+      const contentElements = this.transitionOverlay.querySelectorAll(
+        ".transition-content > *"
       );
-    });
+      const fadeOutDurationSec = config.fadeOutDuration / 1000;
 
-    await overlayAnimation.finished;
+      tl.to(this.transitionOverlay, {
+        opacity: 1,
+        duration: fadeOutDurationSec,
+        ease: "power2.inOut",
+        onStart: () => (this.transitionOverlay.style.pointerEvents = "auto"),
+      })
+        .to(
+          this.transitionOverlay.querySelector(".transition-content"),
+          { opacity: 1 },
+          0
+        )
+        .fromTo(
+          contentElements,
+          { opacity: 0, y: -20 },
+          {
+            opacity: 1,
+            y: 0,
+            duration: fadeOutDurationSec * 0.6,
+            ease: "power2.out",
+            stagger: 0.1,
+          },
+          fadeOutDurationSec * 0.2
+        );
+    });
   }
 
   async fadeIn(config) {
@@ -5477,43 +5210,47 @@ class SceneChangeManager {
       return Promise.resolve();
     }
 
-    const contentElements = this.transitionOverlay.querySelectorAll(
-      ".transition-content > *"
-    );
+    // GSAP Guard
+    if (typeof gsap === "undefined") {
+      console.warn("MapShine | GSAP not found. Snapping fadeIn effect.");
+      this.transitionOverlay.style.opacity = 0;
+      this.transitionOverlay.style.pointerEvents = "none";
+      return Promise.resolve();
+    }
 
-    // Animate individual elements fading out
-    const elementAnimations = Array.from(contentElements).map((el, index) => {
-      return el.animate(
-        [
-          { opacity: 1, transform: "translateY(0)" },
-          { opacity: 0, transform: "translateY(20px)" },
-        ],
+    return new Promise((resolve) => {
+      const tl = gsap.timeline({
+        onComplete: () => {
+          if (this.transitionOverlay)
+            this.transitionOverlay.style.pointerEvents = "none";
+          resolve();
+        },
+      });
+      const contentElements = this.transitionOverlay.querySelectorAll(
+        ".transition-content > *"
+      );
+      const fadeInDurationSec = config.fadeInDuration / 1000;
+
+      tl.to(
+        contentElements,
         {
-          duration: config.fadeInDuration * 0.5,
-          delay: index * 50,
-          easing: "ease-in",
-          fill: "forwards",
-        }
-      ).finished;
+          opacity: 0,
+          y: 20,
+          duration: fadeInDurationSec * 0.5,
+          ease: "power2.in",
+          stagger: 0.05,
+        },
+        0
+      ).to(
+        this.transitionOverlay,
+        {
+          opacity: 0,
+          duration: fadeInDurationSec,
+          ease: "power2.inOut",
+        },
+        0
+      );
     });
-
-    // Animate the main overlay fading out
-    const overlayAnimation = this.transitionOverlay.animate(
-      [{ opacity: 1 }, { opacity: 0 }],
-      {
-        duration: config.fadeInDuration,
-        easing: "ease-in-out",
-        fill: "forwards",
-      }
-    );
-
-    overlayAnimation.finished.then(() => {
-      if (this.transitionOverlay)
-        this.transitionOverlay.style.pointerEvents = "none";
-    });
-
-    // Wait for the main fade-out to complete
-    await overlayAnimation.finished;
   }
 
   setProgress(progress, message) {
@@ -5527,8 +5264,25 @@ class SceneChangeManager {
 
     const p = Math.min(100, Math.max(0, progress));
 
+    // GSAP Guard
+    if (typeof gsap === "undefined") {
+      if (fillElement) {
+        fillElement.style.width = `${p}%`;
+      }
+      if (message && statusTextElement) {
+        statusTextElement.innerText = message;
+        statusTextElement.style.opacity = "1";
+      }
+      return;
+    }
+
     if (fillElement) {
-      fillElement.style.width = `${p}%`;
+      // Animate the progress bar fill for a smoother look
+      gsap.to(fillElement, {
+        width: `${p}%`,
+        duration: 0.2,
+        ease: "power2.out",
+      });
     }
 
     if (
@@ -5537,13 +5291,19 @@ class SceneChangeManager {
       statusTextElement.innerText !== message
     ) {
       // Fade out, change text, then fade in for a smooth transition.
-      statusTextElement.style.opacity = "0";
-      setTimeout(() => {
-        if (statusTextElement) {
-          statusTextElement.innerText = message;
-          statusTextElement.style.opacity = "1";
-        }
-      }, statusFadeDuration / 2);
+      gsap.to(statusTextElement, {
+        opacity: 0,
+        duration: statusFadeDuration / 2000,
+        onComplete: () => {
+          if (statusTextElement) {
+            statusTextElement.innerText = message;
+            gsap.to(statusTextElement, {
+              opacity: 1,
+              duration: statusFadeDuration / 2000,
+            });
+          }
+        },
+      });
     }
   }
 
@@ -5553,28 +5313,30 @@ class SceneChangeManager {
     const bar = this.transitionOverlay.querySelector(".loading-bar-container");
     const status = this.transitionOverlay.querySelector(".transition-status");
 
-    const animations = [];
-    if (bar) {
-      animations.push(
-        bar.animate([{ opacity: 1 }, { opacity: 0 }], {
-          duration: 200,
-          fill: "forwards",
-        }).finished
-      );
-    }
-    if (status) {
-      animations.push(
-        status.animate([{ opacity: 1 }, { opacity: 0 }], {
-          duration: 200,
-          fill: "forwards",
-        }).finished
-      );
+    // GSAP Guard
+    if (typeof gsap === "undefined") {
+      if (bar) {
+        bar.style.opacity = "0";
+        bar.style.display = "none";
+      }
+      if (status) {
+        status.style.opacity = "0";
+        status.style.display = "none";
+      }
+      return Promise.resolve();
     }
 
-    await Promise.all(animations);
-
-    if (bar) bar.style.display = "none";
-    if (status) status.style.display = "none";
+    // We can do a quick fade out of these elements
+    const tl = gsap.timeline();
+    tl.to([bar, status], {
+      opacity: 0,
+      duration: 0.2,
+      onComplete: () => {
+        if (bar) bar.style.display = "none";
+        if (status) status.style.display = "none";
+      },
+    });
+    await tl;
   }
 
   async handleCanvasTearDown(canvas) {
@@ -5905,1453 +5667,6 @@ class SceneChangeManager {
   }
 }
 
-class AppearanceTransitionManager {
-  constructor(profileManager) {
-    this.profileManager = profileManager;
-    this.activeTransition = null;
-    this.status = "idle"; // "idle", "transitioning", "previewing"
-    this.statusMessage = "Idle";
-    this._updateUICallback = () => {};
-    this._configBeforePreview = null;
-  }
-
-  onStatusUpdate(callback) {
-    this._updateUICallback = callback;
-  }
-
-  _setStatus(status, message) {
-    this.status = status;
-    this.statusMessage = message;
-    if (typeof this._updateUICallback === "function") {
-      this._updateUICallback(status, message);
-    }
-  }
-
-  stop() {
-    if (this.activeTransition) {
-      this.activeTransition.kill();
-      this.activeTransition = null;
-    }
-    game.mapShine.transitionActive = false;
-  }
-
-  _interpolateConfigs(startConfig, endConfig, progress) {
-    const interpolated = foundry.utils.deepClone(startConfig);
-    this._recursiveInterpolate(interpolated, startConfig, endConfig, progress);
-    return interpolated;
-  }
-
-  _recursiveInterpolate(target, start, end, progress) {
-    for (const key in end) {
-      // Exclude buildingShadows from the interpolation process.
-      if (key === "buildingShadows") continue;
-
-      if (start?.[key] === undefined) {
-        target[key] = foundry.utils.deepClone(end[key]);
-        continue;
-      }
-
-      const startVal = start[key];
-      const endVal = end[key];
-      const endType = typeof endVal;
-
-      if (endType === "number" && typeof startVal === "number") {
-        target[key] = lerp(startVal, endVal, progress);
-      } else if (
-        endType === "string" &&
-        endVal.startsWith("#") &&
-        typeof startVal === "string" &&
-        startVal.startsWith("#")
-      ) {
-        const startRgb = hexToRgbArray(startVal);
-        const endRgb = hexToRgbArray(endVal);
-        const lerpedRgb = [
-          lerp(startRgb[0], endRgb[0], progress),
-          lerp(startRgb[1], endRgb[1], progress),
-          lerp(startRgb[2], endRgb[2], progress),
-        ];
-        // Use the PIXI.Color constructor instead of the deprecated fromRGB method.
-        target[key] = new PIXI.Color(lerpedRgb).toHex();
-      } else if (
-        endType === "object" &&
-        endVal !== null &&
-        !Array.isArray(endVal)
-      ) {
-        if (
-          typeof startVal === "object" &&
-          startVal !== null &&
-          !Array.isArray(startVal)
-        ) {
-          this._recursiveInterpolate(target[key], startVal, endVal, progress);
-        } else {
-          // Type mismatch (e.g., number to object), snap at the end
-          target[key] =
-            progress >= 1.0
-              ? foundry.utils.deepClone(endVal)
-              : foundry.utils.deepClone(startVal);
-        }
-      } else {
-        // Snap booleans, strings, arrays, etc. at the end of the transition
-        target[key] =
-          progress >= 1.0
-            ? foundry.utils.deepClone(endVal)
-            : foundry.utils.deepClone(startVal);
-      }
-    }
-  }
-
-  async transition(startConfig, endConfig, duration, isPreview = false) {
-    this.stop();
-    this._configBeforePreview = null; // A transition always clears any preview state.
-
-    // Handle zero-duration transitions instantly without animation.
-    if (duration === 0) {
-      this.profileManager.activeConfig = endConfig;
-      await this.profileManager.updateAllSystemsFromConfig();
-      // Also broadcast the final time for any listeners like the clock.
-      Hooks.callAll("mapShine:timeChanged", endConfig.timeOfDay.currentTime);
-      this._setStatus("idle", "Transition complete (instant)");
-      return;
-    }
-
-    game.mapShine.transitionActive = true;
-
-    // Instantly update particle systems to their final state.
-    this.profileManager.activeConfig = endConfig;
-    const particleLayers = canvas.layers.filter(
-      (l) => l instanceof ParticleLayer || l instanceof SmellyFliesLayer
-    );
-    for (const layer of particleLayers) {
-      if (typeof layer.updateFromConfig === "function") {
-        await layer.updateFromConfig(endConfig, {});
-      }
-    }
-    this.profileManager.activeConfig = startConfig;
-
-    return new Promise((resolve) => {
-      const transitionState = {
-        progress: 0,
-      };
-      const statusType = isPreview ? "previewing" : "transitioning";
-      const startMessage = isPreview
-        ? "Previewing transition..."
-        : "Transitioning...";
-      this._setStatus(statusType, startMessage);
-
-      this.activeTransition = NativeAnimation.to(transitionState, {
-        progress: 1,
-        duration: duration / 1000,
-        ease: "power1.inOut",
-        onUpdate: () => {
-          const interpolatedConfig = this._interpolateConfigs(
-            startConfig,
-            endConfig,
-            transitionState.progress
-          );
-          this.profileManager.activeConfig = interpolatedConfig;
-          this.profileManager.updateAllSystemsFromConfig({
-            skipParticles: true,
-          });
-          Hooks.callAll(
-            "mapShine:timeChanged",
-            interpolatedConfig.timeOfDay.currentTime
-          );
-          const percent = Math.round(transitionState.progress * 100);
-          this._setStatus(
-            statusType,
-            `${isPreview ? "Previewing" : "Transitioning"}... (${percent}%)`
-          );
-        },
-        onComplete: async () => {
-          this.profileManager.activeConfig = endConfig;
-          game.mapShine.transitionActive = false;
-
-          const buildingShadowsLayer = canvas.layers.find(
-            (l) => l instanceof BuildingShadowsLayer
-          );
-          if (buildingShadowsLayer) {
-            await buildingShadowsLayer.rebuildEffect();
-          }
-          const timeOfDayLayer = canvas.layers.find(
-            (l) => l instanceof TimeOfDayLayer
-          );
-          if (timeOfDayLayer) {
-            await timeOfDayLayer.rebuildEffect();
-          }
-
-          for (const layer of canvas.layers) {
-            if (layer instanceof MaskedEffectLayer) {
-              layer._needsMaskUpdate = true;
-            }
-          }
-          await this.profileManager.updateAllSystemsFromConfig();
-          Hooks.callAll(
-            "mapShine:timeChanged",
-            endConfig.timeOfDay.currentTime
-          );
-          this._setStatus("idle", "Transition complete");
-          this.activeTransition = null;
-          resolve();
-        },
-      });
-    });
-  }
-
-  async preview(config) {
-    this.stop();
-    this._setStatus("previewing", "Preview active");
-
-    // Store the config that we should revert to when the preview ends.
-    this._configBeforePreview = this.profileManager.getCurrentConfig();
-
-    // Set the active config to the one being previewed.
-    this.profileManager.activeConfig = config;
-    await this.profileManager.updateAllSystemsFromConfig();
-  }
-
-  async endPreview() {
-    if (this.status !== "previewing") return;
-    this.stop();
-
-    // Revert to the config we saved before the preview started, with a fallback.
-    this.profileManager.activeConfig =
-      this._configBeforePreview || this.profileManager.getCurrentConfig();
-    this._configBeforePreview = null; // Clean up the stored state.
-
-    await this.profileManager.updateAllSystemsFromConfig();
-    this._setStatus("idle", "Preview ended");
-  }
-}
-
-class DynamicExposureManager {
-  constructor() {
-    this.tokenManager = game.mapShine.tokenManager;
-
-    // State
-    this.isInitialized = false;
-    this.isIndoors = null; // null, true, or false
-    this.lastTriggerTimestamp = 0;
-    this.dazzleAnimation = null;
-    this.activeTokenId = null;
-
-    // Effect parameters (will be loaded from config)
-    this.config = {};
-
-    // PIXI Objects
-    this.ccFilter = null;
-  }
-
-  initialize() {
-    if (this.isInitialized) return;
-
-    this.ccFilter = ScreenEffectsManager.getFilter("colorCorrection");
-    if (!this.ccFilter) {
-      console.error(
-        "Map Shine | DynamicExposureManager: Could not find ColorCorrectionFilter."
-      );
-      return;
-    }
-
-    // Ensure the uniform exists on the filter
-    if (this.ccFilter.uniforms.uDynamicExposureBoost === undefined) {
-      this.ccFilter.uniforms.uDynamicExposureBoost = 0.0;
-    }
-
-    // Bind hooks
-    this._boundOnControlToken = this._onControlToken.bind(this);
-    this._boundOnUpdateToken = this._onUpdateToken.bind(this);
-    Hooks.on("controlToken", this._boundOnControlToken);
-    Hooks.on("updateToken", this._boundOnUpdateToken);
-
-    this.isInitialized = true;
-
-    // Perform an initial check on the currently controlled token, if any
-    const currentToken = this.tokenManager.getActiveToken();
-    if (currentToken) {
-      this._onControlToken(currentToken, true);
-    }
-  }
-
-  _onControlToken(token, controlled) {
-    if (this.dazzleAnimation) {
-      this.dazzleAnimation.kill();
-      this.dazzleAnimation = null;
-    }
-
-    if (controlled && token) {
-      this.activeTokenId = token.id;
-      // Establish the initial state without triggering the effect
-      this._updateInitialTokenState(token);
-    } else if (!canvas.tokens.controlled.length) {
-      this.activeTokenId = null;
-      this.isIndoors = null;
-    }
-  }
-
-  _onUpdateToken(tokenDoc, change) {
-    this.config =
-      game.mapShine.profileManager.activeConfig.postProcessing.colorCorrection.dynamicExposure;
-
-    if (
-      !this.isInitialized ||
-      tokenDoc.id !== this.activeTokenId ||
-      !this.config.enabled
-    ) {
-      return;
-    }
-
-    // Only react to movement
-    if (change.x !== undefined || change.y !== undefined) {
-      // We need to check the state at the destination, not the current position.
-      // Create a point representing the destination center in world coordinates.
-      const dest = {
-        x: change.x ?? tokenDoc.x,
-        y: change.y ?? tokenDoc.y,
-        w: tokenDoc.width * canvas.scene.grid.size,
-        h: tokenDoc.height * canvas.scene.grid.size,
-      };
-      const destCenter = {
-        x: dest.x + dest.w / 2,
-        y: dest.y + dest.h / 2,
-      };
-      this._checkTokenStateAtPoint(destCenter, true);
-    }
-  }
-
-  _updateInitialTokenState(token) {
-    if (!token || !game.mapShine.resourceManager) {
-      this.isIndoors = null;
-      return;
-    }
-
-    const outdoorsMask = game.mapShine.resourceManager.getOutdoorsMask();
-
-    if (!outdoorsMask?.valid) {
-      this.isIndoors = null;
-      return;
-    }
-
-    const screenPos = canvas.stage.toGlobal(token.center);
-    const screen = canvas.app.renderer.screen;
-    const x = Math.max(0, Math.min(screen.width - 1, Math.round(screenPos.x)));
-    const y = Math.max(0, Math.min(screen.height - 1, Math.round(screenPos.y)));
-
-    try {
-      const pixelData = canvas.app.renderer.extract.pixels(
-        outdoorsMask,
-        new PIXI.Rectangle(x, y, 1, 1)
-      );
-      const maskValue = pixelData[0];
-      const isNowOutdoors = maskValue > 128;
-      this.isIndoors = !isNowOutdoors;
-    } catch (e) {
-      // It's safe to ignore extraction errors here, as this is just setting an initial state.
-    }
-  }
-
-  _checkTokenStateAtPoint(worldPoint, canTriggerEffect = false) {
-    if (!worldPoint || !game.mapShine.resourceManager) {
-      this.isIndoors = null;
-      return;
-    }
-
-    const outdoorsMask = game.mapShine.resourceManager.getOutdoorsMask();
-
-    if (!outdoorsMask?.valid) {
-      this.isIndoors = null;
-      return;
-    }
-
-    const screenPos = canvas.stage.toGlobal(worldPoint);
-    const screen = canvas.app.renderer.screen;
-    const x = Math.max(0, Math.min(screen.width - 1, Math.round(screenPos.x)));
-    const y = Math.max(0, Math.min(screen.height - 1, Math.round(screenPos.y)));
-
-    try {
-      const pixelData = canvas.app.renderer.extract.pixels(
-        outdoorsMask,
-        new PIXI.Rectangle(x, y, 1, 1)
-      );
-      const maskValue = pixelData[0];
-
-      // Corrected Logic: "Outdoors" is where the _Outdoors mask is bright.
-      const isNowOutdoors = maskValue > 128;
-      const wasIndoors = this.isIndoors === true;
-
-      // Update the state for the *next* check, based on the destination of the *current* move.
-      this.isIndoors = !isNowOutdoors;
-
-      // Check for the specific transition from indoors (dark) to outdoors (bright).
-      if (canTriggerEffect && wasIndoors && isNowOutdoors) {
-        this._triggerDazzleEffect();
-      }
-    } catch (e) {
-      // This can happen if the texture is not yet ready on the GPU.
-      // It's safe to ignore and try again on the next movement.
-    }
-  }
-
-  _triggerDazzleEffect() {
-    this.config =
-      game.mapShine.profileManager.activeConfig.postProcessing.colorCorrection.dynamicExposure;
-
-    if (Date.now() - this.lastTriggerTimestamp < this.config.resetPeriod) {
-      return; // Effect is on cooldown
-    }
-
-    this.lastTriggerTimestamp = Date.now();
-
-    if (this.dazzleAnimation) {
-      this.dazzleAnimation.kill();
-    }
-
-    // Animate the exposure boost using the native animation helper
-    this.ccFilter.uniforms.uDynamicExposureBoost = this.config.intensity;
-    this.dazzleAnimation = NativeAnimation.to(this.ccFilter.uniforms, {
-      uDynamicExposureBoost: 0,
-      duration: this.config.duration / 1000,
-      ease: "power2.out",
-      onComplete: () => {
-        this.dazzleAnimation = null;
-      },
-    });
-  }
-
-  destroy() {
-    if (!this.isInitialized) return;
-    this.isInitialized = false;
-
-    Hooks.off("controlToken", this._boundOnControlToken);
-    Hooks.off("updateToken", this._boundOnUpdateToken);
-
-    if (this.dazzleAnimation) {
-      this.dazzleAnimation.kill();
-      this.dazzleAnimation = null;
-    }
-
-    if (this.ccFilter && !this.ccFilter.destroyed) {
-      this.ccFilter.uniforms.uDynamicExposureBoost = 0.0;
-    }
-
-    this.ccFilter = null;
-    this.activeTokenId = null;
-  }
-}
-
-class PauseEffectManager {
-  constructor() {
-    this._animationState = {
-      progress: game.paused ? 1 : 0,
-    };
-    this._animation = null;
-    this._pauseFilter = null;
-    this._originalGlobalTime = 100;
-    this._isInitialized = false;
-    this._boundOnPauseChange = this._onPauseChange.bind(this);
-  }
-
-  initialize() {
-    if (this._isInitialized) return;
-    this._pauseFilter = ScreenEffectsManager.getFilter("pauseEffect");
-    if (!this._pauseFilter) {
-      console.error(
-        "Map Shine | PauseEffectManager could not find its dedicated filter."
-      );
-      return;
-    }
-
-    const config = game.mapShine.profileManager.activeConfig;
-    this._originalGlobalTime = config.timeControl.globalTime;
-
-    this._updateEffects(this._animationState.progress);
-
-    Hooks.on("pauseGame", this._boundOnPauseChange);
-    this._isInitialized = true;
-    console.log("Map Shine | Pause Effect Manager Initialized.");
-  }
-
-  destroy() {
-    if (!this._isInitialized) return;
-
-    Hooks.off("pauseGame", this._boundOnPauseChange);
-    if (this._animation) {
-      this._animation.kill();
-    }
-    this._animation = null;
-    this._pauseFilter = null;
-    this._isInitialized = false;
-    console.log("Map Shine | Pause Effect Manager Destroyed.");
-  }
-
-  _onPauseChange(paused) {
-    if (!this._pauseFilter) return;
-
-    const peConfig = {
-      enabled: game.settings.get(MODULE_ID, "universal.pauseEffect.enabled"),
-      duration: game.settings.get(MODULE_ID, "universal.pauseEffect.duration"),
-      colorCorrection: {
-        enabled: game.settings.get(
-          MODULE_ID,
-          "universal.pauseEffect.colorCorrection.enabled"
-        ),
-        saturation: game.settings.get(
-          MODULE_ID,
-          "universal.pauseEffect.colorCorrection.saturation"
-        ),
-        brightness: game.settings.get(
-          MODULE_ID,
-          "universal.pauseEffect.colorCorrection.brightness"
-        ),
-        contrast: game.settings.get(
-          MODULE_ID,
-          "universal.pauseEffect.colorCorrection.contrast"
-        ),
-      },
-    };
-
-    if (!peConfig.enabled) {
-      this._updateEffects(0);
-      const activeConfig = game.mapShine.profileManager.activeConfig;
-      if (activeConfig.timeControl.globalTime < this._originalGlobalTime) {
-        foundry.utils.setProperty(
-          activeConfig,
-          "timeControl.globalTime",
-          this._originalGlobalTime
-        );
-        game.mapShine.profileManager.updateAllSystemsFromConfig();
-        if (game.mapShine.debugger) {
-          game.mapShine.debugger.eventHandler.updateAllControls();
-        }
-      }
-      return;
-    }
-
-    if (this._animation) {
-      this._animation.kill();
-    }
-
-    const targetProgress = paused ? 1 : 0;
-
-    if (paused && this._animationState.progress < 1) {
-      this._originalGlobalTime =
-        game.mapShine.profileManager.activeConfig.timeControl.globalTime;
-    }
-
-    this._animation = NativeAnimation.to(this._animationState, {
-      progress: targetProgress,
-      duration: peConfig.duration / 1000,
-      ease: "power2.inOut",
-      onUpdate: () => this._updateEffects(this._animationState.progress),
-      onComplete: () => {
-        this._animation = null;
-        this._updateEffects(targetProgress);
-      },
-    });
-  }
-
-  _updateEffects(progress) {
-    if (!this._pauseFilter) return;
-
-    // Construct the config object from individual game settings
-    const peConfig = {
-      colorCorrection: {
-        ...UNIVERSAL_EFFECT_DEFAULTS.pauseEffect.colorCorrection, // Start with defaults
-        enabled: game.settings.get(
-          MODULE_ID,
-          "universal.pauseEffect.colorCorrection.enabled"
-        ),
-        saturation: game.settings.get(
-          MODULE_ID,
-          "universal.pauseEffect.colorCorrection.saturation"
-        ),
-        brightness: game.settings.get(
-          MODULE_ID,
-          "universal.pauseEffect.colorCorrection.brightness"
-        ),
-        contrast: game.settings.get(
-          MODULE_ID,
-          "universal.pauseEffect.colorCorrection.contrast"
-        ),
-      },
-    };
-
-    const activeConfig = game.mapShine.profileManager.activeConfig;
-    const timeControlPath = "timeControl.globalTime";
-
-    const newTime = this._originalGlobalTime * (1 - progress);
-
-    game.mapShine.timeControl.timeFactor = newTime / 100.0;
-    foundry.utils.setProperty(activeConfig, timeControlPath, newTime);
-
-    game.mapShine.profileManager.updateAllSystemsFromConfig({
-      timeOnly: true,
-    });
-
-    if (game.mapShine.debugger) {
-      const slider = game.mapShine.debugger.element.querySelector(
-        "#control-timeControl-globalTime"
-      );
-      if (slider) {
-        slider.value = newTime;
-        game.mapShine.debugger.eventHandler._updateSliderValue(
-          slider.id,
-          newTime,
-          slider.step
-        );
-      }
-    }
-
-    const u = this._pauseFilter.uniforms;
-    const cc = peConfig.colorCorrection;
-    this._pauseFilter.enabled = progress > 0.001 && cc.enabled;
-    u.uIntensity = progress;
-    u.uSaturation = cc.saturation;
-    u.uBrightness = cc.brightness;
-    u.uContrast = cc.contrast;
-    u.uExposure = cc.exposure;
-    u.uGamma = cc.gamma;
-    u.uInBlack = cc.levels.inBlack;
-    u.uInWhite = cc.levels.inWhite;
-    u.uTemperature = cc.whiteBalance.temperature;
-    u.uWbTint = cc.whiteBalance.tint;
-    u.uTintAmount = cc.tint.amount;
-    u.uTintColor = hexToRgbArray(cc.tint.color);
-    u.uInvert = cc.invert;
-    u.uSelectiveEnabled = cc.selective.enabled;
-    u.uSelectiveColor = hexToRgbArray(cc.selective.color);
-    u.uSelectiveHueRange = cc.selective.hueRange;
-    u.uSelectiveSatRange = cc.selective.saturationRange;
-    u.uSelectiveLumRange = cc.selective.luminanceRange;
-    u.uSelectiveTargetLum = cc.selective.targetLuminance;
-    u.uSelectiveSoftness = cc.selective.softness;
-    u.uSelectiveInvert = cc.selective.invert;
-    u.uSelectiveDesaturation = cc.selective.desaturation;
-    u.uSelectiveTargetSaturation = cc.selective.targetSaturation;
-    u.uSelectiveTargetBrightness = cc.selective.targetBrightness;
-  }
-}
-
-class CombatEffectManager {
-  constructor() {
-    this._animationState = {
-      progress: 0,
-    };
-    this._animation = null;
-    this._combatFilter = null;
-    this._originalGlobalTime = 100;
-    this._isInitialized = false;
-    this._boundOnCombatChange = this._onCombatChange.bind(this);
-  }
-
-  initialize() {
-    if (this._isInitialized) return;
-    this._combatFilter = ScreenEffectsManager.getFilter("combatEffect");
-    if (!this._combatFilter) {
-      console.error(
-        "Map Shine | CombatEffectManager could not find its dedicated filter."
-      );
-      return;
-    }
-
-    const config = game.mapShine.profileManager.activeConfig;
-    this._originalGlobalTime = config.timeControl.globalTime;
-
-    this._animationState.progress = game.combats.active?.started ? 1 : 0;
-
-    this._updateEffects(this._animationState.progress);
-
-    Hooks.on("combatStart", () => this._boundOnCombatChange(true));
-    Hooks.on("combatEnd", () => this._boundOnCombatChange(false));
-    Hooks.on("deleteCombat", () => this._boundOnCombatChange(false));
-
-    this._isInitialized = true;
-    console.log("Map Shine | Combat Effect Manager Initialized.");
-  }
-
-  destroy() {
-    if (!this._isInitialized) return;
-
-    Hooks.off("combatStart", this._boundOnCombatChange);
-    Hooks.off("combatEnd", this._boundOnCombatChange);
-    Hooks.off("deleteCombat", this._boundOnCombatChange);
-
-    if (this._animation) {
-      this._animation.kill();
-    }
-    this._animation = null;
-    this._combatFilter = null;
-    this._isInitialized = false;
-    console.log("Map Shine | Combat Effect Manager Destroyed.");
-  }
-
-  _onCombatChange(inCombat) {
-    if (!this._combatFilter) return;
-
-    const ceConfig = {
-      enabled: game.settings.get(MODULE_ID, "universal.combatEffect.enabled"),
-      duration: game.settings.get(MODULE_ID, "universal.combatEffect.duration"),
-      timeScale: game.settings.get(
-        MODULE_ID,
-        "universal.combatEffect.timeScale"
-      ),
-      colorCorrection: {
-        enabled: game.settings.get(
-          MODULE_ID,
-          "universal.combatEffect.colorCorrection.enabled"
-        ),
-        saturation: game.settings.get(
-          MODULE_ID,
-          "universal.combatEffect.colorCorrection.saturation"
-        ),
-        brightness: game.settings.get(
-          MODULE_ID,
-          "universal.combatEffect.colorCorrection.brightness"
-        ),
-        contrast: game.settings.get(
-          MODULE_ID,
-          "universal.combatEffect.colorCorrection.contrast"
-        ),
-      },
-    };
-
-    if (!ceConfig.enabled) {
-      this._updateEffects(0);
-      const activeConfig = game.mapShine.profileManager.activeConfig;
-      if (activeConfig.timeControl.globalTime < this._originalGlobalTime) {
-        foundry.utils.setProperty(
-          activeConfig,
-          "timeControl.globalTime",
-          this._originalGlobalTime
-        );
-        game.mapShine.profileManager.updateAllSystemsFromConfig();
-        if (game.mapShine.debugger) {
-          game.mapShine.debugger.eventHandler.updateAllControls();
-        }
-      }
-      return;
-    }
-
-    if (this._animation) {
-      this._animation.kill();
-    }
-
-    const targetProgress = inCombat ? 1 : 0;
-
-    if (inCombat && this._animationState.progress < 1) {
-      this._originalGlobalTime =
-        game.mapShine.profileManager.activeConfig.timeControl.globalTime;
-    }
-
-    this._animation = NativeAnimation.to(this._animationState, {
-      progress: targetProgress,
-      duration: ceConfig.duration / 1000,
-      ease: "power2.inOut",
-      onUpdate: () => this._updateEffects(this._animationState.progress),
-      onComplete: () => {
-        this._animation = null;
-        this._updateEffects(targetProgress);
-      },
-    });
-  }
-
-  _updateEffects(progress) {
-    if (!this._combatFilter) return;
-
-    // Construct the config object from individual game settings
-    const ceConfig = {
-      enabled: game.settings.get(MODULE_ID, "universal.combatEffect.enabled"),
-      timeScale: game.settings.get(
-        MODULE_ID,
-        "universal.combatEffect.timeScale"
-      ),
-      colorCorrection: {
-        ...UNIVERSAL_EFFECT_DEFAULTS.combatEffect.colorCorrection, // Start with defaults
-        enabled: game.settings.get(
-          MODULE_ID,
-          "universal.combatEffect.colorCorrection.enabled"
-        ),
-        saturation: game.settings.get(
-          MODULE_ID,
-          "universal.combatEffect.colorCorrection.saturation"
-        ),
-        brightness: game.settings.get(
-          MODULE_ID,
-          "universal.combatEffect.colorCorrection.brightness"
-        ),
-        contrast: game.settings.get(
-          MODULE_ID,
-          "universal.combatEffect.colorCorrection.contrast"
-        ),
-      },
-    };
-
-    const activeConfig = game.mapShine.profileManager.activeConfig;
-    const timeControlPath = "timeControl.globalTime";
-
-    const newTime = lerp(
-      this._originalGlobalTime,
-      this._originalGlobalTime * ceConfig.timeScale,
-      progress
-    );
-
-    game.mapShine.timeControl.timeFactor = newTime / 100.0;
-    foundry.utils.setProperty(activeConfig, timeControlPath, newTime);
-
-    game.mapShine.profileManager.updateAllSystemsFromConfig({
-      timeOnly: true,
-    });
-
-    if (game.mapShine.debugger) {
-      const slider = game.mapShine.debugger.element.querySelector(
-        "#control-timeControl-globalTime"
-      );
-      if (slider) {
-        slider.value = newTime;
-        game.mapShine.debugger.eventHandler._updateSliderValue(
-          slider.id,
-          newTime,
-          slider.step
-        );
-      }
-    }
-
-    const u = this._combatFilter.uniforms;
-    const cc = ceConfig.colorCorrection;
-
-    this._combatFilter.enabled = progress > 0.001 && cc.enabled;
-    u.uIntensity = progress;
-
-    u.uSaturation = cc.saturation;
-    u.uBrightness = cc.brightness;
-    u.uContrast = cc.contrast;
-    u.uExposure = cc.exposure;
-    u.uGamma = cc.gamma;
-    u.uInBlack = cc.levels.inBlack;
-    u.uInWhite = cc.levels.inWhite;
-    u.uTemperature = cc.whiteBalance.temperature;
-    u.uWbTint = cc.whiteBalance.tint;
-    u.uTintAmount = cc.tint.amount;
-    u.uTintColor = hexToRgbArray(cc.tint.color);
-    u.uInvert = cc.invert;
-
-    u.uSelectiveEnabled = cc.selective.enabled;
-    u.uSelectiveColor = hexToRgbArray(cc.selective.color);
-    u.uSelectiveHueRange = cc.selective.hueRange;
-    u.uSelectiveSatRange = cc.selective.saturationRange;
-    u.uSelectiveLumRange = cc.selective.luminanceRange;
-    u.uSelectiveTargetLum = cc.selective.targetLuminance;
-    u.uSelectiveSoftness = cc.selective.softness;
-    u.uSelectiveInvert = cc.selective.invert;
-    u.uSelectiveDesaturation = cc.desaturation;
-    u.uSelectiveTargetSaturation = cc.targetSaturation;
-    u.uSelectiveTargetBrightness = cc.targetBrightness;
-  }
-}
-
-class OverheadEffectLayer extends CanvasLayer {
-  constructor() {
-    super();
-    this.overheadSprites = new Map();
-    this.spritesContainer = null;
-    this.blurFilter = null;
-    this.recolorFilter = null;
-    this.compositeTexture = null;
-    this.compositeSprite = null;
-    this.activeAnimations = new Map();
-    // Blur properties
-    this.blurMinZoom = 0;
-    this.blurMidZoom = 2;
-    this.blurMaxZoom = 8;
-    // Opacity properties
-    this.opacityMinZoom = 1.0;
-    this.opacityMidZoom = 1.0;
-    this.opacityMaxZoom = 0.25;
-    // Zoom Point properties
-    this.zoomPointMin = 0.2;
-    this.zoomPointMid = 0.65;
-    this.zoomPointMax = 1.5;
-
-    // Bound listeners for robust add/remove
-    this._boundRefresh = this._refreshOverheadTiles.bind(this);
-    this._boundOnAnimate = this._onAnimate.bind(this);
-    this._boundOnResize = this._onResize.bind(this);
-    this._boundOnCanvasReady = this._refreshOverheadTiles.bind(this);
-  }
-
-  async _draw(options) {
-    this._destroyed = false;
-    this.eventMode = "auto";
-
-    const renderer = canvas.app.renderer;
-    const screen = renderer.screen;
-
-    this.spritesContainer = new PIXI.Container();
-    this.compositeTexture = PIXI.RenderTexture.create({
-      width: screen.width,
-      height: screen.height,
-    });
-
-    this.blurFilter = new PIXI.BlurFilter();
-    this.recolorFilter = new OverheadRecolorFilter();
-
-    this.compositeSprite = new PIXI.Sprite(this.compositeTexture);
-    this.compositeSprite.filters = [this.blurFilter, this.recolorFilter];
-    this.compositeSprite.filterArea = renderer.screen;
-    this.addChild(this.compositeSprite);
-
-    Hooks.on("createTile", this._boundRefresh);
-    Hooks.on("updateTile", this._boundRefresh);
-    Hooks.on("deleteTile", this._boundRefresh);
-    Hooks.on("canvasReady", this._boundOnCanvasReady);
-    canvas.app.ticker.add(this._boundOnAnimate);
-    window.addEventListener("resize", this._boundOnResize);
-
-    this.updateFromConfig(game.mapShine.profileManager.activeConfig);
-  }
-
-  async _tearDown(options) {
-    this._destroyed = true;
-
-    for (const anim of this.activeAnimations.values()) {
-      anim.kill();
-    }
-    this.activeAnimations.clear();
-
-    for (const tileId of this.overheadSprites.keys()) {
-      const tile = canvas.tiles.get(tileId);
-      if (tile && tile.isManagedByOverheadLayer) {
-        tile.isManagedByOverheadLayer = false;
-        tile.mesh.alpha = 1.0;
-      }
-    }
-
-    Hooks.off("createTile", this._boundRefresh);
-    Hooks.off("updateTile", this._boundRefresh);
-    Hooks.off("deleteTile", this._boundRefresh);
-    Hooks.off("canvasReady", this._boundOnCanvasReady);
-    canvas.app.ticker.remove(this._boundOnAnimate);
-    window.removeEventListener("resize", this._boundOnResize);
-
-    this.spritesContainer?.destroy({ children: true });
-    this.blurFilter?.destroy();
-    this.recolorFilter?.destroy();
-    this.compositeTexture?.destroy(true);
-    this.compositeSprite?.destroy();
-    this.overheadSprites.clear();
-
-    return super._tearDown(options);
-  }
-
-  _onAnimate(deltaTime) {
-    if (this._destroyed || !this.visible) {
-      if (this.compositeSprite) this.compositeSprite.visible = false;
-      return;
-    }
-
-    if (this.overheadSprites.size === 0) {
-      if (this.compositeSprite) this.compositeSprite.visible = false;
-      return;
-    }
-
-    this.compositeSprite.visible = true;
-
-    for (const [id, sprite] of this.overheadSprites.entries()) {
-      const tile = canvas.tiles.get(id);
-      if (tile?.texture?.valid) {
-        sprite.position.copyFrom(tile.mesh.position);
-        sprite.width = tile.document.width;
-        sprite.height = tile.document.height;
-        sprite.rotation = tile.mesh.rotation;
-        sprite.texture = tile.texture;
-        sprite.anchor.copyFrom(tile.mesh.anchor);
-      }
-    }
-
-    const currentZoom = canvas.stage.scale.x;
-    const lerp = (a, b, t) => a * (1 - t) + b * t;
-
-    let blur = 0;
-    let opacity = 1.0;
-
-    if (currentZoom <= this.zoomPointMin) {
-      blur = this.blurMinZoom;
-      opacity = this.opacityMinZoom;
-    } else if (currentZoom >= this.zoomPointMax) {
-      blur = this.blurMaxZoom;
-      opacity = this.opacityMaxZoom;
-    } else if (
-      currentZoom > this.zoomPointMin &&
-      currentZoom <= this.zoomPointMid
-    ) {
-      // Interpolate between min and mid
-      const range = this.zoomPointMid - this.zoomPointMin;
-      const progress =
-        (currentZoom - this.zoomPointMin) / (range > 0 ? range : 1);
-      blur = lerp(this.blurMinZoom, this.blurMidZoom, progress);
-      opacity = lerp(this.opacityMinZoom, this.opacityMidZoom, progress);
-    } else {
-      // currentZoom > this.zoomPointMid && currentZoom < this.zoomPointMax
-      // Interpolate between mid and max
-      const range = this.zoomPointMax - this.zoomPointMid;
-      const progress =
-        (currentZoom - this.zoomPointMid) / (range > 0 ? range : 1);
-      blur = lerp(this.blurMidZoom, this.blurMaxZoom, progress);
-      opacity = lerp(this.opacityMidZoom, this.opacityMaxZoom, progress);
-    }
-
-    if (this.blurFilter) {
-      const screenBlur = blur * currentZoom;
-      this.blurFilter.blur = screenBlur;
-      this.blurFilter.enabled = this.visible && screenBlur > 0.01;
-    }
-
-    if (this.compositeSprite) {
-      this.compositeSprite.alpha = opacity;
-    }
-
-    if (this.recolorFilter) {
-      const resourceManager = game.mapShine.resourceManager;
-      if (resourceManager) {
-        this.recolorFilter.uniforms.uStructuralMask =
-          resourceManager.getStructuralMask() ?? PIXI.Texture.WHITE;
-        this.recolorFilter.uniforms.uCloudShadows =
-          resourceManager.getRawCloudTexture(deltaTime) ?? PIXI.Texture.WHITE;
-      }
-    }
-
-    const renderer = canvas.app.renderer;
-    renderer.render(this.spritesContainer, {
-      renderTexture: this.compositeTexture,
-      clear: true,
-      transform: canvas.stage.transform.worldTransform,
-    });
-
-    const stage = canvas.stage;
-    const screen = renderer.screen;
-    const topLeft = stage.toLocal({ x: 0, y: 0 });
-    this.compositeSprite.position.copyFrom(topLeft);
-    this.compositeSprite.width = screen.width / stage.scale.x;
-    this.compositeSprite.height = screen.height / stage.scale.y;
-  }
-
-  _onResize() {
-    if (this._destroyed) return;
-    const renderer = canvas.app.renderer;
-    const screen = renderer.screen;
-    this.compositeTexture?.resize(screen.width, screen.height);
-    if (this.compositeSprite) {
-      this.compositeSprite.filterArea = screen;
-    }
-  }
-
-  async updateFromConfig(config) {
-    const oeConfig = config.overheadEffect;
-    this.visible = config.enabled && oeConfig.enabled;
-
-    this.blurMinZoom = oeConfig.blurMinZoom ?? 0;
-    this.blurMidZoom = oeConfig.blurMidZoom ?? 2;
-    this.blurMaxZoom = oeConfig.blurMaxZoom ?? 8;
-    this.opacityMinZoom = oeConfig.opacityMinZoom ?? 1.0;
-    this.opacityMidZoom = oeConfig.opacityMidZoom ?? 1.0;
-    this.opacityMaxZoom = oeConfig.opacityMaxZoom ?? 0.25;
-    this.zoomPointMin = oeConfig.zoomPointMin ?? 0.2;
-    this.zoomPointMid = oeConfig.zoomPointMid ?? 0.65;
-    this.zoomPointMax = oeConfig.zoomPointMax ?? 1.5;
-
-    if (this.recolorFilter) {
-      const rConfig = oeConfig.recolor;
-      this.recolorFilter.uniforms.uRecolorEnabled = rConfig.enabled;
-      this.recolorFilter.uniforms.uRecolorTint = hexToRgbArray(rConfig.tint);
-      this.recolorFilter.uniforms.uRecolorIntensity = rConfig.intensity;
-
-      const csdConfig = rConfig.cloudShadowDarken;
-      if (csdConfig) {
-        this.recolorFilter.uniforms.uCloudShadowDarkenEnabled =
-          csdConfig.enabled;
-        this.recolorFilter.uniforms.uCloudShadowDarkenIntensity =
-          csdConfig.intensity;
-      }
-    }
-  }
-
-  _refreshOverheadTiles() {
-    if (!this.spritesContainer) return;
-
-    const currentOverheadIds = new Set();
-    for (const tile of canvas.tiles.placeables) {
-      if (tile.document.overhead) {
-        currentOverheadIds.add(tile.id);
-        if (!this.overheadSprites.has(tile.id)) {
-          const sprite = new PIXI.Sprite(tile.texture);
-          const oeConfig =
-            game.mapShine.profileManager.activeConfig.overheadEffect;
-          const duration = (oeConfig.hoverFadeDuration || 500) / 1000;
-          sprite.eventMode = "static";
-          sprite.cursor = "pointer";
-
-          sprite.on("pointerover", () => {
-            const anim = NativeAnimation.to(sprite, {
-              key: `overhead-${tile.id}`,
-              alpha: 0,
-              duration: duration,
-              ease: "power2.out",
-            });
-            this.activeAnimations.set(tile.id, anim);
-          });
-          sprite.on("pointerout", () => {
-            const anim = NativeAnimation.to(sprite, {
-              key: `overhead-${tile.id}`,
-              alpha: 1,
-              duration: duration,
-              ease: "power2.inOut",
-            });
-            this.activeAnimations.set(tile.id, anim);
-          });
-
-          this.overheadSprites.set(tile.id, sprite);
-          this.spritesContainer.addChild(sprite);
-          tile.isManagedByOverheadLayer = true;
-          tile.mesh.alpha = 0;
-        }
-      }
-    }
-
-    for (const [id, sprite] of this.overheadSprites.entries()) {
-      if (!currentOverheadIds.has(id)) {
-        if (this.activeAnimations.has(id)) {
-          this.activeAnimations.get(id).kill();
-          this.activeAnimations.delete(id);
-        }
-        const tile = canvas.tiles.get(id);
-        if (tile) {
-          tile.isManagedByOverheadLayer = false;
-          tile.mesh.alpha = 1.0;
-        }
-        sprite.destroy();
-        this.overheadSprites.delete(id);
-      }
-    }
-  }
-}
-
-class LoadingScreen {
-  constructor() {
-    this.element = null;
-    this.fadeOutDuration = 500;
-    this.minDisplayTime = 1500;
-    this.startTime = 0;
-    this.fillElement = null;
-    this.statusTextElement = null;
-    this.statusFadeDuration = 200; // Faster text fade
-
-    // Properties for hint cycling
-    this._hintInterval = null;
-    this._shuffledHints = [];
-    this._currentHintIndex = 0;
-    this._hintAnimation = null;
-  }
-
-  show() {
-    if (this.element) return;
-    this.startTime = Date.now();
-
-    this.element = document.createElement("div");
-    this.element.id = "map-shine-loading-screen";
-    this.element.style.opacity = "0";
-
-    // Background Image Logic
-    const useRandom = game.settings.get(
-      MODULE_ID,
-      "loading-screen-use-random-background"
-    );
-    const staticBg = game.settings.get(
-      MODULE_ID,
-      "loading-screen-static-background"
-    );
-    const randomBgs = (
-      game.settings.get(MODULE_ID, "loading-screen-random-backgrounds") || ""
-    )
-      .split(/\r?\n/)
-      .filter((l) => l.trim());
-    const overlayEnabled = game.settings.get(
-      MODULE_ID,
-      "loading-screen-background-overlay-enabled"
-    );
-    const overlayOpacity = game.settings.get(
-      MODULE_ID,
-      "loading-screen-background-overlay-opacity"
-    );
-
-    let bgPath = "";
-    if (useRandom && randomBgs.length > 0) {
-      bgPath = randomBgs[Math.floor(Math.random() * randomBgs.length)];
-    } else if (staticBg) {
-      bgPath = staticBg;
-    }
-
-    if (bgPath) {
-      this.element.style.backgroundImage = `url('${bgPath}')`;
-      this.element.style.backgroundSize = "cover";
-      this.element.style.backgroundPosition = "center center";
-    }
-
-    const subheading = game.settings.get(
-      MODULE_ID,
-      "loading-screen-subheading"
-    );
-
-    this.element.innerHTML = `
-                        <div class="loading-background-overlay"></div>
-                        <div class="loading-content">
-                            <img src="modules/map-shine/assets/fvtt.png" class="loading-logo" alt="Foundry VTT Logo">
-                            <h2 class="loading-subhead">${subheading}</h2>
-                            <h1 class="loading-title">${game.world.title}</h1>
-                            <div class="loading-bar-container">
-                                <div class="loading-bar-fill"></div>
-                            </div>
-                            <div id="loading-status-text" class="loading-status"></div>
-                            <p id="loading-hint-text" class="loading-hint"></p>
-                        </div>
-                        <style>
-                            #map-shine-loading-screen { 
-                                position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
-                                background-color: rgba(0, 0, 0, 1); 
-                                z-index: 100000; display: flex; 
-                                justify-content: center; align-items: center; 
-                                color: white; font-family: Signika, sans-serif; 
-                                transition: opacity ${
-                                  this.fadeOutDuration / 1000
-                                }s ease-in-out; 
-                            }
-                            .loading-background-overlay {
-                                display: ${
-                                  overlayEnabled && bgPath ? "block" : "none"
-                                };
-                                opacity: ${overlayOpacity};
-                                position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-                                background-color: #000;
-                                z-index: 1; /* Behind content */
-                            }
-                            .loading-content { text-align: center; position: relative; z-index: 2; }
-                            .loading-logo { width: 150px; height: auto; margin: 0 auto 10px auto; display: block; filter: drop-shadow(0 0 10px rgba(0,0,0,0.6)); }
-                            .loading-subhead { font-size: 24px; font-weight: normal; color: #bbb; margin: 0 0 10px 0; text-shadow: 0 0 5px #111; }
-                            .loading-title { font-size: 72px; margin: 0 0 30px 0; text-shadow: 0 0 10px #222; color: #fff; }
-                            .loading-bar-container { width: 400px; height: 20px; border: 2px solid rgba(255, 255, 255, 0.5); margin: 0 auto; background-color: rgba(0,0,0,0.5); border-radius: 5px; overflow: hidden; }
-                            .loading-bar-fill { width: 0%; height: 100%; background-color: rgba(255, 255, 255, 0.9); transform-origin: left; transition: width 0.2s ease-out; box-shadow: 0 0 10px rgba(255, 255, 255, 0.5); }
-                            .loading-status { margin-top: 15px; font-size: 16px; color: #ddd; height: 20px; line-height: 20px; opacity: 0; transition: opacity ${
-                              this.statusFadeDuration / 1000
-                            }s ease-in-out; }
-                            .loading-hint {
-                                margin-top: 25px;
-                                font-size: 16px;
-                                color: #aaa;
-                                font-style: italic;
-                                max-width: 50ch;
-                                margin-left: auto;
-                                margin-right: auto;
-                                min-height: 3em; /* Reserve space to prevent layout shifts */
-                                opacity: 0; /* Initially hidden */
-                            }
-                        </style>
-                    `;
-
-    document.body.appendChild(this.element);
-    this.fillElement = this.element.querySelector(".loading-bar-fill");
-    this.statusTextElement = this.element.querySelector("#loading-status-text");
-
-    this.statusTextElement.innerText = "Initializing...";
-    this.statusTextElement.style.opacity = "1";
-
-    // Force a reflow before applying the final opacity to ensure the transition plays.
-    void this.element.offsetHeight;
-    this.element.style.opacity = "1";
-
-    // Hide the default Foundry VTT loading element
-    const foundryLoading = document.getElementById("loading");
-    if (foundryLoading) {
-      foundryLoading.style.display = "none";
-    }
-
-    // Start the hint cycle
-    this._cycleHints();
-  }
-
-  /**
-   * Manages the hint cycling animation.
-   * @private
-   */
-  _cycleHints() {
-    if (!this.element) return;
-
-    const hintElement = this.element.querySelector(".loading-hint");
-    const config = {
-      useRandomHint: game.settings.get(
-        MODULE_ID,
-        "universal.sceneTransition.useRandomHint"
-      ),
-      randomHints: (
-        game.settings.get(MODULE_ID, "universal.sceneTransition.randomHints") ||
-        ""
-      )
-        .split(/\r?\n/)
-        .filter((h) => h.trim() !== ""),
-    };
-
-    if (!hintElement || !config.useRandomHint || !config.randomHints.length) {
-      return;
-    }
-
-    // Fisher-Yates shuffle algorithm
-    this._shuffledHints = [...config.randomHints];
-    for (let i = this._shuffledHints.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [this._shuffledHints[i], this._shuffledHints[j]] = [
-        this._shuffledHints[j],
-        this._shuffledHints[i],
-      ];
-    }
-
-    this._currentHintIndex = 0;
-
-    if (this._shuffledHints.length <= 1) {
-      if (this._shuffledHints.length === 1) {
-        hintElement.innerText = this._shuffledHints[0];
-        hintElement.animate([{ opacity: 0 }, { opacity: 1 }], {
-          duration: 1000,
-          fill: "forwards",
-        });
-      }
-      return;
-    }
-
-    const HINT_FADE_DURATION = 1000;
-    const HINT_PAUSE_DURATION = 5000;
-
-    const showNextHint = () => {
-      if (!this.element || !hintElement || this._hintInterval === null) {
-        this._stopHintCycle();
-        return;
-      }
-
-      this._hintAnimation = hintElement.animate(
-        [{ opacity: 1 }, { opacity: 0 }],
-        {
-          duration: HINT_FADE_DURATION,
-          easing: "ease-in",
-        }
-      );
-
-      this._hintAnimation.finished
-        .then(() => {
-          if (!this.element) return; // Guard against element being removed during animation
-          this._currentHintIndex =
-            (this._currentHintIndex + 1) % this._shuffledHints.length;
-          hintElement.innerText = this._shuffledHints[this._currentHintIndex];
-
-          hintElement.animate([{ opacity: 0 }, { opacity: 1 }], {
-            duration: HINT_FADE_DURATION,
-            easing: "ease-out",
-            fill: "forwards",
-          });
-
-          this._hintInterval = setTimeout(showNextHint, HINT_PAUSE_DURATION);
-        })
-        .catch(() => {}); // Catch the expected cancellation error
-    };
-
-    hintElement.innerText = this._shuffledHints[this._currentHintIndex];
-    const initialAnimation = hintElement.animate(
-      [{ opacity: 0 }, { opacity: 1 }],
-      { duration: 1000, fill: "forwards" }
-    );
-    initialAnimation.finished.then(() => {
-      if (!this.element) return;
-      this._hintInterval = setTimeout(showNextHint, HINT_PAUSE_DURATION);
-    });
-  }
-
-  /**
-   * Clears the hint cycling interval/timeline.
-   * @private
-   */
-  _stopHintCycle() {
-    if (this._hintInterval) {
-      clearTimeout(this._hintInterval);
-      this._hintInterval = null;
-    }
-    if (this._hintAnimation) {
-      try {
-        this._hintAnimation.cancel();
-      } catch (e) {
-        // This is an expected DOMException when cancelling an animation, so we can ignore it.
-      }
-      this._hintAnimation = null;
-    }
-    this._shuffledHints = [];
-    this._currentHintIndex = 0;
-  }
-
-  setProgress(progress, message) {
-    if (!this.fillElement) return;
-    const p = Math.min(100, Math.max(0, progress));
-    this.fillElement.style.width = `${p}%`;
-
-    if (
-      message &&
-      this.statusTextElement &&
-      this.statusTextElement.innerText !== message
-    ) {
-      // Fade out, change text, then fade in for a smooth transition.
-      this.statusTextElement.style.opacity = "0";
-      setTimeout(() => {
-        if (this.statusTextElement) {
-          this.statusTextElement.innerText = message;
-          this.statusTextElement.style.opacity = "1";
-        }
-      }, this.statusFadeDuration);
-    }
-  }
-
-  setStatus(message) {
-    if (this.statusTextElement) {
-      this.statusTextElement.innerText = message;
-      // Ensure text is visible, in case a fade-out from setProgress was in progress.
-      if (this.statusTextElement.style.opacity !== "1") {
-        this.statusTextElement.style.opacity = "1";
-      }
-    }
-  }
-
-  async hide() {
-    this._stopHintCycle();
-    if (!this.element) return;
-
-    // Ensure we wait for the minimum display time before starting the fade out.
-    const elapsed = Date.now() - this.startTime;
-    const remainingTime = Math.max(0, this.minDisplayTime - elapsed);
-    await new Promise((resolve) => setTimeout(resolve, remainingTime));
-
-    if (this.element) {
-      this.element.style.opacity = "0";
-      // Wait for the fade-out transition to complete before removing the element.
-      await new Promise((resolve) =>
-        setTimeout(resolve, this.fadeOutDuration + 50)
-      );
-    }
-
-    this.element?.remove();
-    this.element = null;
-    this.fillElement = null;
-    this.statusTextElement = null;
-
-    // Restore foundry loading screen in case it's needed later (e.g. returning to setup)
-    const foundryLoading = document.getElementById("loading");
-    if (foundryLoading) {
-      foundryLoading.style.display = "";
-    }
-  }
-}
-
 class MapShineLifecycle {
   // onCanvasReady and onCanvasTearDown are removed as their roles are now taken by SceneChangeManager.
 
@@ -7607,7 +5922,6 @@ class MapShineLifecycle {
       prism: "prism",
       dust: "dust",
       glint: "prism",
-      metallicGlints: "specular",
       fire: "fire",
       sparks: "sparks",
     };
@@ -8871,12 +7185,466 @@ function lerp(start, end, amount) {
   return (1 - amount) * start + amount * end;
 }
 
+class AppearanceTransitionManager {
+  constructor(profileManager) {
+    this.profileManager = profileManager;
+    this.activeTransition = null;
+    this.status = "idle"; // "idle", "transitioning", "previewing"
+    this.statusMessage = "Idle";
+    this._updateUICallback = () => {};
+    this._configBeforePreview = null;
+  }
+
+  onStatusUpdate(callback) {
+    this._updateUICallback = callback;
+  }
+
+  _setStatus(status, message) {
+    this.status = status;
+    this.statusMessage = message;
+    if (typeof this._updateUICallback === "function") {
+      this._updateUICallback(status, message);
+    }
+  }
+
+  stop() {
+    if (this.activeTransition) {
+      if (typeof gsap !== "undefined") {
+        this.activeTransition.kill();
+      }
+      this.activeTransition = null;
+    }
+    game.mapShine.transitionActive = false;
+  }
+
+  _interpolateConfigs(startConfig, endConfig, progress) {
+    const interpolated = foundry.utils.deepClone(startConfig);
+    this._recursiveInterpolate(interpolated, startConfig, endConfig, progress);
+    return interpolated;
+  }
+
+  _recursiveInterpolate(target, start, end, progress) {
+    for (const key in end) {
+      // Exclude buildingShadows from the interpolation process.
+      if (key === "buildingShadows") continue;
+
+      if (start?.[key] === undefined) {
+        target[key] = foundry.utils.deepClone(end[key]);
+        continue;
+      }
+
+      const startVal = start[key];
+      const endVal = end[key];
+      const endType = typeof endVal;
+
+      if (endType === "number" && typeof startVal === "number") {
+        target[key] = lerp(startVal, endVal, progress);
+      } else if (
+        endType === "string" &&
+        endVal.startsWith("#") &&
+        typeof startVal === "string" &&
+        startVal.startsWith("#")
+      ) {
+        const startRgb = hexToRgbArray(startVal);
+        const endRgb = hexToRgbArray(endVal);
+        const lerpedRgb = [
+          lerp(startRgb[0], endRgb[0], progress),
+          lerp(startRgb[1], endRgb[1], progress),
+          lerp(startRgb[2], endRgb[2], progress),
+        ];
+        // Use the PIXI.Color constructor instead of the deprecated fromRGB method.
+        target[key] = new PIXI.Color(lerpedRgb).toHex();
+      } else if (
+        endType === "object" &&
+        endVal !== null &&
+        !Array.isArray(endVal)
+      ) {
+        if (
+          typeof startVal === "object" &&
+          startVal !== null &&
+          !Array.isArray(startVal)
+        ) {
+          this._recursiveInterpolate(target[key], startVal, endVal, progress);
+        } else {
+          // Type mismatch (e.g., number to object), snap at the end
+          target[key] =
+            progress >= 1.0
+              ? foundry.utils.deepClone(endVal)
+              : foundry.utils.deepClone(startVal);
+        }
+      } else {
+        // Snap booleans, strings, arrays, etc. at the end of the transition
+        target[key] =
+          progress >= 1.0
+            ? foundry.utils.deepClone(endVal)
+            : foundry.utils.deepClone(startVal);
+      }
+    }
+  }
+
+  async transition(startConfig, endConfig, duration, isPreview = false) {
+    this.stop();
+    this._configBeforePreview = null; // A transition always clears any preview state.
+
+    // GSAP Guard and zero-duration handling
+    if (typeof gsap === "undefined" || duration === 0) {
+      if (typeof gsap === "undefined" && duration > 0) {
+        console.warn(
+          "MapShine | GSAP not found. Snapping appearance transition."
+        );
+      }
+      this.profileManager.activeConfig = endConfig;
+      await this.profileManager.updateAllSystemsFromConfig();
+      // Also broadcast the final time for any listeners like the clock.
+      Hooks.callAll("mapShine:timeChanged", endConfig.timeOfDay.currentTime);
+      this._setStatus("idle", "Transition complete (instant)");
+      return;
+    }
+
+    game.mapShine.transitionActive = true;
+
+    // Instantly update particle systems to their final state.
+    // Temporarily set the active config to the end state to ensure all sub-functions (like emitter builders) use the correct final values.
+    this.profileManager.activeConfig = endConfig;
+    const particleLayers = canvas.layers.filter(
+      (l) => l instanceof ParticleLayer || l instanceof SmellyFliesLayer
+    );
+    for (const layer of particleLayers) {
+      if (typeof layer.updateFromConfig === "function") {
+        // Pass empty options to ensure a full, destructive update for the particle systems.
+        await layer.updateFromConfig(endConfig, {});
+      }
+    }
+    // Restore the active config to the start state for the smooth transition of other effects.
+    this.profileManager.activeConfig = startConfig;
+
+    return new Promise((resolve) => {
+      const transitionState = {
+        progress: 0,
+      };
+      const statusType = isPreview ? "previewing" : "transitioning";
+      const startMessage = isPreview
+        ? "Previewing transition..."
+        : "Transitioning...";
+      this._setStatus(statusType, startMessage);
+
+      this.activeTransition = gsap.to(transitionState, {
+        progress: 1,
+        duration: duration / 1000,
+        ease: "power1.inOut",
+        onUpdate: () => {
+          const interpolatedConfig = this._interpolateConfigs(
+            startConfig,
+            endConfig,
+            transitionState.progress
+          );
+          this.profileManager.activeConfig = interpolatedConfig;
+          // Update all systems EXCEPT for particles during the transition.
+          this.profileManager.updateAllSystemsFromConfig({
+            skipParticles: true,
+          });
+          // Broadcast the interpolated time to keep the clock and other time-based systems in sync.
+          Hooks.callAll(
+            "mapShine:timeChanged",
+            interpolatedConfig.timeOfDay.currentTime
+          );
+          const percent = Math.round(transitionState.progress * 100);
+          this._setStatus(
+            statusType,
+            `${isPreview ? "Previewing" : "Transitioning"}... (${percent}%)`
+          );
+        },
+        onComplete: async () => {
+          this.profileManager.activeConfig = endConfig;
+          // Disable the transition flag BEFORE the final update.
+          game.mapShine.transitionActive = false;
+
+          // --- SPECIAL HANDLING: Rebuild transition-sensitive layers ---
+          // These effects are not interpolated. Instead, they get a full teardown and
+          // rebuild here to ensure they initialize correctly with the final state.
+          const buildingShadowsLayer = canvas.layers.find(
+            (l) => l instanceof BuildingShadowsLayer
+          );
+          if (buildingShadowsLayer) {
+            await buildingShadowsLayer.rebuildEffect();
+          }
+          const timeOfDayLayer = canvas.layers.find(
+            (l) => l instanceof TimeOfDayLayer
+          );
+          if (timeOfDayLayer) {
+            await timeOfDayLayer.rebuildEffect();
+          }
+          // --- END SPECIAL HANDLING ---
+
+          // Force all masked layers to re-render their masks on the next frame.
+          for (const layer of canvas.layers) {
+            if (layer instanceof MaskedEffectLayer) {
+              layer._needsMaskUpdate = true;
+            }
+          }
+          // Perform a final, full update of all systems to ensure consistency.
+          await this.profileManager.updateAllSystemsFromConfig();
+          // Broadcast the final time to ensure perfect sync.
+          Hooks.callAll(
+            "mapShine:timeChanged",
+            endConfig.timeOfDay.currentTime
+          );
+          this._setStatus("idle", "Transition complete");
+          this.activeTransition = null;
+          resolve();
+        },
+      });
+    });
+  }
+
+  async preview(config) {
+    this.stop();
+    this._setStatus("previewing", "Preview active");
+
+    // Store the config that we should revert to when the preview ends.
+    this._configBeforePreview = this.profileManager.getCurrentConfig();
+
+    // Set the active config to the one being previewed.
+    this.profileManager.activeConfig = config;
+    await this.profileManager.updateAllSystemsFromConfig();
+  }
+
+  async endPreview() {
+    if (this.status !== "previewing") return;
+    this.stop();
+
+    // Revert to the config we saved before the preview started, with a fallback.
+    this.profileManager.activeConfig =
+      this._configBeforePreview || this.profileManager.getCurrentConfig();
+    this._configBeforePreview = null; // Clean up the stored state.
+
+    await this.profileManager.updateAllSystemsFromConfig();
+    this._setStatus("idle", "Preview ended");
+  }
+}
+
+class DynamicExposureManager {
+  constructor() {
+    this.tokenManager = game.mapShine.tokenManager;
+
+    // State
+    this.isInitialized = false;
+    this.isIndoors = null; // null, true, or false
+    this.lastTriggerTimestamp = 0;
+    this.dazzleAnimation = null;
+    this.activeTokenId = null;
+
+    // Effect parameters (will be loaded from config)
+    this.config = {};
+
+    // PIXI Objects
+    this.ccFilter = null;
+  }
+
+  initialize() {
+    if (this.isInitialized) return;
+
+    this.ccFilter = ScreenEffectsManager.getFilter("colorCorrection");
+    if (!this.ccFilter) {
+      console.error(
+        "Map Shine | DynamicExposureManager: Could not find ColorCorrectionFilter."
+      );
+      return;
+    }
+
+    // Ensure the uniform exists on the filter
+    if (this.ccFilter.uniforms.uDynamicExposureBoost === undefined) {
+      this.ccFilter.uniforms.uDynamicExposureBoost = 0.0;
+    }
+
+    // Bind hooks
+    this._boundOnControlToken = this._onControlToken.bind(this);
+    this._boundOnUpdateToken = this._onUpdateToken.bind(this);
+    Hooks.on("controlToken", this._boundOnControlToken);
+    Hooks.on("updateToken", this._boundOnUpdateToken);
+
+    this.isInitialized = true;
+
+    // Perform an initial check on the currently controlled token, if any
+    const currentToken = this.tokenManager.getActiveToken();
+    if (currentToken) {
+      this._onControlToken(currentToken, true);
+    }
+  }
+
+  _onControlToken(token, controlled) {
+    if (this.dazzleAnimation) {
+      this.dazzleAnimation.kill();
+      this.dazzleAnimation = null;
+    }
+
+    if (controlled && token) {
+      this.activeTokenId = token.id;
+      // Establish the initial state without triggering the effect
+      this._updateInitialTokenState(token);
+    } else if (!canvas.tokens.controlled.length) {
+      this.activeTokenId = null;
+      this.isIndoors = null;
+    }
+  }
+
+  _onUpdateToken(tokenDoc, change) {
+    this.config =
+      game.mapShine.profileManager.activeConfig.postProcessing.colorCorrection.dynamicExposure;
+
+    if (
+      !this.isInitialized ||
+      tokenDoc.id !== this.activeTokenId ||
+      !this.config.enabled
+    ) {
+      return;
+    }
+
+    // Only react to movement
+    if (change.x !== undefined || change.y !== undefined) {
+      // We need to check the state at the destination, not the current position.
+      // Create a point representing the destination center in world coordinates.
+      const dest = {
+        x: change.x ?? tokenDoc.x,
+        y: change.y ?? tokenDoc.y,
+        w: tokenDoc.width * canvas.scene.grid.size,
+        h: tokenDoc.height * canvas.scene.grid.size,
+      };
+      const destCenter = {
+        x: dest.x + dest.w / 2,
+        y: dest.y + dest.h / 2,
+      };
+      this._checkTokenStateAtPoint(destCenter, true);
+    }
+  }
+
+  _updateInitialTokenState(token) {
+    if (!token || !game.mapShine.resourceManager) {
+      this.isIndoors = null;
+      return;
+    }
+
+    const outdoorsMask = game.mapShine.resourceManager.getOutdoorsMask();
+
+    if (!outdoorsMask?.valid) {
+      this.isIndoors = null;
+      return;
+    }
+
+    const screenPos = canvas.stage.toGlobal(token.center);
+    const screen = canvas.app.renderer.screen;
+    const x = Math.max(0, Math.min(screen.width - 1, Math.round(screenPos.x)));
+    const y = Math.max(0, Math.min(screen.height - 1, Math.round(screenPos.y)));
+
+    try {
+      const pixelData = canvas.app.renderer.extract.pixels(
+        outdoorsMask,
+        new PIXI.Rectangle(x, y, 1, 1)
+      );
+      const maskValue = pixelData[0];
+      const isNowOutdoors = maskValue > 128;
+      this.isIndoors = !isNowOutdoors;
+    } catch (e) {
+      // It's safe to ignore extraction errors here, as this is just setting an initial state.
+    }
+  }
+
+  _checkTokenStateAtPoint(worldPoint, canTriggerEffect = false) {
+    if (!worldPoint || !game.mapShine.resourceManager) {
+      this.isIndoors = null;
+      return;
+    }
+
+    const outdoorsMask = game.mapShine.resourceManager.getOutdoorsMask();
+
+    if (!outdoorsMask?.valid) {
+      this.isIndoors = null;
+      return;
+    }
+
+    const screenPos = canvas.stage.toGlobal(worldPoint);
+    const screen = canvas.app.renderer.screen;
+    const x = Math.max(0, Math.min(screen.width - 1, Math.round(screenPos.x)));
+    const y = Math.max(0, Math.min(screen.height - 1, Math.round(screenPos.y)));
+
+    try {
+      const pixelData = canvas.app.renderer.extract.pixels(
+        outdoorsMask,
+        new PIXI.Rectangle(x, y, 1, 1)
+      );
+      const maskValue = pixelData[0];
+
+      // Corrected Logic: "Outdoors" is where the _Outdoors mask is bright.
+      const isNowOutdoors = maskValue > 128;
+      const wasIndoors = this.isIndoors === true;
+
+      // Update the state for the *next* check, based on the destination of the *current* move.
+      this.isIndoors = !isNowOutdoors;
+
+      // Check for the specific transition from indoors (dark) to outdoors (bright).
+      if (canTriggerEffect && wasIndoors && isNowOutdoors) {
+        this._triggerDazzleEffect();
+      }
+    } catch (e) {
+      // This can happen if the texture is not yet ready on the GPU.
+      // It's safe to ignore and try again on the next movement.
+    }
+  }
+
+  _triggerDazzleEffect() {
+    this.config =
+      game.mapShine.profileManager.activeConfig.postProcessing.colorCorrection.dynamicExposure;
+
+    if (Date.now() - this.lastTriggerTimestamp < this.config.resetPeriod) {
+      return; // Effect is on cooldown
+    }
+
+    this.lastTriggerTimestamp = Date.now();
+
+    if (this.dazzleAnimation) {
+      this.dazzleAnimation.kill();
+    }
+
+    // Animate the exposure boost using GSAP
+    this.ccFilter.uniforms.uDynamicExposureBoost = this.config.intensity;
+    this.dazzleAnimation = gsap.to(this.ccFilter.uniforms, {
+      uDynamicExposureBoost: 0,
+      duration: this.config.duration / 1000, // GSAP uses seconds
+      ease: "power2.out",
+      onComplete: () => {
+        this.dazzleAnimation = null;
+      },
+    });
+  }
+
+  destroy() {
+    if (!this.isInitialized) return;
+    this.isInitialized = false;
+
+    Hooks.off("controlToken", this._boundOnControlToken);
+    Hooks.off("updateToken", this._boundOnUpdateToken);
+
+    if (this.dazzleAnimation) {
+      this.dazzleAnimation.kill();
+      this.dazzleAnimation = null;
+    }
+
+    if (this.ccFilter && !this.ccFilter.destroyed) {
+      this.ccFilter.uniforms.uDynamicExposureBoost = 0.0;
+    }
+
+    this.ccFilter = null;
+    this.activeTokenId = null;
+  }
+}
+
 class PauseScreenManager {
   /**
    * Registers the necessary hooks to manage the custom pause screen.
    * This is the single entry point for this system.
    */
   static initialize() {
+    // HOOK 1: Listen for in-session pause state changes.
     Hooks.on("pauseGame", (paused) => {
       if (paused) {
         this._applyCustomPauseScreen();
@@ -8885,173 +7653,88 @@ class PauseScreenManager {
       }
     });
 
+    // HOOK 2: Check the initial state once the UI is fully ready.
     Hooks.once("ready", () => {
       if (game.paused) {
+        console.log(
+          "Map Shine | Game loaded in a paused state. Applying custom pause screen."
+        );
         this._applyCustomPauseScreen();
       }
     });
+
+    console.log(
+      "Map Shine | Pause Screen Manager initialized and hooks are active."
+    );
   }
 
   /**
-   * Retrieves all necessary settings for the pause screen from the game settings.
-   * @returns {object} An object containing all the configured values.
-   * @private
-   */
-  static _getSettings() {
-    const getSetting = (key) =>
-      game.settings.get(MODULE_ID, `universal.pauseEffect.${key}`);
-    return {
-      heading: getSetting("heading"),
-      subheading: getSetting("subheading"),
-      logoPath: getSetting("logoPath"),
-      logoOpacity: getSetting("logoOpacity"),
-      backgroundColor: getSetting("backgroundColor"),
-      gradientColor1: getSetting("gradientColor1"),
-      gradientColor2: getSetting("gradientColor2"),
-      gradientShadowColor: getSetting("gradientShadowColor"),
-      headingColor: getSetting("headingColor"),
-      subheadingColor: getSetting("subheadingColor"),
-      hintColor: getSetting("hintColor"),
-      useRandomHint: getSetting("useRandomHint"),
-      randomHints: (getSetting("randomHints") || "")
-        .split(/\r?\n/)
-        .filter((h) => h.trim() !== ""),
-    };
-  }
-
-  /**
-   * Finds the #pause element, clears it, and injects our fully custom content and styles.
+   * Finds the #pause element in the DOM and applies custom styling.
+   * This function uses requestAnimationFrame to poll for the element, making it
+   * resilient to race conditions.
    * @private
    */
   static _applyCustomPauseScreen() {
-    const MAX_ATTEMPTS = 120;
+    const MAX_ATTEMPTS = 120; // A generous timeout (approx. 2 seconds at 60fps)
     let attempts = 0;
 
     const findAndModify = () => {
       const pauseElement = document.getElementById("pause");
+
       if (pauseElement) {
-        // Clear any default content (like the Foundry logo and "Game Paused" text)
-        pauseElement.innerHTML = "";
-
-        const settings = this._getSettings();
-        let hintHTML = "";
-        if (settings.useRandomHint && settings.randomHints.length > 0) {
-          const hint =
-            settings.randomHints[
-              Math.floor(Math.random() * settings.randomHints.length)
-            ];
-          hintHTML = `<p class="map-shine-pause-hint">${hint}</p>`;
-        }
-
-        const logoHTML = settings.logoPath
-          ? `<div class="map-shine-pause-logo"></div>`
-          : "";
+        console.log(
+          `MapShine | Found and applying custom style to #pause element after ${attempts} attempts.`
+        );
 
         const customHTML = `
-          <div class="map-shine-pause-wrapper">
-            <h1 class="map-shine-pause-title">${settings.heading}</h1>
-            <p class="map-shine-pause-subtitle">${settings.subheading}</p>
-            ${logoHTML}
-            ${hintHTML}
+          <div class="map-shine-pause-container">
+            <h1 class="map-shine-pause-title">SESSION PAUSED</h1>
+            <p class="map-shine-pause-subtitle">Please stand by...</p>
+            <div class="map-shine-pause-logo"></div>
           </div>
         `;
 
         const customCSS = `
           <style>
-            #pause.custom-pause-screen {
-              /* Override Foundry defaults to make it a simple backdrop */
-              background: ${settings.backgroundColor} !important;
+            .custom-pause-screen {
+              display: flex; flex-direction: column; justify-content: center; align-items: center;
+              background: rgba(10, 0, 0, 0.75) !important;
               backdrop-filter: blur(8px) grayscale(0.5);
-              border: none !important;
+              border-top: 2px solid #ff4444; border-bottom: 2px solid #ff4444;
+              box-shadow: 0 0 20px rgba(255, 0, 0, 0.5) inset;
               animation: none !important;
-              padding: 0 5vw; /* Prevent content from touching screen edges */
             }
-
-            .map-shine-pause-wrapper {
-              position: relative;
-              width: 200%;
-              padding: 4rem 2rem;
-              background: rgba(0,0,0,0.4);
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              justify-content: center;
-              gap: 1rem;
-              animation: fadeInContent 1.5s ease-out forwards;
+            .map-shine-pause-container {
+              text-align: center; color: #fff; font-family: "Signika", sans-serif;
+              text-shadow: 0 0 10px #000; animation: fadeInContent 1.5s ease-out forwards;
             }
-
-            .map-shine-pause-wrapper::before,
-            .map-shine-pause-wrapper::after {
-              content: '';
-              position: absolute;
-              left: 0;
-              right: 0;
-              height: 3px;
-              background: linear-gradient(to right, transparent, ${
-                settings.gradientColor1
-              }, ${settings.gradientColor2}, ${
-          settings.gradientColor1
-        }, transparent);
-            }
-
-            .map-shine-pause-wrapper::before {
-              top: 0;
-              box-shadow: 0 0 8px 1px ${settings.gradientShadowColor};
-            }
-
-            .map-shine-pause-wrapper::after {
-              bottom: 0;
-              box-shadow: 0 0 8px 1px ${settings.gradientShadowColor};
-            }
-
             .map-shine-pause-title {
-              font-size: 4em; margin: 0; letter-spacing: 5px; color: ${
-                settings.headingColor
-              }; text-transform: uppercase;
-              text-shadow: 0 0 10px #000;
+              font-size: 4em; margin: 0; letter-spacing: 5px; color: #ffcccc; text-transform: uppercase;
             }
             .map-shine-pause-subtitle {
-              font-size: 1.5em; margin: 10px 0 20px 0; color: ${
-                settings.subheadingColor
-              }; font-style: italic;
-              text-shadow: 0 0 10px #000;
+              font-size: 1.5em; margin: 10px 0 20px 0; color: #ff8888; font-style: italic;
             }
             .map-shine-pause-logo {
               width: 80px; height: 80px;
-              background-image: url('${settings.logoPath}');
+              background-image: url('modules/map-shine/assets/mm-logo.png');
               background-size: contain; background-repeat: no-repeat; background-position: center;
-              margin: 0 auto; opacity: ${
-                settings.logoOpacity
-              }; animation: pulseLogo 4s ease-in-out infinite;
-            }
-            .map-shine-pause-hint {
-              margin-top: 25px;
-              padding-top: 15px;
-              border-top: 1px solid rgba(255, 255, 255, 0.2);
-              font-style: italic;
-              color: ${settings.hintColor};
-              max-width: 40ch;
-              margin-left: auto;
-              margin-right: auto;
+              margin: 0 auto; opacity: 0.8; animation: pulseLogo 4s ease-in-out infinite;
             }
             @keyframes fadeInContent {
               from { opacity: 0; transform: translateY(20px); }
               to { opacity: 1; transform: translateY(0); }
             }
             @keyframes pulseLogo {
-              0%, 100% { transform: scale(1); opacity: ${
-                settings.logoOpacity
-              }; }
-              50% { transform: scale(1.1); opacity: ${Math.min(
-                1,
-                settings.logoOpacity + 0.2
-              )}; }
+              0%, 100% { transform: scale(1); opacity: 0.8; }
+              50% { transform: scale(1.1); opacity: 1; }
             }
           </style>
         `;
 
+        // Add our custom class instead of replacing the entire class list.
         pauseElement.classList.add("custom-pause-screen");
         pauseElement.innerHTML = customCSS + customHTML;
+
         return;
       }
 
@@ -9064,21 +7747,442 @@ class PauseScreenManager {
         );
       }
     };
+
     requestAnimationFrame(findAndModify);
   }
 
   /**
-   * Resets the #pause element by removing our custom class and content.
-   * This allows Foundry to repopulate it with its defaults if needed later.
+   * Resets the #pause element by removing our custom class. This allows Foundry's
+   * core scripts to manage it correctly and prepares it for the next pause.
    * @private
    */
   static _revertCustomPauseScreen() {
     const pauseElement = document.getElementById("pause");
     if (pauseElement) {
       pauseElement.classList.remove("custom-pause-screen");
-      // Clear our custom content to let Foundry's code take over again cleanly
-      pauseElement.innerHTML = "";
     }
+  }
+}
+
+class PauseEffectManager {
+  constructor() {
+    this._animationState = {
+      progress: game.paused ? 1 : 0,
+    };
+    this._animation = null;
+    this._pauseFilter = null;
+    this._originalGlobalTime = 100;
+    this._isInitialized = false;
+    this._boundOnPauseChange = this._onPauseChange.bind(this);
+  }
+
+  initialize() {
+    if (this._isInitialized) return;
+    this._pauseFilter = ScreenEffectsManager.getFilter("pauseEffect");
+    if (!this._pauseFilter) {
+      console.error(
+        "Map Shine | PauseEffectManager could not find its dedicated filter."
+      );
+      return;
+    }
+
+    const config = game.mapShine.profileManager.activeConfig;
+    this._originalGlobalTime = config.timeControl.globalTime;
+
+    this._updateEffects(this._animationState.progress);
+
+    Hooks.on("pauseGame", this._boundOnPauseChange);
+    this._isInitialized = true;
+    console.log("Map Shine | Pause Effect Manager Initialized.");
+  }
+
+  destroy() {
+    if (!this._isInitialized) return;
+
+    Hooks.off("pauseGame", this._boundOnPauseChange);
+    if (this._animation) {
+      this._animation.kill();
+    }
+    this._animation = null;
+    this._pauseFilter = null;
+    this._isInitialized = false;
+    console.log("Map Shine | Pause Effect Manager Destroyed.");
+  }
+
+  _onPauseChange(paused) {
+    if (!this._pauseFilter) return;
+
+    const peConfig = {
+      enabled: game.settings.get(MODULE_ID, "universal.pauseEffect.enabled"),
+      duration: game.settings.get(MODULE_ID, "universal.pauseEffect.duration"),
+      colorCorrection: {
+        enabled: game.settings.get(
+          MODULE_ID,
+          "universal.pauseEffect.colorCorrection.enabled"
+        ),
+        saturation: game.settings.get(
+          MODULE_ID,
+          "universal.pauseEffect.colorCorrection.saturation"
+        ),
+        brightness: game.settings.get(
+          MODULE_ID,
+          "universal.pauseEffect.colorCorrection.brightness"
+        ),
+        contrast: game.settings.get(
+          MODULE_ID,
+          "universal.pauseEffect.colorCorrection.contrast"
+        ),
+      },
+    };
+
+    if (!peConfig.enabled) {
+      this._updateEffects(0);
+      const activeConfig = game.mapShine.profileManager.activeConfig;
+      if (activeConfig.timeControl.globalTime < this._originalGlobalTime) {
+        foundry.utils.setProperty(
+          activeConfig,
+          "timeControl.globalTime",
+          this._originalGlobalTime
+        );
+        game.mapShine.profileManager.updateAllSystemsFromConfig();
+        if (game.mapShine.debugger) {
+          game.mapShine.debugger.eventHandler.updateAllControls();
+        }
+      }
+      return;
+    }
+
+    if (this._animation) {
+      this._animation.kill();
+    }
+
+    const targetProgress = paused ? 1 : 0;
+
+    if (paused && this._animationState.progress < 1) {
+      this._originalGlobalTime =
+        game.mapShine.profileManager.activeConfig.timeControl.globalTime;
+    }
+
+    if (typeof gsap === "undefined") {
+      console.warn("MapShine | GSAP not found. Snapping pause effect.");
+      this._animationState.progress = targetProgress;
+      this._updateEffects(targetProgress);
+    } else {
+      this._animation = gsap.to(this._animationState, {
+        progress: targetProgress,
+        duration: peConfig.duration / 1000,
+        ease: "power2.inOut",
+        onUpdate: () => this._updateEffects(this._animationState.progress),
+        onComplete: () => {
+          this._animation = null;
+          this._updateEffects(targetProgress);
+        },
+      });
+    }
+  }
+
+  _updateEffects(progress) {
+    if (!this._pauseFilter) return;
+
+    // Construct the config object from individual game settings
+    const peConfig = {
+      colorCorrection: {
+        ...UNIVERSAL_EFFECT_DEFAULTS.pauseEffect.colorCorrection, // Start with defaults
+        enabled: game.settings.get(
+          MODULE_ID,
+          "universal.pauseEffect.colorCorrection.enabled"
+        ),
+        saturation: game.settings.get(
+          MODULE_ID,
+          "universal.pauseEffect.colorCorrection.saturation"
+        ),
+        brightness: game.settings.get(
+          MODULE_ID,
+          "universal.pauseEffect.colorCorrection.brightness"
+        ),
+        contrast: game.settings.get(
+          MODULE_ID,
+          "universal.pauseEffect.colorCorrection.contrast"
+        ),
+      },
+    };
+
+    const activeConfig = game.mapShine.profileManager.activeConfig;
+    const timeControlPath = "timeControl.globalTime";
+
+    const newTime = this._originalGlobalTime * (1 - progress);
+
+    game.mapShine.timeControl.timeFactor = newTime / 100.0;
+    foundry.utils.setProperty(activeConfig, timeControlPath, newTime);
+
+    game.mapShine.profileManager.updateAllSystemsFromConfig({
+      timeOnly: true,
+    });
+
+    if (game.mapShine.debugger) {
+      const slider = game.mapShine.debugger.element.querySelector(
+        "#control-timeControl-globalTime"
+      );
+      if (slider) {
+        slider.value = newTime;
+        game.mapShine.debugger.eventHandler._updateSliderValue(
+          slider.id,
+          newTime,
+          slider.step
+        );
+      }
+    }
+
+    const u = this._pauseFilter.uniforms;
+    const cc = peConfig.colorCorrection;
+    this._pauseFilter.enabled = progress > 0.001 && cc.enabled;
+    u.uIntensity = progress;
+    u.uSaturation = cc.saturation;
+    u.uBrightness = cc.brightness;
+    u.uContrast = cc.contrast;
+    u.uExposure = cc.exposure;
+    u.uGamma = cc.gamma;
+    u.uInBlack = cc.levels.inBlack;
+    u.uInWhite = cc.levels.inWhite;
+    u.uTemperature = cc.whiteBalance.temperature;
+    u.uWbTint = cc.whiteBalance.tint;
+    u.uTintAmount = cc.tint.amount;
+    u.uTintColor = hexToRgbArray(cc.tint.color);
+    u.uInvert = cc.invert;
+    u.uSelectiveEnabled = cc.selective.enabled;
+    u.uSelectiveColor = hexToRgbArray(cc.selective.color);
+    u.uSelectiveHueRange = cc.selective.hueRange;
+    u.uSelectiveSatRange = cc.selective.saturationRange;
+    u.uSelectiveLumRange = cc.selective.luminanceRange;
+    u.uSelectiveTargetLum = cc.selective.targetLuminance;
+    u.uSelectiveSoftness = cc.selective.softness;
+    u.uSelectiveInvert = cc.selective.invert;
+    u.uSelectiveDesaturation = cc.selective.desaturation;
+    u.uSelectiveTargetSaturation = cc.selective.targetSaturation;
+    u.uSelectiveTargetBrightness = cc.selective.targetBrightness;
+  }
+}
+
+class CombatEffectManager {
+  constructor() {
+    this._animationState = {
+      progress: 0,
+    };
+    this._animation = null;
+    this._combatFilter = null;
+    this._originalGlobalTime = 100;
+    this._isInitialized = false;
+    this._boundOnCombatChange = this._onCombatChange.bind(this);
+  }
+
+  initialize() {
+    if (this._isInitialized) return;
+    this._combatFilter = ScreenEffectsManager.getFilter("combatEffect");
+    if (!this._combatFilter) {
+      console.error(
+        "Map Shine | CombatEffectManager could not find its dedicated filter."
+      );
+      return;
+    }
+
+    const config = game.mapShine.profileManager.activeConfig;
+    this._originalGlobalTime = config.timeControl.globalTime;
+
+    this._animationState.progress = game.combats.active?.started ? 1 : 0;
+
+    this._updateEffects(this._animationState.progress);
+
+    Hooks.on("combatStart", () => this._boundOnCombatChange(true));
+    Hooks.on("combatEnd", () => this._boundOnCombatChange(false));
+    Hooks.on("deleteCombat", () => this._boundOnCombatChange(false));
+
+    this._isInitialized = true;
+    console.log("Map Shine | Combat Effect Manager Initialized.");
+  }
+
+  destroy() {
+    if (!this._isInitialized) return;
+
+    Hooks.off("combatStart", this._boundOnCombatChange);
+    Hooks.off("combatEnd", this._boundOnCombatChange);
+    Hooks.off("deleteCombat", this._boundOnCombatChange);
+
+    if (this._animation) {
+      this._animation.kill();
+    }
+    this._animation = null;
+    this._combatFilter = null;
+    this._isInitialized = false;
+    console.log("Map Shine | Combat Effect Manager Destroyed.");
+  }
+
+  _onCombatChange(inCombat) {
+    if (!this._combatFilter) return;
+
+    const ceConfig = {
+      enabled: game.settings.get(MODULE_ID, "universal.combatEffect.enabled"),
+      duration: game.settings.get(MODULE_ID, "universal.combatEffect.duration"),
+      timeScale: game.settings.get(
+        MODULE_ID,
+        "universal.combatEffect.timeScale"
+      ),
+      colorCorrection: {
+        enabled: game.settings.get(
+          MODULE_ID,
+          "universal.combatEffect.colorCorrection.enabled"
+        ),
+        saturation: game.settings.get(
+          MODULE_ID,
+          "universal.combatEffect.colorCorrection.saturation"
+        ),
+        brightness: game.settings.get(
+          MODULE_ID,
+          "universal.combatEffect.colorCorrection.brightness"
+        ),
+        contrast: game.settings.get(
+          MODULE_ID,
+          "universal.combatEffect.colorCorrection.contrast"
+        ),
+      },
+    };
+
+    if (!ceConfig.enabled) {
+      this._updateEffects(0);
+      const activeConfig = game.mapShine.profileManager.activeConfig;
+      if (activeConfig.timeControl.globalTime < this._originalGlobalTime) {
+        foundry.utils.setProperty(
+          activeConfig,
+          "timeControl.globalTime",
+          this._originalGlobalTime
+        );
+        game.mapShine.profileManager.updateAllSystemsFromConfig();
+        if (game.mapShine.debugger) {
+          game.mapShine.debugger.eventHandler.updateAllControls();
+        }
+      }
+      return;
+    }
+
+    if (this._animation) {
+      this._animation.kill();
+    }
+
+    const targetProgress = inCombat ? 1 : 0;
+
+    if (inCombat && this._animationState.progress < 1) {
+      this._originalGlobalTime =
+        game.mapShine.profileManager.activeConfig.timeControl.globalTime;
+    }
+
+    if (typeof gsap === "undefined") {
+      console.warn("MapShine | GSAP not found. Snapping combat effect.");
+      this._animationState.progress = targetProgress;
+      this._updateEffects(targetProgress);
+    } else {
+      this._animation = gsap.to(this._animationState, {
+        progress: targetProgress,
+        duration: ceConfig.duration / 1000,
+        ease: "power2.inOut",
+        onUpdate: () => this._updateEffects(this._animationState.progress),
+        onComplete: () => {
+          this._animation = null;
+          this._updateEffects(targetProgress);
+        },
+      });
+    }
+  }
+
+  _updateEffects(progress) {
+    if (!this._combatFilter) return;
+
+    // Construct the config object from individual game settings
+    const ceConfig = {
+      enabled: game.settings.get(MODULE_ID, "universal.combatEffect.enabled"),
+      timeScale: game.settings.get(
+        MODULE_ID,
+        "universal.combatEffect.timeScale"
+      ),
+      colorCorrection: {
+        ...UNIVERSAL_EFFECT_DEFAULTS.combatEffect.colorCorrection, // Start with defaults
+        enabled: game.settings.get(
+          MODULE_ID,
+          "universal.combatEffect.colorCorrection.enabled"
+        ),
+        saturation: game.settings.get(
+          MODULE_ID,
+          "universal.combatEffect.colorCorrection.saturation"
+        ),
+        brightness: game.settings.get(
+          MODULE_ID,
+          "universal.combatEffect.colorCorrection.brightness"
+        ),
+        contrast: game.settings.get(
+          MODULE_ID,
+          "universal.combatEffect.colorCorrection.contrast"
+        ),
+      },
+    };
+
+    const activeConfig = game.mapShine.profileManager.activeConfig;
+    const timeControlPath = "timeControl.globalTime";
+
+    const newTime = lerp(
+      this._originalGlobalTime,
+      this._originalGlobalTime * ceConfig.timeScale,
+      progress
+    );
+
+    game.mapShine.timeControl.timeFactor = newTime / 100.0;
+    foundry.utils.setProperty(activeConfig, timeControlPath, newTime);
+
+    game.mapShine.profileManager.updateAllSystemsFromConfig({
+      timeOnly: true,
+    });
+
+    if (game.mapShine.debugger) {
+      const slider = game.mapShine.debugger.element.querySelector(
+        "#control-timeControl-globalTime"
+      );
+      if (slider) {
+        slider.value = newTime;
+        game.mapShine.debugger.eventHandler._updateSliderValue(
+          slider.id,
+          newTime,
+          slider.step
+        );
+      }
+    }
+
+    const u = this._combatFilter.uniforms;
+    const cc = ceConfig.colorCorrection;
+
+    this._combatFilter.enabled = progress > 0.001 && cc.enabled;
+    u.uIntensity = progress;
+
+    u.uSaturation = cc.saturation;
+    u.uBrightness = cc.brightness;
+    u.uContrast = cc.contrast;
+    u.uExposure = cc.exposure;
+    u.uGamma = cc.gamma;
+    u.uInBlack = cc.levels.inBlack;
+    u.uInWhite = cc.levels.inWhite;
+    u.uTemperature = cc.whiteBalance.temperature;
+    u.uWbTint = cc.whiteBalance.tint;
+    u.uTintAmount = cc.tint.amount;
+    u.uTintColor = hexToRgbArray(cc.tint.color);
+    u.uInvert = cc.invert;
+
+    u.uSelectiveEnabled = cc.selective.enabled;
+    u.uSelectiveColor = hexToRgbArray(cc.selective.color);
+    u.uSelectiveHueRange = cc.selective.hueRange;
+    u.uSelectiveSatRange = cc.selective.saturationRange;
+    u.uSelectiveLumRange = cc.selective.luminanceRange;
+    u.uSelectiveTargetLum = cc.selective.targetLuminance;
+    u.uSelectiveSoftness = cc.selective.softness;
+    u.uSelectiveInvert = cc.selective.invert;
+    u.uSelectiveDesaturation = cc.desaturation;
+    u.uSelectiveTargetSaturation = cc.targetSaturation;
+    u.uSelectiveTargetBrightness = cc.targetBrightness;
   }
 }
 
@@ -11632,15 +10736,6 @@ const PARTICLE_EFFECT_DEFINITIONS = {
     buildEmitterConfig: (effectConfig, targetData) =>
       buildParticleEmitterConfig(effectConfig, targetData, "fire"),
   },
-  metallicGlints: {
-    title: "Metallic Glints",
-    description:
-      "Sparkling glints that appear on specular surfaces. Requires a _Specular.webp map.",
-    configPath: "metallicGlints",
-    triggerTexture: "specular",
-    buildEmitterConfig: (effectConfig, targetData) =>
-      buildParticleEmitterConfig(effectConfig, targetData, "specular"),
-  },
   sparks: {
     title: "Sparks",
     description:
@@ -12799,22 +11894,6 @@ class ParticleEffectController {
       this.pendingTargets.clear();
     }
 
-    // Periodically update the spawn points for metallic glints
-    if (this.definition.configPath === "metallicGlints") {
-      for (const { emitter } of this.emitters.values()) {
-        // Add a guard to ensure the emitter and its behaviors are valid before access.
-        // This can prevent errors if an emitter is destroyed but its reference persists for a frame.
-        if (!emitter || !emitter.behaviors) continue;
-
-        const spawnBehavior = emitter.behaviors.find(
-          (b) => b.type === "spawnShape"
-        );
-        if (spawnBehavior?.shape?.update) {
-          spawnBehavior.shape.update();
-        }
-      }
-    }
-
     for (const { emitter } of this.emitters.values()) {
       emitter.update(deltaTime);
     }
@@ -13292,35 +12371,26 @@ const buildParticleEmitterConfig = (
     });
   }
 
-  // For metallic glints, use the custom behavior to sample color from the spawn texture.
-  // For all other effects, use the standard static or gradient color behaviors.
-  if (maskKey === "specular") {
+  const colorConfig = config.color ?? {};
+  const startColor = colorConfig.start ?? "#FFFFFF";
+  const endColor = colorConfig.end ?? "#FFFFFF";
+  if (startColor === endColor) {
     behaviors.push({
-      type: "colorFromSpawn",
-      config: {},
+      type: "colorStatic",
+      config: {
+        color: startColor,
+      },
     });
   } else {
-    const colorConfig = config.color ?? {};
-    const startColor = colorConfig.start ?? "#FFFFFF";
-    const endColor = colorConfig.end ?? "#FFFFFF";
-    if (startColor === endColor) {
-      behaviors.push({
-        type: "colorStatic",
-        config: {
-          color: startColor,
+    behaviors.push({
+      type: "color",
+      config: {
+        color: {
+          start: startColor,
+          end: endColor,
         },
-      });
-    } else {
-      behaviors.push({
-        type: "color",
-        config: {
-          color: {
-            start: startColor,
-            end: endColor,
-          },
-        },
-      });
-    }
+      },
+    });
   }
 
   const rotConfig = config.rotation ?? {};
@@ -13638,14 +12708,7 @@ class TextureMaskShape {
           if (pixelValue >= this.threshold) {
             const screenPoint = new PIXI.Point(x, y);
             const worldPoint = canvas.stage.toLocal(screenPoint);
-            this.validPoints.push({
-              point: worldPoint,
-              color: [
-                pixelData[index],
-                pixelData[index + 1],
-                pixelData[index + 2],
-              ],
-            });
+            this.validPoints.push(worldPoint);
           }
         }
       }
@@ -13662,14 +12725,7 @@ class TextureMaskShape {
             const relativeY = (y / texture.height) * this.height;
             const worldX = this.offsetX + relativeX;
             const worldY = this.offsetY + relativeY;
-            this.validPoints.push({
-              point: new PIXI.Point(worldX, worldY),
-              color: [
-                pixelData[index],
-                pixelData[index + 1],
-                pixelData[index + 2],
-              ],
-            });
+            this.validPoints.push(new PIXI.Point(worldX, worldY));
           }
         }
       }
@@ -13681,11 +12737,9 @@ class TextureMaskShape {
     if (this.validPoints.length === 0) {
       return;
     }
-    const data =
+    const point =
       this.validPoints[Math.floor(Math.random() * this.validPoints.length)];
-    particle.position.copyFrom(data.point);
-    // Attach the color data to the particle for the custom behavior to use.
-    particle.spawnColor = data.color;
+    particle.position.copyFrom(point);
   }
 }
 
@@ -14914,31 +13968,6 @@ class SmellyFliesLayer extends CanvasLayer {
           this.updateEffectTargets(targets);
         }
       }
-    }
-  }
-}
-
-/**
- * A custom particle behavior that sets a particle's tint based on color data
- * attached to it during the spawn process.
- * This allows particles to inherit color from their spawn location on a texture.
- */
-class ColorFromSpawnBehavior {
-  static type = "colorFromSpawn";
-
-  constructor(config) {
-    this.order = PIXI.particles.behaviors.BehaviorOrder.Normal;
-  }
-
-  initParticles(first) {
-    let next = first;
-    while (next) {
-      if (next.spawnColor) {
-        const color = next.spawnColor; // [r, g, b] from 0-255
-        // Convert the RGB array to a single hex number for the tint property.
-        next.tint = (color[0] << 16) + (color[1] << 8) + color[2];
-      }
-      next = next.next;
     }
   }
 }
@@ -19025,26 +18054,15 @@ class MetallicShineFilter extends PIXI.Filter {
           uniform bool uCloudOcclusionEnabled;
           uniform float uCloudOcclusionIntensity;
 
-          // Color Correction Uniforms
-          uniform bool uColorCorrectionEnabled;
-          uniform float uSaturation;
-          uniform float uBrightness;
-          uniform float uContrast;
-          uniform float uGamma;
-          uniform vec3 uTintColor;
-          uniform float uTintAmount;
-          uniform bool uInvert;
-
           // A constant vector for calculating luminance from an RGB color.
           const vec3 LUM_WEIGHTS = vec3(0.299, 0.587, 0.114);
 
           void main() {
               // Sample the color and alpha from the specular map at the current screen position.
               vec4 specularColor = texture2D(uSpecularMap, vScreenCoord);
-              vec3 workingColor = specularColor.rgb;
 
               // Calculate the luminance (brightness) of the specular color.
-              float specularLuminance = dot(workingColor, LUM_WEIGHTS);
+              float specularLuminance = dot(specularColor.rgb, LUM_WEIGHTS);
 
               // Create a combined mask from both the texture's alpha channel and its brightness.
               // This ensures the shine appears only in areas that are both non-transparent AND bright.
@@ -19053,17 +18071,6 @@ class MetallicShineFilter extends PIXI.Filter {
               // If the combined mask value is very low, discard the pixel entirely.
               if (specularMask < 0.01) {
                   discard;
-              }
-
-              // Apply Color Correction if enabled
-              if (uColorCorrectionEnabled) {
-                  if (uGamma > 0.0) workingColor = pow(workingColor, vec3(1.0 / uGamma));
-                  workingColor += uBrightness;
-                  workingColor = (workingColor - 0.5) * uContrast + 0.5;
-                  float luminance = dot(workingColor, LUM_WEIGHTS);
-                  workingColor = mix(vec3(luminance), workingColor, uSaturation);
-                  workingColor = mix(workingColor, uTintColor, uTintAmount);
-                  if (uInvert) workingColor = 1.0 - workingColor;
               }
 
               // Sample the stripe intensity from the pre-rendered pattern.
@@ -19082,7 +18089,7 @@ class MetallicShineFilter extends PIXI.Filter {
               // The output color is the original color from the specular map.
               // We multiply by finalAlpha for premultiplied alpha, which is standard for PIXI filters
               // and ensures correct blending with the scene.
-              gl_FragColor = vec4(clamp(workingColor, 0.0, 1.0) * finalAlpha, finalAlpha);
+              gl_FragColor = vec4(specularColor.rgb * finalAlpha, finalAlpha);
           }
       `;
 
@@ -19092,14 +18099,6 @@ class MetallicShineFilter extends PIXI.Filter {
       uCloudOcclusionMask: PIXI.Texture.EMPTY,
       uCloudOcclusionEnabled: false,
       uCloudOcclusionIntensity: 1.0,
-      uColorCorrectionEnabled: true,
-      uSaturation: 1.0,
-      uBrightness: 0.0,
-      uContrast: 1.0,
-      uGamma: 1.0,
-      uTintColor: [1.0, 1.0, 1.0],
-      uTintAmount: 0.0,
-      uInvert: false,
       ...options,
     });
   }
@@ -19224,34 +18223,16 @@ class MetallicShineLayer extends CanvasLayer {
     this.specularCompositeTexture = null;
 
     // For generating the stripe pattern
-    this.stripePatternFilter = null;
+    this.stripePatternFilter = null; // The original B&W stripe generator
     this.stripeGeneratorSprite = null;
     this.stripePatternTexture = null;
 
     // For the final composition
-    this.shineFilter = null;
-    this.effectSprite = null;
-
-    // New texture to hold the final rendered output
-    this.finalShineTexture = null;
+    this.shineFilter = null; // The new filter that combines the two textures
+    this.effectSprite = null; // The final sprite that gets rendered
 
     this.time = 0;
     this._needsMaskUpdate = true;
-  }
-
-  // Add a getter for the final texture
-  getEffectTexture() {
-    return this.finalShineTexture;
-  }
-
-  // Add a getter for the specular map texture
-  getSpecularMaskTexture() {
-    return this.specularCompositeTexture;
-  }
-
-  // NEW METHOD: Exposes the internal mask rendering logic to the ResourceManager.
-  renderSpecularMask() {
-    this._renderSpecularCompositeTexture();
   }
 
   static getSettingsHTML() {
@@ -19369,61 +18350,6 @@ class MetallicShineLayer extends CanvasLayer {
               )}
           </div>
       </details>
-      <details id="details-baseShine-colorCorrection">
-          <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-            "baseShine.colorCorrection.enabled",
-            "Color Correction",
-            true
-          )}</div></summary>
-          <div style="padding-left: 15px;">
-              <p class="description-text">Adjusts the color of the final shine effect.</p>
-              ${DebuggerUIBuilder._createSliderHTML(
-                "baseShine.colorCorrection.saturation",
-                "Saturation",
-                0,
-                4,
-                0.05
-              )}
-              ${DebuggerUIBuilder._createSliderHTML(
-                "baseShine.colorCorrection.brightness",
-                "Brightness",
-                -1,
-                1,
-                0.01
-              )}
-              ${DebuggerUIBuilder._createSliderHTML(
-                "baseShine.colorCorrection.contrast",
-                "Contrast",
-                0,
-                4,
-                0.05
-              )}
-              ${DebuggerUIBuilder._createSliderHTML(
-                "baseShine.colorCorrection.gamma",
-                "Gamma",
-                0.2,
-                2.5,
-                0.05
-              )}
-              ${DebuggerUIBuilder._createCheckboxHTML(
-                "baseShine.colorCorrection.invert",
-                "Invert Colors"
-              )}
-              <details id="details-baseShine-cc-tint"><summary><span class="accordion-toggle"></span><strong>Color Tint</strong></summary><div style="padding-left: 15px;">
-                  ${DebuggerUIBuilder._createColorPickerHTML(
-                    "baseShine.colorCorrection.tint.color",
-                    "Tint Color"
-                  )}
-                  ${DebuggerUIBuilder._createSliderHTML(
-                    "baseShine.colorCorrection.tint.amount",
-                    "Tint Amount",
-                    0,
-                    1,
-                    0.01
-                  )}
-              </div></details>
-          </div>
-      </details>
       <details id="details-baseShine-cloudOcclusion">
           <summary><span class="accordion-toggle"></span>
               <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
@@ -19484,15 +18410,9 @@ class MetallicShineLayer extends CanvasLayer {
     this.stripeGeneratorSprite.height = screen.height;
     this.stripeGeneratorSprite.filters = [this.stripePatternFilter];
 
-    this.effectSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
+    this.effectSprite = new PIXI.Sprite(PIXI.Texture.WHITE); // Texture is irrelevant, filter generates output
     this.effectSprite.filters = this.shineFilter ? [this.shineFilter] : [];
     this.addChild(this.effectSprite);
-
-    // New texture to hold the final rendered output
-    this.finalShineTexture = PIXI.RenderTexture.create({
-      width: screen.width,
-      height: screen.height,
-    });
 
     this._onAnimateBound = this._onAnimate.bind(this);
     this._onResizeBound = this._onResize.bind(this);
@@ -19506,21 +18426,13 @@ class MetallicShineLayer extends CanvasLayer {
   }
 
   _onAnimate(deltaTime) {
-    if (this._destroyed || !this.visible || !this.shineFilter) return;
-    const resourceManager = game.mapShine.resourceManager;
-    if (!resourceManager) return;
-
-    // This layer is now driven by the ResourceManager.
-    // This call will trigger renderEffectNow if needed for this frame.
-    resourceManager.getAnimatedShineTexture(deltaTime);
-
-    // The effectSprite no longer needs its texture set here,
-    // as it's just a dummy sprite to hold the filter.
-    // We will render it directly to the stage.
-  }
-
-  renderEffectNow(deltaTime) {
-    if (this._destroyed || !this.visible || !this.shineFilter) return;
+    if (
+      this._destroyed ||
+      !this.visible ||
+      !this.shineFilter ||
+      !game.mapShine.resourceManager
+    )
+      return;
 
     // Re-render the composite specular map if camera moved
     if (this._needsMaskUpdate) {
@@ -19536,15 +18448,16 @@ class MetallicShineLayer extends CanvasLayer {
       clear: true,
     });
 
-    const resourceManager = game.mapShine.resourceManager;
+    // Get the cloud shadow texture from the resource manager
     const cloudTexture =
-      resourceManager.getCloudShadowTexture(deltaTime) || PIXI.Texture.WHITE;
+      game.mapShine.resourceManager.getCloudShadowTexture(deltaTime);
 
     // Update the final composition filter's uniforms
     const u = this.shineFilter.uniforms;
     u.uSpecularMap = this.specularCompositeTexture;
     u.uStripePattern = this.stripePatternTexture;
-    u.uCloudOcclusionMask = cloudTexture;
+    // Pass the cloud texture to the shader
+    u.uCloudOcclusionMask = cloudTexture || PIXI.Texture.WHITE;
 
     // Position the final effect sprite to cover the screen
     const stage = canvas.stage;
@@ -19554,12 +18467,6 @@ class MetallicShineLayer extends CanvasLayer {
     this.effectSprite.position.copyFrom(topLeft);
     this.effectSprite.width = screen.width / stage.scale.x;
     this.effectSprite.height = screen.height / stage.scale.y;
-
-    // Render the final effect to our output texture
-    canvas.app.renderer.render(this.effectSprite, {
-      renderTexture: this.finalShineTexture,
-      clear: true,
-    });
   }
 
   _renderSpecularCompositeTexture() {
@@ -19630,14 +18537,15 @@ class MetallicShineLayer extends CanvasLayer {
   async updateFromConfig(config) {
     const bsConfig = config.baseShine;
 
+    // Guard against an incomplete or undefined baseShine configuration object,
+    // which can occur briefly during scene transitions.
     if (
       !bsConfig ||
       !bsConfig.compositing ||
       !bsConfig.animation ||
       !bsConfig.pattern ||
       !bsConfig.pattern.stripes ||
-      !bsConfig.cloudOcclusion ||
-      !bsConfig.colorCorrection
+      !bsConfig.cloudOcclusion
     ) {
       this.visible = false;
       return;
@@ -19667,21 +18575,9 @@ class MetallicShineLayer extends CanvasLayer {
 
     if (this.shineFilter) {
       const cloudOcclusion = bsConfig.cloudOcclusion;
-      const colorCorrection = bsConfig.colorCorrection;
       const u = this.shineFilter.uniforms;
       u.uCloudOcclusionEnabled = cloudOcclusion.enabled;
       u.uCloudOcclusionIntensity = cloudOcclusion.intensity;
-
-      if (colorCorrection) {
-        u.uColorCorrectionEnabled = colorCorrection.enabled;
-        u.uSaturation = colorCorrection.saturation;
-        u.uBrightness = colorCorrection.brightness;
-        u.uContrast = colorCorrection.contrast;
-        u.uGamma = colorCorrection.gamma;
-        u.uTintColor = hexToRgbArray(colorCorrection.tint.color);
-        u.uTintAmount = colorCorrection.tint.amount;
-        u.uInvert = colorCorrection.invert;
-      }
     }
   }
 
@@ -19693,10 +18589,6 @@ class MetallicShineLayer extends CanvasLayer {
       renderer.screen.height
     );
     this.stripePatternTexture?.resize(
-      renderer.screen.width,
-      renderer.screen.height
-    );
-    this.finalShineTexture?.resize(
       renderer.screen.width,
       renderer.screen.height
     );
@@ -19732,7 +18624,6 @@ class MetallicShineLayer extends CanvasLayer {
     this.stripePatternTexture?.destroy(true);
     this.shineFilter?.destroy();
     this.effectSprite?.destroy();
-    this.finalShineTexture?.destroy(true);
 
     this.sourceContainer = null;
     this.specularCompositeTexture = null;
@@ -19741,7 +18632,6 @@ class MetallicShineLayer extends CanvasLayer {
     this.stripePatternTexture = null;
     this.shineFilter = null;
     this.effectSprite = null;
-    this.finalShineTexture = null;
 
     await super._tearDown(options);
   }
@@ -25487,6 +24377,294 @@ class InvertAlphaMaskFilter extends PIXI.Filter {
   }
 }
 
+class OverheadEffectLayer extends CanvasLayer {
+  constructor() {
+    super();
+    this.overheadSprites = new Map();
+    this.spritesContainer = null;
+    this.blurFilter = null;
+    this.recolorFilter = null;
+    this.compositeTexture = null;
+    this.compositeSprite = null;
+    this.activeAnimations = new Map();
+    // Blur properties
+    this.blurMinZoom = 0;
+    this.blurMidZoom = 2;
+    this.blurMaxZoom = 8;
+    // Opacity properties
+    this.opacityMinZoom = 1.0;
+    this.opacityMidZoom = 1.0;
+    this.opacityMaxZoom = 0.25;
+    // Zoom Point properties
+    this.zoomPointMin = 0.2;
+    this.zoomPointMid = 0.65;
+    this.zoomPointMax = 1.5;
+
+    // Bound listeners for robust add/remove
+    this._boundRefresh = this._refreshOverheadTiles.bind(this);
+    this._boundOnAnimate = this._onAnimate.bind(this);
+    this._boundOnResize = this._onResize.bind(this);
+    this._boundOnCanvasReady = this._refreshOverheadTiles.bind(this);
+  }
+
+  async _draw(options) {
+    this._destroyed = false;
+    this.eventMode = "auto";
+
+    const renderer = canvas.app.renderer;
+    const screen = renderer.screen;
+
+    this.spritesContainer = new PIXI.Container();
+    this.compositeTexture = PIXI.RenderTexture.create({
+      width: screen.width,
+      height: screen.height,
+    });
+
+    this.blurFilter = new PIXI.BlurFilter();
+    this.recolorFilter = new OverheadRecolorFilter();
+
+    this.compositeSprite = new PIXI.Sprite(this.compositeTexture);
+    this.compositeSprite.filters = [this.blurFilter, this.recolorFilter];
+    this.compositeSprite.filterArea = renderer.screen;
+    this.addChild(this.compositeSprite);
+
+    Hooks.on("createTile", this._boundRefresh);
+    Hooks.on("updateTile", this._boundRefresh);
+    Hooks.on("deleteTile", this._boundRefresh);
+    Hooks.on("canvasReady", this._boundOnCanvasReady);
+    canvas.app.ticker.add(this._boundOnAnimate);
+    window.addEventListener("resize", this._boundOnResize);
+
+    this.updateFromConfig(game.mapShine.profileManager.activeConfig);
+  }
+
+  async _tearDown(options) {
+    this._destroyed = true;
+
+    for (const anim of this.activeAnimations.values()) {
+      anim.kill();
+    }
+    this.activeAnimations.clear();
+
+    for (const tileId of this.overheadSprites.keys()) {
+      const tile = canvas.tiles.get(tileId);
+      if (tile && tile.isManagedByOverheadLayer) {
+        tile.isManagedByOverheadLayer = false;
+        tile.mesh.alpha = 1.0;
+      }
+    }
+
+    Hooks.off("createTile", this._boundRefresh);
+    Hooks.off("updateTile", this._boundRefresh);
+    Hooks.off("deleteTile", this._boundRefresh);
+    Hooks.off("canvasReady", this._boundOnCanvasReady);
+    canvas.app.ticker.remove(this._boundOnAnimate);
+    window.removeEventListener("resize", this._boundOnResize);
+
+    this.spritesContainer?.destroy({ children: true });
+    this.blurFilter?.destroy();
+    this.recolorFilter?.destroy();
+    this.compositeTexture?.destroy(true);
+    this.compositeSprite?.destroy();
+    this.overheadSprites.clear();
+
+    return super._tearDown(options);
+  }
+
+  _onAnimate(deltaTime) {
+    if (this._destroyed || !this.visible) {
+      if (this.compositeSprite) this.compositeSprite.visible = false;
+      return;
+    }
+
+    if (this.overheadSprites.size === 0) {
+      if (this.compositeSprite) this.compositeSprite.visible = false;
+      return;
+    }
+
+    this.compositeSprite.visible = true;
+
+    for (const [id, sprite] of this.overheadSprites.entries()) {
+      const tile = canvas.tiles.get(id);
+      if (tile?.texture?.valid) {
+        sprite.position.copyFrom(tile.mesh.position);
+        sprite.width = tile.document.width;
+        sprite.height = tile.document.height;
+        sprite.rotation = tile.mesh.rotation;
+        sprite.texture = tile.texture;
+        sprite.anchor.copyFrom(tile.mesh.anchor);
+      }
+    }
+
+    const currentZoom = canvas.stage.scale.x;
+    const lerp = (a, b, t) => a * (1 - t) + b * t;
+
+    let blur = 0;
+    let opacity = 1.0;
+
+    if (currentZoom <= this.zoomPointMin) {
+      blur = this.blurMinZoom;
+      opacity = this.opacityMinZoom;
+    } else if (currentZoom >= this.zoomPointMax) {
+      blur = this.blurMaxZoom;
+      opacity = this.opacityMaxZoom;
+    } else if (
+      currentZoom > this.zoomPointMin &&
+      currentZoom <= this.zoomPointMid
+    ) {
+      // Interpolate between min and mid
+      const range = this.zoomPointMid - this.zoomPointMin;
+      const progress =
+        (currentZoom - this.zoomPointMin) / (range > 0 ? range : 1);
+      blur = lerp(this.blurMinZoom, this.blurMidZoom, progress);
+      opacity = lerp(this.opacityMinZoom, this.opacityMidZoom, progress);
+    } else {
+      // currentZoom > this.zoomPointMid && currentZoom < this.zoomPointMax
+      // Interpolate between mid and max
+      const range = this.zoomPointMax - this.zoomPointMid;
+      const progress =
+        (currentZoom - this.zoomPointMid) / (range > 0 ? range : 1);
+      blur = lerp(this.blurMidZoom, this.blurMaxZoom, progress);
+      opacity = lerp(this.opacityMidZoom, this.opacityMaxZoom, progress);
+    }
+
+    if (this.blurFilter) {
+      const screenBlur = blur * currentZoom;
+      this.blurFilter.blur = screenBlur;
+      this.blurFilter.enabled = this.visible && screenBlur > 0.01;
+    }
+
+    if (this.compositeSprite) {
+      this.compositeSprite.alpha = opacity;
+    }
+
+    if (this.recolorFilter) {
+      const resourceManager = game.mapShine.resourceManager;
+      if (resourceManager) {
+        this.recolorFilter.uniforms.uStructuralMask =
+          resourceManager.getStructuralMask() ?? PIXI.Texture.WHITE;
+        this.recolorFilter.uniforms.uCloudShadows =
+          resourceManager.getRawCloudTexture(deltaTime) ?? PIXI.Texture.WHITE;
+      }
+    }
+
+    const renderer = canvas.app.renderer;
+    renderer.render(this.spritesContainer, {
+      renderTexture: this.compositeTexture,
+      clear: true,
+      transform: canvas.stage.transform.worldTransform,
+    });
+
+    const stage = canvas.stage;
+    const screen = renderer.screen;
+    const topLeft = stage.toLocal({ x: 0, y: 0 });
+    this.compositeSprite.position.copyFrom(topLeft);
+    this.compositeSprite.width = screen.width / stage.scale.x;
+    this.compositeSprite.height = screen.height / stage.scale.y;
+  }
+
+  _onResize() {
+    if (this._destroyed) return;
+    const renderer = canvas.app.renderer;
+    const screen = renderer.screen;
+    this.compositeTexture?.resize(screen.width, screen.height);
+    if (this.compositeSprite) {
+      this.compositeSprite.filterArea = screen;
+    }
+  }
+
+  async updateFromConfig(config) {
+    const oeConfig = config.overheadEffect;
+    this.visible = config.enabled && oeConfig.enabled;
+
+    this.blurMinZoom = oeConfig.blurMinZoom ?? 0;
+    this.blurMidZoom = oeConfig.blurMidZoom ?? 2;
+    this.blurMaxZoom = oeConfig.blurMaxZoom ?? 8;
+    this.opacityMinZoom = oeConfig.opacityMinZoom ?? 1.0;
+    this.opacityMidZoom = oeConfig.opacityMidZoom ?? 1.0;
+    this.opacityMaxZoom = oeConfig.opacityMaxZoom ?? 0.25;
+    this.zoomPointMin = oeConfig.zoomPointMin ?? 0.2;
+    this.zoomPointMid = oeConfig.zoomPointMid ?? 0.65;
+    this.zoomPointMax = oeConfig.zoomPointMax ?? 1.5;
+
+    if (this.recolorFilter) {
+      const rConfig = oeConfig.recolor;
+      this.recolorFilter.uniforms.uRecolorEnabled = rConfig.enabled;
+      this.recolorFilter.uniforms.uRecolorTint = hexToRgbArray(rConfig.tint);
+      this.recolorFilter.uniforms.uRecolorIntensity = rConfig.intensity;
+
+      const csdConfig = rConfig.cloudShadowDarken;
+      if (csdConfig) {
+        this.recolorFilter.uniforms.uCloudShadowDarkenEnabled =
+          csdConfig.enabled;
+        this.recolorFilter.uniforms.uCloudShadowDarkenIntensity =
+          csdConfig.intensity;
+      }
+    }
+  }
+
+  _refreshOverheadTiles() {
+    if (!this.spritesContainer) return;
+
+    const currentOverheadIds = new Set();
+    for (const tile of canvas.tiles.placeables) {
+      if (tile.document.overhead) {
+        currentOverheadIds.add(tile.id);
+        if (!this.overheadSprites.has(tile.id)) {
+          const sprite = new PIXI.Sprite(tile.texture);
+          const oeConfig =
+            game.mapShine.profileManager.activeConfig.overheadEffect;
+          const duration = (oeConfig.hoverFadeDuration || 500) / 1000;
+          sprite.eventMode = "static";
+          sprite.cursor = "pointer";
+          sprite.on("pointerover", () => {
+            if (this.activeAnimations.has(tile.id)) {
+              this.activeAnimations.get(tile.id).kill();
+            }
+            const anim = gsap.to(sprite, {
+              alpha: 0,
+              duration: duration,
+              ease: "power2.out",
+            });
+            this.activeAnimations.set(tile.id, anim);
+          });
+          sprite.on("pointerout", () => {
+            if (this.activeAnimations.has(tile.id)) {
+              this.activeAnimations.get(tile.id).kill();
+            }
+            const anim = gsap.to(sprite, {
+              alpha: 1,
+              duration: duration,
+              ease: "power2.inOut",
+            });
+            this.activeAnimations.set(tile.id, anim);
+          });
+          this.overheadSprites.set(tile.id, sprite);
+          this.spritesContainer.addChild(sprite);
+          tile.isManagedByOverheadLayer = true;
+          tile.mesh.alpha = 0;
+        }
+      }
+    }
+
+    for (const [id, sprite] of this.overheadSprites.entries()) {
+      if (!currentOverheadIds.has(id)) {
+        if (this.activeAnimations.has(id)) {
+          this.activeAnimations.get(id).kill();
+          this.activeAnimations.delete(id);
+        }
+        const tile = canvas.tiles.get(id);
+        if (tile) {
+          tile.isManagedByOverheadLayer = false;
+          tile.mesh.alpha = 1.0;
+        }
+        sprite.destroy();
+        this.overheadSprites.delete(id);
+      }
+    }
+  }
+}
+
 class DayNightClock extends Application {
   constructor(options = {}) {
     super(options);
@@ -26337,6 +25515,257 @@ class TimeOfDayLayer extends MaskedEffectLayer {
 //              and client-side settings overrides.
 // ---------------------------------------------------------------------------------
 
+class LoadingScreen {
+  constructor() {
+    this.element = null;
+    this.fadeOutDuration = 500;
+    this.minDisplayTime = 1500;
+    this.startTime = 0;
+    this.fillElement = null;
+    this.statusTextElement = null;
+    this.statusFadeDuration = 200; // Faster text fade
+
+    // Properties for hint cycling
+    this._hintInterval = null;
+    this._shuffledHints = [];
+    this._currentHintIndex = 0;
+  }
+
+  show() {
+    if (this.element) return;
+    this.startTime = Date.now();
+
+    this.element = document.createElement("div");
+    this.element.id = "map-shine-loading-screen";
+    this.element.style.opacity = "0";
+
+    const subheading = game.settings.get(MODULE_ID, "loading-screen-subheading");
+
+    this.element.innerHTML = `
+                        <div class="loading-content">
+                            <img src="modules/map-shine/assets/fvtt.png" class="loading-logo" alt="Foundry VTT Logo">
+                            <h2 class="loading-subhead">${subheading}</h2>
+                            <h1 class="loading-title">${game.world.title}</h1>
+                            <div class="loading-bar-container">
+                                <div class="loading-bar-fill"></div>
+                            </div>
+                            <div id="loading-status-text" class="loading-status"></div>
+                            <p id="loading-hint-text" class="loading-hint"></p>
+                        </div>
+                        <style>
+                            #map-shine-loading-screen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 1); z-index: 100000; display: flex; justify-content: center; align-items: center; color: white; font-family: Signika, sans-serif; transition: opacity ${
+                              this.fadeOutDuration / 1000
+                            }s ease-in-out; }
+                            .loading-content { text-align: center; }
+                            .loading-logo { width: 150px; height: auto; margin: 0 auto 10px auto; display: block; filter: drop-shadow(0 0 10px rgba(0,0,0,0.6)); }
+                            .loading-subhead { font-size: 24px; font-weight: normal; color: #bbb; margin: 0 0 10px 0; text-shadow: 0 0 5px #111; }
+                            .loading-title { font-size: 72px; margin: 0 0 30px 0; text-shadow: 0 0 10px #222; color: #fff; }
+                            .loading-bar-container { width: 400px; height: 20px; border: 2px solid rgba(255, 255, 255, 0.5); margin: 0 auto; background-color: rgba(0,0,0,0.5); border-radius: 5px; overflow: hidden; }
+                            .loading-bar-fill { width: 0%; height: 100%; background-color: rgba(255, 255, 255, 0.9); transform-origin: left; transition: width 0.2s ease-out; box-shadow: 0 0 10px rgba(255, 255, 255, 0.5); }
+                            .loading-status { margin-top: 15px; font-size: 16px; color: #ddd; height: 20px; line-height: 20px; opacity: 0; transition: opacity ${
+                              this.statusFadeDuration / 1000
+                            }s ease-in-out; }
+                            .loading-hint {
+                                margin-top: 25px;
+                                font-size: 16px;
+                                color: #aaa;
+                                font-style: italic;
+                                max-width: 50ch;
+                                margin-left: auto;
+                                margin-right: auto;
+                                min-height: 3em; /* Reserve space to prevent layout shifts */
+                                opacity: 0; /* Initially hidden, controlled by GSAP */
+                            }
+                        </style>
+                    `;
+
+    document.body.appendChild(this.element);
+    this.fillElement = this.element.querySelector(".loading-bar-fill");
+    this.statusTextElement = this.element.querySelector("#loading-status-text");
+
+    this.statusTextElement.innerText = "Initializing...";
+    this.statusTextElement.style.opacity = "1";
+
+    // Force a reflow before applying the final opacity to ensure the transition plays.
+    void this.element.offsetHeight;
+    this.element.style.opacity = "1";
+
+    // Hide the default Foundry VTT loading element
+    const foundryLoading = document.getElementById("loading");
+    if (foundryLoading) {
+      foundryLoading.style.display = "none";
+    }
+
+    // Start the hint cycle
+    this._cycleHints();
+  }
+
+  /**
+   * Manages the hint cycling animation.
+   * @private
+   */
+  _cycleHints() {
+    if (!this.element || typeof gsap === "undefined") return;
+
+    const hintElement = this.element.querySelector(".loading-hint");
+    const config = {
+      useRandomHint: game.settings.get(
+        MODULE_ID,
+        "universal.sceneTransition.useRandomHint"
+      ),
+      randomHints: (
+        game.settings.get(
+          MODULE_ID,
+          "universal.sceneTransition.randomHints"
+        ) || ""
+      )
+        .split("\n")
+        .filter((h) => h.trim() !== ""),
+    };
+
+    if (!hintElement || !config.useRandomHint || !config.randomHints?.length) {
+      return;
+    }
+
+    // Fisher-Yates shuffle algorithm
+    this._shuffledHints = [...config.randomHints];
+    for (let i = this._shuffledHints.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [this._shuffledHints[i], this._shuffledHints[j]] = [
+        this._shuffledHints[j],
+        this._shuffledHints[i],
+      ];
+    }
+
+    this._currentHintIndex = 0;
+
+    if (this._shuffledHints.length <= 1) {
+      if (this._shuffledHints.length === 1) {
+        hintElement.innerText = this._shuffledHints[0];
+        gsap.to(hintElement, { opacity: 1, duration: 1.0 });
+      }
+      return;
+    }
+
+    const HINT_FADE_DURATION = 1.0;
+    const HINT_PAUSE_DURATION = 5.0;
+
+    const showNextHint = () => {
+      if (!this.element || !hintElement || this._hintInterval === null) {
+        this._stopHintCycle();
+        return;
+      }
+
+      const tl = gsap.timeline({
+        onComplete: () => {
+          this._hintInterval = gsap.delayedCall(
+            HINT_PAUSE_DURATION,
+            showNextHint
+          );
+        },
+      });
+
+      tl.to(hintElement, {
+        opacity: 0,
+        duration: HINT_FADE_DURATION,
+        ease: "power2.in",
+      });
+      tl.call(() => {
+        this._currentHintIndex =
+          (this._currentHintIndex + 1) % this._shuffledHints.length;
+        hintElement.innerText = this._shuffledHints[this._currentHintIndex];
+      });
+      tl.to(hintElement, {
+        opacity: 1,
+        duration: HINT_FADE_DURATION,
+        ease: "power2.out",
+      });
+    };
+
+    hintElement.innerText = this._shuffledHints[this._currentHintIndex];
+    gsap.to(hintElement, {
+      opacity: 1,
+      duration: 1.0,
+      onComplete: () => {
+        this._hintInterval = gsap.delayedCall(HINT_PAUSE_DURATION, showNextHint);
+      },
+    });
+  }
+
+  /**
+   * Clears the hint cycling interval/timeline.
+   * @private
+   */
+  _stopHintCycle() {
+    if (this._hintInterval) {
+      this._hintInterval.kill();
+      this._hintInterval = null;
+    }
+    this._shuffledHints = [];
+    this._currentHintIndex = 0;
+  }
+
+  setProgress(progress, message) {
+    if (!this.fillElement) return;
+    const p = Math.min(100, Math.max(0, progress));
+    this.fillElement.style.width = `${p}%`;
+
+    if (
+      message &&
+      this.statusTextElement &&
+      this.statusTextElement.innerText !== message
+    ) {
+      // Fade out, change text, then fade in for a smooth transition.
+      this.statusTextElement.style.opacity = "0";
+      setTimeout(() => {
+        if (this.statusTextElement) {
+          this.statusTextElement.innerText = message;
+          this.statusTextElement.style.opacity = "1";
+        }
+      }, this.statusFadeDuration);
+    }
+  }
+
+  setStatus(message) {
+    if (this.statusTextElement) {
+      this.statusTextElement.innerText = message;
+      // Ensure text is visible, in case a fade-out from setProgress was in progress.
+      if (this.statusTextElement.style.opacity !== "1") {
+        this.statusTextElement.style.opacity = "1";
+      }
+    }
+  }
+
+  async hide() {
+    this._stopHintCycle();
+    if (!this.element) return;
+
+    // Ensure we wait for the minimum display time before starting the fade out.
+    const elapsed = Date.now() - this.startTime;
+    const remainingTime = Math.max(0, this.minDisplayTime - elapsed);
+    await new Promise((resolve) => setTimeout(resolve, remainingTime));
+
+    if (this.element) {
+      this.element.style.opacity = "0";
+      // Wait for the fade-out transition to complete before removing the element.
+      await new Promise((resolve) =>
+        setTimeout(resolve, this.fadeOutDuration + 50)
+      );
+    }
+
+    this.element?.remove();
+    this.element = null;
+    this.fillElement = null;
+    this.statusTextElement = null;
+
+    // Restore foundry loading screen in case it's needed later (e.g. returning to setup)
+    const foundryLoading = document.getElementById("loading");
+    if (foundryLoading) {
+      foundryLoading.style.display = "";
+    }
+  }
+}
+
 const CLIENT_OVERRIDES_CONFIG = {
   baseShine: {
     name: "Metallic Shine",
@@ -26419,13 +25848,6 @@ const CLIENT_OVERRIDES_CONFIG = {
     intensitySubPath: "maskInfluence",
     tooltip:
       "Adds tiny, bright sparkles to highly reflective or magical surfaces.",
-  },
-  metallicGlints: {
-    name: "Metallic Glints",
-    path: "metallicGlints",
-    intensitySubPath: "maskInfluence",
-    tooltip:
-      "Adds colored sparkles to the brightest highlights on metallic surfaces.",
   },
   fire: {
     name: "Fire Particles",
@@ -26729,13 +26151,9 @@ class DebuggerUIBuilder {
     const mainContentArea = element.querySelector(".main-content-area");
 
     const managedEffects = ScreenEffectsManager.getManagedEffectsHTML();
-    const loadingScreenHTML = this._buildLoadingScreenSection();
-    const pauseEffectHTML = this._buildPauseEffectSection();
 
     postProcessingPane.innerHTML = managedEffects.postProcessing;
     postProcessingPane.innerHTML += this._buildParticleSystemSection();
-    postProcessingPane.innerHTML += loadingScreenHTML;
-    postProcessingPane.innerHTML += pauseEffectHTML;
 
     const otherEffectSections = this._getEffectSections();
 
@@ -26754,115 +26172,6 @@ class DebuggerUIBuilder {
       DebuggerUIBuilder._buildBottomBar();
 
     return element;
-  }
-
-  _buildLoadingScreenSection() {
-    const content = `
-      <p class="description-text">Configure the initial world loading screen and scene-to-scene transitions.</p>
-      
-      <details id="details-loadingScreen-initial">
-        <summary><span class="accordion-toggle"></span><strong>Backgrounds &amp; Overlays</strong></summary>
-        <div style="padding-left: 15px;">
-          <p class="description-text">Settings for the background image and overlay for both the initial loading screen and scene transitions.</p>
-          ${DebuggerUIBuilder._createTextInputWithPickerHTML(
-            "loading-screen-static-background",
-            "Static Background"
-          )}
-          ${DebuggerUIBuilder._createCheckboxHTML(
-            "loading-screen-use-random-background",
-            "Use Random Background"
-          )}
-          <div id="loading-screen-random-backgrounds-wrapper">
-             ${DebuggerUIBuilder._createListManagerHTML(
-               "loading-screen-random-backgrounds",
-               "Background Image",
-               "image"
-             )}
-          </div>
-          <details id="details-initial-loading-bgOverlay">
-            <summary><span class="accordion-toggle"></span>
-                <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                  "loading-screen-background-overlay-enabled",
-                  "Enable Background Overlay",
-                  true
-                )}</div>
-            </summary>
-            <div style="padding-left: 15px;">
-                 ${DebuggerUIBuilder._createSliderHTML(
-                   "loading-screen-background-overlay-opacity",
-                   "Overlay Opacity",
-                   0,
-                   1,
-                   0.05
-                 )}
-            </div>
-          </details>
-        </div>
-      </details>
-      
-      <details id="details-loadingScreen-transition">
-        <summary><span class="accordion-toggle"></span><strong>Scene Transition Content</strong></summary>
-        <div style="padding-left: 15px;">
-          <p class="description-text">Settings for the text, logo, and timing of the animated transition between scenes.</p>
-          ${DebuggerUIBuilder._createCheckboxHTML(
-            "universal.sceneTransition.enabled",
-            "Enable Scene Transitions"
-          )}
-          ${DebuggerUIBuilder._createSliderHTML(
-            "universal.sceneTransition.fadeOutDuration",
-            "Fade Out (ms)",
-            0,
-            10000,
-            100
-          )}
-          ${DebuggerUIBuilder._createSliderHTML(
-            "universal.sceneTransition.fadeInDuration",
-            "Fade In (ms)",
-            0,
-            10000,
-            100
-          )}
-          <hr style="border-color: #555; margin: 6px 0;">
-          ${DebuggerUIBuilder._createTextInputWithPickerHTML(
-            "universal.sceneTransition.logoPath",
-            "Logo Path"
-          )}
-          ${DebuggerUIBuilder._createTextInputHTML(
-            "universal.sceneTransition.heading",
-            "Heading"
-          )}
-          ${DebuggerUIBuilder._createTextInputHTML(
-            "universal.sceneTransition.subheading",
-            "Subheading"
-          )}
-          ${DebuggerUIBuilder._createTextInputHTML(
-            "universal.sceneTransition.staticDescription",
-            "Description"
-          )}
-          ${DebuggerUIBuilder._createCheckboxHTML(
-            "universal.sceneTransition.showSceneName",
-            "Show Scene Name"
-          )}
-          <hr style="border-color: #555; margin: 6px 0;">
-          ${DebuggerUIBuilder._createCheckboxHTML(
-            "universal.sceneTransition.useRandomHint",
-            "Use Random Hint"
-          )}
-          <div id="sceneTransition-randomHints-wrapper">
-             ${DebuggerUIBuilder._createListManagerHTML(
-               "universal.sceneTransition.randomHints",
-               "Hint",
-               "text"
-             )}
-          </div>
-        </div>
-      </details>
-    `;
-    return DebuggerUIBuilder._createAccordionHTML(
-      "loadingScreen",
-      "Loading Screen & Transitions",
-      content
-    );
   }
 
   _buildParticleSystemSection() {
@@ -27293,91 +26602,6 @@ class DebuggerUIBuilder {
         `;
   }
 
-  _buildPauseEffectSection() {
-    const content = `
-      <p class="description-text">Configure the visual appearance of the screen that appears when the game is paused.</p>
-      
-      <details id="details-pauseEffect-content">
-        <summary><span class="accordion-toggle"></span><strong>Content &amp; Text</strong></summary>
-        <div style="padding-left: 15px;">
-          ${DebuggerUIBuilder._createTextInputHTML(
-            "universal.pauseEffect.heading",
-            "Heading"
-          )}
-          ${DebuggerUIBuilder._createTextInputHTML(
-            "universal.pauseEffect.subheading",
-            "Subheading"
-          )}
-        </div>
-      </details>
-      
-      <details id="details-pauseEffect-styling">
-        <summary><span class="accordion-toggle"></span><strong>Styling &amp; Colors</strong></summary>
-        <div style="padding-left: 15px;">
-          ${DebuggerUIBuilder._createTextInputWithPickerHTML(
-            "universal.pauseEffect.logoPath",
-            "Logo Path"
-          )}
-          ${DebuggerUIBuilder._createSliderHTML(
-            "universal.pauseEffect.logoOpacity",
-            "Logo Opacity",
-            0,
-            1,
-            0.05
-          )}
-          <hr style="border-color: #555; margin: 6px 0;">
-          ${DebuggerUIBuilder._createTextInputHTML(
-            "universal.pauseEffect.backgroundColor",
-            "Background"
-          )}
-          ${DebuggerUIBuilder._createColorPickerHTML(
-            "universal.pauseEffect.gradientColor1",
-            "Gradient Color 1"
-          )}
-          ${DebuggerUIBuilder._createTextInputHTML(
-            "universal.pauseEffect.gradientColor2",
-            "Gradient Color 2"
-          )}
-          <hr style="border-color: #555; margin: 6px 0;">
-          ${DebuggerUIBuilder._createColorPickerHTML(
-            "universal.pauseEffect.headingColor",
-            "Heading Color"
-          )}
-          ${DebuggerUIBuilder._createColorPickerHTML(
-            "universal.pauseEffect.subheadingColor",
-            "Subheading Color"
-          )}
-          ${DebuggerUIBuilder._createColorPickerHTML(
-            "universal.pauseEffect.hintColor",
-            "Hint Color"
-          )}
-        </div>
-      </details>
-      
-      <details id="details-pauseEffect-hints">
-        <summary><span class="accordion-toggle"></span><strong>Random Hints</strong></summary>
-        <div style="padding-left: 15px;">
-          ${DebuggerUIBuilder._createCheckboxHTML(
-            "universal.pauseEffect.useRandomHint",
-            "Show Random Hint"
-          )}
-          <div id="pauseEffect-randomHints-wrapper">
-             ${DebuggerUIBuilder._createListManagerHTML(
-               "universal.pauseEffect.randomHints",
-               "Hint",
-               "text"
-             )}
-          </div>
-        </div>
-      </details>
-    `;
-    return DebuggerUIBuilder._createAccordionHTML(
-      "pauseEffectOverlay",
-      "Pause Effect Overlay",
-      content
-    );
-  }
-
   _buildProfileSection() {
     const isGm = game.user.isGM;
     const worldProfileSection = isGm
@@ -27496,29 +26720,7 @@ class DebuggerUIBuilder {
   }
 
   static _createAccordionHTML(id, title, content, headerExtra = "") {
-    let path = `${id}.enabled`;
-    if (id === "loadingScreen") {
-      // The loading screen accordion doesn't have a single master toggle.
-      // We'll create a dummy path for the ID and not render a checkbox.
-      path = "loadingScreen.accordion";
-      const labelHtml = `<span class="summary-label">${title}</span>`;
-      const resetButtonHtml = `<button type="button" class="reset-accordion-btn" data-action="reset-accordion" data-effect-key="${id}" title="Reset this section to defaults">R</button>`;
-
-      return `<details id="details-${id}">
-                              <summary>
-                                  <span class="accordion-toggle"></span>
-                                  <div class="summary-control" style="justify-content: flex-start;">
-                                      <div style="display: flex; align-items: center; gap: 5px;">
-                                          ${labelHtml}
-                                          ${resetButtonHtml}
-                                          ${headerExtra}
-                                      </div>
-                                  </div>
-                              </summary>
-                              <div style="padding-top: 5px;">${content}</div>
-                          </details>`;
-    }
-
+    const path = `${id}.enabled`;
     const checkboxId = this._createSafeId(path);
     const labelHtml = `<span class="summary-label">${title}</span>`;
     const resetButtonHtml = `<button type="button" class="reset-accordion-btn" data-action="reset-accordion" data-effect-key="${id}" title="Reset this section to defaults">R</button>`;
@@ -27616,40 +26818,34 @@ class DebuggerUIBuilder {
   }
 
   static _createTextureInputHTML(key, label) {
-    return `<div class="control-row" style="margin-bottom: 5px;"><label><span id="status-textures-${key}" class="traffic-light unknown"></span>${label}</label><input type="text" id="texture-path-${key}" disabled placeholder="Not found..." title="This path is discovered automatically based on the base map's filename. (e.g., 'map.webp' -> 'map_Specular.webp')"></div>`;
+    return `<div class="control-row" style="margin-bottom: 5px;"><label><span id="status-textures-${key}" class="traffic-light unknown"></span>${label}</label><input type="text" id="texture-path-${key}" disabled title="This path is discovered automatically based on the base map's filename. (e.g., 'map.webp' -> 'map_Specular.webp')"></div>`;
   }
 
-  static _createListManagerHTML(path, itemLabel, itemType = "text") {
+  static _createListManagerHTML(path, addButtonLabel, itemLabel) {
     const id = this._createSafeId(path);
     const listContainerId = `${id}-list-container`;
     const addButtonId = `${id}-add-btn`;
-    const addButtonLabel = `Add ${itemLabel}`;
 
     return `
-      <div id="${id}" class="list-manager-container" data-path="${path}" data-item-type="${itemType}">
-        <div class="control-row">
-          <label>${itemLabel}s</label>
-          <button type="button" id="${addButtonId}" data-action="add-list-item" class="add-item-btn">${addButtonLabel}</button>
-        </div>
-        <div id="${listContainerId}" class="list-items-container" style="display: flex; flex-direction: column; gap: 4px; margin-top: 5px; padding-left: 10px;">
-          <!-- Items will be populated by JS -->
-        </div>
-      </div>
-      <style>
-        .list-manager-container .list-item-row { display: flex; align-items: center; gap: 5px; }
-        .list-manager-container .list-item-row input[type=text] { flex-grow: 1; }
-        .list-manager-container .list-item-row .remove-item-btn { 
-          flex-shrink: 0; background: #662222; border: 1px solid #aa6666; color: #ffcccc; 
-          font-weight: bold; width: 22px; height: 22px; line-height: 20px; text-align: center; 
-          cursor: pointer; border-radius: 4px; padding: 0;
-        }
-        .list-manager-container .list-item-row .remove-item-btn:hover { background: #883333; }
-        .list-manager-container .add-item-btn {
-            background-color: #2a552a; border-color: #6aaa6a; color: #ccffcc;
-        }
-        .list-manager-container .add-item-btn:hover { background-color: #3a753a; }
-      </style>
-    `;
+                    <div id="${id}" class="list-manager-container" data-path="${path}">
+                        <div class="control-row">
+                            <label>${itemLabel}</label>
+                            <button id="${addButtonId}" data-action="add-item" class="add-item-btn">${addButtonLabel}</button>
+                        </div>
+                        <div id="${listContainerId}" class="list-items-container" style="display: flex; flex-direction: column; gap: 4px; margin-top: 5px; padding-left: 10px;">
+                        </div>
+                    </div>
+                    <style>
+                        .list-manager-container .list-item-row { display: flex; align-items: center; gap: 5px; }
+                        .list-manager-container .list-item-row input[type=text] { flex-grow: 1; }
+                        .list-manager-container .list-item-row .remove-item-btn { 
+                            flex-shrink: 0; background: #662222; border: 1px solid #aa6666; color: #ffcccc; 
+                            font-weight: bold; width: 22px; height: 22px; line-height: 22px; text-align: center; 
+                            cursor: pointer; border-radius: 4px; padding: 0;
+                        }
+                        .list-manager-container .list-item-row .remove-item-btn:hover { background: #883333; }
+                    </style>
+                `;
   }
 
   static _createDayNightClockHTML() {
@@ -27678,6 +26874,8 @@ class DebuggerUIBuilder {
         `;
   }
 
+
+
   _getEffectSections() {
     return [
       MetallicShineLayer.getSettingsHTML(),
@@ -27696,7 +26894,6 @@ class DebuggerUIBuilder {
       ParticleEffectController.getSettingsHTML("sparks"),
       ParticleEffectController.getSettingsHTML("dust"),
       ParticleEffectController.getSettingsHTML("glint"),
-      ParticleEffectController.getSettingsHTML("metallicGlints"),
       ParticleEffectController.getSmellyFliesSettingsHTML(),
       LightningManager.getSettingsHTML(),
       this._getOverheadEffectHTML(),
@@ -27926,13 +27123,22 @@ class DebuggerEventHandler {
    * @param {*} value - The new value for the setting.
    */
   async _performSystemUpdate(path, value) {
-    const isGameSetting =
-      path.startsWith("universal.") || path.startsWith("loading-screen-");
+    const universalEffectPrefixes = [
+      "sceneTransition.",
+      "pauseEffect.",
+      "combatEffect.",
+    ];
+    const isUniversal = universalEffectPrefixes.some((prefix) =>
+      path.startsWith(prefix)
+    );
 
-    if (isGameSetting) {
-      await game.settings.set(MODULE_ID, path, value);
-      // A full refresh ensures any managers reading these settings are updated.
-      await this.profileManager.initializeForScene();
+    if (isUniversal) {
+      // The path from the UI control is relative (e.g., "sceneTransition.enabled").
+      // The actual setting key is prefixed with "universal.".
+      await game.settings.set(MODULE_ID, `universal.${path}`, value);
+      // For universal settings, we don't need a full profile update,
+      // as their managers read directly from game.settings.
+      // A full refresh might be needed if they affect visuals directly, which they do.
       await this.profileManager.updateAllSystemsFromConfig();
     } else {
       await this.profileManager.recordUserChange(path, value);
@@ -28006,10 +27212,10 @@ class DebuggerEventHandler {
   addEventListeners() {
     // Main delegated listeners that survive re-renders
     this.element.addEventListener("input", this._handleGenericInput.bind(this));
-    this.element.addEventListener(
-      "change",
-      this._handleGenericInput.bind(this)
-    );
+    this.element.addEventListener("change", (e) => {
+      this._handleGenericInput(e);
+      this._handleListManagerChange(e);
+    });
     this.element.addEventListener(
       "click",
       this._handleDelegatedClick.bind(this)
@@ -28030,6 +27236,57 @@ class DebuggerEventHandler {
     Hooks.on("mapShine:timeChanged", this._onTimeChangedBound);
   }
 
+  async _handleListManagerClick(event) {
+    event.preventDefault();
+    const button = event.currentTarget;
+    const action = button.dataset.action;
+    const container = button.closest(".list-manager-container");
+    if (!container) return;
+    const path = container.dataset.path; // e.g., "sceneTransition.randomHints"
+
+    // This is a universal setting, so we operate on game.settings directly
+    const settingKey = `universal.${path}`;
+    const currentList =
+      game.settings
+        .get(MODULE_ID, settingKey)
+        .split("\n")
+        .filter((h) => h) || [];
+
+    if (action === "add-item") {
+      if (path.endsWith("randomHints")) currentList.push("New Hint");
+      else if (path.endsWith("backgroundImages"))
+        currentList.push("path/to/image.webp");
+    } else if (action === "remove-item") {
+      const index = parseInt(button.dataset.index, 10);
+      if (!isNaN(index)) currentList.splice(index, 1);
+    }
+
+    await game.settings.set(MODULE_ID, settingKey, currentList.join("\n"));
+    if (game.mapShine.debugger) game.mapShine.debugger.render();
+  }
+
+  async _handleListManagerChange(event) {
+    const target = event.target;
+    const container = target.closest(".list-manager-container");
+    if (!container) return;
+
+    const path = container.dataset.path; // e.g., "sceneTransition.randomHints"
+    const index = parseInt(target.dataset.index, 10);
+
+    const settingKey = `universal.${path}`;
+    const currentList =
+      game.settings
+        .get(MODULE_ID, settingKey)
+        .split("\n")
+        .filter((h) => h) || [];
+
+    if (!isNaN(index) && currentList[index] !== undefined) {
+      currentList[index] = target.value;
+    }
+
+    await game.settings.set(MODULE_ID, settingKey, currentList.join("\n"));
+  }
+
   // A single, robust click handler for all data-actions
   async _handleDelegatedClick(e) {
     this._handleFilePickerClick(e);
@@ -28039,7 +27296,7 @@ class DebuggerEventHandler {
 
     const action = target.dataset.action;
 
-    if (action === "add-list-item" || action === "remove-list-item") {
+    if (action === "add-item" || action === "remove-item") {
       this._handleListManagerClick(e);
       return;
     }
@@ -28048,15 +27305,7 @@ class DebuggerEventHandler {
     switch (action) {
       case "reset-accordion": {
         const effectKey = target.dataset.effectKey;
-        if (!effectKey) return;
-
-        let defaultsToUse = MODULE_DEFAULTS[effectKey];
-        if (effectKey === "loadingScreen") {
-          // Special handling for the combined accordion
-          defaultsToUse = UNIVERSAL_EFFECT_DEFAULTS.sceneTransition;
-        }
-
-        if (!defaultsToUse) {
+        if (!effectKey || !MODULE_DEFAULTS[effectKey]) {
           console.warn(
             `Map Shine | Invalid effect key for reset: ${effectKey}`
           );
@@ -28067,30 +27316,20 @@ class DebuggerEventHandler {
           title: `Reset ${effectKey} Settings`,
           content: `<p>Are you sure you want to reset all settings in the "<strong>${effectKey}</strong>" section to their default values? This will create unsaved changes.</p>`,
           yes: async () => {
-            if (effectKey === "loadingScreen") {
-              for (const key in defaultsToUse) {
-                const path = `universal.sceneTransition.${key}`;
-                const settingKey = `universal.sceneTransition.${key}`;
-                const defaultValue = defaultsToUse[key];
-                if (Array.isArray(defaultValue)) {
-                  await game.settings.set(
-                    MODULE_ID,
-                    settingKey,
-                    defaultValue.join("\n")
-                  );
-                } else {
-                  await game.settings.set(MODULE_ID, settingKey, defaultValue);
-                }
-              }
-            } else {
-              const defaultSection = foundry.utils.deepClone(defaultsToUse);
-              await this.profileManager.recordUserChange(
-                effectKey,
-                defaultSection
-              );
-            }
+            const defaultSection = foundry.utils.deepClone(
+              MODULE_DEFAULTS[effectKey]
+            );
+
+            // This records the entire object reset as a user override.
+            await this.profileManager.recordUserChange(
+              effectKey,
+              defaultSection
+            );
+
+            // Trigger a full visual refresh
             await this.profileManager.updateAllSystemsFromConfig();
             this.updateAllControls();
+
             ui.notifications.info(
               `"${effectKey}" section has been reset to defaults.`
             );
@@ -28196,6 +27435,162 @@ class DebuggerEventHandler {
     }
   }
 
+  async _onImportWorldProfile() {
+    const dropdown = this.element.querySelector("#profiles-dropdown");
+    if (!dropdown || !dropdown.value) return;
+    await this.profileManager.importWorldProfile(dropdown.value);
+  }
+
+  async _onNewCleanProfileClick() {
+    if (!this.profileManager.isGm) {
+      ui.notifications.warn("Only GMs can create new profiles.");
+      return;
+    }
+
+    new Dialog({
+      title: "Create New Clean Profile",
+      content: `<p>Enter a name for the new profile. It will be created using only the module's hard-coded default settings.</p><input type="text" name="profileName" placeholder="e.g., Clean Day"/>`,
+      buttons: {
+        create: {
+          icon: '<i class="fas fa-plus-square"></i>',
+          label: "Create",
+          callback: async (html) => {
+            const name = html.find('input[name="profileName"]').val();
+            if (name && name.trim()) {
+              await this.profileManager.createCleanSceneProfile(name.trim());
+            } else {
+              ui.notifications.warn("Profile name cannot be empty.");
+            }
+          },
+        },
+        cancel: {
+          icon: '<i class="fas fa-times"></i>',
+          label: "Cancel",
+        },
+      },
+      default: "create",
+      render: (html) => html.find('input[name="profileName"]').focus(),
+    }).render(true);
+  }
+
+  async _onRenameSceneProfileClick() {
+    const dropdown = this.element.querySelector("#scene-profile-select");
+    if (!dropdown || !dropdown.value || dropdown.value === "-1") return;
+    const profileId = dropdown.value;
+    const profiles = this.profileManager.getSceneProfiles();
+    const currentProfile = profiles.find((p) => p.id === profileId);
+    if (!currentProfile) return;
+
+    new Dialog({
+      title: "Rename Scene Appearance",
+      content: `<p>Enter a new name for "${Handlebars.escapeExpression(
+        currentProfile.name
+      )}".</p><input type="text" name="profileName" value="${Handlebars.escapeExpression(
+        currentProfile.name
+      )}"/>`,
+      buttons: {
+        save: {
+          icon: '<i class="fas fa-save"></i>',
+          label: "Rename",
+          callback: async (html) => {
+            const name = html.find('input[name="profileName"]').val();
+            await this.profileManager.renameSceneProfile(profileId, name);
+          },
+        },
+        cancel: {
+          icon: '<i class="fas fa-times"></i>',
+          label: "Cancel",
+        },
+      },
+      default: "save",
+      render: (html) => html.find('input[name="profileName"]').focus(),
+    }).render(true);
+  }
+
+  async _onDeleteSceneProfileClick() {
+    const dropdown = this.element.querySelector("#scene-profile-select");
+    if (!dropdown || !dropdown.value || dropdown.value === "-1") return;
+    const profileId = dropdown.value;
+    const profiles = this.profileManager.getSceneProfiles();
+    const profileToDelete = profiles.find((p) => p.id === profileId);
+    if (!profileToDelete) return;
+
+    Dialog.confirm({
+      title: "Delete Scene Appearance",
+      content: `<p>Are you sure you want to delete the appearance profile "<strong>${Handlebars.escapeExpression(
+        profileToDelete.name
+      )}</strong>"? This cannot be undone.</p>`,
+      yes: async () => {
+        await this.profileManager.deleteSceneProfile(profileId);
+      },
+      defaultYes: false,
+    });
+  }
+
+  async _onSaveSceneProfileClick() {
+    const nameInput = this.element.querySelector("#new-scene-profile-name");
+    if (!nameInput) return;
+    const name = nameInput.value.trim();
+    if (name) {
+      await this.profileManager.createSceneProfile(name);
+      nameInput.value = ""; // Clear the input after creation
+    } else {
+      ui.notifications.warn("Profile name cannot be empty.");
+    }
+  }
+
+  _onOpenUserGuide() {
+    game.mapShine.showUserGuide();
+  }
+
+  _renderHintList() {
+    const path = "sceneTransition.randomHints";
+    const container = this.element.querySelector(
+      `#${DebuggerUIBuilder._createSafeId(path)}-list-container`
+    );
+    if (!container) return;
+
+    const hintsString = game.settings.get(MODULE_ID, `universal.${path}`) || "";
+    const hints = hintsString.split("\n").filter((h) => h);
+    container.innerHTML = hints
+      .map(
+        (hint, index) => `
+                    <div class="list-item-row">
+                        <input type="text" data-index="${index}" value="${Handlebars.escapeExpression(
+          hint
+        )}">
+                        <button class="remove-item-btn" data-action="remove-item" data-index="${index}" title="Remove Hint">X</button>
+                    </div>
+                `
+      )
+      .join("");
+  }
+
+  _renderBackgroundList() {
+    const path = "sceneTransition.backgroundImages";
+    const container = this.element.querySelector(
+      `#${DebuggerUIBuilder._createSafeId(path)}-list-container`
+    );
+    if (!container) return;
+
+    const bgString = game.settings.get(MODULE_ID, `universal.${path}`) || "";
+    const backgrounds = bgString.split("\n").filter((h) => h);
+    container.innerHTML = backgrounds
+      .map((bg, index) => {
+        const inputId = `background-image-path-${index}`;
+        return `
+                    <div class="list-item-row">
+                        <input type="text" id="${inputId}" data-index="${index}" value="${Handlebars.escapeExpression(
+          bg
+        )}">
+                        <button type="button" class="file-picker-btn" data-fp-target="${inputId}" data-fp-type="image" title="Browse Files"><i class="fas fa-file-import"></i></button>
+                        <button class="remove-item-btn" data-action="remove-item" data-index="${index}" title="Remove Background">X</button>
+                    </div>
+                `;
+      })
+      .join("");
+  }
+
   _onTimeChanged(time) {
     this.updateAllControls(time);
   }
@@ -28269,16 +27664,21 @@ class DebuggerEventHandler {
       time ?? this.profileManager.activeConfig.timeOfDay.currentTime ?? 12.0;
 
     this.element.querySelectorAll("[data-path]").forEach((el) => {
-      if (el.closest(".list-manager-container")) return;
+      if (el.classList.contains("list-manager-container")) return;
       const path = el.dataset.path;
 
-      const isGameSetting =
-        path.startsWith("universal.") || path.startsWith("loading-screen-");
-      let value;
+      const isUniversal = [
+        "sceneTransition.",
+        "pauseEffect.",
+        "combatEffect.",
+      ].some((p) => path.startsWith(p));
 
-      if (isGameSetting) {
-        value = game.settings.get(MODULE_ID, path);
+      let value;
+      if (isUniversal) {
+        // Correctly fetch individual universal settings
+        value = game.settings.get(MODULE_ID, `universal.${path}`);
       } else {
+        // Fetch profile-specific settings
         value = this._getPathValue(this.config, path);
       }
 
@@ -28288,7 +27688,7 @@ class DebuggerEventHandler {
       else if (el.type === "radio") el.checked = el.value === String(value);
       else el.value = value;
 
-      if (el.id === "control-sceneAppearance-transitionDuration") {
+      if (el.id === "scene-transition-duration") {
         const seconds = Math.round(Number(value) / 1000);
         this._updateSliderValue(el.id, `${seconds}s`);
       } else if (el.type === "range") {
@@ -28308,16 +27708,11 @@ class DebuggerEventHandler {
       icon.classList.toggle("active", isWorldBased);
     });
 
-    this.element
-      .querySelectorAll(".list-manager-container")
-      .forEach((container) => {
-        const path = container.dataset.path;
-        this._renderListManagerItems(path);
-      });
-
+    this._updatePatternControlVisibility();
+    this._renderHintList();
+    this._renderBackgroundList();
     this._updateRandomHintVisibility();
-    this._updatePauseHintVisibility();
-    this._updateInitialRandomBackgroundVisibility();
+    this._updateRandomBackgroundVisibility();
     this._updateBackgroundOverlayVisibility();
     this._updateLutControlVisibility();
     this._updateCurveEditorView();
@@ -28394,6 +27789,10 @@ class DebuggerEventHandler {
       dropdown.add(new Option("No scene profiles", "-1"));
       dropdown.disabled = true;
     }
+  }
+
+  _onProfileSelectChange(event) {
+    // This doesn't need to do anything immediately. The preview/activate buttons will read the dropdown's value when clicked.
   }
 
   async _onPreviewClick(event) {
@@ -28720,166 +28119,65 @@ class DebuggerEventHandler {
     }).browse(targetInput.value);
   }
 
-  async _handleListManagerClick(event) {
-    const button = event.target.closest("button[data-action]");
-    const action = button.dataset.action;
-    const container = button.closest(".list-manager-container");
-    if (!container) return;
-
-    const path = container.dataset.path;
+  _handleGenericInput(e) {
+    const path = e.target.dataset.path;
     if (!path) return;
 
-    const currentString = game.settings.get(MODULE_ID, path) || "";
-    let list = currentString ? currentString.split(/\r?\n/) : [];
+    if (e.target.closest(".list-manager-container")) return;
 
-    if (action === "add-list-item") {
-      list.push(""); // Add a new empty item to be filled
-    } else if (action === "remove-list-item") {
-      const index = parseInt(button.dataset.index, 10);
-      if (!isNaN(index)) {
-        list.splice(index, 1);
-      }
-    }
-
-    await game.settings.set(MODULE_ID, path, list.join("\n"));
-    this._renderListManagerItems(path); // Re-render the list in the UI
-  }
-
-  async _handleListManagerInputChange(input) {
-    const container = input.closest(".list-manager-container");
-    if (!container) return;
-
-    const path = container.dataset.path;
-    if (!path) return;
-
-    const itemInputs = container.querySelectorAll(
-      '.list-item-row input[type="text"]'
-    );
-    const newList = Array.from(itemInputs).map((el) => el.value);
-    const finalValue = newList.join("\n");
-
-    // We can just call game.settings.set directly like the click handler,
-    // since these are all game settings.
-    await game.settings.set(MODULE_ID, path, finalValue);
-    // No need to call _performSystemUpdate which does a lot more than necessary here.
-    // We do need to refresh the canvas state though.
-    await this.profileManager.initializeForScene();
-    await this.profileManager.updateAllSystemsFromConfig();
-  }
-
-  _renderListManagerItems(path) {
-    const container = this.element.querySelector(`[data-path="${path}"]`);
-    if (!container) return;
-    const listContainer = container.querySelector(".list-items-container");
-    const itemType = container.dataset.itemType;
-    if (!listContainer) return;
-
-    const valueString = game.settings.get(MODULE_ID, path) || "";
-    let items = valueString ? valueString.split(/\r?\n/) : [];
-    if (items.length === 1 && items[0] === "") {
-      items.length = 0;
-    }
-
-    listContainer.innerHTML = items
-      .map((item, index) => {
-        const inputId = `${DebuggerUIBuilder._createSafeId(
-          path
-        )}-item-${index}`;
-        const filePickerButton =
-          itemType === "image"
-            ? `<button type="button" class="file-picker-btn" data-fp-target="${inputId}" data-fp-type="image" title="Browse Files"><i class="fas fa-file-import"></i></button>`
-            : "";
-
-        return `
-        <div class="list-item-row">
-            <input type="text" id="${inputId}" data-index="${index}" value="${Handlebars.escapeExpression(
-          item
-        )}">
-            ${filePickerButton}
-            <button type="button" class="remove-item-btn" data-action="remove-list-item" data-index="${index}" title="Remove Item">X</button>
-        </div>
-      `;
-      })
-      .join("");
-  }
-
-  async _handleGenericInput(e) {
-    const target = e.target;
-
-    // First, handle the special case of list managers
-    if (target.closest(".list-manager-container")) {
-      // We only want to save on 'change' to avoid saving on every keystroke,
-      // which can be laggy. 'change' fires on blur or when a file picker closes.
-      if (e.type === "change") {
-        await this._handleListManagerInputChange(target);
-      }
-      return; // Stop further processing for list items
-    }
-
-    // Now, handle all other standard controls
-    const path = target.dataset.path;
-    if (!path) return;
-
-    const isSlider = target.type === "range";
+    const isSlider = e.target.type === "range";
     let value =
-      target.type === "checkbox"
-        ? target.checked
+      e.target.type === "checkbox"
+        ? e.target.checked
         : isSlider
-        ? Number(target.value)
-        : target.value;
+        ? Number(e.target.value)
+        : e.target.value;
 
-    if (target.type === "radio") {
-      if (!target.checked) return;
+    if (e.target.type === "radio") {
+      if (!e.target.checked) return;
     }
 
     let processedValue = value;
-    if (target.tagName === "SELECT" && !isNaN(Number(value))) {
+    if (e.target.tagName === "SELECT" && !isNaN(Number(value))) {
       processedValue = Number(value);
     }
 
+    // --- Start of throttled logic ---
     if (isSlider && e.type === "input") {
-      if (target.id === "control-sceneAppearance-transitionDuration") {
-        this._updateSliderValue(target.id, `${Math.round(value / 1000)}s`);
+      // For slider drags, only update the UI text value instantly.
+      if (e.target.id === "scene-transition-duration") {
+        this._updateSliderValue(e.target.id, `${Math.round(value / 1000)}s`);
       } else {
-        this._updateSliderValue(target.id, value, target.step);
+        this._updateSliderValue(e.target.id, value, e.target.step);
       }
+      // Then, call the throttled function for the expensive update.
       this.throttledSystemUpdate(path, processedValue);
     } else {
-      await this._performSystemUpdate(path, processedValue);
+      // For all other 'change' events (clicks, dropdowns, finishing a drag),
+      // perform the update immediately for responsiveness.
+      this._performSystemUpdate(path, processedValue);
 
+      // Also update the UI for these direct changes.
       if (isSlider) {
-        this._updateSliderValue(target.id, value, target.step);
+        this._updateSliderValue(e.target.id, value, e.target.step);
       }
-      if (target.type === "checkbox" && target.closest(".summary-control")) {
-        const detailsElement = target.closest("details");
+      if (
+        e.target.type === "checkbox" &&
+        e.target.closest(".summary-control")
+      ) {
+        const detailsElement = e.target.closest("details");
         if (detailsElement)
-          detailsElement.classList.toggle("disabled-effect", !target.checked);
+          detailsElement.classList.toggle("disabled-effect", !e.target.checked);
       }
 
-      if (path === "universal.sceneTransition.useRandomHint")
+      if (path === "baseShine.patternType")
+        this._updatePatternControlVisibility();
+      if (path === "sceneTransition.useRandomHint")
         this._updateRandomHintVisibility();
-      if (path === "universal.pauseEffect.useRandomHint")
-        this._updatePauseHintVisibility();
-      if (path === "loading-screen-use-random-background")
-        this._updateInitialRandomBackgroundVisibility();
-      if (path === "loading-screen-background-overlay-enabled") {
-        this._updateBackgroundOverlayVisibility();
-      }
+      if (path === "sceneTransition.useRandomBackgroundImage")
+        this._updateRandomBackgroundVisibility();
       if (path === "tileOpacity")
         game.mapShine.effectTargetManager.applyTileOpacities();
-    }
-  }
-
-  _updatePauseHintVisibility() {
-    const useRandom = game.settings.get(
-      MODULE_ID,
-      "universal.pauseEffect.useRandomHint"
-    );
-    const wrapper = this.element.querySelector(
-      "#pauseEffect-randomHints-wrapper"
-    );
-    if (wrapper) {
-      wrapper.style.display = useRandom ? "block" : "none";
     }
   }
 
@@ -28888,34 +28186,34 @@ class DebuggerEventHandler {
       MODULE_ID,
       "universal.sceneTransition.useRandomHint"
     );
-    const wrapper = this.element.querySelector(
+    const randomWrapper = this.element.querySelector(
       "#sceneTransition-randomHints-wrapper"
     );
-    if (wrapper) {
-      wrapper.style.display = useRandom ? "block" : "none";
+    if (randomWrapper) {
+      randomWrapper.style.display = useRandom ? "block" : "none";
     }
   }
 
-  _updateInitialRandomBackgroundVisibility() {
+  _updateRandomBackgroundVisibility() {
     const useRandom = game.settings.get(
       MODULE_ID,
-      "loading-screen-use-random-background"
+      "universal.sceneTransition.useRandomBackgroundImage"
     );
-    const wrapper = this.element.querySelector(
-      "#loading-screen-random-backgrounds-wrapper"
+    const randomWrapper = this.element.querySelector(
+      "#sceneTransition-backgroundImages-wrapper"
     );
-    if (wrapper) {
-      wrapper.style.display = useRandom ? "block" : "none";
+    if (randomWrapper) {
+      randomWrapper.style.display = useRandom ? "block" : "none";
     }
   }
 
   _updateBackgroundOverlayVisibility() {
     const isEnabled = game.settings.get(
       MODULE_ID,
-      "loading-screen-background-overlay-enabled"
+      "universal.sceneTransition.backgroundOverlayEnabled"
     );
     const details = this.element.querySelector(
-      "#details-initial-loading-bgOverlay"
+      "#details-sceneTransition-bgOverlay"
     );
     if (details) {
       const sliderContainer = details.querySelector("div");
@@ -28992,6 +28290,25 @@ class DebuggerEventHandler {
         : 0;
       valueEl.textContent = Number(value).toFixed(decimals);
     }
+  }
+
+  _updatePatternControlVisibility() {
+    const patternType = this._getPathValue(
+      this.config,
+      "baseShine.patternType"
+    );
+    const isStripes = patternType === "stripes";
+    const stripesControls = this.element.querySelector(
+      "#pattern-stripes-controls"
+    );
+    const checkerControls = this.element.querySelector(
+      "#pattern-checkerboard-controls"
+    );
+
+    if (stripesControls)
+      stripesControls.style.display = isStripes ? "" : "none";
+    if (checkerControls)
+      checkerControls.style.display = isStripes ? "none" : "";
   }
 
   _populateProfilesDropdown() {
@@ -29212,7 +28529,7 @@ class DebuggerEventHandler {
     this.curveEditor.path.setAttribute("stroke", colorMap[activeChannel]);
   }
 
-  async _onApplyColorPreset() {
+  _onApplyColorPreset() {
     const dropdown = this.element.querySelector(
       "#control-postProcessing-colorCorrection-activePreset"
     );
@@ -29566,15 +28883,6 @@ class MaterialEditorDebugger {
       indicator.className = `traffic-light ${statusObject.state}`;
       indicator.title = statusObject.message;
     }
-
-    if (category === "textures") {
-      const input = this.element.querySelector(`#texture-path-${key}`);
-      if (input) {
-        // Only display the path if it was successfully found.
-        // The message for other states is not a path.
-        input.value = statusObject.state === "ok" ? statusObject.message : "";
-      }
-    }
   }
 
   destroy() {
@@ -29757,11 +29065,6 @@ class SimpleUIPanel extends Application {
         : 0;
       valueEl.text(Number(value).toFixed(decimals));
     }
-  }
-
-  _onSliderInput(event) {
-    const el = event.currentTarget;
-    this._updateSliderValue(el.id, el.value, el.step);
   }
 
   async _onInputChange(event) {
