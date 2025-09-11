@@ -11864,6 +11864,41 @@ class LightningManager {
  *
  ***************************************************************************************/
 
+/*
+
+Below are the variables/options that are required when creating particles. Be sure to conform to these requirements.
+
+
+{
+  // Minimum and maximum lifetime of a particle in seconds.
+  "lifetime": {
+    "min": number,
+    "max": number
+  },
+  // The time in seconds between particle spawns.
+  "frequency": number,
+  // The probability (0-1) that a particle will be spawned.
+  "spawnChance": number,
+  // The number of particles created at each spawn emission.
+  "particlesPerWave": number,
+  // The lifetime of the emitter in seconds (-1 for infinite).
+  "emitterLifetime": number,
+  // The maximum number of particles that can exist at one time.
+  "maxParticles": number,
+  // The starting position of the emitter.
+  "pos": {
+    "x": number,
+    "y": number
+  },
+  // An array of behavior objects that define particle appearance and movement.
+  "behaviors": [
+    {
+      "type": string,
+      "config": object
+    }
+  ]
+} */
+
 const PARTICLE_EFFECT_DEFINITIONS = {
   dust: {
     title: "Dust Motes",
@@ -12943,7 +12978,6 @@ class ParticleEffectController {
   }
 
   async _createEmitterForTarget(targetData, targetId) {
-    // --- NEW: Check if this is a geometry target ---
     if (targetData.isGeometry) {
       this._createEmitterForGeometry(targetData.group, targetId);
       return;
@@ -13027,21 +13061,42 @@ class ParticleEffectController {
         return;
       if (this.emitters.has(targetId)) return;
 
-      // Use the definition's buildEmitterConfig function, which correctly points to buildSmellyFliesEmitterConfig for this effect.
-      const emitterConfig = this.definition.buildEmitterConfig(
-        currentEffectConfig,
-        {
-          // We provide a dummy rect, but the key is using the new shape type
+      let emitterConfig;
+
+      // Special case for effects that use the geometry directly.
+      if (this.definition.configPath === "smellyFlies") {
+        emitterConfig = this.definition.buildEmitterConfig(
+          currentEffectConfig,
+          { rect: { x: 0, y: 0, width: 1, height: 1 } },
+          null,
+          group
+        );
+      } else {
+        // Standard path for effects using the rendered geometry mask.
+        const maskTexture =
+          game.mapShine.geometryMaskManager.getMask(group.effectTarget);
+        if (!maskTexture) {
+          console.warn(
+            `Map Shine | Could not get geometry mask for effect target '${group.effectTarget}'.`
+          );
+          return;
+        }
+        const virtualTargetData = {
+          [group.effectTarget]: maskTexture,
           rect: {
             x: 0,
             y: 0,
-            width: 1,
-            height: 1,
+            width: canvas.app.screen.width,
+            height: canvas.app.screen.height,
           },
-        },
-        null,
-        group
-      );
+        };
+        emitterConfig = this.definition.buildEmitterConfig(
+          currentEffectConfig,
+          virtualTargetData,
+          group.effectTarget,
+          group
+        );
+      }
 
       if (emitterConfig.maxParticles === 0) return;
 
@@ -13054,9 +13109,7 @@ class ParticleEffectController {
       const emitter = new PIXI.particles.Emitter(emitterParent, emitterConfig);
       emitter.autoUpdate = false;
 
-      this.emitters.set(targetId, {
-        emitter,
-      });
+      this.emitters.set(targetId, { emitter });
       console.log(
         `Map Shine | Created GEOMETRY-BASED '${this.definition.configPath}' emitter for group '${group.label}'.`
       );
@@ -13220,202 +13273,7 @@ class ParticleEffectController {
   }
 }
 
-const buildSparkEmitterConfig = (effectConfig, targetData, maskKey) => {
-  const globalParticleConfig =
-    game.mapShine.profileManager.activeConfig.particleSystems;
-  const globalMultiplier = globalParticleConfig.globalDensityMultiplier ?? 1.0;
-  const config = effectConfig || {};
-  const rect = targetData?.rect;
 
-  if (!rect) {
-    return {
-      maxParticles: 0,
-      behaviors: [],
-    };
-  }
-
-  const spawnMaskTexture = targetData[maskKey];
-  if (!spawnMaskTexture) {
-    return {
-      maxParticles: 0,
-      behaviors: [],
-    };
-  }
-
-  const isScreenSpaceMask = spawnMaskTexture instanceof PIXI.RenderTexture;
-
-  const spawnBehavior = {
-    type: "spawnShape",
-    config: {
-      type: "textureMask",
-      data: {
-        texture: spawnMaskTexture,
-        width: rect.width,
-        height: rect.height,
-        x: 0,
-        y: 0,
-        threshold: (config.maskThreshold ?? 0.95) * 255,
-        isDynamicScreenMask: isScreenSpaceMask,
-      },
-    },
-  };
-
-  const lifetimeConfig = config.lifetime ?? {};
-  const alphaConfig = config.alpha ?? {};
-  const scaleConfig = config.scale ?? {};
-  const colorConfig = config.color ?? {};
-  const pathConfig = config.path ?? {};
-  const speedConfig = pathConfig.speed ?? {};
-
-  let fadeInTime = Math.max(0, alphaConfig.fadeIn ?? 0.0);
-  let fadeOutTime = Math.max(0, alphaConfig.fadeOut ?? 1.0);
-  if (fadeInTime + fadeOutTime > 1.0) {
-    const total = fadeInTime + fadeOutTime;
-    fadeInTime /= total;
-    fadeOutTime /= total;
-  }
-
-  const behaviors = [
-    {
-      type: "textureSingle",
-      config: {
-        texture: config.particleTexture,
-      },
-    },
-    spawnBehavior,
-    {
-      type: "alpha",
-      config: {
-        alpha: {
-          list: [
-            {
-              value: 0,
-              time: 0,
-            },
-            {
-              value: alphaConfig.max ?? 1.0,
-              time: fadeInTime,
-            },
-            {
-              value: alphaConfig.max ?? 1.0,
-              time: 1.0 - fadeOutTime,
-            },
-            {
-              value: 0,
-              time: 1,
-            },
-          ],
-        },
-      },
-    },
-  ];
-
-  // Robustly add scale behavior
-  const startScale =
-    (scaleConfig.start ?? 1.0) * (scaleConfig.sizeMultiplier ?? 1.0);
-  const endScale =
-    (scaleConfig.end ?? 0.1) * (scaleConfig.sizeMultiplier ?? 1.0);
-  if (startScale === endScale) {
-    behaviors.push({
-      type: "scaleStatic",
-      config: {
-        min: startScale,
-        max: startScale,
-      },
-    });
-  } else {
-    behaviors.push({
-      type: "scale",
-      config: {
-        scale: {
-          start: startScale,
-          end: endScale,
-        },
-        minMult: scaleConfig.minMult ?? 0.5,
-      },
-    });
-  }
-
-  // Robustly add color behavior
-  const startColor = colorConfig.start ?? "#FFFFFF";
-  const endColor = colorConfig.end ?? "#FFFFFF";
-  if (startColor === endColor) {
-    behaviors.push({
-      type: "colorStatic",
-      config: {
-        color: startColor,
-      },
-    });
-  } else {
-    behaviors.push({
-      type: "color",
-      config: {
-        color: {
-          start: startColor,
-          end: endColor,
-        },
-      },
-    });
-  }
-
-  // Add the custom spark path behavior
-  behaviors.push({
-    type: "sparkPath",
-    config: {
-      speed: {
-        list: [
-          {
-            value: speedConfig.start ?? 80,
-            time: 0,
-          },
-          {
-            value: speedConfig.end ?? 40,
-            time: 1,
-          },
-        ],
-      },
-      speedMinMult: speedConfig.minMult ?? 0.7,
-      amplitude: pathConfig.amplitude ?? {
-        min: 10,
-        max: 40,
-      },
-      frequency: pathConfig.frequency ?? {
-        min: 40,
-        max: 80,
-      },
-      offset: pathConfig.offset ?? {
-        min: 0,
-        max: 6.28,
-      },
-      damping: pathConfig.damping ?? 0.5,
-      angle: pathConfig.angle ?? {
-        min: -20,
-        max: 20,
-      },
-      motionBlur: pathConfig.motionBlur,
-    },
-  });
-
-  return {
-    lifetime: {
-      min: lifetimeConfig.min ?? 1.5,
-      max: lifetimeConfig.max ?? 3.0,
-    },
-    blendMode: config.blendMode ?? PIXI.BLEND_MODES.ADD,
-    frequency: config.frequency / globalMultiplier,
-    emitterLifetime: -1,
-    maxParticles: Math.max(
-      1,
-      2000 * (config.maskInfluence ?? 0.5) * globalMultiplier
-    ),
-    pos: {
-      x: isScreenSpaceMask ? 0 : rect.x,
-      y: isScreenSpaceMask ? 0 : rect.y,
-    },
-    addAtBack: false,
-    behaviors: behaviors,
-  };
-};
 
 const buildParticleEmitterConfig = (
   effectConfig,
@@ -13652,6 +13510,204 @@ const buildParticleEmitterConfig = (
     behaviors: behaviors,
   };
 };
+
+const buildSparkEmitterConfig = (effectConfig, targetData, maskKey) => {
+  const globalParticleConfig =
+    game.mapShine.profileManager.activeConfig.particleSystems;
+  const globalMultiplier = globalParticleConfig.globalDensityMultiplier ?? 1.0;
+  const config = effectConfig || {};
+  const rect = targetData?.rect;
+
+  if (!rect) {
+    return {
+      maxParticles: 0,
+      behaviors: [],
+    };
+  }
+
+  const spawnMaskTexture = targetData[maskKey];
+  if (!spawnMaskTexture) {
+    return {
+      maxParticles: 0,
+      behaviors: [],
+    };
+  }
+
+  const isScreenSpaceMask = spawnMaskTexture instanceof PIXI.RenderTexture;
+
+  const spawnBehavior = {
+    type: "spawnShape",
+    config: {
+      type: "textureMask",
+      data: {
+        texture: spawnMaskTexture,
+        width: rect.width,
+        height: rect.height,
+        x: 0,
+        y: 0,
+        threshold: (config.maskThreshold ?? 0.95) * 255,
+        isDynamicScreenMask: isScreenSpaceMask,
+      },
+    },
+  };
+
+  const lifetimeConfig = config.lifetime ?? {};
+  const alphaConfig = config.alpha ?? {};
+  const scaleConfig = config.scale ?? {};
+  const colorConfig = config.color ?? {};
+  const pathConfig = config.path ?? {};
+  const speedConfig = pathConfig.speed ?? {};
+
+  let fadeInTime = Math.max(0, alphaConfig.fadeIn ?? 0.0);
+  let fadeOutTime = Math.max(0, alphaConfig.fadeOut ?? 1.0);
+  if (fadeInTime + fadeOutTime > 1.0) {
+    const total = fadeInTime + fadeOutTime;
+    fadeInTime /= total;
+    fadeOutTime /= total;
+  }
+
+  const behaviors = [
+    {
+      type: "textureSingle",
+      config: {
+        texture: config.particleTexture,
+      },
+    },
+    spawnBehavior,
+    {
+      type: "alpha",
+      config: {
+        alpha: {
+          list: [
+            {
+              value: 0,
+              time: 0,
+            },
+            {
+              value: alphaConfig.max ?? 1.0,
+              time: fadeInTime,
+            },
+            {
+              value: alphaConfig.max ?? 1.0,
+              time: 1.0 - fadeOutTime,
+            },
+            {
+              value: 0,
+              time: 1,
+            },
+          ],
+        },
+      },
+    },
+  ];
+
+  // Robustly add scale behavior
+  const startScale =
+    (scaleConfig.start ?? 1.0) * (scaleConfig.sizeMultiplier ?? 1.0);
+  const endScale =
+    (scaleConfig.end ?? 0.1) * (scaleConfig.sizeMultiplier ?? 1.0);
+  if (startScale === endScale) {
+    behaviors.push({
+      type: "scaleStatic",
+      config: {
+        min: startScale,
+        max: startScale,
+      },
+    });
+  } else {
+    behaviors.push({
+      type: "scale",
+      config: {
+        scale: {
+          start: startScale,
+          end: endScale,
+        },
+        minMult: scaleConfig.minMult ?? 0.5,
+      },
+    });
+  }
+
+  // Robustly add color behavior
+  const startColor = colorConfig.start ?? "#FFFFFF";
+  const endColor = colorConfig.end ?? "#FFFFFF";
+  if (startColor === endColor) {
+    behaviors.push({
+      type: "colorStatic",
+      config: {
+        color: startColor,
+      },
+    });
+  } else {
+    behaviors.push({
+      type: "color",
+      config: {
+        color: {
+          start: startColor,
+          end: endColor,
+        },
+      },
+    });
+  }
+
+  // Add the custom spark path behavior
+  behaviors.push({
+    type: "sparkPath",
+    config: {
+      speed: {
+        list: [
+          {
+            value: speedConfig.start ?? 80,
+            time: 0,
+          },
+          {
+            value: speedConfig.end ?? 40,
+            time: 1,
+          },
+        ],
+      },
+      speedMinMult: speedConfig.minMult ?? 0.7,
+      amplitude: pathConfig.amplitude ?? {
+        min: 10,
+        max: 40,
+      },
+      frequency: pathConfig.frequency ?? {
+        min: 40,
+        max: 80,
+      },
+      offset: pathConfig.offset ?? {
+        min: 0,
+        max: 6.28,
+      },
+      damping: pathConfig.damping ?? 0.5,
+      angle: pathConfig.angle ?? {
+        min: -20,
+        max: 20,
+      },
+      motionBlur: pathConfig.motionBlur,
+    },
+  });
+
+  return {
+    lifetime: {
+      min: lifetimeConfig.min ?? 1.5,
+      max: lifetimeConfig.max ?? 3.0,
+    },
+    blendMode: config.blendMode ?? PIXI.BLEND_MODES.ADD,
+    frequency: config.frequency / globalMultiplier,
+    emitterLifetime: -1,
+    maxParticles: Math.max(
+      1,
+      2000 * (config.maskInfluence ?? 0.5) * globalMultiplier
+    ),
+    pos: {
+      x: isScreenSpaceMask ? 0 : rect.x,
+      y: isScreenSpaceMask ? 0 : rect.y,
+    },
+    addAtBack: false,
+    behaviors: behaviors,
+  };
+};
+
 
 class ParticleManager {
   constructor() {
