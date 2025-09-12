@@ -1657,46 +1657,23 @@ const MODULE_DEFAULTS = {
   },
   structuralShadows: {
     enabled: true,
-    shadowIntensity: 0.57,
-    tint: "#000000",
-    parallax: 0,
-    illuminationInteraction: {
-      enabled: false,
-      intensity: 1,
-      luminanceThreshold: 0.1,
-      softness: 0.15,
-      colorCorrection: {
-        enabled: true,
-        saturation: 1,
-        brightness: 0,
-        contrast: 1,
-        exposure: 0,
-        gamma: 1,
-        tint: {
-          color: "#FFFFFF",
-          amount: 0,
-        },
-      },
-    },
-    rgbSplit: {
+    blendMode: PIXI.BLEND_MODES.OVERLAY,
+    colorCorrection: {
       enabled: true,
-      intensity: 2.3,
-      threshold: 0,
-    },
-    intensityNoise: {
-      enabled: false,
-      amount: 0.44,
-      speed: 0.145,
-      scale: 1.25,
-      evolution: 0,
-      threshold: 0.71,
-      brightness: -1.13,
-      contrast: 2.8,
-      softness: 1,
+      saturation: 1.0,
+      brightness: 0.0,
+      contrast: 1.0,
+      gamma: 1.0,
+      tint: {
+        color: "#FFFFFF",
+        amount: 0.0,
+      },
     },
     cloudOcclusion: {
       enabled: true,
       intensity: 0.8,
+      threshold: 0.75, // Only affect pixels brighter than 75% luminance
+      softness: 0.1, // The transition falloff for the threshold
     },
   },
   prism: {
@@ -1816,53 +1793,7 @@ const MODULE_DEFAULTS = {
         temperature: 0,
         tint: 0,
       },
-      highlightCloud: {
-        enabled: false,
-        brightness: 0.25,
-      },
-      highlightCanopy: {
-        enabled: false,
-        brightness: 0.97,
-      },
-      highlightStructural: {
-        enabled: true,
-        brightness: 1.61,
-      },
-      sceneIlluminationMixIn: {
-        enabled: true,
-        intensity: 0.95,
-        blendMode: 1,
-        debugMode: false,
-        colorCorrection: {
-          enabled: true,
-          saturation: 3.25,
-          brightness: -0.28,
-          contrast: 1.8,
-          exposure: -0.55,
-          gamma: 0.65,
-          tint: {
-            color: "#FFFFFF",
-            amount: 0,
-          },
-        },
-        noise: {
-          enabled: false,
-          amount: 0.01,
-          scale: 1,
-          speed: 0.001,
-        },
-        shadowInteraction: {
-          enabled: false,
-          intensity: 1,
-          luminanceThreshold: 0.1,
-          softness: 0.15,
-        },
-        negativeMask: {
-          enabled: false,
-          threshold: 0.8,
-          softness: 0.2,
-        },
-      },
+
       mask: {
         enabled: false,
         invert: false,
@@ -1973,6 +1904,7 @@ const MODULE_DEFAULTS = {
         resetPeriod: 60000,
       },
     },
+
     vignette: {
       enabled: true,
       amount: 0.24,
@@ -2766,6 +2698,50 @@ class FontLoader {
       // The URL might be invalid if the href is not set yet, which is fine.
     }
     return loaded;
+  }
+}
+
+class HighlightFilter extends PIXI.Filter {
+  constructor(options = {}) {
+    const fragmentSrc = `
+            precision mediump float;
+            varying vec2 vTextureCoord;
+
+            uniform sampler2D uMask;
+            uniform float uBrightness;
+
+            void main(void) {
+                float maskValue = texture2D(uMask, vTextureCoord).r;
+                // Output a color to be used in an ADD blend operation.
+                // The alpha is premultiplied, so we set it to 1.0 and the color becomes the value to add.
+                gl_FragColor = vec4(vec3(maskValue * uBrightness), 1.0);
+            }
+        `;
+    super(PIXI.Filter.defaultVertexSrc, fragmentSrc, {
+      uMask: options.maskTexture || PIXI.Texture.EMPTY,
+      uBrightness: options.brightness || 1.0,
+    });
+  }
+}
+
+class SplitHighlightFilter extends PIXI.Filter {
+  constructor(options = {}) {
+    const fragmentSrc = `
+            precision mediump float;
+            varying vec2 vTextureCoord;
+
+            uniform sampler2D uMask;
+            uniform float uBrightness;
+
+            void main(void) {
+                vec3 maskValue = texture2D(uMask, vTextureCoord).rgb;
+                gl_FragColor = vec4(maskValue * uBrightness, 1.0);
+            }
+        `;
+    super(PIXI.Filter.defaultVertexSrc, fragmentSrc, {
+      uMask: options.maskTexture || PIXI.Texture.EMPTY,
+      uBrightness: options.brightness || 1.0,
+    });
   }
 }
 
@@ -3758,6 +3734,60 @@ class MapShineInitialiser {
       console.log(
         "Map Shine | Successfully registered Scene.prototype.view wrapper for transitions."
       );
+
+      // --- Illumination Manager Integration ---
+      // This wrapper replaces the manual monkey-patch in IlluminationManager.
+      // It safely intercepts the apply method of the core lighting filter to capture
+      // the rendered scene texture before lighting is applied.
+      if (typeof LightingFilter !== "undefined") {
+        libWrapper.register(
+          MODULE_ID,
+          "LightingFilter.prototype.apply",
+          function (wrapped, filterManager, input, output, clearMode) {
+            // First, call the original function to ensure the normal rendering chain continues.
+            wrapped(filterManager, input, output, clearMode);
+
+            // This wrapper affects all LightingFilter instances, but we only care about
+            // the one on the main illumination layer. This check ensures we don't
+            // interfere with other potential uses of this filter.
+            if (this !== canvas.effects.illumination.filter) {
+              return;
+            }
+
+            // The input texture to this filter is the fully rendered primary canvas group.
+            // We copy it to our own stable render texture for other effects to use.
+            const sourceTexture = input;
+            if (
+              IlluminationManager.copySprite &&
+              IlluminationManager.stableIlluminationTexture &&
+              sourceTexture?.valid
+            ) {
+              IlluminationManager.copySprite.texture = sourceTexture;
+              canvas.app.renderer.render(IlluminationManager.copySprite, {
+                renderTexture: IlluminationManager.stableIlluminationTexture,
+                clear: true,
+              });
+            }
+
+            // Update debug sprite visibility based on current config
+            if (
+              IlluminationManager.debugSprite &&
+              game.mapShine?.profileManager?.activeConfig
+            ) {
+              IlluminationManager.debugSprite.visible =
+                game.mapShine.profileManager.activeConfig.diagnostic.showIlluminationPreview;
+            }
+          },
+          "WRAPPER"
+        );
+        console.log(
+          "Map Shine | Successfully registered wrapper for LightingFilter.prototype.apply."
+        );
+      } else {
+        console.warn(
+          "Map Shine | LightingFilter class not found. Could not apply illumination wrapper."
+        );
+      }
     } else {
       console.warn(
         "Map Shine | libWrapper is not active. Elegant scene transitions will be disabled."
@@ -3871,6 +3901,160 @@ class MapShineInitialiser {
         );
       }
     });
+  }
+}
+
+/***************************************************************************************
+ *
+ *                             COORDINATE MANAGER
+ *
+ *  PURPOSE:
+ *  The CoordinateManager is a static utility class that serves as the single source of truth
+ *  for all coordinate system transformations within the Map Shine module. Its primary goal is
+ *  to solve the problem of mixing "World Space" (canvas coordinates) and "Screen Space"
+ *  (pixel coordinates) by providing a centralized, efficient, and consistent way to handle
+ *  the relationship between them.
+ *
+ *  ARCHITECTURE:
+ *  1.  Centralized Calculation: The `update()` method is called once per animation frame.
+ *      It calculates all necessary data about the current camera view, such as the world-space
+ *      position of the screen's top-left corner, the visible world dimensions, and the
+ *      current zoom level.
+ *
+ *  2.  Static Access: All properties and methods are static, meaning there is only one
+ *      instance of this data per frame. Any layer or filter can access it directly via
+ *      `CoordinateManager.propertyName` without needing an instance.
+ *
+ *  3.  Standardized Shader Uniforms: The `getShaderUniforms()` method provides a consistent
+ *      object that can be passed directly to any PIXI.Filter's uniform group. This ensures
+ *      all world-space shaders use the exact same transformation logic.
+ *
+ *  REQUIRED METHOD:
+ *  This class is the required method for all filters, textures, PIXI canvas layers, etc.,
+ *  to obtain coordinate and transformation data. Do not perform these calculations
+ *  manually within other components.
+ *
+ ***************************************************************************************/
+class CoordinateManager {
+  // --- Frame-specific cached data ---
+  static cameraOffset = { x: 0, y: 0 };
+  static viewSize = { width: 0, height: 0 };
+  static screenDimensions = { width: 0, height: 0 };
+  static canvasScale = 1.0;
+  static sceneRectNormalized = { x: 0, y: 0, width: 1, height: 1 };
+
+  /**
+   * Updates the coordinate data for the current animation frame.
+   * This should be called exactly once per frame from the primary ticker.
+   */
+  static update() {
+    if (!canvas?.stage || !canvas.app?.renderer) return;
+
+    const stage = canvas.stage;
+    const screen = canvas.app.renderer.screen;
+
+    // Calculate the world-space coordinate corresponding to the top-left corner of the screen.
+    const topLeftWorld = stage.toLocal({ x: 0, y: 0 });
+    this.cameraOffset = { x: topLeftWorld.x, y: topLeftWorld.y };
+
+    // Store the current zoom level.
+    this.canvasScale = stage.scale.x;
+
+    // Calculate the dimensions of the visible area in world-space coordinates.
+    // This is robust against a scale of zero.
+    this.viewSize = {
+      width: this.canvasScale > 0 ? screen.width / this.canvasScale : 0,
+      height: this.canvasScale > 0 ? screen.height / this.canvasScale : 0,
+    };
+
+    // Store the pixel dimensions of the canvas.
+    this.screenDimensions = { width: screen.width, height: screen.height };
+
+    // Calculate the scene rectangle in normalized screen coordinates [x, y, width, height].
+    const rect = canvas.scene?.dimensions?.sceneRect;
+    if (
+      rect &&
+      this.screenDimensions.width > 0 &&
+      this.screenDimensions.height > 0
+    ) {
+      const topLeftScreen = stage.toGlobal({ x: rect.x, y: rect.y });
+      const sceneWidthPixels = rect.width * this.canvasScale;
+      const sceneHeightPixels = rect.height * this.canvasScale;
+
+      this.sceneRectNormalized = {
+        x: topLeftScreen.x / this.screenDimensions.width,
+        y: topLeftScreen.y / this.screenDimensions.height,
+        width: sceneWidthPixels / this.screenDimensions.width,
+        height: sceneHeightPixels / this.screenDimensions.height,
+      };
+    } else {
+      this.sceneRectNormalized = { x: 0, y: 0, width: 1, height: 1 };
+    }
+  }
+
+  /**
+   * Provides a standardized object of uniforms for shaders that need to perform
+   * world-space calculations.
+   * @returns {object} An object containing shader uniforms.
+   */
+  static getShaderUniforms() {
+    return {
+      u_camera_offset: [this.cameraOffset.x, this.cameraOffset.y],
+      u_view_size: [this.viewSize.width, this.viewSize.height],
+      u_resolution: [this.screenDimensions.width, this.screenDimensions.height],
+      u_canvas_scale: this.canvasScale,
+      uSceneRectNorm: [
+        this.sceneRectNormalized.x,
+        this.sceneRectNormalized.y,
+        this.sceneRectNormalized.width,
+        this.sceneRectNormalized.height,
+      ],
+    };
+  }
+
+  /**
+   * Gets the world-space coordinate of the top-left corner of the screen.
+   * @returns {{x: number, y: number}}
+   */
+  static getCameraOffset() {
+    return this.cameraOffset;
+  }
+
+  /**
+   * Gets the dimensions of the visible canvas area in world-space coordinates.
+   * @returns {{width: number, height: number}}
+   */
+  static getViewSize() {
+    return this.viewSize;
+  }
+
+  /**
+   * Gets the dimensions of the canvas in screen-space pixels.
+   * @returns {{width: number, height: number}}
+   */
+  static getScreenDimensions() {
+    return this.screenDimensions;
+  }
+
+  /**
+   * Gets the current zoom level of the canvas.
+   * @returns {number}
+   */
+  static getCanvasScale() {
+    return this.canvasScale;
+  }
+
+  /**
+   * Gets the scene rectangle in normalized screen coordinates [x, y, width, height].
+   * @returns {number[]}
+   */
+  static getSceneRectNormalizedArray() {
+    return [
+      this.sceneRectNormalized.x,
+      this.sceneRectNormalized.y,
+      this.sceneRectNormalized.width,
+      this.sceneRectNormalized.height,
+    ];
   }
 }
 
@@ -4804,32 +4988,6 @@ class ResourceManager {
   }
 
   /**
-   * Retrieves the highlight mask generated by the CloudShadowsLayer.
-   * Caches the texture for the duration of the current frame.
-   * @param {number} deltaTime - The time since the last frame.
-   * @returns {PIXI.RenderTexture|null} The cloud highlight mask texture.
-   */
-  getCloudHighlightMask(deltaTime) {
-    if (this._destroyed) return null;
-
-    if (this._frameCache.cloudHighlightMask) {
-      return this._frameCache.cloudHighlightMask;
-    }
-
-    const cloudLayer = canvas.layers.find(
-      (l) => l instanceof CloudShadowsLayer
-    );
-    if (!cloudLayer) return null;
-
-    // Ensure the cloud layer has rendered for this frame.
-    this.getCloudShadowTexture(deltaTime);
-
-    const texture = cloudLayer.getHighlightMaskTexture();
-    this._frameCache.cloudHighlightMask = texture;
-    return texture;
-  }
-
-  /**
    * Retrieves the raw, unmasked cloud pattern texture from the CloudShadowsLayer.
    * This is useful for effects that need the cloud pattern indoors.
    * If the texture hasn't been rendered this frame, this will command the layer to render it.
@@ -4910,56 +5068,6 @@ class ResourceManager {
     layer.renderEffectNow(deltaTime);
     const texture = layer.finalShadowTexture;
     this._frameCache.structuralShadowTexture = texture;
-    return texture;
-  }
-
-  /**
-   * Retrieves the highlight mask from the structural shadows.
-   * If not rendered this frame, commands the StructuralShadowsLayer to render.
-   * @param {number} deltaTime - The time since the last frame.
-   * @returns {PIXI.RenderTexture|null} The structural highlight mask texture.
-   */
-  getStructuralHighlightMask(deltaTime) {
-    if (this._destroyed) return null;
-    if (this._frameCache.structuralHighlightMask) {
-      return this._frameCache.structuralHighlightMask;
-    }
-
-    // Calling getStructuralShadowTexture will ensure the layer renders everything it needs to.
-    this.getStructuralShadowTexture(deltaTime);
-
-    const layer = canvas.layers.find(
-      (l) => l instanceof StructuralShadowsLayer
-    );
-    if (!layer) return null;
-
-    const texture = layer.getHighlightMaskTexture();
-    this._frameCache.structuralHighlightMask = texture;
-    return texture;
-  }
-
-  /**
-   * Retrieves the RGB-split highlight mask from the structural shadows.
-   * If not rendered this frame, commands the StructuralShadowsLayer to render.
-   * @param {number} deltaTime - The time since the last frame.
-   * @returns {PIXI.RenderTexture|null} The structural RGB-split highlight mask texture.
-   */
-  getStructuralSplitHighlightMask(deltaTime) {
-    if (this._destroyed) return null;
-    if (this._frameCache.structuralSplitHighlightMask) {
-      return this._frameCache.structuralSplitHighlightMask;
-    }
-
-    // Calling getStructuralShadowTexture will ensure the layer renders everything it needs to.
-    this.getStructuralShadowTexture(deltaTime);
-
-    const layer = canvas.layers.find(
-      (l) => l instanceof StructuralShadowsLayer
-    );
-    if (!layer || !layer.isRgbSplitEnabled()) return null;
-
-    const texture = layer.getSplitHighlightMaskTexture();
-    this._frameCache.structuralSplitHighlightMask = texture;
     return texture;
   }
 
@@ -7089,7 +7197,7 @@ class OverheadEffectLayer extends CanvasLayer {
       }
     }
 
-    const currentZoom = canvas.stage.scale.x;
+    const currentZoom = CoordinateManager.getCanvasScale();
     const lerp = (a, b, t) => a * (1 - t) + b * t;
 
     let blur = 0;
@@ -7148,12 +7256,10 @@ class OverheadEffectLayer extends CanvasLayer {
       transform: canvas.stage.transform.worldTransform,
     });
 
-    const stage = canvas.stage;
-    const screen = renderer.screen;
-    const topLeft = stage.toLocal({ x: 0, y: 0 });
-    this.compositeSprite.position.copyFrom(topLeft);
-    this.compositeSprite.width = screen.width / stage.scale.x;
-    this.compositeSprite.height = screen.height / stage.scale.y;
+    const viewSize = CoordinateManager.getViewSize();
+    this.compositeSprite.position.copyFrom(CoordinateManager.getCameraOffset());
+    this.compositeSprite.width = viewSize.width;
+    this.compositeSprite.height = viewSize.height;
   }
 
   _onResize() {
@@ -8335,7 +8441,6 @@ class TokenManager {
 
 class IlluminationManager {
   static stableIlluminationTexture = null;
-  static originalFilterApply = null;
   static copySprite = null;
   static debugSprite = null;
   static spriteName = "finalLightingDebugSprite";
@@ -8350,17 +8455,17 @@ class IlluminationManager {
     // Cleanup from previous scene or hot-reload
     this.cleanup();
 
-    // 1. Create persistent render texture
+    // Create persistent render texture for the scene capture
     this.stableIlluminationTexture = PIXI.RenderTexture.create({
       width: canvas.app.screen.width,
       height: canvas.app.screen.height,
       resolution: canvas.app.screen.resolution,
     });
 
-    // 2. Create the persistent sprite for the copy operation
+    // Create the persistent sprite for the copy operation
     this.copySprite = new PIXI.Sprite();
 
-    // 3. Create debug sprite, initially hidden. Its visibility will be toggled by the module's debug flag.
+    // Create debug sprite, initially hidden. The libWrapper patch will control visibility.
     this.debugSprite = new PIXI.Sprite(this.stableIlluminationTexture);
     this.debugSprite.name = this.spriteName;
     this.debugSprite.scale.set(0.25);
@@ -8369,67 +8474,14 @@ class IlluminationManager {
     this.debugSprite.visible = false;
     canvas.stage.addChild(this.debugSprite);
 
-    // 4. Perform the "Surgical Strike" Interception
-    const illuminationLayer = canvas.effects.illumination;
-    if (illuminationLayer?.filter) {
-      this.originalFilterApply = illuminationLayer.filter.apply;
-
-      illuminationLayer.filter.apply = (
-        filterManager,
-        input,
-        output,
-        clearMode
-      ) => {
-        // First, call original function to ensure normal rendering.
-        this.originalFilterApply.call(
-          illuminationLayer.filter,
-          filterManager,
-          input,
-          output,
-          clearMode
-        );
-
-        // Now, copy the input texture to our stable texture.
-        const sourceTexture = input;
-        if (
-          this.copySprite &&
-          this.stableIlluminationTexture &&
-          sourceTexture?.valid
-        ) {
-          this.copySprite.texture = sourceTexture;
-          canvas.app.renderer.render(this.copySprite, {
-            renderTexture: this.stableIlluminationTexture,
-            clear: true,
-          });
-        }
-
-        // Update debug sprite visibility based on current config
-        if (this.debugSprite && game.mapShine?.profileManager?.activeConfig) {
-          this.debugSprite.visible =
-            game.mapShine.profileManager.activeConfig.diagnostic.showIlluminationPreview;
-        }
-      };
-      console.log(
-        "Map Shine | IlluminationManager: Interception of 'filter.apply' is ACTIVE."
-      );
-    } else {
-      console.error(
-        "Map Shine | IlluminationManager: Failed to find illumination filter to intercept."
-      );
-    }
+    console.log(
+      "Map Shine | IlluminationManager: Resources created for canvasReady."
+    );
   }
 
   static onCanvasTearDown() {
-    // Restore original function
-    if (this.originalFilterApply && canvas.effects?.illumination?.filter) {
-      canvas.effects.illumination.filter.apply = this.originalFilterApply;
-      this.originalFilterApply = null;
-      console.log(
-        "Map Shine | IlluminationManager: Interception of 'filter.apply' has been RESTORED."
-      );
-    }
-
-    // Cleanup PIXI objects
+    // The libWrapper unregistering happens automatically.
+    // This hook is now only for cleaning up PIXI objects.
     this.cleanup();
   }
 
@@ -8448,6 +8500,7 @@ class IlluminationManager {
   }
 
   static getLightingTexture() {
+    // This texture is a capture of the primary canvas group *before* lighting is applied.
     return this.stableIlluminationTexture;
   }
 }
@@ -9620,7 +9673,7 @@ class NoiseTextureManager {
   }
 
   update(deltaTime, renderer) {
-    if (!this.filter || !this.sourceSprite || !this.renderTexture) return;
+    if (!this.filter || !this.filter.enabled) return;
 
     const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
     const nConfig = foundry.utils.getProperty(
@@ -9634,31 +9687,26 @@ class NoiseTextureManager {
 
     if (!this._needsUpdate && !isAnimated) return;
 
-    this.filter.uniforms.u_time =
-      (this.filter.uniforms.u_time || 0) + deltaTime * timeFactor;
-    const screen = renderer.screen;
+    this.filter.uniforms.uTime += deltaTime * timeFactor;
 
+    // Get all necessary coordinate data from the centralized manager.
     if (this.isWorldSpace) {
-      const stage = canvas.stage;
-      const topLeft = stage.toLocal({
-        x: 0,
-        y: 0,
-      });
-      const u = this.filter.uniforms;
-      u.u_camera_offset = [topLeft.x, topLeft.y];
-      u.u_view_size = [
-        screen.width / stage.scale.x,
-        screen.height / stage.scale.y,
-      ];
+      Object.assign(
+        this.filter.uniforms,
+        CoordinateManager.getShaderUniforms()
+      );
     } else {
-      this.filter.uniforms.u_resolution = [screen.width, screen.height];
+      // Screen-space filters only need resolution.
+      this.filter.uniforms.uViewSize = [
+        CoordinateManager.screenDimensions.width,
+        CoordinateManager.screenDimensions.height,
+      ];
     }
 
     renderer.render(this.sourceSprite, {
       renderTexture: this.renderTexture,
       clear: true,
     });
-
     this._needsUpdate = false;
   }
 
@@ -9881,18 +9929,15 @@ class FBMNoiseManager {
     if (!this._needsUpdate && !isAnimated) return;
 
     this.filter.uniforms.uTime += deltaTime * timeFactor;
-    const screen = renderer.screen;
 
     if (this.isWorldSpace) {
-      const stage = canvas.stage;
-      const topLeft = stage.toLocal({ x: 0, y: 0 });
-      this.filter.uniforms.uCameraOffset = [topLeft.x, topLeft.y];
-      this.filter.uniforms.uViewSize = [
-        screen.width / stage.scale.x,
-        screen.height / stage.scale.y,
-      ];
+      Object.assign(
+        this.filter.uniforms,
+        CoordinateManager.getShaderUniforms()
+      );
     } else {
-      this.filter.uniforms.uViewSize = [screen.width, screen.height];
+      const screenDims = CoordinateManager.getScreenDimensions();
+      this.filter.uniforms.uViewSize = [screenDims.width, screenDims.height];
     }
 
     renderer.render(this.sourceSprite, {
@@ -10181,14 +10226,10 @@ class AmbientMaskManager {
       ambientLayer.mask = this.maskSprite;
     }
 
-    const stage = this.canvas.stage;
-    const topLeft = stage.toLocal({
-      x: 0,
-      y: 0,
-    });
-    this.maskSprite.position.copyFrom(topLeft);
-    this.maskSprite.width = screen.width / stage.scale.x;
-    this.maskSprite.height = screen.height / stage.scale.y;
+    const viewSize = CoordinateManager.getViewSize();
+    this.maskSprite.position.copyFrom(CoordinateManager.getCameraOffset());
+    this.maskSprite.width = viewSize.width;
+    this.maskSprite.height = viewSize.height;
   }
 }
 
@@ -10213,46 +10254,8 @@ class LightingEffectManager {
     const ccFilter = ScreenEffectsManager.getFilter("colorCorrection");
     if (ccFilter && !ccFilter.destroyed) {
       const u = ccFilter.uniforms;
-
-      // --- Exhaustive Reset of Illumination Mix-in ---
-      // This ensures all visual aspects of the effect are returned to a neutral state,
-      // acting as a safeguard against race conditions with the illumination buffer.
-      u.uIllumEnabled = false;
-      u.uIllumTexture = PIXI.Texture.EMPTY;
-      u.uIllumIntensity = 0.0;
-      u.uIllumBlendMode = 1;
-      u.uIllumDebugMode = false;
-
-      // Color Correction Sub-group
-      u.uIllumCCEnabled = true;
-      u.uIllumSaturation = 1.0;
-      u.uIllumBrightness = 0.0;
-      u.uIllumContrast = 1.0;
-      u.uIllumExposure = 0.0;
-      u.uIllumGamma = 1.0;
-      u.uIllumTintColor = [1.0, 1.0, 1.0];
-      u.uIllumTintAmount = 0.0;
-
-      // Noise Sub-group
-      u.uIllumNoiseEnabled = true;
-      u.uIllumNoiseAmount = 0.0;
-      u.uIllumNoiseScale = 1.0;
-      u.uIllumTime = 0.0;
-
-      // Negative Mask Sub-group
-      u.uIllumNegativeMaskEnabled = false;
-      u.uIllumNegativeMaskThreshold = 0.8;
-      u.uIllumNegativeMaskSoftness = 0.2;
-
-      // Reset Post-processing masks
       u.uMaskEnabled = false;
       u.uMaskTexture = PIXI.Texture.EMPTY;
-      u.uCloudHighlightsEnabled = false;
-      u.uCanopyHighlightsEnabled = false;
-      u.uCanopyOutdoorsMaskEnabled = false;
-      u.uStructuralHighlightsEnabled = false;
-      u.uStructuralSplitHighlightsEnabled = false;
-      u.uStructuralOutdoorsMaskEnabled = false;
     }
 
     const pauseFilter = ScreenEffectsManager.getFilter("pauseEffect");
@@ -10274,26 +10277,11 @@ class LightingEffectManager {
   ) {
     const config = fullConfig.postProcessing.colorCorrection;
     const u = ccFilter.uniforms;
-    const screen = this.canvas.app.renderer.screen;
-    const rect = this.canvas.scene.dimensions.sceneRect;
     const resourceManager = game.mapShine.resourceManager;
     if (!resourceManager) return;
 
-    if (rect && screen.width > 0 && screen.height > 0) {
-      const topLeftScreen = this.canvas.stage.toGlobal({
-        x: rect.x,
-        y: rect.y,
-      });
-      const sceneWidthPixels = rect.width * this.canvas.stage.scale.x;
-      const sceneHeightPixels = rect.height * this.canvas.stage.scale.y;
-
-      u.uSceneRectNorm = [
-        topLeftScreen.x / screen.width,
-        topLeftScreen.y / screen.height,
-        sceneWidthPixels / screen.width,
-        sceneHeightPixels / screen.height,
-      ];
-    }
+    // Get the normalized scene rectangle from the centralized manager.
+    u.uSceneRectNorm = CoordinateManager.getSceneRectNormalizedArray();
 
     const useIllumMask = config.mask.enabled && isIlluminationReady;
     u.uMaskEnabled = useIllumMask;
@@ -10307,71 +10295,6 @@ class LightingEffectManager {
       );
       u.uMaskTexture = this.maskGenerator.getMaskTexture();
     }
-
-    const cloudHighlightMask = resourceManager.getCloudHighlightMask(
-      this.canvas.app.ticker.deltaTime
-    );
-    u.uCloudHighlightsEnabled =
-      config.highlightCloud.enabled && !!cloudHighlightMask?.valid;
-    if (u.uCloudHighlightsEnabled) {
-      u.uCloudHighlightsMask = cloudHighlightMask;
-      u.uCloudHighlightsBrightness = config.highlightCloud.brightness;
-    }
-
-    const canopyLayer = this.canvas.layers.find(
-      (l) => l instanceof CanopyLayer
-    );
-    const canopyMask = resourceManager.getCanopyMask();
-    u.uCanopyHighlightsEnabled =
-      config.highlightCanopy.enabled &&
-      !!canopyLayer?.visible &&
-      !!canopyMask?.valid;
-    if (u.uCanopyHighlightsEnabled) {
-      u.uCanopyHighlightsMask = canopyMask;
-      u.uCanopyHighlightsBrightness = config.highlightCanopy.brightness;
-      const outdoorsMask = resourceManager.getOutdoorsMask();
-      u.uCanopyOutdoorsMaskEnabled = !!outdoorsMask?.valid;
-      if (u.uCanopyOutdoorsMaskEnabled) {
-        u.uCanopyOutdoorsMask = outdoorsMask;
-      }
-    } else {
-      u.uCanopyOutdoorsMaskEnabled = false;
-    }
-
-    const structuralHighlightMask = resourceManager.getStructuralHighlightMask(
-      this.canvas.app.ticker.deltaTime
-    );
-    const structuralLayer = this.canvas.layers.find(
-      (l) => l instanceof StructuralShadowsLayer
-    );
-    u.uStructuralHighlightsEnabled =
-      config.highlightStructural.enabled && !!structuralHighlightMask?.valid;
-    if (u.uStructuralHighlightsEnabled) {
-      u.uStructuralHighlightsMask = structuralHighlightMask;
-      u.uStructuralHighlightsBrightness = config.highlightStructural.brightness;
-
-      const isSplitEnabled = structuralLayer?.isRgbSplitEnabled() ?? false;
-      u.uStructuralSplitHighlightsEnabled = isSplitEnabled;
-      if (isSplitEnabled) {
-        const splitMask = resourceManager.getStructuralSplitHighlightMask(
-          this.canvas.app.ticker.deltaTime
-        );
-        if (splitMask?.valid) {
-          u.uStructuralSplitHighlightsMask = splitMask;
-        } else {
-          u.uStructuralSplitHighlightsEnabled = false;
-        }
-      }
-
-      const outdoorsMask = resourceManager.getOutdoorsMask();
-      u.uStructuralOutdoorsMaskEnabled = !!outdoorsMask?.valid;
-      if (u.uStructuralOutdoorsMaskEnabled) {
-        u.uStructuralOutdoorsMask = outdoorsMask;
-      }
-    } else {
-      u.uStructuralOutdoorsMaskEnabled = false;
-      u.uStructuralSplitHighlightsEnabled = false;
-    }
   }
 
   _updatePauseEffectMask(
@@ -10382,10 +10305,6 @@ class LightingEffectManager {
   ) {
     if (!universalConfig?.pauseEffect) return;
 
-    // The universalConfig passed in is now correctly assembled from individual settings.
-    // The structure remains the same, so no changes are needed inside this method itself,
-    // but the error originated from the CALLING method (update) passing invalid data.
-    // The key is ensuring the CALLING method assembles the `universalConfig` correctly.
     const config = universalConfig.pauseEffect.colorCorrection;
     const u = pauseFilter.uniforms;
 
@@ -10403,89 +10322,7 @@ class LightingEffectManager {
     }
   }
 
-  _updateIlluminationMixIn(
-    ccFilter,
-    fullConfig,
-    isIlluminationReady,
-    illuminationTexture
-  ) {
-    if (!ccFilter) return;
-
-    const ppConfig = fullConfig.postProcessing;
-    const siConfig = ppConfig.colorCorrection.sceneIlluminationMixIn;
-    const u = ccFilter.uniforms;
-
-    const isEnabledThisFrame =
-      ppConfig.enabled &&
-      ppConfig.colorCorrection.enabled &&
-      siConfig &&
-      siConfig.enabled &&
-      isIlluminationReady;
-
-    u.uIllumEnabled = isEnabledThisFrame;
-
-    if (isEnabledThisFrame) {
-      if (siConfig.debugMode) {
-        console.log(
-          `[Map Shine Debug] Updating Illum Mix-In. Intensity: ${siConfig.intensity}`
-        );
-      }
-
-      u.uIllumTexture = illuminationTexture;
-      u.uIllumIntensity = siConfig.intensity;
-      u.uIllumBlendMode = siConfig.blendMode;
-      u.uIllumDebugMode = siConfig.debugMode ?? false;
-
-      const si_cc = siConfig.colorCorrection || {};
-      u.uIllumCCEnabled = si_cc.enabled ?? true;
-      u.uIllumSaturation = si_cc.saturation ?? 1.0;
-      u.uIllumBrightness = si_cc.brightness ?? 0.0;
-      u.uIllumContrast = si_cc.contrast ?? 1.0;
-      u.uIllumExposure = si_cc.exposure ?? 0.0;
-      u.uIllumGamma = si_cc.gamma ?? 1.0;
-      u.uIllumTintColor = hexToRgbArray(si_cc.tint?.color ?? "#FFFFFF");
-      u.uIllumTintAmount = si_cc.tint?.amount ?? 0.0;
-
-      const noise = siConfig.noise || {};
-      u.uIllumNoiseEnabled = noise.enabled ?? true;
-      u.uIllumNoiseAmount = noise.amount ?? 0.01;
-      u.uIllumNoiseScale = noise.scale ?? 1.0;
-
-      const negativeMask = siConfig.negativeMask || {};
-      u.uIllumNegativeMaskEnabled = negativeMask.enabled ?? false;
-      u.uIllumNegativeMaskThreshold = negativeMask.threshold ?? 0.8;
-      u.uIllumNegativeMaskSoftness = negativeMask.softness ?? 0.2;
-
-      if (noise.enabled && noise.speed !== 0) {
-        const deltaInSeconds =
-          this.canvas.app.ticker.deltaTime / this.canvas.app.ticker.FPS;
-        const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
-        // Apply scaling factor to the user-friendly speed value
-        const scaledSpeed = (noise.speed ?? 1.0) * 0.001;
-        u.uIllumTime =
-          (u.uIllumTime || 0) + deltaInSeconds * timeFactor * scaledSpeed;
-      }
-    } else {
-      u.uIllumTexture = PIXI.Texture.EMPTY;
-      u.uIllumIntensity = 0.0;
-      u.uIllumBlendMode = 1;
-      u.uIllumDebugMode = false;
-      u.uIllumCCEnabled = true;
-      u.uIllumSaturation = 1.0;
-      u.uIllumBrightness = 0.0;
-      u.uIllumContrast = 1.0;
-      u.uIllumExposure = 0.0;
-      u.uIllumGamma = 1.0;
-      u.uIllumTintColor = [1.0, 1.0, 1.0];
-      u.uIllumTintAmount = 0.0;
-      u.uIllumNoiseEnabled = true;
-      u.uIllumNoiseAmount = 0.0;
-      u.uIllumNegativeMaskEnabled = false;
-    }
-  }
-
   update() {
-    // KILL SWITCH: Do not run any logic if the manager is not ready or a scene transition is active.
     if (this._destroyed || !this.isReady || game.mapShine.transitionActive)
       return;
 
@@ -10506,21 +10343,14 @@ class LightingEffectManager {
         isIlluminationReady,
         illuminationTexture
       );
-      this._updateIlluminationMixIn(
-        ccFilter,
-        fullConfig,
-        isIlluminationReady,
-        illuminationTexture
-      );
     }
 
     const pauseFilter = ScreenEffectsManager.getFilter("pauseEffect");
     if (pauseFilter) {
-      // Construct the universal settings object from individual settings, mirroring the default structure.
       const universalSettings = {
         pauseEffect: {
           colorCorrection: {
-            ...UNIVERSAL_EFFECT_DEFAULTS.pauseEffect.colorCorrection, // Start with defaults
+            ...UNIVERSAL_EFFECT_DEFAULTS.pauseEffect.colorCorrection,
             enabled: game.settings.get(
               MODULE_ID,
               "universal.pauseEffect.colorCorrection.enabled"
@@ -12979,8 +12809,8 @@ class ParticleEffectController {
 
   async _createEmitterForTarget(targetData, targetId) {
     if (targetData.isGeometry) {
-      this._createEmitterForGeometry(targetData.group, targetId);
-      return;
+      // Propagate the success/failure state from the geometry-specific method.
+      return await this._createEmitterForGeometry(targetData.group, targetId);
     }
 
     // --- Existing logic for texture-based targets ---
@@ -13006,7 +12836,7 @@ class ParticleEffectController {
 
     const particleTexPath =
       this.config.particleTexture ?? "modules/map-shine/assets/particle.webp";
-    if (!particleTexPath || typeof particleTexPath !== "string") return;
+    if (!particleTexPath || typeof particleTexPath !== "string") return true;
 
     try {
       const texture = await foundry.canvas.loadTexture(particleTexPath);
@@ -13016,7 +12846,7 @@ class ParticleEffectController {
       );
       if (emitterConfig.maxParticles === 0) {
         customMaskTexture?.destroy(true);
-        return;
+        return true;
       }
       const textureBehavior = emitterConfig.behaviors.find(
         (b) => b.type === "textureSingle"
@@ -13031,19 +12861,26 @@ class ParticleEffectController {
       this.emitters.set(targetId, {
         emitter,
       });
+      return true; // Indicate success
     } catch (err) {
       console.error(
         `Map Shine | Failed to load particle texture: "${particleTexPath}"`,
         err
       );
       customMaskTexture?.destroy(true);
+      return true; // Indicate "success" to avoid retrying a failed load.
     }
   }
 
   async _createEmitterForGeometry(group, targetId) {
+    // If the manager isn't ready, defer creation by returning false.
+    if (!game.mapShine.geometryMaskManager) {
+      return false;
+    }
+
     const particleTexPath =
       this.config.particleTexture ?? "modules/map-shine/assets/particle.webp";
-    if (!particleTexPath || typeof particleTexPath !== "string") return;
+    if (!particleTexPath || typeof particleTexPath !== "string") return true; // Nothing to do, so count as "success".
 
     try {
       const texture = await foundry.canvas.loadTexture(particleTexPath);
@@ -13058,12 +12895,11 @@ class ParticleEffectController {
         !currentFullConfig.enabled ||
         !currentEffectConfig?.enabled
       )
-        return;
-      if (this.emitters.has(targetId)) return;
+        return true; // Effect is disabled, count as "success" to remove from pending.
+      if (this.emitters.has(targetId)) return true; // Already created, count as "success".
 
       let emitterConfig;
 
-      // Special case for effects that use the geometry directly.
       if (this.definition.configPath === "smellyFlies") {
         emitterConfig = this.definition.buildEmitterConfig(
           currentEffectConfig,
@@ -13072,14 +12908,12 @@ class ParticleEffectController {
           group
         );
       } else {
-        // Standard path for effects using the rendered geometry mask.
-        const maskTexture =
-          game.mapShine.geometryMaskManager.getMask(group.effectTarget);
+        const maskTexture = game.mapShine.geometryMaskManager.getMask(
+          group.effectTarget
+        );
         if (!maskTexture) {
-          console.warn(
-            `Map Shine | Could not get geometry mask for effect target '${group.effectTarget}'.`
-          );
-          return;
+          // The manager exists, but the mask might not be ready yet. Defer.
+          return false;
         }
         const virtualTargetData = {
           [group.effectTarget]: maskTexture,
@@ -13098,7 +12932,7 @@ class ParticleEffectController {
         );
       }
 
-      if (emitterConfig.maxParticles === 0) return;
+      if (emitterConfig.maxParticles === 0) return true;
 
       const textureBehavior = emitterConfig.behaviors.find(
         (b) => b.type === "textureSingle"
@@ -13110,32 +12944,39 @@ class ParticleEffectController {
       emitter.autoUpdate = false;
 
       this.emitters.set(targetId, { emitter });
-      console.log(
-        `Map Shine | Created GEOMETRY-BASED '${this.definition.configPath}' emitter for group '${group.label}'.`
-      );
+      return true; // Success!
     } catch (err) {
       console.error(
         `Map Shine | Failed to load particle texture for geometry emitter: "${particleTexPath}"`,
         err
       );
+      return true; // Don't retry a failed texture load.
     }
   }
 
-  update(deltaTime) {
+  async update(deltaTime) {
     if (!this.pendingTargets || !this.emitters) return;
 
     if (this.pendingTargets.size > 0) {
+      const successfullyCreated = new Set();
       for (const [targetId, targetData] of this.pendingTargets.entries()) {
-        this._createEmitterForTarget(targetData, targetId);
+        const success = await this._createEmitterForTarget(
+          targetData,
+          targetId
+        );
+        if (success) {
+          successfullyCreated.add(targetId);
+        }
       }
-      this.pendingTargets.clear();
+
+      for (const targetId of successfullyCreated) {
+        this.pendingTargets.delete(targetId);
+      }
     }
 
     // Periodically update the spawn points for metallic glints
     if (this.definition.configPath === "metallicGlints") {
       for (const { emitter } of this.emitters.values()) {
-        // Add a guard to ensure the emitter and its behaviors are valid before access.
-        // This can prevent errors if an emitter is destroyed but its reference persists for a frame.
         if (!emitter || !emitter.behaviors) continue;
 
         const spawnBehavior = emitter.behaviors.find(
@@ -13272,8 +13113,6 @@ class ParticleEffectController {
     this.parentContainer = null;
   }
 }
-
-
 
 const buildParticleEmitterConfig = (
   effectConfig,
@@ -13707,7 +13546,6 @@ const buildSparkEmitterConfig = (effectConfig, targetData, maskKey) => {
     behaviors: behaviors,
   };
 };
-
 
 class ParticleManager {
   constructor() {
@@ -14263,6 +14101,9 @@ class ParticleLayer extends CanvasLayer {
 
     // Clear the resource manager's frame cache at the start of every animation frame.
     game.mapShine.resourceManager?.onFrameStart();
+
+    // Update the CoordinateManager once per frame. This is the new single source of truth.
+    CoordinateManager.update();
 
     // Once the main systems are ready, mark this layer as initialized so other systems can proceed.
     // The actual particle creation is handled by updateFromConfig.
@@ -15814,50 +15655,11 @@ class ColorCorrectionFilter extends PIXI.Filter {
                         uniform sampler2D uCurveLUT;
                         uniform bool uCurvesEnabled;
 
-                        uniform bool uCloudHighlightsEnabled;
-                        uniform sampler2D uCloudHighlightsMask;
-                        uniform float uCloudHighlightsBrightness;
-
-                        uniform bool uCanopyHighlightsEnabled;
-                        uniform sampler2D uCanopyHighlightsMask;
-                        uniform float uCanopyHighlightsBrightness;
-                        uniform sampler2D uCanopyOutdoorsMask;
-                        uniform bool uCanopyOutdoorsMaskEnabled;
-
-                        uniform bool uStructuralHighlightsEnabled;
-                        uniform sampler2D uStructuralHighlightsMask;
-                        uniform float uStructuralHighlightsBrightness;
-                        uniform sampler2D uStructuralOutdoorsMask;
-                        uniform bool uStructuralOutdoorsMaskEnabled;
-
-                        uniform bool uStructuralSplitHighlightsEnabled;
-                        uniform sampler2D uStructuralSplitHighlightsMask;
-
                         uniform float uIntensity;
                         uniform vec4 uSceneRectNorm;
 
                         uniform float uDynamicExposureBoost;
                         uniform float uDynamicContrastBoost;
-
-                        // --- NEW: Illumination Mix-In Uniforms ---
-                        uniform sampler2D uIllumTexture;
-                        uniform bool uIllumEnabled;
-                        uniform float uIllumIntensity;
-                        uniform int uIllumBlendMode;
-                        uniform bool uIllumCCEnabled;
-                        uniform float uIllumSaturation, uIllumBrightness, uIllumContrast;
-                        uniform float uIllumExposure, uIllumGamma;
-                        uniform vec3 uIllumTintColor;
-                        uniform float uIllumTintAmount;
-                        uniform bool uIllumNoiseEnabled;
-                        uniform float uIllumNoiseAmount;
-                        uniform float uIllumNoiseScale;
-                        uniform float uIllumTime;
-                        uniform bool uIllumDebugMode;
-                        uniform bool uIllumNegativeMaskEnabled;
-                        uniform float uIllumNegativeMaskThreshold;
-                        uniform float uIllumNegativeMaskSoftness;
-
 
                         const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
 
@@ -15907,20 +15709,7 @@ class ColorCorrectionFilter extends PIXI.Filter {
                             return color;
                         }
 
-                        // --- NEW: Noise functions for Illumination ---
-                        float random(vec2 st) {
-                            return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
-                        }
-                        float noise(vec2 st) {
-                            vec2 i = floor(st);
-                            vec2 f = fract(st);
-                            vec2 u = f * f * (3.0 - 2.0 * f);
-                            return mix(mix(random(i + vec2(0.0, 0.0)), random(i + vec2(1.0, 0.0)), u.x),
-                                    mix(random(i + vec2(0.0, 1.0)), random(i + vec2(1.0, 1.0)), u.x), u.y);
-                        }
-
                         void main(void) {
-                            // --- 1. Base Color Correction Pass ---
                             vec4 originalColor = texture2D(uSampler, vTextureCoord);
 
                             vec3 workingColor = originalColor.rgb;
@@ -15963,8 +15752,6 @@ class ColorCorrectionFilter extends PIXI.Filter {
 
                             if (uInWhite > uInBlack) workingColor = (workingColor - uInBlack) / (uInWhite - uInBlack + 0.00001);
                             
-                            // The highlight preservation logic has been removed as it was based on an incorrect luminance source.
-                            // The dynamic exposure boost is now applied directly as calculated by the manager.
                             workingColor *= pow(2.0, uExposure + uDynamicExposureBoost);
 
                             workingColor = applyWhiteBalance(workingColor, uTemperature, uWbTint);
@@ -15989,42 +15776,6 @@ class ColorCorrectionFilter extends PIXI.Filter {
                                 final_rgb = mix(uncorrectedColor, final_rgb, maskValue);
                             }
                             
-                            vec2 sceneMin = uSceneRectNorm.xy;
-                            vec2 sceneMax = uSceneRectNorm.xy + uSceneRectNorm.zw;
-                            bool isInsideScene = vTextureCoord.x >= sceneMin.x && vTextureCoord.x < sceneMax.x &&
-                                                vTextureCoord.y >= sceneMin.y && vTextureCoord.y < sceneMax.y;
-
-                            if (isInsideScene) {
-                                if (uCloudHighlightsEnabled) {
-                                    float lightAmount = texture2D(uCloudHighlightsMask, vTextureCoord).r;
-                                    final_rgb *= (1.0 + uCloudHighlightsBrightness * lightAmount);
-                                }
-                                if (uCanopyHighlightsEnabled) {
-                                    float lightAmount = texture2D(uCanopyHighlightsMask, vTextureCoord).r;
-                                    if (uCanopyOutdoorsMaskEnabled) {
-                                        lightAmount *= texture2D(uCanopyOutdoorsMask, vTextureCoord).r;
-                                    }
-                                    final_rgb *= (1.0 + uCanopyHighlightsBrightness * lightAmount);
-                                }
-                                
-                                if (uStructuralHighlightsEnabled) {
-                                    if (uStructuralSplitHighlightsEnabled) {
-                                        vec3 splitLight = texture2D(uStructuralSplitHighlightsMask, vTextureCoord).rgb;
-                                        if (uStructuralOutdoorsMaskEnabled) {
-                                            splitLight *= (1.0 - texture2D(uStructuralOutdoorsMask, vTextureCoord).r);
-                                        }
-                                        vec3 highlightBoost = splitLight * uStructuralHighlightsBrightness;
-                                        final_rgb *= (vec3(1.0) + highlightBoost);
-                                    } else {
-                                        float lightAmount = texture2D(uStructuralHighlightsMask, vTextureCoord).r;
-                                        if (uStructuralOutdoorsMaskEnabled) {
-                                            lightAmount *= (1.0 - texture2D(uStructuralOutdoorsMask, vTextureCoord).r);
-                                        }
-                                        final_rgb *= (1.0 + uStructuralHighlightsBrightness * lightAmount);
-                                    }
-                                }
-                            }
-
                             if (uAmbientCompositeEnabled) {
                                 vec4 ambient = texture2D(uAmbientCompositeTexture, vTextureCoord);
                                 if (ambient.a > 0.0) {
@@ -16041,57 +15792,6 @@ class ColorCorrectionFilter extends PIXI.Filter {
                                         final_rgb = 1.0 - (1.0 - final_rgb) * (1.0 - ambientRGB);
                                     } else { 
                                         final_rgb = mix(final_rgb, ambientRGB, ambient.a);
-                                    }
-                                }
-                            }
-
-                            // --- 2. Illumination Mix-in Pass ---
-                            if (uIllumEnabled) {
-                                vec2 illumUV = vTextureCoord;
-                                vec3 illumSample = texture2D(uIllumTexture, illumUV).rgb;
-                                
-                                if (uIllumDebugMode) {
-                                    final_rgb = illumSample;
-                                } else {
-                                    if (uIllumCCEnabled) {
-                                        illumSample *= pow(2.0, uIllumExposure);
-                                        if (uIllumGamma > 0.0) illumSample = pow(max(illumSample, 0.0), vec3(1.0 / uIllumGamma));
-                                        illumSample += uIllumBrightness;
-                                        illumSample = (illumSample - 0.5) * uIllumContrast + 0.5;
-                                        float illumLuminance = dot(illumSample, lum_weights);
-                                        illumSample = mix(vec3(illumLuminance), illumSample, uIllumSaturation);
-                                        illumSample = mix(illumSample, uIllumTintColor, uIllumTintAmount);
-                                    }
-
-                                    if (uIllumNegativeMaskEnabled) {
-                                        float sceneLuminance = dot(final_rgb, lum_weights);
-                                        float negativeMask = 1.0 - smoothstep(uIllumNegativeMaskThreshold, uIllumNegativeMaskThreshold + uIllumNegativeMaskSoftness, sceneLuminance);
-                                        illumSample *= negativeMask;
-                                    }
-                                    
-                                    if (uIllumNoiseEnabled && uIllumNoiseAmount > 0.0) {
-                                        vec2 noiseCoord = illumUV * uIllumNoiseScale + uIllumTime;
-                                        float noiseValue = (noise(noiseCoord) - 0.5) * uIllumNoiseAmount;
-                                        illumSample += noiseValue;
-                                    }
-                                    
-                                    illumSample *= uIllumIntensity;
-                                    float illumLuminance = dot(illumSample, lum_weights);
-                                    
-                                    if (uIllumBlendMode == 1) final_rgb += illumSample;
-                                    else if (uIllumBlendMode == 2) final_rgb *= (1.0 + illumLuminance);
-                                    else if (uIllumBlendMode == 3) final_rgb = 1.0 - (1.0 - final_rgb) * (1.0 - illumSample);
-                                    else if (uIllumBlendMode == 4) {
-                                        vec3 overlayResult;
-                                        overlayResult.r = final_rgb.r < 0.5 ? 2.0 * final_rgb.r * illumSample.r : 1.0 - 2.0 * (1.0 - final_rgb.r) * (1.0 - illumSample.r);
-                                        overlayResult.g = final_rgb.g < 0.5 ? 2.0 * final_rgb.g * illumSample.g : 1.0 - 2.0 * (1.0 - final_rgb.g) * (1.0 - illumSample.g);
-                                        overlayResult.b = final_rgb.b < 0.5 ? 2.0 * final_rgb.b * illumSample.b : 1.0 - 2.0 * (1.0 - final_rgb.b) * (1.0 - illumSample.b);
-                                        final_rgb = overlayResult;
-                                    } else if (uIllumBlendMode == 5) final_rgb = min(vec3(1.0), final_rgb / (1.0 - min(illumSample, 0.999)));
-                                    else {
-                                        float lightStrength = illumLuminance;
-                                        vec3 litColor = final_rgb * (1.0 + lightStrength * 2.0);
-                                        final_rgb = mix(final_rgb, litColor, lightStrength);
                                     }
                                 }
                             }
@@ -16134,47 +15834,11 @@ class ColorCorrectionFilter extends PIXI.Filter {
       uAmbientCompositeBlendMode: PIXI.BLEND_MODES.NORMAL,
       uAmbientIlluminationMask: PIXI.Texture.EMPTY,
       uAmbientIlluminationMaskEnabled: false,
-      uCloudHighlightsEnabled: false,
-      uCloudHighlightsMask: PIXI.Texture.EMPTY,
-      uCloudHighlightsBrightness: 0.0,
-      uCanopyHighlightsEnabled: false,
-      uCanopyHighlightsMask: PIXI.Texture.EMPTY,
-      uCanopyHighlightsBrightness: 0.0,
-      uCanopyOutdoorsMask: PIXI.Texture.EMPTY,
-      uCanopyOutdoorsMaskEnabled: false,
-      uStructuralHighlightsEnabled: false,
-      uStructuralHighlightsMask: PIXI.Texture.EMPTY,
-      uStructuralHighlightsBrightness: 0.0,
-      uStructuralOutdoorsMask: PIXI.Texture.EMPTY,
-      uStructuralOutdoorsMaskEnabled: false,
-      uStructuralSplitHighlightsEnabled: false,
-      uStructuralSplitHighlightsMask: PIXI.Texture.EMPTY,
       uSceneRectNorm: [0, 0, 1, 1],
       uIntensity: options.intensity ?? 1.0,
       uDynamicExposureBoost: 0.0,
       uDynamicHighlightPreservation: 0.8,
       uDynamicContrastBoost: 1.0,
-      // New Illumination Uniforms
-      uIllumTexture: PIXI.Texture.EMPTY,
-      uIllumEnabled: false,
-      uIllumIntensity: 1.0,
-      uIllumBlendMode: 1,
-      uIllumCCEnabled: true,
-      uIllumSaturation: 1.0,
-      uIllumBrightness: 0.0,
-      uIllumContrast: 1.0,
-      uIllumExposure: 0.0,
-      uIllumGamma: 1.0,
-      uIllumTintColor: [1.0, 1.0, 1.0],
-      uIllumTintAmount: 0.0,
-      uIllumNoiseEnabled: true,
-      uIllumNoiseAmount: 0.01,
-      uIllumNoiseScale: 1.0,
-      uIllumTime: 0.0,
-      uIllumDebugMode: false,
-      uIllumNegativeMaskEnabled: false,
-      uIllumNegativeMaskThreshold: 0.8,
-      uIllumNegativeMaskSoftness: 0.2,
     });
   }
 }
@@ -16492,69 +16156,6 @@ class ScreenEffectsManager {
                                           "Negative values shift toward magenta, positive toward green."
                                         )}
                                 </div></details>
-                                <details id="details-postProcessing-cc-highlights">
-                                    <summary><span class="accordion-toggle"></span><strong>Highlight Adjustments</strong></summary>
-                                    <div style="padding-left: 15px;">
-                                        <p class="description-text">Boost brightness in areas unaffected by certain shadow effects.</p>
-                                        <details id="details-postProcessing-cc-highlightCloud">
-                                            <summary><span class="accordion-toggle"></span>
-                                                <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                                                  "postProcessing.colorCorrection.highlightCloud.enabled",
-                                                  "Cloud Highlights",
-                                                  true
-                                                )}</div>
-                                            </summary>
-                                            <div style="padding-left: 15px;">
-                                                <p class="description-text">Brightens the sky between cloud shadows.</p>
-                                                ${DebuggerUIBuilder._createSliderHTML(
-                                                  "postProcessing.colorCorrection.highlightCloud.brightness",
-                                                  "Brightness",
-                                                  0,
-                                                  2,
-                                                  0.01
-                                                )}
-                                            </div>
-                                        </details>
-                                        <details id="details-postProcessing-cc-highlightCanopy">
-                                            <summary><span class="accordion-toggle"></span>
-                                                <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                                                  "postProcessing.colorCorrection.highlightCanopy.enabled",
-                                                  "Canopy Highlights",
-                                                  true
-                                                )}</div>
-                                            </summary>
-                                            <div style="padding-left: 15px;">
-                                                <p class="description-text">Brightens the light filtering through the canopy.</p>
-                                                ${DebuggerUIBuilder._createSliderHTML(
-                                                  "postProcessing.colorCorrection.highlightCanopy.brightness",
-                                                  "Brightness",
-                                                  0,
-                                                  5,
-                                                  0.01
-                                                )}
-                                                </div>
-                                            </details>
-                                            <details id="details-postProcessing-cc-highlightStructural">
-                                                <summary><span class="accordion-toggle"></span>
-                                                    <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                                                      "postProcessing.colorCorrection.highlightStructural.enabled",
-                                                      "Structural Highlights",
-                                                      true
-                                                    )}</div>
-                                                </summary>
-                                                <div style="padding-left: 15px;">
-                                                    <p class="description-text">Brightens the areas not in structural shadow (e.g., areas between rafters).</p>
-                                                    ${DebuggerUIBuilder._createSliderHTML(
-                                                      "postProcessing.colorCorrection.highlightStructural.brightness",
-                                                      "Brightness",
-                                                      0,
-                                                      5,
-                                                      0.01
-                                                    )}
-                                                </div>
-                                            </details>
-                                        </div>
-                                    </details>
                                 <details id="details-postProcessing-cc-tint"><summary><span class="accordion-toggle"></span><strong>Global Tint</strong></summary><div style="padding-left: 15px;">
                                         <p class="description-text">Applies a color overlay to the entire scene.</p>
                                         ${DebuggerUIBuilder._createColorPickerHTML(
@@ -16630,156 +16231,43 @@ class ScreenEffectsManager {
                             </div>
                         </details>
                             
-            <details id="details-postProcessing-dynamicExposure">
-                <summary>
-                    <span class="accordion-toggle"></span>
-                    <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                      "postProcessing.colorCorrection.dynamicExposure.enabled",
-                      "Dynamic Exposure (Dazzle)",
-                      true
-                    )}</div>
-                </summary>
-                <div style="padding-left: 15px;">
-                    <p class="description-text">Creates a "dazzle" effect when a token moves from an area defined as indoors (dark parts of _Outdoors mask) to outdoors (light parts).</p>
-                    ${DebuggerUIBuilder._createSliderHTML(
-                      "postProcessing.colorCorrection.dynamicExposure.intensity",
-                      "Dazzle Intensity",
-                      0,
-                      5,
-                      0.1,
-                      "The peak exposure brightness when the effect triggers."
-                    )}
-                    ${DebuggerUIBuilder._createSliderHTML(
-                      "postProcessing.colorCorrection.dynamicExposure.duration",
-                      "Dazzle Duration (ms)",
-                      500,
-                      20000,
-                      100,
-                      "How long it takes for the dazzle effect to fade back to normal."
-                    )}
-                    ${DebuggerUIBuilder._createSliderHTML(
-                      "postProcessing.colorCorrection.dynamicExposure.resetPeriod",
-                      "Reset Period (ms)",
-                      1000,
-                      120000,
-                      1000,
-                      "The cooldown time before the effect can be triggered again."
-                    )}
-                </div>
-            </details>
-        
-                
-            <details id="details-postProcessing-sceneIlluminationMixIn">
-                <summary>
-                    <span class="accordion-toggle"></span>
-                    <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                      "postProcessing.colorCorrection.sceneIlluminationMixIn.enabled",
-                      "Scene Illumination Mix-in",
-                      true
-                    )}</div>
-                </summary>
-                <div style="padding-left: 15px;">
-                    <p class="description-text">Mixes the raw illumination buffer texture back into the scene after all other color correction. Requires the Illumination Buffer module.</p>
-                    <div class="warning-box" style="background-color: #554422; border-color: #ffaa66;">
-                        <strong style="color: #ffddaa;">PERFORMANCE NOTE:</strong> This effect samples the illumination buffer directly and may impact performance on lower-end systems.
-                    </div>
-                    ${DebuggerUIBuilder._createSliderHTML(
-                      "postProcessing.colorCorrection.sceneIlluminationMixIn.intensity",
-                      "Mix Intensity",
-                      0,
-                      2,
-                      0.01,
-                      "Overall strength of the illumination mix-in effect."
-                    )}
-                    ${DebuggerUIBuilder._createSelectHTML(
-                      "postProcessing.colorCorrection.sceneIlluminationMixIn.blendMode",
-                      "Blend Mode",
-                      {
-                        Normal: 0,
-                        Add: 1,
-                        "Multiply Light": 2,
-                        Screen: 3,
-                        Overlay: 4,
-                        "Color Dodge": 5,
-                      }
-                    )}
-                    ${DebuggerUIBuilder._createCheckboxHTML(
-                      "postProcessing.colorCorrection.sceneIlluminationMixIn.debugMode",
-                      "Debug Mode",
-                      false,
-                      "Show raw illumination texture for debugging."
-                    )}
-                    
-
-        
-                    <details id="details-sceneIlluminationMixIn-colorCorrection">
-                        <summary><span class="accordion-toggle"></span>
-                            <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                              "postProcessing.colorCorrection.sceneIlluminationMixIn.colorCorrection.enabled",
-                              "Illumination Color Correction",
-                              true
-                            )}</div>
-                        </summary>
-                        <div style="padding-left: 15px;">
-                            <p class="description-text">Applies color correction to the illumination buffer before mixing it into the scene.</p>
-                            ${DebuggerUIBuilder._createSliderHTML(
-                              "postProcessing.colorCorrection.sceneIlluminationMixIn.colorCorrection.saturation",
-                              "Saturation",
-                              0,
-                              4,
-                              0.05
-                            )}
-                            ${DebuggerUIBuilder._createSliderHTML(
-                              "postProcessing.colorCorrection.sceneIlluminationMixIn.colorCorrection.brightness",
-                              "Brightness",
-                              -1,
-                              1,
-                              0.01
-                            )}
-                            ${DebuggerUIBuilder._createSliderHTML(
-                              "postProcessing.colorCorrection.sceneIlluminationMixIn.colorCorrection.contrast",
-                              "Contrast",
-                              0,
-                              4,
-                              0.05
-                            )}
-                            ${DebuggerUIBuilder._createSliderHTML(
-                              "postProcessing.colorCorrection.sceneIlluminationMixIn.colorCorrection.exposure",
-                              "Exposure",
-                              -2,
-                              2,
-                              0.05
-                            )}
-                            ${DebuggerUIBuilder._createSliderHTML(
-                              "postProcessing.colorCorrection.sceneIlluminationMixIn.colorCorrection.gamma",
-                              "Gamma",
-                              0.2,
-                              2.5,
-                              0.05
-                            )}
-                            <details id="details-sceneIlluminationMixIn-cc-tint">
-                                <summary><span class="accordion-toggle"></span><strong>Illumination Tint</strong></summary>
-                                <div style="padding-left: 15px;">
-                                    ${DebuggerUIBuilder._createColorPickerHTML(
-                                      "postProcessing.colorCorrection.sceneIlluminationMixIn.colorCorrection.tint.color",
-                                      "Tint Color"
-                                    )}
-                                    ${DebuggerUIBuilder._createSliderHTML(
-                                      "postProcessing.colorCorrection.sceneIlluminationMixIn.colorCorrection.tint.amount",
-                                      "Tint Amount",
-                                      0,
-                                      1,
-                                      0.01
-                                    )}
-                                </div>
-                            </details>
-                        </div>
-                    </details>
-                
-                </div>
-            </details>
-        
-            
+                        <details id="details-postProcessing-dynamicExposure">
+                            <summary>
+                                <span class="accordion-toggle"></span>
+                                <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                                  "postProcessing.colorCorrection.dynamicExposure.enabled",
+                                  "Dynamic Exposure (Dazzle)",
+                                  true
+                                )}</div>
+                            </summary>
+                            <div style="padding-left: 15px;">
+                                <p class="description-text">Creates a "dazzle" effect when a token moves from an area defined as indoors (dark parts of _Outdoors mask) to outdoors (light parts).</p>
+                                ${DebuggerUIBuilder._createSliderHTML(
+                                  "postProcessing.colorCorrection.dynamicExposure.intensity",
+                                  "Dazzle Intensity",
+                                  0,
+                                  5,
+                                  0.1,
+                                  "The peak exposure brightness when the effect triggers."
+                                )}
+                                ${DebuggerUIBuilder._createSliderHTML(
+                                  "postProcessing.colorCorrection.dynamicExposure.duration",
+                                  "Dazzle Duration (ms)",
+                                  500,
+                                  20000,
+                                  100,
+                                  "How long it takes for the dazzle effect to fade back to normal."
+                                )}
+                                ${DebuggerUIBuilder._createSliderHTML(
+                                  "postProcessing.colorCorrection.dynamicExposure.resetPeriod",
+                                  "Reset Period (ms)",
+                                  1000,
+                                  120000,
+                                  1000,
+                                  "The cooldown time before the effect can be triggered again."
+                                )}
+                            </div>
+                        </details>
         
                         <details id="details-postProcessing-vignette"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
                           "postProcessing.vignette.enabled",
@@ -16967,7 +16455,6 @@ class ScreenEffectsManager {
 
     return {
       postProcessing: postProcessingHTML,
-      // This is now empty, as universal effects are in Foundry's menu.
       otherEffects: [],
     };
   }
@@ -17113,7 +16600,7 @@ class ScreenEffectsManager {
       this.addFilter("combatEffect", combatFilter);
       this.addFilter("filmGrain", new FilmGrainFilter());
     } catch (e) {
-      ppErrors.push("ColorCorrection or FilmGrain");
+      ppErrors.push("ColorCorrection, SceneIllumination, or FilmGrain");
     }
 
     try {
@@ -17159,11 +16646,10 @@ class ScreenEffectsManager {
     const pp = config.postProcessing;
     const ab = config.advancedBloom;
 
-    // Construct universal settings object from individual settings, mirroring the full default structure.
     const universalSettings = {
       pauseEffect: {
         colorCorrection: {
-          ...UNIVERSAL_EFFECT_DEFAULTS.pauseEffect.colorCorrection, // Start with defaults
+          ...UNIVERSAL_EFFECT_DEFAULTS.pauseEffect.colorCorrection,
           enabled: game.settings.get(
             MODULE_ID,
             "universal.pauseEffect.colorCorrection.enabled"
@@ -17184,7 +16670,7 @@ class ScreenEffectsManager {
       },
       combatEffect: {
         colorCorrection: {
-          ...UNIVERSAL_EFFECT_DEFAULTS.combatEffect.colorCorrection, // Start with defaults
+          ...UNIVERSAL_EFFECT_DEFAULTS.combatEffect.colorCorrection,
           enabled: game.settings.get(
             MODULE_ID,
             "universal.combatEffect.colorCorrection.enabled"
@@ -17209,14 +16695,12 @@ class ScreenEffectsManager {
     if (prismFilter instanceof PrismFilter) {
       const pConfig = config.prism;
       prismFilter.enabled = config.enabled && pConfig.enabled;
-
       const u = prismFilter.uniforms;
       u.uIntensity = pConfig.intensity;
       u.uAngleRad = pConfig.angle * (Math.PI / 180.0);
       u.uThreshold = pConfig.threshold;
       u.uSoftness = pConfig.softness;
       u.uDistortionStrength = pConfig.distortionStrength;
-
       const screen = canvas?.app?.screen;
       if (screen) {
         u.uTexelSize = [1 / screen.width, 1 / screen.height];
@@ -17254,7 +16738,6 @@ class ScreenEffectsManager {
         config.enabled && pp.enabled && tsConfig.enabled;
       tiltShiftFilter.blur = tsConfig.blur;
       tiltShiftFilter.gradientBlur = tsConfig.gradientBlur;
-
       const screen = canvas.app.screen;
       if (tiltShiftFilter.start) {
         tiltShiftFilter.start.x = tsConfig.startX * screen.width;
@@ -17313,10 +16796,8 @@ class ScreenEffectsManager {
     if (ccFilter instanceof ColorCorrectionFilter) {
       const ccConfig = pp.colorCorrection;
       ccFilter.enabled = config.enabled && pp.enabled && ccConfig.enabled;
-
       const u = ccFilter.uniforms;
       if (ccConfig.dynamicExposure) {
-        // The uDynamicHighlightPreservation uniform has been removed from the filter.
       }
       u.uSaturation = ccConfig.saturation;
       u.uBrightness = ccConfig.brightness;
@@ -17330,7 +16811,6 @@ class ScreenEffectsManager {
       u.uWbTint = ccConfig.whiteBalance.tint;
       u.uTintColor = hexToRgbArray(ccConfig.tint.color);
       u.uTintAmount = ccConfig.tint.amount;
-
       const sel = ccConfig.selective;
       u.uSelectiveEnabled = sel.enabled;
       u.uSelectiveColor = hexToRgbArray(sel.color);
@@ -17343,7 +16823,6 @@ class ScreenEffectsManager {
       u.uSelectiveDesaturation = sel.desaturation;
       u.uSelectiveTargetSaturation = sel.targetSaturation;
       u.uSelectiveTargetBrightness = sel.targetBrightness;
-
       const curvesConfig = ccConfig.curves;
       if (curvesConfig) {
         u.uCurvesEnabled = curvesConfig.enabled;
@@ -17373,7 +16852,6 @@ class ScreenEffectsManager {
       u.uWbTint = pauseConfig.whiteBalance.tint;
       u.uTintColor = hexToRgbArray(pauseConfig.tint.color);
       u.uTintAmount = pauseConfig.tint.amount;
-
       const sel = pauseConfig.selective;
       u.uSelectiveEnabled = sel.enabled;
       u.uSelectiveColor = hexToRgbArray(sel.color);
@@ -17404,7 +16882,6 @@ class ScreenEffectsManager {
       u.uWbTint = combatConfig.whiteBalance.tint;
       u.uTintColor = hexToRgbArray(combatConfig.tint.color);
       u.uTintAmount = combatConfig.tint.amount;
-
       const sel = combatConfig.selective;
       u.uSelectiveEnabled = sel.enabled;
       u.uSelectiveColor = hexToRgbArray(sel.color);
@@ -17422,27 +16899,130 @@ class ScreenEffectsManager {
 
   static tearDown() {
     if (!this._container) return;
-
-    // Properly destroy all managed filters. Filters are tied to a WebGL context
-    // and cannot be reused across scene changes (which involves a new context).
     for (const filter of this._filters.values()) {
       filter?.destroy();
     }
-
-    // Clear the map to ensure no stale references are held.
     this._filters.clear();
-
-    // Remove filters from the container.
     if (this._container.filters) {
       this._container.filters = null;
     }
-
-    // We do not nullify the container itself, as it's a reference to a core
-    // canvas container that persists.
-
     console.log(
       "Map Shine | ScreenEffectsManager fully torn down for scene transition."
     );
+  }
+}
+
+class SceneIlluminationMixInFilter extends PIXI.Filter {
+  constructor(options = {}) {
+    const fragmentSrc = `
+      precision mediump float;
+      varying vec2 vTextureCoord;
+
+      uniform sampler2D uSampler;
+
+      // Uniforms
+      uniform sampler2D uIlluminationTexture;
+      uniform float uIntensity;
+      uniform int uBlendMode;
+      uniform bool uDebugMode;
+
+      // Color Correction Uniforms
+      uniform bool uCCEnabled;
+      uniform float uSaturation, uBrightness, uContrast;
+      uniform float uExposure, uGamma;
+      uniform vec3 uTintColor;
+      uniform float uTintAmount;
+      
+      // Noise Uniforms
+      uniform bool uNoiseEnabled;
+      uniform float uNoiseAmount;
+      uniform sampler2D uNoiseTexture;
+
+      // Masking Uniforms
+      uniform bool uNegativeMaskEnabled;
+      uniform float uNegativeMaskThreshold;
+      uniform float uNegativeMaskSoftness;
+
+      // World-space uniforms for noise sampling
+      uniform vec2 u_camera_offset;
+      uniform vec2 u_view_size;
+
+      const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
+
+      void main(void) {
+          vec4 originalColor = texture2D(uSampler, vTextureCoord);
+          vec3 final_rgb = originalColor.rgb;
+
+          vec3 illumSample = texture2D(uIlluminationTexture, vTextureCoord).rgb;
+          
+          if (uDebugMode) {
+              final_rgb = illumSample;
+          } else {
+              if (uCCEnabled) {
+                  illumSample *= pow(2.0, uExposure);
+                  if (uGamma > 0.0) illumSample = pow(max(illumSample, 0.0), vec3(1.0 / uGamma));
+                  illumSample += uBrightness;
+                  illumSample = (illumSample - 0.5) * uContrast + 0.5;
+                  float illumLuminance = dot(illumSample, lum_weights);
+                  illumSample = mix(vec3(illumLuminance), illumSample, uSaturation);
+                  illumSample = mix(illumSample, uTintColor, uTintAmount);
+              }
+
+              if (uNegativeMaskEnabled) {
+                  float sceneLuminance = dot(final_rgb, lum_weights);
+                  float negativeMask = 1.0 - smoothstep(uNegativeMaskThreshold, uNegativeMaskThreshold + uNegativeMaskSoftness, sceneLuminance);
+                  illumSample *= negativeMask;
+              }
+              
+              if (uNoiseEnabled && uNoiseAmount > 0.0) {
+                  float noiseValue = (texture2D(uNoiseTexture, vTextureCoord).r - 0.5) * uNoiseAmount;
+                  illumSample += noiseValue;
+              }
+              
+              illumSample *= uIntensity;
+              
+              if (uBlendMode == 1) final_rgb += illumSample; // ADD
+              else if (uBlendMode == 2) { // MULTIPLY LIGHT (Custom)
+                  final_rgb *= (1.0 + dot(illumSample, lum_weights));
+              }
+              else if (uBlendMode == 3) final_rgb = 1.0 - (1.0 - final_rgb) * (1.0 - illumSample); // SCREEN
+              else if (uBlendMode == 4) { // OVERLAY
+                  vec3 overlayResult;
+                  overlayResult.r = final_rgb.r < 0.5 ? 2.0 * final_rgb.r * illumSample.r : 1.0 - 2.0 * (1.0 - final_rgb.r) * (1.0 - illumSample.r);
+                  overlayResult.g = final_rgb.g < 0.5 ? 2.0 * final_rgb.g * illumSample.g : 1.0 - 2.0 * (1.0 - final_rgb.g) * (1.0 - illumSample.g);
+                  overlayResult.b = final_rgb.b < 0.5 ? 2.0 * final_rgb.b * illumSample.b : 1.0 - 2.0 * (1.0 - final_rgb.b) * (1.0 - illumSample.b);
+                  final_rgb = overlayResult;
+              } else if (uBlendMode == 5) final_rgb = min(vec3(1.0), final_rgb / (1.0 - min(illumSample, 0.999))); // COLOR_DODGE
+              else { // Default to Additive
+                  final_rgb += illumSample;
+              }
+          }
+          
+          gl_FragColor = vec4(clamp(final_rgb, 0.0, 1.0), originalColor.a);
+      }
+    `;
+
+    super(PIXI.Filter.defaultVertexSrc, fragmentSrc, {
+      uIlluminationTexture: PIXI.Texture.EMPTY,
+      uIntensity: 1.0,
+      uBlendMode: 1,
+      uDebugMode: false,
+      uCCEnabled: true,
+      uSaturation: 1.0,
+      uBrightness: 0.0,
+      uContrast: 1.0,
+      uExposure: 0.0,
+      uGamma: 1.0,
+      uTintColor: [1.0, 1.0, 1.0],
+      uTintAmount: 0.0,
+      uNoiseEnabled: true,
+      uNoiseAmount: 0.01,
+      uNoiseTexture: PIXI.Texture.EMPTY,
+      uNegativeMaskEnabled: false,
+      uNegativeMaskThreshold: 0.8,
+      uNegativeMaskSoftness: 0.2,
+      ...options,
+    });
   }
 }
 
@@ -21083,15 +20663,18 @@ class CanopyLayer extends MaskedEffectLayer {
 
     // Ensure _generatorSprite is explicitly sized to match the render target (screen dimensions)
     this._generatorSprite.position.set(0, 0);
-    this._generatorSprite.width = canvas.app.renderer.screen.width;
-    this._generatorSprite.height = canvas.app.renderer.screen.height;
+    this._generatorSprite.width = CoordinateManager.getScreenDimensions().width;
+    this._generatorSprite.height =
+      CoordinateManager.getScreenDimensions().height;
 
     const u = this.canopyFilter.uniforms;
 
-    u.u_canopyMask = this.getMaskTexture(); // This is already a screen-res RenderTexture from MaskedEffectLayer
-    u.uOutdoorsMask = resourceManager.getOutdoorsMask(); // Also a screen-res RenderTexture
-    u.u_displacementMap = this.distortionNoiseManager.getTexture(); // Also a screen-res RenderTexture from world-space noise
-    u.u_canvas_scale = canvas.stage.scale.x; // Pass current canvas zoom to the shader for world-consistent distortion scale
+    // Assign all coordinate uniforms from the manager
+    Object.assign(u, CoordinateManager.getShaderUniforms());
+
+    u.u_canopyMask = this.getMaskTexture();
+    u.uOutdoorsMask = resourceManager.getOutdoorsMask();
+    u.u_displacementMap = this.distortionNoiseManager.getTexture();
 
     const siConfig = foundry.utils.getProperty(
       game.mapShine.profileManager.activeConfig,
@@ -21117,21 +20700,6 @@ class CanopyLayer extends MaskedEffectLayer {
       renderTexture: this.finalShadowTexture,
       clear: true,
     });
-  }
-
-  async updateFromConfig(config) {
-    const cConfig = config.canopy;
-    this.visible = config.enabled && cConfig.enabled;
-
-    this.distortionNoiseManager?.updateFromConfig(config);
-
-    if (this.canopyFilter) {
-      const u = this.canopyFilter.uniforms;
-      u.u_shadowIntensity = cConfig.shadowIntensity;
-      u.u_tint = hexToRgbArray(cConfig.tint);
-      u.u_distortion_enabled = cConfig.distortion.enabled;
-      u.u_distortion_strength = cConfig.distortion.strength;
-    }
   }
 
   async updateEffectTargets(targets) {
@@ -21217,181 +20785,228 @@ class StructuralHighlightRgbSplitFilter extends PIXI.Filter {
   }
 }
 
-class StructuralShadowsFilter extends PIXI.Filter {
+class StructuralHighlightFilter extends PIXI.Filter {
   constructor(options = {}) {
-    const vertexSrc = `
-            attribute vec2 aVertexPosition;
-            attribute vec2 aTextureCoord;
-            uniform mat3 projectionMatrix;
-            varying vec2 vTextureCoord;
-            varying vec2 vScreenCoord;
-            
-            void main(void) {
-                gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
-                vTextureCoord = aTextureCoord;
-                vScreenCoord = gl_Position.xy * 0.5 + 0.5;
-            }
-        `;
-
     const fragmentSrc = `
             precision mediump float;
             varying vec2 vTextureCoord;
-            varying vec2 vScreenCoord;
 
-            // Samplers
-            uniform sampler2D uStructuralMask;
-            uniform sampler2D uOutdoorsMask;
-            uniform sampler2D u_intensityNoise;
-            uniform sampler2D uIlluminationBuffer;
-            uniform sampler2D uCloudOcclusionTexture;
+            uniform sampler2D uSampler; // The grayscale highlight mask
+            uniform vec2 uTexelSize;
 
-            // Main Uniforms
-            uniform vec3 u_tint;
-            uniform float u_shadowIntensity;
-            uniform float u_parallax;
-            uniform float u_time;
+            // RGB Split Uniforms
+            uniform bool uRgbSplitEnabled;
+            uniform float uRgbSplitIntensity;
+            uniform float uRgbSplitThreshold;
 
-            // World & Camera Uniforms
-            uniform vec2 u_camera_offset;
-            uniform vec2 u_view_size;
-            uniform vec4 uSceneRectNorm;
+            // Color Correction Uniforms
+            uniform bool uCcEnabled;
+            uniform float uSaturation;
+            uniform float uBrightness;
+            uniform float uContrast;
+            uniform float uExposure;
+            uniform float uGamma;
+            uniform vec3 uTintColor;
+            uniform float uTintAmount;
 
-            // Feature Toggles & Parameters
-            uniform bool u_intensityNoise_enabled;
-            uniform float u_intensityNoise_amount;
-            uniform bool u_illum_enabled;
-            uniform bool u_outputHighlightMask;
-            uniform bool uCloudOcclusionEnabled;
-            uniform float uCloudOcclusionIntensity;
-
-            // Illumination Interaction
-            uniform float u_illum_intensity;
-            uniform float u_illum_luminanceThreshold;
-            uniform float u_illum_softness;
-            uniform bool u_illum_cc_enabled;
-            uniform float u_illum_cc_saturation;
-            uniform float u_illum_cc_brightness;
-            uniform float u_illum_cc_contrast;
-            uniform float u_illum_cc_exposure;
-            uniform float u_illum_cc_gamma;
-            uniform vec3 u_illum_cc_tintColor;
-            uniform float u_illum_cc_tintAmount;
-            
             const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
 
-            void main() {
-                vec2 sceneMin = uSceneRectNorm.xy;
-                vec2 sceneMax = uSceneRectNorm.xy + uSceneRectNorm.zw;
-                if (vScreenCoord.x < sceneMin.x || vScreenCoord.x > sceneMax.x || vScreenCoord.y < sceneMin.y || vScreenCoord.y > sceneMax.y) {
-                    if (u_outputHighlightMask) {
-                        gl_FragColor = vec4(0.0);
-                    } else {
-                        gl_FragColor = vec4(1.0);
-                    }
-                    return;
-                }
-                
-                float indoorMask = 1.0 - texture2D(uOutdoorsMask, vScreenCoord).r;
-                if (indoorMask < 0.01 && !u_outputHighlightMask) {
-                    gl_FragColor = vec4(1.0); 
-                    return;
+            void main(void) {
+                float highlightAmount = texture2D(uSampler, vTextureCoord).r;
+                if (highlightAmount < 0.01) {
+                    discard;
                 }
 
-                vec2 parallaxTexCoord = vScreenCoord;
-                if (u_parallax > 0.0 && u_view_size.y > 0.0) {
-                    vec2 normalized_camera_offset = u_camera_offset / u_view_size;
-                    parallaxTexCoord = vScreenCoord - (normalized_camera_offset * u_parallax);
-                }
-                
-                vec4 structuralTexel = texture2D(uStructuralMask, parallaxTexCoord);
-                
-                if (structuralTexel.a < 0.01) {
-                    gl_FragColor = vec4(1.0);
-                    return;
-                }
+                vec3 finalColor;
 
-                float lightAmount = structuralTexel.r;
-
-                if (u_intensityNoise_enabled) {
-                    float flicker = texture2D(u_intensityNoise, vScreenCoord).r;
-                    lightAmount = min(1.0, lightAmount + flicker * u_intensityNoise_amount);
-                }
-
-                if (uCloudOcclusionEnabled) {
-                    float cloudOcclusionValue = texture2D(uCloudOcclusionTexture, vScreenCoord).r;
-                    lightAmount *= (1.0 - cloudOcclusionValue * uCloudOcclusionIntensity);
-                }
-                
-                lightAmount = clamp(lightAmount, 0.0, 1.0);
-
-                if (u_outputHighlightMask) {
-                    gl_FragColor = vec4(vec3(lightAmount * indoorMask), 1.0);
-                    return;
-                }
-
-                float shadowAmount = 1.0 - lightAmount;
-                shadowAmount *= u_shadowIntensity;
-                
-                if (u_illum_enabled) {
-                    vec3 illumSample = texture2D(uIlluminationBuffer, vScreenCoord).rgb;
-
-                    if (u_illum_cc_enabled) {
-                        illumSample *= pow(2.0, u_illum_cc_exposure);
-                        if (u_illum_cc_gamma > 0.0) illumSample = pow(max(illumSample, 0.0), vec3(1.0 / u_illum_cc_gamma));
-                        illumSample += u_illum_cc_brightness;
-                        illumSample = (illumSample - 0.5) * u_illum_cc_contrast + 0.5;
-                        float illumLuminance = dot(illumSample, lum_weights);
-                        illumSample = mix(vec3(illumLuminance), illumSample, u_illum_cc_saturation);
-                        illumSample = mix(illumSample, u_illum_cc_tintColor, u_illum_cc_tintAmount);
-                    }
+                if (uRgbSplitEnabled && highlightAmount > uRgbSplitThreshold) {
+                    float split_factor = pow(clamp((highlightAmount - uRgbSplitThreshold) / (1.0 - uRgbSplitThreshold), 0.0, 1.0), 1.5);
+                    vec2 offset = vec2(uRgbSplitIntensity * split_factor * uTexelSize.x, 0.0);
                     
-                    float lightLevel = dot(illumSample, lum_weights);
-                    float lightMask = smoothstep(u_illum_luminanceThreshold, u_illum_luminanceThreshold + u_illum_softness, lightLevel);
-                    float reduction = lightMask * u_illum_intensity;
-                    shadowAmount *= (1.0 - reduction);
+                    float r = texture2D(uSampler, vTextureCoord - offset).r;
+                    float g = highlightAmount;
+                    float b = texture2D(uSampler, vTextureCoord + offset).r;
+                    finalColor = vec3(r, g, b);
+                } else {
+                    finalColor = vec3(highlightAmount);
+                }
+
+                if (uCcEnabled) {
+                    // Apply exposure and gamma, which were previously missing.
+                    finalColor *= pow(2.0, uExposure);
+                    if (uGamma > 0.0) finalColor = pow(max(finalColor, 0.0), vec3(1.0 / uGamma));
+                    
+                    // Apply brightness (additive) before contrast (multiplicative).
+                    finalColor += uBrightness;
+                    finalColor = (finalColor - 0.5) * uContrast + 0.5;
+
+                    // Apply saturation and tint.
+                    float luminance = dot(finalColor, lum_weights);
+                    finalColor = mix(vec3(luminance), finalColor, uSaturation);
+                    finalColor = mix(finalColor, uTintColor, uTintAmount);
                 }
                 
-                shadowAmount *= indoorMask;
-                shadowAmount = clamp(shadowAmount, 0.0, 1.0);
-
-                vec3 shadowColor = mix(vec3(1.0), u_tint, shadowAmount);
-                gl_FragColor = vec4(shadowColor, 1.0);
+                // Premultiply alpha
+                gl_FragColor = vec4(finalColor * highlightAmount, highlightAmount);
             }
         `;
+
+    super(PIXI.Filter.defaultVertexSrc, fragmentSrc, {
+      uTexelSize: [
+        1.0 / (window.innerWidth || 1),
+        1.0 / (window.innerHeight || 1),
+      ],
+      uRgbSplitEnabled: true,
+      uRgbSplitIntensity: 2.0,
+      uRgbSplitThreshold: 0.0,
+      uCcEnabled: true,
+      uSaturation: 1.0,
+      uBrightness: 0.0,
+      uContrast: 1.0,
+      uExposure: 0.0,
+      uGamma: 1.0,
+      uTintColor: [1.0, 1.0, 1.0],
+      uTintAmount: 0.0,
+      ...options,
+    });
+  }
+}
+
+class StructuralFilter extends PIXI.Filter {
+  constructor(options = {}) {
+    const vertexSrc = `
+        attribute vec2 aVertexPosition;
+        attribute vec2 aTextureCoord;
+        uniform mat3 projectionMatrix;
+        varying vec2 vTextureCoord;
+        varying vec2 vScreenCoord;
+
+        void main(void) {
+            gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
+            vTextureCoord = aTextureCoord;
+            vScreenCoord = gl_Position.xy * 0.5 + 0.5;
+        }
+    `;
+
+    const fragmentSrc = `
+        precision mediump float;
+        varying vec2 vTextureCoord;
+        varying vec2 vScreenCoord;
+
+        uniform sampler2D uSampler; // Represents canvas.primary's input
+        uniform sampler2D uStructuralMask;
+        uniform sampler2D uOutdoorsMask;
+        uniform sampler2D uCloudOcclusionMask;
+
+        // Effect Controls
+        uniform int uBlendMode;
+
+        // Color Correction
+        uniform bool uCcEnabled;
+        uniform float uSaturation;
+        uniform float uBrightness;
+        uniform float uContrast;
+        uniform float uGamma;
+        uniform vec3 uTintColor;
+        uniform float uTintAmount;
+
+        // Cloud Occlusion
+        uniform bool uCloudOcclusionEnabled;
+        uniform float uCloudOcclusionIntensity;
+        uniform float uCloudOcclusionThreshold;
+        uniform float uCloudOcclusionSoftness;
+
+        const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
+
+        vec3 blendOverlay(vec3 base, vec3 blend) {
+            float r = base.r < 0.5 ? (2.0 * base.r * blend.r) : (1.0 - 2.0 * (1.0 - base.r) * (1.0 - blend.r));
+            float g = base.g < 0.5 ? (2.0 * base.g * blend.g) : (1.0 - 2.0 * (1.0 - base.g) * (1.0 - blend.g));
+            float b = base.b < 0.5 ? (2.0 * base.b * blend.b) : (1.0 - 2.0 * (1.0 - base.b) * (1.0 - blend.b));
+            return vec3(r, g, b);
+        }
+
+        vec3 blendAdd(vec3 base, vec3 blend) {
+            return base + blend;
+        }
+
+        vec3 blendMultiply(vec3 base, vec3 blend) {
+            return base * blend;
+        }
+
+        vec3 blendScreen(vec3 base, vec3 blend) {
+            return 1.0 - (1.0 - base) * (1.0 - blend);
+        }
+
+        void main() {
+            vec4 originalColor = texture2D(uSampler, vTextureCoord);
+            
+            float indoorMask = 1.0 - texture2D(uOutdoorsMask, vScreenCoord).r;
+            if (indoorMask < 0.01) {
+                gl_FragColor = originalColor;
+                return;
+            }
+
+            vec3 structuralColor = texture2D(uStructuralMask, vScreenCoord).rgb;
+
+            if (uCloudOcclusionEnabled) {
+                float cloudValue = texture2D(uCloudOcclusionMask, vScreenCoord).r; // 0 is clear, 1 is cloud
+                float structuralLuminance = dot(structuralColor, lum_weights);
+
+                // Create a mask based on the luminance threshold to only affect the brightest parts.
+                float highlightMask = smoothstep(uCloudOcclusionThreshold, uCloudOcclusionThreshold + uCloudOcclusionSoftness, structuralLuminance);
+                
+                if (highlightMask > 0.0) {
+                    float darkeningFactor = 1.0 - (cloudValue * uCloudOcclusionIntensity);
+                    // Mix the original color with the darkened color based on the mask strength for a smooth falloff.
+                    structuralColor = mix(structuralColor, structuralColor * darkeningFactor, highlightMask);
+                }
+            }
+
+            if (uCcEnabled) {
+                if (uGamma > 0.0) structuralColor = pow(structuralColor, vec3(1.0 / uGamma));
+                structuralColor += uBrightness;
+                structuralColor = (structuralColor - 0.5) * uContrast + 0.5;
+                float luminance = dot(structuralColor, lum_weights);
+                structuralColor = mix(vec3(luminance), structuralColor, uSaturation);
+                structuralColor = mix(structuralColor, uTintColor, uTintAmount);
+            }
+            
+            vec3 finalColor = originalColor.rgb;
+            if (uBlendMode == 5) { // OVERLAY
+                 finalColor = blendOverlay(originalColor.rgb, structuralColor);
+            } else if (uBlendMode == 1) { // ADD
+                 finalColor = blendAdd(originalColor.rgb, structuralColor);
+            } else if (uBlendMode == 2) { // MULTIPLY
+                 finalColor = blendMultiply(originalColor.rgb, structuralColor);
+            } else if (uBlendMode == 3) { // SCREEN
+                 finalColor = blendScreen(originalColor.rgb, structuralColor);
+            }
+            else { // Fallback to overlay
+                 finalColor = blendOverlay(originalColor.rgb, structuralColor);
+            }
+            
+            vec3 blendedResult = mix(originalColor.rgb, finalColor, indoorMask);
+
+            gl_FragColor = vec4(clamp(blendedResult, 0.0, 1.0), originalColor.a);
+        }
+    `;
 
     super(vertexSrc, fragmentSrc, {
       uStructuralMask: PIXI.Texture.EMPTY,
       uOutdoorsMask: PIXI.Texture.EMPTY,
-      u_intensityNoise: PIXI.Texture.EMPTY,
-      uIlluminationBuffer: PIXI.Texture.EMPTY,
-      uCloudOcclusionTexture: PIXI.Texture.EMPTY,
-      u_time: 0.0,
-      u_tint: [0.0, 0.0, 0.0],
-      u_shadowIntensity: 0.6,
-      u_parallax: 0.15,
-      u_camera_offset: [0, 0],
-      u_view_size: [1, 1],
-      uSceneRectNorm: [0, 0, 1, 1],
-      u_intensityNoise_enabled: true,
-      u_illum_enabled: false,
-      u_outputHighlightMask: false,
-      u_intensityNoise_amount: 0.4,
-      uCloudOcclusionEnabled: false,
-      uCloudOcclusionIntensity: 1.0,
-
-      // Illumination Interaction
-      u_illum_intensity: 1.0,
-      u_illum_luminanceThreshold: 0.1,
-      u_illum_softness: 0.15,
-      u_illum_cc_enabled: true,
-      u_illum_cc_saturation: 1.0,
-      u_illum_cc_brightness: 0.0,
-      u_illum_cc_contrast: 1.0,
-      u_illum_cc_exposure: 0.0,
-      u_illum_cc_gamma: 1.0,
-      u_illum_cc_tintColor: [1.0, 1.0, 1.0],
-      u_illum_cc_tintAmount: 0.0,
-      ...options,
+      uCloudOcclusionMask: PIXI.Texture.EMPTY,
+      uBlendMode: 5, // Default to OVERLAY
+      uCcEnabled: true,
+      uSaturation: 1.0,
+      uBrightness: 0.0,
+      uContrast: 1.0,
+      uGamma: 1.0,
+      uTintColor: [1.0, 1.0, 1.0],
+      uTintAmount: 0.0,
+      uCloudOcclusionEnabled: true,
+      uCloudOcclusionIntensity: 0.8,
+      uCloudOcclusionThreshold: 0.75,
+      uCloudOcclusionSoftness: 0.1,
     });
   }
 }
@@ -21401,662 +21016,206 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
     super({
       maskSuffix: "structural",
     });
-
-    this.LOG_PREFIX = "MapShine | StructuralShadows | Illumination |";
-    console.log(
-      this.LOG_PREFIX,
-      "Constructor called. Initializing for new scene."
-    );
-
-    this.structuralFilter = null;
-    this.effectSprite = null;
-    this._patternGeneratorSprite = null;
-    this.finalShadowTexture = null;
-    this.finalHighlightMaskTexture = null;
-    this.intensityNoiseManager = null;
-    this.rgbSplitFilter = null;
-    this.splitHighlightMaskTexture = null;
-    this._splitHighlightSprite = null;
-
-    this.cleanStructuralLightMask = null;
-    this.parallaxMaskFilter = null;
-    this._parallaxMaskSprite = null;
-
-    this._framesSinceLoad = 0;
+    this.filter = null;
+    this.time = 0; // For animations if needed in the future
   }
-
   static getSettingsHTML() {
     const effectKey = "structuralShadows";
-    const path = `${effectKey}.worldBasedOnly`;
-    const checkboxHTML = DebuggerUIBuilder._createCheckboxHTML(
-      path,
-      "World Based Only",
-      false,
-      "Ignores scene-specific settings for this effect and uses the configured World Default Profile instead. A default profile must be set."
-    );
-    const iconHTML = `<span class="world-based-icon" data-world-based-path="${path}" title="World Based: This effect uses the world-level default profile, ignoring scene-specific settings."><i class="fas fa-globe"></i></span>`;
-
     const content = `
-                        ${checkboxHTML}
-                        <hr style="border-color: #555; margin: 6px 0;">
-                        ${DebuggerUIBuilder._createTextureInputHTML(
-                          "structural",
-                          "Structural Mask (_Structural)"
-                        )}
-                        <p class="description-text">A black and white texture for indoor shadows (rafters, beams, etc.). Black areas are shadows, white areas are light. Respects the Outdoor Mask.</p>
-                        ${DebuggerUIBuilder._createSliderHTML(
-                          "structuralShadows.shadowIntensity",
-                          "Shadow Intensity",
-                          0,
-                          5,
-                          0.01
-                        )}
-                        ${DebuggerUIBuilder._createColorPickerHTML(
-                          "structuralShadows.tint",
-                          "Shadow Tint"
-                        )}
-                        ${DebuggerUIBuilder._createSliderHTML(
-                          "structuralShadows.parallax",
-                          "Parallax",
-                          0,
-                          1,
-                          0.001,
-                          "How much the shadows shift relative to camera movement. 0 = fixed to map, 1 = fixed to screen."
-                        )}
-                        <details id="details-structuralShadows-cloudOcclusion"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                          "structuralShadows.cloudOcclusion.enabled",
-                          "Cloud Occlusion",
-                          true
-                        )}</div></summary>
+        <p class="description-text">Adds light and shadow from structural elements (e.g., windows) to indoor areas. Uses _Structural and _Outdoors masks.</p>
+        ${DebuggerUIBuilder._createSelectHTML(
+          "structuralShadows.blendMode",
+          "Blend Mode",
+          BLEND_MODE_OPTIONS
+        )}
+        <details id="details-structuralShadows-colorCorrection">
+            <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+              "structuralShadows.colorCorrection.enabled",
+              "Color Correction",
+              true
+            )}</div></summary>
+            <div style="padding-left: 15px;">
+                <p class="description-text">Adjusts the color of the structural light/shadow before blending.</p>
+                ${DebuggerUIBuilder._createSliderHTML(
+                  "structuralShadows.colorCorrection.saturation",
+                  "Saturation",
+                  0,
+                  4,
+                  0.05
+                )}
+                ${DebuggerUIBuilder._createSliderHTML(
+                  "structuralShadows.colorCorrection.brightness",
+                  "Brightness",
+                  -1,
+                  1,
+                  0.01
+                )}
+                ${DebuggerUIBuilder._createSliderHTML(
+                  "structuralShadows.colorCorrection.contrast",
+                  "Contrast",
+                  0,
+                  4,
+                  0.05
+                )}
+                ${DebuggerUIBuilder._createSliderHTML(
+                  "structuralShadows.colorCorrection.gamma",
+                  "Gamma",
+                  0.2,
+                  2.5,
+                  0.05
+                )}
+                <details id="details-structuralShadows-cc-tint"><summary><span class="accordion-toggle"></span><strong>Color Tint</strong></summary><div style="padding-left: 15px;">
+                    ${DebuggerUIBuilder._createColorPickerHTML(
+                      "structuralShadows.colorCorrection.tint.color",
+                      "Tint Color"
+                    )}
+                    ${DebuggerUIBuilder._createSliderHTML(
+                      "structuralShadows.colorCorrection.tint.amount",
+                      "Tint Amount",
+                      0,
+                      1,
+                      0.01
+                    )}
+                </div></details>
+            </div>
+        </details>
+            
+<details id="details-structuralShadows-cloudOcclusion"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+      "structuralShadows.cloudOcclusion.enabled",
+      "Cloud Occlusion",
+      true
+    )}</div></summary>
                             <div style="padding-left: 15px;">
-                                <p class="description-text">Simulates shadows from the main cloud layer inside buildings. Requires the Cloud Shadows effect to be active.</p>
+                                <p class="description-text">Allows clouds to darken the light cast by the structural effect.</p>
                                 ${DebuggerUIBuilder._createSliderHTML(
                                   "structuralShadows.cloudOcclusion.intensity",
                                   "Intensity",
                                   0,
                                   1,
+                                  0.01
+                                )}
+                                ${DebuggerUIBuilder._createSliderHTML(
+                                  "structuralShadows.cloudOcclusion.threshold",
+                                  "Highlight Threshold",
+                                  0,
+                                  1,
                                   0.01,
-                                  "How strongly the cloud shadows darken the structural highlights."
+                                  "The brightness level above which clouds will cast shadows on the structural light."
+                                )}
+                                ${DebuggerUIBuilder._createSliderHTML(
+                                  "structuralShadows.cloudOcclusion.softness",
+                                  "Threshold Softness",
+                                  0.01,
+                                  1,
+                                  0.01,
+                                  "The softness of the transition at the highlight threshold."
                                 )}
                             </div>
                         </details>
-                        <details id="details-structuralShadows-illuminationInteraction">
-                            <summary><span class="accordion-toggle"></span>
-                                <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                                  "structuralShadows.illuminationInteraction.enabled",
-                                  "Illumination Interaction",
-                                  true
-                                )}</div>
-                            </summary>
-                            <div style="padding-left: 15px;">
-                                <p class="description-text">Uses the scene's lighting to realistically reduce shadow intensity. Requires the Illumination Buffer module.</p>
-                                ${DebuggerUIBuilder._createSliderHTML(
-                                  "structuralShadows.illuminationInteraction.intensity",
-                                  "Reduction Amount",
-                                  0,
-                                  1,
-                                  0.01,
-                                  "How much to reduce shadow opacity in fully lit areas."
-                                )}
-                                ${DebuggerUIBuilder._createSliderHTML(
-                                  "structuralShadows.illuminationInteraction.luminanceThreshold",
-                                  "Light Threshold",
-                                  0,
-                                  1,
-                                  0.01,
-                                  "The brightness level above which shadows start to fade."
-                                )}
-                                ${DebuggerUIBuilder._createSliderHTML(
-                                  "structuralShadows.illuminationInteraction.softness",
-                                  "Edge Softness",
-                                  0.01,
-                                  10,
-                                  0.1,
-                                  "The gradualness of the fade transition."
-                                )}
-                                <details id="details-structuralShadows-illuminationInteraction-cc">
-                                    <summary><span class="accordion-toggle"></span>
-                                        <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                                          "structuralShadows.illuminationInteraction.colorCorrection.enabled",
-                                          "Color Correct Illumination",
-                                          true
-                                        )}</div>
-                                    </summary>
-                                    <div style="padding-left: 15px;">
-                                        <p class="description-text">Applies color correction to the illumination buffer before it affects the shadows.</p>
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "structuralShadows.illuminationInteraction.colorCorrection.saturation",
-                                          "Saturation",
-                                          0,
-                                          4,
-                                          0.05
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "structuralShadows.illuminationInteraction.colorCorrection.brightness",
-                                          "Brightness",
-                                          -1,
-                                          1,
-                                          0.01
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "structuralShadows.illuminationInteraction.colorCorrection.contrast",
-                                          "Contrast",
-                                          0,
-                                          40,
-                                          0.05
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "structuralShadows.illuminationInteraction.colorCorrection.exposure",
-                                          "Exposure",
-                                          -2,
-                                          2,
-                                          0.05
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "structuralShadows.illuminationInteraction.colorCorrection.gamma",
-                                          "Gamma",
-                                          0.2,
-                                          2.5,
-                                          0.05
-                                        )}
-                                        <details id="details-structuralShadows-illuminationInteraction-cc-tint">
-                                            <summary><span class="accordion-toggle"></span><strong>Illumination Tint</strong></summary>
-                                            <div style="padding-left: 15px;">
-                                                ${DebuggerUIBuilder._createColorPickerHTML(
-                                                  "structuralShadows.illuminationInteraction.colorCorrection.tint.color",
-                                                  "Tint Color"
-                                                )}
-                                                ${DebuggerUIBuilder._createSliderHTML(
-                                                  "structuralShadows.illuminationInteraction.colorCorrection.tint.amount",
-                                                  "Tint Amount",
-                                                  0,
-                                                  1,
-                                                  0.01
-                                                )}
-                                            </div>
-                                        </details>
-                                    </div>
-                                </details>
-                            </div>
-                        </details>
-                        <details id="details-structuralShadows-rgbSplit"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                          "structuralShadows.rgbSplit.enabled",
-                          "Highlight RGB Split",
-                          true
-                        )}</div></summary>
-                            <div style="padding-left: 15px;">
-                                <p class="description-text">Applies a chromatic aberration effect to the structural highlights.</p>
-                                ${DebuggerUIBuilder._createSliderHTML(
-                                  "structuralShadows.rgbSplit.intensity",
-                                  "Intensity",
-                                  0,
-                                  20,
-                                  0.1
-                                )}
-                                ${DebuggerUIBuilder._createSliderHTML(
-                                  "structuralShadows.rgbSplit.threshold",
-                                  "Threshold",
-                                  0,
-                                  1,
-                                  0.01,
-                                  "Only highlights brighter than this will be split."
-                                )}
-                            </div>
-                        </details>
-                        <details id="details-structuralShadows-intensityNoise"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                          "structuralShadows.intensityNoise.enabled",
-                          "Intensity Noise (Flicker)",
-                          true
-                        )}</div></summary>
-                            <div style="padding-left: 15px;">
-                                <p class="description-text">Animates the brightness of the shadows using a procedural noise pattern to create a flickering light effect.</p>
-                                ${DebuggerUIBuilder._createSliderHTML(
-                                  "structuralShadows.intensityNoise.amount",
-                                  "Amount",
-                                  0,
-                                  1,
-                                  0.01,
-                                  "The maximum amount to brighten the shadows by."
-                                )}
-                                ${DebuggerUIBuilder._createSliderHTML(
-                                  "structuralShadows.intensityNoise.speed",
-                                  "Speed",
-                                  -0.5,
-                                  0.5,
-                                  0.005,
-                                  "Horizontal/Vertical scrolling speed of the noise."
-                                )}
-                                ${DebuggerUIBuilder._createSliderHTML(
-                                  "structuralShadows.intensityNoise.scale",
-                                  "Scale",
-                                  0.01,
-                                  2,
-                                  0.01,
-                                  "Zoom level of the noise pattern."
-                                )}
-                                ${DebuggerUIBuilder._createSliderHTML(
-                                  "structuralShadows.intensityNoise.evolution",
-                                  "Evolution",
-                                  0,
-                                  1,
-                                  0.01,
-                                  'Internal "morphing" speed of the noise.'
-                                )}
-                                <details id="details-structuralShadows-intensityNoise-adv"><summary><span class="accordion-toggle"></span><strong>Advanced Noise Controls</strong></summary>
-                                    <div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "structuralShadows.intensityNoise.threshold",
-                                          "Threshold",
-                                          0,
-                                          1,
-                                          0.01
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "structuralShadows.intensityNoise.brightness",
-                                          "Brightness",
-                                          -5,
-                                          5,
-                                          0.01
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "structuralShadows.intensityNoise.contrast",
-                                          "Contrast",
-                                          0,
-                                          5,
-                                          0.05
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "structuralShadows.intensityNoise.softness",
-                                          "Softness",
-                                          0.01,
-                                          1,
-                                          0.01
-                                        )}
-                                    </div>
-                                </details>
-                            </div>
-                        </details>
-                    `;
+
+  
+    `;
     return DebuggerUIBuilder._createAccordionHTML(
       effectKey,
-      "Structural Shadows",
-      content,
-      iconHTML
-    );
-  }
-
-  getHighlightMaskTexture() {
-    return this.finalHighlightMaskTexture;
-  }
-
-  getCleanStructuralLightMask() {
-    return this.cleanStructuralLightMask;
-  }
-
-  getSplitHighlightMaskTexture() {
-    return this.splitHighlightMaskTexture;
-  }
-
-  isRgbSplitEnabled() {
-    const config = game.mapShine.profileManager.activeConfig;
-    if (!config) return false;
-    return (
-      config.enabled &&
-      config.structuralShadows.enabled &&
-      config.structuralShadows.rgbSplit.enabled
+      "Structural Effect",
+      content
     );
   }
 
   async _draw(options) {
-    console.log(
-      this.LOG_PREFIX,
-      "_draw called. Creating PIXI objects and setting up for rendering."
-    );
-    await super._draw(options);
-
-    this._framesSinceLoad = 0;
-
-    this.blendMode = PIXI.BLEND_MODES.NORMAL;
-    const renderer = canvas.app.renderer;
-    const screen = renderer.screen;
-
-    this.intensityNoiseManager = new NoiseTextureManager(
-      renderer,
-      "structuralShadows.intensityNoise",
-      true
-    );
-    this.finalShadowTexture = PIXI.RenderTexture.create({
-      width: screen.width,
-      height: screen.height,
-    });
-    this.finalHighlightMaskTexture = PIXI.RenderTexture.create({
-      width: screen.width,
-      height: screen.height,
-    });
-    this.splitHighlightMaskTexture = PIXI.RenderTexture.create({
-      width: screen.width,
-      height: screen.height,
-    });
-    this.rgbSplitFilter = new StructuralHighlightRgbSplitFilter();
-    this._splitHighlightSprite = new PIXI.Sprite(
-      this.finalHighlightMaskTexture
-    );
-    this._splitHighlightSprite.filters = [this.rgbSplitFilter];
-
-    this.cleanStructuralLightMask = PIXI.RenderTexture.create({
-      width: screen.width,
-      height: screen.height,
-    });
-    this.parallaxMaskFilter = new ParallaxMaskFilter();
-    this._parallaxMaskSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
-    this._parallaxMaskSprite.width = screen.width;
-    this._parallaxMaskSprite.height = screen.height;
-    this._parallaxMaskSprite.filters = [this.parallaxMaskFilter];
+    await super._draw(options); // Handles mask container and texture
 
     try {
-      this.structuralFilter = new StructuralShadowsFilter();
+      this.filter = new StructuralFilter();
+      // Apply the filter to the primary canvas container. This ensures it renders after tiles but before lighting.
+      canvas.primary.filters = [...(canvas.primary.filters || []), this.filter];
     } catch (e) {
-      console.error("MapShine | Failed to create StructuralShadowsFilter", e);
+      console.error("MapShine | Failed to create StructuralFilter", e);
     }
 
-    this._patternGeneratorSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
-    this._patternGeneratorSprite.width = screen.width;
-    this._patternGeneratorSprite.height = screen.height;
-    this._patternGeneratorSprite.filters = this.structuralFilter
-      ? [this.structuralFilter]
-      : [];
-
-    this.effectSprite = new PIXI.Sprite(this.finalShadowTexture);
-    this.effectSprite.blendMode = PIXI.BLEND_MODES.MULTIPLY;
-    this.effectSprite.visible = false; // Start invisible
-    this.addChild(this.effectSprite);
-  }
-
-  _onResize() {
-    super._onResize();
-    const renderer = canvas.app.renderer;
-    const screen = renderer.screen;
-    this.intensityNoiseManager?.resize(renderer);
-    this.finalShadowTexture?.resize(screen.width, screen.height);
-    this.finalHighlightMaskTexture?.resize(screen.width, screen.height);
-    this.splitHighlightMaskTexture?.resize(screen.width, screen.height);
-    this.cleanStructuralLightMask?.resize(screen.width, screen.height);
-    if (this._patternGeneratorSprite) {
-      this._patternGeneratorSprite.width = screen.width;
-      this._patternGeneratorSprite.height = screen.height;
-    }
-    if (this._splitHighlightSprite) {
-      this._splitHighlightSprite.width = screen.width;
-      this._splitHighlightSprite.height = screen.height;
-    }
-    if (this._parallaxMaskSprite) {
-      this._parallaxMaskSprite.width = screen.width;
-      this._parallaxMaskSprite.height = screen.height;
-    }
-    if (this.rgbSplitFilter) {
-      this.rgbSplitFilter.uniforms.uTexelSize = [
-        1 / screen.width,
-        1 / screen.height,
-      ];
-    }
-    if (this.effectSprite) {
-      const stage = canvas.stage;
-      const topLeft = stage.toLocal({
-        x: 0,
-        y: 0,
-      });
-      this.effectSprite.position.copyFrom(topLeft);
-      this.effectSprite.width = screen.width / stage.scale.x;
-      this.effectSprite.height = screen.height / stage.scale.y;
-    }
+    // An initial update to set parameters.
+    this.updateFromConfig(game.mapShine.profileManager.activeConfig);
   }
 
   _onAnimate(deltaTime) {
-    super._onAnimate(deltaTime);
-    if (this._destroyed) return;
-    this._framesSinceLoad++;
+    super._onAnimate(deltaTime); // This renders the combined mask if needed
+    if (this._destroyed || !this.filter) return;
 
-    // This layer is now driven by the ResourceManager.
-    // We only need to set the sprite's texture, as the render will be triggered elsewhere if needed.
-    const resourceManager = game.mapShine.resourceManager;
-    if (resourceManager) {
-      this.effectSprite.texture =
-        resourceManager.getStructuralShadowTexture(deltaTime);
-    }
+    const config = game.mapShine.profileManager.activeConfig.structuralShadows;
+    const hasActiveMasks = this.maskSprites.size > 0;
+    this.filter.enabled = config.enabled && hasActiveMasks;
 
-    const hasActiveTargets =
-      this.maskSprites.size > 0 &&
-      Array.from(this.maskSprites.values()).some((s) => s.texture.valid);
-    const config = game.mapShine.profileManager.activeConfig;
-    const isVisible =
-      config.enabled && config.structuralShadows.enabled && hasActiveTargets;
+    if (!this.filter.enabled) return;
 
-    this.effectSprite.visible = isVisible && this._framesSinceLoad >= 5;
-
-    if (this.effectSprite.visible) {
-      const stage = canvas.stage;
-      const screen = canvas.app.screen;
-      const topLeft = stage.toLocal({
-        x: 0,
-        y: 0,
-      });
-      this.effectSprite.position.copyFrom(topLeft);
-      this.effectSprite.width = screen.width / stage.scale.x;
-      this.effectSprite.height = screen.height / stage.scale.y;
-    }
-  }
-
-  /**
-   * The core rendering logic, now in its own on-demand method.
-   * @param {number} deltaTime - Time since the last frame.
-   */
-  renderEffectNow(deltaTime) {
-    if (this._destroyed || !this.visible || !this.structuralFilter) return;
-
-    const hasActiveTargets =
-      this.maskSprites.size > 0 &&
-      Array.from(this.maskSprites.values()).some((s) => s.texture.valid);
-    if (!hasActiveTargets) {
-      return;
-    }
-
-    const renderer = canvas.app.renderer;
-    const stage = canvas.stage;
-    const screen = renderer.screen;
-    const topLeft = stage.toLocal({
-      x: 0,
-      y: 0,
-    });
-    const viewSize = [
-      screen.width / stage.scale.x,
-      screen.height / stage.scale.y,
-    ];
-    const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
     const resourceManager = game.mapShine.resourceManager;
     if (!resourceManager) return;
 
-    this.intensityNoiseManager.update(deltaTime, renderer);
+    this.time += deltaTime * (game.mapShine.timeControl.timeFactor ?? 1.0);
 
-    if (this.parallaxMaskFilter) {
-      const p_u = this.parallaxMaskFilter.uniforms;
-      p_u.uMask = this.getMaskTexture();
-      p_u.uCameraOffset = [topLeft.x, topLeft.y];
-      p_u.uViewSize = viewSize;
-      renderer.render(this._parallaxMaskSprite, {
-        renderTexture: this.cleanStructuralLightMask,
-        clear: true,
-      });
-    }
-
-    const u = this.structuralFilter.uniforms;
-    const config = game.mapShine.profileManager.activeConfig;
-    const illumInteractionConfig =
-      config.structuralShadows.illuminationInteraction;
-    const illuminationTexture = resourceManager.getIlluminationTexture();
-    const outdoorsMask = resourceManager.getOutdoorsMask();
-    const cloudOcclusionTexture = resourceManager.getRawCloudTexture(deltaTime);
-
-    const rect = canvas.scene.dimensions.sceneRect;
-    if (rect && screen.width > 0 && screen.height > 0) {
-      const topLeftScreen = canvas.stage.toGlobal({
-        x: rect.x,
-        y: rect.y,
-      });
-      const sceneWidthPixels = rect.width * canvas.stage.scale.x;
-      const sceneHeightPixels = rect.height * canvas.stage.scale.y;
-      u.uSceneRectNorm = [
-        topLeftScreen.x / screen.width,
-        topLeftScreen.y / screen.height,
-        sceneWidthPixels / screen.width,
-        sceneHeightPixels / screen.height,
-      ];
-    } else {
-      u.uSceneRectNorm = [0, 0, 1, 1];
-    }
-
+    const u = this.filter.uniforms;
     u.uStructuralMask = this.getMaskTexture();
-    u.u_intensityNoise = this.intensityNoiseManager.getTexture();
-    u.uOutdoorsMask = outdoorsMask;
-    u.u_time += deltaTime * timeFactor;
-
-    const isIlluminationReady =
-      illumInteractionConfig?.enabled &&
-      illuminationTexture?.valid &&
-      illuminationTexture.width === Math.round(screen.width) &&
-      illuminationTexture.height === Math.round(screen.height);
-
-    u.u_illum_enabled = isIlluminationReady;
-    if (isIlluminationReady) {
-      u.uIlluminationBuffer = illuminationTexture;
-    }
-
-    const cloudOcclusionConfig = config.structuralShadows.cloudOcclusion;
-    const wantsCloudOcclusion = cloudOcclusionConfig?.enabled;
-    const isCloudOcclusionReady =
-      wantsCloudOcclusion && cloudOcclusionTexture?.valid;
-
-    u.uCloudOcclusionEnabled = isCloudOcclusionReady;
-    if (isCloudOcclusionReady) {
-      u.uCloudOcclusionTexture = cloudOcclusionTexture;
-      u.uCloudOcclusionIntensity = cloudOcclusionConfig.intensity;
-    }
-
-    u.u_camera_offset = [topLeft.x, topLeft.y];
-    u.u_view_size = viewSize;
-
-    u.u_outputHighlightMask = true;
-    renderer.render(this._patternGeneratorSprite, {
-      renderTexture: this.finalHighlightMaskTexture,
-      clear: true,
-    });
-
-    u.u_outputHighlightMask = false;
-    renderer.render(this._patternGeneratorSprite, {
-      renderTexture: this.finalShadowTexture,
-      clear: true,
-    });
-
-    if (this.isRgbSplitEnabled()) {
-      renderer.render(this._splitHighlightSprite, {
-        renderTexture: this.splitHighlightMaskTexture,
-        clear: true,
-      });
-    }
+    u.uOutdoorsMask = resourceManager.getOutdoorsMask();
+    // Use raw cloud texture so clouds can appear "indoors"
+    u.uCloudOcclusionMask = resourceManager.getRawCloudTexture(deltaTime);
   }
 
   async updateFromConfig(config) {
     const ssConfig = config.structuralShadows;
-    this.visible = config.enabled && ssConfig.enabled;
-    this.intensityNoiseManager?.updateFromConfig(config);
-    if (this.structuralFilter) {
-      const u = this.structuralFilter.uniforms;
-      u.u_shadowIntensity = ssConfig.shadowIntensity;
-      u.u_tint = hexToRgbArray(ssConfig.tint);
-      u.u_parallax = ssConfig.parallax;
-      u.u_intensityNoise_enabled = ssConfig.intensityNoise.enabled;
-      u.u_intensityNoise_amount = ssConfig.intensityNoise.amount;
+    if (!this.filter) return;
 
-      const illumInteractionConfig = ssConfig.illuminationInteraction;
-      if (illumInteractionConfig) {
-        u.u_illum_intensity = illumInteractionConfig.intensity;
-        u.u_illum_luminanceThreshold =
-          illumInteractionConfig.luminanceThreshold;
-        u.u_illum_softness = illumInteractionConfig.softness;
-        const cc = illumInteractionConfig.colorCorrection;
-        u.u_illum_cc_enabled = cc.enabled;
-        u.u_illum_cc_saturation = cc.saturation;
-        u.u_illum_cc_brightness = cc.brightness;
-        u.u_illum_cc_contrast = cc.contrast;
-        u.u_illum_cc_exposure = cc.exposure;
-        u.u_illum_cc_gamma = cc.gamma;
-        u.u_illum_cc_tintColor = hexToRgbArray(cc.tint.color);
-        u.u_illum_cc_tintAmount = cc.tint.amount;
-      }
+    const u = this.filter.uniforms;
+    u.uBlendMode = ssConfig.blendMode;
 
-      const mixInConfig = ssConfig.metallicShineMixIn;
-      if (mixInConfig) {
-        u.uMetallicShineMixIn_intensity = mixInConfig.intensity;
-      }
-    }
-    if (this.rgbSplitFilter) {
-      const u = this.rgbSplitFilter.uniforms;
-      const rgbConfig = ssConfig.rgbSplit;
-      u.uIntensity = rgbConfig.intensity;
-      u.uThreshold = rgbConfig.threshold;
-    }
-    if (this.parallaxMaskFilter) {
-      this.parallaxMaskFilter.uniforms.uParallax = ssConfig.parallax;
-    }
+    const cc = ssConfig.colorCorrection;
+    u.uCcEnabled = cc.enabled;
+    u.uSaturation = cc.saturation;
+    u.uBrightness = cc.brightness;
+    u.uContrast = cc.contrast;
+    u.uGamma = cc.gamma;
+    u.uTintColor = hexToRgbArray(cc.tint.color);
+    u.uTintAmount = cc.tint.amount;
+
+    const cloud = ssConfig.cloudOcclusion;
+    u.uCloudOcclusionEnabled = cloud.enabled;
+    u.uCloudOcclusionIntensity = cloud.intensity;
+    u.uCloudOcclusionThreshold = cloud.threshold;
+    u.uCloudOcclusionSoftness = cloud.softness;
   }
 
   async _tearDown(options) {
-    console.log(
-      this.LOG_PREFIX,
-      "Tear Down called. This is the end of a scene's lifecycle. Destroying all resources."
-    );
-
-    const destroyAndLog = (obj, name) => {
-      if (obj && typeof obj.destroy === "function") {
-        if (obj instanceof PIXI.Container) {
-          obj.destroy({
-            children: true,
-            texture: true,
-            baseTexture: true,
-          });
-        } else {
-          obj.destroy();
-        }
-      }
-    };
-
-    destroyAndLog(this.intensityNoiseManager, "intensityNoiseManager");
-    destroyAndLog(this.structuralFilter, "structuralFilter");
-    destroyAndLog(this._patternGeneratorSprite, "_patternGeneratorSprite");
-    destroyAndLog(this.finalShadowTexture, "finalShadowTexture");
-    destroyAndLog(this.finalHighlightMaskTexture, "finalHighlightMaskTexture");
-    destroyAndLog(this.effectSprite, "effectSprite");
-    destroyAndLog(this.rgbSplitFilter, "rgbSplitFilter");
-    destroyAndLog(this._splitHighlightSprite, "_splitHighlightSprite");
-    destroyAndLog(this.splitHighlightMaskTexture, "splitHighlightMaskTexture");
-    destroyAndLog(this.cleanStructuralLightMask, "cleanStructuralLightMask");
-    destroyAndLog(this.parallaxMaskFilter, "parallaxMaskFilter");
-    destroyAndLog(this._parallaxMaskSprite, "_parallaxMaskSprite");
-
-    this.intensityNoiseManager = null;
-    this.structuralFilter = null;
-    this._patternGeneratorSprite = null;
-    this.finalShadowTexture = null;
-    this.finalHighlightMaskTexture = null;
-    this.effectSprite = null;
-    this.rgbSplitFilter = null;
-    this._splitHighlightSprite = null;
-    this.splitHighlightMaskTexture = null;
-    this.cleanStructuralLightMask = null;
-    this.parallaxMaskFilter = null;
-    this._parallaxMaskSprite = null;
-
-    console.log(this.LOG_PREFIX, "All resources have been destroyed.");
+    if (this.filter) {
+      canvas.primary.filters = (canvas.primary.filters || []).filter(
+        (f) => f !== this.filter
+      );
+      this.filter.destroy();
+      this.filter = null;
+    }
     await super._tearDown(options);
+  }
+
+  // This method is required for compatibility with the ResourceManager.
+  // It will now return a neutral texture (white), effectively disabling structural
+  // shadows from affecting other effects like metallic sheen. We can revisit this
+  // if a more complex interaction is needed in the future.
+  renderEffectNow(deltaTime) {}
+
+  getStructuralShadowTexture(deltaTime) {
+    if (this._destroyed) return null;
+    if (this._frameCache.structuralShadowTexture) {
+      return this._frameCache.structuralShadowTexture;
+    }
+
+    const layer = canvas.layers.find(
+      (l) => l instanceof StructuralShadowsLayer
+    );
+    if (!layer || typeof layer.getStructuralShadowTexture !== "function") {
+      return null;
+    }
+
+    // The new layer provides its texture directly for compatibility.
+    const texture = layer.getStructuralShadowTexture(deltaTime);
+    this._frameCache.structuralShadowTexture = texture;
+    return texture;
   }
 }
 
@@ -22540,45 +21699,25 @@ class IridescenceLayer extends MaskedEffectLayer {
     this.effectSprite.visible = true;
 
     const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
-    this.distortionNoiseManager.update(deltaTime, canvas.app.renderer);
+    this.distortionNoiseManager.update(
+      deltaTime * timeFactor,
+      canvas.app.renderer
+    );
 
-    const stage = canvas.stage;
-    const screen = canvas.app.screen;
-    const topLeft = stage.toLocal({
-      x: 0,
-      y: 0,
-    });
     const u = this.iridescenceFilter.uniforms;
 
+    // Update time and input textures
     u.uTime += deltaTime * timeFactor;
     u.uDistortionMap = this.distortionNoiseManager.getTexture();
-    u.uMaskTexture = this.getMaskTexture(); // Use the getter from the base class
+    u.uMaskTexture = this.getMaskTexture();
 
-    u.uCameraOffset = [topLeft.x, topLeft.y];
-    u.uViewSize = [screen.width / stage.scale.x, screen.height / stage.scale.y];
-    u.uResolution = [screen.width, screen.height];
+    // Get all coordinate uniforms from the manager
+    Object.assign(u, CoordinateManager.getShaderUniforms());
 
-    const rect = canvas.scene.dimensions.sceneRect;
-    if (rect && screen.width > 0 && screen.height > 0) {
-      const topLeftScreen = canvas.stage.toGlobal({
-        x: rect.x,
-        y: rect.y,
-      });
-      const sceneWidthPixels = rect.width * stage.scale.x;
-      const sceneHeightPixels = rect.height * stage.scale.y;
-      u.uSceneRectNorm = [
-        topLeftScreen.x / screen.width,
-        topLeftScreen.y / screen.height,
-        sceneWidthPixels / screen.width,
-        sceneHeightPixels / screen.height,
-      ];
-    } else {
-      u.uSceneRectNorm = [0, 0, 1, 1];
-    }
-
-    this.effectSprite.position.copyFrom(topLeft);
-    this.effectSprite.width = screen.width / stage.scale.x;
-    this.effectSprite.height = screen.height / stage.scale.y;
+    // Position the effect sprite to cover the full screen view
+    this.effectSprite.position.copyFrom(CoordinateManager.getCameraOffset());
+    this.effectSprite.width = CoordinateManager.getViewSize().width;
+    this.effectSprite.height = CoordinateManager.getViewSize().height;
   }
 
   async updateFromConfig(config) {
@@ -27829,17 +26968,33 @@ class DebuggerUIBuilder {
     const isGm = game.user.isGM;
     const worldProfileSection = isGm
       ? `
-                    <div class="profile-group">
-                        <strong class="profile-group-title">Hard Coded Values</strong>
-                        <div style="display: flex; gap: 5px; margin-top: 5px;">
-                            <button id="profile-copy-settings" data-action="copy-settings" style="flex: 1;" title="Copy the current active settings to the clipboard as JSON text.">Copy Settings</button>
-                            <button id="profile-paste-settings" data-action="paste-settings" style="flex: 1;" title="Load settings from JSON text on the clipboard as temporary changes.">Paste Settings</button>
-                        </div>
+            <div class="profile-group">
+                <strong class="profile-group-title">World Profiles</strong>
+                <div class="profile-controls">
+                    <select id="profiles-dropdown"></select>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+                        <button data-action="load-profile" title="Apply this profile's settings as temporary changes.">Load</button>
+                        <button data-action="import-world-profile" title="Create a new scene appearance from this world profile.">Import</button>
+                        <button data-action="update-profile" title="Overwrite the selected profile with your current settings."><i class="fas fa-save"></i> Update</button>
+                        <button data-action="set-default-profile" title="Set this as the default profile for scenes without their own appearances."><i class="fas fa-star"></i> Default</button>
                     </div>
+                    <button data-action="delete-profile" title="Delete the selected world profile." style="color: #ff8080;"><i class="fas fa-trash"></i> Delete Selected</button>
+                </div>
+                <hr style="border-color: #555; margin: 8px 0;">
+                <div class="profile-controls">
+                    <input type="text" id="profile-name" placeholder="New World Profile Name...">
+                    <button data-action="save-profile" title="Save your current temporary changes as a new world profile."><i class="fas fa-plus-circle"></i> Save As New</button>
+                </div>
+            </div>
+            <div class="profile-group">
+                <strong class="profile-group-title">Clipboard</strong>
+                <div style="display: flex; gap: 5px; margin-top: 5px;">
+                    <button id="profile-copy-settings" data-action="copy-settings" style="flex: 1;" title="Copy the current active settings to the clipboard as JSON text.">Copy Settings</button>
+                    <button id="profile-paste-settings" data-action="paste-settings" style="flex: 1;" title="Load settings from JSON text on the clipboard as temporary changes.">Paste Settings</button>
+                </div>
+            </div>
                 `
-      : `
-
-                `;
+      : ``;
 
     return `
                     <details id="details-profile-management">
@@ -28488,6 +27643,85 @@ class DebuggerEventHandler {
 
     // Global hook
     Hooks.on("mapShine:timeChanged", this._onTimeChangedBound);
+  }
+
+  async _onNewCleanProfileClick() {
+    const name = await Dialog.prompt({
+      title: "New Clean Profile",
+      content: `<p>Enter a name for the new, clean appearance profile:</p><input type="text" name="profileName" placeholder="e.g., Night Time">`,
+      callback: (html) => html.find('input[name="profileName"]').val(),
+      rejectClose: false,
+    });
+
+    if (name) {
+      await this.profileManager.createCleanSceneProfile(name);
+    }
+  }
+
+  async _onRenameSceneProfileClick() {
+    const dropdown = this.element.querySelector("#scene-profile-select");
+    if (!dropdown || !dropdown.value) {
+      ui.notifications.warn("No scene appearance selected to rename.");
+      return;
+    }
+    const profileId = dropdown.value;
+    const profile = this.profileManager
+      .getSceneProfiles()
+      .find((p) => p.id === profileId);
+    if (!profile) return;
+
+    const newName = await Dialog.prompt({
+      title: "Rename Appearance",
+      content: `<p>Enter a new name for "<strong>${Handlebars.escapeExpression(
+        profile.name
+      )}</strong>":</p><input type="text" name="newName" value="${Handlebars.escapeExpression(
+        profile.name
+      )}">`,
+      callback: (html) => html.find('input[name="newName"]').val(),
+      rejectClose: false,
+    });
+
+    if (newName && newName.trim() !== profile.name) {
+      await this.profileManager.renameSceneProfile(profileId, newName.trim());
+    }
+  }
+
+  async _onDeleteSceneProfileClick() {
+    const dropdown = this.element.querySelector("#scene-profile-select");
+    if (!dropdown || !dropdown.value) {
+      ui.notifications.warn("No scene appearance selected to delete.");
+      return;
+    }
+    const profileId = dropdown.value;
+    const profile = this.profileManager
+      .getSceneProfiles()
+      .find((p) => p.id === profileId);
+    if (!profile) return;
+
+    Dialog.confirm({
+      title: "Delete Appearance",
+      content: `<p>Are you sure you want to delete the scene appearance "<strong>${Handlebars.escapeExpression(
+        profile.name
+      )}</strong>"? This cannot be undone.</p>`,
+      yes: async () => {
+        await this.profileManager.deleteSceneProfile(profileId);
+      },
+      defaultYes: false,
+    });
+  }
+
+  async _onCreateSceneProfilesClick() {
+    await this.profileManager.createInitialSceneProfiles();
+  }
+
+  async _onImportWorldProfile() {
+    const dropdown = this.element.querySelector("#profiles-dropdown");
+    if (!dropdown || !dropdown.value) {
+      ui.notifications.warn("No world profile selected to import.");
+      return;
+    }
+    const profileName = dropdown.value;
+    await this.profileManager.importWorldProfile(profileName);
   }
 
   // A single, robust click handler for all data-actions
