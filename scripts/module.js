@@ -1657,6 +1657,7 @@ const MODULE_DEFAULTS = {
   },
   structuralShadows: {
     enabled: true,
+    intensity: 1.0,
     blendMode: PIXI.BLEND_MODES.OVERLAY,
     colorCorrection: {
       enabled: true,
@@ -2698,50 +2699,6 @@ class FontLoader {
       // The URL might be invalid if the href is not set yet, which is fine.
     }
     return loaded;
-  }
-}
-
-class HighlightFilter extends PIXI.Filter {
-  constructor(options = {}) {
-    const fragmentSrc = `
-            precision mediump float;
-            varying vec2 vTextureCoord;
-
-            uniform sampler2D uMask;
-            uniform float uBrightness;
-
-            void main(void) {
-                float maskValue = texture2D(uMask, vTextureCoord).r;
-                // Output a color to be used in an ADD blend operation.
-                // The alpha is premultiplied, so we set it to 1.0 and the color becomes the value to add.
-                gl_FragColor = vec4(vec3(maskValue * uBrightness), 1.0);
-            }
-        `;
-    super(PIXI.Filter.defaultVertexSrc, fragmentSrc, {
-      uMask: options.maskTexture || PIXI.Texture.EMPTY,
-      uBrightness: options.brightness || 1.0,
-    });
-  }
-}
-
-class SplitHighlightFilter extends PIXI.Filter {
-  constructor(options = {}) {
-    const fragmentSrc = `
-            precision mediump float;
-            varying vec2 vTextureCoord;
-
-            uniform sampler2D uMask;
-            uniform float uBrightness;
-
-            void main(void) {
-                vec3 maskValue = texture2D(uMask, vTextureCoord).rgb;
-                gl_FragColor = vec4(maskValue * uBrightness, 1.0);
-            }
-        `;
-    super(PIXI.Filter.defaultVertexSrc, fragmentSrc, {
-      uMask: options.maskTexture || PIXI.Texture.EMPTY,
-      uBrightness: options.brightness || 1.0,
-    });
   }
 }
 
@@ -4824,11 +4781,6 @@ class ResourceManager {
     this._frameCache = {};
     this.illuminationManager = null;
     this._destroyed = false;
-
-    // Properties for the new composite light mask
-    this._compositeLightMaskTexture = null;
-    this._compositeLightMaskFilter = null;
-    this._lightMaskSprite = null;
   }
 
   /**
@@ -4837,20 +4789,6 @@ class ResourceManager {
    */
   initialize() {
     this.illuminationManager = IlluminationManager; // Direct reference to the static class
-    const renderer = canvas.app.renderer;
-    const screen = renderer.screen;
-
-    // --- NEW: Initialize resources for the composite light mask ---
-    this._compositeLightMaskTexture = PIXI.RenderTexture.create({
-      width: screen.width,
-      height: screen.height,
-    });
-    this._compositeLightMaskFilter = new CompositeLightMaskFilter();
-    this._lightMaskSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
-    this._lightMaskSprite.width = screen.width;
-    this._lightMaskSprite.height = screen.height;
-    this._lightMaskSprite.filters = [this._compositeLightMaskFilter];
-
     console.log("Map Shine | ResourceManager initialized.");
   }
 
@@ -4860,15 +4798,6 @@ class ResourceManager {
   destroy() {
     this._frameCache = {};
     this.illuminationManager = null;
-
-    // --- NEW: Destroy composite light mask resources ---
-    this._compositeLightMaskTexture?.destroy(true);
-    this._compositeLightMaskFilter?.destroy();
-    this._lightMaskSprite?.destroy();
-    this._compositeLightMaskTexture = null;
-    this._compositeLightMaskFilter = null;
-    this._lightMaskSprite = null;
-
     this._destroyed = true;
     console.log("Map Shine | ResourceManager destroyed.");
   }
@@ -4878,45 +4807,6 @@ class ResourceManager {
    */
   onFrameStart() {
     this._frameCache = {};
-  }
-
-  /**
-   * Retrieves a composite texture representing the total light and shadow on the scene.
-   * This combines the illumination buffer with cloud and structural shadow layers.
-   * If not generated this frame, this will command the necessary layers to render.
-   * @param {number} deltaTime - The time since the last frame.
-   * @returns {PIXI.RenderTexture|null} The composite light/shadow texture.
-   */
-  getCompositeLightMask(deltaTime) {
-    if (this._destroyed) return null;
-    if (this._frameCache.compositeLightMask) {
-      return this._frameCache.compositeLightMask;
-    }
-
-    if (!this._compositeLightMaskFilter || !this._lightMaskSprite) return null;
-
-    // This series of calls ensures that all dependency textures are generated (if they haven't been already this frame).
-    const illuminationTexture = this.getIlluminationTexture();
-    const cloudTexture = this.getCloudShadowTexture(deltaTime);
-    const structuralTexture = this.getStructuralShadowTexture(deltaTime);
-
-    // Update the filter's uniforms with the latest textures.
-    this._compositeLightMaskFilter.uniforms.uIllumination =
-      illuminationTexture ?? PIXI.Texture.WHITE;
-    this._compositeLightMaskFilter.uniforms.uClouds =
-      cloudTexture ?? PIXI.Texture.WHITE;
-    this._compositeLightMaskFilter.uniforms.uStructural =
-      structuralTexture ?? PIXI.Texture.WHITE;
-
-    // Render the composite mask.
-    canvas.app.renderer.render(this._lightMaskSprite, {
-      renderTexture: this._compositeLightMaskTexture,
-      clear: true,
-    });
-
-    // Cache and return the result.
-    this._frameCache.compositeLightMask = this._compositeLightMaskTexture;
-    return this._compositeLightMaskTexture;
   }
 
   /**
@@ -5045,29 +4935,6 @@ class ResourceManager {
     // This now gets the guaranteed up-to-date combinedMaskTexture
     const texture = layer.getMaskTexture();
     this._frameCache.structuralMask = texture;
-    return texture;
-  }
-
-  /**
-   * Retrieves the final rendered structural shadow texture.
-   * If not rendered this frame, commands the StructuralShadowsLayer to render.
-   * @param {number} deltaTime - The time since the last frame.
-   * @returns {PIXI.RenderTexture|null} The structural shadow texture.
-   */
-  getStructuralShadowTexture(deltaTime) {
-    if (this._destroyed) return null;
-    if (this._frameCache.structuralShadowTexture) {
-      return this._frameCache.structuralShadowTexture;
-    }
-
-    const layer = canvas.layers.find(
-      (l) => l instanceof StructuralShadowsLayer
-    );
-    if (!layer) return null;
-
-    layer.renderEffectNow(deltaTime);
-    const texture = layer.finalShadowTexture;
-    this._frameCache.structuralShadowTexture = texture;
     return texture;
   }
 
@@ -8180,25 +8047,6 @@ class SystemStatusManager {
   getAllStatuses() {
     return this._state;
   }
-
-  evaluatePipelines() {
-    if (!OVERLAY_CONFIG.baseShine.noise.enabled) {
-      this.update("pipelines", "noiseToShine", {
-        state: "disabled",
-        message: "Noise mask is disabled by user.",
-      });
-    } else if (this.getStatus("shaders", "noise").state !== "ok") {
-      this.update("pipelines", "noiseToShine", {
-        state: "error",
-        message: "Pipeline broken: Noise shader failed to compile.",
-      });
-    } else {
-      this.update("pipelines", "noiseToShine", {
-        state: "ok",
-        message: "Pipeline active: Noise mask is modulating the shine pattern.",
-      });
-    }
-  }
 }
 
 class VisibilityManager {
@@ -9701,243 +9549,6 @@ class NoiseTextureManager {
         CoordinateManager.screenDimensions.width,
         CoordinateManager.screenDimensions.height,
       ];
-    }
-
-    renderer.render(this.sourceSprite, {
-      renderTexture: this.renderTexture,
-      clear: true,
-    });
-    this._needsUpdate = false;
-  }
-
-  getTexture() {
-    return this.renderTexture;
-  }
-
-  destroy() {
-    if (this.isWorldSpace && this._onPanBound) {
-      Hooks.off("canvasPan", this._onPanBound);
-    }
-    this.filter?.destroy();
-    this.sourceSprite?.destroy();
-    this.renderTexture?.destroy(true);
-  }
-}
-
-class FBMNoiseFilter extends PIXI.Filter {
-  constructor(options = {}) {
-    const fragmentSrc = `
-            precision mediump float;
-            varying vec2 vTextureCoord;
-
-            uniform float uTime;
-            uniform float uSpeed;
-            uniform float uScale;
-            uniform float uEvolution;
-
-            // FBM Parameters
-            uniform int uOctaves;
-            uniform float uPersistence;
-            uniform float uLacunarity;
-            
-            // Shaping Parameters
-            uniform float uBrightness;
-            uniform float uContrast;
-            uniform float uThreshold;
-            uniform float uSoftness;
-
-            // World Space Parameters
-            uniform bool uIsWorldSpace;
-            uniform vec2 uCameraOffset;
-            uniform vec2 uViewSize;
-
-            // Simplex Noise functions (snoise, permute, taylorInvSqrt)
-            vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 289.0);}
-            vec4 taylorInvSqrt(vec4 r){return 1.79284291400159 - 0.85373472095314 * r;}
-
-            float snoise(vec3 v) {
-                const vec2 C = vec2(1.0/6.0, 1.0/3.0);
-                const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
-                vec3 i  = floor(v + dot(v, C.yyy) );
-                vec3 x0 =   v - i + dot(i, C.xxx) ;
-                vec3 g = step(x0.yzx, x0.xyz);
-                vec3 l = 1.0 - g;
-                vec3 i1 = min( g.xyz, l.zxy );
-                vec3 i2 = max( g.xyz, l.zxy );
-                vec3 x1 = x0 - i1 + C.xxx;
-                vec3 x2 = x0 - i2 + C.yyy;
-                vec3 x3 = x0 - D.yyy;
-                i = mod(i, 289.0);
-                vec4 p = permute( permute( i.z + vec4(0.0, i1.z, i2.z, 1.0 ))
-                    + i.y + vec4(0.0, i1.y, i2.y, 1.0 ))
-                    + i.x + vec4(0.0, i1.x, i2.x, 1.0 );
-                float n_ = 0.142857142857;
-                vec3  ns = n_ * D.wyz - D.xzx;
-                vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
-                vec4 x_ = floor(j * ns.z);
-                vec4 y_ = floor(j - 7.0 * x_ );
-                vec4 x = x_ *ns.x + ns.yyyy;
-                vec4 y = y_ *ns.x + ns.yyyy;
-                vec4 h = 1.0 - abs(x) - abs(y);
-                vec4 b0 = vec4( x.xy, y.xy );
-                vec4 b1 = vec4( x.zw, y.zw );
-                vec4 s0 = floor(b0)*2.0 + 1.0;
-                vec4 s1 = floor(b1)*2.0 + 1.0;
-                vec4 sh = -step(h, vec4(0.0));
-                vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;
-                vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;
-                vec3 p0 = vec3(a0.xy,h.x);
-                vec3 p1 = vec3(a0.zw,h.y);
-                vec3 p2 = vec3(a1.xy,h.z);
-                vec3 p3 = vec3(a1.zw,h.w);
-                vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
-                p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
-                vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
-                m = m * m;
-                return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3) ) );
-            }
-            
-            float fbm(vec3 st) {
-                float value = 0.0;
-                float amplitude = 0.5;
-                for (int i = 0; i < 8; i++) {
-                    if (i >= uOctaves) break;
-                    value += amplitude * snoise(st);
-                    st *= uLacunarity;
-                    amplitude *= uPersistence;
-                }
-                return value; // Returns range approx -1 to 1
-            }
-
-            void main() {
-                vec2 uv;
-                if (uIsWorldSpace) {
-                    vec2 world_coord = uCameraOffset + (vTextureCoord * uViewSize);
-                    world_coord.x += uTime * uSpeed * 10.0;
-                    uv = world_coord * uScale / 1000.0;
-                } else {
-                    vec2 screen_pixel_coord = vTextureCoord * uViewSize; // uViewSize is resolution for screen space
-                    vec2 screen_center_pixel_coord = uViewSize * 0.5;
-                    uv = (screen_pixel_coord - screen_center_pixel_coord) * uScale / 30.0;
-                    uv.x += uTime * uSpeed;
-                }
-                
-                float time_z = uTime * uEvolution;
-                float noise = fbm(vec3(uv, time_z)) * 0.5 + 0.5; // Normalize to 0-1
-
-                noise += uBrightness;
-                noise = (noise - 0.5) * uContrast + 0.5;
-                noise = smoothstep(uThreshold, uThreshold + uSoftness, noise);
-
-                gl_FragColor = vec4(vec3(clamp(noise, 0.0, 1.0)), 1.0);
-            }
-        `;
-
-    super(PIXI.Filter.defaultVertexSrc, fragmentSrc, {
-      uTime: 0.0,
-      uSpeed: options.speed ?? 0.0,
-      uScale: options.scale ?? 1.0,
-      uEvolution: options.evolution ?? 0.0,
-      uOctaves: options.octaves ?? 4,
-      uPersistence: options.persistence ?? 0.5,
-      uLacunarity: options.lacunarity ?? 2.0,
-      uBrightness: options.brightness ?? 0.0,
-      uContrast: options.contrast ?? 1.0,
-      uThreshold: options.threshold ?? 0.5,
-      uSoftness: options.softness ?? 0.1,
-      uIsWorldSpace: options.isWorldSpace ?? false,
-      uCameraOffset: [0, 0],
-      uViewSize: [1, 1],
-    });
-  }
-}
-
-class FBMNoiseManager {
-  constructor(renderer, configPath, isWorldSpace = false) {
-    this.configPath = configPath;
-    this.isWorldSpace = isWorldSpace;
-    this._needsUpdate = true;
-
-    const screen = renderer.screen;
-    this.renderTexture = PIXI.RenderTexture.create({
-      width: screen.width,
-      height: screen.height,
-      scaleMode: PIXI.SCALE_MODES.LINEAR,
-    });
-    this.sourceSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
-    this.sourceSprite.width = screen.width;
-    this.sourceSprite.height = screen.height;
-    this.filter = new FBMNoiseFilter({ isWorldSpace: this.isWorldSpace });
-    this.sourceSprite.filters = [this.filter];
-
-    if (this.isWorldSpace) {
-      this._onPanBound = this.requestUpdate.bind(this);
-      Hooks.on("canvasPan", this._onPanBound);
-    }
-  }
-
-  requestUpdate() {
-    this._needsUpdate = true;
-  }
-
-  resize(renderer) {
-    if (!this.renderTexture || !this.sourceSprite) return;
-    const screen = renderer.screen;
-    this.renderTexture.resize(screen.width, screen.height, true);
-    this.sourceSprite.width = screen.width;
-    this.sourceSprite.height = screen.height;
-    this._needsUpdate = true;
-  }
-
-  updateFromConfig(config) {
-    const nConfig = foundry.utils.getProperty(config, this.configPath);
-    if (!nConfig) {
-      if (this.filter) this.filter.enabled = false;
-      return;
-    }
-
-    if (!this.filter) return;
-    this.filter.enabled = true;
-
-    const u = this.filter.uniforms;
-    u.uSpeed = nConfig.speed;
-    u.uScale = nConfig.scale;
-    u.uEvolution = nConfig.evolution ?? 0.0;
-    u.uOctaves = nConfig.octaves;
-    u.uPersistence = nConfig.persistence;
-    u.uLacunarity = nConfig.lacunarity;
-    u.uBrightness = nConfig.brightness;
-    u.uContrast = nConfig.contrast;
-    u.uThreshold = nConfig.threshold;
-    u.uSoftness = nConfig.softness;
-    this.requestUpdate();
-  }
-
-  update(deltaTime, renderer) {
-    if (!this.filter || !this.filter.enabled) return;
-
-    const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
-    const nConfig = foundry.utils.getProperty(
-      game.mapShine.profileManager.activeConfig,
-      this.configPath
-    );
-    const isAnimated =
-      nConfig &&
-      (nConfig.speed * timeFactor !== 0 ||
-        nConfig.evolution * timeFactor !== 0);
-
-    if (!this._needsUpdate && !isAnimated) return;
-
-    this.filter.uniforms.uTime += deltaTime * timeFactor;
-
-    if (this.isWorldSpace) {
-      Object.assign(
-        this.filter.uniforms,
-        CoordinateManager.getShaderUniforms()
-      );
-    } else {
-      const screenDims = CoordinateManager.getScreenDimensions();
-      this.filter.uniforms.uViewSize = [screenDims.width, screenDims.height];
     }
 
     renderer.render(this.sourceSprite, {
@@ -15126,68 +14737,6 @@ class ColorFromSpawnBehavior {
 //              global post-processing effects.
 // ---------------------------------------------------------------------------------
 
-class InvertFilter extends PIXI.Filter {
-  constructor() {
-    super(
-      PIXI.Filter.defaultVertexSrc,
-      `
-            precision mediump float;
-            varying vec2 vTextureCoord;
-            uniform sampler2D uSampler;
-
-            void main(void) {
-                vec4 color = texture2D(uSampler, vTextureCoord);
-                // Only invert if the pixel is not fully transparent
-                if (color.a > 0.0) {
-                    // Invert RGB channels, preserve alpha
-                    gl_FragColor = vec4(1.0 - color.rgb, color.a);
-                } else {
-                    gl_FragColor = vec4(0.0);
-                }
-            }
-        `
-    );
-  }
-}
-
-class CompositeLightMaskFilter extends PIXI.Filter {
-  constructor(options = {}) {
-    const fragmentSrc = `
-            precision mediump float;
-            varying vec2 vTextureCoord;
-
-            uniform sampler2D uIllumination;
-            uniform sampler2D uClouds;
-            uniform sampler2D uStructural;
-
-            const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
-
-            void main(void) {
-                // Start with the base light level from the core illumination buffer.
-                float lightLevel = dot(texture2D(uIllumination, vTextureCoord).rgb, lum_weights);
-
-                // Cloud and Structural shadow textures are inverted (white = no shadow).
-                // We multiply by their values to reduce the light level.
-                float cloudShadow = texture2D(uClouds, vTextureCoord).r;
-                float structuralShadow = texture2D(uStructural, vTextureCoord).r;
-
-                // Apply the shadows.
-                lightLevel *= cloudShadow;
-                lightLevel *= structuralShadow;
-                
-                gl_FragColor = vec4(vec3(clamp(lightLevel, 0.0, 1.0)), 1.0);
-            }
-        `;
-
-    super(PIXI.Filter.defaultVertexSrc, fragmentSrc, {
-      uIllumination: PIXI.Texture.WHITE,
-      uClouds: PIXI.Texture.WHITE,
-      uStructural: PIXI.Texture.WHITE,
-      ...options,
-    });
-  }
-}
-
 class NoisePatternFilter extends PIXI.Filter {
   constructor(options) {
     const fragmentSrc = `
@@ -15540,49 +15089,6 @@ class HeatDistortionNoiseFilter extends PIXI.Filter {
       u_risingSpeed: 0.02,
       u_risingIntensity: 0.5,
       ...options,
-    });
-  }
-}
-
-class ParallaxMaskFilter extends PIXI.Filter {
-  constructor(options = {}) {
-    const vertexSrc = `
-                    attribute vec2 aVertexPosition;
-                    attribute vec2 aTextureCoord;
-                    uniform mat3 projectionMatrix;
-                    varying vec2 vTextureCoord;
-                    varying vec2 vScreenCoord;
-
-                    void main(void) {
-                        gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
-                        vTextureCoord = aTextureCoord;
-                        vScreenCoord = gl_Position.xy * 0.5 + 0.5;
-                    }
-                `;
-    const fragmentSrc = `
-                    precision mediump float;
-                    varying vec2 vTextureCoord;
-                    varying vec2 vScreenCoord;
-
-                    uniform sampler2D uMask;
-                    uniform float uParallax;
-                    uniform vec2 uCameraOffset;
-                    uniform vec2 uViewSize;
-
-                    void main() {
-                        vec2 parallaxTexCoord = vScreenCoord;
-                        if (uParallax > 0.0 && uViewSize.y > 0.0) {
-                            vec2 normalized_camera_offset_pixels = uCameraOffset / uViewSize;
-                            parallaxTexCoord = vScreenCoord - (normalized_camera_offset_pixels * uParallax);
-                        }
-                        gl_FragColor = texture2D(uMask, parallaxTexCoord);
-                    }
-                `;
-    super(vertexSrc, fragmentSrc, {
-      uMask: PIXI.Texture.EMPTY,
-      uParallax: options.parallax ?? 0.0,
-      uCameraOffset: [0, 0],
-      uViewSize: [1, 1],
     });
   }
 }
@@ -17303,6 +16809,9 @@ class PrismFilter extends PIXI.Filter {
                         uniform sampler2D uPrismMask;
                         uniform sampler2D uDistortionMap;
 
+                        // Uniform for scene boundaries
+                        uniform vec4 uSceneRectNorm;
+
                         uniform float uIntensity;
                         uniform float uAngleRad;
                         uniform float uThreshold;
@@ -17313,13 +16822,22 @@ class PrismFilter extends PIXI.Filter {
                         const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
 
                         void main(void) {
-                            float maskValue = texture2D(uPrismMask, vTextureCoord).r;
-                            if (maskValue < 0.01) {
-                                gl_FragColor = texture2D(uSampler, vTextureCoord);
+                            vec4 originalColor = texture2D(uSampler, vTextureCoord);
+
+                            // Check if the current pixel is outside the defined scene rectangle.
+                            vec2 sceneMin = uSceneRectNorm.xy;
+                            vec2 sceneMax = uSceneRectNorm.xy + uSceneRectNorm.zw;
+                            if (vTextureCoord.x < sceneMin.x || vTextureCoord.x > sceneMax.x || vTextureCoord.y < sceneMin.y || vTextureCoord.y > sceneMax.y) {
+                                gl_FragColor = originalColor;
                                 return;
                             }
 
-                            vec4 originalColor = texture2D(uSampler, vTextureCoord);
+                            float maskValue = texture2D(uPrismMask, vTextureCoord).r;
+                            if (maskValue < 0.01) {
+                                gl_FragColor = originalColor;
+                                return;
+                            }
+
                             float luminance = dot(originalColor.rgb, lum_weights);
                             float effectVisibility = smoothstep(uThreshold, uThreshold + uSoftness, luminance);
                             if (effectVisibility < 0.01) {
@@ -17345,6 +16863,7 @@ class PrismFilter extends PIXI.Filter {
     super(PIXI.Filter.defaultVertexSrc, fragmentSrc, {
       uPrismMask: PIXI.Texture.EMPTY,
       uDistortionMap: PIXI.Texture.EMPTY,
+      uSceneRectNorm: [0, 0, 1, 1], // Add the new uniform
       uIntensity: options.intensity ?? 5.0,
       uAngleRad: (options.angle ?? 45.0) * (Math.PI / 180.0),
       uThreshold: options.threshold ?? 0.85,
@@ -20328,546 +19847,172 @@ class CloudShadowsLayer extends MaskedEffectLayer {
   }
 }
 
-class CanopyFilter extends PIXI.Filter {
-  constructor(options = {}) {
-    const vertexSrc = `
-                        attribute vec2 aVertexPosition;
-                        attribute vec2 aTextureCoord;
-                        uniform mat3 projectionMatrix;
-                        varying vec2 vTextureCoord;
-                        varying vec2 vScreenCoord;
-
-                        void main(void) {
-                            gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
-                            vTextureCoord = aTextureCoord;
-                            vScreenCoord = gl_Position.xy * 0.5 + 0.5;
-                        }
-                    `;
-
-    const fragmentSrc = `
-                        precision mediump float;
-                        varying vec2 vTextureCoord;
-                        varying vec2 vScreenCoord;
-
-                        // Samplers
-                        uniform sampler2D u_canopyMask;
-                        uniform sampler2D uOutdoorsMask;
-                        uniform sampler2D uIlluminationBuffer;
-                        uniform sampler2D u_displacementMap;
-
-                        // Effect Uniforms
-                        uniform float u_shadowIntensity;
-                        uniform vec3 u_tint;
-                        uniform bool u_distortion_enabled;
-                        uniform float u_distortion_strength;
-                        uniform float u_canvas_scale; // New uniform for zoom level
-
-                        // Illumination Masking Uniforms
-                        uniform bool u_illum_enabled;
-                        uniform float u_illum_intensity;
-                        uniform float u_illum_luminanceThreshold;
-                        uniform float u_illum_softness;
-                        
-                        const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
-
-                        vec2 mirroredRepeat(vec2 v) {
-                            return 1.0 - abs(mod(v, 2.0) - 1.0);
-                        }
-
-                        void main() {
-                            float outdoorMaskVal = texture2D(uOutdoorsMask, vScreenCoord).r;
-                            if (outdoorMaskVal < 0.01) {
-                                discard;
-                            }
-                            
-                            vec2 finalSampleCoord = vScreenCoord;
-                            if (u_distortion_enabled) {
-                                vec2 noiseVec = (texture2D(u_displacementMap, vScreenCoord).rg - 0.5) * 2.0;
-                                // Scale the distortion strength by the inverse of the canvas scale.
-                                // This makes the distortion effect appear constant in world space.
-                                vec2 displacement = noiseVec * (u_distortion_strength / u_canvas_scale);
-                                
-                                finalSampleCoord = mirroredRepeat(vScreenCoord + displacement);
-                            }
-                            
-                            float maskValue = texture2D(u_canopyMask, finalSampleCoord).r;
-                            float shadowAmount = 1.0 - maskValue;
-                            
-                            if (shadowAmount < 0.01) {
-                                discard;
-                            }
-                            
-                            float finalAlpha = shadowAmount * u_shadowIntensity * outdoorMaskVal;
-
-                            if (u_illum_enabled) {
-                                float lightLevel = dot(texture2D(uIlluminationBuffer, vScreenCoord).rgb, lum_weights);
-                                float lightMask = smoothstep(u_illum_luminanceThreshold, u_illum_luminanceThreshold + u_illum_softness, lightLevel);
-                                float reduction = lightMask * u_illum_intensity;
-                                finalAlpha *= (1.0 - reduction);
-                            }
-
-                            gl_FragColor = vec4(u_tint * finalAlpha, finalAlpha);
-                        }
-                    `;
-
-    super(vertexSrc, fragmentSrc, {
-      u_canopyMask: PIXI.Texture.EMPTY,
-      uOutdoorsMask: PIXI.Texture.EMPTY,
-      u_shadowIntensity: 0.7,
-      u_tint: [0.0, 0.0, 0.0],
-      uIlluminationBuffer: PIXI.Texture.EMPTY,
-      u_illum_enabled: false,
-      u_illum_intensity: 0.8,
-      u_illum_luminanceThreshold: 0.1,
-      u_illum_softness: 0.2,
-      u_displacementMap: PIXI.Texture.EMPTY,
-      u_distortion_enabled: true,
-      u_distortion_strength: 0.01,
-      u_canvas_scale: 1.0, // Add the new uniform with a default value
-      ...options,
-    });
-  }
-}
-
 class CanopyLayer extends MaskedEffectLayer {
   constructor() {
     super({
       maskSuffix: "canopy",
     });
 
-    this.canopyFilter = null;
-    this.finalShadowTexture = null;
-    this.effectSprite = null; // This sprite displays the final rendered effect
-    this.distortionNoiseManager = null;
-    this._generatorSprite = null; // This sprite is used internally to generate the effect into finalShadowTexture
-    this.sceneBoundsMask = null;
+    this.filter = null;
   }
 
   static getSettingsHTML() {
     const effectKey = "canopy";
-    const path = `${effectKey}.worldBasedOnly`;
-    const checkboxHTML = DebuggerUIBuilder._createCheckboxHTML(
-      path,
-      "World Based Only",
-      false,
-      "Ignores scene-specific settings for this effect and uses the configured World Default Profile instead. A default profile must be set."
-    );
-    const iconHTML = `<span class="world-based-icon" data-world-based-path="${path}" title="World Based: This effect uses the world-level default profile, ignoring scene-specific settings."><i class="fas fa-globe"></i></span>`;
-
     const content = `
-                        ${checkboxHTML}
-                        <hr style="border-color: #555; margin: 6px 0;">
-                        ${DebuggerUIBuilder._createTextureInputHTML(
-                          "canopy",
-                          "Canopy Mask (_Canopy)"
-                        )}
-                        <p class="description-text">A black and white texture where black areas are shadows and white areas are light. This effect simulates a leafy canopy overhead.</p>
-                        ${DebuggerUIBuilder._createSliderHTML(
-                          "canopy.shadowIntensity",
-                          "Shadow Intensity",
-                          0,
-                          2,
-                          0.01
-                        )}
-                        ${DebuggerUIBuilder._createColorPickerHTML(
-                          "canopy.tint",
-                          "Shadow Tint"
-                        )}
-                        <details id="details-canopy-distortion"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                          "canopy.distortion.enabled",
-                          "Distortion",
-                          true
-                        )}</div></summary>
-                            <div style="padding-left: 15px;">
-                                <p class="description-text">Animates the shadows to simulate wind blowing through leaves.</p>
-                                ${DebuggerUIBuilder._createSliderHTML(
-                                  "canopy.distortion.strength",
-                                  "Strength",
-                                  0,
-                                  0.05,
-                                  0.0001
-                                )}
-                                ${DebuggerUIBuilder._createSliderHTML(
-                                  "canopy.distortion.speed",
-                                  "Speed",
-                                  -0.5,
-                                  0.5,
-                                  0.005
-                                )}
-                                ${DebuggerUIBuilder._createSliderHTML(
-                                  "canopy.distortion.scale",
-                                  "Scale",
-                                  0.1,
-                                  10,
-                                  0.1
-                                )}
-                                ${DebuggerUIBuilder._createSliderHTML(
-                                  "canopy.distortion.evolution",
-                                  "Evolution",
-                                  0,
-                                  1,
-                                  0.01
-                                )}
-                                <details id="details-canopy-distortion-adv"><summary><span class="accordion-toggle"></span><strong>Advanced Noise Controls</strong></summary>
-                                    <div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "canopy.distortion.threshold",
-                                          "Threshold",
-                                          0,
-                                          1,
-                                          0.01
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "canopy.distortion.brightness",
-                                          "Brightness",
-                                          -1,
-                                          1,
-                                          0.01
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "canopy.distortion.contrast",
-                                          "Contrast",
-                                          0,
-                                          5,
-                                          0.05
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          "canopy.distortion.softness",
-                                          "Softness",
-                                          0.01,
-                                          1,
-                                          0.01
-                                        )}
-                                    </div>
-                                </details>
-                            </div>
-                        </details>
-                        ${DebuggerUIBuilder._createSliderHTML(
-                          "canopy.postScale",
-                          "Post Scale",
-                          1,
-                          2,
-                          0.01,
-                          "Scales the final shadow texture after distortion is applied."
-                        )}
-                    `;
+        <p class="description-text">A black and white texture where black areas are shadows and white areas are light. This effect simulates a leafy canopy overhead.</p>
+        ${DebuggerUIBuilder._createSliderHTML(
+          "canopy.shadowIntensity",
+          "Shadow Intensity",
+          0,
+          1,
+          0.01
+        )}
+        ${DebuggerUIBuilder._createColorPickerHTML(
+          "canopy.tint",
+          "Shadow Tint"
+        )}
+    `;
     return DebuggerUIBuilder._createAccordionHTML(
       effectKey,
       "Canopy Shadows",
-      content,
-      iconHTML
+      content
     );
   }
 
   async _draw(options) {
-    await super._draw(options); // Calls base MaskedEffectLayer._draw()
-
-    this.blendMode = PIXI.BLEND_MODES.MULTIPLY;
-    const renderer = canvas.app.renderer;
-
-    this.distortionNoiseManager = new NoiseTextureManager(
-      renderer,
-      "canopy.distortion",
-      true
-    );
+    // This calls the base class _draw, which sets up the mask container and texture discovery.
+    await super._draw(options);
 
     try {
-      this.canopyFilter = new CanopyFilter();
+      this.filter = new CanopyFilter();
+      // Apply the filter to the primary canvas container. This ensures it affects everything
+      // rendered underneath it (like tiles and tokens).
+      canvas.primary.filters = [...(canvas.primary.filters || []), this.filter];
     } catch (e) {
       console.error("MapShine | Failed to create CanopyFilter", e);
-      // It's important to return or handle this gracefully if the filter fails.
-      // We will still draw the effectSprite, but it will be without the filter.
-      return;
+      this.filter = null;
     }
-
-    this.finalShadowTexture = PIXI.RenderTexture.create({
-      width: renderer.screen.width,
-      height: renderer.screen.height,
-    });
-
-    // _generatorSprite is a fullscreen quad for the filter to render upon
-    this._generatorSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
-    this._generatorSprite.width = renderer.screen.width;
-    this._generatorSprite.height = renderer.screen.height;
-    this._generatorSprite.filters = this.canopyFilter
-      ? [this.canopyFilter]
-      : [];
-    // Important: _generatorSprite is *not* added to the stage, it's used only for off-screen rendering.
-
-    // effectSprite is added to the stage and displays the finalShadowTexture
-    this.effectSprite = new PIXI.Sprite(this.finalShadowTexture);
-    this.addChild(this.effectSprite);
-
-    // Create and apply the scene boundary mask
-    this.sceneBoundsMask = new PIXI.Graphics();
-    this.addChild(this.sceneBoundsMask);
-    this.effectSprite.mask = this.sceneBoundsMask;
   }
 
   _onAnimate(deltaTime) {
-    super._onAnimate(deltaTime); // Calls base MaskedEffectLayer._onAnimate()
-    if (this._destroyed || !this.visible) return;
+    // This calls the base class _onAnimate, which re-renders the combined mask if needed.
+    super._onAnimate(deltaTime);
 
-    const resourceManager = game.mapShine.resourceManager;
-    if (!resourceManager) {
-      return;
-    }
+    if (this._destroyed || !this.filter) return;
 
-    // This triggers renderEffectNow if needed, populating this.finalShadowTexture
-    resourceManager.getCanopyShadowTexture(deltaTime);
+    // Check if there are any active mask textures for this effect.
+    const hasActiveMasks =
+      this.maskSprites.size > 0 &&
+      Array.from(this.maskSprites.values()).some((s) => s.texture.valid);
 
-    const config = game.mapShine.profileManager.activeConfig.canopy;
-    const postScale = config.postScale ?? 1.0;
+    const config = game.mapShine.profileManager.activeConfig;
+    const canopyConfig = config.canopy;
 
-    const stage = canvas.stage;
-    const screen = canvas.app.renderer.screen;
+    // The filter's enabled state controls whether the effect is visible.
+    this.filter.enabled =
+      config.enabled && canopyConfig.enabled && hasActiveMasks;
 
-    // Calculate the visible area of the world in world coordinates
-    const visibleWorldWidth = screen.width / stage.scale.x;
-    const visibleWorldHeight = screen.height / stage.scale.y;
+    if (!this.filter.enabled) return;
 
-    // Calculate the top-left corner of the visible world area
-    const topLeftWorld = stage.toLocal({ x: 0, y: 0 });
+    // Feed the latest data into the filter's uniforms.
+    const u = this.filter.uniforms;
+    u.uCanopyMask = this.getMaskTexture();
+    u.uIntensity = canopyConfig.shadowIntensity;
+    u.uTint = hexToRgbArray(canopyConfig.tint);
 
-    // Position the effectSprite to cover the visible world area
-    // Its texture (finalShadowTexture) is screen-sized, so it needs to be scaled
-    // to fit the world-space view, then further scaled by postScale.
-    this.effectSprite.anchor.set(0.5); // Anchor to center for scaling
-    this.effectSprite.x = topLeftWorld.x + visibleWorldWidth / 2;
-    this.effectSprite.y = topLeftWorld.y + visibleWorldHeight / 2;
-    this.effectSprite.width = visibleWorldWidth * postScale;
-    this.effectSprite.height = visibleWorldHeight * postScale;
-
-    // The layer container itself should remain at identity transform
-    // as its children handle their own positioning.
-    this.position.set(0, 0);
-    this.scale.set(1);
-
-    // Update the scene bounds mask every frame to ensure it's correctly positioned
-    if (this.sceneBoundsMask) {
-      const rect = canvas.scene.dimensions.sceneRect;
-      this.sceneBoundsMask.clear();
-      this.sceneBoundsMask.beginFill(0xffffff);
-      this.sceneBoundsMask.drawRect(rect.x, rect.y, rect.width, rect.height);
-      this.sceneBoundsMask.endFill();
-    }
+    // Pass the normalized scene rectangle from the CoordinateManager to the filter.
+    u.uSceneRectNorm = CoordinateManager.getSceneRectNormalizedArray();
   }
 
-  renderEffectNow(deltaTime) {
-    if (this._destroyed || !this.visible || !this.canopyFilter) return;
-
-    this.distortionNoiseManager.update(deltaTime, canvas.app.renderer);
-
-    const resourceManager = game.mapShine.resourceManager;
-    if (!resourceManager) return;
-
-    // Ensure _generatorSprite is explicitly sized to match the render target (screen dimensions)
-    this._generatorSprite.position.set(0, 0);
-    this._generatorSprite.width = CoordinateManager.getScreenDimensions().width;
-    this._generatorSprite.height =
-      CoordinateManager.getScreenDimensions().height;
-
-    const u = this.canopyFilter.uniforms;
-
-    // Assign all coordinate uniforms from the manager
-    Object.assign(u, CoordinateManager.getShaderUniforms());
-
-    u.u_canopyMask = this.getMaskTexture();
-    u.uOutdoorsMask = resourceManager.getOutdoorsMask();
-    u.u_displacementMap = this.distortionNoiseManager.getTexture();
-
-    const siConfig = foundry.utils.getProperty(
-      game.mapShine.profileManager.activeConfig,
-      "postProcessing.colorCorrection.sceneIlluminationMixIn"
-    );
-    const shadowInteractionConfig = siConfig?.shadowInteraction;
-    const illumTexture = resourceManager.getIlluminationTexture();
-    const isIlluminationReady =
-      siConfig?.enabled &&
-      shadowInteractionConfig?.enabled &&
-      illumTexture?.valid;
-
-    u.u_illum_enabled = isIlluminationReady;
-    if (isIlluminationReady) {
-      u.uIlluminationBuffer = illumTexture;
-      u.u_illum_intensity = shadowInteractionConfig.intensity;
-      u.u_illum_luminanceThreshold = shadowInteractionConfig.luminanceThreshold;
-      u.u_illum_softness = shadowInteractionConfig.softness;
-    }
-
-    // Render the _generatorSprite (with its filter) into finalShadowTexture
-    canvas.app.renderer.render(this._generatorSprite, {
-      renderTexture: this.finalShadowTexture,
-      clear: true,
-    });
-  }
-
-  async updateEffectTargets(targets) {
-    await super.updateEffectTargets(targets);
-  }
-
-  _onResize() {
-    super._onResize(); // Handles resizing the base mask texture (combinedMaskTexture)
-    const renderer = canvas.app.renderer;
-
-    this.finalShadowTexture?.resize(
-      renderer.screen.width,
-      renderer.screen.height
-    );
-    this.distortionNoiseManager?.resize(renderer);
-
-    // Ensure _generatorSprite is always screen-sized
-    if (this._generatorSprite) {
-      this._generatorSprite.width = renderer.screen.width;
-      this._generatorSprite.height = renderer.screen.height;
-    }
-    // effectSprite's dimensions are managed in _onAnimate based on current view.
+  async updateFromConfig(config) {
+    // The logic is now handled entirely within _onAnimate, which runs every frame.
+    // This ensures the filter is always up-to-date with the latest config.
+    // We just need to ensure the layer's visibility is set correctly.
+    const canopyConfig = config.canopy;
+    this.visible = config.enabled && canopyConfig.enabled;
   }
 
   async _tearDown(options) {
-    this.canopyFilter?.destroy();
-    this.finalShadowTexture?.destroy(true);
-    this.effectSprite?.destroy();
-    this._generatorSprite?.destroy(); // Destroy the generator sprite
-    this.distortionNoiseManager?.destroy();
-    this.sceneBoundsMask?.destroy();
-    this.sceneBoundsMask = null;
-
-    this.canopyFilter = null;
-    this.finalShadowTexture = null;
-    this.effectSprite = null;
-    this._generatorSprite = null;
-    this.distortionNoiseManager = null;
+    // When the layer is removed, we must also remove its filter from the canvas container.
+    if (this.filter) {
+      canvas.primary.filters = (canvas.primary.filters || []).filter(
+        (f) => f !== this.filter
+      );
+      this.filter.destroy();
+      this.filter = null;
+    }
 
     await super._tearDown(options);
   }
 }
 
-class StructuralHighlightRgbSplitFilter extends PIXI.Filter {
+class CanopyFilter extends PIXI.Filter {
   constructor(options = {}) {
+    const vertexSrc = `
+        attribute vec2 aVertexPosition;
+        attribute vec2 aTextureCoord;
+        uniform mat3 projectionMatrix;
+        varying vec2 vTextureCoord;
+        varying vec2 vScreenCoord;
+
+        void main(void) {
+            gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
+            vTextureCoord = aTextureCoord;
+            // The filter is applied to a screen-sized container, so texture coords are screen coords.
+            vScreenCoord = vTextureCoord;
+        }
+    `;
+
     const fragmentSrc = `
-                        precision mediump float;
-                        varying vec2 vTextureCoord;
+        precision mediump float;
+        varying vec2 vTextureCoord;
+        varying vec2 vScreenCoord;
 
-                        uniform sampler2D uSampler;
-                        uniform float uIntensity;
-                        uniform float uThreshold;
-                        uniform vec2 uTexelSize;
+        uniform sampler2D uSampler; // This is the scene texture from canvas.primary
+        uniform sampler2D uCanopyMask; // This is our composite _Canopy mask
 
-                        void main(void) {
-                            float lightAmount = texture2D(uSampler, vTextureCoord).r;
-                            
-                            if (lightAmount < uThreshold) {
-                                gl_FragColor = vec4(vec3(lightAmount), 1.0);
-                                return;
-                            }
-                            
-                            float split_factor = (lightAmount - uThreshold) / (1.0 - uThreshold);
-                            split_factor = clamp(split_factor, 0.0, 1.0);
-                            
-                            vec2 offset = vec2(uIntensity * split_factor * uTexelSize.x, 0.0);
-                            
-                            float r = texture2D(uSampler, vTextureCoord - offset).r;
-                            float g = lightAmount;
-                            float b = texture2D(uSampler, vTextureCoord + offset).r;
-                            
-                            gl_FragColor = vec4(r, g, b, 1.0);
-                        }
-                    `;
-    super(PIXI.Filter.defaultVertexSrc, fragmentSrc, {
-      uIntensity: options.intensity ?? 2.0,
-      uThreshold: options.threshold ?? 0.5,
-      uTexelSize: options.texelSize ?? [
-        1.0 / (window.innerWidth || 1),
-        1.0 / (window.innerHeight || 1),
-      ],
-    });
-  }
-}
+        uniform float uIntensity;
+        uniform vec3 uTint;
+        
+        // Uniform for scene boundaries in normalized screen coordinates [x, y, width, height]
+        uniform vec4 uSceneRectNorm;
 
-class StructuralHighlightFilter extends PIXI.Filter {
-  constructor(options = {}) {
-    const fragmentSrc = `
-            precision mediump float;
-            varying vec2 vTextureCoord;
-
-            uniform sampler2D uSampler; // The grayscale highlight mask
-            uniform vec2 uTexelSize;
-
-            // RGB Split Uniforms
-            uniform bool uRgbSplitEnabled;
-            uniform float uRgbSplitIntensity;
-            uniform float uRgbSplitThreshold;
-
-            // Color Correction Uniforms
-            uniform bool uCcEnabled;
-            uniform float uSaturation;
-            uniform float uBrightness;
-            uniform float uContrast;
-            uniform float uExposure;
-            uniform float uGamma;
-            uniform vec3 uTintColor;
-            uniform float uTintAmount;
-
-            const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
-
-            void main(void) {
-                float highlightAmount = texture2D(uSampler, vTextureCoord).r;
-                if (highlightAmount < 0.01) {
-                    discard;
-                }
-
-                vec3 finalColor;
-
-                if (uRgbSplitEnabled && highlightAmount > uRgbSplitThreshold) {
-                    float split_factor = pow(clamp((highlightAmount - uRgbSplitThreshold) / (1.0 - uRgbSplitThreshold), 0.0, 1.0), 1.5);
-                    vec2 offset = vec2(uRgbSplitIntensity * split_factor * uTexelSize.x, 0.0);
-                    
-                    float r = texture2D(uSampler, vTextureCoord - offset).r;
-                    float g = highlightAmount;
-                    float b = texture2D(uSampler, vTextureCoord + offset).r;
-                    finalColor = vec3(r, g, b);
-                } else {
-                    finalColor = vec3(highlightAmount);
-                }
-
-                if (uCcEnabled) {
-                    // Apply exposure and gamma, which were previously missing.
-                    finalColor *= pow(2.0, uExposure);
-                    if (uGamma > 0.0) finalColor = pow(max(finalColor, 0.0), vec3(1.0 / uGamma));
-                    
-                    // Apply brightness (additive) before contrast (multiplicative).
-                    finalColor += uBrightness;
-                    finalColor = (finalColor - 0.5) * uContrast + 0.5;
-
-                    // Apply saturation and tint.
-                    float luminance = dot(finalColor, lum_weights);
-                    finalColor = mix(vec3(luminance), finalColor, uSaturation);
-                    finalColor = mix(finalColor, uTintColor, uTintAmount);
-                }
-                
-                // Premultiply alpha
-                gl_FragColor = vec4(finalColor * highlightAmount, highlightAmount);
+        void main() {
+            // Check if the current pixel is outside the defined scene rectangle.
+            vec2 sceneMin = uSceneRectNorm.xy;
+            vec2 sceneMax = uSceneRectNorm.xy + uSceneRectNorm.zw;
+            if (vScreenCoord.x < sceneMin.x || vScreenCoord.x > sceneMax.x || vScreenCoord.y < sceneMin.y || vScreenCoord.y > sceneMax.y) {
+                // If outside, render the original scene pixel and discard the effect for this fragment.
+                gl_FragColor = texture2D(uSampler, vTextureCoord);
+                return;
             }
-        `;
 
-    super(PIXI.Filter.defaultVertexSrc, fragmentSrc, {
-      uTexelSize: [
-        1.0 / (window.innerWidth || 1),
-        1.0 / (window.innerHeight || 1),
-      ],
-      uRgbSplitEnabled: true,
-      uRgbSplitIntensity: 2.0,
-      uRgbSplitThreshold: 0.0,
-      uCcEnabled: true,
-      uSaturation: 1.0,
-      uBrightness: 0.0,
-      uContrast: 1.0,
-      uExposure: 0.0,
-      uGamma: 1.0,
-      uTintColor: [1.0, 1.0, 1.0],
-      uTintAmount: 0.0,
-      ...options,
+            vec4 originalColor = texture2D(uSampler, vTextureCoord);
+            
+            // Sample our canopy mask. Black (0.0) is shadow, White (1.0) is light.
+            float maskValue = texture2D(uCanopyMask, vScreenCoord).r;
+
+            // Calculate the shadow multiplier.
+            // Where mask is 1.0 (light), multiplier is 1.0 (no change).
+            // Where mask is 0.0 (shadow), multiplier is (1.0 - uIntensity).
+            float shadowMultiplier = 1.0 - ((1.0 - maskValue) * uIntensity);
+            
+            // Apply the tint to the multiplier itself, not the final color.
+            // This makes the shadow colored, while leaving lit areas unaffected.
+            vec3 tintedMultiplier = mix(vec3(shadowMultiplier), uTint * shadowMultiplier, uIntensity);
+
+            // Multiply the original scene color by our calculated shadow multiplier.
+            vec3 finalColor = originalColor.rgb * tintedMultiplier;
+            
+            gl_FragColor = vec4(finalColor, originalColor.a);
+        }
+    `;
+
+    super(vertexSrc, fragmentSrc, {
+      uCanopyMask: PIXI.Texture.EMPTY,
+      uIntensity: 1.0,
+      uTint: [0.0, 0.0, 0.0],
+      uSceneRectNorm: [0, 0, 1, 1], // Add the new uniform with a default value
     });
   }
 }
@@ -20898,8 +20043,12 @@ class StructuralFilter extends PIXI.Filter {
         uniform sampler2D uOutdoorsMask;
         uniform sampler2D uCloudOcclusionMask;
 
+        // Uniform for scene boundaries
+        uniform vec4 uSceneRectNorm;
+
         // Effect Controls
         uniform int uBlendMode;
+        uniform float uIntensity;
 
         // Color Correction
         uniform bool uCcEnabled;
@@ -20939,6 +20088,14 @@ class StructuralFilter extends PIXI.Filter {
 
         void main() {
             vec4 originalColor = texture2D(uSampler, vTextureCoord);
+
+            // Check if the current pixel is outside the defined scene rectangle.
+            vec2 sceneMin = uSceneRectNorm.xy;
+            vec2 sceneMax = uSceneRectNorm.xy + uSceneRectNorm.zw;
+            if (vScreenCoord.x < sceneMin.x || vScreenCoord.x > sceneMax.x || vScreenCoord.y < sceneMin.y || vScreenCoord.y > sceneMax.y) {
+                gl_FragColor = originalColor;
+                return;
+            }
             
             float indoorMask = 1.0 - texture2D(uOutdoorsMask, vScreenCoord).r;
             if (indoorMask < 0.01) {
@@ -20971,21 +20128,25 @@ class StructuralFilter extends PIXI.Filter {
                 structuralColor = mix(structuralColor, uTintColor, uTintAmount);
             }
             
-            vec3 finalColor = originalColor.rgb;
+            vec3 effectColor = originalColor.rgb;
             if (uBlendMode == 5) { // OVERLAY
-                 finalColor = blendOverlay(originalColor.rgb, structuralColor);
+                 effectColor = blendOverlay(originalColor.rgb, structuralColor);
             } else if (uBlendMode == 1) { // ADD
-                 finalColor = blendAdd(originalColor.rgb, structuralColor);
+                 effectColor = blendAdd(originalColor.rgb, structuralColor);
             } else if (uBlendMode == 2) { // MULTIPLY
-                 finalColor = blendMultiply(originalColor.rgb, structuralColor);
+                 effectColor = blendMultiply(originalColor.rgb, structuralColor);
             } else if (uBlendMode == 3) { // SCREEN
-                 finalColor = blendScreen(originalColor.rgb, structuralColor);
+                 effectColor = blendScreen(originalColor.rgb, structuralColor);
             }
             else { // Fallback to overlay
-                 finalColor = blendOverlay(originalColor.rgb, structuralColor);
+                 effectColor = blendOverlay(originalColor.rgb, structuralColor);
             }
+
+            // Interpolate between the original color and the full effect color based on intensity.
+            vec3 intensityAdjustedColor = mix(originalColor.rgb, effectColor, uIntensity);
             
-            vec3 blendedResult = mix(originalColor.rgb, finalColor, indoorMask);
+            // Apply this intensity-adjusted color only to the indoor areas.
+            vec3 blendedResult = mix(originalColor.rgb, intensityAdjustedColor, indoorMask);
 
             gl_FragColor = vec4(clamp(blendedResult, 0.0, 1.0), originalColor.a);
         }
@@ -20995,7 +20156,9 @@ class StructuralFilter extends PIXI.Filter {
       uStructuralMask: PIXI.Texture.EMPTY,
       uOutdoorsMask: PIXI.Texture.EMPTY,
       uCloudOcclusionMask: PIXI.Texture.EMPTY,
+      uSceneRectNorm: [0, 0, 1, 1],
       uBlendMode: 5, // Default to OVERLAY
+      uIntensity: 1.0,
       uCcEnabled: true,
       uSaturation: 1.0,
       uBrightness: 0.0,
@@ -21027,6 +20190,13 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
           "structuralShadows.blendMode",
           "Blend Mode",
           BLEND_MODE_OPTIONS
+        )}
+        ${DebuggerUIBuilder._createSliderHTML(
+          "structuralShadows.intensity",
+          "Intensity",
+          0,
+          2,
+          0.05
         )}
         <details id="details-structuralShadows-colorCorrection">
             <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
@@ -21157,6 +20327,9 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
     u.uOutdoorsMask = resourceManager.getOutdoorsMask();
     // Use raw cloud texture so clouds can appear "indoors"
     u.uCloudOcclusionMask = resourceManager.getRawCloudTexture(deltaTime);
+
+    // Pass the normalized scene rectangle from the CoordinateManager to the filter.
+    u.uSceneRectNorm = CoordinateManager.getSceneRectNormalizedArray();
   }
 
   async updateFromConfig(config) {
@@ -21165,6 +20338,7 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
 
     const u = this.filter.uniforms;
     u.uBlendMode = ssConfig.blendMode;
+    u.uIntensity = ssConfig.intensity;
 
     const cc = ssConfig.colorCorrection;
     u.uCcEnabled = cc.enabled;
@@ -23093,6 +22267,9 @@ class PrismLayer extends MaskedEffectLayer {
     u.uDistortionStrength = pConfig.distortionNoise.enabled
       ? pConfig.distortionStrength
       : 0.0;
+
+    // Pass the normalized scene rectangle from the CoordinateManager to the filter.
+    u.uSceneRectNorm = CoordinateManager.getSceneRectNormalizedArray();
   }
 
   async updateFromConfig(config) {
@@ -24939,28 +24116,6 @@ class OverheadRecolorFilter extends PIXI.Filter {
   }
 }
 
-class InvertAlphaMaskFilter extends PIXI.Filter {
-  constructor() {
-    super(
-      PIXI.Filter.defaultVertexSrc,
-      `
-            precision mediump float;
-            varying vec2 vTextureCoord;
-            uniform sampler2D uSampler;
-
-            void main(void) {
-                vec4 color = texture2D(uSampler, vTextureCoord);
-                // The shape of the mask is in its alpha channel after blurring.
-                // We want the output alpha to be the inverse of the input alpha.
-                float invertedAlpha = 1.0 - color.a;
-                // Output RGB doesn't matter for a mask, but let's set it to the alpha for visualization.
-                gl_FragColor = vec4(vec3(invertedAlpha), invertedAlpha);
-            }
-        `
-    );
-  }
-}
-
 class DayNightClock extends Application {
   constructor(options = {}) {
     super(options);
@@ -25836,7 +24991,7 @@ const CLIENT_OVERRIDES_CONFIG = {
   structuralShadows: {
     name: "Structural Shadows",
     path: "structuralShadows",
-    intensitySubPath: "shadowIntensity",
+    intensitySubPath: "intensity",
     tooltip:
       "Creates indoor shadows from structural elements like rafters, beams, and pillars.",
   },
@@ -27254,32 +26409,6 @@ class DebuggerUIBuilder {
     `;
   }
 
-  static _createDayNightClockHTML() {
-    // This HTML structure now mirrors the standalone DayNightClock for consistent styling.
-    // Styles are handled in the main _getStyles method.
-    return `
-            <div id="debugger-clock-wrapper" style="display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #555;">
-                <div id="debugger-clock-container">
-                    <div class="clock-face">
-                        <div class="time-marker m-12">12</div>
-                        <div class="time-marker m-6">6</div>
-                        <div class="time-marker m-18">18</div>
-                        <div class="time-marker m-0">0</div>
-                        <div id="debugger-clock-hand">
-                            <img id="debugger-clock-icon" src="modules/map-shine/assets/sun.webp">
-                        </div>
-                    </div>
-                </div>
-                <div id="debugger-clock-controls">
-                    <button data-action="debugger-adjust-time" data-amount="-0.25" title="Subtract 15 Minutes">-</button>
-                    <input type="text" id="debugger-time-input">
-                    <button data-action="debugger-adjust-time" data-amount="0.25" title="Add 15 Minutes">+</button>
-                </div>
-                <p class="clock-disclaimer">Controls scene visuals only. Does not change Foundry's world time.</p>
-            </div>
-        `;
-  }
-
   _getEffectSections() {
     return [
       MetallicShineLayer.getSettingsHTML(),
@@ -27452,20 +26581,6 @@ class DebuggerUIBuilder {
         </details>
         `
     );
-  }
-
-  _getColumnCounts(totalItems, maxColumns) {
-    let numColumns = Math.min(maxColumns, totalItems);
-    if (numColumns === 0) return [];
-
-    let counts = Array(numColumns).fill(0);
-    let baseItemsPerColumn = Math.floor(totalItems / numColumns);
-    let remainder = totalItems % numColumns;
-
-    for (let i = 0; i < numColumns; i++) {
-      counts[i] = baseItemsPerColumn + (i < remainder ? 1 : 0);
-    }
-    return counts;
   }
 }
 
