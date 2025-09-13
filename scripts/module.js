@@ -1548,12 +1548,11 @@ const MODULE_DEFAULTS = {
         speed: 0,
         angle: 140,
         scale: 12.5,
-        evolution: 0,
-        threshold: 0.21,
-        softness: 0.26,
-        widthVariationAmount: 0,
-        widthVariationScale: 0.51,
-        strengthVariation: 1,
+        parallax: 1.0,
+        width: 0.5,
+        softness: 0.1,
+        randomWidth: 0.2,
+        randomIntensity: 0.3,
       },
     },
     colorCorrection: {
@@ -3840,6 +3839,11 @@ class MapShineInitialiser {
       }
     });
     Hooks.on("canvasInit", (canvas) => {
+      // This is the earliest point where the renderer screen is available. We perform
+      // an initial update here to ensure CoordinateManager has valid data before any
+      // layer's _draw() method is called, preventing framebuffer errors.
+      CoordinateManager.update();
+
       const worldContainer = new PIXI.Container();
       worldContainer.name = "mapShineWorldContainer";
       worldContainer.addChild(...canvas.stage.children);
@@ -3847,6 +3851,21 @@ class MapShineInitialiser {
       game.mapShine.worldContainer = worldContainer;
     });
     Hooks.on("canvasReady", () => {
+      // This ticker takes over after the initial draw, ensuring that the CoordinateManager
+      // and ResourceManager are kept up-to-date on every subsequent animation frame.
+      const mainTicker = () => {
+        if (canvas?.stage) {
+          CoordinateManager.update();
+          game.mapShine.resourceManager?.onFrameStart();
+        }
+      };
+      canvas.app.ticker.add(mainTicker, null, PIXI.UPDATE_PRIORITY.HIGH);
+
+      // It's crucial to clean up the ticker when the canvas is torn down to prevent errors.
+      Hooks.once("canvasTearDown", () => {
+        canvas.app.ticker.remove(mainTicker);
+      });
+
       if (canvas.roofs) {
         // Set a high z-index to render above most custom effect layers.
         // Ambient is 250, Prism 251, etc. This places roofs above them.
@@ -3990,6 +4009,23 @@ class CoordinateManager {
    * @returns {{width: number, height: number}}
    */
   static getScreenDimensions() {
+    // Robustness check to prevent framebuffer errors if called too early.
+    if (
+      this.screenDimensions.width === 0 ||
+      this.screenDimensions.height === 0
+    ) {
+      if (canvas?.app?.renderer?.screen) {
+        const screen = canvas.app.renderer.screen;
+        if (screen.width > 0 && screen.height > 0) {
+          console.warn(
+            "Map Shine | CoordinateManager.getScreenDimensions() called before initial update. Providing fallback dimensions."
+          );
+          return { width: screen.width, height: screen.height };
+        }
+      }
+      // Fallback to prevent a crash
+      return { width: 1, height: 1 };
+    }
     return this.screenDimensions;
   }
 
@@ -6428,10 +6464,19 @@ class DynamicExposureManager {
       return;
     }
 
-    const screenPos = canvas.stage.toGlobal(token.center);
-    const screen = canvas.app.renderer.screen;
-    const x = Math.max(0, Math.min(screen.width - 1, Math.round(screenPos.x)));
-    const y = Math.max(0, Math.min(screen.height - 1, Math.round(screenPos.y)));
+    // --- MODIFICATION START ---
+    // Use CoordinateManager to calculate screen position.
+    const worldPos = token.center;
+    const cameraOffset = CoordinateManager.getCameraOffset();
+    const canvasScale = CoordinateManager.getCanvasScale();
+    const screen = CoordinateManager.getScreenDimensions();
+
+    const screenX = (worldPos.x - cameraOffset.x) * canvasScale;
+    const screenY = (worldPos.y - cameraOffset.y) * canvasScale;
+
+    const x = Math.max(0, Math.min(screen.width - 1, Math.round(screenX)));
+    const y = Math.max(0, Math.min(screen.height - 1, Math.round(screenY)));
+    // --- MODIFICATION END ---
 
     try {
       const pixelData = canvas.app.renderer.extract.pixels(
@@ -6459,10 +6504,18 @@ class DynamicExposureManager {
       return;
     }
 
-    const screenPos = canvas.stage.toGlobal(worldPoint);
-    const screen = canvas.app.renderer.screen;
-    const x = Math.max(0, Math.min(screen.width - 1, Math.round(screenPos.x)));
-    const y = Math.max(0, Math.min(screen.height - 1, Math.round(screenPos.y)));
+    // --- MODIFICATION START ---
+    // Use CoordinateManager to calculate screen position.
+    const cameraOffset = CoordinateManager.getCameraOffset();
+    const canvasScale = CoordinateManager.getCanvasScale();
+    const screen = CoordinateManager.getScreenDimensions();
+
+    const screenX = (worldPoint.x - cameraOffset.x) * canvasScale;
+    const screenY = (worldPoint.y - cameraOffset.y) * canvasScale;
+
+    const x = Math.max(0, Math.min(screen.width - 1, Math.round(screenX)));
+    const y = Math.max(0, Math.min(screen.height - 1, Math.round(screenY)));
+    // --- MODIFICATION END ---
 
     try {
       const pixelData = canvas.app.renderer.extract.pixels(
@@ -6979,8 +7032,7 @@ class OverheadEffectLayer extends CanvasLayer {
     this._destroyed = false;
     this.eventMode = "auto";
 
-    const renderer = canvas.app.renderer;
-    const screen = renderer.screen;
+    const screen = CoordinateManager.getScreenDimensions();
 
     this.spritesContainer = new PIXI.Container();
     this.compositeTexture = PIXI.RenderTexture.create({
@@ -6993,7 +7045,12 @@ class OverheadEffectLayer extends CanvasLayer {
 
     this.compositeSprite = new PIXI.Sprite(this.compositeTexture);
     this.compositeSprite.filters = [this.blurFilter, this.recolorFilter];
-    this.compositeSprite.filterArea = renderer.screen;
+    this.compositeSprite.filterArea = new PIXI.Rectangle(
+      0,
+      0,
+      screen.width,
+      screen.height
+    );
     this.addChild(this.compositeSprite);
 
     Hooks.on("createTile", this._boundRefresh);
@@ -7123,19 +7180,29 @@ class OverheadEffectLayer extends CanvasLayer {
       transform: canvas.stage.transform.worldTransform,
     });
 
-    const viewSize = CoordinateManager.getViewSize();
+    // --- MODIFICATION ---
+    // This is the corrected logic for positioning and scaling the final composite sprite.
+    // Instead of setting width/height, we set the scale directly. This is more robust.
+    // The texture of compositeSprite is screen-sized. To make the sprite have a world-size
+    // that perfectly matches the viewport, we need to scale it by 1 / canvasScale.
+    const scale = CoordinateManager.getCanvasScale();
     this.compositeSprite.position.copyFrom(CoordinateManager.getCameraOffset());
-    this.compositeSprite.width = viewSize.width;
-    this.compositeSprite.height = viewSize.height;
+    if (scale > 0) {
+      this.compositeSprite.scale.set(1 / scale);
+    }
   }
 
   _onResize() {
     if (this._destroyed) return;
-    const renderer = canvas.app.renderer;
-    const screen = renderer.screen;
+    const screen = CoordinateManager.getScreenDimensions();
     this.compositeTexture?.resize(screen.width, screen.height);
     if (this.compositeSprite) {
-      this.compositeSprite.filterArea = screen;
+      this.compositeSprite.filterArea = new PIXI.Rectangle(
+        0,
+        0,
+        screen.width,
+        screen.height
+      );
     }
   }
 
@@ -8074,9 +8141,10 @@ class VisibilityManager {
       "Map Shine | Initializing VisibilityManager (Corrected libWrapper Intercept)."
     );
 
+    const screen = CoordinateManager.getScreenDimensions();
     this.visibilityMask = PIXI.RenderTexture.create({
-      width: canvas.app.renderer.screen.width,
-      height: canvas.app.renderer.screen.height,
+      width: screen.width,
+      height: screen.height,
       resolution: canvas.app.renderer.resolution,
     });
 
@@ -8149,10 +8217,8 @@ class VisibilityManager {
    */
   _onResize() {
     if (this.visibilityMask) {
-      this.visibilityMask.resize(
-        canvas.app.renderer.screen.width,
-        canvas.app.renderer.screen.height
-      );
+      const screen = CoordinateManager.getScreenDimensions();
+      this.visibilityMask.resize(screen.width, screen.height);
       this.updateMask(); // Re-render the mask after resize.
     }
   }
@@ -8303,11 +8369,12 @@ class IlluminationManager {
     // Cleanup from previous scene or hot-reload
     this.cleanup();
 
+    const screen = CoordinateManager.getScreenDimensions();
     // Create persistent render texture for the scene capture
     this.stableIlluminationTexture = PIXI.RenderTexture.create({
-      width: canvas.app.screen.width,
-      height: canvas.app.screen.height,
-      resolution: canvas.app.screen.resolution,
+      width: screen.width,
+      height: screen.height,
+      resolution: canvas.app.renderer.resolution,
     });
 
     // Create the persistent sprite for the copy operation
@@ -8375,9 +8442,10 @@ class EffectsBloomLayer {
 
     canvas.stage.addChild(this.container);
 
+    const screen = CoordinateManager.getScreenDimensions();
     this.renderTexture = PIXI.RenderTexture.create({
-      width: canvas.app.screen.width,
-      height: canvas.app.screen.height,
+      width: screen.width,
+      height: screen.height,
     });
 
     canvas.app.ticker.add(this._tickerFunction);
@@ -8806,7 +8874,7 @@ class GeometryMaskManager {
     // Reset the flag for each new scene to allow the initialization poll to run again.
     this._mapPointsInitialized = false;
 
-    const screen = this.renderer.screen;
+    const screen = CoordinateManager.getScreenDimensions();
 
     for (const effectKey of Object.keys(EFFECT_SOURCE_OPTIONS)) {
       if (!effectKey) continue; // Skip the "None" option
@@ -8855,7 +8923,7 @@ class GeometryMaskManager {
 
   _onResize() {
     if (!this.renderer) return;
-    const screen = this.renderer.screen;
+    const screen = CoordinateManager.getScreenDimensions();
     for (const { texture } of this.masks.values()) {
       texture.resize(screen.width, screen.height);
     }
@@ -9574,7 +9642,7 @@ class NoiseTextureManager {
 
 class LightingMaskGenerator {
   constructor() {
-    const screen = canvas.app.screen;
+    const screen = CoordinateManager.getScreenDimensions();
     this.renderTexture = PIXI.RenderTexture.create({
       width: screen.width,
       height: screen.height,
@@ -9627,10 +9695,10 @@ class DynamicTokenMaskManager {
     }
     console.log("DynamicTokenMaskManager | Initializing with sprite pooling.");
 
-    const renderer = this.canvas.app.renderer;
+    const screen = CoordinateManager.getScreenDimensions();
     this.renderTexture = PIXI.RenderTexture.create({
-      width: renderer.screen.width,
-      height: renderer.screen.height,
+      width: screen.width,
+      height: screen.height,
     });
 
     this.tokenContainer = new PIXI.Container();
@@ -13420,8 +13488,15 @@ class TextureMaskShape {
           const index = (y * texture.width + x) * 4;
           const pixelValue = pixelData[index]; // Use red channel for grayscale
           if (pixelValue >= this.threshold) {
-            const screenPoint = new PIXI.Point(x, y);
-            const worldPoint = canvas.stage.toLocal(screenPoint);
+            // --- MODIFICATION START ---
+            // Manual screen-to-world calculation using CoordinateManager data.
+            const cameraOffset = CoordinateManager.getCameraOffset();
+            const canvasScale = CoordinateManager.getCanvasScale();
+            const worldPoint = new PIXI.Point(
+              cameraOffset.x + x / canvasScale,
+              cameraOffset.y + y / canvasScale
+            );
+            // --- MODIFICATION END ---
             this.validPoints.push({
               point: worldPoint,
               color: [
@@ -13710,11 +13785,7 @@ class ParticleLayer extends CanvasLayer {
   _onAnimate(deltaTime) {
     if (this._destroyed || !game.mapShine.particleManager) return;
 
-    // Clear the resource manager's frame cache at the start of every animation frame.
-    game.mapShine.resourceManager?.onFrameStart();
-
-    // Update the CoordinateManager once per frame. This is the new single source of truth.
-    CoordinateManager.update();
+    // The CoordinateManager and ResourceManager are now updated by a dedicated high-priority ticker.
 
     // Once the main systems are ready, mark this layer as initialized so other systems can proceed.
     // The actual particle creation is handled by updateFromConfig.
@@ -16863,16 +16934,13 @@ class PrismFilter extends PIXI.Filter {
     super(PIXI.Filter.defaultVertexSrc, fragmentSrc, {
       uPrismMask: PIXI.Texture.EMPTY,
       uDistortionMap: PIXI.Texture.EMPTY,
-      uSceneRectNorm: [0, 0, 1, 1], // Add the new uniform
+      uSceneRectNorm: [0, 0, 1, 1],
       uIntensity: options.intensity ?? 5.0,
       uAngleRad: (options.angle ?? 45.0) * (Math.PI / 180.0),
       uThreshold: options.threshold ?? 0.85,
       uSoftness: options.softness ?? 0.1,
       uDistortionStrength: options.distortionStrength ?? 2.0,
-      uTexelSize: options.texelSize ?? [
-        1.0 / (window.innerWidth || 1),
-        1.0 / (window.innerHeight || 1),
-      ],
+      uTexelSize: [0.001, 0.001], // Default value, will be updated in animation loop
     });
   }
 }
@@ -18546,106 +18614,94 @@ class MetallicStripePatternFilter extends PIXI.Filter {
           precision mediump float;
           varying vec2 vTextureCoord;
 
+          // Time and stripe controls
           uniform float uTime;
           uniform float uSpeed;
           uniform float uAngle;
           uniform float uScale;
-          uniform float uEvolution;
-          uniform float uThreshold;
-          uniform float uSoftness;
-          uniform float uWidthVariationAmount;
-          uniform float uWidthVariationScale;
-          uniform float uStrengthVariation;
+          uniform float uStripeWidth;
+          uniform float uStripeSoftness;
+          uniform float uRandomWidth;
+          uniform float uRandomIntensity;
+          
+          // Parallax Uniforms
+          uniform vec2 u_camera_offset;
+          uniform vec2 u_view_size;
+          uniform vec2 u_resolution;
+          uniform float uParallax;
 
-          // Simplex noise function to generate organic patterns.
-          vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 289.0);}
-          vec4 taylorInvSqrt(vec4 r){return 1.79284291400159 - 0.85373472095314 * r;}
-          float snoise(vec3 v) {
-              const vec2 C = vec2(1.0/6.0, 1.0/3.0);
-              const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
-              vec3 i  = floor(v + dot(v, C.yyy) );
-              vec3 x0 =   v - i + dot(i, C.xxx) ;
-              vec3 g = step(x0.yzx, x0.xyz);
-              vec3 l = 1.0 - g;
-              vec3 i1 = min( g.xyz, l.zxy );
-              vec3 i2 = max( g.xyz, l.zxy );
-              vec3 x1 = x0 - i1 + C.xxx;
-              vec3 x2 = x0 - i2 + C.yyy;
-              vec3 x3 = x0 - D.yyy;
-              i = mod(i, 289.0);
-              vec4 p = permute( permute( i.z + vec4(0.0, i1.z, i2.z, 1.0 ))
-                  + i.y + vec4(0.0, i1.y, i2.y, 1.0 ))
-                  + i.x + vec4(0.0, i1.x, i2.x, 1.0 );
-              float n_ = 0.142857142857;
-              vec3  ns = n_ * D.wyz - D.xzx;
-              vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
-              vec4 x_ = floor(j * ns.z);
-              vec4 y_ = floor(j - 7.0 * x_ );
-              vec4 x = x_ *ns.x + ns.yyyy;
-              vec4 y = y_ *ns.x + ns.yyyy;
-              vec4 h = 1.0 - abs(x) - abs(y);
-              vec4 b0 = vec4( x.xy, y.xy );
-              vec4 b1 = vec4( x.zw, y.zw );
-              vec4 s0 = floor(b0)*2.0 + 1.0;
-              vec4 s1 = floor(b1)*2.0 + 1.0;
-              vec4 sh = -step(h, vec4(0.0));
-              vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;
-              vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;
-              vec3 p0 = vec3(a0.xy,h.x);
-              vec3 p1 = vec3(a0.zw,h.y);
-              vec3 p2 = vec3(a1.xy,h.z);
-              vec3 p3 = vec3(a1.zw,h.w);
-              vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
-              p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
-              vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
-              m = m * m;
-              return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3) ) );
+          const float PI = 3.1415926535;
+
+          // Simple pseudo-random number generator
+          float random(float n) {
+              return fract(sin(n) * 43758.5453);
           }
 
           void main() {
-              // Rotate and scale coordinates to control pattern direction and size.
-              float angleRad = uAngle * 3.1415926535 / 180.0;
-              mat2 rotationMatrix = mat2(cos(angleRad), -sin(angleRad), sin(angleRad), cos(angleRad));
-              vec2 rotated_st = rotationMatrix * vTextureCoord * uScale;
-
-              // Animate coordinates for scrolling and internal "boiling".
-              rotated_st.x += uTime * uSpeed;
-              float evolution_time = uTime * uEvolution;
-
-              // Main noise for stripe generation.
-              float mainNoise = snoise(vec3(rotated_st, evolution_time)); // -1 to 1
-
-              // Secondary, lower-frequency noise to vary the stripe width.
-              float widthNoise = snoise(vec3(rotated_st * uWidthVariationScale, evolution_time)); // -1 to 1
-
-              // Create a dynamic threshold. Higher values create thinner stripes/more gaps.
-              float dynamicThreshold = uThreshold + widthNoise * uWidthVariationAmount * 0.5;
-
-              // Remap main noise from [-1, 1] to [0, 1] for thresholding.
-              float mainNoise01 = mainNoise * 0.5 + 0.5;
-
-              // Create the stripe using smoothstep for soft edges.
-              float stripe = smoothstep(dynamicThreshold - uSoftness, dynamicThreshold + uSoftness, mainNoise01);
-
-              // Use the main noise to also modulate the final brightness of the stripe.
-              float strengthModulator = 1.0 - uStrengthVariation + (mainNoise01 * uStrengthVariation);
-              stripe *= strengthModulator;
+              // --- PARALLAX CALCULATION ---
+              vec2 world_coord = u_camera_offset + (vTextureCoord * u_view_size);
+              vec2 screen_coord_pixels = vTextureCoord * u_resolution;
+              vec2 parallax_coord = mix(world_coord, screen_coord_pixels, uParallax);
               
-              gl_FragColor = vec4(vec3(stripe), 1.0);
+              vec2 base_st = parallax_coord * 0.01;
+
+              // --- STRIPE LOGIC ---
+              float angleRad = uAngle * PI / 180.0;
+              mat2 rotationMatrix = mat2(cos(angleRad), -sin(angleRad), sin(angleRad), cos(angleRad));
+              
+              vec2 rotated_st = rotationMatrix * base_st * uScale;
+
+              rotated_st.x += uTime * uSpeed;
+              
+              // Get an integer ID for the current stripe and the fractional position within it
+              float stripeID = floor(rotated_st.x);
+              float intraStripePosition = fract(rotated_st.x);
+
+              // --- DETERMINISTIC RANDOMNESS ---
+              // Use the stripeID as a seed to generate repeatable "random" values for this stripe
+              float r1 = random(stripeID);         // For width variation
+              float r2 = random(stripeID + 17.0);  // For intensity variation (offset seed)
+
+              // Calculate the width for this specific stripe
+              float currentWidth = uStripeWidth - uRandomWidth * r1;
+              currentWidth = max(0.01, currentWidth); // Ensure width is positive
+
+              // Calculate the peak intensity for this specific stripe
+              float currentIntensity = 1.0 - uRandomIntensity * r2;
+              
+              // --- SOFT GRADIENT CONSTRUCTION ---
+              // Define the start and end points of the gradient based on the calculated width
+              float edge1 = (1.0 - currentWidth) / 2.0;
+              float edge2 = edge1 + currentWidth;
+              
+              // Use smoothstep to create a soft-edged pulse.
+              // This creates a rising edge and then subtracts a slightly delayed rising edge,
+              // resulting in a plateau with soft sides.
+              float stripeValue = smoothstep(edge1, edge1 + uStripeSoftness, intraStripePosition) -
+                                  smoothstep(edge2 - uStripeSoftness, edge2, intraStripePosition);
+
+              // Apply the random intensity and clamp the final result
+              float finalStripe = clamp(stripeValue * currentIntensity, 0.0, 1.0);
+              
+              gl_FragColor = vec4(vec3(finalStripe), 1.0);
           }
       `;
 
     super(vertexSrc, fragmentSrc, {
       uTime: 0.0,
-      uSpeed: options.uSpeed ?? 0.1,
-      uAngle: options.uAngle ?? 45.0,
-      uScale: options.uScale ?? 8.0,
-      uEvolution: options.uEvolution ?? 0.2,
-      uThreshold: options.uThreshold ?? 0.6,
-      uSoftness: options.uSoftness ?? 0.1,
-      uWidthVariationAmount: options.uWidthVariationAmount ?? 0.4,
-      uWidthVariationScale: options.uWidthVariationScale ?? 0.2,
-      uStrengthVariation: options.uStrengthVariation ?? 0.3,
+      uSpeed: options.uSpeed ?? 0.0,
+      uAngle: options.uAngle ?? 140.0,
+      uScale: options.uScale ?? 12.5,
+      // New uniforms for soft/random stripes
+      uStripeWidth: options.uStripeWidth ?? 0.5,
+      uStripeSoftness: options.uStripeSoftness ?? 0.1,
+      uRandomWidth: options.uRandomWidth ?? 0.2,
+      uRandomIntensity: options.uRandomIntensity ?? 0.3,
+      // Parallax uniforms
+      u_camera_offset: [0, 0],
+      u_view_size: [1, 1],
+      u_resolution: [1, 1],
+      uParallax: 1.0,
     });
   }
 }
@@ -18724,82 +18780,73 @@ class MetallicShineLayer extends CanvasLayer {
       )}
 
       <details id="details-baseShine-pattern-stripes">
-          <summary><span class="accordion-toggle"></span><strong>Stripe Pattern (Noise)</strong></summary>
+          <summary><span class="accordion-toggle"></span><strong>Shine Stripes Pattern</strong></summary>
           <div style="padding-left: 15px;">
-              <p class="description-text">Uses procedural noise to create organic, varied stripes.</p>
+              <p class="description-text">Controls the animated stripes that create the shine effect.</p>
               ${DebuggerUIBuilder._createSliderHTML(
                 "baseShine.pattern.stripes.speed",
                 "Scroll Speed",
-                -2.0,
-                2.0,
-                0.01,
-                "How fast the pattern scrolls along its angle."
+                -0.2,
+                0.2,
+                0.001
               )}
               ${DebuggerUIBuilder._createSliderHTML(
                 "baseShine.pattern.stripes.angle",
                 "Angle",
                 0,
                 180,
-                1,
-                "The direction of the stripes."
+                1
               )}
               ${DebuggerUIBuilder._createSliderHTML(
                 "baseShine.pattern.stripes.scale",
-                "Scale",
+                "Frequency / Scale",
                 1,
                 50,
                 0.5,
-                "Overall size of the stripes and gaps. Higher values mean smaller features."
+                "The number of stripes. Higher values mean more, thinner stripes."
               )}
               ${DebuggerUIBuilder._createSliderHTML(
-                "baseShine.pattern.stripes.evolution",
-                "Evolution",
+                "baseShine.pattern.stripes.parallax",
+                "Parallax",
                 0,
                 1,
-                0.01,
-                "The 'boiling' or internal animation speed of the noise."
+                0.01
               )}
               <hr style="border-color: #555; margin: 6px 0;">
+              <p class="description-text" style="font-weight: bold;">Stripe Appearance</p>
               ${DebuggerUIBuilder._createSliderHTML(
-                "baseShine.pattern.stripes.threshold",
-                "Threshold",
-                0,
-                1,
+                "baseShine.pattern.stripes.width",
+                "Width",
                 0.01,
-                "The cutoff point for noise to become a stripe. Higher values create thinner stripes."
+                1.0,
+                0.01,
+                "The base width of the bright part of each stripe."
               )}
               ${DebuggerUIBuilder._createSliderHTML(
                 "baseShine.pattern.stripes.softness",
-                "Edge Softness",
+                "Softness",
                 0.01,
                 0.5,
-                0.005,
-                "How blurry the edges of the stripes are."
+                0.01,
+                "How soft or feathered the edges of the stripes are."
               )}
-              <hr style="border-color: #555; margin: 6px 0;">
+               <hr style="border-color: #555; margin: 6px 0;">
+              <p class="description-text" style="font-weight: bold;">Randomness</p>
               ${DebuggerUIBuilder._createSliderHTML(
-                "baseShine.pattern.stripes.widthVariationAmount",
+                "baseShine.pattern.stripes.randomWidth",
                 "Width Variation",
                 0,
-                1,
+                0.49,
                 0.01,
-                "The amount of randomness in stripe and gap widths."
+                "The amount of random variation in each stripe's width."
               )}
               ${DebuggerUIBuilder._createSliderHTML(
-                "baseShine.pattern.stripes.widthVariationScale",
-                "Width Variation Scale",
-                0.05,
-                1,
-                0.01,
-                "The scale of the noise that controls width variation. Should be smaller than the main scale."
-              )}
-              ${DebuggerUIBuilder._createSliderHTML(
-                "baseShine.pattern.stripes.strengthVariation",
-                "Strength Variation",
+                "baseShine.pattern.stripes.randomIntensity",
+                "Intensity Variation",
                 0,
-                1,
+                1.0,
                 0.01,
-                "How much the brightness of individual stripes varies."
+                "The amount of random variation in each stripe's brightness."
               )}
           </div>
       </details>
@@ -18965,6 +19012,12 @@ class MetallicShineLayer extends CanvasLayer {
     const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
     this.time += deltaTime * timeFactor;
     this.stripePatternFilter.uniforms.uTime = this.time;
+    // Pass coordinate system uniforms to the pattern filter
+    Object.assign(
+      this.stripePatternFilter.uniforms,
+      CoordinateManager.getShaderUniforms()
+    );
+
     canvas.app.renderer.render(this.stripeGeneratorSprite, {
       renderTexture: this.stripePatternTexture,
       clear: true,
@@ -19091,12 +19144,11 @@ class MetallicShineLayer extends CanvasLayer {
       u.uSpeed = stripes.speed;
       u.uAngle = stripes.angle;
       u.uScale = stripes.scale;
-      u.uEvolution = stripes.evolution;
-      u.uThreshold = stripes.threshold;
-      u.uSoftness = stripes.softness;
-      u.uWidthVariationAmount = stripes.widthVariationAmount;
-      u.uWidthVariationScale = stripes.widthVariationScale;
-      u.uStrengthVariation = stripes.strengthVariation;
+      u.uParallax = stripes.parallax;
+      u.uStripeWidth = stripes.width;
+      u.uStripeSoftness = stripes.softness;
+      u.uRandomWidth = stripes.randomWidth;
+      u.uRandomIntensity = stripes.randomIntensity;
     }
 
     if (this.shineFilter) {
@@ -23934,16 +23986,11 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
       transform.tx === 0 &&
       transform.ty === 0;
     const outdoorsMask = this.getMaskTexture();
-    const scale = canvas.stage.scale;
+    const scale = CoordinateManager.getCanvasScale();
 
     // If the canvas is in a transitional state or required textures are not ready,
     // temporarily disable the filter to prevent rendering with invalid data.
-    if (
-      isDefaultTransform ||
-      !outdoorsMask?.valid ||
-      scale.x === 0 ||
-      scale.y === 0
-    ) {
+    if (isDefaultTransform || !outdoorsMask?.valid || scale === 0) {
       if (this.filter) this.filter.enabled = false;
       return;
     }
@@ -23992,36 +24039,17 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
     // --- Update Filter Uniforms ---
     const u = this.filter.uniforms;
 
-    // Calculate and set the normalized scene rectangle uniform.
-    const rect = canvas.scene.dimensions.rect;
-    const screen = canvas.app.renderer.screen;
+    // Get all coordinate data from the centralized manager.
+    u.uSceneRectNorm = CoordinateManager.getSceneRectNormalizedArray();
+    const canvasScale = CoordinateManager.getCanvasScale();
+    u.uCanvasScale = [canvasScale, canvasScale];
 
-    if (rect && screen.width > 0 && screen.height > 0) {
-      const topLeftScreen = canvas.stage.toGlobal({
-        x: rect.x,
-        y: rect.y,
-      });
-      const sceneWidthPixels = rect.width * canvas.stage.scale.x;
-      const sceneHeightPixels = rect.height * canvas.stage.scale.y;
-
-      u.uSceneRectNorm = [
-        topLeftScreen.x / screen.width,
-        topLeftScreen.y / screen.height,
-        sceneWidthPixels / screen.width,
-        sceneHeightPixels / screen.height,
-      ];
-    } else {
-      // Fallback in case dimensions are not ready
-      u.uSceneRectNorm = [0, 0, 1, 1];
-    }
-
-    // Update all uniforms, including the new canvas scale.
+    // Update all uniforms
     u.uOutdoorsMask = outdoorsMask; // Use the checked texture from the start of the function
     u.uShadowOffset = shadowOffset;
     u.uBlur = Math.max(0.1, blurPixels);
     // Intensity is now constant throughout the day.
     u.uIntensity = shadowConfig.intensity;
-    u.uCanvasScale = [canvas.stage.scale.x, canvas.stage.scale.y];
   }
 
   async _tearDown(options) {
