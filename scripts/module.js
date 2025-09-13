@@ -11484,6 +11484,7 @@ class ParticleEffectController {
     this.config = {};
     this.rgbSplitFilter = null;
     this.bloomFilter = null;
+    this.cloudSuppressorFilter = null;
 
     // This will be the container that holds only the particles for effects needing pre-filtering blending.
     this.particleOnlyContainer = null;
@@ -11502,6 +11503,15 @@ class ParticleEffectController {
       // For fire, we need a wrapper so blending happens before bloom.
       this.particleOnlyContainer = new PIXI.Container();
       this.parentContainer.addChild(this.particleOnlyContainer);
+    }
+
+    // Create the suppressor filter for the specified particle effects.
+    if (
+      definition.configPath === "glint" ||
+      definition.configPath === "metallicGlints" ||
+      definition.configPath === "water.glintParticles"
+    ) {
+      this.cloudSuppressorFilter = new CloudSuppressorFilter();
     }
   }
 
@@ -12653,6 +12663,15 @@ class ParticleEffectController {
       }
     }
 
+    // Update the cloud suppressor filter uniform with the latest cloud texture.
+    if (this.cloudSuppressorFilter && this.cloudSuppressorFilter.enabled) {
+      const resourceManager = game.mapShine.resourceManager;
+      if (resourceManager) {
+        this.cloudSuppressorFilter.uniforms.uCloudTexture =
+          resourceManager.getRawCloudTexture(deltaTime) || PIXI.Texture.WHITE;
+      }
+    }
+
     // Periodically update the spawn points for metallic glints
     if (this.definition.configPath === "metallicGlints") {
       for (const { emitter } of this.emitters.values()) {
@@ -12731,6 +12750,40 @@ class ParticleEffectController {
         if (this.parentContainer.filters?.includes(this.rgbSplitFilter)) {
           this.parentContainer.filters = this.parentContainer.filters.filter(
             (f) => f !== this.rgbSplitFilter
+          );
+        }
+      }
+    }
+
+    // Manage the cloud suppressor filter.
+    if (this.cloudSuppressorFilter) {
+      const shouldUseSuppressor = this.parentContainer.visible;
+      this.cloudSuppressorFilter.enabled = shouldUseSuppressor;
+
+      if (shouldUseSuppressor) {
+        // Feed the shading settings from the main cloud shadows config into the suppressor filter.
+        const cloudShadingConfig = fullConfig.cloudShadows.shading;
+        const u = this.cloudSuppressorFilter.uniforms;
+        u.u_shading_threshold = cloudShadingConfig.threshold;
+        u.u_shading_softness = cloudShadingConfig.softness;
+        u.u_shading_brightness = cloudShadingConfig.brightness;
+        u.u_shading_contrast = cloudShadingConfig.contrast;
+        u.u_shading_gamma = cloudShadingConfig.gamma;
+
+        if (
+          !this.parentContainer.filters?.includes(this.cloudSuppressorFilter)
+        ) {
+          this.parentContainer.filters = [
+            ...(this.parentContainer.filters || []),
+            this.cloudSuppressorFilter,
+          ];
+        }
+      } else {
+        if (
+          this.parentContainer.filters?.includes(this.cloudSuppressorFilter)
+        ) {
+          this.parentContainer.filters = this.parentContainer.filters.filter(
+            (f) => f !== this.cloudSuppressorFilter
           );
         }
       }
@@ -16866,6 +16919,79 @@ class ParticleRgbSplitFilter extends PIXI.Filter {
         1.0 / (window.innerWidth || 1),
         1.0 / (window.innerHeight || 1),
       ],
+    });
+  }
+}
+
+class CloudSuppressorFilter extends PIXI.Filter {
+  constructor(options = {}) {
+    const vertexSrc = `
+            attribute vec2 aVertexPosition;
+            attribute vec2 aTextureCoord;
+            uniform mat3 projectionMatrix;
+            varying vec2 vTextureCoord;
+            varying vec2 vScreenCoord;
+
+            void main(void) {
+                gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
+                vTextureCoord = aTextureCoord;
+                // Calculate normalized screen coordinates from the vertex's final position.
+                // This is the robust way to get screen-space UVs for a post-processing filter.
+                vScreenCoord = gl_Position.xy * 0.5 + 0.5;
+            }
+        `;
+
+    const fragmentSrc = `
+            precision mediump float;
+            varying vec2 vTextureCoord;
+            varying vec2 vScreenCoord; // Use the new, reliable screen coordinate varying.
+
+            uniform sampler2D uSampler;
+            uniform sampler2D uCloudTexture;
+            
+            // Shading uniforms to match the main CloudShadowsFilter
+            uniform float u_shading_threshold;
+            uniform float u_shading_softness;
+            uniform float u_shading_brightness;
+            uniform float u_shading_contrast;
+            uniform float u_shading_gamma;
+
+            // This function must be identical to the one in CloudShadowsFilter
+            float applyShadingControls(float value) {
+                value += u_shading_brightness;
+                value = (value - 0.5) * u_shading_contrast + 0.5;
+                value = smoothstep(u_shading_threshold, u_shading_threshold + u_shading_softness, value);
+                if (u_shading_gamma > 0.0) {
+                    value = pow(value, u_shading_gamma);
+                }
+                return clamp(value, 0.0, 1.0);
+            }
+            
+            void main() {
+                // The particle's own color and alpha.
+                vec4 particleColor = texture2D(uSampler, vTextureCoord);
+                
+                // Sample the raw, un-processed cloud noise using the correct screen coordinates.
+                float rawCloudValue = texture2D(uCloudTexture, vScreenCoord).r;
+
+                // Process the raw noise through the same shading controls as the main cloud effect.
+                // This creates a high-contrast mask that perfectly matches the visible clouds (1.0 = cloud, 0.0 = clear sky).
+                float processedCloudValue = applyShadingControls(rawCloudValue);
+
+                // Multiply the particle's RGBA color by the INVERSE of the processed mask value.
+                // This correctly fades the particle's opacity in the shadowed (cloudy) areas.
+                particleColor *= (1.0 - processedCloudValue);
+
+                gl_FragColor = particleColor;
+            }
+        `;
+    super(vertexSrc, fragmentSrc, {
+      uCloudTexture: options.uCloudTexture ?? PIXI.Texture.EMPTY,
+      u_shading_threshold: 1.0,
+      u_shading_softness: 0.71,
+      u_shading_brightness: 0.14,
+      u_shading_contrast: 5.0,
+      u_shading_gamma: 1.6,
     });
   }
 }
