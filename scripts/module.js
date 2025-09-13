@@ -1,5 +1,3 @@
-
-
 /******************************************************************************
  *
  *                            MAP SHINE
@@ -83,12 +81,6 @@ const UNIVERSAL_EFFECT_DEFAULTS = {
       whiteBalance: {
         temperature: 0,
         tint: 0,
-      },
-      mask: {
-        enabled: false,
-        invert: false,
-        luminanceThreshold: 0.25,
-        softness: 0.1,
       },
       selective: {
         enabled: false,
@@ -1527,996 +1519,989 @@ const COLOR_CORRECTION_PRESETS = {
 };
 
 const MODULE_DEFAULTS = {
-  "timeControl": {
-    "globalTime": 100
+  timeControl: {
+    globalTime: 100,
   },
-  "enabled": true,
-  "debug": true,
-  "showTokenMask": false,
-  "showDustMaskDebug": false,
-  "showGlintMaskDebug": false,
-  "tileOpacity": 0,
-  "baseShine": {
-    "enabled": true,
-    "compositing": {
-      "layerBlendMode": 1
+  enabled: true,
+  debug: true,
+  showTokenMask: false,
+  showDustMaskDebug: false,
+  showGlintMaskDebug: false,
+  tileOpacity: 0,
+  baseShine: {
+    enabled: true,
+    compositing: {
+      layerBlendMode: 1,
     },
-    "animation": {
-      "globalIntensity": 2
+    animation: {
+      globalIntensity: 2,
     },
-    "pattern": {
-      "stripes": {
-        "enabled": true,
-        "speed": -0.001,
-        "angle": 38,
-        "scale": 1.5,
-        "parallax": 1,
-        "width": 1,
-        "softness": 0.5,
-        "randomWidth": 0.49,
-        "randomIntensity": 1
-      }
-    },
-    "colorCorrection": {
-      "enabled": true,
-      "saturation": 1.5,
-      "brightness": 0.53,
-      "contrast": 3.25,
-      "gamma": 1,
-      "tint": {
-        "color": "#FFFFFF",
-        "amount": 0
+    pattern: {
+      stripes: {
+        enabled: true,
+        speed: -0.001,
+        angle: 38,
+        scale: 1.5,
+        parallax: 1,
+        width: 1,
+        softness: 0.5,
+        randomWidth: 0.49,
+        randomIntensity: 1,
       },
-      "invert": false
     },
-    "cloudOcclusion": {
-      "enabled": true,
-      "intensity": 0.81
-    }
-  },
-  "cloudShadows": {
-    "enabled": true,
-    "blendMode": 0,
-    "shadowIntensity": 0.3,
-    "maskBlur": 0,
-    "shadowInteraction": {
-      "enabled": false,
-      "intensity": 1,
-      "luminanceThreshold": 0.97,
-      "softness": 0.01
-    },
-    "wind": {
-      "angle": 45,
-      "speed": 0.0012
-    },
-    "noise": {
-      "scale": 0.37,
-      "octaves": 7,
-      "persistence": 0.25,
-      "lacunarity": 1.9
-    },
-    "shading": {
-      "threshold": 1,
-      "softness": 0.71,
-      "brightness": 0.38,
-      "contrast": 5,
-      "gamma": 1.6
-    }
-  },
-  "iridescence": {
-    "enabled": true,
-    "texturePath": "",
-    "blendMode": 1,
-    "intensity": 0.9,
-    "speed": 0.01,
-    "scale": 0.7,
-    "parallax": 0,
-    "fbm": {
-      "octaves": 5,
-      "persistence": 0.33,
-      "lacunarity": 1.9,
-      "evolution": 0,
-      "brightness": 0.45,
-      "contrast": 0.8
-    },
-    "distortion": {
-      "enabled": true,
-      "strength": 5.26
-    },
-    "noise": {
-      "enabled": true,
-      "speed": 0.042,
-      "scale": 9.7,
-      "threshold": 0.47,
-      "brightness": 0.74,
-      "contrast": 2.45,
-      "softness": 0.5
-    },
-    "gradient": {
-      "name": "rainbow",
-      "hueShift": 0,
-      "brightness": 0.04,
-      "contrast": 0.5
-    }
-  },
-  "canopy": {
-    "enabled": true,
-    "shadowIntensity": 0.41,
-    "tint": "#050805",
-    "distortion": {
-      "enabled": true,
-      "strength": 0.0079,
-      "speed": 0.07,
-      "scale": 1.4,
-      "evolution": 0.34,
-      "threshold": 0,
-      "brightness": 0,
-      "contrast": 0.45,
-      "softness": 1
-    },
-    "postScale": 1
-  },
-  "structuralShadows": {
-    "enabled": true,
-    "intensity": 0.55,
-    "blendMode": 2,
-    "colorCorrection": {
-      "enabled": true,
-      "saturation": 1,
-      "brightness": 0,
-      "contrast": 1,
-      "gamma": 1,
-      "tint": {
-        "color": "#FFFFFF",
-        "amount": 0
-      }
-    },
-    "cloudOcclusion": {
-      "enabled": true,
-      "intensity": 0.88,
-      "threshold": 0.94,
-      "softness": 1
-    }
-  },
-  "prism": {
-    "enabled": true,
-    "intensity": 1,
-    "angle": 218,
-    "threshold": 0.1,
-    "softness": 1,
-    "distortionStrength": 1.9,
-    "distortionNoise": {
-      "enabled": true,
-      "speed": 0,
-      "scale": 3.83,
-      "evolution": 0,
-      "threshold": 0,
-      "brightness": 0.11,
-      "contrast": 1.85,
-      "softness": 1
-    }
-  },
-  "ambient": {
-    "enabled": true,
-    "texturePath": "",
-    "blendMode": 1,
-    "intensity": 1,
-    "masking": {
-      "enabled": true,
-      "threshold": 0,
-      "softness": 0.25
-    },
-    "tokenMasking": {
-      "enabled": true,
-      "threshold": 0
-    },
-    "colorCorrection": {
-      "enabled": true,
-      "saturation": 1.2,
-      "brightness": 0,
-      "contrast": 1,
-      "gamma": 1,
-      "tint": {
-        "color": "#ff0209",
-        "amount": 0
-      }
-    }
-  },
-  "groundGlow": {
-    "enabled": false,
-    "texturePath": "",
-    "blendMode": 1,
-    "intensity": 1.05,
-    "luminanceThreshold": 0.25,
-    "brightness": 1.2,
-    "saturation": 1.2,
-    "softness": 1,
-    "invert": false,
-    "tokenMasking": {
-      "enabled": true,
-      "threshold": 0
-    }
-  },
-  "heatDistortion": {
-    "enabled": true,
-    "texturePath": "",
-    "intensity": 0.0015,
-    "noise": {
-      "primary": {
-        "speed": 0.002,
-        "scale": 0.5,
-        "octaves": 3,
-        "lacunarity": 2.2,
-        "persistence": 0.45
+    colorCorrection: {
+      enabled: true,
+      saturation: 1.5,
+      brightness: 0.53,
+      contrast: 3.25,
+      gamma: 1,
+      tint: {
+        color: "#FFFFFF",
+        amount: 0,
       },
-      "secondary": {
-        "speed": 0.08,
-        "scale": 3,
-        "octaves": 7,
-        "lacunarity": 3.8,
-        "persistence": 0.3
-      },
-      "rising": {
-        "speed": 0.02,
-        "intensity": 0.4
-      }
-    }
+      invert: false,
+    },
+    cloudOcclusion: {
+      enabled: true,
+      intensity: 0.81,
+    },
   },
-  "advancedBloom": {
-    "enabled": false,
-    "threshold": 0.5,
-    "bloomScale": 1,
-    "brightness": 1,
-    "blur": 8,
-    "quality": 4
+  cloudShadows: {
+    enabled: true,
+    blendMode: 0,
+    shadowIntensity: 0.3,
+    maskBlur: 0,
+    shadowInteraction: {
+      enabled: false,
+      intensity: 1,
+      luminanceThreshold: 0.97,
+      softness: 0.01,
+    },
+    wind: {
+      angle: 45,
+      speed: 0.0012,
+    },
+    noise: {
+      scale: 0.37,
+      octaves: 7,
+      persistence: 0.25,
+      lacunarity: 1.9,
+    },
+    shading: {
+      threshold: 1,
+      softness: 0.71,
+      brightness: 0.38,
+      contrast: 5,
+      gamma: 1.6,
+    },
   },
-  "sceneAppearance": {
-    "transitionDuration": 3500
+  iridescence: {
+    enabled: true,
+    texturePath: "",
+    blendMode: 1,
+    intensity: 0.9,
+    speed: 0.01,
+    scale: 0.7,
+    parallax: 0,
+    fbm: {
+      octaves: 5,
+      persistence: 0.33,
+      lacunarity: 1.9,
+      evolution: 0,
+      brightness: 0.45,
+      contrast: 0.8,
+    },
+    distortion: {
+      enabled: true,
+      strength: 5.26,
+    },
+    noise: {
+      enabled: true,
+      speed: 0.042,
+      scale: 9.7,
+      threshold: 0.47,
+      brightness: 0.74,
+      contrast: 2.45,
+      softness: 0.5,
+    },
+    gradient: {
+      name: "rainbow",
+      hueShift: 0,
+      brightness: 0.04,
+      contrast: 0.5,
+    },
   },
-  "postProcessing": {
-    "enabled": true,
-    "colorCorrection": {
-      "enabled": true,
-      "saturation": 1,
-      "brightness": 0,
-      "contrast": 1,
-      "invert": false,
-      "tint": {
-        "color": "#FFFFFF",
-        "amount": 0
+  canopy: {
+    enabled: true,
+    shadowIntensity: 0.41,
+    tint: "#050805",
+    distortion: {
+      enabled: true,
+      strength: 0.0079,
+      speed: 0.07,
+      scale: 1.4,
+      evolution: 0.34,
+      threshold: 0,
+      brightness: 0,
+      contrast: 0.45,
+      softness: 1,
+    },
+    postScale: 1,
+  },
+  structuralShadows: {
+    enabled: true,
+    intensity: 0.55,
+    blendMode: 2,
+    colorCorrection: {
+      enabled: true,
+      saturation: 1,
+      brightness: 0,
+      contrast: 1,
+      gamma: 1,
+      tint: {
+        color: "#FFFFFF",
+        amount: 0,
       },
-      "exposure": 0,
-      "gamma": 1,
-      "levels": {
-        "inBlack": 0,
-        "inWhite": 1
+    },
+    cloudOcclusion: {
+      enabled: true,
+      intensity: 0.88,
+      threshold: 0.94,
+      softness: 1,
+    },
+  },
+  prism: {
+    enabled: true,
+    intensity: 1,
+    angle: 218,
+    threshold: 0.1,
+    softness: 1,
+    distortionStrength: 1.9,
+    distortionNoise: {
+      enabled: true,
+      speed: 0,
+      scale: 3.83,
+      evolution: 0,
+      threshold: 0,
+      brightness: 0.11,
+      contrast: 1.85,
+      softness: 1,
+    },
+  },
+  ambient: {
+    enabled: true,
+    texturePath: "",
+    blendMode: 1,
+    intensity: 1,
+    masking: {
+      enabled: true,
+      threshold: 0,
+      softness: 0.25,
+    },
+    tokenMasking: {
+      enabled: true,
+      threshold: 0,
+    },
+    colorCorrection: {
+      enabled: true,
+      saturation: 1.2,
+      brightness: 0,
+      contrast: 1,
+      gamma: 1,
+      tint: {
+        color: "#ff0209",
+        amount: 0,
       },
-      "whiteBalance": {
-        "temperature": 0,
-        "tint": 0
+    },
+  },
+  groundGlow: {
+    enabled: false,
+    texturePath: "",
+    blendMode: 1,
+    intensity: 1.05,
+    luminanceThreshold: 0.25,
+    brightness: 1.2,
+    saturation: 1.2,
+    softness: 1,
+    invert: false,
+    tokenMasking: {
+      enabled: true,
+      threshold: 0,
+    },
+  },
+  heatDistortion: {
+    enabled: true,
+    texturePath: "",
+    intensity: 0.0015,
+    noise: {
+      primary: {
+        speed: 0.002,
+        scale: 0.5,
+        octaves: 3,
+        lacunarity: 2.2,
+        persistence: 0.45,
       },
-      "mask": {
-        "enabled": false,
-        "invert": false,
-        "luminanceThreshold": 0.25,
-        "softness": 0.1
+      secondary: {
+        speed: 0.08,
+        scale: 3,
+        octaves: 7,
+        lacunarity: 3.8,
+        persistence: 0.3,
       },
-      "selective": {
-        "enabled": false,
-        "color": "#fb0045",
-        "hueRange": 0.09,
-        "saturationRange": 0.5,
-        "luminanceRange": 0.5,
-        "targetLuminance": 0.04,
-        "softness": 0.1,
-        "invert": false,
-        "desaturation": 1,
-        "targetSaturation": 1,
-        "targetBrightness": 0
+      rising: {
+        speed: 0.02,
+        intensity: 0.4,
       },
-      "curves": {
-        "enabled": false,
-        "activeChannel": "rgb",
-        "rgb": {
-          "points": [
+    },
+  },
+  advancedBloom: {
+    enabled: false,
+    threshold: 0.5,
+    bloomScale: 1,
+    brightness: 1,
+    blur: 8,
+    quality: 4,
+  },
+  sceneAppearance: {
+    transitionDuration: 3500,
+  },
+  postProcessing: {
+    enabled: true,
+    colorCorrection: {
+      enabled: true,
+      saturation: 1,
+      brightness: 0,
+      contrast: 1,
+      invert: false,
+      tint: {
+        color: "#FFFFFF",
+        amount: 0,
+      },
+      exposure: 0,
+      gamma: 1,
+      levels: {
+        inBlack: 0,
+        inWhite: 1,
+      },
+      whiteBalance: {
+        temperature: 0,
+        tint: 0,
+      },
+      selective: {
+        enabled: false,
+        color: "#fb0045",
+        hueRange: 0.09,
+        saturationRange: 0.5,
+        luminanceRange: 0.5,
+        targetLuminance: 0.04,
+        softness: 0.1,
+        invert: false,
+        desaturation: 1,
+        targetSaturation: 1,
+        targetBrightness: 0,
+      },
+      curves: {
+        enabled: false,
+        activeChannel: "rgb",
+        rgb: {
+          points: [
             {
-              "x": 0,
-              "y": 0
+              x: 0,
+              y: 0,
             },
             {
-              "x": 0.25,
-              "y": 0.25
+              x: 0.25,
+              y: 0.25,
             },
             {
-              "x": 0.75,
-              "y": 0.75
+              x: 0.75,
+              y: 0.75,
             },
             {
-              "x": 1,
-              "y": 1
-            }
-          ]
+              x: 1,
+              y: 1,
+            },
+          ],
         },
-        "red": {
-          "points": [
+        red: {
+          points: [
             {
-              "x": 0,
-              "y": 0
+              x: 0,
+              y: 0,
             },
             {
-              "x": 0.25,
-              "y": 0.25
+              x: 0.25,
+              y: 0.25,
             },
             {
-              "x": 0.75,
-              "y": 0.75
+              x: 0.75,
+              y: 0.75,
             },
             {
-              "x": 1,
-              "y": 1
-            }
-          ]
+              x: 1,
+              y: 1,
+            },
+          ],
         },
-        "green": {
-          "points": [
+        green: {
+          points: [
             {
-              "x": 0,
-              "y": 0
+              x: 0,
+              y: 0,
             },
             {
-              "x": 0.25,
-              "y": 0.25
+              x: 0.25,
+              y: 0.25,
             },
             {
-              "x": 0.75,
-              "y": 0.75
+              x: 0.75,
+              y: 0.75,
             },
             {
-              "x": 1,
-              "y": 1
-            }
-          ]
+              x: 1,
+              y: 1,
+            },
+          ],
         },
-        "blue": {
-          "points": [
+        blue: {
+          points: [
             {
-              "x": 0,
-              "y": 0
+              x: 0,
+              y: 0,
             },
             {
-              "x": 0.25,
-              "y": 0.25
+              x: 0.25,
+              y: 0.25,
             },
             {
-              "x": 0.75,
-              "y": 0.75
+              x: 0.75,
+              y: 0.75,
             },
             {
-              "x": 1,
-              "y": 1
-            }
-          ]
-        }
+              x: 1,
+              y: 1,
+            },
+          ],
+        },
       },
-      "dynamicExposure": {
-        "enabled": true,
-        "intensity": 1.5,
-        "duration": 8000,
-        "resetPeriod": 60000
-      }
-    },
-    "vignette": {
-      "enabled": false,
-      "amount": 0.24,
-      "softness": 0.36
-    },
-    "lensDistortion": {
-      "enabled": false,
-      "amount": 0.015,
-      "centerX": 0.5,
-      "centerY": 0.5
-    },
-    "chromaticAberration": {
-      "enabled": false,
-      "amount": 0.001,
-      "centerX": 0.5,
-      "centerY": 0.5
-    },
-    "tiltShift": {
-      "enabled": false,
-      "blur": 23,
-      "gradientBlur": 3610,
-      "startX": 0,
-      "startY": 0.5,
-      "endX": 1,
-      "endY": 0.5
-    },
-    "grain": {
-      "enabled": false,
-      "intensity": 0.1,
-      "size": 1.5,
-      "monochromatic": true,
-      "luminanceResponse": {
-        "shadows": 0.8,
-        "highlights": 0.2
-      }
-    },
-    "lut": {
-      "enabled": true,
-      "texturePath": "",
-      "intensity": 1,
-      "presetName": "custom",
-      "diagnosticMode": 0,
-      "diagnosticSlice": 1,
-      "domainMin": {
-        "r": 0,
-        "g": 0,
-        "b": 0
+      dynamicExposure: {
+        enabled: true,
+        intensity: 1.5,
+        duration: 8000,
+        resetPeriod: 60000,
       },
-      "domainMax": {
-        "r": 1,
-        "g": 1,
-        "b": 1
+    },
+    vignette: {
+      enabled: false,
+      amount: 0.24,
+      softness: 0.36,
+    },
+    lensDistortion: {
+      enabled: false,
+      amount: 0.015,
+      centerX: 0.5,
+      centerY: 0.5,
+    },
+    chromaticAberration: {
+      enabled: false,
+      amount: 0.001,
+      centerX: 0.5,
+      centerY: 0.5,
+    },
+    tiltShift: {
+      enabled: false,
+      blur: 23,
+      gradientBlur: 3610,
+      startX: 0,
+      startY: 0.5,
+      endX: 1,
+      endY: 0.5,
+    },
+    grain: {
+      enabled: false,
+      intensity: 0.1,
+      size: 1.5,
+      monochromatic: true,
+      luminanceResponse: {
+        shadows: 0.8,
+        highlights: 0.2,
       },
-      "preLutBlur": {
-        "enabled": false,
-        "amount": 0
+    },
+    lut: {
+      enabled: true,
+      texturePath: "",
+      intensity: 1,
+      presetName: "custom",
+      diagnosticMode: 0,
+      diagnosticSlice: 1,
+      domainMin: {
+        r: 0,
+        g: 0,
+        b: 0,
       },
-      "inputProcessing": {
-        "enabled": false,
-        "saturation": 1,
-        "brightness": 0,
-        "contrast": 1,
-        "gamma": 0.9,
-        "hue": 0
-      }
-    }
+      domainMax: {
+        r: 1,
+        g: 1,
+        b: 1,
+      },
+      preLutBlur: {
+        enabled: false,
+        amount: 0,
+      },
+      inputProcessing: {
+        enabled: false,
+        saturation: 1,
+        brightness: 0,
+        contrast: 1,
+        gamma: 0.9,
+        hue: 0,
+      },
+    },
   },
-  "dust": {
-    "enabled": true,
-    "blendMode": 0,
-    "maskThreshold": 0.39,
-    "maskInfluence": 5,
-    "particleTexture": "modules/map-shine/assets/particle.webp",
-    "frequency": 0.097,
-    "lifetime": {
-      "min": 4,
-      "max": 12
+  dust: {
+    enabled: true,
+    blendMode: 0,
+    maskThreshold: 0.39,
+    maskInfluence: 5,
+    particleTexture: "modules/map-shine/assets/particle.webp",
+    frequency: 0.097,
+    lifetime: {
+      min: 4,
+      max: 12,
     },
-    "color": {
-      "start": "#ffd275",
-      "end": "#ffe9b9"
+    color: {
+      start: "#ffd275",
+      end: "#ffe9b9",
     },
-    "alpha": {
-      "max": 0.51,
-      "fadeIn": 0.5,
-      "fadeOut": 0.5
+    alpha: {
+      max: 0.51,
+      fadeIn: 0.5,
+      fadeOut: 0.5,
     },
-    "scale": {
-      "sizeMultiplier": 0.6,
-      "start": 0.9,
-      "end": 1.09,
-      "minMult": 0.86
+    scale: {
+      sizeMultiplier: 0.6,
+      start: 0.9,
+      end: 1.09,
+      minMult: 0.86,
     },
-    "speed": {
-      "start": 3,
-      "end": 6,
-      "minMult": 0.5
+    speed: {
+      start: 3,
+      end: 6,
+      minMult: 0.5,
     },
-    "rotation": {
-      "enabled": false,
-      "minSpeed": 0,
-      "maxSpeed": 20,
-      "accel": 0
-    }
+    rotation: {
+      enabled: false,
+      minSpeed: 0,
+      maxSpeed: 20,
+      accel: 0,
+    },
   },
-  "glint": {
-    "enabled": true,
-    "darknessAffectsIntensity": true,
-    "blendMode": 0,
-    "maskThreshold": 0.9,
-    "maskInfluence": 0.09,
-    "particleTexture": "modules/map-shine/assets/glint.webp",
-    "frequency": 0.932,
-    "lifetime": {
-      "min": 0.8,
-      "max": 2.9
+  glint: {
+    enabled: true,
+    darknessAffectsIntensity: true,
+    blendMode: 0,
+    maskThreshold: 0.9,
+    maskInfluence: 0.09,
+    particleTexture: "modules/map-shine/assets/glint.webp",
+    frequency: 0.932,
+    lifetime: {
+      min: 0.8,
+      max: 2.9,
     },
-    "color": {
-      "start": "#FFFFFF",
-      "end": "#FFFFFF"
+    color: {
+      start: "#FFFFFF",
+      end: "#FFFFFF",
     },
-    "alpha": {
-      "max": 0.95,
-      "fadeIn": 0.05,
-      "fadeOut": 0.94
+    alpha: {
+      max: 0.95,
+      fadeIn: 0.05,
+      fadeOut: 0.94,
     },
-    "scale": {
-      "sizeMultiplier": 9,
-      "start": 1.5,
-      "end": 0.61,
-      "minMult": 0.9
+    scale: {
+      sizeMultiplier: 9,
+      start: 1.5,
+      end: 0.61,
+      minMult: 0.9,
     },
-    "speed": {
-      "start": 0,
-      "end": 0,
-      "minMult": 0.5
+    speed: {
+      start: 0,
+      end: 0,
+      minMult: 0.5,
     },
-    "rotation": {
-      "enabled": false,
-      "minSpeed": 0,
-      "maxSpeed": 20,
-      "accel": 0
+    rotation: {
+      enabled: false,
+      minSpeed: 0,
+      maxSpeed: 20,
+      accel: 0,
     },
-    "rgbSplit": {
-      "enabled": true,
-      "amount": 8.2
-    }
+    rgbSplit: {
+      enabled: true,
+      amount: 8.2,
+    },
   },
-  "metallicGlints": {
-    "enabled": true,
-    "blendMode": 1,
-    "maskThreshold": 0.9,
-    "maskInfluence": 5,
-    "particleTexture": "modules/map-shine/assets/glint.webp",
-    "frequency": 0.032,
-    "lifetime": {
-      "min": 0.4,
-      "max": 1.2
+  metallicGlints: {
+    enabled: true,
+    blendMode: 1,
+    maskThreshold: 0.9,
+    maskInfluence: 5,
+    particleTexture: "modules/map-shine/assets/glint.webp",
+    frequency: 0.032,
+    lifetime: {
+      min: 0.4,
+      max: 1.2,
     },
-    "alpha": {
-      "max": 0.75,
-      "fadeIn": 0.1,
-      "fadeOut": 0.9
+    alpha: {
+      max: 0.75,
+      fadeIn: 0.1,
+      fadeOut: 0.9,
     },
-    "scale": {
-      "sizeMultiplier": 4,
-      "start": 1,
-      "end": 0.1,
-      "minMult": 0.7
+    scale: {
+      sizeMultiplier: 4,
+      start: 1,
+      end: 0.1,
+      minMult: 0.7,
     },
-    "speed": {
-      "start": 0,
-      "end": 0,
-      "minMult": 0.5
+    speed: {
+      start: 0,
+      end: 0,
+      minMult: 0.5,
     },
-    "rotation": {
-      "enabled": false,
-      "minSpeed": 0,
-      "maxSpeed": 0,
-      "accel": 0
-    }
+    rotation: {
+      enabled: false,
+      minSpeed: 0,
+      maxSpeed: 0,
+      accel: 0,
+    },
   },
-  "water": {
-    "enabled": true,
-    "wave": {
-      "enabled": true,
-      "speed": 0.0148,
-      "scale": 37.7,
-      "intensity": 0.0018
+  water: {
+    enabled: true,
+    wave: {
+      enabled: true,
+      speed: 0.0148,
+      scale: 37.7,
+      intensity: 0.0018,
     },
-    "surface": {
-      "enabled": true,
-      "foamColor": "#33adff",
-      "foamIntensity": 0,
-      "foamCoverage": 0,
-      "foamSharpness": 0.13,
-      "fbmScale": 15.196,
-      "fbmSpeed": 0.01,
-      "fbmEvolution": 0.03,
-      "fbmOctaves": 5,
-      "fbmLacunarity": 4,
-      "fbmPersistence": 0.1,
-      "sheenEnabled": true,
-      "sheenIntensity": 0.448,
-      "sheenColor": "#FFFFFF",
-      "sheenScale": 0.5,
-      "sheenSpeed": 0.002,
-      "sheenStretch": 1,
-      "sheenSharpness": 0.8
+    surface: {
+      enabled: true,
+      foamColor: "#33adff",
+      foamIntensity: 0,
+      foamCoverage: 0,
+      foamSharpness: 0.13,
+      fbmScale: 15.196,
+      fbmSpeed: 0.01,
+      fbmEvolution: 0.03,
+      fbmOctaves: 5,
+      fbmLacunarity: 4,
+      fbmPersistence: 0.1,
+      sheenEnabled: true,
+      sheenIntensity: 0.448,
+      sheenColor: "#FFFFFF",
+      sheenScale: 0.5,
+      sheenSpeed: 0.002,
+      sheenStretch: 1,
+      sheenSharpness: 0.8,
     },
-    "caustics": {
-      "enabled": true,
-      "intensity": 0.11,
-      "scale": 1,
-      "speed": 0.08,
-      "color": "#87CEFA",
-      "lineSharpness": 5,
-      "bloomIntensity": 1,
-      "lineDistortion": 0.1,
-      "lineDistortionScale": 5,
-      "intersectionBoost": 20,
-      "roughnessScale": 4.2,
-      "roughnessIntensity": 0.83
+    caustics: {
+      enabled: true,
+      intensity: 0.11,
+      scale: 1,
+      speed: 0.08,
+      color: "#87CEFA",
+      lineSharpness: 5,
+      bloomIntensity: 1,
+      lineDistortion: 0.1,
+      lineDistortionScale: 5,
+      intersectionBoost: 20,
+      roughnessScale: 4.2,
+      roughnessIntensity: 0.83,
     },
-    "shoreline": {
-      "enabled": false,
-      "detectionBlur": 1,
-      "foamColor": "#FFFFFF",
-      "foamIntensity": 0.5,
-      "foamPattern": {
-        "scale": 1,
-        "speed": 0,
-        "evolution": 0.01,
-        "octaves": 4,
-        "lacunarity": 2.05,
-        "persistence": 0.15,
-        "brightness": 0.5,
-        "contrast": 1
+    shoreline: {
+      enabled: false,
+      detectionBlur: 1,
+      foamColor: "#FFFFFF",
+      foamIntensity: 0.5,
+      foamPattern: {
+        scale: 1,
+        speed: 0,
+        evolution: 0.01,
+        octaves: 4,
+        lacunarity: 2.05,
+        persistence: 0.15,
+        brightness: 0.5,
+        contrast: 1,
       },
-      "displacement": {
-        "enabled": false,
-        "scale": 0.4,
-        "speed": 0.011,
-        "strength": 0.0025
-      }
+      displacement: {
+        enabled: false,
+        scale: 0.4,
+        speed: 0.011,
+        strength: 0.0025,
+      },
     },
-    "glintParticles": {
-      "enabled": true,
-      "blendMode": 9,
-      "maskThreshold": 0.17,
-      "maskInfluence": 1.95,
-      "particleTexture": "modules/map-shine/assets/glint.webp",
-      "frequency": 0.99,
-      "lifetime": {
-        "min": 0.8,
-        "max": 0.8
+    glintParticles: {
+      enabled: true,
+      blendMode: 9,
+      maskThreshold: 0.17,
+      maskInfluence: 1.95,
+      particleTexture: "modules/map-shine/assets/glint.webp",
+      frequency: 0.99,
+      lifetime: {
+        min: 0.8,
+        max: 0.8,
       },
-      "color": {
-        "start": "#eef7ff",
-        "end": "#95b3ff"
+      color: {
+        start: "#eef7ff",
+        end: "#95b3ff",
       },
-      "alpha": {
-        "max": 0.5,
-        "fadeIn": 0.25,
-        "fadeOut": 0.25
+      alpha: {
+        max: 0.5,
+        fadeIn: 0.25,
+        fadeOut: 0.25,
       },
-      "scale": {
-        "sizeMultiplier": 1.9,
-        "start": 0.76,
-        "end": 0.82,
-        "minMult": 0.95
+      scale: {
+        sizeMultiplier: 1.9,
+        start: 0.76,
+        end: 0.82,
+        minMult: 0.95,
       },
-      "speed": {
-        "start": 5,
-        "end": 11,
-        "minMult": 0.47
+      speed: {
+        start: 5,
+        end: 11,
+        minMult: 0.47,
       },
-      "rotation": {
-        "enabled": true,
-        "minSpeed": 116,
-        "maxSpeed": 123,
-        "accel": 52
-      }
-    }
+      rotation: {
+        enabled: true,
+        minSpeed: 116,
+        maxSpeed: 123,
+        accel: 52,
+      },
+    },
   },
-  "fire": {
-    "enabled": true,
-    "bloom": {
-      "enabled": true,
-      "threshold": 0.04,
-      "bloomScale": 5,
-      "brightness": 5,
-      "blur": 0,
-      "quality": 4
+  fire: {
+    enabled: true,
+    bloom: {
+      enabled: true,
+      threshold: 0.04,
+      bloomScale: 5,
+      brightness: 5,
+      blur: 0,
+      quality: 4,
     },
-    "particles": {
-      "enabled": true,
-      "blendMode": 1,
-      "maskThreshold": 0.06,
-      "maskInfluence": 0.08,
-      "particleTexture": "modules/map-shine/assets/flame.webp",
-      "frequency": 0.001,
-      "lifetime": {
-        "min": 0.1,
-        "max": 1.4
+    particles: {
+      enabled: true,
+      blendMode: 1,
+      maskThreshold: 0.06,
+      maskInfluence: 0.08,
+      particleTexture: "modules/map-shine/assets/flame.webp",
+      frequency: 0.001,
+      lifetime: {
+        min: 0.1,
+        max: 1.4,
       },
-      "color": {
-        "start": "#FFDD88",
-        "end": "#ea7500"
+      color: {
+        start: "#FFDD88",
+        end: "#ea7500",
       },
-      "alpha": {
-        "max": 0.1,
-        "fadeIn": 0.01,
-        "fadeOut": 1
+      alpha: {
+        max: 0.1,
+        fadeIn: 0.01,
+        fadeOut: 1,
       },
-      "scale": {
-        "sizeMultiplier": 0.4,
-        "start": 0.32,
-        "end": 1.24,
-        "minMult": 0.95
+      scale: {
+        sizeMultiplier: 0.4,
+        start: 0.32,
+        end: 1.24,
+        minMult: 0.95,
       },
-      "speed": {
-        "start": 1,
-        "end": 2,
-        "minMult": 0.5
+      speed: {
+        start: 1,
+        end: 2,
+        minMult: 0.5,
       },
-      "rotation": {
-        "enabled": true,
-        "minSpeed": -180,
-        "maxSpeed": 180,
-        "accel": 4
+      rotation: {
+        enabled: true,
+        minSpeed: -180,
+        maxSpeed: 180,
+        accel: 4,
       },
-      "wind": {
-        "enabled": false,
-        "force": 0,
-        "baseSpeed": 0,
-        "gustSpeed": 0,
-        "gustFrequencyMin": 3,
-        "gustFrequencyMax": 8,
-        "gustDurationMin": 0.2,
-        "gustDurationMax": 0.8,
-        "angleChangeFrequencyMin": 5,
-        "angleChangeFrequencyMax": 15,
-        "angleChangeRange": 20
-      }
-    }
+      wind: {
+        enabled: false,
+        force: 0,
+        baseSpeed: 0,
+        gustSpeed: 0,
+        gustFrequencyMin: 3,
+        gustFrequencyMax: 8,
+        gustDurationMin: 0.2,
+        gustDurationMax: 0.8,
+        angleChangeFrequencyMin: 5,
+        angleChangeFrequencyMax: 15,
+        angleChangeRange: 20,
+      },
+    },
   },
-  "sparks": {
-    "enabled": true,
-    "blendMode": 1,
-    "maskThreshold": 0.95,
-    "maskInfluence": 1.12,
-    "particleTexture": "modules/map-shine/assets/particle.webp",
-    "frequency": 0.08,
-    "lifetime": {
-      "min": 1.5,
-      "max": 3
+  sparks: {
+    enabled: true,
+    blendMode: 1,
+    maskThreshold: 0.95,
+    maskInfluence: 1.12,
+    particleTexture: "modules/map-shine/assets/particle.webp",
+    frequency: 0.08,
+    lifetime: {
+      min: 1.5,
+      max: 3,
     },
-    "color": {
-      "start": "#ffbc40",
-      "end": "#fffb55"
+    color: {
+      start: "#ffbc40",
+      end: "#fffb55",
     },
-    "alpha": {
-      "max": 0.69,
-      "fadeIn": 0.1,
-      "fadeOut": 0.03
+    alpha: {
+      max: 0.69,
+      fadeIn: 0.1,
+      fadeOut: 0.03,
     },
-    "scale": {
-      "sizeMultiplier": 1.55,
-      "start": 1,
-      "end": 0.1,
-      "minMult": 0.5
+    scale: {
+      sizeMultiplier: 1.55,
+      start: 1,
+      end: 0.1,
+      minMult: 0.5,
     },
-    "path": {
-      "speed": {
-        "start": 32,
-        "end": 10,
-        "minMult": 0.6
+    path: {
+      speed: {
+        start: 32,
+        end: 10,
+        minMult: 0.6,
       },
-      "amplitude": {
-        "min": 10,
-        "max": 100
+      amplitude: {
+        min: 10,
+        max: 100,
       },
-      "frequency": {
-        "min": 40,
-        "max": 189
+      frequency: {
+        min: 40,
+        max: 189,
       },
-      "offset": {
-        "min": 0,
-        "max": 6.28
+      offset: {
+        min: 0,
+        max: 6.28,
       },
-      "damping": 0.05,
-      "angle": {
-        "min": -90,
-        "max": 90
+      damping: 0.05,
+      angle: {
+        min: -90,
+        max: 90,
       },
-      "motionBlur": {
-        "enabled": true,
-        "strength": 0.15,
-        "maxLength": 2.4
-      }
-    }
+      motionBlur: {
+        enabled: true,
+        strength: 0.15,
+        maxLength: 2.4,
+      },
+    },
   },
-  "lightning": {
-    "enabled": false,
-    "offPeriodMin": 1,
-    "offPeriodMax": 1761,
-    "strikeDuration": 50,
-    "flickerInterval": 10,
-    "flickerIntensity": 0.2,
-    "fadeEasePower": 2,
-    "color": "#99DDFF",
-    "coreColor": "#FFFFFF",
-    "brightness": 3,
-    "sheathOpacity": 1,
-    "coreOpacity": 1,
-    "width": {
-      "start": 12,
-      "end": 2,
-      "variationEnabled": true,
-      "variationAmount": 0.5,
-      "variationScale": 0.1,
-      "variationSpeed": 0.1
+  lightning: {
+    enabled: false,
+    offPeriodMin: 1,
+    offPeriodMax: 1761,
+    strikeDuration: 50,
+    flickerInterval: 10,
+    flickerIntensity: 0.2,
+    fadeEasePower: 2,
+    color: "#99DDFF",
+    coreColor: "#FFFFFF",
+    brightness: 3,
+    sheathOpacity: 1,
+    coreOpacity: 1,
+    width: {
+      start: 12,
+      end: 2,
+      variationEnabled: true,
+      variationAmount: 0.5,
+      variationScale: 0.1,
+      variationSpeed: 0.1,
     },
-    "coreWidth": {
-      "start": 4,
-      "end": 0.5
+    coreWidth: {
+      start: 4,
+      end: 0.5,
     },
-    "path": {
-      "segments": 100,
-      "endPointRandomness": 15
+    path: {
+      segments: 100,
+      endPointRandomness: 15,
     },
-    "curve": {
-      "startAngleMin": -45,
-      "startAngleMax": 45,
-      "endAngleMin": 135,
-      "endAngleMax": 225,
-      "controlPointDistanceMin": 100,
-      "controlPointDistanceMax": 160
+    curve: {
+      startAngleMin: -45,
+      startAngleMax: 45,
+      endAngleMin: 135,
+      endAngleMax: 225,
+      controlPointDistanceMin: 100,
+      controlPointDistanceMax: 160,
     },
-    "fork": {
-      "maxDepth": 4,
-      "chance": 1,
-      "angleRange": 168,
-      "lengthFalloff": 0.7,
-      "widthFalloff": 0.86
+    fork: {
+      maxDepth: 4,
+      chance: 1,
+      angleRange: 168,
+      lengthFalloff: 0.7,
+      widthFalloff: 0.86,
     },
-    "displacement": {
-      "enabled": true,
-      "magnitude": 15,
-      "speed": 0.2,
-      "scale": 0.05
+    displacement: {
+      enabled: true,
+      magnitude: 15,
+      speed: 0.2,
+      scale: 0.05,
     },
-    "displacementFine": {
-      "enabled": true,
-      "magnitude": 5,
-      "speed": 0.1,
-      "scale": 0.005
+    displacementFine: {
+      enabled: true,
+      magnitude: 5,
+      speed: 0.1,
+      scale: 0.005,
     },
-    "bloom": {
-      "enabled": true,
-      "blendMode": 1,
-      "threshold": 0.5,
-      "bloomScale": 1,
-      "brightness": 2,
-      "blur": 8,
-      "quality": 4,
-      "rgbSplit": {
-        "enabled": true,
-        "amount": 0.5
-      }
-    }
-  },
-  "smellyFlies": {
-    "enabled": false,
-    "blendMode": 0,
-    "particleTexture": "modules/map-shine/assets/fly.webp",
-    "maxParticles": 10,
-    "flying": {
-      "takeoffDuration": 0.5,
-      "takeoffSpeedMin": 100,
-      "takeoffSpeedMax": 200,
-      "noiseStrength": 2000,
-      "noiseFrequency": 25,
-      "tetherStrength": 15.8,
-      "maxSpeed": 1000,
-      "drag": 0.8,
-      "landChance": 0.05,
-      "landingDuration": 1
-    },
-    "walking": {
-      "walkSpeed": 60,
-      "minIdleTime": 0.5,
-      "maxIdleTime": 2.5,
-      "minRotateTime": 0.2,
-      "maxRotateTime": 0.7,
-      "minMoveTime": 0.3,
-      "maxMoveTime": 5.3,
-      "minMoveDistance": 5,
-      "maxMoveDistance": 95,
-      "takeoffChance": 0.05
-    },
-    "motionBlur": {
-      "enabled": true,
-      "strength": 0.03,
-      "maxLength": 1.6
-    }
-  },
-  "particleSystems": {
-    "enabled": true,
-    "globalDensityMultiplier": 1,
-    "globalParticleLimit": 1000
-  },
-  "buildingShadows": {
-    "enabled": true,
-    "intensity": 0.31,
-    "maxOffset": 190,
-    "maxBlur": 50,
-    "sunAngle": 3
-  },
-  "timeOfDay": {
-    "enabled": true,
-    "intensity": 0.2,
-    "currentTime": 12.051098446759717,
-    "keyframes": {
-      "midnight": {
-        "time": 0,
-        "temperature": -0.2,
-        "tint": -0.05,
-        "saturation": 0.8,
-        "brightness": 0,
-        "contrast": 1.1,
-        "exposure": -0.62,
-        "gamma": 1.1
+    bloom: {
+      enabled: true,
+      blendMode: 1,
+      threshold: 0.5,
+      bloomScale: 1,
+      brightness: 2,
+      blur: 8,
+      quality: 4,
+      rgbSplit: {
+        enabled: true,
+        amount: 0.5,
       },
-      "dawn": {
-        "time": 6,
-        "temperature": 0.3,
-        "tint": -0.09,
-        "saturation": 0.7,
-        "brightness": -0.02,
-        "contrast": 1.05,
-        "exposure": -0.31,
-        "gamma": 0.98
-      },
-      "midday": {
-        "time": 12,
-        "temperature": 0,
-        "tint": 0,
-        "saturation": 1,
-        "brightness": 0,
-        "contrast": 1,
-        "exposure": 0.21,
-        "gamma": 1
-      },
-      "dusk": {
-        "time": 18,
-        "temperature": 0.4,
-        "tint": -0.1,
-        "saturation": 0.74,
-        "brightness": -0.05,
-        "contrast": 1.1,
-        "exposure": -0.44,
-        "gamma": 1
-      },
-      "twilight": {
-        "time": 21,
-        "temperature": -0.44,
-        "tint": -0.42,
-        "saturation": 0.55,
-        "brightness": 0,
-        "contrast": 1,
-        "exposure": -0.55,
-        "gamma": 1
-      }
-    }
-  },
-  "diagnostic": {
-    "enabled": false,
-    "showMasks": true,
-    "pixelInspector": false,
-    "displaySuffix": "scene_brightness_mask",
-    "showIlluminationPreview": false
-  },
-  "overheadEffect": {
-    "enabled": true,
-    "blurMinZoom": 0,
-    "blurMidZoom": 7.5,
-    "blurMaxZoom": 37,
-    "opacityMinZoom": 1,
-    "opacityMidZoom": 0.24,
-    "opacityMaxZoom": 0.07,
-    "zoomPointMin": 0.2,
-    "zoomPointMid": 1.75,
-    "zoomPointMax": 2.8,
-    "recolor": {
-      "enabled": false,
-      "intensity": 2,
-      "tint": "#80DEEA",
-      "cloudShadowDarken": {
-        "enabled": true,
-        "intensity": 0.3
-      }
     },
-    "hoverFadeDuration": 500,
-    "tokenMasking": {
-      "enabled": true,
-      "blurAmount": 10
-    }
   },
-  "ambientLayerZIndex": 250
-}
+  smellyFlies: {
+    enabled: false,
+    blendMode: 0,
+    particleTexture: "modules/map-shine/assets/fly.webp",
+    maxParticles: 10,
+    flying: {
+      takeoffDuration: 0.5,
+      takeoffSpeedMin: 100,
+      takeoffSpeedMax: 200,
+      noiseStrength: 2000,
+      noiseFrequency: 25,
+      tetherStrength: 15.8,
+      maxSpeed: 1000,
+      drag: 0.8,
+      landChance: 0.05,
+      landingDuration: 1,
+    },
+    walking: {
+      walkSpeed: 60,
+      minIdleTime: 0.5,
+      maxIdleTime: 2.5,
+      minRotateTime: 0.2,
+      maxRotateTime: 0.7,
+      minMoveTime: 0.3,
+      maxMoveTime: 5.3,
+      minMoveDistance: 5,
+      maxMoveDistance: 95,
+      takeoffChance: 0.05,
+    },
+    motionBlur: {
+      enabled: true,
+      strength: 0.03,
+      maxLength: 1.6,
+    },
+  },
+  particleSystems: {
+    enabled: true,
+    globalDensityMultiplier: 1,
+    globalParticleLimit: 1000,
+  },
+  buildingShadows: {
+    enabled: true,
+    intensity: 0.31,
+    maxOffset: 190,
+    maxBlur: 50,
+    sunAngle: 3,
+  },
+  timeOfDay: {
+    enabled: true,
+    intensity: 0.2,
+    currentTime: 12.051098446759717,
+    keyframes: {
+      midnight: {
+        time: 0,
+        temperature: -0.2,
+        tint: -0.05,
+        saturation: 0.8,
+        brightness: 0,
+        contrast: 1.1,
+        exposure: -0.62,
+        gamma: 1.1,
+      },
+      dawn: {
+        time: 6,
+        temperature: 0.3,
+        tint: -0.09,
+        saturation: 0.7,
+        brightness: -0.02,
+        contrast: 1.05,
+        exposure: -0.31,
+        gamma: 0.98,
+      },
+      midday: {
+        time: 12,
+        temperature: 0,
+        tint: 0,
+        saturation: 1,
+        brightness: 0,
+        contrast: 1,
+        exposure: 0.21,
+        gamma: 1,
+      },
+      dusk: {
+        time: 18,
+        temperature: 0.4,
+        tint: -0.1,
+        saturation: 0.74,
+        brightness: -0.05,
+        contrast: 1.1,
+        exposure: -0.44,
+        gamma: 1,
+      },
+      twilight: {
+        time: 21,
+        temperature: -0.44,
+        tint: -0.42,
+        saturation: 0.55,
+        brightness: 0,
+        contrast: 1,
+        exposure: -0.55,
+        gamma: 1,
+      },
+    },
+  },
+  diagnostic: {
+    enabled: false,
+    showMasks: true,
+    pixelInspector: false,
+    displaySuffix: "scene_brightness_mask",
+  },
+  overheadEffect: {
+    enabled: true,
+    blurMinZoom: 0,
+    blurMidZoom: 7.5,
+    blurMaxZoom: 37,
+    opacityMinZoom: 1,
+    opacityMidZoom: 0.24,
+    opacityMaxZoom: 0.07,
+    zoomPointMin: 0.2,
+    zoomPointMid: 1.75,
+    zoomPointMax: 2.8,
+    recolor: {
+      enabled: false,
+      intensity: 2,
+      tint: "#80DEEA",
+      cloudShadowDarken: {
+        enabled: true,
+        intensity: 0.3,
+      },
+    },
+    hoverFadeDuration: 500,
+    tokenMasking: {
+      enabled: true,
+      blurAmount: 10,
+    },
+  },
+  ambientLayerZIndex: 250,
+};
 
 const hexToRgbArray = (hex) => {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -2719,9 +2704,6 @@ class MapShineInitialiser {
       );
       return;
     }
-
-    // Core dependencies that must be available early.
-    IlluminationManager.initialize();
 
     // Register all settings with Foundry's core.
     this._registerSettings();
@@ -3690,60 +3672,6 @@ class MapShineInitialiser {
       console.log(
         "Map Shine | Successfully registered Scene.prototype.view wrapper for transitions."
       );
-
-      // --- Illumination Manager Integration ---
-      // This wrapper replaces the manual monkey-patch in IlluminationManager.
-      // It safely intercepts the apply method of the core lighting filter to capture
-      // the rendered scene texture before lighting is applied.
-      if (typeof LightingFilter !== "undefined") {
-        libWrapper.register(
-          MODULE_ID,
-          "LightingFilter.prototype.apply",
-          function (wrapped, filterManager, input, output, clearMode) {
-            // First, call the original function to ensure the normal rendering chain continues.
-            wrapped(filterManager, input, output, clearMode);
-
-            // This wrapper affects all LightingFilter instances, but we only care about
-            // the one on the main illumination layer. This check ensures we don't
-            // interfere with other potential uses of this filter.
-            if (this !== canvas.effects.illumination.filter) {
-              return;
-            }
-
-            // The input texture to this filter is the fully rendered primary canvas group.
-            // We copy it to our own stable render texture for other effects to use.
-            const sourceTexture = input;
-            if (
-              IlluminationManager.copySprite &&
-              IlluminationManager.stableIlluminationTexture &&
-              sourceTexture?.valid
-            ) {
-              IlluminationManager.copySprite.texture = sourceTexture;
-              canvas.app.renderer.render(IlluminationManager.copySprite, {
-                renderTexture: IlluminationManager.stableIlluminationTexture,
-                clear: true,
-              });
-            }
-
-            // Update debug sprite visibility based on current config
-            if (
-              IlluminationManager.debugSprite &&
-              game.mapShine?.profileManager?.activeConfig
-            ) {
-              IlluminationManager.debugSprite.visible =
-                game.mapShine.profileManager.activeConfig.diagnostic.showIlluminationPreview;
-            }
-          },
-          "WRAPPER"
-        );
-        console.log(
-          "Map Shine | Successfully registered wrapper for LightingFilter.prototype.apply."
-        );
-      } else {
-        console.warn(
-          "Map Shine | LightingFilter class not found. Could not apply illumination wrapper."
-        );
-      }
     } else {
       console.warn(
         "Map Shine | libWrapper is not active. Elegant scene transitions will be disabled."
@@ -4815,7 +4743,6 @@ class ProfileManager {
 class ResourceManager {
   constructor() {
     this._frameCache = {};
-    this.illuminationManager = null;
     this._destroyed = false;
   }
 
@@ -4824,7 +4751,6 @@ class ResourceManager {
    * This should be called once during canvas setup.
    */
   initialize() {
-    this.illuminationManager = IlluminationManager; // Direct reference to the static class
     console.log("Map Shine | ResourceManager initialized.");
   }
 
@@ -4833,7 +4759,6 @@ class ResourceManager {
    */
   destroy() {
     this._frameCache = {};
-    this.illuminationManager = null;
     this._destroyed = true;
     console.log("Map Shine | ResourceManager destroyed.");
   }
@@ -4843,23 +4768,6 @@ class ResourceManager {
    */
   onFrameStart() {
     this._frameCache = {};
-  }
-
-  /**
-   * Retrieves the main illumination texture for the scene.
-   * Caches the texture for the duration of the current frame to prevent redundant lookups.
-   * @returns {PIXI.RenderTexture|null} The illumination texture.
-   */
-  getIlluminationTexture() {
-    if (this._destroyed) return null;
-
-    if (this._frameCache.illuminationTexture) {
-      return this._frameCache.illuminationTexture;
-    }
-
-    const texture = this.illuminationManager.getLightingTexture();
-    this._frameCache.illuminationTexture = texture;
-    return texture;
   }
 
   /**
@@ -6030,49 +5938,6 @@ class SceneChangeManager {
     console.log("Map Shine | SceneChangeManager: Teardown finished.");
   }
 
-  /**
-   * Waits for the Illumination Buffer module to be ready and its texture to match the current canvas size.
-   * @param {Canvas} canvas - The current canvas object.
-   * @returns {Promise<boolean>} A promise that resolves to true if dependencies are ready, false otherwise.
-   */
-  async _waitForDependencies(canvas) {
-    const MAX_ATTEMPTS = 50; // 50 * 100ms = 5 seconds timeout
-    const CHECK_INTERVAL = 100; // 100ms
-
-    for (let i = 0; i < MAX_ATTEMPTS; i++) {
-      const illuminationTexture = IlluminationManager.getLightingTexture();
-      const screen = canvas.app.renderer.screen;
-
-      if (
-        illuminationTexture &&
-        illuminationTexture.valid &&
-        illuminationTexture.width === Math.round(screen.width) &&
-        illuminationTexture.height === Math.round(screen.height)
-      ) {
-        console.log(
-          `%cMap Shine | Dependency Check PASSED on attempt #${
-            i + 1
-          }: Internal illumination texture is ready.`,
-          "color: #4CAF50;"
-        );
-        return true;
-      }
-
-      if (i === 0) {
-        console.log(
-          "Map Shine | Dependency Check: Waiting for internal illumination texture to stabilize..."
-        );
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, CHECK_INTERVAL));
-    }
-
-    console.warn(
-      "Map Shine | Dependency Check FAILED: Internal illumination texture did not become ready in time. Proceeding with a minimal setup."
-    );
-    return false;
-  }
-
   async _performSetup(canvas) {
     console.log("Map Shine | SceneChangeManager: Performing setup...");
     if (!canvas.scene) return;
@@ -6174,9 +6039,9 @@ class SceneChangeManager {
 
     game.mapShine.loadingManager.setProgress("START");
 
-    // Wait for dependencies like the Illumination Buffer to be ready before proceeding.
+    // Wait for dependencies to be ready before proceeding.
     await game.mapShine.loadingManager.tick("DEPENDENCIES_START");
-    const dependenciesReady = await this._waitForDependencies(canvas);
+    const dependenciesReady = true; // Illumination dependency removed
     await game.mapShine.loadingManager.tick("DEPENDENCIES_END");
 
     // --- DEFERRED SETUP ---
@@ -8419,73 +8284,6 @@ class TokenManager {
   }
 }
 
-class IlluminationManager {
-  static stableIlluminationTexture = null;
-  static copySprite = null;
-  static debugSprite = null;
-  static spriteName = "finalLightingDebugSprite";
-
-  static initialize() {
-    Hooks.on("canvasReady", this.onCanvasReady.bind(this));
-    Hooks.on("canvasTearDown", this.onCanvasTearDown.bind(this));
-    console.log("Map Shine | IlluminationManager initialized.");
-  }
-
-  static onCanvasReady() {
-    // Cleanup from previous scene or hot-reload
-    this.cleanup();
-
-    const screen = CoordinateManager.getScreenDimensions();
-    // Create persistent render texture for the scene capture
-    this.stableIlluminationTexture = PIXI.RenderTexture.create({
-      width: screen.width,
-      height: screen.height,
-      resolution: canvas.app.renderer.resolution,
-    });
-
-    // Create the persistent sprite for the copy operation
-    this.copySprite = new PIXI.Sprite();
-
-    // Create debug sprite, initially hidden. The libWrapper patch will control visibility.
-    this.debugSprite = new PIXI.Sprite(this.stableIlluminationTexture);
-    this.debugSprite.name = this.spriteName;
-    this.debugSprite.scale.set(0.25);
-    this.debugSprite.position.set(10, 10);
-    this.debugSprite.zIndex = 9999;
-    this.debugSprite.visible = false;
-    canvas.stage.addChild(this.debugSprite);
-
-    console.log(
-      "Map Shine | IlluminationManager: Resources created for canvasReady."
-    );
-  }
-
-  static onCanvasTearDown() {
-    // The libWrapper unregistering happens automatically.
-    // This hook is now only for cleaning up PIXI objects.
-    this.cleanup();
-  }
-
-  static cleanup() {
-    this.stableIlluminationTexture?.destroy(true);
-    this.stableIlluminationTexture = null;
-
-    this.copySprite?.destroy();
-    this.copySprite = null;
-
-    const existingDebugSprite = canvas.stage?.getChildByName(this.spriteName);
-    if (existingDebugSprite) {
-      existingDebugSprite.destroy();
-    }
-    this.debugSprite = null;
-  }
-
-  static getLightingTexture() {
-    // This texture is a capture of the primary canvas group *before* lighting is applied.
-    return this.stableIlluminationTexture;
-  }
-}
-
 class EffectsBloomLayer {
   constructor() {
     this.container = null;
@@ -9886,15 +9684,10 @@ class AmbientMaskManager {
   constructor(canvas) {
     console.log("AmbientMaskManager | Initializing.");
     this.canvas = canvas;
-    this.maskGenerator = new LightingMaskGenerator();
-    this.maskSprite = new PIXI.Sprite(this.maskGenerator.getMaskTexture());
     this._destroyed = false;
 
     this._tickerFunction = this.update.bind(this);
     this.canvas.app.ticker.add(this._tickerFunction);
-
-    this._onResizeBound = this._onResize.bind(this);
-    window.addEventListener("resize", this._onResizeBound);
   }
 
   destroy() {
@@ -9902,7 +9695,6 @@ class AmbientMaskManager {
     this._destroyed = true;
     console.log("AmbientMaskManager | Destroying.");
     this.canvas.app.ticker.remove(this._tickerFunction);
-    window.removeEventListener("resize", this._onResizeBound);
 
     const ambientLayer = this.canvas.layers.find(
       (l) => l instanceof AmbientLayer
@@ -9910,71 +9702,11 @@ class AmbientMaskManager {
     if (ambientLayer) {
       ambientLayer.mask = null;
     }
-
-    this.maskGenerator?.destroy();
-    this.maskSprite?.destroy();
-  }
-
-  _onResize() {
-    if (this.maskGenerator) {
-      const screen = this.canvas.app.screen;
-      this.maskGenerator.resize(screen.width, screen.height);
-    }
   }
 
   update() {
-    // KILL SWITCH: Abort if destroyed or if a scene transition is active.
-    if (this._destroyed || game.mapShine.transitionActive) return;
-
-    const ambientLayer = this.canvas.layers.find(
-      (l) => l instanceof AmbientLayer
-    );
-    const mConfig = game.mapShine.profileManager.activeConfig.ambient.masking;
-    const screen = this.canvas.app.renderer.screen;
-
-    const illuminationTexture =
-      game.mapShine.resourceManager.getIlluminationTexture();
-    const isIlluminationReady =
-      illuminationTexture?.valid &&
-      illuminationTexture.width === Math.round(screen.width) &&
-      illuminationTexture.height === Math.round(screen.height);
-
-    const shouldBeEnabled =
-      mConfig.enabled && ambientLayer?.visible && isIlluminationReady;
-
-    if (!shouldBeEnabled) {
-      if (ambientLayer && ambientLayer.mask) {
-        ambientLayer.mask = null;
-      }
-      if (
-        mConfig.enabled &&
-        ambientLayer?.visible &&
-        !isIlluminationReady &&
-        game.mapShine.profileManager.activeConfig.debug
-      ) {
-        console.log(
-          "AmbientMaskManager DEBUG | Stale or invalid illumination texture detected. Deferring mask update."
-        );
-      }
-      return;
-    }
-
-    this.maskGenerator.update(
-      this.canvas.app.renderer,
-      illuminationTexture,
-      mConfig.threshold,
-      mConfig.softness,
-      true
-    );
-
-    if (ambientLayer.mask !== this.maskSprite) {
-      ambientLayer.mask = this.maskSprite;
-    }
-
-    const viewSize = CoordinateManager.getViewSize();
-    this.maskSprite.position.copyFrom(CoordinateManager.getCameraOffset());
-    this.maskSprite.width = viewSize.width;
-    this.maskSprite.height = viewSize.height;
+    // This manager is now inert as its sole dependency (illumination texture) has been removed.
+    // The class structure is kept for now to minimize breakage in other areas, but it performs no actions.
   }
 }
 
@@ -9982,8 +9714,6 @@ class LightingEffectManager {
   constructor(canvas) {
     console.log("LightingEffectManager | Initializing.");
     this.canvas = canvas;
-    this.maskGenerator = new LightingMaskGenerator();
-    this.pauseMaskGenerator = new LightingMaskGenerator();
     this._tickerFunction = this.update.bind(this);
     this.canvas.app.ticker.add(this._tickerFunction);
     this._destroyed = false;
@@ -10009,62 +9739,19 @@ class LightingEffectManager {
       u.uMaskEnabled = false;
       u.uMaskTexture = PIXI.Texture.EMPTY;
     }
-
-    this.maskGenerator?.destroy();
-    this.pauseMaskGenerator?.destroy();
   }
 
-  _updatePostProcessingMasks(
-    ccFilter,
-    fullConfig,
-    isIlluminationReady,
-    illuminationTexture
-  ) {
-    const config = fullConfig.postProcessing.colorCorrection;
+  _updatePostProcessingMasks(ccFilter, fullConfig) {
     const u = ccFilter.uniforms;
-    const resourceManager = game.mapShine.resourceManager;
-    if (!resourceManager) return;
-
     // Get the normalized scene rectangle from the centralized manager.
     u.uSceneRectNorm = CoordinateManager.getSceneRectNormalizedArray();
-
-    const useIllumMask = config.mask.enabled && isIlluminationReady;
-    u.uMaskEnabled = useIllumMask;
-    if (useIllumMask) {
-      this.maskGenerator.update(
-        this.canvas.app.renderer,
-        illuminationTexture,
-        config.mask.luminanceThreshold,
-        config.mask.softness,
-        config.mask.invert
-      );
-      u.uMaskTexture = this.maskGenerator.getMaskTexture();
-    }
+    u.uMaskEnabled = false; // Luminance masking has been removed.
   }
 
-  _updatePauseEffectMask(
-    pauseFilter,
-    universalConfig,
-    isIlluminationReady,
-    illuminationTexture
-  ) {
+  _updatePauseEffectMask(pauseFilter, universalConfig) {
     if (!universalConfig?.pauseEffect) return;
-
-    const config = universalConfig.pauseEffect.colorCorrection;
     const u = pauseFilter.uniforms;
-
-    const useIllumMask = config.mask.enabled && isIlluminationReady;
-    u.uMaskEnabled = useIllumMask;
-    if (useIllumMask) {
-      this.pauseMaskGenerator.update(
-        this.canvas.app.renderer,
-        illuminationTexture,
-        config.mask.luminanceThreshold,
-        config.mask.softness,
-        config.mask.invert
-      );
-      u.uMaskTexture = this.pauseMaskGenerator.getMaskTexture();
-    }
+    u.uMaskEnabled = false; // Luminance masking has been removed.
   }
 
   update() {
@@ -10072,26 +9759,15 @@ class LightingEffectManager {
       return;
 
     const fullConfig = game.mapShine.profileManager.activeConfig;
-    const screen = this.canvas.app.renderer.screen;
-
-    const illuminationTexture = IlluminationManager.getLightingTexture();
-    const isIlluminationReady =
-      illuminationTexture?.valid &&
-      illuminationTexture.width === Math.round(screen.width) &&
-      illuminationTexture.height === Math.round(screen.height);
 
     const ccFilter = ScreenEffectsManager.getFilter("colorCorrection");
     if (ccFilter) {
-      this._updatePostProcessingMasks(
-        ccFilter,
-        fullConfig,
-        isIlluminationReady,
-        illuminationTexture
-      );
+      this._updatePostProcessingMasks(ccFilter, fullConfig);
     }
 
     const pauseFilter = ScreenEffectsManager.getFilter("pauseEffect");
     if (pauseFilter) {
+      // The config object is still passed to maintain structure, but mask properties are ignored.
       const universalSettings = {
         pauseEffect: {
           colorCorrection: {
@@ -10100,27 +9776,10 @@ class LightingEffectManager {
               MODULE_ID,
               "universal.pauseEffect.colorCorrection.enabled"
             ),
-            saturation: game.settings.get(
-              MODULE_ID,
-              "universal.pauseEffect.colorCorrection.saturation"
-            ),
-            brightness: game.settings.get(
-              MODULE_ID,
-              "universal.pauseEffect.colorCorrection.brightness"
-            ),
-            contrast: game.settings.get(
-              MODULE_ID,
-              "universal.pauseEffect.colorCorrection.contrast"
-            ),
           },
         },
       };
-      this._updatePauseEffectMask(
-        pauseFilter,
-        universalSettings,
-        isIlluminationReady,
-        illuminationTexture
-      );
+      this._updatePauseEffectMask(pauseFilter, universalSettings);
     }
   }
 }
@@ -19922,7 +19581,6 @@ class CloudShadowsLayer extends MaskedEffectLayer {
 
     const interactionConfig =
       game.mapShine.profileManager.activeConfig.cloudShadows.shadowInteraction;
-    const illumTexture = game.mapShine.resourceManager.getIlluminationTexture();
 
     u.u_shadowInteraction_enabled =
       interactionConfig.enabled && !!illumTexture?.valid;
@@ -27632,14 +27290,6 @@ class DebuggerEventHandler {
       }
     }
 
-    // External Textures and Core Layers
-    if (IlluminationManager.getLightingTexture()) {
-      textures.external["external_illumination"] =
-        "Internal Illumination Buffer";
-    }
-    if (canvas.effects?.illumination) {
-      textures.external["external_lightingLayer"] = "Core: Lighting Layer";
-    }
     if (canvas.effects?.darkness) {
       textures.external["external_darknessLayer"] = "Core: Darkness Layer";
     }
