@@ -1,3 +1,7 @@
+// TODO: Building Shadows is broken. I had to change how it worked as it was causing problems with the advanced bloom.
+// TODO: The advanced bloom works in the first scene you load into but not when you change scenes. Teardown and setup issue.
+
+
 /******************************************************************************
  *
  *                            MAP SHINE
@@ -1756,11 +1760,12 @@ const MODULE_DEFAULTS = {
   },
   advancedBloom: {
     enabled: false,
-    threshold: 0.5,
-    bloomScale: 1,
-    brightness: 1,
+    blendMode: 1, // ADD
+    threshold: 0.85,
+    bloomScale: 1.5,
+    brightness: 1.2,
     blur: 8,
-    quality: 4,
+    quality: 5,
   },
   sceneAppearance: {
     transitionDuration: 3500,
@@ -3779,6 +3784,7 @@ class MapShineInitialiser {
         if (canvas?.stage) {
           CoordinateManager.update();
           game.mapShine.resourceManager?.onFrameStart();
+          ScreenEffectsManager.updateFrame(canvas.app.ticker.elapsedMS / 1000);
         }
       };
       canvas.app.ticker.add(mainTicker, null, PIXI.UPDATE_PRIORITY.HIGH);
@@ -5904,11 +5910,6 @@ class SceneChangeManager {
       game.mapShine.fireWindManager = null;
     }
 
-    if (game.mapShine.effectsBloomLayer) {
-      game.mapShine.effectsBloomLayer.destroy();
-      game.mapShine.effectsBloomLayer = null;
-    }
-
     // Now, it's safe to tear down the manager that owns the global filters.
     ScreenEffectsManager.tearDown();
 
@@ -7701,8 +7702,6 @@ class MapShineLifecycle {
     }
     game.mapShine.geometryMaskManager.initialize();
 
-    game.mapShine.effectsBloomLayer = new EffectsBloomLayer();
-    game.mapShine.effectsBloomLayer.initialize();
 
     await loadingManager?.tick("MANAGERS_INIT");
 
@@ -8088,164 +8087,6 @@ class TokenManager {
   }
 }
 
-class EffectsBloomLayer {
-  constructor() {
-    this.container = null;
-    this.sources = new Map(); // key: string, value: { texture: PIXI.Texture, sprite: PIXI.Sprite, filters: PIXI.Filter[], config: object }
-    this._tickerFunction = this.update.bind(this);
-    this._destroyed = false;
-    this._boundOnMapPointsUpdated = this.update.bind(this);
-  }
-
-  initialize() {
-    if (this.container) this.destroy();
-    this._destroyed = false;
-
-    this.container = new PIXI.Container();
-    this.container.blendMode = PIXI.BLEND_MODES.NORMAL;
-    // In Foundry VTT v11+ (using PIXI v7+), we should explicitly set the eventMode
-    // to 'none' for top-level containers that should not interact with pointer events.
-    // This prevents the container from blocking clicks to underlying elements like tokens.
-    this.container.eventMode = "none";
-
-    canvas.stage.addChild(this.container);
-
-    const screen = CoordinateManager.getScreenDimensions();
-    this.renderTexture = PIXI.RenderTexture.create({
-      width: screen.width,
-      height: screen.height,
-    });
-
-    canvas.app.ticker.add(this._tickerFunction);
-    Hooks.on("mapShine:mapPointsUpdated", this._boundOnMapPointsUpdated);
-    this.update();
-  }
-
-  destroy() {
-    if (this._destroyed) return;
-    this._destroyed = true;
-
-    canvas.app.ticker.remove(this._tickerFunction);
-
-    for (const source of this.sources.values()) {
-      source.sprite?.destroy();
-      source.filters?.forEach((f) => f.destroy());
-    }
-    this.sources.clear();
-
-    this.container?.destroy({
-      children: true,
-    });
-    this.container = null;
-
-    console.log("Map Shine | EffectsBloomLayer destroyed.");
-  }
-
-  /**
-   * Registers a texture source to contribute to the global bloom.
-   * @param {string} key A unique key for this bloom source (e.g., 'metallicShine').
-   * @param {PIXI.Texture} texture The texture containing the bright areas to be bloomed.
-   * @param {object} config The configuration object for this bloom source.
-   */
-  addBloomSource(key, texture, config) {
-    if (!this.container || !texture || !texture.valid) return;
-
-    let source = this.sources.get(key);
-    if (!source) {
-      const sprite = new PIXI.Sprite(texture);
-
-      const bloomFilters = [
-        new ThresholdFilter(),
-        new PIXI.BlurFilter(),
-        new PIXI.ColorMatrixFilter(),
-        new ChromaticAberrationFilter(),
-      ];
-      sprite.filters = bloomFilters;
-
-      source = {
-        texture: texture,
-        sprite: sprite,
-        filters: bloomFilters,
-        config: config,
-      };
-
-      this.sources.set(key, source);
-      this.container.addChild(sprite);
-    } else {
-      source.sprite.texture = texture;
-      source.config = config;
-    }
-
-    this.updateSourceConfig(key);
-  }
-
-  /**
-   * Removes a bloom source when its parent effect is torn down.
-   * @param {string} key The key of the source to remove.
-   */
-  removeBloomSource(key) {
-    if (this.sources.has(key)) {
-      const source = this.sources.get(key);
-      source.sprite?.destroy();
-      source.filters?.forEach((f) => f.destroy());
-      this.sources.delete(key);
-    }
-  }
-
-  /**
-   * Updates the configuration for an existing bloom source.
-   * @param {string} key The key of the source to update.
-   * @param {object} [config] The new configuration object.
-   */
-  updateSourceConfig(key, config) {
-    const source = this.sources.get(key);
-    if (!source) return;
-
-    const effectiveConfig = config || source.config;
-    if (!effectiveConfig) return;
-
-    source.config = effectiveConfig;
-    source.sprite.visible = effectiveConfig.enabled;
-    source.sprite.blendMode = effectiveConfig.blendMode ?? PIXI.BLEND_MODES.ADD;
-
-    const [threshold, blur, brightness, aberration] = source.filters;
-
-    threshold.enabled = effectiveConfig.enabled;
-    threshold.threshold = effectiveConfig.threshold;
-
-    blur.enabled = effectiveConfig.enabled;
-    blur.strength = effectiveConfig.blur;
-    blur.quality = effectiveConfig.quality;
-
-    brightness.enabled = effectiveConfig.enabled;
-    brightness.brightness(effectiveConfig.brightness, false);
-
-    const rgbConfig = effectiveConfig.rgbSplit;
-    aberration.enabled = effectiveConfig.enabled && rgbConfig?.enabled;
-    if (aberration.enabled) {
-      aberration.amount = (rgbConfig.amount ?? 0) / 400;
-    }
-  }
-
-  update() {
-    if (this._destroyed || !this.container || this.sources.size === 0) return;
-
-    const stage = canvas.stage;
-    const screen = canvas.app.renderer.screen;
-    const topLeft = stage.toLocal({
-      x: 0,
-      y: 0,
-    });
-
-    for (const source of this.sources.values()) {
-      if (source.sprite.visible && source.texture && source.texture.valid) {
-        source.sprite.position.copyFrom(topLeft);
-        source.sprite.width = screen.width / stage.scale.x;
-        source.sprite.height = screen.height / stage.scale.y;
-      }
-    }
-  }
-}
 
 class MapPointsManager {
   static FLAG_NAME = "mapPointGroups";
@@ -8877,6 +8718,26 @@ class PauseScreenManager {
               justify-content: center;
               align-items: center;
             }
+
+            @layer applications {
+            #pause {
+              height: 450px;
+              width: 100%;
+              position: fixed;
+              top: calc(50vh - 100px);
+              left: 0;
+              background: linear-gradient(to right, transparent 0%, var(--color-cool-5-50) 40%, var(--color-cool-5-50) 60%, transparent 100%);
+              display: none;
+              flex-direction: column;
+              justify-content: center;
+              align-items: center;
+              gap: 1.5rem;
+              pointer-events: none;
+              z-index: calc(var(--z-index-canvas) + 1);
+            }
+          }
+
+
 
             .map-shine-pause-wrapper {
               position: relative;
@@ -14227,9 +14088,23 @@ class ColorFromSpawnBehavior {
 
 class NoisePatternFilter extends PIXI.Filter {
   constructor(options) {
+    const vertexSrc = `
+            attribute vec2 aVertexPosition;
+            attribute vec2 aTextureCoord;
+            uniform mat3 projectionMatrix;
+            varying vec2 vTextureCoord;
+            varying vec2 vScreenCoord;
+
+            void main(void) {
+                gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
+                vTextureCoord = aTextureCoord;
+                vScreenCoord = gl_Position.xy * 0.5 + 0.5;
+            }
+        `;
+
     const fragmentSrc = `
                         precision mediump float; 
-                        varying vec2 vTextureCoord;
+                        varying vec2 vScreenCoord; // Use the reliable screen coordinate varying
 
                         uniform float u_time; 
                         uniform vec2 u_resolution;
@@ -14274,16 +14149,13 @@ class NoisePatternFilter extends PIXI.Filter {
                         void main() {
                             vec2 uv;
                             if (u_isWorldSpace) {
-                                vec2 world_coord = u_camera_offset + (vTextureCoord * u_view_size);
-                                // Apply animation directly to the world coordinates to ensure stability.
-                                // A multiplier is used to make the UI speed value more intuitive.
+                                // Calculate world coordinates from the reliable vScreenCoord
+                                vec2 world_coord = u_camera_offset + (vScreenCoord * u_view_size);
                                 world_coord.x += u_time * u_speed * 10.0;
-
-                                // Use a large divisor to keep the user-facing scale value in a reasonable range (e.g., 0.1-10)
                                 uv = world_coord * u_scale / 1000.0;
                             } else {
-                                // Original screen-space calculation
-                                vec2 screen_pixel_coord = vTextureCoord * u_resolution;
+                                // Original screen-space calculation using vScreenCoord
+                                vec2 screen_pixel_coord = vScreenCoord * u_resolution;
                                 vec2 screen_center_pixel_coord = u_resolution * 0.5;
                                 uv = (screen_pixel_coord - screen_center_pixel_coord) * u_scale / 30.0;
                                 uv.x += u_time * u_speed;
@@ -14298,11 +14170,7 @@ class NoisePatternFilter extends PIXI.Filter {
                             gl_FragColor = vec4(vec3(clamp(noise, 0.0, 1.0)), 1.0);
                         }
                     `;
-
-    // The options object passed in could be missing properties.
-    // This revised constructor ensures all uniforms have a safe default value before being passed to PIXI.
     const safeOptions = {
-      // It's crucial to provide a fallback for u_resolution, as [0,0] would break calculations.
       u_resolution: [
         canvas?.app?.renderer.screen.width || 1,
         canvas?.app?.renderer.screen.height || 1,
@@ -14314,7 +14182,7 @@ class NoisePatternFilter extends PIXI.Filter {
       ...options,
     };
 
-    super(PIXI.Filter.defaultVertexSrc, fragmentSrc, safeOptions);
+    super(vertexSrc, fragmentSrc, safeOptions);
   }
 }
 
@@ -14450,12 +14318,30 @@ class FilmGrainFilter extends PIXI.Filter {
 
 class HeatDistortionNoiseFilter extends PIXI.Filter {
   constructor(options = {}) {
+    const vertexSrc = `
+            attribute vec2 aVertexPosition;
+            attribute vec2 aTextureCoord;
+            uniform mat3 projectionMatrix;
+            varying vec2 vTextureCoord;
+            varying vec2 vScreenCoord;
+
+            void main(void) {
+                gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
+                vTextureCoord = aTextureCoord;
+                // Calculate normalized screen coordinates from the vertex's final position.
+                // This is the robust way to get screen-space UVs for a post-processing filter.
+                vScreenCoord = gl_Position.xy * 0.5 + 0.5;
+            }
+        `;
     const fragmentSrc = `
             precision mediump float;
-            varying vec2 vTextureCoord;
+            varying vec2 vScreenCoord; // Use the reliable screen coordinate varying
 
             uniform float u_time;
-            uniform vec2 u_resolution;
+            
+            // World-space uniforms
+            uniform vec2 u_camera_offset;
+            uniform vec2 u_view_size;
 
             // Primary Noise Layer
             uniform float u_primarySpeed;
@@ -14473,56 +14359,34 @@ class HeatDistortionNoiseFilter extends PIXI.Filter {
 
             // Rising Motion
             uniform float u_risingSpeed;
-            uniform float u_risingIntensity;
 
-            // Simplex Noise functions (snoise, permute, taylorInvSqrt)
-            vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 289.0);}
-            vec4 taylorInvSqrt(vec4 r){return 1.79284291400159 - 0.85373472095314 * r;}
-
-            float snoise(vec3 v) {
-                const vec2 C = vec2(1.0/6.0, 1.0/3.0);
-                const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
-                vec3 i  = floor(v + dot(v, C.yyy) );
-                vec3 x0 =   v - i + dot(i, C.xxx) ;
-                vec3 g = step(x0.yzx, x0.xyz);
-                vec3 l = 1.0 - g;
-                vec3 i1 = min( g.xyz, l.zxy );
-                vec3 i2 = max( g.xyz, l.zxy );
-                vec3 x1 = x0 - i1 + C.xxx;
-                vec3 x2 = x0 - i2 + C.yyy;
-                vec3 x3 = x0 - D.yyy;
+            // 2D Simplex Noise functions by Ashima Arts.
+            vec3 permute(vec3 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
+            vec3 taylorInvSqrt(vec3 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+            float snoise(vec2 v) {
+                const vec4 C = vec4(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439);
+                vec2 i  = floor(v + dot(v, C.yy));
+                vec2 x0 = v - i + dot(i, C.xx);
+                vec2 i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+                vec2 x1 = x0.xy + C.xx - i1;
+                vec2 x2 = x0.xy + C.zz;
                 i = mod(i, 289.0);
-                vec4 p = permute( permute( i.z + vec4(0.0, i1.z, i2.z, 1.0 ))
-                    + i.y + vec4(0.0, i1.y, i2.y, 1.0 ))
-                    + i.x + vec4(0.0, i1.x, i2.x, 1.0 );
-                float n_ = 0.142857142857;
-                vec3  ns = n_ * D.wyz - D.xzx;
-                vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
-                vec4 x_ = floor(j * ns.z);
-                vec4 y_ = floor(j - 7.0 * x_ );
-                vec4 x = x_ *ns.x + ns.yyyy;
-                vec4 y = y_ *ns.x + ns.yyyy;
-                vec4 h = 1.0 - abs(x) - abs(y);
-                vec4 b0 = vec4( x.xy, y.xy );
-                vec4 b1 = vec4( x.zw, y.zw );
-                vec4 s0 = floor(b0)*2.0 + 1.0;
-                vec4 s1 = floor(b1)*2.0 + 1.0;
-                vec4 sh = -step(h, vec4(0.0));
-                vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;
-                vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;
-                vec3 p0 = vec3(a0.xy,h.x);
-                vec3 p1 = vec3(a0.zw,h.y);
-                vec3 p2 = vec3(a1.xy,h.z);
-                vec3 p3 = vec3(a1.zw,h.w);
-                vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
-                p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
-                vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
-                m = m * m;
-                return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3) ) );
+                vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 )) + i.x + vec3(0.0, i1.x, 1.0 ));
+                vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x1,x1), dot(x2,x2)), 0.0);
+                m = m*m; m = m*m;
+                vec3 x = 2.0 * fract(p * C.www) - 1.0;
+                vec3 h = abs(x) - 0.5;
+                vec3 ox = floor(x + 0.5);
+                vec3 a0 = x - ox;
+                m *= taylorInvSqrt(a0*a0 + h*h);
+                vec3 g;
+                g.x  = a0.x  * x0.x  + h.x  * x0.y;
+                g.yz = a0.yz * vec2(x1.x,x2.x) + h.yz * vec2(x1.y,x2.y);
+                return 130.0 * dot(m, g);
             }
 
-            // FBM function
-            float fbm(vec3 st, int octaves, float lacunarity, float persistence) {
+            // 2D FBM function
+            float fbm(vec2 st, int octaves, float lacunarity, float persistence) {
                 float value = 0.0;
                 float amplitude = 0.5;
                 for (int i = 0; i < 8; i++) {
@@ -14535,35 +14399,40 @@ class HeatDistortionNoiseFilter extends PIXI.Filter {
             }
 
             void main() {
+                // Convert screen-space vScreenCoord to world-space coordinates.
+                vec2 world_coord = u_camera_offset + (vScreenCoord * u_view_size);
+
+                // --- ANIMATION ---
+                // Calculate all animation offsets consistently in world-space first.
+                // A multiplier is used to keep UI speed values in a sensible range.
+                vec2 primary_anim_offset = vec2(u_time * u_primarySpeed, -u_time * u_risingSpeed) * 20.0;
+                vec2 secondary_anim_offset = vec2(u_time * u_secondarySpeed, -u_time * u_risingSpeed) * 20.0;
+
+                // --- NOISE CALCULATION ---
+                // Apply animation offsets to world coordinates, THEN scale for noise sampling.
+                vec2 primary_uv = (world_coord + primary_anim_offset) * u_primaryScale * 0.01;
+                vec2 secondary_uv = (world_coord + secondary_anim_offset) * u_secondaryScale * 0.01;
+                
                 // Primary, slower, larger waves for X and Y displacement
-                vec2 primary_uv = vTextureCoord * u_primaryScale;
-                float primary_time = u_time * u_primarySpeed;
-                float primary_noise_x = fbm(vec3(primary_uv, primary_time), u_primaryOctaves, u_primaryLacunarity, u_primaryPersistence);
-                float primary_noise_y = fbm(vec3(primary_uv + vec2(13.7, 5.9), primary_time), u_primaryOctaves, u_primaryLacunarity, u_primaryPersistence);
+                float primary_noise_x = fbm(primary_uv, u_primaryOctaves, u_primaryLacunarity, u_primaryPersistence);
+                float primary_noise_y = fbm(primary_uv + vec2(13.7, 5.9), u_primaryOctaves, u_primaryLacunarity, u_primaryPersistence);
 
                 // Secondary, faster, smaller waves for detail
-                vec2 secondary_uv = vTextureCoord * u_secondaryScale;
-                float secondary_time = u_time * u_secondarySpeed;
-                float secondary_noise_x = fbm(vec3(secondary_uv, secondary_time), u_secondaryOctaves, u_secondaryLacunarity, u_secondaryPersistence);
-                float secondary_noise_y = fbm(vec3(secondary_uv + vec2(-8.2, -19.1), secondary_time), u_secondaryOctaves, u_secondaryLacunarity, u_secondaryPersistence);
-
-                // Rising motion (vertical pull)
-                float rising_time = u_time * u_risingSpeed;
-                float rising_noise = (snoise(vec3(vTextureCoord * 3.0, rising_time)) * 0.5 + 0.5); // 0 to 1 range
-                float rising_pull = -rising_noise * u_risingIntensity;
-
+                float secondary_noise_x = fbm(secondary_uv, u_secondaryOctaves, u_secondaryLacunarity, u_secondaryPersistence);
+                float secondary_noise_y = fbm(secondary_uv + vec2(-8.2, -19.1), u_secondaryOctaves, u_secondaryLacunarity, u_secondaryPersistence);
+                
                 // Combine noises
-                // Primary is weighted more heavily than secondary
                 float final_x = (primary_noise_x * 0.7) + (secondary_noise_x * 0.3);
-                float final_y = (primary_noise_y * 0.7) + (secondary_noise_y * 0.3) + rising_pull;
+                float final_y = (primary_noise_y * 0.7) + (secondary_noise_y * 0.3);
                 
                 // Normalize to 0-1 range for the displacement map
                 gl_FragColor = vec4(final_x * 0.5 + 0.5, final_y * 0.5 + 0.5, 0.0, 1.0);
             }
         `;
-    super(PIXI.Filter.defaultVertexSrc, fragmentSrc, {
+    super(vertexSrc, fragmentSrc, {
       u_time: 0.0,
-      u_resolution: [1, 1],
+      u_camera_offset: [0, 0],
+      u_view_size: [1, 1],
       u_primarySpeed: 0.01,
       u_primaryScale: 1.5,
       u_primaryOctaves: 3,
@@ -14575,7 +14444,8 @@ class HeatDistortionNoiseFilter extends PIXI.Filter {
       u_secondaryLacunarity: 2.5,
       u_secondaryPersistence: 0.4,
       u_risingSpeed: 0.02,
-      u_risingIntensity: 0.5,
+      // u_risingIntensity is no longer used by the shader but is kept for config compatibility
+      u_risingIntensity: 0.5, 
       ...options,
     });
   }
@@ -14934,6 +14804,7 @@ class ScreenEffectsManager {
   static _filters = new Map();
   static _container = null;
   static _curveLut = null;
+  static _bloomSprite = null;
 
   static getManagedEffectsHTML() {
     const buildSelectiveControls = (pathPrefix) => `
@@ -15206,7 +15077,59 @@ class ScreenEffectsManager {
                                 </details>
                             </div>
                         </details>
-                            
+                        
+                        <details id="details-advancedBloom">
+                            <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                              "advancedBloom.enabled",
+                              "Advanced Bloom (Full Screen)",
+                              true
+                            )}</div></summary>
+                            <div>
+                                <div class="warning-box" style="background-color: #554422; border-color: #ffaa66;"><strong style="color: #ffddaa;">PERFORMANCE WARNING:</strong> This is a demanding effect. Lowering 'Quality' can significantly improve performance.</div>
+                                <p class="description-text">Adds a powerful, high-quality bloom effect to the brightest parts of the entire scene.</p>
+                                ${DebuggerUIBuilder._createSliderHTML(
+                                  "advancedBloom.threshold",
+                                  "Threshold",
+                                  0,
+                                  1,
+                                  0.01,
+                                  "Only pixels brighter than this value will contribute to the bloom."
+                                )}
+                                ${DebuggerUIBuilder._createSliderHTML(
+                                  "advancedBloom.bloomScale",
+                                  "Scale",
+                                  0.1,
+                                  2,
+                                  0.05,
+                                  "The size and spread of the bloom glow."
+                                )}
+                                ${DebuggerUIBuilder._createSliderHTML(
+                                  "advancedBloom.brightness",
+                                  "Brightness",
+                                  0.5,
+                                  2,
+                                  0.05,
+                                  "A brightness multiplier applied to the glowing areas."
+                                )}
+                                ${DebuggerUIBuilder._createSliderHTML(
+                                  "advancedBloom.blur",
+                                  "Blur",
+                                  0,
+                                  20,
+                                  0.5,
+                                  "The amount of blur applied to the glow."
+                                )}
+                                ${DebuggerUIBuilder._createSliderHTML(
+                                  "advancedBloom.quality",
+                                  "Quality",
+                                  1,
+                                  15,
+                                  1,
+                                  "The number of blur passes. Higher is smoother but much more performance-intensive."
+                                )}
+                            </div>
+                        </details>
+
                         <details id="details-postProcessing-dynamicExposure">
                             <summary>
                                 <span class="accordion-toggle"></span>
@@ -15438,6 +15361,10 @@ class ScreenEffectsManager {
   static initialize(container) {
     if (!this._container) {
       this._container = container;
+      this._bloomSprite = new PIXI.Sprite(PIXI.Texture.EMPTY);
+      this._bloomSprite.name = "mapShineBloomSprite";
+      // The bloom sprite MUST be in the world container to be affected by other filters.
+      this._container.addChild(this._bloomSprite);
     }
   }
 
@@ -15464,11 +15391,9 @@ class ScreenEffectsManager {
     if (!this._container) return;
 
     const RENDER_ORDER = [
-      "advancedBloom",
       "tiltShift",
       "prism",
       "heatDistortion",
-      "timeOfDay",
       "colorCorrection",
       "pauseEffect",
       "combatEffect",
@@ -15537,11 +15462,13 @@ class ScreenEffectsManager {
       console.error("MapShine | Failed to compile HeatDistortionFilter", e);
     }
 
+/* DIAGNOSTIC: TimeOfDayColorFilter is now managed by its own layer, not globally.
     try {
       this.addFilter("timeOfDay", new TimeOfDayColorFilter());
     } catch (e) {
       ppErrors.push("TimeOfDay");
     }
+    */
 
     systemStatus.update("shaders", "heat", {
       state: heatErrors.length === 0 ? "ok" : "error",
@@ -15580,22 +15507,6 @@ class ScreenEffectsManager {
     }
 
     try {
-      const BloomFilterConstructor =
-        PIXI.filters.AdvancedBloomFilter ||
-        (PIXI.filters.filters && PIXI.filters.filters.AdvancedBloomFilter);
-      if (BloomFilterConstructor) {
-        const bloomFilter = new BloomFilterConstructor(
-          game.mapShine.profileManager.activeConfig.advancedBloom
-        );
-        this.addFilter("advancedBloom", bloomFilter);
-      } else {
-        ppErrors.push("AdvancedBloom (Bundling Failed)");
-      }
-    } catch (e) {
-      ppErrors.push("AdvancedBloom (Creation Failed)");
-    }
-
-    try {
       const TiltShiftFilterConstructor =
         PIXI.filters.TiltShiftFilter ||
         (PIXI.filters.filters && PIXI.filters.filters.TiltShiftFilter);
@@ -15607,6 +15518,36 @@ class ScreenEffectsManager {
       }
     } catch (e) {
       ppErrors.push("TiltShift (Creation Failed)");
+    }
+
+    try {
+      const BloomFilterConstructor =
+        PIXI.filters.AdvancedBloomFilter ||
+        (PIXI.filters.filters && PIXI.filters.filters.AdvancedBloomFilter);
+      if (BloomFilterConstructor) {
+        const bloomFilter = new BloomFilterConstructor();
+        this._filters.set("advancedBloom", bloomFilter);
+        if (this._bloomSprite) {
+          this._bloomSprite.filters = [bloomFilter];
+        }
+        systemStatus.update("shaders", "bloom", {
+          state: "ok",
+          message: "Compiled successfully.",
+        });
+      } else {
+        ppErrors.push("AdvancedBloom (Bundling Failed)");
+        systemStatus.update("shaders", "bloom", {
+          state: "error",
+          message: "Bundling failed.",
+        });
+      }
+    } catch (e) {
+      ppErrors.push("AdvancedBloom (Creation Failed)");
+      console.error("MapShine | Failed to create AdvancedBloomFilter", e);
+      systemStatus.update("shaders", "bloom", {
+        state: "error",
+        message: `Compilation failed: ${e.message}`,
+      });
     }
 
     systemStatus.update("shaders", "postProcessing", {
@@ -15683,23 +15624,6 @@ class ScreenEffectsManager {
       }
     }
 
-    const advancedBloomFilter = this.getFilter("advancedBloom");
-    const BloomFilterConstructor =
-      PIXI.filters.AdvancedBloomFilter ||
-      (PIXI.filters.filters && PIXI.filters.filters.AdvancedBloomFilter);
-    if (
-      advancedBloomFilter &&
-      BloomFilterConstructor &&
-      advancedBloomFilter instanceof BloomFilterConstructor
-    ) {
-      advancedBloomFilter.enabled = config.enabled && pp.enabled && ab.enabled;
-      advancedBloomFilter.threshold = ab.threshold;
-      advancedBloomFilter.bloomScale = ab.bloomScale;
-      advancedBloomFilter.brightness = ab.brightness;
-      advancedBloomFilter.blur = ab.blur;
-      advancedBloomFilter.quality = ab.quality;
-    }
-
     const tiltShiftFilter = this.getFilter("tiltShift");
     const TiltShiftFilterConstructor =
       PIXI.filters.TiltShiftFilter ||
@@ -15766,6 +15690,32 @@ class ScreenEffectsManager {
         pp.chromaticAberration.centerX,
         pp.chromaticAberration.centerY,
       ];
+    }
+
+    const advancedBloomFilter = this.getFilter("advancedBloom");
+    const BloomFilterConstructor =
+      PIXI.filters.AdvancedBloomFilter ||
+      (PIXI.filters.filters && PIXI.filters.filters.AdvancedBloomFilter);
+
+    if (
+      advancedBloomFilter &&
+      BloomFilterConstructor &&
+      advancedBloomFilter instanceof BloomFilterConstructor
+    ) {
+      advancedBloomFilter.enabled = config.enabled && pp.enabled && ab.enabled;
+      if (advancedBloomFilter.enabled) {
+        advancedBloomFilter.threshold = ab.threshold;
+        advancedBloomFilter.bloomScale = ab.bloomScale;
+        advancedBloomFilter.brightness = ab.brightness;
+        advancedBloomFilter.blur = ab.blur;
+        advancedBloomFilter.quality = ab.quality;
+      }
+      if (this._bloomSprite) {
+        this._bloomSprite.visible = advancedBloomFilter.enabled;
+        if (advancedBloomFilter.enabled) {
+          this._bloomSprite.blendMode = ab.blendMode ?? PIXI.BLEND_MODES.ADD;
+        }
+      }
     }
 
     const ccFilter = this.getFilter("colorCorrection");
@@ -15873,12 +15823,49 @@ class ScreenEffectsManager {
     }
   }
 
+  static updateFrame(deltaTimeInSeconds) {
+    if (!this._container || !this._bloomSprite) return;
+
+    const bloomFilter = this.getFilter("advancedBloom");
+    if (bloomFilter && bloomFilter.enabled) {
+      const resourceManager = game.mapShine.resourceManager;
+      if (resourceManager) {
+        const shineTexture = resourceManager.getAnimatedShineTexture(
+          deltaTimeInSeconds
+        );
+        if (this._bloomSprite.texture !== shineTexture) {
+          this._bloomSprite.texture = shineTexture || PIXI.Texture.EMPTY;
+        }
+
+        // Now that the texture is correct, we position and size the world-space sprite
+        // to perfectly cover the screen, making it world-stable.
+        const cameraOffset = CoordinateManager.getCameraOffset();
+        const viewSize = CoordinateManager.getViewSize();
+
+        this._bloomSprite.position.copyFrom(cameraOffset);
+        this._bloomSprite.width = viewSize.width;
+        this._bloomSprite.height = viewSize.height;
+      }
+    }
+  }
+
   static tearDown() {
     if (!this._container) return;
     for (const filter of this._filters.values()) {
       filter?.destroy();
     }
     this._filters.clear();
+
+    if (this._bloomSprite) {
+        // The sprite is a child of canvas.interface, which is not destroyed with the scene.
+        // We must manually remove and destroy it.
+        if (canvas.interface && canvas.interface.children.includes(this._bloomSprite)) {
+            canvas.interface.removeChild(this._bloomSprite);
+        }
+        this._bloomSprite.destroy();
+        this._bloomSprite = null;
+    }
+
     if (this._container.filters) {
       this._container.filters = null;
     }
@@ -17859,13 +17846,16 @@ class MetallicShineFilter extends PIXI.Filter {
           varying vec2 vScreenCoord;
 
           // Input Textures
-          uniform sampler2D uSpecularMap;      // The composite colored specular texture
-          uniform sampler2D uStripePattern;    // The animated B&W stripe pattern
-          uniform sampler2D uCloudOcclusionMask; // The cloud shadow texture
+          uniform sampler2D uSpecularMap;
+          uniform sampler2D uStripePattern;
+          uniform sampler2D uCloudOcclusionMask;
+          uniform sampler2D uStructuralMask;
+          uniform sampler2D uOutdoorsMask;
 
           // Control Uniforms
           uniform bool uCloudOcclusionEnabled;
           uniform float uCloudOcclusionIntensity;
+          uniform float uGlobalIntensity;
 
           // Color Correction Uniforms
           uniform bool uColorCorrectionEnabled;
@@ -17921,6 +17911,18 @@ class MetallicShineFilter extends PIXI.Filter {
                   finalAlpha *= mix(1.0, cloudValue, uCloudOcclusionIntensity);
               }
 
+              // Reduce shine in dark indoor areas based on the structural map.
+              float outdoorsMaskValue = texture2D(uOutdoorsMask, vScreenCoord).r;
+              if (outdoorsMaskValue < 0.5) { // If indoors (dark part of outdoors mask)
+                  // The structural mask is white for light, black for shadow.
+                  // We want to reduce shine in the dark parts, so we multiply by the mask's brightness.
+                  float structuralMaskValue = texture2D(uStructuralMask, vScreenCoord).r;
+                  finalAlpha *= structuralMaskValue;
+              }
+              
+              // Apply the global intensity multiplier from the layer.
+              finalAlpha *= uGlobalIntensity;
+
               // The output color is the original color from the specular map.
               // We multiply by finalAlpha for premultiplied alpha, which is standard for PIXI filters
               // and ensures correct blending with the scene.
@@ -17932,8 +17934,11 @@ class MetallicShineFilter extends PIXI.Filter {
       uSpecularMap: PIXI.Texture.EMPTY,
       uStripePattern: PIXI.Texture.EMPTY,
       uCloudOcclusionMask: PIXI.Texture.EMPTY,
+      uStructuralMask: PIXI.Texture.EMPTY,
+      uOutdoorsMask: PIXI.Texture.EMPTY,
       uCloudOcclusionEnabled: false,
       uCloudOcclusionIntensity: 1.0,
+      uGlobalIntensity: 1.0,
       uColorCorrectionEnabled: true,
       uSaturation: 1.0,
       uBrightness: 0.0,
@@ -17949,10 +17954,22 @@ class MetallicShineFilter extends PIXI.Filter {
 
 class MetallicStripePatternFilter extends PIXI.Filter {
   constructor(options = {}) {
-    const vertexSrc = PIXI.Filter.defaultVertexSrc;
+    const vertexSrc = `
+            attribute vec2 aVertexPosition;
+            attribute vec2 aTextureCoord;
+            uniform mat3 projectionMatrix;
+            varying vec2 vTextureCoord;
+            varying vec2 vScreenCoord;
+
+            void main(void) {
+                gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
+                vTextureCoord = aTextureCoord;
+                vScreenCoord = gl_Position.xy * 0.5 + 0.5;
+            }
+        `;
     const fragmentSrc = `
           precision mediump float;
-          varying vec2 vTextureCoord;
+          varying vec2 vScreenCoord; // Use the reliable screen coordinate varying
 
           // Time and stripe controls
           uniform float uTime;
@@ -17979,8 +17996,8 @@ class MetallicStripePatternFilter extends PIXI.Filter {
 
           void main() {
               // --- PARALLAX CALCULATION ---
-              vec2 world_coord = u_camera_offset + (vTextureCoord * u_view_size);
-              vec2 screen_coord_pixels = vTextureCoord * u_resolution;
+              vec2 world_coord = u_camera_offset + (vScreenCoord * u_view_size);
+              vec2 screen_coord_pixels = vScreenCoord * u_resolution;
               vec2 parallax_coord = mix(world_coord, screen_coord_pixels, uParallax);
               
               vec2 base_st = parallax_coord * 0.01;
@@ -18112,11 +18129,11 @@ class MetallicShineLayer extends CanvasLayer {
 
       ${DebuggerUIBuilder._createSliderHTML(
         "baseShine.animation.globalIntensity",
-        "Global Intensity (Alpha)",
+        "Global Intensity",
         0,
-        2,
-        0.05,
-        "Controls the opacity of the final effect."
+        4,
+        0.1,
+        "Controls the brightness of the final effect."
       )}
 
       <details id="details-baseShine-pattern-stripes">
@@ -18309,7 +18326,6 @@ class MetallicShineLayer extends CanvasLayer {
     this.effectSprite.filters = this.shineFilter ? [this.shineFilter] : [];
     this.addChild(this.effectSprite);
 
-    // New texture to hold the final rendered output
     this.finalShineTexture = PIXI.RenderTexture.create({
       width: screen.width,
       height: screen.height,
@@ -18343,16 +18359,13 @@ class MetallicShineLayer extends CanvasLayer {
   renderEffectNow(deltaTime) {
     if (this._destroyed || !this.visible || !this.shineFilter) return;
 
-    // Re-render the composite specular map if camera moved
     if (this._needsMaskUpdate) {
       this._renderSpecularCompositeTexture();
     }
 
-    // Update and render the B&W stripe pattern
     const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
     this.time += deltaTime * timeFactor;
     this.stripePatternFilter.uniforms.uTime = this.time;
-    // Pass coordinate system uniforms to the pattern filter
     Object.assign(
       this.stripePatternFilter.uniforms,
       CoordinateManager.getShaderUniforms()
@@ -18366,25 +18379,30 @@ class MetallicShineLayer extends CanvasLayer {
     const resourceManager = game.mapShine.resourceManager;
     const cloudTexture =
       resourceManager.getCloudShadowTexture(deltaTime) || PIXI.Texture.WHITE;
+    const structuralMask =
+      resourceManager.getStructuralMask() || PIXI.Texture.WHITE;
+    const outdoorsMask =
+      resourceManager.getOutdoorsMask() || PIXI.Texture.WHITE;
 
-    // Update the final composition filter's uniforms
     const u = this.shineFilter.uniforms;
     u.uSpecularMap = this.specularCompositeTexture;
     u.uStripePattern = this.stripePatternTexture;
     u.uCloudOcclusionMask = cloudTexture;
+    u.uStructuralMask = structuralMask;
+    u.uOutdoorsMask = outdoorsMask;
 
-    // Position the final effect sprite to cover the screen
-    const stage = canvas.stage;
-    const screen = canvas.app.screen;
-    const topLeft = stage.toLocal({ x: 0, y: 0 });
+    const cameraOffset = CoordinateManager.getCameraOffset();
+    const viewSize = CoordinateManager.getViewSize();
 
-    this.effectSprite.position.copyFrom(topLeft);
-    this.effectSprite.width = screen.width / stage.scale.x;
-    this.effectSprite.height = screen.height / stage.scale.y;
+    this.effectSprite.position.copyFrom(cameraOffset);
+    this.effectSprite.width = viewSize.width;
+    this.effectSprite.height = viewSize.height;
 
-    // Render the final effect to our output texture
+    // This is the critical fix: we now provide the main camera's transform.
+    // This correctly renders the world-space sprite into the screen-space texture.
     canvas.app.renderer.render(this.effectSprite, {
       renderTexture: this.finalShineTexture,
+      transform: canvas.stage.transform.worldTransform,
       clear: true,
     });
   }
@@ -18475,7 +18493,7 @@ class MetallicShineLayer extends CanvasLayer {
     this.blendMode = bsConfig.compositing.layerBlendMode;
 
     if (this.effectSprite) {
-      this.effectSprite.alpha = bsConfig.animation.globalIntensity;
+      this.effectSprite.alpha = 1.0;
     }
 
     if (this.stripePatternFilter) {
@@ -18495,6 +18513,7 @@ class MetallicShineLayer extends CanvasLayer {
       const cloudOcclusion = bsConfig.cloudOcclusion;
       const colorCorrection = bsConfig.colorCorrection;
       const u = this.shineFilter.uniforms;
+      u.uGlobalIntensity = bsConfig.animation.globalIntensity;
       u.uCloudOcclusionEnabled = cloudOcclusion.enabled;
       u.uCloudOcclusionIntensity = cloudOcclusion.intensity;
 
@@ -18546,6 +18565,7 @@ class MetallicShineLayer extends CanvasLayer {
   async _tearDown(options) {
     if (this._destroyed) return;
     this._destroyed = true;
+
 
     canvas.app.ticker.remove(this._onAnimateBound);
     window.removeEventListener("resize", this._onResizeBound);
@@ -18673,6 +18693,9 @@ class CloudShadowsFilter extends PIXI.Filter {
                             float shadedCloudValue = 0.0;
                             // Generate cloud noise regardless of being indoors, if we might need the raw cloud output.
                             if (maskValue > 0.01 || u_outputRawCloud) {
+                                // This is the corrected calculation. It uses the world coordinates derived
+                                // from the screen coordinates to sample the noise pattern, ensuring the
+                                // pattern moves correctly with the map.
                                 vec2 world_coord = u_camera_offset + (vScreenCoord * u_view_size);
                                 vec2 noise_uv = world_coord / 100.0 * u_noise_scale;
                                 noise_uv += u_time * u_windDirection;
@@ -18945,6 +18968,9 @@ class CloudShadowsLayer extends MaskedEffectLayer {
       height: renderer.screen.height,
     });
     this.blurSourceSprite = new PIXI.Sprite(this.combinedMaskTexture);
+    // Explicitly size the sprite to match the screen.
+    this.blurSourceSprite.width = renderer.screen.width;
+    this.blurSourceSprite.height = renderer.screen.height;
     this.blurSourceSprite.filters = [this.maskBlurFilter];
 
     this._patternGeneratorSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
@@ -19012,17 +19038,32 @@ class CloudShadowsLayer extends MaskedEffectLayer {
       this.effectSprite.filterArea = canvas.app.screen;
     }
 
+    // DIAGNOSTIC CHANGE: The entire block responsible for blurring the mask is bypassed.
+    // We will now always use the original, un-blurred mask.
+    /*
     if (this._needsMaskUpdate && this.maskBlurFilter?.enabled) {
       this.blurSourceSprite.texture = this.combinedMaskTexture;
+      // Temporarily assign the filter.
+      this.blurSourceSprite.filters = [this.maskBlurFilter];
+
+      // Bind the render texture and manually clear it to opaque black.
+      canvas.app.renderer.renderTexture.bind(this.blurredMaskTexture);
+      canvas.app.renderer.renderTexture.clear([0.0, 0.0, 0.0, 1.0]);
+
       canvas.app.renderer.render(this.blurSourceSprite, {
         renderTexture: this.blurredMaskTexture,
-        clear: true,
+        // Set clear to false as we have already manually cleared.
+        clear: false,
+        // Render with a neutral transform, ignoring the camera.
+        transform: new PIXI.Matrix(),
       });
+      // Immediately remove the filter.
+      this.blurSourceSprite.filters = null;
     }
+    */
 
-    const finalMask = this.maskBlurFilter?.enabled
-      ? this.blurredMaskTexture
-      : this.getMaskTexture();
+    // DIAGNOSTIC CHANGE: Force the use of the non-blurred mask.
+    const finalMask = this.getMaskTexture();
     const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
     const u = this.cloudFilter.uniforms;
 
@@ -19168,6 +19209,11 @@ class CloudShadowsLayer extends MaskedEffectLayer {
       renderer.screen.width,
       renderer.screen.height
     );
+    // Ensure the sprite is resized along with the texture.
+    if (this.blurSourceSprite) {
+      this.blurSourceSprite.width = renderer.screen.width;
+      this.blurSourceSprite.height = renderer.screen.height;
+    }
     this.cloudShadowTexture?.resize(
       renderer.screen.width,
       renderer.screen.height
@@ -21047,8 +21093,8 @@ class HeatDistortionLayer extends CanvasLayer {
                                           "heatDistortion.noise.primary.speed",
                                           "Speed",
                                           0,
-                                          0.1,
-                                          0.001
+                                          100,
+                                          0.5
                                         )}
                                         ${DebuggerUIBuilder._createSliderHTML(
                                           "heatDistortion.noise.primary.scale",
@@ -21087,8 +21133,8 @@ class HeatDistortionLayer extends CanvasLayer {
                                           "heatDistortion.noise.secondary.speed",
                                           "Speed",
                                           0,
-                                          0.2,
-                                          0.005
+                                          100,
+                                          0.5
                                         )}
                                         ${DebuggerUIBuilder._createSliderHTML(
                                           "heatDistortion.noise.secondary.scale",
@@ -21304,6 +21350,12 @@ class HeatDistortionLayer extends CanvasLayer {
     const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
     this.time += deltaTime * timeFactor;
     this.noiseFilter.uniforms.u_time = this.time;
+    // Pass world-space uniforms to the noise filter
+    Object.assign(
+      this.noiseFilter.uniforms,
+      CoordinateManager.getShaderUniforms()
+    );
+
     canvas.app.renderer.render(this.noiseSprite, {
       renderTexture: this.noiseTexture,
       clear: true,
@@ -21355,10 +21407,6 @@ class HeatDistortionLayer extends CanvasLayer {
       this.noiseTexture.resize(renderer.screen.width, renderer.screen.height);
       this.noiseSprite.width = renderer.screen.width;
       this.noiseSprite.height = renderer.screen.height;
-      this.noiseFilter.uniforms.u_resolution = [
-        renderer.screen.width,
-        renderer.screen.height,
-      ];
     }
 
     if (game.mapShine?.effectTargetManager?.targets) {
@@ -22776,6 +22824,7 @@ class WaterFXLayer extends MaskedEffectLayer {
 
     const useShorelineMask = this.shorelineMaskSprites.size > 0;
     this.displacementFilter.uniforms.u_time = this.time;
+    Object.assign(this.displacementFilter.uniforms, CoordinateManager.getShaderUniforms());
 
     const u = waterEffectsFilter.uniforms;
     const wConfig = game.mapShine.profileManager.activeConfig.water;
@@ -22886,13 +22935,30 @@ class WaterFXLayer extends MaskedEffectLayer {
 
 class WaveDisplacementFilter extends PIXI.Filter {
   constructor(options = {}) {
+    const vertexSrc = `
+            attribute vec2 aVertexPosition;
+            attribute vec2 aTextureCoord;
+            uniform mat3 projectionMatrix;
+            varying vec2 vTextureCoord;
+            varying vec2 vScreenCoord;
+
+            void main(void) {
+                gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
+                vTextureCoord = aTextureCoord;
+                vScreenCoord = gl_Position.xy * 0.5 + 0.5;
+            }
+        `;
     const fragmentSrc = `
                         precision mediump float;
-                        varying vec2 vTextureCoord;
+                        varying vec2 vScreenCoord; // Use the reliable screen coordinate varying
             
                         uniform float u_time;
                         uniform float u_speed;
                         uniform float u_scale;
+
+                        // World-space uniforms
+                        uniform vec2 u_camera_offset;
+                        uniform vec2 u_view_size;
             
                         //
                         // Description : Array and textureless GLSL 3D simplex noise function.
@@ -22973,9 +23039,12 @@ class WaveDisplacementFilter extends PIXI.Filter {
                         }
             
                         void main() {
+                            // Calculate world coordinates from the reliable screen coordinates
+                            vec2 world_coord = u_camera_offset + (vScreenCoord * u_view_size);
+
                             float time = u_time * u_speed;
-                            vec2 uv1 = vTextureCoord * u_scale + vec2(time * 0.5, time * 0.2);
-                            vec2 uv2 = vTextureCoord * u_scale * 1.5 - vec2(time * -0.2, time * 0.5);
+                            vec2 uv1 = world_coord * u_scale * 0.01 + vec2(time * 0.5, time * 0.2);
+                            vec2 uv2 = world_coord * u_scale * 0.015 - vec2(time * -0.2, time * 0.5);
             
                             float noise1_x = snoise(vec3(uv1, time));
                             float noise1_y = snoise(vec3(uv1 + 10.0, time));
@@ -22990,10 +23059,12 @@ class WaveDisplacementFilter extends PIXI.Filter {
                             gl_FragColor = vec4(displacement * 0.5 + 0.5, 0.0, 1.0);
                         }
                     `;
-    super(PIXI.Filter.defaultVertexSrc, fragmentSrc, {
+    super(vertexSrc, fragmentSrc, {
       u_time: 0.0,
       u_speed: options.speed ?? 0.05,
       u_scale: options.scale ?? 4.0,
+      u_camera_offset: [0, 0],
+      u_view_size: [1, 1],
     });
   }
 }
@@ -23055,45 +23126,10 @@ class BuildingShadowsFilter extends PIXI.Filter {
                 // Convert world-pixel offset to screen-pixel offset, then to UV offset.
                 vec2 baseSampleCoord = vTextureCoord - (uShadowOffset * uCanvasScale) * uTexelSize;
                 
-                // --- Directional Gaussian Blur ---
-                float shadowFactor = 0.0;
-                
-                // Normalize the offset to get the blur direction. Add a small epsilon to avoid normalizing a zero vector.
-                vec2 blurDirection = normalize(uShadowOffset + vec2(0.0001)); 
-
-                // Gaussian weights for 9 samples (center + 4 on each side)
-                // Initialized element-by-element for GLSL ES 1.00 compatibility.
-                float weights[5];
-                weights[0] = 0.227027;
-                weights[1] = 0.1945946;
-                weights[2] = 0.120985;
-                weights[3] = 0.053991;
-                weights[4] = 0.016216;
-                
-                float totalWeight = weights[0];
-
-                // Center sample
-                shadowFactor += sampleCaster(baseSampleCoord) * weights[0];
-
-                // Samples in both directions along the blur vector
-                for (int i = 1; i < 5; i++) {
-                    float offsetPixels = float(i) * uBlur / 4.0;
-
-                    // Convert the world-pixel blur offset to a screen-pixel offset, then to a UV offset.
-                    vec2 offsetUV = (blurDirection * offsetPixels * uCanvasScale) * uTexelSize;
-                    
-                    shadowFactor += sampleCaster(baseSampleCoord + offsetUV) * weights[i];
-                    shadowFactor += sampleCaster(baseSampleCoord - offsetUV) * weights[i];
-                    
-                    totalWeight += weights[i] * 2.0;
-                }
-
-                if (totalWeight > 0.0) {
-                    shadowFactor /= totalWeight;
-                } else {
-                    // Fallback in case totalWeight is somehow zero
-                    shadowFactor = sampleCaster(baseSampleCoord);
-                }
+                // --- DIAGNOSTIC: BLUR DISABLED ---
+                // The complex blur logic is bypassed to test if it's the source of the ghosting artifact.
+                // We now only take a single sample at the calculated shadow position.
+                float shadowFactor = sampleCaster(baseSampleCoord);
 
                 float shadowMultiplier = mix(1.0 - uIntensity, 1.0, shadowFactor);
                 
@@ -23203,13 +23239,14 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
   }
 
   async _draw(options) {
-    // This calls the base class _draw, which sets up the combined mask texture.
+    // This calls the base class _draw, which sets up the mask container and texture discovery.
     await super._draw(options);
 
     try {
       this.filter = new BuildingShadowsFilter();
-      // Apply the filter to the primary canvas container. This ensures it renders after lighting.
-      canvas.primary.filters = [...(canvas.primary.filters || []), this.filter];
+      // DIAGNOSTIC CHANGE: The line that adds the filter to the canvas is commented out.
+      // This will completely disable the Building Shadows effect for this test.
+      // canvas.primary.filters = [...(canvas.primary.filters || []), this.filter];
     } catch (e) {
       console.error("MapShine | Failed to create BuildingShadowsFilter", e);
       this.filter = null;
@@ -24008,6 +24045,7 @@ class TimeOfDayLayer extends MaskedEffectLayer {
     });
     this.currentTime = 12.0; // Keep track of the current 24-hour time
     this._sortedKeyframes = [];
+    this.filter = null; // The layer will now own its filter instance.
   }
 
   static getSettingsHTML() {
@@ -24110,38 +24148,29 @@ class TimeOfDayLayer extends MaskedEffectLayer {
     );
   }
 
-  /**
-   * Performs a full teardown and setup of the entire layer, including its base class components.
-   * This is used to recover the effect after a scene appearance transition by mimicking a fresh load.
-   */
   async rebuildEffect() {
-    console.log(
-      "TimeOfDayLayer | Rebuilding effect by cycling through full layer teardown and draw."
-    );
-
-    // 1. Perform a complete teardown of the layer, including its masks and listeners.
     await this._tearDown({});
-
-    // 2. Perform a complete setup of the layer, re-creating all PIXI objects and listeners.
     await this._draw({});
-
-    // 3. Re-inject the data that is normally provided by the SceneChangeManager during initial load.
     if (game.mapShine.effectTargetManager?.targets) {
       await this.updateEffectTargets(game.mapShine.effectTargetManager.targets);
     }
     if (game.mapShine.profileManager?.activeConfig) {
       await this.updateFromConfig(game.mapShine.profileManager.activeConfig);
     }
-
-    console.log(
-      "TimeOfDayLayer | Rebuild complete. Awaiting next animation frame to apply mask."
-    );
   }
 
   async _draw(options) {
     await super._draw(options);
-    // The initial config update happens during the setup lifecycle.
-    // The animation loop will ensure the correct time is used once the layer is active.
+
+    try {
+      this.filter = new TimeOfDayColorFilter();
+      // Apply the filter to the primary canvas container, which contains tiles and drawings.
+      canvas.primary.filters = [...(canvas.primary.filters || []), this.filter];
+    } catch (e) {
+      console.error("MapShine | Failed to create TimeOfDayColorFilter for its layer.", e);
+      this.filter = null;
+    }
+
     this.updateFromConfig(game.mapShine.profileManager.activeConfig);
   }
 
@@ -24151,24 +24180,17 @@ class TimeOfDayLayer extends MaskedEffectLayer {
     ).sort((a, b) => a.time - b.time);
   }
 
-  /**
-   * Centralized method to calculate and apply all time-based uniforms to the filter.
-   */
   _updateFilterUniforms() {
-    const filter = ScreenEffectsManager.getFilter("timeOfDay");
-    if (!filter) return;
+    if (!this.filter) return;
 
     const config = game.mapShine.profileManager.activeConfig;
     const todConfig = config.timeOfDay;
     const hasActiveMasks = this.maskSprites.size > 0;
 
-    // The filter is only enabled if the effect is globally enabled AND there's a mask to apply it to.
-    filter.enabled = config.enabled && todConfig.enabled && hasActiveMasks;
+    this.filter.enabled = config.enabled && todConfig.enabled && hasActiveMasks;
+    if (!this.filter.enabled) return;
 
-    // If it's not enabled, we don't need to update any other uniforms.
-    if (!filter.enabled) return;
-
-    const u = filter.uniforms;
+    const u = this.filter.uniforms;
     u.uIntensity = todConfig.intensity ?? 1.0;
     u.uOutdoorsMask = this.getMaskTexture();
 
@@ -24213,7 +24235,6 @@ class TimeOfDayLayer extends MaskedEffectLayer {
         : 0;
 
     const defaults = MODULE_DEFAULTS.timeOfDay.keyframes.midday;
-    // Set "From" uniforms with fallbacks to defaults to prevent errors
     u.uFromSaturation = fromFrame.saturation ?? defaults.saturation;
     u.uFromBrightness = fromFrame.brightness ?? defaults.brightness;
     u.uFromContrast = fromFrame.contrast ?? defaults.contrast;
@@ -24222,7 +24243,6 @@ class TimeOfDayLayer extends MaskedEffectLayer {
     u.uFromTemperature = fromFrame.temperature ?? defaults.temperature;
     u.uFromTint = fromFrame.tint ?? defaults.tint;
 
-    // Set "To" uniforms with fallbacks to defaults
     u.uToSaturation = toFrame.saturation ?? defaults.saturation;
     u.uToBrightness = toFrame.brightness ?? defaults.brightness;
     u.uToContrast = toFrame.contrast ?? defaults.contrast;
@@ -24235,9 +24255,6 @@ class TimeOfDayLayer extends MaskedEffectLayer {
   _onAnimate(deltaTime) {
     super._onAnimate(deltaTime);
     if (this._destroyed) return;
-
-    // The animate loop's only job is now to call the single, comprehensive update function.
-    // All logic, including the enabled check, is handled inside.
     this._updateFilterUniforms();
   }
 
@@ -24245,7 +24262,6 @@ class TimeOfDayLayer extends MaskedEffectLayer {
     const todConfig = config.timeOfDay;
     if (!todConfig) return;
 
-    // This layer's visibility is conceptual; the filter's enabled state is what matters.
     this.visible = config.enabled && todConfig.enabled;
 
     if (todConfig.currentTime !== undefined) {
@@ -24258,9 +24274,13 @@ class TimeOfDayLayer extends MaskedEffectLayer {
   }
 
   async _tearDown(options) {
-    const filter = ScreenEffectsManager.getFilter("timeOfDay");
-    if (filter) {
-      filter.enabled = false;
+    if (this.filter) {
+      // Remove the filter from the correct container.
+      canvas.primary.filters = (canvas.primary.filters || []).filter(
+        (f) => f !== this.filter
+      );
+      this.filter.destroy();
+      this.filter = null;
     }
     await super._tearDown(options);
   }
