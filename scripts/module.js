@@ -1,7 +1,6 @@
 // TODO: Building Shadows is broken. I had to change how it worked as it was causing problems with the advanced bloom.
 // TODO: The advanced bloom works in the first scene you load into but not when you change scenes. Teardown and setup issue.
 
-
 /******************************************************************************
  *
  *                            MAP SHINE
@@ -7702,7 +7701,6 @@ class MapShineLifecycle {
     }
     game.mapShine.geometryMaskManager.initialize();
 
-
     await loadingManager?.tick("MANAGERS_INIT");
 
     // 6. (NEW) Update the UI controls to reflect the finalized configuration.
@@ -8086,7 +8084,6 @@ class TokenManager {
     return this.activeToken;
   }
 }
-
 
 class MapPointsManager {
   static FLAG_NAME = "mapPointGroups";
@@ -14445,7 +14442,7 @@ class HeatDistortionNoiseFilter extends PIXI.Filter {
       u_secondaryPersistence: 0.4,
       u_risingSpeed: 0.02,
       // u_risingIntensity is no longer used by the shader but is kept for config compatibility
-      u_risingIntensity: 0.5, 
+      u_risingIntensity: 0.5,
       ...options,
     });
   }
@@ -15462,7 +15459,7 @@ class ScreenEffectsManager {
       console.error("MapShine | Failed to compile HeatDistortionFilter", e);
     }
 
-/* DIAGNOSTIC: TimeOfDayColorFilter is now managed by its own layer, not globally.
+    /* DIAGNOSTIC: TimeOfDayColorFilter is now managed by its own layer, not globally.
     try {
       this.addFilter("timeOfDay", new TimeOfDayColorFilter());
     } catch (e) {
@@ -15830,9 +15827,8 @@ class ScreenEffectsManager {
     if (bloomFilter && bloomFilter.enabled) {
       const resourceManager = game.mapShine.resourceManager;
       if (resourceManager) {
-        const shineTexture = resourceManager.getAnimatedShineTexture(
-          deltaTimeInSeconds
-        );
+        const shineTexture =
+          resourceManager.getAnimatedShineTexture(deltaTimeInSeconds);
         if (this._bloomSprite.texture !== shineTexture) {
           this._bloomSprite.texture = shineTexture || PIXI.Texture.EMPTY;
         }
@@ -15857,13 +15853,16 @@ class ScreenEffectsManager {
     this._filters.clear();
 
     if (this._bloomSprite) {
-        // The sprite is a child of canvas.interface, which is not destroyed with the scene.
-        // We must manually remove and destroy it.
-        if (canvas.interface && canvas.interface.children.includes(this._bloomSprite)) {
-            canvas.interface.removeChild(this._bloomSprite);
-        }
-        this._bloomSprite.destroy();
-        this._bloomSprite = null;
+      // The sprite is a child of canvas.interface, which is not destroyed with the scene.
+      // We must manually remove and destroy it.
+      if (
+        canvas.interface &&
+        canvas.interface.children.includes(this._bloomSprite)
+      ) {
+        canvas.interface.removeChild(this._bloomSprite);
+      }
+      this._bloomSprite.destroy();
+      this._bloomSprite = null;
     }
 
     if (this._container.filters) {
@@ -18565,7 +18564,6 @@ class MetallicShineLayer extends CanvasLayer {
   async _tearDown(options) {
     if (this._destroyed) return;
     this._destroyed = true;
-
 
     canvas.app.ticker.remove(this._onAnimateBound);
     window.removeEventListener("resize", this._onResizeBound);
@@ -22824,7 +22822,10 @@ class WaterFXLayer extends MaskedEffectLayer {
 
     const useShorelineMask = this.shorelineMaskSprites.size > 0;
     this.displacementFilter.uniforms.u_time = this.time;
-    Object.assign(this.displacementFilter.uniforms, CoordinateManager.getShaderUniforms());
+    Object.assign(
+      this.displacementFilter.uniforms,
+      CoordinateManager.getShaderUniforms()
+    );
 
     const u = waterEffectsFilter.uniforms;
     const wConfig = game.mapShine.profileManager.activeConfig.water;
@@ -23126,10 +23127,22 @@ class BuildingShadowsFilter extends PIXI.Filter {
                 // Convert world-pixel offset to screen-pixel offset, then to UV offset.
                 vec2 baseSampleCoord = vTextureCoord - (uShadowOffset * uCanvasScale) * uTexelSize;
                 
-                // --- DIAGNOSTIC: BLUR DISABLED ---
-                // The complex blur logic is bypassed to test if it's the source of the ghosting artifact.
-                // We now only take a single sample at the calculated shadow position.
-                float shadowFactor = sampleCaster(baseSampleCoord);
+                // --- PERFORMANT BLUR ---
+                float shadowFactor = 0.0;
+                float blurPixels = uBlur * uCanvasScale.x; // Blur radius in screen pixels
+                vec2 blurUv = blurPixels * uTexelSize;     // Blur radius in UV space
+
+                // 9-tap box blur for an efficient soft shadow
+                shadowFactor += sampleCaster(baseSampleCoord + vec2(-blurUv.x, -blurUv.y));
+                shadowFactor += sampleCaster(baseSampleCoord + vec2(0.0, -blurUv.y));
+                shadowFactor += sampleCaster(baseSampleCoord + vec2(blurUv.x, -blurUv.y));
+                shadowFactor += sampleCaster(baseSampleCoord + vec2(-blurUv.x, 0.0));
+                shadowFactor += sampleCaster(baseSampleCoord);
+                shadowFactor += sampleCaster(baseSampleCoord + vec2(blurUv.x, 0.0));
+                shadowFactor += sampleCaster(baseSampleCoord + vec2(-blurUv.x, blurUv.y));
+                shadowFactor += sampleCaster(baseSampleCoord + vec2(0.0, blurUv.y));
+                shadowFactor += sampleCaster(baseSampleCoord + vec2(blurUv.x, blurUv.y));
+                shadowFactor /= 9.0;
 
                 float shadowMultiplier = mix(1.0 - uIntensity, 1.0, shadowFactor);
                 
@@ -23244,9 +23257,8 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
 
     try {
       this.filter = new BuildingShadowsFilter();
-      // DIAGNOSTIC CHANGE: The line that adds the filter to the canvas is commented out.
-      // This will completely disable the Building Shadows effect for this test.
-      // canvas.primary.filters = [...(canvas.primary.filters || []), this.filter];
+      // This line is critical and has been restored. It applies the shadow filter to the primary container.
+      canvas.primary.filters = [...(canvas.primary.filters || []), this.filter];
     } catch (e) {
       console.error("MapShine | Failed to create BuildingShadowsFilter", e);
       this.filter = null;
@@ -24167,7 +24179,10 @@ class TimeOfDayLayer extends MaskedEffectLayer {
       // Apply the filter to the primary canvas container, which contains tiles and drawings.
       canvas.primary.filters = [...(canvas.primary.filters || []), this.filter];
     } catch (e) {
-      console.error("MapShine | Failed to create TimeOfDayColorFilter for its layer.", e);
+      console.error(
+        "MapShine | Failed to create TimeOfDayColorFilter for its layer.",
+        e
+      );
       this.filter = null;
     }
 
