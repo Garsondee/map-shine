@@ -1,6 +1,3 @@
-// TODO: Building Shadows is broken. I had to change how it worked as it was causing problems with the advanced bloom.
-// TODO: The advanced bloom works in the first scene you load into but not when you change scenes. Teardown and setup issue.
-
 /******************************************************************************
  *
  *                            MAP SHINE
@@ -14254,27 +14251,17 @@ class FilmGrainFilter extends PIXI.Filter {
       u_monochromatic: options.monochromatic ?? true,
       u_luminanceResponse: options.luminanceResponse ?? [0.8, 0.2],
     });
-
-    this._tickerFunction = this.updateTime.bind(this);
-    canvas.app.ticker.add(this._tickerFunction);
   }
 
   /**
    * Updates the time uniform for animated grain.
-   * @param {number} deltaTime - The time elapsed since the last frame, in Ticker units.
+   * This is now called by the central ScreenEffectsManager.
+   * @param {number} deltaTimeInSeconds - The time elapsed since the last frame.
    */
-  updateTime(deltaTime) {
+  update(deltaTimeInSeconds) {
     const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
     // A small multiplier is added to make the animation visible without requiring a large u_time value
-    this.uniforms.u_time += deltaTime * timeFactor * 0.1;
-  }
-
-  /**
-   * @override
-   */
-  destroy() {
-    canvas.app.ticker.remove(this._tickerFunction);
-    super.destroy();
+    this.uniforms.u_time += deltaTimeInSeconds * timeFactor * 0.1;
   }
 
   get time() {
@@ -15360,8 +15347,9 @@ class ScreenEffectsManager {
       this._container = container;
       this._bloomSprite = new PIXI.Sprite(PIXI.Texture.EMPTY);
       this._bloomSprite.name = "mapShineBloomSprite";
-      // The bloom sprite MUST be in the world container to be affected by other filters.
-      this._container.addChild(this._bloomSprite);
+      // The bloom sprite is a screen-space overlay effect and should be added to the top-level
+      // interface container so it is not affected by other world-space post-processing filters.
+      canvas.interface.addChild(this._bloomSprite);
     }
   }
 
@@ -15821,8 +15809,17 @@ class ScreenEffectsManager {
   }
 
   static updateFrame(deltaTimeInSeconds) {
-    if (!this._container || !this._bloomSprite) return;
+    if (!this._container) return;
 
+    // Update time-sensitive filters like Film Grain
+    for (const filter of this._filters.values()) {
+      if (typeof filter.update === "function") {
+        filter.update(deltaTimeInSeconds);
+      }
+    }
+
+    // Existing bloom sprite logic
+    if (!this._bloomSprite) return;
     const bloomFilter = this.getFilter("advancedBloom");
     if (bloomFilter && bloomFilter.enabled) {
       const resourceManager = game.mapShine.resourceManager;
@@ -15853,8 +15850,8 @@ class ScreenEffectsManager {
     this._filters.clear();
 
     if (this._bloomSprite) {
-      // The sprite is a child of canvas.interface, which is not destroyed with the scene.
-      // We must manually remove and destroy it.
+      // The sprite is a child of canvas.interface, which is destroyed with the scene.
+      // We must explicitly remove and destroy it to be safe, then nullify the reference.
       if (
         canvas.interface &&
         canvas.interface.children.includes(this._bloomSprite)
@@ -15868,6 +15865,7 @@ class ScreenEffectsManager {
     if (this._container.filters) {
       this._container.filters = null;
     }
+    this._container = null; // Still need this from previous fix
     console.log(
       "Map Shine | ScreenEffectsManager fully torn down for scene transition."
     );
