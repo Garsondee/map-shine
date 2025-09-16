@@ -2076,6 +2076,45 @@ const MODULE_DEFAULTS = {
       accel: 0,
     },
   },
+  biofilm: {
+    enabled: true,
+    blendMode: 0,
+    maskThreshold: 0.2,
+    maskUpperThreshold: 0.6,
+    maskInfluence: 5,
+    particleTexture: "modules/map-shine/assets/particle.webp",
+    frequency: 0.097,
+    lifetime: {
+      min: 4,
+      max: 12,
+    },
+    color: {
+      start: "#b0e089",
+      end: "#d0f0c0",
+    },
+    alpha: {
+      max: 0.51,
+      fadeIn: 0.5,
+      fadeOut: 0.5,
+    },
+    scale: {
+      sizeMultiplier: 0.6,
+      start: 0.9,
+      end: 1.09,
+      minMult: 0.3,
+    },
+    speed: {
+      start: 3,
+      end: 6,
+      minMult: 0.5,
+    },
+    rotation: {
+      enabled: false,
+      minSpeed: 0,
+      maxSpeed: 20,
+      accel: 0,
+    },
+  },
   water: {
     enabled: true,
     flow: {
@@ -10669,1662 +10708,1728 @@ Below are the variables/options that are required when creating particles. Be su
   ]
 } */
 
-const PARTICLE_EFFECT_DEFINITIONS = {
-  dust: {
-    title: "Dust Motes",
-    description:
-      "Floating dust particles that appear in areas defined by the _Dust map. Requires a _Dust.webp texture.",
-    configPath: "dust",
-    triggerTexture: "dust",
-    buildEmitterConfig: (effectConfig, targetData) =>
-      buildParticleEmitterConfig(effectConfig, targetData, "dust"),
-  },
-  glint: {
-    title: "Glint Particles",
-    description:
-      "Sparkling glints that appear in areas defined by the _Prism map. Requires a _Prism.webp texture.",
-    configPath: "glint",
-    triggerTexture: "prism",
-    buildEmitterConfig: (effectConfig, targetData) =>
-      buildParticleEmitterConfig(effectConfig, targetData, "prism"),
-  },
-  smellyFlies: {
-    title: "Smelly Flies",
-    description:
-      "Simulates a swarm of flies orbiting a central point, occasionally landing and walking around. Requires a Point or Area group from Map Points. The first point of the group defines the center of the swarm, and the area defines where they can walk.",
-    configPath: "smellyFlies",
-    triggerTexture: "smellyFlies", // This is a dummy key for the UI, effect is geometry-based
-    buildEmitterConfig: (effectConfig, targetData, maskKey, group) =>
-      buildSmellyFliesEmitterConfig(effectConfig, targetData, group),
-  },
-  waterGlints: {
-    title: "Water Glints / Spray",
-    description:
-      "General-purpose particles spawned across the entire water surface.",
-    configPath: "water.glintParticles",
-    triggerTexture: "water",
-    spawnOn: "tiles",
-    buildEmitterConfig: (effectConfig, targetData) =>
-      buildParticleEmitterConfig(effectConfig, targetData, "water"),
-  },
-  fire: {
-    title: "Flames",
-    description:
-      "A multi-stage effect for fire, combining particles and a bloom glow. Requires a _Fire.webp map where white areas are the heart of the flame.",
-    configPath: "fire.particles",
-    triggerTexture: "fire",
-    buildEmitterConfig: (effectConfig, targetData) =>
-      buildParticleEmitterConfig(effectConfig, targetData, "fire"),
-  },
-  metallicGlints: {
-    title: "Metallic Glints",
-    description:
-      "Sparkling glints that appear on specular surfaces. Requires a _Specular.webp map.",
-    configPath: "metallicGlints",
-    triggerTexture: "specular",
-    buildEmitterConfig: (effectConfig, targetData) =>
-      buildParticleEmitterConfig(effectConfig, targetData, "specular"),
-  },
-  sparks: {
-    title: "Sparks",
-    description:
-      "Creates sparks that fly off in turbulent paths. Requires a _Sparks.webp map.",
-    configPath: "sparks",
-    triggerTexture: "sparks",
-    buildEmitterConfig: (effectConfig, targetData) =>
-      buildSparkEmitterConfig(effectConfig, targetData, "sparks"),
-  },
-};
+  const PARTICLE_EFFECT_DEFINITIONS = {
+    dust: {
+      title: "Dust Motes",
+      description:
+        "Floating dust particles that appear in areas defined by the _Dust map. Requires a _Dust.webp texture.",
+      configPath: "dust",
+      triggerTexture: "dust",
+      buildEmitterConfig: (effectConfig, targetData) =>
+        buildParticleEmitterConfig(effectConfig, targetData, "dust"),
+    },
+    glint: {
+      title: "Glint Particles",
+      description:
+        "Sparkling glints that appear in areas defined by the _Prism map. Requires a _Prism.webp texture.",
+      configPath: "glint",
+      triggerTexture: "prism",
+      buildEmitterConfig: (effectConfig, targetData) =>
+        buildParticleEmitterConfig(effectConfig, targetData, "prism"),
+    },
+    smellyFlies: {
+      title: "Smelly Flies",
+      description:
+        "Simulates a swarm of flies orbiting a central point, occasionally landing and walking around. Requires a Point or Area group from Map Points. The first point of the group defines the center of the swarm, and the area defines where they can walk.",
+      configPath: "smellyFlies",
+      triggerTexture: "smellyFlies", // This is a dummy key for the UI, effect is geometry-based
+      buildEmitterConfig: (effectConfig, targetData, maskKey, group) =>
+        buildSmellyFliesEmitterConfig(effectConfig, targetData, group),
+    },
+    waterGlints: {
+      title: "Water Glints / Spray",
+      description:
+        "General-purpose particles spawned across the entire water surface.",
+      configPath: "water.glintParticles",
+      triggerTexture: "water",
+      spawnOn: "tiles",
+      buildEmitterConfig: (effectConfig, targetData) =>
+        buildParticleEmitterConfig(effectConfig, targetData, "water"),
+    },
+    fire: {
+      title: "Flames",
+      description:
+        "A multi-stage effect for fire, combining particles and a bloom glow. Requires a _Fire.webp map where white areas are the heart of the flame.",
+      configPath: "fire.particles",
+      triggerTexture: "fire",
+      buildEmitterConfig: (effectConfig, targetData) =>
+        buildParticleEmitterConfig(effectConfig, targetData, "fire"),
+    },
+    metallicGlints: {
+      title: "Metallic Glints",
+      description:
+        "Sparkling glints that appear on specular surfaces. Requires a _Specular.webp map.",
+      configPath: "metallicGlints",
+      triggerTexture: "specular",
+      buildEmitterConfig: (effectConfig, targetData) =>
+        buildParticleEmitterConfig(effectConfig, targetData, "specular"),
+    },
+    sparks: {
+      title: "Sparks",
+      description:
+        "Creates sparks that fly off in turbulent paths. Requires a _Sparks.webp map.",
+      configPath: "sparks",
+      triggerTexture: "sparks",
+      buildEmitterConfig: (effectConfig, targetData) =>
+        buildSparkEmitterConfig(effectConfig, targetData, "sparks"),
+    },
+    biofilm: {
+      title: "Biofilm",
+      description:
+        "Scummy biofilm particles that appear on the water surface. Requires a _Water.webp texture.",
+      configPath: "biofilm",
+      triggerTexture: "water",
+      buildEmitterConfig: (effectConfig, targetData) =>
+        buildParticleEmitterConfig(effectConfig, targetData, "water", null, { spawnMode: 'range' }),
+    },
+  };
 
-class ParticleEffectController {
-  constructor(definition, parentContainer) {
-    this.definition = definition;
-    this.parentContainer = parentContainer; // This is the main container from ParticleManager
-    this.emitters = new Map();
-    this.pendingTargets = new Map();
-    this.config = {};
-    this.rgbSplitFilter = null;
-    this.bloomFilter = null;
-    this.cloudSuppressorFilter = null;
-
-    // This will be the container that holds only the particles for effects needing pre-filtering blending.
-    this.particleOnlyContainer = null;
-
-    // Special handling for effects with filters that need to operate on blended particles
-    if (definition.configPath === "glint") {
-      this.rgbSplitFilter = new ParticleRgbSplitFilter();
-    }
-    if (definition.configPath === "fire.particles") {
-      const BloomFilterConstructor =
-        PIXI.filters.AdvancedBloomFilter ||
-        (PIXI.filters.filters && PIXI.filters.filters.AdvancedBloomFilter);
-      if (BloomFilterConstructor) {
-        this.bloomFilter = new BloomFilterConstructor();
+  class ParticleEffectController {
+    constructor(definition, parentContainer) {
+      this.definition = definition;
+      this.parentContainer = parentContainer; // This is the main container from ParticleManager
+      this.emitters = new Map();
+      this.pendingTargets = new Map();
+      this.config = {};
+      this.rgbSplitFilter = null;
+      this.bloomFilter = null;
+      this.cloudSuppressorFilter = null;
+      this.displacementFilter = null;
+      this.displacementSprite = null;
+  
+      // This will be the container that holds only the particles for effects needing pre-filtering blending.
+      this.particleOnlyContainer = null;
+  
+      // Special handling for effects with filters that need to operate on blended particles
+      if (definition.configPath === "glint") {
+        this.rgbSplitFilter = new ParticleRgbSplitFilter();
       }
-      // For fire, we need a wrapper so blending happens before bloom.
-      this.particleOnlyContainer = new PIXI.Container();
-      this.parentContainer.addChild(this.particleOnlyContainer);
+      if (definition.configPath === "biofilm") {
+        this.displacementSprite = new PIXI.Sprite();
+        this.displacementFilter = new PIXI.DisplacementFilter(
+          this.displacementSprite
+        );
+        this.parentContainer.filterArea = canvas.app.screen; // Crucial for filters on containers
+      }
+      if (definition.configPath === "fire.particles") {
+        const BloomFilterConstructor =
+          PIXI.filters.AdvancedBloomFilter ||
+          (PIXI.filters.filters && PIXI.filters.filters.AdvancedBloomFilter);
+        if (BloomFilterConstructor) {
+          this.bloomFilter = new BloomFilterConstructor();
+        }
+        // For fire, we need a wrapper so blending happens before bloom.
+        this.particleOnlyContainer = new PIXI.Container();
+        this.parentContainer.addChild(this.particleOnlyContainer);
+      }
+  
+      // Create the suppressor filter for the specified particle effects.
+      if (
+        definition.configPath === "glint" ||
+        definition.configPath === "metallicGlints" ||
+        definition.configPath === "water.glintParticles"
+      ) {
+        this.cloudSuppressorFilter = new CloudSuppressorFilter();
+      }
     }
-
-    // Create the suppressor filter for the specified particle effects.
-    if (
-      definition.configPath === "glint" ||
-      definition.configPath === "metallicGlints" ||
-      definition.configPath === "water.glintParticles"
-    ) {
-      this.cloudSuppressorFilter = new CloudSuppressorFilter();
-    }
-  }
-
-  static getSettingsHTML(effectKey) {
-    const definition = PARTICLE_EFFECT_DEFINITIONS[effectKey];
-    if (!definition) return "";
-
-    const path = definition.configPath;
-    let content = `<p class="description-text">${definition.description}</p>`;
-    content += DebuggerUIBuilder._createSelectHTML(
-      `${path}.blendMode`,
-      "Blend Mode",
-      BLEND_MODE_OPTIONS
-    );
-
-    // Special case for Fire Bloom
-    if (effectKey === "fire") {
+  
+    static getSettingsHTML(effectKey) {
+      const definition = PARTICLE_EFFECT_DEFINITIONS[effectKey];
+      if (!definition) return "";
+  
+      const path = definition.configPath;
+      let content = `<p class="description-text">${definition.description}</p>`;
+      content += DebuggerUIBuilder._createSelectHTML(
+        `${path}.blendMode`,
+        "Blend Mode",
+        BLEND_MODE_OPTIONS
+      );
+  
+      // Special case for Fire Bloom
+      if (effectKey === "fire") {
+        content += `
+                              <details id="details-fire-bloom">
+                                  <summary><span class="accordion-toggle"></span>
+                                      <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                                        "fire.bloom.enabled",
+                                        "Bloom Effect",
+                                        true
+                                      )}</div>
+                                  </summary>
+                                  <div style="padding-left: 15px;">
+                                      <div class="warning-box" style="background-color: #554422; border-color: #ffaa66;"><strong style="color: #ffddaa;">PERFORMANCE WARNING:</strong> This can be demanding. Lowering 'Quality' can improve performance.</div>
+                                      <p class="description-text">Adds a soft glow to the fire particles.</p>
+                                      ${DebuggerUIBuilder._createSliderHTML(
+                                        "fire.bloom.threshold",
+                                        "Threshold",
+                                        0,
+                                        1,
+                                        0.01
+                                      )}
+                                      ${DebuggerUIBuilder._createSliderHTML(
+                                        "fire.bloom.brightness",
+                                        "Brightness",
+                                        0,
+                                        5,
+                                        0.05
+                                      )}
+                                      ${DebuggerUIBuilder._createSliderHTML(
+                                        "fire.bloom.bloomScale",
+                                        "Scale",
+                                        0.1,
+                                        5,
+                                        0.1,
+                                        "The size of the bloom effect."
+                                      )}
+                                      ${DebuggerUIBuilder._createSliderHTML(
+                                        "fire.bloom.blur",
+                                        "Blur Amount",
+                                        0,
+                                        20,
+                                        0.5
+                                      )}
+                                      ${DebuggerUIBuilder._createSliderHTML(
+                                        "fire.bloom.quality",
+                                        "Quality",
+                                        1,
+                                        15,
+                                        1,
+                                        "Number of blur samples. Higher is smoother but much slower."
+                                      )}
+                                  </div>
+                              </details>
+                          `;
+      }
+  
+      if (effectKey === "sparks") {
+        const sparksPath = "sparks";
+        let sparksContent = `
+                          <p class="description-text">${
+                            definition.description
+                          }</p>
+                          <details>
+                              <summary><span class="accordion-toggle"></span><strong>Spawning & Density</strong></summary>
+                              <div style="padding-left: 15px;">
+                                  ${DebuggerUIBuilder._createTextureInputHTML(
+                                    definition.triggerTexture,
+                                    `Effect Mask (_${
+                                      definition.triggerTexture
+                                        .charAt(0)
+                                        .toUpperCase() +
+                                      definition.triggerTexture.slice(1)
+                                    })`
+                                  )}
+                                  ${DebuggerUIBuilder._createSliderHTML(
+                                    `${sparksPath}.maskInfluence`,
+                                    "Particle Density",
+                                    0.01,
+                                    5,
+                                    0.01
+                                  )}
+                                  ${DebuggerUIBuilder._createSliderHTML(
+                                    `${sparksPath}.frequency`,
+                                    "Spawn Rate (s)",
+                                    0.01,
+                                    2,
+                                    0.01
+                                  )}
+                                  ${DebuggerUIBuilder._createSliderHTML(
+                                    `${sparksPath}.maskThreshold`,
+                                    "Mask Threshold",
+                                    0,
+                                    1,
+                                    0.01,
+                                    "Luminance from the _Sparks map required to spawn sparks."
+                                  )}
+                              </div>
+                          </details>
+                          <details>
+                              <summary><span class="accordion-toggle"></span><strong>Particle Appearance</strong></summary>
+                              <div style="padding-left: 15px;">
+                                  ${DebuggerUIBuilder._createSelectHTML(
+                                    `${sparksPath}.blendMode`,
+                                    "Blend Mode",
+                                    BLEND_MODE_OPTIONS
+                                  )}
+                                  ${DebuggerUIBuilder._createTextInputHTML(
+                                    `${sparksPath}.particleTexture`,
+                                    "Particle Texture"
+                                  )}
+                                  <details>
+                                      <summary><span class="accordion-toggle"></span><strong>Lifetime</strong></summary>
+                                      <div style="padding-left: 15px;">
+                                          ${DebuggerUIBuilder._createSliderHTML(
+                                            `${sparksPath}.lifetime.min`,
+                                            "Min Lifetime (s)",
+                                            0.5,
+                                            5,
+                                            0.1
+                                          )}
+                                          ${DebuggerUIBuilder._createSliderHTML(
+                                            `${sparksPath}.lifetime.max`,
+                                            "Max Lifetime (s)",
+                                            0.5,
+                                            5,
+                                            0.1
+                                          )}
+                                      </div>
+                                  </details>
+                                  <details>
+                                      <summary><span class="accordion-toggle"></span><strong>Color Over Life</strong></summary>
+                                      <div style="padding-left: 15px;">
+                                          ${DebuggerUIBuilder._createColorPickerHTML(
+                                            `${sparksPath}.color.start`,
+                                            "Start Color"
+                                          )}
+                                          ${DebuggerUIBuilder._createColorPickerHTML(
+                                            `${sparksPath}.color.end`,
+                                            "End Color"
+                                          )}
+                                      </div>
+                                  </details>
+                                  <details>
+                                      <summary><span class="accordion-toggle"></span><strong>Alpha / Opacity</strong></summary>
+                                      <div style="padding-left: 15px;">
+                                          ${DebuggerUIBuilder._createSliderHTML(
+                                            `${sparksPath}.alpha.max`,
+                                            "Max Alpha",
+                                            0,
+                                            1,
+                                            0.01
+                                          )}
+                                          ${DebuggerUIBuilder._createSliderHTML(
+                                            `${sparksPath}.alpha.fadeIn`,
+                                            "FadeIn Time (%)",
+                                            0,
+                                            1,
+                                            0.01
+                                          )}
+                                          ${DebuggerUIBuilder._createSliderHTML(
+                                            `${sparksPath}.alpha.fadeOut`,
+                                            "FadeOut Time (%)",
+                                            0,
+                                            1,
+                                            0.01
+                                          )}
+                                      </div>
+                                  </details>
+                                  <details>
+                                      <summary><span class="accordion-toggle"></span><strong>Scale / Size</strong></summary>
+                                      <div style="padding-left: 15px;">
+                                          ${DebuggerUIBuilder._createSliderHTML(
+                                            `${sparksPath}.scale.sizeMultiplier`,
+                                            "Global Size",
+                                            0.1,
+                                            2,
+                                            0.05
+                                          )}
+                                          ${DebuggerUIBuilder._createSliderHTML(
+                                            `${sparksPath}.scale.start`,
+                                            "Start Scale",
+                                            0.1,
+                                            2,
+                                            0.05
+                                          )}
+                                          ${DebuggerUIBuilder._createSliderHTML(
+                                            `${sparksPath}.scale.end`,
+                                            "End Scale",
+                                            0,
+                                            2,
+                                            0.05
+                                          )}
+                                          ${DebuggerUIBuilder._createSliderHTML(
+                                            `${sparksPath}.scale.minMult`,
+                                            "Random Size Min",
+                                            0.1,
+                                            1,
+                                            0.01
+                                          )}
+                                      </div>
+                                  </details>
+                              </div>
+                          </details>
+                          <details>
+                              <summary><span class="accordion-toggle"></span><strong>Movement (Spark Path)</strong></summary>
+                              <div style="padding-left:15px;">
+                                  <details>
+                                      <summary><span class="accordion-toggle"></span><strong>Speed Along Path</strong></summary>
+                                      <div style="padding-left:15px;">
+                                          ${DebuggerUIBuilder._createSliderHTML(
+                                            `${sparksPath}.path.speed.start`,
+                                            "Start Speed",
+                                            10,
+                                            200,
+                                            1
+                                          )}
+                                          ${DebuggerUIBuilder._createSliderHTML(
+                                            `${sparksPath}.path.speed.end`,
+                                            "End Speed",
+                                            10,
+                                            200,
+                                            1
+                                          )}
+                                          ${DebuggerUIBuilder._createSliderHTML(
+                                            `${sparksPath}.path.speed.minMult`,
+                                            "Random Speed Min",
+                                            0.1,
+                                            1,
+                                            0.01
+                                          )}
+                                      </div>
+                                  </details>
+                                  <details>
+                                      <summary><span class="accordion-toggle"></span><strong>Path Shape</strong></summary>
+                                      <div style="padding-left:15px;">
+                                          <p class="description-text">Controls the random sine wave path for each spark.</p>
+                                          ${DebuggerUIBuilder._createSliderHTML(
+                                            `${sparksPath}.path.amplitude.min`,
+                                            "Min Wave Width",
+                                            0,
+                                            100,
+                                            1
+                                          )}
+                                          ${DebuggerUIBuilder._createSliderHTML(
+                                            `${sparksPath}.path.amplitude.max`,
+                                            "Max Wave Width",
+                                            0,
+                                            100,
+                                            1
+                                          )}
+                                          ${DebuggerUIBuilder._createSliderHTML(
+                                            `${sparksPath}.path.frequency.min`,
+                                            "Min Wave Freq",
+                                            10,
+                                            200,
+                                            1
+                                          )}
+                                          ${DebuggerUIBuilder._createSliderHTML(
+                                            `${sparksPath}.path.frequency.max`,
+                                            "Max Wave Freq",
+                                            10,
+                                            200,
+                                            1
+                                          )}
+                                          ${DebuggerUIBuilder._createSliderHTML(
+                                            `${sparksPath}.path.damping`,
+                                            "Damping",
+                                            0,
+                                            1,
+                                            0.05,
+                                            "How quickly the path straightens out over the spark\\s life."
+                                          )}
+                                          ${DebuggerUIBuilder._createSliderHTML(
+                                            `${sparksPath}.path.angle.min`,
+                                            "Min Start Angle",
+                                            -90,
+                                            90,
+                                            1
+                                          )}
+                                          ${DebuggerUIBuilder._createSliderHTML(
+                                            `${sparksPath}.path.angle.max`,
+                                            "Max Start Angle",
+                                            -90,
+                                            90,
+                                            1
+                                          )}
+                                      </div>
+                                  </details>
+                                  <details>
+                                      <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                                        `${sparksPath}.path.motionBlur.enabled`,
+                                        "Motion Blur",
+                                        true
+                                      )}</div></summary>
+                                      <div style="padding-left:15px;">
+                                          <p class="description-text">Stretches particles based on their speed to simulate motion blur.</p>
+                                          ${DebuggerUIBuilder._createSliderHTML(
+                                            `${sparksPath}.path.motionBlur.strength`,
+                                            "Strength",
+                                            0,
+                                            1,
+                                            0.01,
+                                            "Multiplier for how much speed affects particle length."
+                                          )}
+                                          ${DebuggerUIBuilder._createSliderHTML(
+                                            `${sparksPath}.path.motionBlur.maxLength`,
+                                            "Max Length",
+                                            0,
+                                            10,
+                                            0.1,
+                                            "The maximum amount to stretch the particle scale."
+                                          )}
+                                      </div>
+                                  </details>
+                              </div>
+                          </details>
+                      `;
+        return DebuggerUIBuilder._createAccordionHTML(
+          effectKey,
+          definition.title,
+          sparksContent
+        );
+      }
+  
+      // Common particle sections
       content += `
-                            <details id="details-fire-bloom">
-                                <summary><span class="accordion-toggle"></span>
-                                    <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                                      "fire.bloom.enabled",
-                                      "Bloom Effect",
-                                      true
-                                    )}</div>
-                                </summary>
-                                <div style="padding-left: 15px;">
-                                    <div class="warning-box" style="background-color: #554422; border-color: #ffaa66;"><strong style="color: #ffddaa;">PERFORMANCE WARNING:</strong> This can be demanding. Lowering 'Quality' can improve performance.</div>
-                                    <p class="description-text">Adds a soft glow to the fire particles.</p>
-                                    ${DebuggerUIBuilder._createSliderHTML(
-                                      "fire.bloom.threshold",
-                                      "Threshold",
-                                      0,
-                                      1,
-                                      0.01
-                                    )}
-                                    ${DebuggerUIBuilder._createSliderHTML(
-                                      "fire.bloom.brightness",
-                                      "Brightness",
-                                      0,
-                                      5,
-                                      0.05
-                                    )}
-                                    ${DebuggerUIBuilder._createSliderHTML(
-                                      "fire.bloom.bloomScale",
-                                      "Scale",
-                                      0.1,
-                                      5,
-                                      0.1,
-                                      "The size of the bloom effect."
-                                    )}
-                                    ${DebuggerUIBuilder._createSliderHTML(
-                                      "fire.bloom.blur",
-                                      "Blur Amount",
-                                      0,
-                                      20,
-                                      0.5
-                                    )}
-                                    ${DebuggerUIBuilder._createSliderHTML(
-                                      "fire.bloom.quality",
-                                      "Quality",
-                                      1,
-                                      15,
-                                      1,
-                                      "Number of blur samples. Higher is smoother but much slower."
-                                    )}
-                                </div>
-                            </details>
-                        `;
-    }
-
-    if (effectKey === "sparks") {
-      const sparksPath = "sparks";
-      let sparksContent = `
-                        <p class="description-text">${
-                          definition.description
-                        }</p>
-                        <details>
-                            <summary><span class="accordion-toggle"></span><strong>Spawning & Density</strong></summary>
-                            <div style="padding-left: 15px;">
-                                ${DebuggerUIBuilder._createTextureInputHTML(
-                                  definition.triggerTexture,
-                                  `Effect Mask (_${
-                                    definition.triggerTexture
-                                      .charAt(0)
-                                      .toUpperCase() +
-                                    definition.triggerTexture.slice(1)
-                                  })`
-                                )}
-                                ${DebuggerUIBuilder._createSliderHTML(
-                                  `${sparksPath}.maskInfluence`,
-                                  "Particle Density",
-                                  0.01,
-                                  5,
-                                  0.01
-                                )}
-                                ${DebuggerUIBuilder._createSliderHTML(
-                                  `${sparksPath}.frequency`,
-                                  "Spawn Rate (s)",
-                                  0.01,
-                                  2,
-                                  0.01
-                                )}
-                                ${DebuggerUIBuilder._createSliderHTML(
-                                  `${sparksPath}.maskThreshold`,
-                                  "Mask Threshold",
-                                  0,
-                                  1,
-                                  0.01,
-                                  "Luminance from the _Sparks map required to spawn sparks."
-                                )}
-                            </div>
-                        </details>
-                        <details>
-                            <summary><span class="accordion-toggle"></span><strong>Particle Appearance</strong></summary>
-                            <div style="padding-left: 15px;">
-                                ${DebuggerUIBuilder._createSelectHTML(
-                                  `${sparksPath}.blendMode`,
-                                  "Blend Mode",
-                                  BLEND_MODE_OPTIONS
-                                )}
-                                ${DebuggerUIBuilder._createTextInputHTML(
-                                  `${sparksPath}.particleTexture`,
-                                  "Particle Texture"
-                                )}
-                                <details>
-                                    <summary><span class="accordion-toggle"></span><strong>Lifetime</strong></summary>
-                                    <div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          `${sparksPath}.lifetime.min`,
-                                          "Min Lifetime (s)",
-                                          0.5,
-                                          5,
-                                          0.1
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          `${sparksPath}.lifetime.max`,
-                                          "Max Lifetime (s)",
-                                          0.5,
-                                          5,
-                                          0.1
-                                        )}
-                                    </div>
-                                </details>
-                                <details>
-                                    <summary><span class="accordion-toggle"></span><strong>Color Over Life</strong></summary>
-                                    <div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createColorPickerHTML(
-                                          `${sparksPath}.color.start`,
-                                          "Start Color"
-                                        )}
-                                        ${DebuggerUIBuilder._createColorPickerHTML(
-                                          `${sparksPath}.color.end`,
-                                          "End Color"
-                                        )}
-                                    </div>
-                                </details>
-                                <details>
-                                    <summary><span class="accordion-toggle"></span><strong>Alpha / Opacity</strong></summary>
-                                    <div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          `${sparksPath}.alpha.max`,
-                                          "Max Alpha",
-                                          0,
-                                          1,
-                                          0.01
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          `${sparksPath}.alpha.fadeIn`,
-                                          "FadeIn Time (%)",
-                                          0,
-                                          1,
-                                          0.01
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          `${sparksPath}.alpha.fadeOut`,
-                                          "FadeOut Time (%)",
-                                          0,
-                                          1,
-                                          0.01
-                                        )}
-                                    </div>
-                                </details>
-                                <details>
-                                    <summary><span class="accordion-toggle"></span><strong>Scale / Size</strong></summary>
-                                    <div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          `${sparksPath}.scale.sizeMultiplier`,
-                                          "Global Size",
-                                          0.1,
-                                          2,
-                                          0.05
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          `${sparksPath}.scale.start`,
-                                          "Start Scale",
-                                          0.1,
-                                          2,
-                                          0.05
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          `${sparksPath}.scale.end`,
-                                          "End Scale",
-                                          0,
-                                          2,
-                                          0.05
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          `${sparksPath}.scale.minMult`,
-                                          "Random Size Min",
-                                          0.1,
-                                          1,
-                                          0.01
-                                        )}
-                                    </div>
-                                </details>
-                            </div>
-                        </details>
-                        <details>
-                            <summary><span class="accordion-toggle"></span><strong>Movement (Spark Path)</strong></summary>
-                            <div style="padding-left:15px;">
-                                <details>
-                                    <summary><span class="accordion-toggle"></span><strong>Speed Along Path</strong></summary>
-                                    <div style="padding-left:15px;">
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          `${sparksPath}.path.speed.start`,
-                                          "Start Speed",
-                                          10,
-                                          200,
-                                          1
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          `${sparksPath}.path.speed.end`,
-                                          "End Speed",
-                                          10,
-                                          200,
-                                          1
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          `${sparksPath}.path.speed.minMult`,
-                                          "Random Speed Min",
-                                          0.1,
-                                          1,
-                                          0.01
-                                        )}
-                                    </div>
-                                </details>
-                                <details>
-                                    <summary><span class="accordion-toggle"></span><strong>Path Shape</strong></summary>
-                                    <div style="padding-left:15px;">
-                                        <p class="description-text">Controls the random sine wave path for each spark.</p>
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          `${sparksPath}.path.amplitude.min`,
-                                          "Min Wave Width",
-                                          0,
-                                          100,
-                                          1
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          `${sparksPath}.path.amplitude.max`,
-                                          "Max Wave Width",
-                                          0,
-                                          100,
-                                          1
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          `${sparksPath}.path.frequency.min`,
-                                          "Min Wave Freq",
-                                          10,
-                                          200,
-                                          1
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          `${sparksPath}.path.frequency.max`,
-                                          "Max Wave Freq",
-                                          10,
-                                          200,
-                                          1
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          `${sparksPath}.path.damping`,
-                                          "Damping",
-                                          0,
-                                          1,
-                                          0.05,
-                                          "How quickly the path straightens out over the spark\\s life."
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          `${sparksPath}.path.angle.min`,
-                                          "Min Start Angle",
-                                          -90,
-                                          90,
-                                          1
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          `${sparksPath}.path.angle.max`,
-                                          "Max Start Angle",
-                                          -90,
-                                          90,
-                                          1
-                                        )}
-                                    </div>
-                                </details>
-                                <details>
-                                    <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                                      `${sparksPath}.path.motionBlur.enabled`,
-                                      "Motion Blur",
-                                      true
-                                    )}</div></summary>
-                                    <div style="padding-left:15px;">
-                                        <p class="description-text">Stretches particles based on their speed to simulate motion blur.</p>
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          `${sparksPath}.path.motionBlur.strength`,
-                                          "Strength",
-                                          0,
-                                          1,
-                                          0.01,
-                                          "Multiplier for how much speed affects particle length."
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          `${sparksPath}.path.motionBlur.maxLength`,
-                                          "Max Length",
-                                          0,
-                                          10,
-                                          0.1,
-                                          "The maximum amount to stretch the particle scale."
-                                        )}
-                                    </div>
-                                </details>
-                            </div>
-                        </details>
-                    `;
+                          <details>
+                              <summary><span class="accordion-toggle"></span><strong>Spawning & Density</strong></summary>
+                              <div style="padding-left: 15px;">
+                                  ${DebuggerUIBuilder._createTextureInputHTML(
+                                    definition.triggerTexture,
+                                    `Effect Mask (_${
+                                      definition.triggerTexture
+                                        .charAt(0)
+                                        .toUpperCase() +
+                                      definition.triggerTexture.slice(1)
+                                    })`
+                                  )}
+                                  ${DebuggerUIBuilder._createSliderHTML(
+                                    `${path}.maskInfluence`,
+                                    "Particle Density",
+                                    0.01,
+                                    5,
+                                    0.01,
+                                    "Controls the maximum number of particles."
+                                  )}
+                                  ${DebuggerUIBuilder._createSliderHTML(
+                                    `${path}.frequency`,
+                                    "Spawn Rate (s)",
+                                    0.001,
+                                    1,
+                                    0.001,
+                                    "Time in seconds between particle spawns. Lower is faster."
+                                  )}
+                                  ${DebuggerUIBuilder._createSliderHTML(
+                                    `${path}.maskThreshold`,
+                                    "Mask Threshold",
+                                    0,
+                                    1,
+                                    0.01,
+                                    "Luminance from the mask required to spawn particles."
+                                  )}
+                        
+                              </div>
+                          </details>
+                          <details>
+                              <summary><span class="accordion-toggle"></span><strong>Particle Appearance</strong></summary>
+                              <div style="padding-left: 15px;">
+                                  ${DebuggerUIBuilder._createTextInputHTML(
+                                    `${path}.particleTexture`,
+                                    "Particle Texture",
+                                    "Path to the particle image."
+                                  )}
+                                  <details>
+                                      <summary><span class="accordion-toggle"></span><strong>Lifetime</strong></summary>
+                                      <div style="padding-left: 15px;">
+                                          ${DebuggerUIBuilder._createSliderHTML(
+                                            `${path}.lifetime.min`,
+                                            "Min Lifetime (s)",
+                                            0.1,
+                                            20,
+                                            0.1
+                                          )}
+                                          ${DebuggerUIBuilder._createSliderHTML(
+                                            `${path}.lifetime.max`,
+                                            "Max Lifetime (s)",
+                                            0.1,
+                                            20,
+                                            0.1
+                                          )}
+                                      </div>
+                                  </details>
+                                  <details>
+                                      <summary><span class="accordion-toggle"></span><strong>Color Over Life</strong></summary>
+                                      <div style="padding-left: 15px;">
+                                          <p class="description-text">Sets particle color at birth and death. If colors are the same, a static color is used.</p>
+                                          ${DebuggerUIBuilder._createColorPickerHTML(
+                                            `${path}.color.start`,
+                                            "Start Color"
+                                          )}
+                                          ${DebuggerUIBuilder._createColorPickerHTML(
+                                            `${path}.color.end`,
+                                            "End Color"
+                                          )}
+                                      </div>
+                                  </details>
+                                  <details>
+                                      <summary><span class="accordion-toggle"></span><strong>Alpha / Opacity</strong></summary>
+                                      <div style="padding-left: 15px;">
+                                          ${DebuggerUIBuilder._createSliderHTML(
+                                            `${path}.alpha.max`,
+                                            "Max Alpha",
+                                            0,
+                                            1,
+                                            0.01
+                                          )}
+                                          ${DebuggerUIBuilder._createSliderHTML(
+                                            `${path}.alpha.fadeIn`,
+                                            "FadeIn Time (%)",
+                                            0,
+                                            1,
+                                            0.01
+                                          )}
+                                          ${DebuggerUIBuilder._createSliderHTML(
+                                            `${path}.alpha.fadeOut`,
+                                            "FadeOut Time (%)",
+                                            0,
+                                            1,
+                                            0.01
+                                          )}
+                                      </div>
+                                  </details>
+                                  <details>
+                                      <summary><span class="accordion-toggle"></span><strong>Scale / Size</strong></summary>
+                                      <div style="padding-left: 15px;">
+                                          ${DebuggerUIBuilder._createSliderHTML(
+                                            `${path}.scale.sizeMultiplier`,
+                                            "Global Size",
+                                            0.1,
+                                            10,
+                                            0.1,
+                                            "A global multiplier for particle size."
+                                          )}
+                                          ${DebuggerUIBuilder._createSliderHTML(
+                                            `${path}.scale.start`,
+                                            "Start Scale Mult",
+                                            0,
+                                            2,
+                                            0.01,
+                                            "Particle size at birth (multiplied by Global Size)."
+                                          )}
+                                          ${DebuggerUIBuilder._createSliderHTML(
+                                            `${path}.scale.end`,
+                                            "End Scale Mult",
+                                            0,
+                                            2,
+                                            0.01,
+                                            "Particle size at death (multiplied by Global Size)."
+                                          )}
+                                          ${DebuggerUIBuilder._createSliderHTML(
+                                            `${path}.scale.minMult`,
+                                            "Random Size Min",
+                                            0.1,
+                                            1,
+                                            0.01,
+                                            "Minimum random scale multiplier for each particle (from this value to 1.0)."
+                                          )}
+                                      </div>
+                                  </details>
+                                  ${
+                                    effectKey === "glint"
+                                      ? `
+                                  <details>
+                                      <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                                        `${path}.rgbSplit.enabled`,
+                                        "RGB Split Effect",
+                                        true
+                                      )}</div></summary>
+                                      <div style="padding-left: 15px;">
+                                          <p class="description-text">Applies a chromatic aberration effect to the particles.</p>
+                                          ${DebuggerUIBuilder._createSliderHTML(
+                                            `${path}.rgbSplit.amount`,
+                                            "Amount",
+                                            0,
+                                            10,
+                                            0.1
+                                          )}
+                                      </div>
+                                  </details>`
+                                      : ""
+                                  }
+                              </div>
+                          </details>
+                          <details>
+                              <summary><span class="accordion-toggle"></span><strong>Movement</strong></summary>
+                              <div style="padding-left: 15px;">
+                                  <details>
+                                      <summary><span class="accordion-toggle"></span><strong>Speed</strong></summary>
+                                      <div style="padding-left: 15px;">
+                                          ${DebuggerUIBuilder._createSliderHTML(
+                                            `${path}.speed.start`,
+                                            "Start Speed",
+                                            -50,
+                                            50,
+                                            1
+                                          )}
+                                          ${DebuggerUIBuilder._createSliderHTML(
+                                            `${path}.speed.end`,
+                                            "End Speed",
+                                            -50,
+                                            50,
+                                            1
+                                          )}
+                                          ${DebuggerUIBuilder._createSliderHTML(
+                                            `${path}.speed.minMult`,
+                                            "Random Speed Min",
+                                            0.1,
+                                            1,
+                                            0.01,
+                                            "Minimum random speed multiplier for each particle (from this value to 1.0)."
+                                          )}
+                                      </div>
+                                  </details>
+                                  <details>
+                                      <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                                        `${path}.rotation.enabled`,
+                                        "Tumbling / Rotation",
+                                        true
+                                      )}</div></summary>
+                                      <div style="padding-left: 15px;">
+                                          ${DebuggerUIBuilder._createSliderHTML(
+                                            `${path}.rotation.minSpeed`,
+                                            "Min Rot. Speed",
+                                            -180,
+                                            180,
+                                            1,
+                                            "Degrees per second."
+                                          )}
+                                          ${DebuggerUIBuilder._createSliderHTML(
+                                            `${path}.rotation.maxSpeed`,
+                                            "Max Rot. Speed",
+                                            -180,
+                                            180,
+                                            1,
+                                            "Degrees per second."
+                                          )}
+                                          ${DebuggerUIBuilder._createSliderHTML(
+                                            `${path}.rotation.accel`,
+                                            "Rot. Accel.",
+                                            -90,
+                                            90,
+                                            1,
+                                            "Degrees per second squared."
+                                          )}
+                                      </div>
+                                  </details>
+                              </div>
+                          </details>
+                      `;
+  
+      // Special case for Fire Wind
+      if (effectKey === "fire") {
+        content += `
+                              <details id="details-fire-wind">
+                                  <summary><span class="accordion-toggle"></span>
+                                      <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                                        `${path}.wind.enabled`,
+                                        "Complex Wind",
+                                        true
+                                      )}</div>
+                                  </summary>
+                                  <div style="padding-left: 15px;">
+                                      <p class="description-text">Applies a dynamic wind force to all fire particles.</p>
+                                      ${DebuggerUIBuilder._createSliderHTML(
+                                        `${path}.wind.force`,
+                                        "Wind Force",
+                                        0,
+                                        500,
+                                        5,
+                                        "How strongly the wind pushes the particles."
+                                      )}
+                                      ${DebuggerUIBuilder._createSliderHTML(
+                                        `${path}.wind.baseSpeed`,
+                                        "Base Speed",
+                                        0,
+                                        200,
+                                        1,
+                                        "The normal speed of the wind."
+                                      )}
+                                      ${DebuggerUIBuilder._createSliderHTML(
+                                        `${path}.wind.gustSpeed`,
+                                        "Gust Speed",
+                                        0,
+                                        500,
+                                        5,
+                                        "The peak speed during a gust."
+                                      )}
+                                      <details>
+                                          <summary><span class="accordion-toggle"></span><strong>Gust Timing</strong></summary>
+                                          <div style="padding-left: 15px;">
+                                              ${DebuggerUIBuilder._createSliderHTML(
+                                                `${path}.wind.gustFrequencyMin`,
+                                                "Min Time Between Gusts (s)",
+                                                0.1,
+                                                20,
+                                                0.1
+                                              )}
+                                              ${DebuggerUIBuilder._createSliderHTML(
+                                                `${path}.wind.gustFrequencyMax`,
+                                                "Max Time Between Gusts (s)",
+                                                0.1,
+                                                20,
+                                                0.1
+                                              )}
+                                              ${DebuggerUIBuilder._createSliderHTML(
+                                                `${path}.wind.gustDurationMin`,
+                                                "Min Gust Duration (s)",
+                                                0.1,
+                                                5,
+                                                0.1
+                                              )}
+                                              ${DebuggerUIBuilder._createSliderHTML(
+                                                `${path}.wind.gustDurationMax`,
+                                                "Max Gust Duration (s)",
+                                                0.1,
+                                                5,
+                                                0.1
+                                              )}
+                                          </div>
+                                      </details>
+                                      <details>
+                                          <summary><span class="accordion-toggle"></span><strong>Angle Change</strong></summary>
+                                          <div style="padding-left: 15px;">
+                                              ${DebuggerUIBuilder._createSliderHTML(
+                                                `${path}.wind.angleChangeFrequencyMin`,
+                                                "Min Time Between Changes (s)",
+                                                0.1,
+                                                30,
+                                                0.1
+                                              )}
+                                              ${DebuggerUIBuilder._createSliderHTML(
+                                                `${path}.wind.angleChangeFrequencyMax`,
+                                                "Max Time Between Changes (s)",
+                                                0.1,
+                                                30,
+                                                0.1
+                                              )}
+                                              ${DebuggerUIBuilder._createSliderHTML(
+                                                `${path}.wind.angleChangeRange`,
+                                                "Max Angle Change ( )",
+                                                0,
+                                                90,
+                                                1,
+                                                "Max degrees the angle can shift each time."
+                                              )}
+                                          </div>
+                                      </details>
+                                  </div>
+                              </details>
+                          `;
+      }
+  
+      const mainAccordionPath =
+        effectKey === "fire" ? "fire.particles.enabled" : `${path}.enabled`;
+      const mainAccordionId =
+        effectKey === "fire" ? "details-fire-particles" : `details-${effectKey}`;
+  
       return DebuggerUIBuilder._createAccordionHTML(
         effectKey,
         definition.title,
-        sparksContent
+        content
+      )
+        .replace(`details-${effectKey}`, mainAccordionId)
+        .replace(`${path}.enabled`, mainAccordionPath);
+    }
+  
+    // NOTE: IMPORTANT. AT SOME POINT THIS NEEDS TO BE MOVED TO THE CORRECT PLACE. DON'T FORGET.
+    static getSmellyFliesSettingsHTML() {
+      const effectKey = "smellyFlies";
+      const content = `
+        <p class="description-text">Simulates a swarm of flies that fly around, land, and walk on surfaces defined by a Map Point Area group.</p>
+        ${DebuggerUIBuilder._createSelectHTML(
+          `${effectKey}.blendMode`,
+          "Blend Mode",
+          BLEND_MODE_OPTIONS
+        )}
+        ${DebuggerUIBuilder._createTextInputHTML(
+          `${effectKey}.particleTexture`,
+          "Particle Texture"
+        )}
+        ${DebuggerUIBuilder._createSliderHTML(
+          `${effectKey}.maxParticles`,
+          "Max Particles",
+          1,
+          500,
+          1
+        )}
+  
+        <details id="details-smellyFlies-flying">
+          <summary><span class="accordion-toggle"></span><strong>Flying Behavior</strong></summary>
+          <div style="padding-left: 15px;">
+              <details id="details-smellyFlies-takeoff">
+                  <summary><span class="accordion-toggle"></span><strong>Takeoff & Landing</strong></summary>
+                  <div style="padding-left: 15px;">
+                      ${DebuggerUIBuilder._createSliderHTML(
+                        `${effectKey}.flying.takeoffDuration`,
+                        "Takeoff Duration (s)",
+                        0.1,
+                        2.0,
+                        0.1
+                      )}
+                      ${DebuggerUIBuilder._createSliderHTML(
+                        `${effectKey}.flying.takeoffSpeedMin`,
+                        "Min Takeoff Speed",
+                        10,
+                        500,
+                        5
+                      )}
+                      ${DebuggerUIBuilder._createSliderHTML(
+                        `${effectKey}.flying.takeoffSpeedMax`,
+                        "Max Takeoff Speed",
+                        10,
+                        500,
+                        5
+                      )}
+                      <hr style="border-color: #555; margin: 6px 0;">
+                      ${DebuggerUIBuilder._createSliderHTML(
+                        `${effectKey}.flying.landChance`,
+                        "Land Chance (%/sec)",
+                        0,
+                        1.0,
+                        0.01,
+                        "Chance per second for a fly to land if over a valid area."
+                      )}
+                      ${DebuggerUIBuilder._createSliderHTML(
+                        `${effectKey}.flying.landingDuration`,
+                        "Landing Duration (s)",
+                        0.1,
+                        2.0,
+                        0.1
+                      )}
+                  </div>
+              </details>
+              <details id="details-smellyFlies-physics">
+                  <summary><span class="accordion-toggle"></span><strong>Flight Physics</strong></summary>
+                  <div style="padding-left: 15px;">
+                       ${DebuggerUIBuilder._createSliderHTML(
+                         `${effectKey}.flying.noiseStrength`,
+                         "Erratic Force",
+                         0,
+                         2000,
+                         50,
+                         "How strongly random forces push the fly. Higher = more erratic."
+                       )}
+                       ${DebuggerUIBuilder._createSliderHTML(
+                         `${effectKey}.flying.noiseFrequency`,
+                         "Erratic Frequency",
+                         1,
+                         50,
+                         0.5,
+                         "How quickly the random force changes. Higher = more jittery."
+                       )}
+                       ${DebuggerUIBuilder._createSliderHTML(
+                         `${effectKey}.flying.tetherStrength`,
+                         "Tether Strength",
+                         0,
+                         10,
+                         0.1,
+                         "How strongly the fly is pulled back to its spawn area."
+                       )}
+                       ${DebuggerUIBuilder._createSliderHTML(
+                         `${effectKey}.flying.maxSpeed`,
+                         "Max Speed (px/s)",
+                         50,
+                         1000,
+                         10
+                       )}
+                       ${DebuggerUIBuilder._createSliderHTML(
+                         `${effectKey}.flying.drag`,
+                         "Air Drag",
+                         0,
+                         1,
+                         0.01,
+                         "Friction/resistance. Higher values cause slower, less 'drifty' movement."
+                       )}
+                  </div>
+              </details>
+          </div>
+        </details>
+  
+        <details id="details-smellyFlies-walking">
+          <summary><span class="accordion-toggle"></span><strong>Walking Behavior</strong></summary>
+          <div style="padding-left: 15px;">
+              ${DebuggerUIBuilder._createSliderHTML(
+                `${effectKey}.walking.walkSpeed`,
+                "Walk Speed (px/s)",
+                5,
+                100,
+                1
+              )}
+              ${DebuggerUIBuilder._createSliderHTML(
+                `${effectKey}.walking.takeoffChance`,
+                "Takeoff Chance (%/sec)",
+                0,
+                1.0,
+                0.01,
+                "Chance per second for a walking fly to take off."
+              )}
+              <details>
+                  <summary><span class="accordion-toggle"></span><strong>Idle Timing</strong></summary>
+                  <div style="padding-left: 15px;">
+                       ${DebuggerUIBuilder._createSliderHTML(
+                         `${effectKey}.walking.minIdleTime`,
+                         "Min Idle Time (s)",
+                         0.1,
+                         5,
+                         0.1
+                       )}
+                       ${DebuggerUIBuilder._createSliderHTML(
+                         `${effectKey}.walking.maxIdleTime`,
+                         "Max Idle Time (s)",
+                         0.1,
+                         5,
+                         0.1
+                       )}
+                  </div>
+              </details>
+              <details>
+                  <summary><span class="accordion-toggle"></span><strong>Rotation Timing</strong></summary>
+                  <div style="padding-left: 15px;">
+                      ${DebuggerUIBuilder._createSliderHTML(
+                        `${effectKey}.walking.minRotateTime`,
+                        "Min Rotate Time (s)",
+                        0.1,
+                        2,
+                        0.1
+                      )}
+                      ${DebuggerUIBuilder._createSliderHTML(
+                        `${effectKey}.walking.maxRotateTime`,
+                        "Max Rotate Time (s)",
+                        0.1,
+                        2,
+                        0.1
+                      )}
+                  </div>
+              </details>
+              <details>
+                  <summary><span class="accordion-toggle"></span><strong>Move Distance</strong></summary>
+                  <div style="padding-left: 15px;">
+                      ${DebuggerUIBuilder._createSliderHTML(
+                        `${effectKey}.walking.minMoveDistance`,
+                        "Min Move Distance (px)",
+                        1,
+                        200,
+                        1
+                      )}
+                      ${DebuggerUIBuilder._createSliderHTML(
+                        `${effectKey}.walking.maxMoveDistance`,
+                        "Max Move Distance (px)",
+                        1,
+                        200,
+                        1
+                      )}
+                  </div>
+              </details>
+          </div>
+        </details>
+        
+        <details id="details-smellyFlies-motionBlur">
+          <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+            `${effectKey}.motionBlur.enabled`,
+            "Motion Blur",
+            true
+          )}</div></summary>
+          <div style="padding-left: 15px;">
+              <p class="description-text">Stretches particles based on their speed to simulate motion blur.</p>
+              ${DebuggerUIBuilder._createSliderHTML(
+                `${effectKey}.motionBlur.strength`,
+                "Strength",
+                0,
+                1,
+                0.01,
+                "Multiplier for how much speed affects particle length."
+              )}
+              ${DebuggerUIBuilder._createSliderHTML(
+                `${effectKey}.motionBlur.maxLength`,
+                "Max Length",
+                1,
+                10,
+                0.1,
+                "The maximum amount to stretch the particle scale."
+              )}
+          </div>
+        </details>
+      `;
+      return DebuggerUIBuilder._createAccordionHTML(
+        effectKey,
+        "Smelly Flies",
+        content
       );
     }
-
-    // Common particle sections
-    content += `
-                        <details>
-                            <summary><span class="accordion-toggle"></span><strong>Spawning & Density</strong></summary>
-                            <div style="padding-left: 15px;">
-                                ${DebuggerUIBuilder._createTextureInputHTML(
-                                  definition.triggerTexture,
-                                  `Effect Mask (_${
-                                    definition.triggerTexture
-                                      .charAt(0)
-                                      .toUpperCase() +
-                                    definition.triggerTexture.slice(1)
-                                  })`
-                                )}
-                                ${DebuggerUIBuilder._createSliderHTML(
-                                  `${path}.maskInfluence`,
-                                  "Particle Density",
-                                  0.01,
-                                  5,
-                                  0.01,
-                                  "Controls the maximum number of particles."
-                                )}
-                                ${DebuggerUIBuilder._createSliderHTML(
-                                  `${path}.frequency`,
-                                  "Spawn Rate (s)",
-                                  0.001,
-                                  1,
-                                  0.001,
-                                  "Time in seconds between particle spawns. Lower is faster."
-                                )}
-                                ${DebuggerUIBuilder._createSliderHTML(
-                                  `${path}.maskThreshold`,
-                                  "Mask Threshold",
-                                  0,
-                                  1,
-                                  0.01,
-                                  "Luminance from the mask required to spawn particles."
-                                )}
-                      
-                            </div>
-                        </details>
-                        <details>
-                            <summary><span class="accordion-toggle"></span><strong>Particle Appearance</strong></summary>
-                            <div style="padding-left: 15px;">
-                                ${DebuggerUIBuilder._createTextInputHTML(
-                                  `${path}.particleTexture`,
-                                  "Particle Texture",
-                                  "Path to the particle image."
-                                )}
-                                <details>
-                                    <summary><span class="accordion-toggle"></span><strong>Lifetime</strong></summary>
-                                    <div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          `${path}.lifetime.min`,
-                                          "Min Lifetime (s)",
-                                          0.1,
-                                          20,
-                                          0.1
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          `${path}.lifetime.max`,
-                                          "Max Lifetime (s)",
-                                          0.1,
-                                          20,
-                                          0.1
-                                        )}
-                                    </div>
-                                </details>
-                                <details>
-                                    <summary><span class="accordion-toggle"></span><strong>Color Over Life</strong></summary>
-                                    <div style="padding-left: 15px;">
-                                        <p class="description-text">Sets particle color at birth and death. If colors are the same, a static color is used.</p>
-                                        ${DebuggerUIBuilder._createColorPickerHTML(
-                                          `${path}.color.start`,
-                                          "Start Color"
-                                        )}
-                                        ${DebuggerUIBuilder._createColorPickerHTML(
-                                          `${path}.color.end`,
-                                          "End Color"
-                                        )}
-                                    </div>
-                                </details>
-                                <details>
-                                    <summary><span class="accordion-toggle"></span><strong>Alpha / Opacity</strong></summary>
-                                    <div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          `${path}.alpha.max`,
-                                          "Max Alpha",
-                                          0,
-                                          1,
-                                          0.01
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          `${path}.alpha.fadeIn`,
-                                          "FadeIn Time (%)",
-                                          0,
-                                          1,
-                                          0.01
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          `${path}.alpha.fadeOut`,
-                                          "FadeOut Time (%)",
-                                          0,
-                                          1,
-                                          0.01
-                                        )}
-                                    </div>
-                                </details>
-                                <details>
-                                    <summary><span class="accordion-toggle"></span><strong>Scale / Size</strong></summary>
-                                    <div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          `${path}.scale.sizeMultiplier`,
-                                          "Global Size",
-                                          0.1,
-                                          10,
-                                          0.1,
-                                          "A global multiplier for particle size."
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          `${path}.scale.start`,
-                                          "Start Scale Mult",
-                                          0,
-                                          2,
-                                          0.01,
-                                          "Particle size at birth (multiplied by Global Size)."
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          `${path}.scale.end`,
-                                          "End Scale Mult",
-                                          0,
-                                          2,
-                                          0.01,
-                                          "Particle size at death (multiplied by Global Size)."
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          `${path}.scale.minMult`,
-                                          "Random Size Min",
-                                          0.1,
-                                          1,
-                                          0.01,
-                                          "Minimum random scale multiplier for each particle (from this value to 1.0)."
-                                        )}
-                                    </div>
-                                </details>
-                                ${
-                                  effectKey === "glint"
-                                    ? `
-                                <details>
-                                    <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                                      `${path}.rgbSplit.enabled`,
-                                      "RGB Split Effect",
-                                      true
-                                    )}</div></summary>
-                                    <div style="padding-left: 15px;">
-                                        <p class="description-text">Applies a chromatic aberration effect to the particles.</p>
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          `${path}.rgbSplit.amount`,
-                                          "Amount",
-                                          0,
-                                          10,
-                                          0.1
-                                        )}
-                                    </div>
-                                </details>`
-                                    : ""
-                                }
-                            </div>
-                        </details>
-                        <details>
-                            <summary><span class="accordion-toggle"></span><strong>Movement</strong></summary>
-                            <div style="padding-left: 15px;">
-                                <details>
-                                    <summary><span class="accordion-toggle"></span><strong>Speed</strong></summary>
-                                    <div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          `${path}.speed.start`,
-                                          "Start Speed",
-                                          -50,
-                                          50,
-                                          1
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          `${path}.speed.end`,
-                                          "End Speed",
-                                          -50,
-                                          50,
-                                          1
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          `${path}.speed.minMult`,
-                                          "Random Speed Min",
-                                          0.1,
-                                          1,
-                                          0.01,
-                                          "Minimum random speed multiplier for each particle (from this value to 1.0)."
-                                        )}
-                                    </div>
-                                </details>
-                                <details>
-                                    <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                                      `${path}.rotation.enabled`,
-                                      "Tumbling / Rotation",
-                                      true
-                                    )}</div></summary>
-                                    <div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          `${path}.rotation.minSpeed`,
-                                          "Min Rot. Speed",
-                                          -180,
-                                          180,
-                                          1,
-                                          "Degrees per second."
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          `${path}.rotation.maxSpeed`,
-                                          "Max Rot. Speed",
-                                          -180,
-                                          180,
-                                          1,
-                                          "Degrees per second."
-                                        )}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-                                          `${path}.rotation.accel`,
-                                          "Rot. Accel.",
-                                          -90,
-                                          90,
-                                          1,
-                                          "Degrees per second squared."
-                                        )}
-                                    </div>
-                                </details>
-                            </div>
-                        </details>
-                    `;
-
-    // Special case for Fire Wind
-    if (effectKey === "fire") {
-      content += `
-                            <details id="details-fire-wind">
-                                <summary><span class="accordion-toggle"></span>
-                                    <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                                      `${path}.wind.enabled`,
-                                      "Complex Wind",
-                                      true
-                                    )}</div>
-                                </summary>
-                                <div style="padding-left: 15px;">
-                                    <p class="description-text">Applies a dynamic wind force to all fire particles.</p>
-                                    ${DebuggerUIBuilder._createSliderHTML(
-                                      `${path}.wind.force`,
-                                      "Wind Force",
-                                      0,
-                                      500,
-                                      5,
-                                      "How strongly the wind pushes the particles."
-                                    )}
-                                    ${DebuggerUIBuilder._createSliderHTML(
-                                      `${path}.wind.baseSpeed`,
-                                      "Base Speed",
-                                      0,
-                                      200,
-                                      1,
-                                      "The normal speed of the wind."
-                                    )}
-                                    ${DebuggerUIBuilder._createSliderHTML(
-                                      `${path}.wind.gustSpeed`,
-                                      "Gust Speed",
-                                      0,
-                                      500,
-                                      5,
-                                      "The peak speed during a gust."
-                                    )}
-                                    <details>
-                                        <summary><span class="accordion-toggle"></span><strong>Gust Timing</strong></summary>
-                                        <div style="padding-left: 15px;">
-                                            ${DebuggerUIBuilder._createSliderHTML(
-                                              `${path}.wind.gustFrequencyMin`,
-                                              "Min Time Between Gusts (s)",
-                                              0.1,
-                                              20,
-                                              0.1
-                                            )}
-                                            ${DebuggerUIBuilder._createSliderHTML(
-                                              `${path}.wind.gustFrequencyMax`,
-                                              "Max Time Between Gusts (s)",
-                                              0.1,
-                                              20,
-                                              0.1
-                                            )}
-                                            ${DebuggerUIBuilder._createSliderHTML(
-                                              `${path}.wind.gustDurationMin`,
-                                              "Min Gust Duration (s)",
-                                              0.1,
-                                              5,
-                                              0.1
-                                            )}
-                                            ${DebuggerUIBuilder._createSliderHTML(
-                                              `${path}.wind.gustDurationMax`,
-                                              "Max Gust Duration (s)",
-                                              0.1,
-                                              5,
-                                              0.1
-                                            )}
-                                        </div>
-                                    </details>
-                                    <details>
-                                        <summary><span class="accordion-toggle"></span><strong>Angle Change</strong></summary>
-                                        <div style="padding-left: 15px;">
-                                            ${DebuggerUIBuilder._createSliderHTML(
-                                              `${path}.wind.angleChangeFrequencyMin`,
-                                              "Min Time Between Changes (s)",
-                                              0.1,
-                                              30,
-                                              0.1
-                                            )}
-                                            ${DebuggerUIBuilder._createSliderHTML(
-                                              `${path}.wind.angleChangeFrequencyMax`,
-                                              "Max Time Between Changes (s)",
-                                              0.1,
-                                              30,
-                                              0.1
-                                            )}
-                                            ${DebuggerUIBuilder._createSliderHTML(
-                                              `${path}.wind.angleChangeRange`,
-                                              "Max Angle Change ( )",
-                                              0,
-                                              90,
-                                              1,
-                                              "Max degrees the angle can shift each time."
-                                            )}
-                                        </div>
-                                    </details>
-                                </div>
-                            </details>
-                        `;
-    }
-
-    const mainAccordionPath =
-      effectKey === "fire" ? "fire.particles.enabled" : `${path}.enabled`;
-    const mainAccordionId =
-      effectKey === "fire" ? "details-fire-particles" : `details-${effectKey}`;
-
-    return DebuggerUIBuilder._createAccordionHTML(
-      effectKey,
-      definition.title,
-      content
-    )
-      .replace(`details-${effectKey}`, mainAccordionId)
-      .replace(`${path}.enabled`, mainAccordionPath);
-  }
-
-  // NOTE: IMPORTANT. AT SOME POINT THIS NEEDS TO BE MOVED TO THE CORRECT PLACE. DON'T FORGET.
-  static getSmellyFliesSettingsHTML() {
-    const effectKey = "smellyFlies";
-    const content = `
-      <p class="description-text">Simulates a swarm of flies that fly around, land, and walk on surfaces defined by a Map Point Area group.</p>
-      ${DebuggerUIBuilder._createSelectHTML(
-        `${effectKey}.blendMode`,
-        "Blend Mode",
-        BLEND_MODE_OPTIONS
-      )}
-      ${DebuggerUIBuilder._createTextInputHTML(
-        `${effectKey}.particleTexture`,
-        "Particle Texture"
-      )}
-      ${DebuggerUIBuilder._createSliderHTML(
-        `${effectKey}.maxParticles`,
-        "Max Particles",
-        1,
-        500,
-        1
-      )}
-
-      <details id="details-smellyFlies-flying">
-        <summary><span class="accordion-toggle"></span><strong>Flying Behavior</strong></summary>
-        <div style="padding-left: 15px;">
-            <details id="details-smellyFlies-takeoff">
-                <summary><span class="accordion-toggle"></span><strong>Takeoff & Landing</strong></summary>
-                <div style="padding-left: 15px;">
-                    ${DebuggerUIBuilder._createSliderHTML(
-                      `${effectKey}.flying.takeoffDuration`,
-                      "Takeoff Duration (s)",
-                      0.1,
-                      2.0,
-                      0.1
-                    )}
-                    ${DebuggerUIBuilder._createSliderHTML(
-                      `${effectKey}.flying.takeoffSpeedMin`,
-                      "Min Takeoff Speed",
-                      10,
-                      500,
-                      5
-                    )}
-                    ${DebuggerUIBuilder._createSliderHTML(
-                      `${effectKey}.flying.takeoffSpeedMax`,
-                      "Max Takeoff Speed",
-                      10,
-                      500,
-                      5
-                    )}
-                    <hr style="border-color: #555; margin: 6px 0;">
-                    ${DebuggerUIBuilder._createSliderHTML(
-                      `${effectKey}.flying.landChance`,
-                      "Land Chance (%/sec)",
-                      0,
-                      1.0,
-                      0.01,
-                      "Chance per second for a fly to land if over a valid area."
-                    )}
-                    ${DebuggerUIBuilder._createSliderHTML(
-                      `${effectKey}.flying.landingDuration`,
-                      "Landing Duration (s)",
-                      0.1,
-                      2.0,
-                      0.1
-                    )}
-                </div>
-            </details>
-            <details id="details-smellyFlies-physics">
-                <summary><span class="accordion-toggle"></span><strong>Flight Physics</strong></summary>
-                <div style="padding-left: 15px;">
-                     ${DebuggerUIBuilder._createSliderHTML(
-                       `${effectKey}.flying.noiseStrength`,
-                       "Erratic Force",
-                       0,
-                       2000,
-                       50,
-                       "How strongly random forces push the fly. Higher = more erratic."
-                     )}
-                     ${DebuggerUIBuilder._createSliderHTML(
-                       `${effectKey}.flying.noiseFrequency`,
-                       "Erratic Frequency",
-                       1,
-                       50,
-                       0.5,
-                       "How quickly the random force changes. Higher = more jittery."
-                     )}
-                     ${DebuggerUIBuilder._createSliderHTML(
-                       `${effectKey}.flying.tetherStrength`,
-                       "Tether Strength",
-                       0,
-                       10,
-                       0.1,
-                       "How strongly the fly is pulled back to its spawn area."
-                     )}
-                     ${DebuggerUIBuilder._createSliderHTML(
-                       `${effectKey}.flying.maxSpeed`,
-                       "Max Speed (px/s)",
-                       50,
-                       1000,
-                       10
-                     )}
-                     ${DebuggerUIBuilder._createSliderHTML(
-                       `${effectKey}.flying.drag`,
-                       "Air Drag",
-                       0,
-                       1,
-                       0.01,
-                       "Friction/resistance. Higher values cause slower, less 'drifty' movement."
-                     )}
-                </div>
-            </details>
-        </div>
-      </details>
-
-      <details id="details-smellyFlies-walking">
-        <summary><span class="accordion-toggle"></span><strong>Walking Behavior</strong></summary>
-        <div style="padding-left: 15px;">
-            ${DebuggerUIBuilder._createSliderHTML(
-              `${effectKey}.walking.walkSpeed`,
-              "Walk Speed (px/s)",
-              5,
-              100,
-              1
-            )}
-            ${DebuggerUIBuilder._createSliderHTML(
-              `${effectKey}.walking.takeoffChance`,
-              "Takeoff Chance (%/sec)",
-              0,
-              1.0,
-              0.01,
-              "Chance per second for a walking fly to take off."
-            )}
-            <details>
-                <summary><span class="accordion-toggle"></span><strong>Idle Timing</strong></summary>
-                <div style="padding-left: 15px;">
-                     ${DebuggerUIBuilder._createSliderHTML(
-                       `${effectKey}.walking.minIdleTime`,
-                       "Min Idle Time (s)",
-                       0.1,
-                       5,
-                       0.1
-                     )}
-                     ${DebuggerUIBuilder._createSliderHTML(
-                       `${effectKey}.walking.maxIdleTime`,
-                       "Max Idle Time (s)",
-                       0.1,
-                       5,
-                       0.1
-                     )}
-                </div>
-            </details>
-            <details>
-                <summary><span class="accordion-toggle"></span><strong>Rotation Timing</strong></summary>
-                <div style="padding-left: 15px;">
-                    ${DebuggerUIBuilder._createSliderHTML(
-                      `${effectKey}.walking.minRotateTime`,
-                      "Min Rotate Time (s)",
-                      0.1,
-                      2,
-                      0.1
-                    )}
-                    ${DebuggerUIBuilder._createSliderHTML(
-                      `${effectKey}.walking.maxRotateTime`,
-                      "Max Rotate Time (s)",
-                      0.1,
-                      2,
-                      0.1
-                    )}
-                </div>
-            </details>
-            <details>
-                <summary><span class="accordion-toggle"></span><strong>Move Distance</strong></summary>
-                <div style="padding-left: 15px;">
-                    ${DebuggerUIBuilder._createSliderHTML(
-                      `${effectKey}.walking.minMoveDistance`,
-                      "Min Move Distance (px)",
-                      1,
-                      200,
-                      1
-                    )}
-                    ${DebuggerUIBuilder._createSliderHTML(
-                      `${effectKey}.walking.maxMoveDistance`,
-                      "Max Move Distance (px)",
-                      1,
-                      200,
-                      1
-                    )}
-                </div>
-            </details>
-        </div>
-      </details>
-      
-      <details id="details-smellyFlies-motionBlur">
-        <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-          `${effectKey}.motionBlur.enabled`,
-          "Motion Blur",
-          true
-        )}</div></summary>
-        <div style="padding-left: 15px;">
-            <p class="description-text">Stretches particles based on their speed to simulate motion blur.</p>
-            ${DebuggerUIBuilder._createSliderHTML(
-              `${effectKey}.motionBlur.strength`,
-              "Strength",
-              0,
-              1,
-              0.01,
-              "Multiplier for how much speed affects particle length."
-            )}
-            ${DebuggerUIBuilder._createSliderHTML(
-              `${effectKey}.motionBlur.maxLength`,
-              "Max Length",
-              1,
-              10,
-              0.1,
-              "The maximum amount to stretch the particle scale."
-            )}
-        </div>
-      </details>
-    `;
-    return DebuggerUIBuilder._createAccordionHTML(
-      effectKey,
-      "Smelly Flies",
-      content
-    );
-  }
-
-  updateTargets(targets, fullConfig) {
-    this.destroyAllEmitters();
-
-    this.config = foundry.utils.getProperty(
-      fullConfig,
-      this.definition.configPath
-    );
-    if (!fullConfig.enabled || !this.config?.enabled) {
-      return;
-    }
-
-    // --- 1. Process File-Based Texture Targets ---
-    let targetsToProcess = [];
-    const spawnOn = this.definition.spawnOn;
-    if (spawnOn === "tiles") {
-      targetsToProcess = [...targets.tiles.values()];
-    } else if (spawnOn === "background") {
-      if (targets.background) {
-        targetsToProcess = [targets.background];
-      }
-    } else {
-      targetsToProcess = [targets.background, ...targets.tiles.values()].filter(
-        Boolean
-      );
-    }
-
-    for (const target of targetsToProcess) {
-      const targetId = target.tile ? target.tile.id : "background";
-      if (target[this.definition.triggerTexture]) {
-        this.pendingTargets.set(targetId, target);
-      }
-    }
-
-    // --- 2. Process Geometry-Based Mask Targets ---
-    const effectKey = this.definition.triggerTexture;
-    const groups = MapPointsManager.getGroups();
-
-    for (const group of Object.values(groups)) {
-      if (
-        group.isEffectSource &&
-        group.effectTarget === effectKey &&
-        group.points.length > 0 &&
-        !group.isBroken
-      ) {
-        console.log(
-          `Map Shine | Found active geometry group '${group.label}' for effect '${effectKey}'.`
-        );
-        // Create a "virtual target" that contains the group data itself.
-        const virtualTarget = {
-          isGeometry: true,
-          group: group,
-        };
-        const targetId = `geometry-${group.id}`;
-        this.pendingTargets.set(targetId, virtualTarget);
-      }
-    }
-  }
-
-  async _createEmitterForTarget(targetData, targetId) {
-    if (targetData.isGeometry) {
-      // Propagate the success/failure state from the geometry-specific method.
-      return await this._createEmitterForGeometry(targetData.group, targetId);
-    }
-
-    // --- Existing logic for texture-based targets ---
-    let customMaskTexture = null;
-    const localTargetData = {
-      ...targetData,
-    };
-
-    if (
-      this.definition.configPath === "dust" &&
-      localTargetData.dust &&
-      localTargetData.structural
-    ) {
-      customMaskTexture = await CompositeMaskGenerator.generate(
-        localTargetData.dust,
-        localTargetData.structural,
-        localTargetData.rect
-      );
-      if (customMaskTexture) {
-        localTargetData.dust = customMaskTexture;
-      }
-    }
-
-    const particleTexPath =
-      this.config.particleTexture ?? "modules/map-shine/assets/particle.webp";
-    if (!particleTexPath || typeof particleTexPath !== "string") return true;
-
-    try {
-      const texture = await foundry.canvas.loadTexture(particleTexPath);
-      const emitterConfig = this.definition.buildEmitterConfig(
-        this.config,
-        localTargetData
-      );
-      if (emitterConfig.maxParticles === 0) {
-        customMaskTexture?.destroy(true);
-        return true;
-      }
-      const textureBehavior = emitterConfig.behaviors.find(
-        (b) => b.type === "textureSingle"
-      );
-      if (textureBehavior) textureBehavior.config.texture = texture;
-
-      const emitterParent = this.particleOnlyContainer || this.parentContainer;
-      const emitter = new PIXI.particles.Emitter(emitterParent, emitterConfig);
-      if (customMaskTexture) emitter._customMaskTexture = customMaskTexture;
-      emitter.autoUpdate = false;
-
-      this.emitters.set(targetId, {
-        emitter,
-      });
-      return true; // Indicate success
-    } catch (err) {
-      console.error(
-        `Map Shine | Failed to load particle texture: "${particleTexPath}"`,
-        err
-      );
-      customMaskTexture?.destroy(true);
-      return true; // Indicate "success" to avoid retrying a failed load.
-    }
-  }
-
-  async _createEmitterForGeometry(group, targetId) {
-    // If the manager isn't ready, defer creation by returning false.
-    if (!game.mapShine.geometryMaskManager) {
-      return false;
-    }
-
-    const particleTexPath =
-      this.config.particleTexture ?? "modules/map-shine/assets/particle.webp";
-    if (!particleTexPath || typeof particleTexPath !== "string") return true; // Nothing to do, so count as "success".
-
-    try {
-      const texture = await foundry.canvas.loadTexture(particleTexPath);
-      const currentFullConfig = game.mapShine.profileManager.activeConfig;
-      const currentEffectConfig = foundry.utils.getProperty(
-        currentFullConfig,
+  
+    updateTargets(targets, fullConfig) {
+      this.destroyAllEmitters();
+  
+      this.config = foundry.utils.getProperty(
+        fullConfig,
         this.definition.configPath
       );
-
+      if (!fullConfig.enabled || !this.config?.enabled) {
+        return;
+      }
+  
+      // --- 1. Process File-Based Texture Targets ---
+      let targetsToProcess = [];
+      const spawnOn = this.definition.spawnOn;
+      if (spawnOn === "tiles") {
+        targetsToProcess = [...targets.tiles.values()];
+      } else if (spawnOn === "background") {
+        if (targets.background) {
+          targetsToProcess = [targets.background];
+        }
+      } else {
+        targetsToProcess = [targets.background, ...targets.tiles.values()].filter(
+          Boolean
+        );
+      }
+  
+      for (const target of targetsToProcess) {
+        const targetId = target.tile ? target.tile.id : "background";
+        if (target[this.definition.triggerTexture]) {
+          this.pendingTargets.set(targetId, target);
+        }
+      }
+  
+      // --- 2. Process Geometry-Based Mask Targets ---
+      const effectKey = this.definition.triggerTexture;
+      const groups = MapPointsManager.getGroups();
+  
+      for (const group of Object.values(groups)) {
+        if (
+          group.isEffectSource &&
+          group.effectTarget === effectKey &&
+          group.points.length > 0 &&
+          !group.isBroken
+        ) {
+          console.log(
+            `Map Shine | Found active geometry group '${group.label}' for effect '${effectKey}'.`
+          );
+          // Create a "virtual target" that contains the group data itself.
+          const virtualTarget = {
+            isGeometry: true,
+            group: group,
+          };
+          const targetId = `geometry-${group.id}`;
+          this.pendingTargets.set(targetId, virtualTarget);
+        }
+      }
+    }
+  
+    async _createEmitterForTarget(targetData, targetId) {
+      if (targetData.isGeometry) {
+        // Propagate the success/failure state from the geometry-specific method.
+        return await this._createEmitterForGeometry(targetData.group, targetId);
+      }
+  
+      // --- Existing logic for texture-based targets ---
+      let customMaskTexture = null;
+      const localTargetData = {
+        ...targetData,
+      };
+  
       if (
-        !this.parentContainer ||
-        !currentFullConfig.enabled ||
-        !currentEffectConfig?.enabled
-      )
-        return true; // Effect is disabled, count as "success" to remove from pending.
-      if (this.emitters.has(targetId)) return true; // Already created, count as "success".
-
-      let emitterConfig;
-
-      if (this.definition.configPath === "smellyFlies") {
-        emitterConfig = this.definition.buildEmitterConfig(
-          currentEffectConfig,
-          { rect: { x: 0, y: 0, width: 1, height: 1 } },
-          null,
-          group
+        this.definition.configPath === "dust" &&
+        localTargetData.dust &&
+        localTargetData.structural
+      ) {
+        customMaskTexture = await CompositeMaskGenerator.generate(
+          localTargetData.dust,
+          localTargetData.structural,
+          localTargetData.rect
         );
-      } else {
-        const maskTexture = game.mapShine.geometryMaskManager.getMask(
-          group.effectTarget
-        );
-        if (!maskTexture) {
-          // The manager exists, but the mask might not be ready yet. Defer.
-          return false;
-        }
-        const virtualTargetData = {
-          [group.effectTarget]: maskTexture,
-          rect: {
-            x: 0,
-            y: 0,
-            width: canvas.app.screen.width,
-            height: canvas.app.screen.height,
-          },
-        };
-        emitterConfig = this.definition.buildEmitterConfig(
-          currentEffectConfig,
-          virtualTargetData,
-          group.effectTarget,
-          group
-        );
-      }
-
-      if (emitterConfig.maxParticles === 0) return true;
-
-      const textureBehavior = emitterConfig.behaviors.find(
-        (b) => b.type === "textureSingle"
-      );
-      if (textureBehavior) textureBehavior.config.texture = texture;
-
-      const emitterParent = this.particleOnlyContainer || this.parentContainer;
-      const emitter = new PIXI.particles.Emitter(emitterParent, emitterConfig);
-      emitter.autoUpdate = false;
-
-      this.emitters.set(targetId, { emitter });
-      return true; // Success!
-    } catch (err) {
-      console.error(
-        `Map Shine | Failed to load particle texture for geometry emitter: "${particleTexPath}"`,
-        err
-      );
-      return true; // Don't retry a failed texture load.
-    }
-  }
-
-  async update(deltaTime) {
-    if (!this.pendingTargets || !this.emitters) return;
-
-    if (this.pendingTargets.size > 0) {
-      const successfullyCreated = new Set();
-      for (const [targetId, targetData] of this.pendingTargets.entries()) {
-        const success = await this._createEmitterForTarget(
-          targetData,
-          targetId
-        );
-        if (success) {
-          successfullyCreated.add(targetId);
+        if (customMaskTexture) {
+          localTargetData.dust = customMaskTexture;
         }
       }
-
-      for (const targetId of successfullyCreated) {
-        this.pendingTargets.delete(targetId);
+  
+      const particleTexPath =
+        this.config.particleTexture ?? "modules/map-shine/assets/particle.webp";
+      if (!particleTexPath || typeof particleTexPath !== "string") return true;
+  
+      try {
+        const texture = await foundry.canvas.loadTexture(particleTexPath);
+        const emitterConfig = this.definition.buildEmitterConfig(
+          this.config,
+          localTargetData
+        );
+        if (emitterConfig.maxParticles === 0) {
+          customMaskTexture?.destroy(true);
+          return true;
+        }
+        const textureBehavior = emitterConfig.behaviors.find(
+          (b) => b.type === "textureSingle"
+        );
+        if (textureBehavior) textureBehavior.config.texture = texture;
+  
+        const emitterParent = this.particleOnlyContainer || this.parentContainer;
+        const emitter = new PIXI.particles.Emitter(emitterParent, emitterConfig);
+        if (customMaskTexture) emitter._customMaskTexture = customMaskTexture;
+        emitter.autoUpdate = false;
+  
+        this.emitters.set(targetId, {
+          emitter,
+        });
+        return true; // Indicate success
+      } catch (err) {
+        console.error(
+          `Map Shine | Failed to load particle texture: "${particleTexPath}"`,
+          err
+        );
+        customMaskTexture?.destroy(true);
+        return true; // Indicate "success" to avoid retrying a failed load.
       }
     }
-
-    // Update the cloud suppressor filter uniform with the latest cloud texture.
-    if (this.cloudSuppressorFilter && this.cloudSuppressorFilter.enabled) {
-      const resourceManager = game.mapShine.resourceManager;
-      if (resourceManager) {
-        this.cloudSuppressorFilter.uniforms.uCloudTexture =
-          resourceManager.getRawCloudTexture(deltaTime) || PIXI.Texture.WHITE;
+  
+    async _createEmitterForGeometry(group, targetId) {
+      // If the manager isn't ready, defer creation by returning false.
+      if (!game.mapShine.geometryMaskManager) {
+        return false;
+      }
+  
+      const particleTexPath =
+        this.config.particleTexture ?? "modules/map-shine/assets/particle.webp";
+      if (!particleTexPath || typeof particleTexPath !== "string") return true; // Nothing to do, so count as "success".
+  
+      try {
+        const texture = await foundry.canvas.loadTexture(particleTexPath);
+        const currentFullConfig = game.mapShine.profileManager.activeConfig;
+        const currentEffectConfig = foundry.utils.getProperty(
+          currentFullConfig,
+          this.definition.configPath
+        );
+  
+        if (
+          !this.parentContainer ||
+          !currentFullConfig.enabled ||
+          !currentEffectConfig?.enabled
+        )
+          return true; // Effect is disabled, count as "success" to remove from pending.
+        if (this.emitters.has(targetId)) return true; // Already created, count as "success".
+  
+        let emitterConfig;
+  
+        if (this.definition.configPath === "smellyFlies") {
+          emitterConfig = this.definition.buildEmitterConfig(
+            currentEffectConfig,
+            { rect: { x: 0, y: 0, width: 1, height: 1 } },
+            null,
+            group
+          );
+        } else {
+          const maskTexture = game.mapShine.geometryMaskManager.getMask(
+            group.effectTarget
+          );
+          if (!maskTexture) {
+            // The manager exists, but the mask might not be ready yet. Defer.
+            return false;
+          }
+          const virtualTargetData = {
+            [group.effectTarget]: maskTexture,
+            rect: {
+              x: 0,
+              y: 0,
+              width: canvas.app.screen.width,
+              height: canvas.app.screen.height,
+            },
+          };
+          emitterConfig = this.definition.buildEmitterConfig(
+            currentEffectConfig,
+            virtualTargetData,
+            group.effectTarget,
+            group
+          );
+        }
+  
+        if (emitterConfig.maxParticles === 0) return true;
+  
+        const textureBehavior = emitterConfig.behaviors.find(
+          (b) => b.type === "textureSingle"
+        );
+        if (textureBehavior) textureBehavior.config.texture = texture;
+  
+        const emitterParent = this.particleOnlyContainer || this.parentContainer;
+        const emitter = new PIXI.particles.Emitter(emitterParent, emitterConfig);
+        emitter.autoUpdate = false;
+  
+        this.emitters.set(targetId, { emitter });
+        return true; // Success!
+      } catch (err) {
+        console.error(
+          `Map Shine | Failed to load particle texture for geometry emitter: "${particleTexPath}"`,
+          err
+        );
+        return true; // Don't retry a failed texture load.
       }
     }
-
-    // Periodically update the spawn points for metallic glints
-    if (this.definition.configPath === "metallicGlints") {
+  
+    async update(deltaTime) {
+      if (!this.pendingTargets || !this.emitters) return;
+  
+      if (this.pendingTargets.size > 0) {
+        const successfullyCreated = new Set();
+        for (const [targetId, targetData] of this.pendingTargets.entries()) {
+          const success = await this._createEmitterForTarget(
+            targetData,
+            targetId
+          );
+          if (success) {
+            successfullyCreated.add(targetId);
+          }
+        }
+  
+        for (const targetId of successfullyCreated) {
+          this.pendingTargets.delete(targetId);
+        }
+      }
+  
+      if (this.displacementFilter) {
+        const resourceManager = game.mapShine.resourceManager;
+        const waterConfig = game.mapShine.profileManager.activeConfig.water;
+  
+        if (resourceManager && waterConfig?.wave?.enabled) {
+          const displacementMap =
+            resourceManager.getWaterDisplacementMap(deltaTime);
+          if (displacementMap) {
+            this.displacementSprite.texture = displacementMap;
+            const scale =
+              waterConfig.wave.intensity *
+              Math.max(canvas.app.screen.width, canvas.app.screen.height);
+            this.displacementFilter.scale.x = scale;
+            this.displacementFilter.scale.y = scale;
+          }
+        }
+      }
+  
+      // Update the cloud suppressor filter uniform with the latest cloud texture.
+      if (this.cloudSuppressorFilter && this.cloudSuppressorFilter.enabled) {
+        const resourceManager = game.mapShine.resourceManager;
+        if (resourceManager) {
+          this.cloudSuppressorFilter.uniforms.uCloudTexture =
+            resourceManager.getRawCloudTexture(deltaTime) || PIXI.Texture.WHITE;
+        }
+      }
+  
+      // Periodically update the spawn points for metallic glints
+      if (this.definition.configPath === "metallicGlints") {
+        for (const { emitter } of this.emitters.values()) {
+          if (!emitter || !emitter.behaviors) continue;
+  
+          const spawnBehavior = emitter.behaviors.find(
+            (b) => b.type === "spawnShape"
+          );
+          if (spawnBehavior?.shape?.update) {
+            spawnBehavior.shape.update();
+          }
+        }
+      }
+  
       for (const { emitter } of this.emitters.values()) {
-        if (!emitter || !emitter.behaviors) continue;
-
-        const spawnBehavior = emitter.behaviors.find(
-          (b) => b.type === "spawnShape"
-        );
-        if (spawnBehavior?.shape?.update) {
-          spawnBehavior.shape.update();
+        emitter.update(deltaTime);
+      }
+    }
+  
+    updateFromConfig(fullConfig) {
+      this.config = foundry.utils.getProperty(
+        fullConfig,
+        this.definition.configPath
+      );
+  
+      const controllerConfig = foundry.utils.getProperty(
+        fullConfig,
+        this.definition.configPath
+      );
+      const particleSystemConfig = fullConfig.particleSystems;
+      this.parentContainer.visible =
+        fullConfig.enabled &&
+        particleSystemConfig.enabled &&
+        controllerConfig?.enabled;
+  
+      if (this.particleOnlyContainer) {
+        this.particleOnlyContainer.blendMode =
+          this.config.blendMode ?? PIXI.BLEND_MODES.NORMAL;
+        this.parentContainer.blendMode =
+          this.config.blendMode ?? PIXI.BLEND_MODES.NORMAL;
+      } else {
+        this.parentContainer.blendMode =
+          this.config?.blendMode ?? PIXI.BLEND_MODES.NORMAL;
+      }
+  
+      this.parentContainer.alpha = 1.0;
+  
+      if (this.rgbSplitFilter) {
+        const rgbConfig = this.config?.rgbSplit;
+        const shouldUseRgb = this.parentContainer.visible && rgbConfig?.enabled;
+        if (shouldUseRgb) {
+          this.rgbSplitFilter.enabled = true;
+          this.rgbSplitFilter.uniforms.uAmount = rgbConfig.amount;
+          const screen = canvas?.app?.screen;
+          if (screen) {
+            this.rgbSplitFilter.uniforms.uTexelSize = [
+              1 / screen.width,
+              1 / screen.height,
+            ];
+          }
+          if (!this.parentContainer.filters?.includes(this.rgbSplitFilter)) {
+            this.parentContainer.filters = [
+              ...(this.parentContainer.filters || []),
+              this.rgbSplitFilter,
+            ];
+          }
+        } else {
+          if (this.parentContainer.filters?.includes(this.rgbSplitFilter)) {
+            this.parentContainer.filters = this.parentContainer.filters.filter(
+              (f) => f !== this.rgbSplitFilter
+            );
+          }
+        }
+      }
+  
+      if (this.displacementFilter) {
+        const waterConfig = fullConfig.water;
+        const shouldUseDisplacement =
+          this.parentContainer.visible && waterConfig?.wave?.enabled;
+  
+        if (shouldUseDisplacement) {
+          if (!this.parentContainer.filters?.includes(this.displacementFilter)) {
+            this.parentContainer.filters = [
+              ...(this.parentContainer.filters || []),
+              this.displacementFilter,
+            ];
+          }
+        } else {
+          if (this.parentContainer.filters?.includes(this.displacementFilter)) {
+            this.parentContainer.filters = this.parentContainer.filters.filter(
+              (f) => f !== this.displacementFilter
+            );
+          }
+        }
+      }
+  
+      // Manage the cloud suppressor filter.
+      if (this.cloudSuppressorFilter) {
+        const shouldUseSuppressor = this.parentContainer.visible;
+        this.cloudSuppressorFilter.enabled = shouldUseSuppressor;
+  
+        if (shouldUseSuppressor) {
+          // Feed the shading settings from the main cloud shadows config into the suppressor filter.
+          const cloudShadingConfig = fullConfig.cloudShadows.shading;
+          const u = this.cloudSuppressorFilter.uniforms;
+          u.u_shading_threshold = cloudShadingConfig.threshold;
+          u.u_shading_softness = cloudShadingConfig.softness;
+          u.u_shading_brightness = cloudShadingConfig.brightness;
+          u.u_shading_contrast = cloudShadingConfig.contrast;
+          u.u_shading_gamma = cloudShadingConfig.gamma;
+  
+          if (
+            !this.parentContainer.filters?.includes(this.cloudSuppressorFilter)
+          ) {
+            this.parentContainer.filters = [
+              ...(this.parentContainer.filters || []),
+              this.cloudSuppressorFilter,
+            ];
+          }
+        } else {
+          if (
+            this.parentContainer.filters?.includes(this.cloudSuppressorFilter)
+          ) {
+            this.parentContainer.filters = this.parentContainer.filters.filter(
+              (f) => f !== this.cloudSuppressorFilter
+            );
+          }
+        }
+      }
+  
+      if (this.bloomFilter) {
+        const fireConfig = foundry.utils.getProperty(fullConfig, "fire");
+        const bloomConfig = fireConfig?.bloom;
+        const shouldUseBloom =
+          this.parentContainer.visible && bloomConfig?.enabled;
+  
+        if (shouldUseBloom) {
+          this.bloomFilter.enabled = true;
+          foundry.utils.mergeObject(this.bloomFilter, bloomConfig);
+          if (!this.parentContainer.filters?.includes(this.bloomFilter)) {
+            this.parentContainer.filters = [
+              ...(this.parentContainer.filters || []),
+              this.bloomFilter,
+            ];
+          }
+          if (canvas?.app?.screen) {
+            this.parentContainer.filterArea = canvas.app.screen;
+          }
+        } else {
+          if (this.parentContainer.filters?.includes(this.bloomFilter)) {
+            this.parentContainer.filters = this.parentContainer.filters.filter(
+              (f) => f !== this.bloomFilter
+            );
+          }
+          this.parentContainer.filterArea = null;
         }
       }
     }
-
-    for (const { emitter } of this.emitters.values()) {
-      emitter.update(deltaTime);
+  
+    destroyAllEmitters() {
+      if (!this.emitters) this.emitters = new Map();
+      if (!this.pendingTargets) this.pendingTargets = new Map();
+  
+      for (const { emitter } of this.emitters.values()) {
+        if (emitter._customMaskTexture) {
+          emitter._customMaskTexture.destroy(true);
+          emitter._customMaskTexture = null;
+        }
+        emitter.destroy();
+      }
+      this.emitters.clear();
+      this.pendingTargets.clear();
+    }
+  
+    destroy() {
+      this.destroyAllEmitters();
+      this.rgbSplitFilter?.destroy();
+      this.bloomFilter?.destroy();
+      this.displacementFilter?.destroy();
+      this.displacementSprite?.destroy();
+  
+      this.particleOnlyContainer?.destroy({
+        children: true,
+      });
+  
+      this.parentContainer = null;
     }
   }
 
-  updateFromConfig(fullConfig) {
-    this.config = foundry.utils.getProperty(
-      fullConfig,
-      this.definition.configPath
-    );
-
-    const controllerConfig = foundry.utils.getProperty(
-      fullConfig,
-      this.definition.configPath
-    );
-    const particleSystemConfig = fullConfig.particleSystems;
-    this.parentContainer.visible =
-      fullConfig.enabled &&
-      particleSystemConfig.enabled &&
-      controllerConfig?.enabled;
-
-    if (this.particleOnlyContainer) {
-      this.particleOnlyContainer.blendMode =
-        this.config.blendMode ?? PIXI.BLEND_MODES.NORMAL;
-      this.parentContainer.blendMode =
-        this.config.blendMode ?? PIXI.BLEND_MODES.NORMAL;
-    } else {
-      this.parentContainer.blendMode =
-        this.config?.blendMode ?? PIXI.BLEND_MODES.NORMAL;
+  const buildParticleEmitterConfig = (
+    effectConfig,
+    targetData,
+    maskKey,
+    groupData = null,
+    options = {}
+  ) => {
+    const globalParticleConfig =
+      game.mapShine.profileManager.activeConfig.particleSystems;
+    const globalMultiplier = globalParticleConfig.globalDensityMultiplier ?? 1.0;
+    const config = effectConfig || {};
+    const rect = targetData?.rect;
+  
+    if (!rect) {
+      return {
+        lifetime: {
+          min: 1,
+          max: 1,
+        },
+        frequency: 9999,
+        maxParticles: 0,
+        behaviors: [],
+      };
     }
-
-    this.parentContainer.alpha = 1.0;
-
-    if (this.rgbSplitFilter) {
-      const rgbConfig = this.config?.rgbSplit;
-      const shouldUseRgb = this.parentContainer.visible && rgbConfig?.enabled;
-      if (shouldUseRgb) {
-        this.rgbSplitFilter.enabled = true;
-        this.rgbSplitFilter.uniforms.uAmount = rgbConfig.amount;
-        const screen = canvas?.app?.screen;
-        if (screen) {
-          this.rgbSplitFilter.uniforms.uTexelSize = [
-            1 / screen.width,
-            1 / screen.height,
-          ];
-        }
-        if (!this.parentContainer.filters?.includes(this.rgbSplitFilter)) {
-          this.parentContainer.filters = [
-            ...(this.parentContainer.filters || []),
-            this.rgbSplitFilter,
-          ];
-        }
-      } else {
-        if (this.parentContainer.filters?.includes(this.rgbSplitFilter)) {
-          this.parentContainer.filters = this.parentContainer.filters.filter(
-            (f) => f !== this.rgbSplitFilter
-          );
-        }
-      }
+  
+    let intensityMultiplier = 1.0;
+    if (groupData?.emission) {
+      intensityMultiplier = groupData.emission.intensity ?? 1.0;
     }
-
-    // Manage the cloud suppressor filter.
-    if (this.cloudSuppressorFilter) {
-      const shouldUseSuppressor = this.parentContainer.visible;
-      this.cloudSuppressorFilter.enabled = shouldUseSuppressor;
-
-      if (shouldUseSuppressor) {
-        // Feed the shading settings from the main cloud shadows config into the suppressor filter.
-        const cloudShadingConfig = fullConfig.cloudShadows.shading;
-        const u = this.cloudSuppressorFilter.uniforms;
-        u.u_shading_threshold = cloudShadingConfig.threshold;
-        u.u_shading_softness = cloudShadingConfig.softness;
-        u.u_shading_brightness = cloudShadingConfig.brightness;
-        u.u_shading_contrast = cloudShadingConfig.contrast;
-        u.u_shading_gamma = cloudShadingConfig.gamma;
-
-        if (
-          !this.parentContainer.filters?.includes(this.cloudSuppressorFilter)
-        ) {
-          this.parentContainer.filters = [
-            ...(this.parentContainer.filters || []),
-            this.cloudSuppressorFilter,
-          ];
-        }
-      } else {
-        if (
-          this.parentContainer.filters?.includes(this.cloudSuppressorFilter)
-        ) {
-          this.parentContainer.filters = this.parentContainer.filters.filter(
-            (f) => f !== this.cloudSuppressorFilter
-          );
-        }
-      }
+  
+    const spawnMaskTexture = targetData[maskKey];
+    // This guard clause ensures that if the expected texture map (e.g., _Water.webp)
+    // is not found for a given target, we do not proceed to create an invalid emitter configuration.
+    if (!spawnMaskTexture) {
+      return {
+        maxParticles: 0,
+        behaviors: [],
+      };
     }
-
-    if (this.bloomFilter) {
-      const fireConfig = foundry.utils.getProperty(fullConfig, "fire");
-      const bloomConfig = fireConfig?.bloom;
-      const shouldUseBloom =
-        this.parentContainer.visible && bloomConfig?.enabled;
-
-      if (shouldUseBloom) {
-        this.bloomFilter.enabled = true;
-        foundry.utils.mergeObject(this.bloomFilter, bloomConfig);
-        if (!this.parentContainer.filters?.includes(this.bloomFilter)) {
-          this.parentContainer.filters = [
-            ...(this.parentContainer.filters || []),
-            this.bloomFilter,
-          ];
-        }
-        if (canvas?.app?.screen) {
-          this.parentContainer.filterArea = canvas.app.screen;
-        }
-      } else {
-        if (this.parentContainer.filters?.includes(this.bloomFilter)) {
-          this.parentContainer.filters = this.parentContainer.filters.filter(
-            (f) => f !== this.bloomFilter
-          );
-        }
-        this.parentContainer.filterArea = null;
-      }
+  
+    // Determine if the mask is a pre-rendered screen-space texture.
+    const isScreenSpaceMask = spawnMaskTexture instanceof PIXI.RenderTexture;
+  
+    const spawnData = {
+      texture: spawnMaskTexture,
+      width: rect.width,
+      height: rect.height,
+      x: 0,
+      y: 0,
+      threshold: (config.maskThreshold ?? 0.5) * 255,
+      isDynamicScreenMask: isScreenSpaceMask,
+    };
+  
+    if (options.spawnMode === 'range') {
+      spawnData.spawnMode = 'range';
+      spawnData.upperThreshold = (config.maskUpperThreshold ?? 0.8) * 255;
     }
-  }
-
-  destroyAllEmitters() {
-    if (!this.emitters) this.emitters = new Map();
-    if (!this.pendingTargets) this.pendingTargets = new Map();
-
-    for (const { emitter } of this.emitters.values()) {
-      if (emitter._customMaskTexture) {
-        emitter._customMaskTexture.destroy(true);
-        emitter._customMaskTexture = null;
-      }
-      emitter.destroy();
+  
+    const spawnBehavior = {
+      type: "spawnShape",
+      config: {
+        type: "textureMask",
+        data: spawnData,
+      },
+    };
+  
+    const behaviors = [
+      {
+        type: "textureSingle",
+        config: {
+          texture:
+            config.particleTexture ?? "modules/map-shine/assets/particle.webp",
+        },
+      },
+      spawnBehavior,
+    ];
+  
+    const alphaConfig = config.alpha ?? {};
+    let fadeInTime = Math.max(0, alphaConfig.fadeIn ?? 0.1);
+    let fadeOutTime = Math.max(0, alphaConfig.fadeOut ?? 0.1);
+    if (fadeInTime + fadeOutTime >= 1) {
+      const total = fadeInTime + fadeOutTime;
+      fadeInTime /= total;
+      fadeOutTime /= total;
     }
-    this.emitters.clear();
-    this.pendingTargets.clear();
-  }
-
-  destroy() {
-    this.destroyAllEmitters();
-    this.rgbSplitFilter?.destroy();
-    this.bloomFilter?.destroy();
-
-    this.particleOnlyContainer?.destroy({
-      children: true,
+    behaviors.push({
+      type: "alpha",
+      config: {
+        alpha: {
+          list: [
+            {
+              value: 0,
+              time: 0,
+            },
+            {
+              value: alphaConfig.max ?? 0.7,
+              time: fadeInTime,
+            },
+            {
+              value: alphaConfig.max ?? 0.7,
+              time: 1 - fadeOutTime,
+            },
+            {
+              value: 0,
+              time: 1,
+            },
+          ],
+        },
+      },
     });
-
-    this.parentContainer = null;
-  }
-}
-
-const buildParticleEmitterConfig = (
-  effectConfig,
-  targetData,
-  maskKey,
-  groupData = null
-) => {
-  const globalParticleConfig =
-    game.mapShine.profileManager.activeConfig.particleSystems;
-  const globalMultiplier = globalParticleConfig.globalDensityMultiplier ?? 1.0;
-  const config = effectConfig || {};
-  const rect = targetData?.rect;
-
-  if (!rect) {
+  
+    const scaleConfig = config.scale ?? {};
+    const startScale =
+      (scaleConfig.start ?? 0.05) * (scaleConfig.sizeMultiplier ?? 1.0);
+    const endScale =
+      (scaleConfig.end ?? 0.15) * (scaleConfig.sizeMultiplier ?? 1.0);
+    if (startScale === endScale) {
+      behaviors.push({
+        type: "scaleStatic",
+        config: {
+          min: startScale,
+          max: startScale,
+        },
+      });
+    } else {
+      behaviors.push({
+        type: "scale",
+        config: {
+          scale: {
+            start: startScale,
+            end: endScale,
+          },
+          minMult: scaleConfig.minMult ?? 0.5,
+        },
+      });
+    }
+  
+    const speedConfig = config.speed ?? {};
+    const startSpeed = speedConfig.start ?? 5;
+    const endSpeed = speedConfig.end ?? 15;
+    if (startSpeed === endSpeed) {
+      behaviors.push({
+        type: "moveSpeedStatic",
+        config: {
+          min: startSpeed,
+          max: startSpeed,
+        },
+      });
+    } else {
+      behaviors.push({
+        type: "moveSpeed",
+        config: {
+          speed: {
+            start: startSpeed,
+            end: endSpeed,
+          },
+          minMult: speedConfig.minMult ?? 0.5,
+        },
+      });
+    }
+  
+    // For metallic glints, use the custom behavior to sample color from the spawn texture.
+    // For all other effects, use the standard static or gradient color behaviors.
+    if (maskKey === "specular") {
+      behaviors.push({
+        type: "colorFromSpawn",
+        config: {},
+      });
+    } else {
+      const colorConfig = config.color ?? {};
+      const startColor = colorConfig.start ?? "#FFFFFF";
+      const endColor = colorConfig.end ?? "#FFFFFF";
+      if (startColor === endColor) {
+        behaviors.push({
+          type: "colorStatic",
+          config: {
+            color: startColor,
+          },
+        });
+      } else {
+        behaviors.push({
+          type: "color",
+          config: {
+            color: {
+              start: startColor,
+              end: endColor,
+            },
+          },
+        });
+      }
+    }
+  
+    const rotConfig = config.rotation ?? {};
+    if (rotConfig.enabled) {
+      behaviors.push({
+        type: "rotation",
+        config: {
+          minStart: 0,
+          maxStart: 360,
+          minSpeed: rotConfig.minSpeed ?? 0,
+          maxSpeed: rotConfig.maxSpeed ?? 20,
+          accel: rotConfig.accel ?? 0,
+        },
+      });
+    } else {
+      behaviors.push({
+        type: "rotationStatic",
+        config: {
+          min: 0,
+          max: 360,
+        },
+      });
+    }
+  
+    const lifetimeConfig = config.lifetime ?? {};
     return {
       lifetime: {
-        min: 1,
-        max: 1,
+        min: lifetimeConfig.min ?? 4,
+        max: lifetimeConfig.max ?? 12,
       },
-      frequency: 9999,
-      maxParticles: 0,
-      behaviors: [],
+      blendMode: config.blendMode ?? PIXI.BLEND_MODES.NORMAL,
+      frequency:
+        (config.frequency ?? 0.1) / globalMultiplier / intensityMultiplier,
+      emitterLifetime: -1,
+      maxParticles: Math.max(
+        1,
+        2000 *
+          (config.maskInfluence ?? 1.0) *
+          globalMultiplier *
+          intensityMultiplier
+      ),
+      pos: {
+        // If the mask is screen-space, the shape provides absolute world coordinates,
+        // so the emitter's own position must be at the origin. Otherwise, use the
+        // world position of the tile/background.
+        x: isScreenSpaceMask ? 0 : rect.x,
+        y: isScreenSpaceMask ? 0 : rect.y,
+      },
+      addAtBack: false,
+      behaviors: behaviors,
     };
-  }
-
-  let intensityMultiplier = 1.0;
-  if (groupData?.emission) {
-    intensityMultiplier = groupData.emission.intensity ?? 1.0;
-  }
-
-  const spawnMaskTexture = targetData[maskKey];
-  // This guard clause ensures that if the expected texture map (e.g., _Water.webp)
-  // is not found for a given target, we do not proceed to create an invalid emitter configuration.
-  if (!spawnMaskTexture) {
-    return {
-      maxParticles: 0,
-      behaviors: [],
-    };
-  }
-
-  // Determine if the mask is a pre-rendered screen-space texture.
-  const isScreenSpaceMask = spawnMaskTexture instanceof PIXI.RenderTexture;
-
-  const spawnBehavior = {
-    type: "spawnShape",
-    config: {
-      type: "textureMask",
-      data: {
-        texture: spawnMaskTexture,
-        width: rect.width,
-        height: rect.height,
-        x: 0,
-        y: 0,
-        threshold: (config.maskThreshold ?? 0.5) * 255,
-        // Set the flag based on whether the mask is a screen-space RenderTexture.
-        isDynamicScreenMask: isScreenSpaceMask,
-      },
-    },
   };
-
-  const behaviors = [
-    {
-      type: "textureSingle",
-      config: {
-        texture:
-          config.particleTexture ?? "modules/map-shine/assets/particle.webp",
-      },
-    },
-    spawnBehavior,
-  ];
-
-  const alphaConfig = config.alpha ?? {};
-  let fadeInTime = Math.max(0, alphaConfig.fadeIn ?? 0.1);
-  let fadeOutTime = Math.max(0, alphaConfig.fadeOut ?? 0.1);
-  if (fadeInTime + fadeOutTime >= 1) {
-    const total = fadeInTime + fadeOutTime;
-    fadeInTime /= total;
-    fadeOutTime /= total;
-  }
-  behaviors.push({
-    type: "alpha",
-    config: {
-      alpha: {
-        list: [
-          {
-            value: 0,
-            time: 0,
-          },
-          {
-            value: alphaConfig.max ?? 0.7,
-            time: fadeInTime,
-          },
-          {
-            value: alphaConfig.max ?? 0.7,
-            time: 1 - fadeOutTime,
-          },
-          {
-            value: 0,
-            time: 1,
-          },
-        ],
-      },
-    },
-  });
-
-  const scaleConfig = config.scale ?? {};
-  const startScale =
-    (scaleConfig.start ?? 0.05) * (scaleConfig.sizeMultiplier ?? 1.0);
-  const endScale =
-    (scaleConfig.end ?? 0.15) * (scaleConfig.sizeMultiplier ?? 1.0);
-  if (startScale === endScale) {
-    behaviors.push({
-      type: "scaleStatic",
-      config: {
-        min: startScale,
-        max: startScale,
-      },
-    });
-  } else {
-    behaviors.push({
-      type: "scale",
-      config: {
-        scale: {
-          start: startScale,
-          end: endScale,
-        },
-        minMult: scaleConfig.minMult ?? 0.5,
-      },
-    });
-  }
-
-  const speedConfig = config.speed ?? {};
-  const startSpeed = speedConfig.start ?? 5;
-  const endSpeed = speedConfig.end ?? 15;
-  if (startSpeed === endSpeed) {
-    behaviors.push({
-      type: "moveSpeedStatic",
-      config: {
-        min: startSpeed,
-        max: startSpeed,
-      },
-    });
-  } else {
-    behaviors.push({
-      type: "moveSpeed",
-      config: {
-        speed: {
-          start: startSpeed,
-          end: endSpeed,
-        },
-        minMult: speedConfig.minMult ?? 0.5,
-      },
-    });
-  }
-
-  // For metallic glints, use the custom behavior to sample color from the spawn texture.
-  // For all other effects, use the standard static or gradient color behaviors.
-  if (maskKey === "specular") {
-    behaviors.push({
-      type: "colorFromSpawn",
-      config: {},
-    });
-  } else {
-    const colorConfig = config.color ?? {};
-    const startColor = colorConfig.start ?? "#FFFFFF";
-    const endColor = colorConfig.end ?? "#FFFFFF";
-    if (startColor === endColor) {
-      behaviors.push({
-        type: "colorStatic",
-        config: {
-          color: startColor,
-        },
-      });
-    } else {
-      behaviors.push({
-        type: "color",
-        config: {
-          color: {
-            start: startColor,
-            end: endColor,
-          },
-        },
-      });
-    }
-  }
-
-  const rotConfig = config.rotation ?? {};
-  if (rotConfig.enabled) {
-    behaviors.push({
-      type: "rotation",
-      config: {
-        minStart: 0,
-        maxStart: 360,
-        minSpeed: rotConfig.minSpeed ?? 0,
-        maxSpeed: rotConfig.maxSpeed ?? 20,
-        accel: rotConfig.accel ?? 0,
-      },
-    });
-  } else {
-    behaviors.push({
-      type: "rotationStatic",
-      config: {
-        min: 0,
-        max: 360,
-      },
-    });
-  }
-
-  const lifetimeConfig = config.lifetime ?? {};
-  return {
-    lifetime: {
-      min: lifetimeConfig.min ?? 4,
-      max: lifetimeConfig.max ?? 12,
-    },
-    blendMode: config.blendMode ?? PIXI.BLEND_MODES.NORMAL,
-    frequency:
-      (config.frequency ?? 0.1) / globalMultiplier / intensityMultiplier,
-    emitterLifetime: -1,
-    maxParticles: Math.max(
-      1,
-      2000 *
-        (config.maskInfluence ?? 1.0) *
-        globalMultiplier *
-        intensityMultiplier
-    ),
-    pos: {
-      // If the mask is screen-space, the shape provides absolute world coordinates,
-      // so the emitter's own position must be at the origin. Otherwise, use the
-      // world position of the tile/background.
-      x: isScreenSpaceMask ? 0 : rect.x,
-      y: isScreenSpaceMask ? 0 : rect.y,
-    },
-    addAtBack: false,
-    behaviors: behaviors,
-  };
-};
 
 const buildSparkEmitterConfig = (effectConfig, targetData, maskKey) => {
   const globalParticleConfig =
@@ -12695,6 +12800,8 @@ class TextureMaskShape {
     this.offsetX = config.x || 0;
     this.offsetY = config.y || 0;
     this.threshold = config.threshold ?? 128;
+    this.spawnMode = config.spawnMode || 'threshold';
+    this.upperThreshold = config.upperThreshold ?? 255;
     this.validPoints = [];
     this.texture = null;
     this.pointCompilationDensity = 4;
@@ -12784,7 +12891,17 @@ class TextureMaskShape {
         for (let x = 0; x < texture.width; x += step) {
           const index = (y * texture.width + x) * 4;
           const pixelValue = pixelData[index]; // Use red channel for grayscale
-          if (pixelValue >= this.threshold) {
+          let shouldSpawn = false;
+          if (this.spawnMode === 'range') {
+              if (pixelValue >= this.threshold && pixelValue <= this.upperThreshold) {
+                  shouldSpawn = true;
+              }
+          } else { // Default threshold behavior
+              if (pixelValue >= this.threshold) {
+                  shouldSpawn = true;
+              }
+          }
+          if (shouldSpawn) {
             // --- MODIFICATION START ---
             // Manual screen-to-world calculation using CoordinateManager data.
             const cameraOffset = CoordinateManager.getCameraOffset();
@@ -12813,7 +12930,17 @@ class TextureMaskShape {
         for (let x = 0; x < texture.width; x += step) {
           const index = (y * texture.width + x) * 4;
           const pixelValue = pixelData[index]; // Use red channel for grayscale
-          if (pixelValue >= this.threshold) {
+          let shouldSpawn = false;
+          if (this.spawnMode === 'range') {
+              if (pixelValue >= this.threshold && pixelValue <= this.upperThreshold) {
+                  shouldSpawn = true;
+              }
+          } else { // Default threshold behavior
+              if (pixelValue >= this.threshold) {
+                  shouldSpawn = true;
+              }
+          }
+          if (shouldSpawn) {
             const relativeX = (x / texture.width) * this.width;
             const relativeY = (y / texture.height) * this.height;
             const worldX = this.offsetX + relativeX;
@@ -24651,6 +24778,12 @@ const CLIENT_OVERRIDES_CONFIG = {
     tooltip:
       "Emits energetic sparks that fly off in turbulent paths, suitable for forges or electrical effects.",
   },
+  biofilm: {
+    name: "Biofilm",
+    path: "biofilm",
+    intensitySubPath: "maskInfluence",
+    tooltip: "Adds scummy biofilm particles to water surfaces.",
+  },
   lightning: {
     name: "Lightning",
     path: "lightning",
@@ -26009,6 +26142,7 @@ class DebuggerUIBuilder {
       ParticleEffectController.getSettingsHTML("dust"),
       ParticleEffectController.getSettingsHTML("glint"),
       ParticleEffectController.getSettingsHTML("metallicGlints"),
+      ParticleEffectController.getSettingsHTML("biofilm"),
       ParticleEffectController.getSmellyFliesSettingsHTML(),
       LightningManager.getSettingsHTML(),
       this._getOverheadEffectHTML(),
