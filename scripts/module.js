@@ -1,3 +1,5 @@
+// Diagnostic: Remind me to keep an eye out for the flame particles disappearing when changing scenes.
+
 /******************************************************************************
  *
  *                            MAP SHINE
@@ -2076,11 +2078,30 @@ const MODULE_DEFAULTS = {
   },
   water: {
     enabled: true,
+    flow: {
+      enabled: false,
+      angle: 45,
+      speed: 5,
+    },
     wave: {
       enabled: true,
       speed: 0.0148,
       scale: 37.7,
       intensity: 0.0018,
+    },
+    murkiness: {
+      enabled: false,
+      color: "#1a2c22",
+      wavyNoise: {
+        strength: 0.8,
+        scale: 2.0,
+        speed: 0.005,
+      },
+      sandyNoise: {
+        strength: 0.3,
+        scale: 15.0,
+        speed: 0.02,
+      },
     },
     surface: {
       enabled: true,
@@ -2115,6 +2136,10 @@ const MODULE_DEFAULTS = {
       intersectionBoost: 20,
       roughnessScale: 4.2,
       roughnessIntensity: 0.83,
+      cloudOcclusion: {
+        enabled: true,
+        intensity: 0.8,
+      },
     },
     shoreline: {
       enabled: false,
@@ -21700,6 +21725,7 @@ class WaterEffectsFilter extends PIXI.Filter {
                         uniform sampler2D u_waterMask;
                         uniform sampler2D u_shorelineMask;
                         uniform sampler2D u_blurredWaterMask;
+                        uniform sampler2D u_cloudShadows;
             
                         // Uniforms for toggles and parameters
                         uniform bool u_useShorelineMask;
@@ -21747,6 +21773,8 @@ class WaterEffectsFilter extends PIXI.Filter {
                         uniform float u_causticsIntersectionBoost;
                         uniform float u_causticsRoughnessScale;
                         uniform float u_causticsRoughnessIntensity;
+                        uniform bool u_causticsCloudOcclusionEnabled;
+                        uniform float u_causticsCloudOcclusionIntensity;
                         
                         // Shoreline
                         uniform bool u_shoreline_enabled;
@@ -21768,6 +21796,21 @@ class WaterEffectsFilter extends PIXI.Filter {
                         uniform float u_shorelineDisplacementScale;
                         uniform float u_shorelineDisplacementSpeed;
                         uniform float u_shorelineDisplacementStrength;
+
+                        // Water Flow
+                        uniform bool u_flow_enabled;
+                        uniform vec2 u_flow_direction;
+                        uniform float u_flow_speed;
+
+                        // Murkiness & Occlusion
+                        uniform bool u_murkiness_enabled;
+                        uniform vec3 u_murkiness_color;
+                        uniform float u_wavy_strength;
+                        uniform float u_wavy_scale;
+                        uniform float u_wavy_speed;
+                        uniform float u_sandy_strength;
+                        uniform float u_sandy_scale;
+                        uniform float u_sandy_speed;
             
                         vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 289.0);}
                         vec4 taylorInvSqrt(vec4 r){return 1.79284291400159 - 0.85373472095314 * r;}
@@ -21844,7 +21887,10 @@ class WaterEffectsFilter extends PIXI.Filter {
                             }
 
                             vec2 world_coord = u_camera_offset + (vTextureCoord * u_view_size);
-            
+                            vec2 flow_offset = u_flow_enabled ? u_flow_direction * u_time * u_flow_speed * 100.0 : vec2(0.0);
+                            vec2 flowed_world_coord = world_coord + flow_offset;
+
+                            // --- UNIFIED DISTORTION CALCULATION ---
                             vec2 wave_uv_offset = vec2(0.0);
                             if (u_wave_enabled) {
                                 wave_uv_offset = (texture2D(u_displacementMap, vTextureCoord).xy - 0.5) * 2.0 * u_wave_intensity;
@@ -21854,56 +21900,66 @@ class WaterEffectsFilter extends PIXI.Filter {
                             if (u_shoreline_enabled && u_shorelineDisplacementEnabled) {
                                 float currentShorelineMask = u_useShorelineMask ? texture2D(u_shorelineMask, vTextureCoord).r : clamp((texture2D(u_blurredWaterMask, vTextureCoord).r - waterMaskValue) * 5.0, 0.0, 1.0);
                                 if (currentShorelineMask > 0.0) {
-                                    vec2 swirl_noise_coord = world_coord * u_shorelineDisplacementScale * 0.01;
+                                    vec2 swirl_noise_coord = flowed_world_coord * u_shorelineDisplacementScale * 0.01;
                                     float displacement_time = u_time * u_shorelineDisplacementSpeed;
                                     float dx = snoise(vec3(swirl_noise_coord, displacement_time));
                                     float dy = snoise(vec3(swirl_noise_coord + vec2(17.8, 93.4), displacement_time));
                                     swirl_world_offset = vec2(dx, dy) * u_shorelineDisplacementStrength * currentShorelineMask;
                                 }
                             }
-            
-                            vec2 final_distorted_uv = vTextureCoord + wave_uv_offset;
-                            vec2 final_distorted_world_coord = world_coord + swirl_world_offset;
                             
+                            // Convert world-space swirl offset to UV-space and combine with wave offset.
+                            vec2 swirl_uv_offset = swirl_world_offset / u_view_size;
+                            vec2 total_uv_offset = wave_uv_offset + swirl_uv_offset;
+
+                            // Create consistently distorted coordinates for both scene sampling (UV space) and procedural patterns (world space).
+                            vec2 final_distorted_uv = vTextureCoord + total_uv_offset;
+                            vec2 final_distorted_world_coord = flowed_world_coord + (total_uv_offset * u_view_size);
+                            // --- END UNIFIED DISTORTION ---
+
                             vec4 sceneColor = texture2D(uSampler, mix(vTextureCoord, final_distorted_uv, waterMaskValue));
                             
                             vec3 finalColor = sceneColor.rgb;
             
                             if (u_caustics_enabled) {
                                 float time = u_time * u_causticsSpeed;
-                                vec3 dist_coord = vec3(world_coord * u_causticsLineDistortionScale * 0.01, time * 2.0);
+                                vec3 dist_coord = vec3(flowed_world_coord * u_causticsLineDistortionScale * 0.01, time * 2.0);
                                 float distortion_noise = snoise(dist_coord) * u_causticsLineDistortion;
-                                vec3 coord1 = vec3(world_coord * u_causticsScale * 0.02 + distortion_noise, time);
+                                vec3 coord1 = vec3(flowed_world_coord * u_causticsScale * 0.02 + distortion_noise, time);
                                 float pattern1 = pow(max(0.0, 1.0 - abs(snoise(coord1))), u_causticsLineSharpness);
-                                vec3 coord2 = vec3(world_coord * u_causticsScale * 0.01 - distortion_noise, time * 0.5);
+                                vec3 coord2 = vec3(flowed_world_coord * u_causticsScale * 0.01 - distortion_noise, time * 0.5);
                                 float pattern2 = pow(max(0.0, 1.0 - abs(snoise(coord2))), u_causticsLineSharpness);
-                                vec3 rough_coord = vec3(world_coord * u_causticsRoughnessScale * 0.01, time * 1.5);
+                                vec3 rough_coord = vec3(flowed_world_coord * u_causticsRoughnessScale * 0.01, time * 1.5);
                                 float roughness_noise = snoise(rough_coord) * 0.5 + 0.5;
                                 roughness_noise = 1.0 - u_causticsRoughnessIntensity + (roughness_noise * u_causticsRoughnessIntensity);
-                                vec3 coord3 = vec3(world_coord * u_causticsScale * 0.005, time * 0.2);
+                                vec3 coord3 = vec3(flowed_world_coord * u_causticsScale * 0.005, time * 0.2);
                                 float bloom_pattern = smoothstep(0.6, 1.0, snoise(coord3) * 0.5 + 0.5);
                                 float line_pattern = pattern1 * pattern2 * u_causticsIntersectionBoost;
                                 float final_pattern = (line_pattern * roughness_noise) + bloom_pattern * u_causticsBloomIntensity;
                                 vec3 caustics = u_causticsColor * final_pattern * u_causticsIntensity;
+
+                                if (u_causticsCloudOcclusionEnabled) {
+                                    float cloudValue = texture2D(u_cloudShadows, vScreenCoord).r;
+                                    float occlusionFactor = 1.0 - (cloudValue * u_causticsCloudOcclusionIntensity);
+                                    caustics *= occlusionFactor;
+                                }
+
                                 finalColor += caustics * waterMaskValue;
                             }
             
                             if (u_surface_enabled) {
-                                vec2 foam_wave_distortion = wave_uv_offset * u_openWaterFbmScale * 10.0;
-                                vec2 baseFoamUV = (final_distorted_world_coord * u_openWaterFbmScale * 0.01) + foam_wave_distortion;
-
-                                baseFoamUV += u_time * u_openWaterFbmSpeed * 0.1;
-                                float foamTime = u_time * u_openWaterFbmEvolution * 0.1;
+                                vec2 baseFoamUV = final_distorted_world_coord * u_openWaterFbmScale * 0.01;
+                                baseFoamUV += u_time * u_openWaterFbmSpeed;
+                                float foamTime = u_time * u_openWaterFbmEvolution;
                                 float foamNoise = fbm(vec3(baseFoamUV, foamTime), u_openWaterFbmOctaves, u_openWaterFbmLacunarity, u_openWaterFbmPersistence);
                                 float openWaterFoamAmount = smoothstep(1.0 - u_openWaterFoamCoverage, 1.0 - u_openWaterFoamCoverage + u_openWaterFoamSharpness, foamNoise);
                                 vec3 openWaterFoamResult = u_openWaterFoamColor * openWaterFoamAmount * u_openWaterFoamIntensity;
                                 
                                 vec3 sheenResult = vec3(0.0);
                                 if (u_sheenEnabled) {
-                                    vec2 sheen_wave_distortion = wave_uv_offset * u_sheenScale * 10.0;
-                                    vec2 sheenUV = (final_distorted_world_coord * u_sheenScale * 0.01) + sheen_wave_distortion;
+                                    vec2 sheenUV = final_distorted_world_coord * u_sheenScale * 0.01;
                                     sheenUV.x *= u_sheenStretch;
-                                    sheenUV.y += u_time * u_sheenSpeed * 0.1;
+                                    sheenUV.y += u_time * u_sheenSpeed;
                                     float sheenNoise = snoise(vec3(sheenUV, u_time * 0.01));
                                     sheenNoise = pow(smoothstep(0.8, 1.0, sheenNoise), u_sheenSharpness);
                                     sheenResult = u_sheenColor * sheenNoise * u_sheenIntensity;
@@ -21914,9 +21970,7 @@ class WaterEffectsFilter extends PIXI.Filter {
                             if (u_shoreline_enabled) {
                                 float shorelineMaskValue = u_useShorelineMask ? texture2D(u_shorelineMask, vTextureCoord).r : clamp((texture2D(u_blurredWaterMask, vTextureCoord).r - waterMaskValue) * 5.0, 0.0, 1.0);
                                 
-                                vec2 shore_foam_wave_distortion = wave_uv_offset * u_shorelinePatternScale * 10.0;
-                                vec2 final_foam_uv = (final_distorted_world_coord * u_shorelinePatternScale * 0.01) + shore_foam_wave_distortion;
-
+                                vec2 final_foam_uv = final_distorted_world_coord * u_shorelinePatternScale * 0.01;
                                 final_foam_uv.x += u_time * u_shorelinePatternSpeed;
                                 float foam_time = u_time * u_shorelinePatternEvolution;
                                 float foam_noise = fbm(vec3(final_foam_uv, foam_time), u_shorelinePatternOctaves, u_shorelinePatternLacunarity, u_shorelinePatternPersistence);
@@ -21925,6 +21979,21 @@ class WaterEffectsFilter extends PIXI.Filter {
                                 
                                 vec3 shoreline_foam_result = u_shorelineFoamColor * final_foam_amount * u_shorelineFoamIntensity;
                                 finalColor += shoreline_foam_result;
+                            }
+
+                            if (u_murkiness_enabled) {
+                                vec2 wavy_uv = flowed_world_coord * u_wavy_scale * 0.01;
+                                float wavy_noise = snoise(vec3(wavy_uv, u_time * u_wavy_speed)) * 0.5 + 0.5;
+                                float wavy_occlusion = wavy_noise * u_wavy_strength;
+
+                                vec2 sandy_uv = flowed_world_coord * u_sandy_scale * 0.01;
+                                float sandy_noise = fbm(vec3(sandy_uv, u_time * u_sandy_speed), 4, 2.5, 0.4);
+                                float sandy_occlusion = sandy_noise * u_sandy_strength;
+
+                                float total_occlusion = (wavy_occlusion + sandy_occlusion) * waterMaskValue;
+                                total_occlusion = clamp(total_occlusion, 0.0, 1.0);
+
+                                finalColor = mix(finalColor, u_murkiness_color, total_occlusion);
                             }
             
                             gl_FragColor = vec4(clamp(finalColor, 0.0, 1.0), sceneColor.a);
@@ -21937,8 +22006,8 @@ class WaterEffectsFilter extends PIXI.Filter {
       u_waterMask: options.u_waterMask ?? PIXI.Texture.EMPTY,
       u_shorelineMask: options.u_shorelineMask ?? PIXI.Texture.EMPTY,
       u_blurredWaterMask: options.u_blurredWaterMask ?? PIXI.Texture.EMPTY,
+      u_cloudShadows: options.u_cloudShadows ?? PIXI.Texture.EMPTY,
       uSceneRectNorm: [0, 0, 1, 1],
-
       u_causticsLineSharpness: 20.0,
       u_causticsBloomIntensity: 0.3,
       u_causticsLineDistortion: 0.3,
@@ -21946,7 +22015,8 @@ class WaterEffectsFilter extends PIXI.Filter {
       u_causticsIntersectionBoost: 4.0,
       u_causticsRoughnessScale: 5.0,
       u_causticsRoughnessIntensity: 0.4,
-
+      u_causticsCloudOcclusionEnabled: true,
+      u_causticsCloudOcclusionIntensity: 0.8,
       u_shorelinePatternScale: 5.0,
       u_shorelinePatternSpeed: 0.1,
       u_shorelinePatternEvolution: 0.2,
@@ -21955,11 +22025,23 @@ class WaterEffectsFilter extends PIXI.Filter {
       u_shorelinePatternPersistence: 0.5,
       u_shorelinePatternBrightness: 0.5,
       u_shorelinePatternContrast: 1.5,
-
       u_shorelineDisplacementEnabled: true,
       u_shorelineDisplacementScale: 2.0,
       u_shorelineDisplacementSpeed: 0.05,
       u_shorelineDisplacementStrength: 10.0,
+      // Flow
+      u_flow_enabled: false,
+      u_flow_direction: [1, 0],
+      u_flow_speed: 0.0,
+      // Murkiness
+      u_murkiness_enabled: false,
+      u_murkiness_color: [0, 0, 0],
+      u_wavy_strength: 0.0,
+      u_wavy_scale: 0.0,
+      u_wavy_speed: 0.0,
+      u_sandy_strength: 0.0,
+      u_sandy_scale: 0.0,
+      u_sandy_speed: 0.0,
     });
   }
 }
@@ -21995,6 +22077,101 @@ class WaterFXLayer extends MaskedEffectLayer {
                           "Water Mask (_Water)"
                         )}
                         <p class="description-text">A multi-layered effect for water surfaces, foam, and underwater caustics. Requires a _Water.webp mask.</p>
+                        
+                        <details id="details-water-flow">
+                            <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                              "water.flow.enabled",
+                              "Water Flow",
+                              true
+                            )}</div></summary>
+                            <div style="padding-left: 15px;">
+                                <p class="description-text">Applies a directional current to all animated water effects.</p>
+                                ${DebuggerUIBuilder._createSliderHTML(
+                                  "water.flow.angle",
+                                  "Angle",
+                                  0,
+                                  360,
+                                  1,
+                                  "The direction of the water flow in degrees."
+                                )}
+                                ${DebuggerUIBuilder._createSliderHTML(
+                                  "water.flow.speed",
+                                  "Speed",
+                                  0,
+                                  50,
+                                  0.5,
+                                  "The speed of the current."
+                                )}
+                            </div>
+                        </details>
+                        
+                        <details id="details-water-murkiness">
+                            <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                              "water.murkiness.enabled",
+                              "Murkiness & Occlusion",
+                              true
+                            )}</div></summary>
+                            <div style="padding-left: 15px;">
+                                <p class="description-text">Makes the water opaque, hiding what is underneath. Occlusion is stronger in deeper water.</p>
+                                ${DebuggerUIBuilder._createColorPickerHTML(
+                                  "water.murkiness.color",
+                                  "Murky Color"
+                                )}
+                                <details id="details-water-murkiness-wavy">
+                                    <summary><span class="accordion-toggle"></span><strong>Large Wavy Occlusion</strong></summary>
+                                    <div style="padding-left: 15px;">
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "water.murkiness.wavyNoise.strength",
+                                          "Strength",
+                                          0,
+                                          1,
+                                          0.01
+                                        )}
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "water.murkiness.wavyNoise.scale",
+                                          "Scale",
+                                          0.1,
+                                          10,
+                                          0.1
+                                        )}
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "water.murkiness.wavyNoise.speed",
+                                          "Speed",
+                                          0,
+                                          20,
+                                          0.5
+                                        )}
+                                    </div>
+                                </details>
+                                <details id="details-water-murkiness-sandy">
+                                    <summary><span class="accordion-toggle"></span><strong>Fine Sandy Occlusion</strong></summary>
+                                    <div style="padding-left: 15px;">
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "water.murkiness.sandyNoise.strength",
+                                          "Strength",
+                                          0,
+                                          1,
+                                          0.01
+                                        )}
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "water.murkiness.sandyNoise.scale",
+                                          "Scale",
+                                          1,
+                                          50,
+                                          0.5
+                                        )}
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "water.murkiness.sandyNoise.speed",
+                                          "Speed",
+                                          0,
+                                          25,
+                                          0.5
+                                        )}
+                                    </div>
+                                </details>
+                            </div>
+                        </details>
+                        
                         <details id="details-water-wave">
                             <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
                               "water.wave.enabled",
@@ -22007,8 +22184,8 @@ class WaterFXLayer extends MaskedEffectLayer {
                                   "water.wave.speed",
                                   "Speed",
                                   0,
+                                  25,
                                   0.5,
-                                  0.01,
                                   "The animation speed of the wave noise pattern."
                                 )}
                                 ${DebuggerUIBuilder._createSliderHTML(
@@ -22081,16 +22258,16 @@ class WaterFXLayer extends MaskedEffectLayer {
                                                   "water.surface.fbmSpeed",
                                                   "Speed",
                                                   0,
+                                                  25,
                                                   0.5,
-                                                  0.01,
                                                   "Directional drift speed of the foam."
                                                 )}
                                                 ${DebuggerUIBuilder._createSliderHTML(
                                                   "water.surface.fbmEvolution",
                                                   "Evolution",
                                                   0,
+                                                  25,
                                                   0.5,
-                                                  0.01,
                                                   'Internal "boiling" speed of the foam.'
                                                 )}
                                                 ${DebuggerUIBuilder._createSliderHTML(
@@ -22147,8 +22324,8 @@ class WaterFXLayer extends MaskedEffectLayer {
                                           "water.surface.sheenSpeed",
                                           "Speed",
                                           0,
-                                          0.5,
-                                          0.001
+                                          25,
+                                          0.1
                                         )}
                                         ${DebuggerUIBuilder._createSliderHTML(
                                           "water.surface.sheenStretch",
@@ -22195,8 +22372,8 @@ class WaterFXLayer extends MaskedEffectLayer {
                                   "water.caustics.speed",
                                   "Speed",
                                   0,
-                                  1,
-                                  0.01
+                                  15,
+                                  0.1
                                 )}
                                 ${DebuggerUIBuilder._createColorPickerHTML(
                                   "water.caustics.color",
@@ -22258,6 +22435,23 @@ class WaterFXLayer extends MaskedEffectLayer {
                                   0.01,
                                   "How strongly the noise affects line brightness."
                                 )}
+                                <details id="details-water-caustics-cloudOcclusion" style="margin-top: 5px;">
+                                    <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                                      "water.caustics.cloudOcclusion.enabled",
+                                      "Cloud Occlusion",
+                                      true
+                                    )}</div></summary>
+                                    <div style="padding-left: 15px;">
+                                        <p class="description-text">Uses the Cloud Shadows texture to darken the caustics, simulating them being obscured by clouds.</p>
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "water.caustics.cloudOcclusion.intensity",
+                                          "Intensity",
+                                          0,
+                                          1,
+                                          0.01
+                                        )}
+                                    </div>
+                                </details>
                             </div>
                         </details>
                         <details id="details-water-shoreline">
@@ -22317,8 +22511,8 @@ class WaterFXLayer extends MaskedEffectLayer {
                                           "water.shoreline.displacement.speed",
                                           "Swirl Speed",
                                           0,
-                                          0.2,
-                                          0.001,
+                                          15,
+                                          0.1,
                                           "How fast the swirls animate."
                                         )}
                                         ${DebuggerUIBuilder._createSliderHTML(
@@ -22344,16 +22538,16 @@ class WaterFXLayer extends MaskedEffectLayer {
                                       "water.shoreline.foamPattern.speed",
                                       "Speed",
                                       0,
-                                      0.5,
-                                      0.01,
+                                      25,
+                                      0.1,
                                       "Directional drift speed of the foam."
                                     )}
                                     ${DebuggerUIBuilder._createSliderHTML(
                                       "water.shoreline.foamPattern.evolution",
                                       "Evolution",
                                       0,
+                                      25,
                                       0.5,
-                                      0.01,
                                       'Internal "boiling" speed of the foam.'
                                     )}
                                     ${DebuggerUIBuilder._createSliderHTML(
@@ -22674,6 +22868,26 @@ class WaterFXLayer extends MaskedEffectLayer {
     if (!filter) return;
     const u = filter.uniforms;
 
+    // Flow
+    if (wConfig.flow) {
+        u.u_flow_enabled = wConfig.flow.enabled;
+        const flowAngleRad = wConfig.flow.angle * (Math.PI / 180.0);
+        u.u_flow_direction = [Math.cos(flowAngleRad), Math.sin(flowAngleRad)];
+        u.u_flow_speed = (wConfig.flow.speed ?? 0.0) * 0.001;
+    }
+
+    // Murkiness
+    if (wConfig.murkiness) {
+        u.u_murkiness_enabled = wConfig.murkiness.enabled;
+        u.u_murkiness_color = hexToRgbArray(wConfig.murkiness.color);
+        u.u_wavy_strength = wConfig.murkiness.wavyNoise.strength;
+        u.u_wavy_scale = wConfig.murkiness.wavyNoise.scale;
+        u.u_wavy_speed = wConfig.murkiness.wavyNoise.speed;
+        u.u_sandy_strength = wConfig.murkiness.sandyNoise.strength;
+        u.u_sandy_scale = wConfig.murkiness.sandyNoise.scale;
+        u.u_sandy_speed = wConfig.murkiness.sandyNoise.speed;
+    }
+
     u.u_wave_enabled = wConfig.wave.enabled;
     u.u_wave_intensity = wConfig.wave.intensity;
     const srfConfig = wConfig.surface;
@@ -22708,6 +22922,10 @@ class WaterFXLayer extends MaskedEffectLayer {
     u.u_causticsIntersectionBoost = cConfig.intersectionBoost;
     u.u_causticsRoughnessScale = cConfig.roughnessScale;
     u.u_causticsRoughnessIntensity = cConfig.roughnessIntensity;
+    if (cConfig.cloudOcclusion) {
+      u.u_causticsCloudOcclusionEnabled = cConfig.cloudOcclusion.enabled;
+      u.u_causticsCloudOcclusionIntensity = cConfig.cloudOcclusion.intensity;
+    }
     const shConfig = wConfig.shoreline;
     u.u_shoreline_enabled = shConfig.enabled;
     u.u_shorelineFoamColor = hexToRgbArray(shConfig.foamColor);
@@ -22730,6 +22948,113 @@ class WaterFXLayer extends MaskedEffectLayer {
     u.u_shorelinePatternContrast = foamPatternConfig.contrast;
   }
 
+  _onAnimate(deltaTime) {
+    super._onAnimate(deltaTime);
+    const waterEffectsFilter = this.waterEffectsFilter;
+    if (this._destroyed || !waterEffectsFilter) return;
+
+    const hasActiveMasks =
+      this.maskSprites.size > 0 &&
+      Array.from(this.maskSprites.values()).some((s) => s.texture.valid);
+    waterEffectsFilter.enabled = this.visible && hasActiveMasks;
+
+    if (!waterEffectsFilter.enabled) return;
+
+    const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
+    // Use elapsedMS for a more reliable time delta from the ticker
+    const deltaInSeconds = (canvas.app.ticker.elapsedMS / 1000) * timeFactor;
+    this.time += deltaInSeconds;
+
+    const renderer = canvas.app.renderer;
+    const stage = canvas.stage;
+    const screen = renderer.screen;
+    const topLeft = stage.toLocal({
+      x: 0,
+      y: 0,
+    });
+    const viewSize = [
+      screen.width / stage.scale.x,
+      screen.height / stage.scale.y,
+    ];
+
+    // --- FIX START ---
+    // The uniforms for the displacement filter must be updated BEFORE it is rendered.
+    this.displacementFilter.uniforms.u_time = this.time;
+    Object.assign(
+      this.displacementFilter.uniforms,
+      CoordinateManager.getShaderUniforms()
+    );
+    // --- FIX END ---
+
+    renderer.render(this.displacementSprite, {
+      renderTexture: this.displacementTexture,
+      clear: true,
+    });
+    if (this._needsShorelineMaskUpdate) {
+      renderer.render(this.shorelineMaskContainer, {
+        renderTexture: this.shorelineMaskTexture,
+        transform: canvas.stage.transform.worldTransform,
+        clear: true,
+      });
+      this._needsShorelineMaskUpdate = false;
+    }
+    this.blurSourceSprite.texture = this.getMaskTexture();
+    renderer.render(this.blurSourceSprite, {
+      renderTexture: this.blurredWaterMaskTexture,
+      clear: true,
+    });
+
+    const useShorelineMask = this.shorelineMaskSprites.size > 0;
+    
+    // This block is now redundant as it was moved before the render call.
+    // this.displacementFilter.uniforms.u_time = this.time;
+    // Object.assign(
+    //   this.displacementFilter.uniforms,
+    //   CoordinateManager.getShaderUniforms()
+    // );
+
+    const u = waterEffectsFilter.uniforms;
+    const wConfig = game.mapShine.profileManager.activeConfig.water;
+    if (wConfig?.wave) {
+      u.u_wave_intensity =
+        wConfig.wave.intensity * CoordinateManager.getCanvasScale();
+    }
+
+    const rect = canvas.scene.dimensions.sceneRect;
+    if (rect && screen.width > 0 && screen.height > 0) {
+      const topLeftScreen = canvas.stage.toGlobal({
+        x: rect.x,
+        y: rect.y,
+      });
+      const sceneWidthPixels = rect.width * canvas.stage.scale.x;
+      const sceneHeightPixels = rect.height * canvas.stage.scale.y;
+      u.uSceneRectNorm = [
+        topLeftScreen.x / screen.width,
+        topLeftScreen.y / screen.height,
+        sceneWidthPixels / screen.width,
+        sceneHeightPixels / screen.height,
+      ];
+    } else {
+      u.uSceneRectNorm = [0, 0, 1, 1];
+    }
+
+    const resourceManager = game.mapShine.resourceManager;
+    if (resourceManager) {
+      u.u_cloudShadows =
+        resourceManager.getRawCloudTexture(deltaInSeconds) ??
+        PIXI.Texture.WHITE;
+    }
+
+    u.u_time = this.time;
+    u.u_displacementMap = this.displacementTexture;
+    u.u_waterMask = this.getMaskTexture();
+    u.u_shorelineMask = this.shorelineMaskTexture;
+    u.u_blurredWaterMask = this.blurredWaterMaskTexture;
+    u.u_useShorelineMask = useShorelineMask;
+    u.u_camera_offset = [topLeft.x, topLeft.y];
+    u.u_view_size = viewSize;
+  }
+
   async updateFromConfig(config) {
     const wConfig = config.water;
     this.visible = config.enabled && wConfig.enabled;
@@ -22737,7 +23062,7 @@ class WaterFXLayer extends MaskedEffectLayer {
     if (this.displacementFilter) {
       // Apply scaling factor
       this.displacementFilter.uniforms.u_speed =
-        (wConfig.wave.speed ?? 1.48) * 0.01;
+        (wConfig.wave.speed ?? 1.48) * 0.4;
       this.displacementFilter.uniforms.u_scale = wConfig.wave.scale;
     }
     if (this.blurFilter) {
@@ -22768,96 +23093,12 @@ class WaterFXLayer extends MaskedEffectLayer {
       renderer.screen.height
     );
 
-    if (this.displacementSprite)
+    if (this.displacementSprite) {
       this.displacementSprite.width = renderer.screen.width;
+      this.displacementSprite.height = renderer.screen.height;
+    }
 
     this._needsShorelineMaskUpdate = true;
-  }
-
-  _onAnimate(deltaTime) {
-    super._onAnimate(deltaTime);
-    const waterEffectsFilter = this.waterEffectsFilter;
-    if (this._destroyed || !waterEffectsFilter) return;
-
-    const hasActiveMasks =
-      this.maskSprites.size > 0 &&
-      Array.from(this.maskSprites.values()).some((s) => s.texture.valid);
-    waterEffectsFilter.enabled = this.visible && hasActiveMasks;
-
-    if (!waterEffectsFilter.enabled) return;
-
-    const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
-    this.time += deltaTime * timeFactor;
-    const renderer = canvas.app.renderer;
-    const stage = canvas.stage;
-    const screen = renderer.screen;
-    const topLeft = stage.toLocal({
-      x: 0,
-      y: 0,
-    });
-    const viewSize = [
-      screen.width / stage.scale.x,
-      screen.height / stage.scale.y,
-    ];
-
-    renderer.render(this.displacementSprite, {
-      renderTexture: this.displacementTexture,
-      clear: true,
-    });
-    if (this._needsShorelineMaskUpdate) {
-      renderer.render(this.shorelineMaskContainer, {
-        renderTexture: this.shorelineMaskTexture,
-        transform: canvas.stage.transform.worldTransform,
-        clear: true,
-      });
-      this._needsShorelineMaskUpdate = false;
-    }
-    this.blurSourceSprite.texture = this.getMaskTexture();
-    renderer.render(this.blurSourceSprite, {
-      renderTexture: this.blurredWaterMaskTexture,
-      clear: true,
-    });
-
-    const useShorelineMask = this.shorelineMaskSprites.size > 0;
-    this.displacementFilter.uniforms.u_time = this.time;
-    Object.assign(
-      this.displacementFilter.uniforms,
-      CoordinateManager.getShaderUniforms()
-    );
-
-    const u = waterEffectsFilter.uniforms;
-    const wConfig = game.mapShine.profileManager.activeConfig.water;
-    if (wConfig?.wave) {
-      u.u_wave_intensity =
-        wConfig.wave.intensity * CoordinateManager.getCanvasScale();
-    }
-
-    const rect = canvas.scene.dimensions.sceneRect;
-    if (rect && screen.width > 0 && screen.height > 0) {
-      const topLeftScreen = canvas.stage.toGlobal({
-        x: rect.x,
-        y: rect.y,
-      });
-      const sceneWidthPixels = rect.width * canvas.stage.scale.x;
-      const sceneHeightPixels = rect.height * canvas.stage.scale.y;
-      u.uSceneRectNorm = [
-        topLeftScreen.x / screen.width,
-        topLeftScreen.y / screen.height,
-        sceneWidthPixels / screen.width,
-        sceneHeightPixels / screen.height,
-      ];
-    } else {
-      u.uSceneRectNorm = [0, 0, 1, 1];
-    }
-
-    u.u_time = this.time;
-    u.u_displacementMap = this.displacementTexture;
-    u.u_waterMask = this.getMaskTexture();
-    u.u_shorelineMask = this.shorelineMaskTexture;
-    u.u_blurredWaterMask = this.blurredWaterMaskTexture;
-    u.u_useShorelineMask = useShorelineMask;
-    u.u_camera_offset = [topLeft.x, topLeft.y];
-    u.u_view_size = viewSize;
   }
 
   async updateEffectTargets(targets) {
