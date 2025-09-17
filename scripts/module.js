@@ -2074,7 +2074,7 @@ const MODULE_DEFAULTS = {
       accel: 0,
     },
   },
-  biofilm: {
+  waterSplash: {
     enabled: true,
     blendMode: 0,
     maskThreshold: 0.2,
@@ -2111,6 +2111,136 @@ const MODULE_DEFAULTS = {
       minSpeed: 0,
       maxSpeed: 20,
       accel: 0,
+    },
+  },
+  water: {
+    enabled: true,
+    flow: {
+      enabled: false,
+      angle: 45,
+      speed: 5,
+    },
+    wave: {
+      enabled: true,
+      speed: 0.0148,
+      scale: 37.7,
+      intensity: 0.0018,
+      waterSplashDistortion: {
+        enabled: true,
+        intensity: 0.005,
+      },
+    },
+    murkiness: {
+      enabled: false,
+      color: "#1a2c22",
+      wavyNoise: {
+        strength: 0.8,
+        scale: 2.0,
+        speed: 0.005,
+      },
+      sandyNoise: {
+        strength: 0.3,
+        scale: 15.0,
+        speed: 0.02,
+      },
+    },
+    surface: {
+      enabled: true,
+      foamColor: "#33adff",
+      foamIntensity: 0,
+      foamCoverage: 0,
+      foamSharpness: 0.13,
+      fbmScale: 15.196,
+      fbmSpeed: 0.01,
+      fbmEvolution: 0.03,
+      fbmOctaves: 5,
+      fbmLacunarity: 4,
+      fbmPersistence: 0.1,
+      sheenEnabled: true,
+      sheenIntensity: 0.448,
+      sheenColor: "#FFFFFF",
+      sheenScale: 0.5,
+      sheenSpeed: 0.002,
+      sheenStretch: 1,
+      sheenSharpness: 0.8,
+    },
+    caustics: {
+      enabled: true,
+      intensity: 0.11,
+      scale: 1,
+      speed: 0.08,
+      color: "#87CEFA",
+      lineSharpness: 5,
+      bloomIntensity: 1,
+      lineDistortion: 0.1,
+      lineDistortionScale: 5,
+      intersectionBoost: 20,
+      roughnessScale: 4.2,
+      roughnessIntensity: 0.83,
+      cloudOcclusion: {
+        enabled: true,
+        intensity: 0.8,
+      },
+    },
+    shoreline: {
+      enabled: false,
+      detectionBlur: 1,
+      foamColor: "#FFFFFF",
+      foamIntensity: 0.5,
+      foamPattern: {
+        scale: 1,
+        speed: 0,
+        evolution: 0.01,
+        octaves: 4,
+        lacunarity: 2.05,
+        persistence: 0.15,
+        brightness: 0.5,
+        contrast: 1,
+      },
+      displacement: {
+        enabled: false,
+        scale: 0.4,
+        speed: 0.011,
+        strength: 0.0025,
+      },
+    },
+    glintParticles: {
+      enabled: true,
+      blendMode: 9,
+      maskThreshold: 0.17,
+      maskInfluence: 1.95,
+      particleTexture: "modules/map-shine/assets/glint.webp",
+      frequency: 0.99,
+      lifetime: {
+        min: 0.8,
+        max: 0.8,
+      },
+      color: {
+        start: "#eef7ff",
+        end: "#95b3ff",
+      },
+      alpha: {
+        max: 0.5,
+        fadeIn: 0.25,
+        fadeOut: 0.25,
+      },
+      scale: {
+        sizeMultiplier: 1.9,
+        start: 0.76,
+        end: 0.82,
+        minMult: 0.95,
+      },
+      speed: {
+        start: 5,
+        end: 11,
+        minMult: 0.47,
+      },
+      rotation: {
+        enabled: true,
+        minSpeed: 116,
+        maxSpeed: 123,
+        accel: 52,
+      },
     },
   },
   water: {
@@ -2274,6 +2404,25 @@ const MODULE_DEFAULTS = {
       strength: 8.0,
       scale: 0.5,
       speed: 0.01,
+    },
+    crestFoam: {
+      enabled: true,
+      intensity: 1.8,
+      frequency: 35,
+      speed: 0.03,
+      angle: 15,
+      sharpness: 12,
+      perturbStrength: 35,
+      perturbScale: 0.04,
+      perturbSpeed: 0.01,
+      perturbOctaves: 4,
+      crestBreakup: {
+        scale: 0.35,
+        speed: 0.08,
+        octaves: 3,
+        brightness: 0.45,
+        contrast: 1.8,
+      },
     },
   },
   fire: {
@@ -3267,7 +3416,6 @@ class MapShineInitialiser {
         group: "primary",
         zIndex: 26, // Contains the shine mix-in, correctly rendered under tiles.
       },
-
 
       // --- Layers Above Tiles but Below Tokens (30 < zIndex < 100) ---
       metallicShine: {
@@ -5213,7 +5361,7 @@ class ResourceManager {
   
       @returns {PIXI.RenderTexture|null}
       */
-getWaterDisplacementMap(deltaTime) {
+  getWaterDisplacementMap(deltaTime) {
     if (this._destroyed) return null;
     if (this._frameCache.waterDisplacementMap)
       return this._frameCache.waterDisplacementMap;
@@ -5238,29 +5386,31 @@ getWaterDisplacementMap(deltaTime) {
   }
 
   /**
-   * Retrieves the rendered texture of the biofilm particles.
+   * Retrieves the rendered texture of the water splash particles.
    * Caches the texture for the duration of the current frame.
-   * @returns {PIXI.RenderTexture|null} The biofilm particle texture.
+   * @returns {PIXI.RenderTexture|null} The water splash particle texture.
    */
-  getBiofilmOutputTexture() {
+  getWaterSplashOutputTexture() {
     if (this._destroyed) return null;
-    if (this._frameCache.biofilmOutputTexture) {
-      return this._frameCache.biofilmOutputTexture;
+    if (this._frameCache.waterSplashOutputTexture) {
+      return this._frameCache.waterSplashOutputTexture;
     }
 
     const particleManager = game.mapShine.particleManager;
     if (!particleManager) return null;
 
-    const biofilmController = particleManager.controllers.get("biofilm");
-    if (!biofilmController || typeof biofilmController.getOutputTexture !== 'function') {
+    const waterSplashController = particleManager.controllers.get("waterSplash");
+    if (
+      !waterSplashController ||
+      typeof waterSplashController.getOutputTexture !== "function"
+    ) {
       return null;
     }
 
-    const texture = biofilmController.getOutputTexture();
-    this._frameCache.biofilmOutputTexture = texture;
+    const texture = waterSplashController.getOutputTexture();
+    this._frameCache.waterSplashOutputTexture = texture;
     return texture;
   }
-
 }
 
 // =================================================================================
@@ -10840,92 +10990,93 @@ Below are the variables/options that are required when creating particles. Be su
       buildEmitterConfig: (effectConfig, targetData) =>
         buildSparkEmitterConfig(effectConfig, targetData, "sparks"),
     },
-    biofilm: {
-      title: "Biofilm",
+    waterSplash: {
+      title: "Water Splash",
       description:
-        "Scummy biofilm particles that appear on the water surface. Requires a _Water.webp texture.",
-      configPath: "biofilm",
+        "Water splash or spray particles that appear on the water surface. Requires a _Water.webp texture.",
+      configPath: "waterSplash",
       triggerTexture: "water",
       buildEmitterConfig: (effectConfig, targetData) =>
-        buildParticleEmitterConfig(effectConfig, targetData, "water", null, { spawnMode: 'range' }),
+        buildParticleEmitterConfig(effectConfig, targetData, "water", null, {
+          spawnMode: "range",
+        }),
     },
   };
 
-  class ParticleEffectController {
-    constructor(definition, parentContainer) {
-      this.definition = definition;
-      this.parentContainer = parentContainer; // This is the main container from ParticleManager
-      this.emitters = new Map();
-      this.pendingTargets = new Map();
-      this.config = {};
-      this.rgbSplitFilter = null;
-      this.bloomFilter = null;
-      this.cloudSuppressorFilter = null;
-      this.displacementFilter = null;
-      this.displacementSprite = null;
-      this.biofilmMaskFilter = null;
-      // This will hold the final rendered output of the biofilm particles for other systems to use.
-      this.particleOutputTexture = null;
-  
-      // This will be the container that holds only the particles for effects needing pre-filtering blending.
-      this.particleOnlyContainer = null;
-  
-      // Special handling for effects with filters that need to operate on blended particles
-      if (definition.configPath === "glint") {
-        this.rgbSplitFilter = new ParticleRgbSplitFilter();
-      }
-      if (definition.configPath === "biofilm") {
-        const screen = CoordinateManager.getScreenDimensions();
-        this.particleOutputTexture = PIXI.RenderTexture.create({
-          width: screen.width,
-          height: screen.height,
-        });
-  
-        this.displacementSprite = new PIXI.Sprite();
-        this.displacementFilter = new PIXI.DisplacementFilter(
-          this.displacementSprite
-        );
-        this.biofilmMaskFilter = new BiofilmMaskFilter();
-        this.parentContainer.filterArea = canvas.app.screen; // Crucial for filters on containers
-      }
-      if (definition.configPath === "fire.particles") {
-        const BloomFilterConstructor =
-          PIXI.filters.AdvancedBloomFilter ||
-          (PIXI.filters.filters && PIXI.filters.filters.AdvancedBloomFilter);
-        if (BloomFilterConstructor) {
-          this.bloomFilter = new BloomFilterConstructor();
-        }
-        // For fire, we need a wrapper so blending happens before bloom.
-        this.particleOnlyContainer = new PIXI.Container();
-        this.parentContainer.addChild(this.particleOnlyContainer);
-      }
-  
-      // Create the suppressor filter for the specified particle effects.
-      if (
-        definition.configPath === "glint" ||
-        definition.configPath === "metallicGlints" ||
-        definition.configPath === "water.glintParticles"
-      ) {
-        this.cloudSuppressorFilter = new CloudSuppressorFilter();
-      }
+class ParticleEffectController {
+  constructor(definition, parentContainer) {
+    this.definition = definition;
+    this.parentContainer = parentContainer; // This is the main container from ParticleManager
+    this.emitters = new Map();
+    this.pendingTargets = new Map();
+    this.config = {};
+    this.rgbSplitFilter = null;
+    this.bloomFilter = null;
+    this.cloudSuppressorFilter = null;
+    this.displacementFilter = null;
+    this.displacementSprite = null;
+    this.biofilmMaskFilter = null;
+    // This will hold the final rendered output of the biofilm particles for other systems to use.
+    this.particleOutputTexture = null;
+
+    // This will be the container that holds only the particles for effects needing pre-filtering blending.
+    this.particleOnlyContainer = null;
+
+    // Special handling for effects with filters that need to operate on blended particles
+    if (definition.configPath === "glint") {
+      this.rgbSplitFilter = new ParticleRgbSplitFilter();
     }
-  
-  
-    static getSettingsHTML(effectKey) {
-      const definition = PARTICLE_EFFECT_DEFINITIONS[effectKey];
-      if (!definition) return "";
-  
-      const path = definition.configPath;
-      let content = `<p class="description-text">${definition.description}</p>`;
-      content += DebuggerUIBuilder._createSelectHTML(
-        `${path}.blendMode`,
-        "Blend Mode",
-        BLEND_MODE_OPTIONS
+    if (definition.configPath === "biofilm") {
+      const screen = CoordinateManager.getScreenDimensions();
+      this.particleOutputTexture = PIXI.RenderTexture.create({
+        width: screen.width,
+        height: screen.height,
+      });
+
+      this.displacementSprite = new PIXI.Sprite();
+      this.displacementFilter = new PIXI.DisplacementFilter(
+        this.displacementSprite
       );
-  
-      // Special case for Fire Bloom
-      if (effectKey === "fire") {
-        content += `
+      this.biofilmMaskFilter = new BiofilmMaskFilter();
+      this.parentContainer.filterArea = canvas.app.screen; // Crucial for filters on containers
+    }
+    if (definition.configPath === "fire.particles") {
+      const BloomFilterConstructor =
+        PIXI.filters.AdvancedBloomFilter ||
+        (PIXI.filters.filters && PIXI.filters.filters.AdvancedBloomFilter);
+      if (BloomFilterConstructor) {
+        this.bloomFilter = new BloomFilterConstructor();
+      }
+      // For fire, we need a wrapper so blending happens before bloom.
+      this.particleOnlyContainer = new PIXI.Container();
+      this.parentContainer.addChild(this.particleOnlyContainer);
+    }
+
+    // Create the suppressor filter for the specified particle effects.
+    if (
+      definition.configPath === "glint" ||
+      definition.configPath === "metallicGlints" ||
+      definition.configPath === "water.glintParticles"
+    ) {
+      this.cloudSuppressorFilter = new CloudSuppressorFilter();
+    }
+  }
+
+  static getSettingsHTML(effectKey) {
+    const definition = PARTICLE_EFFECT_DEFINITIONS[effectKey];
+    if (!definition) return "";
+
+    const path = definition.configPath;
+    let content = `<p class="description-text">${definition.description}</p>`;
+    content += DebuggerUIBuilder._createSelectHTML(
+      `${path}.blendMode`,
+      "Blend Mode",
+      BLEND_MODE_OPTIONS
+    );
+
+    // Special case for Fire Bloom
+    if (effectKey === "fire") {
+      content += `
                                 <details id="details-fire-bloom">
                                     <summary><span class="accordion-toggle"></span>
                                         <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
@@ -10977,11 +11128,11 @@ Below are the variables/options that are required when creating particles. Be su
                                     </div>
                                 </details>
                             `;
-      }
-  
-      if (effectKey === "sparks") {
-        const sparksPath = "sparks";
-        let sparksContent = `
+    }
+
+    if (effectKey === "sparks") {
+      const sparksPath = "sparks";
+      let sparksContent = `
                             <p class="description-text">${
                               definition.description
                             }</p>
@@ -11240,15 +11391,15 @@ Below are the variables/options that are required when creating particles. Be su
                                 </div>
                             </details>
                         `;
-        return DebuggerUIBuilder._createAccordionHTML(
-          effectKey,
-          definition.title,
-          sparksContent
-        );
-      }
-  
-      // Common particle sections
-      content += `
+      return DebuggerUIBuilder._createAccordionHTML(
+        effectKey,
+        definition.title,
+        sparksContent
+      );
+    }
+
+    // Common particle sections
+    content += `
                             <details>
                                 <summary><span class="accordion-toggle"></span><strong>Spawning & Density</strong></summary>
                                 <div style="padding-left: 15px;">
@@ -11482,10 +11633,10 @@ Below are the variables/options that are required when creating particles. Be su
                                 </div>
                             </details>
                         `;
-  
-      // Special case for Fire Wind
-      if (effectKey === "fire") {
-        content += `
+
+    // Special case for Fire Wind
+    if (effectKey === "fire") {
+      content += `
                                 <details id="details-fire-wind">
                                     <summary><span class="accordion-toggle"></span>
                                         <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
@@ -11583,26 +11734,26 @@ Below are the variables/options that are required when creating particles. Be su
                                     </div>
                                 </details>
                             `;
-      }
-  
-      const mainAccordionPath =
-        effectKey === "fire" ? "fire.particles.enabled" : `${path}.enabled`;
-      const mainAccordionId =
-        effectKey === "fire" ? "details-fire-particles" : `details-${effectKey}`;
-  
-      return DebuggerUIBuilder._createAccordionHTML(
-        effectKey,
-        definition.title,
-        content
-      )
-        .replace(`details-${effectKey}`, mainAccordionId)
-        .replace(`${path}.enabled`, mainAccordionPath);
     }
-  
-    // NOTE: IMPORTANT. AT SOME POINT THIS NEEDS TO BE MOVED TO THE CORRECT PLACE. DON'T FORGET.
-    static getSmellyFliesSettingsHTML() {
-      const effectKey = "smellyFlies";
-      const content = `
+
+    const mainAccordionPath =
+      effectKey === "fire" ? "fire.particles.enabled" : `${path}.enabled`;
+    const mainAccordionId =
+      effectKey === "fire" ? "details-fire-particles" : `details-${effectKey}`;
+
+    return DebuggerUIBuilder._createAccordionHTML(
+      effectKey,
+      definition.title,
+      content
+    )
+      .replace(`details-${effectKey}`, mainAccordionId)
+      .replace(`${path}.enabled`, mainAccordionPath);
+  }
+
+  // NOTE: IMPORTANT. AT SOME POINT THIS NEEDS TO BE MOVED TO THE CORRECT PLACE. DON'T FORGET.
+  static getSmellyFliesSettingsHTML() {
+    const effectKey = "smellyFlies";
+    const content = `
           <p class="description-text">Simulates a swarm of flies that fly around, land, and walk on surfaces defined by a Map Point Area group.</p>
           ${DebuggerUIBuilder._createSelectHTML(
             `${effectKey}.blendMode`,
@@ -11818,219 +11969,219 @@ Below are the variables/options that are required when creating particles. Be su
             </div>
           </details>
         `;
-      return DebuggerUIBuilder._createAccordionHTML(
-        effectKey,
-        "Smelly Flies",
-        content
+    return DebuggerUIBuilder._createAccordionHTML(
+      effectKey,
+      "Smelly Flies",
+      content
+    );
+  }
+
+  updateTargets(targets, fullConfig) {
+    this.destroyAllEmitters();
+
+    this.config = foundry.utils.getProperty(
+      fullConfig,
+      this.definition.configPath
+    );
+    if (!fullConfig.enabled || !this.config?.enabled) {
+      return;
+    }
+
+    // --- 1. Process File-Based Texture Targets ---
+    let targetsToProcess = [];
+    const spawnOn = this.definition.spawnOn;
+    if (spawnOn === "tiles") {
+      targetsToProcess = [...targets.tiles.values()];
+    } else if (spawnOn === "background") {
+      if (targets.background) {
+        targetsToProcess = [targets.background];
+      }
+    } else {
+      targetsToProcess = [targets.background, ...targets.tiles.values()].filter(
+        Boolean
       );
     }
-  
-    updateTargets(targets, fullConfig) {
-      this.destroyAllEmitters();
-  
-      this.config = foundry.utils.getProperty(
-        fullConfig,
+
+    for (const target of targetsToProcess) {
+      const targetId = target.tile ? target.tile.id : "background";
+      if (target[this.definition.triggerTexture]) {
+        this.pendingTargets.set(targetId, target);
+      }
+    }
+
+    // --- 2. Process Geometry-Based Mask Targets ---
+    const effectKey = this.definition.triggerTexture;
+    const groups = MapPointsManager.getGroups();
+
+    for (const group of Object.values(groups)) {
+      if (
+        group.isEffectSource &&
+        group.effectTarget === effectKey &&
+        group.points.length > 0 &&
+        !group.isBroken
+      ) {
+        console.log(
+          `Map Shine | Found active geometry group '${group.label}' for effect '${effectKey}'.`
+        );
+        // Create a "virtual target" that contains the group data itself.
+        const virtualTarget = {
+          isGeometry: true,
+          group: group,
+        };
+        const targetId = `geometry-${group.id}`;
+        this.pendingTargets.set(targetId, virtualTarget);
+      }
+    }
+  }
+
+  async _createEmitterForTarget(targetData, targetId) {
+    if (targetData.isGeometry) {
+      // Propagate the success/failure state from the geometry-specific method.
+      return await this._createEmitterForGeometry(targetData.group, targetId);
+    }
+
+    // --- Existing logic for texture-based targets ---
+    let customMaskTexture = null;
+    const localTargetData = {
+      ...targetData,
+    };
+
+    if (
+      this.definition.configPath === "dust" &&
+      localTargetData.dust &&
+      localTargetData.structural
+    ) {
+      customMaskTexture = await CompositeMaskGenerator.generate(
+        localTargetData.dust,
+        localTargetData.structural,
+        localTargetData.rect
+      );
+      if (customMaskTexture) {
+        localTargetData.dust = customMaskTexture;
+      }
+    }
+
+    const particleTexPath =
+      this.config.particleTexture ?? "modules/map-shine/assets/particle.webp";
+    if (!particleTexPath || typeof particleTexPath !== "string") return true;
+
+    try {
+      const texture = await foundry.canvas.loadTexture(particleTexPath);
+      const emitterConfig = this.definition.buildEmitterConfig(
+        this.config,
+        localTargetData
+      );
+      if (emitterConfig.maxParticles === 0) {
+        customMaskTexture?.destroy(true);
+        return true;
+      }
+      const textureBehavior = emitterConfig.behaviors.find(
+        (b) => b.type === "textureSingle"
+      );
+      if (textureBehavior) textureBehavior.config.texture = texture;
+
+      const emitterParent = this.particleOnlyContainer || this.parentContainer;
+      const emitter = new PIXI.particles.Emitter(emitterParent, emitterConfig);
+      if (customMaskTexture) emitter._customMaskTexture = customMaskTexture;
+      emitter.autoUpdate = false;
+
+      this.emitters.set(targetId, {
+        emitter,
+      });
+      return true; // Indicate success
+    } catch (err) {
+      console.error(
+        `Map Shine | Failed to load particle texture: "${particleTexPath}"`,
+        err
+      );
+      customMaskTexture?.destroy(true);
+      return true; // Indicate "success" to avoid retrying a failed load.
+    }
+  }
+
+  async _createEmitterForGeometry(group, targetId) {
+    // If the manager isn't ready, defer creation by returning false.
+    if (!game.mapShine.geometryMaskManager) {
+      return false;
+    }
+
+    const particleTexPath =
+      this.config.particleTexture ?? "modules/map-shine/assets/particle.webp";
+    if (!particleTexPath || typeof particleTexPath !== "string") return true; // Nothing to do, so count as "success".
+
+    try {
+      const texture = await foundry.canvas.loadTexture(particleTexPath);
+      const currentFullConfig = game.mapShine.profileManager.activeConfig;
+      const currentEffectConfig = foundry.utils.getProperty(
+        currentFullConfig,
         this.definition.configPath
       );
-      if (!fullConfig.enabled || !this.config?.enabled) {
-        return;
-      }
-  
-      // --- 1. Process File-Based Texture Targets ---
-      let targetsToProcess = [];
-      const spawnOn = this.definition.spawnOn;
-      if (spawnOn === "tiles") {
-        targetsToProcess = [...targets.tiles.values()];
-      } else if (spawnOn === "background") {
-        if (targets.background) {
-          targetsToProcess = [targets.background];
-        }
-      } else {
-        targetsToProcess = [targets.background, ...targets.tiles.values()].filter(
-          Boolean
-        );
-      }
-  
-      for (const target of targetsToProcess) {
-        const targetId = target.tile ? target.tile.id : "background";
-        if (target[this.definition.triggerTexture]) {
-          this.pendingTargets.set(targetId, target);
-        }
-      }
-  
-      // --- 2. Process Geometry-Based Mask Targets ---
-      const effectKey = this.definition.triggerTexture;
-      const groups = MapPointsManager.getGroups();
-  
-      for (const group of Object.values(groups)) {
-        if (
-          group.isEffectSource &&
-          group.effectTarget === effectKey &&
-          group.points.length > 0 &&
-          !group.isBroken
-        ) {
-          console.log(
-            `Map Shine | Found active geometry group '${group.label}' for effect '${effectKey}'.`
-          );
-          // Create a "virtual target" that contains the group data itself.
-          const virtualTarget = {
-            isGeometry: true,
-            group: group,
-          };
-          const targetId = `geometry-${group.id}`;
-          this.pendingTargets.set(targetId, virtualTarget);
-        }
-      }
-    }
-  
-    async _createEmitterForTarget(targetData, targetId) {
-      if (targetData.isGeometry) {
-        // Propagate the success/failure state from the geometry-specific method.
-        return await this._createEmitterForGeometry(targetData.group, targetId);
-      }
-  
-      // --- Existing logic for texture-based targets ---
-      let customMaskTexture = null;
-      const localTargetData = {
-        ...targetData,
-      };
-  
+
       if (
-        this.definition.configPath === "dust" &&
-        localTargetData.dust &&
-        localTargetData.structural
-      ) {
-        customMaskTexture = await CompositeMaskGenerator.generate(
-          localTargetData.dust,
-          localTargetData.structural,
-          localTargetData.rect
+        !this.parentContainer ||
+        !currentFullConfig.enabled ||
+        !currentEffectConfig?.enabled
+      )
+        return true; // Effect is disabled, count as "success" to remove from pending.
+      if (this.emitters.has(targetId)) return true; // Already created, count as "success".
+
+      let emitterConfig;
+
+      if (this.definition.configPath === "smellyFlies") {
+        emitterConfig = this.definition.buildEmitterConfig(
+          currentEffectConfig,
+          { rect: { x: 0, y: 0, width: 1, height: 1 } },
+          null,
+          group
         );
-        if (customMaskTexture) {
-          localTargetData.dust = customMaskTexture;
+      } else {
+        const maskTexture = game.mapShine.geometryMaskManager.getMask(
+          group.effectTarget
+        );
+        if (!maskTexture) {
+          // The manager exists, but the mask might not be ready yet. Defer.
+          return false;
         }
+        const virtualTargetData = {
+          [group.effectTarget]: maskTexture,
+          rect: {
+            x: 0,
+            y: 0,
+            width: canvas.app.screen.width,
+            height: canvas.app.screen.height,
+          },
+        };
+        emitterConfig = this.definition.buildEmitterConfig(
+          currentEffectConfig,
+          virtualTargetData,
+          group.effectTarget,
+          group
+        );
       }
-  
-      const particleTexPath =
-        this.config.particleTexture ?? "modules/map-shine/assets/particle.webp";
-      if (!particleTexPath || typeof particleTexPath !== "string") return true;
-  
-      try {
-        const texture = await foundry.canvas.loadTexture(particleTexPath);
-        const emitterConfig = this.definition.buildEmitterConfig(
-          this.config,
-          localTargetData
-        );
-        if (emitterConfig.maxParticles === 0) {
-          customMaskTexture?.destroy(true);
-          return true;
-        }
-        const textureBehavior = emitterConfig.behaviors.find(
-          (b) => b.type === "textureSingle"
-        );
-        if (textureBehavior) textureBehavior.config.texture = texture;
-  
-        const emitterParent = this.particleOnlyContainer || this.parentContainer;
-        const emitter = new PIXI.particles.Emitter(emitterParent, emitterConfig);
-        if (customMaskTexture) emitter._customMaskTexture = customMaskTexture;
-        emitter.autoUpdate = false;
-  
-        this.emitters.set(targetId, {
-          emitter,
-        });
-        return true; // Indicate success
-      } catch (err) {
-        console.error(
-          `Map Shine | Failed to load particle texture: "${particleTexPath}"`,
-          err
-        );
-        customMaskTexture?.destroy(true);
-        return true; // Indicate "success" to avoid retrying a failed load.
-      }
+
+      if (emitterConfig.maxParticles === 0) return true;
+
+      const textureBehavior = emitterConfig.behaviors.find(
+        (b) => b.type === "textureSingle"
+      );
+      if (textureBehavior) textureBehavior.config.texture = texture;
+
+      const emitterParent = this.particleOnlyContainer || this.parentContainer;
+      const emitter = new PIXI.particles.Emitter(emitterParent, emitterConfig);
+      emitter.autoUpdate = false;
+
+      this.emitters.set(targetId, { emitter });
+      return true; // Success!
+    } catch (err) {
+      console.error(
+        `Map Shine | Failed to load particle texture for geometry emitter: "${particleTexPath}"`,
+        err
+      );
+      return true; // Don't retry a failed texture load.
     }
-  
-    async _createEmitterForGeometry(group, targetId) {
-      // If the manager isn't ready, defer creation by returning false.
-      if (!game.mapShine.geometryMaskManager) {
-        return false;
-      }
-  
-      const particleTexPath =
-        this.config.particleTexture ?? "modules/map-shine/assets/particle.webp";
-      if (!particleTexPath || typeof particleTexPath !== "string") return true; // Nothing to do, so count as "success".
-  
-      try {
-        const texture = await foundry.canvas.loadTexture(particleTexPath);
-        const currentFullConfig = game.mapShine.profileManager.activeConfig;
-        const currentEffectConfig = foundry.utils.getProperty(
-          currentFullConfig,
-          this.definition.configPath
-        );
-  
-        if (
-          !this.parentContainer ||
-          !currentFullConfig.enabled ||
-          !currentEffectConfig?.enabled
-        )
-          return true; // Effect is disabled, count as "success" to remove from pending.
-        if (this.emitters.has(targetId)) return true; // Already created, count as "success".
-  
-        let emitterConfig;
-  
-        if (this.definition.configPath === "smellyFlies") {
-          emitterConfig = this.definition.buildEmitterConfig(
-            currentEffectConfig,
-            { rect: { x: 0, y: 0, width: 1, height: 1 } },
-            null,
-            group
-          );
-        } else {
-          const maskTexture = game.mapShine.geometryMaskManager.getMask(
-            group.effectTarget
-          );
-          if (!maskTexture) {
-            // The manager exists, but the mask might not be ready yet. Defer.
-            return false;
-          }
-          const virtualTargetData = {
-            [group.effectTarget]: maskTexture,
-            rect: {
-              x: 0,
-              y: 0,
-              width: canvas.app.screen.width,
-              height: canvas.app.screen.height,
-            },
-          };
-          emitterConfig = this.definition.buildEmitterConfig(
-            currentEffectConfig,
-            virtualTargetData,
-            group.effectTarget,
-            group
-          );
-        }
-  
-        if (emitterConfig.maxParticles === 0) return true;
-  
-        const textureBehavior = emitterConfig.behaviors.find(
-          (b) => b.type === "textureSingle"
-        );
-        if (textureBehavior) textureBehavior.config.texture = texture;
-  
-        const emitterParent = this.particleOnlyContainer || this.parentContainer;
-        const emitter = new PIXI.particles.Emitter(emitterParent, emitterConfig);
-        emitter.autoUpdate = false;
-  
-        this.emitters.set(targetId, { emitter });
-        return true; // Success!
-      } catch (err) {
-        console.error(
-          `Map Shine | Failed to load particle texture for geometry emitter: "${particleTexPath}"`,
-          err
-        );
-        return true; // Don't retry a failed texture load.
-      }
-    }
-  
-getOutputTexture() {
+  }
+
+  getOutputTexture() {
     return this.particleOutputTexture;
   }
 
@@ -12108,410 +12259,413 @@ getOutputTexture() {
     }
 
     // If this controller is for biofilm, render its output to the dedicated texture.
-    if (this.definition.configPath === "biofilm" && this.particleOutputTexture) {
+    if (
+      this.definition.configPath === "biofilm" &&
+      this.particleOutputTexture
+    ) {
       canvas.app.renderer.render(this.parentContainer, {
         renderTexture: this.particleOutputTexture,
         clear: true,
       });
     }
   }
-  
-    updateFromConfig(fullConfig) {
-      this.config = foundry.utils.getProperty(
-        fullConfig,
-        this.definition.configPath
-      );
-  
-      const controllerConfig = foundry.utils.getProperty(
-        fullConfig,
-        this.definition.configPath
-      );
-      const particleSystemConfig = fullConfig.particleSystems;
-      this.parentContainer.visible =
-        fullConfig.enabled &&
-        particleSystemConfig.enabled &&
-        controllerConfig?.enabled;
-  
-      if (this.particleOnlyContainer) {
-        this.particleOnlyContainer.blendMode =
-          this.config.blendMode ?? PIXI.BLEND_MODES.NORMAL;
-        this.parentContainer.blendMode =
-          this.config.blendMode ?? PIXI.BLEND_MODES.NORMAL;
+
+  updateFromConfig(fullConfig) {
+    this.config = foundry.utils.getProperty(
+      fullConfig,
+      this.definition.configPath
+    );
+
+    const controllerConfig = foundry.utils.getProperty(
+      fullConfig,
+      this.definition.configPath
+    );
+    const particleSystemConfig = fullConfig.particleSystems;
+    this.parentContainer.visible =
+      fullConfig.enabled &&
+      particleSystemConfig.enabled &&
+      controllerConfig?.enabled;
+
+    if (this.particleOnlyContainer) {
+      this.particleOnlyContainer.blendMode =
+        this.config.blendMode ?? PIXI.BLEND_MODES.NORMAL;
+      this.parentContainer.blendMode =
+        this.config.blendMode ?? PIXI.BLEND_MODES.NORMAL;
+    } else {
+      this.parentContainer.blendMode =
+        this.config?.blendMode ?? PIXI.BLEND_MODES.NORMAL;
+    }
+
+    this.parentContainer.alpha = 1.0;
+
+    if (this.rgbSplitFilter) {
+      const rgbConfig = this.config?.rgbSplit;
+      const shouldUseRgb = this.parentContainer.visible && rgbConfig?.enabled;
+      if (shouldUseRgb) {
+        this.rgbSplitFilter.enabled = true;
+        this.rgbSplitFilter.uniforms.uAmount = rgbConfig.amount;
+        const screen = canvas?.app?.screen;
+        if (screen) {
+          this.rgbSplitFilter.uniforms.uTexelSize = [
+            1 / screen.width,
+            1 / screen.height,
+          ];
+        }
+        if (!this.parentContainer.filters?.includes(this.rgbSplitFilter)) {
+          this.parentContainer.filters = [
+            ...(this.parentContainer.filters || []),
+            this.rgbSplitFilter,
+          ];
+        }
       } else {
-        this.parentContainer.blendMode =
-          this.config?.blendMode ?? PIXI.BLEND_MODES.NORMAL;
-      }
-  
-      this.parentContainer.alpha = 1.0;
-  
-      if (this.rgbSplitFilter) {
-        const rgbConfig = this.config?.rgbSplit;
-        const shouldUseRgb = this.parentContainer.visible && rgbConfig?.enabled;
-        if (shouldUseRgb) {
-          this.rgbSplitFilter.enabled = true;
-          this.rgbSplitFilter.uniforms.uAmount = rgbConfig.amount;
-          const screen = canvas?.app?.screen;
-          if (screen) {
-            this.rgbSplitFilter.uniforms.uTexelSize = [
-              1 / screen.width,
-              1 / screen.height,
-            ];
-          }
-          if (!this.parentContainer.filters?.includes(this.rgbSplitFilter)) {
-            this.parentContainer.filters = [
-              ...(this.parentContainer.filters || []),
-              this.rgbSplitFilter,
-            ];
-          }
-        } else {
-          if (this.parentContainer.filters?.includes(this.rgbSplitFilter)) {
-            this.parentContainer.filters = this.parentContainer.filters.filter(
-              (f) => f !== this.rgbSplitFilter
-            );
-          }
+        if (this.parentContainer.filters?.includes(this.rgbSplitFilter)) {
+          this.parentContainer.filters = this.parentContainer.filters.filter(
+            (f) => f !== this.rgbSplitFilter
+          );
         }
       }
-  
-      const allFilters = this.parentContainer.filters
-        ? [...this.parentContainer.filters]
-        : [];
-  
-      const manageFilter = (filter, shouldBeActive) => {
-        const isPresent = allFilters.includes(filter);
-        if (shouldBeActive && !isPresent) {
-          allFilters.push(filter);
-        } else if (!shouldBeActive && isPresent) {
-          const index = allFilters.indexOf(filter);
-          if (index > -1) {
-            allFilters.splice(index, 1);
-          }
-        }
-      };
-  
-      if (this.displacementFilter) {
-        const waterConfig = fullConfig.water;
-        const shouldUseDisplacement =
-          this.parentContainer.visible && waterConfig?.wave?.enabled;
-        manageFilter(this.displacementFilter, shouldUseDisplacement);
-      }
-  
-      if (this.biofilmMaskFilter) {
-        const shouldUseMask = this.parentContainer.visible;
-        manageFilter(this.biofilmMaskFilter, shouldUseMask);
-      }
-  
-      // Manage the cloud suppressor filter.
-      if (this.cloudSuppressorFilter) {
-        const shouldUseSuppressor = this.parentContainer.visible;
-        this.cloudSuppressorFilter.enabled = shouldUseSuppressor;
-  
-        if (shouldUseSuppressor) {
-          // Feed the shading settings from the main cloud shadows config into the suppressor filter.
-          const cloudShadingConfig = fullConfig.cloudShadows.shading;
-          const u = this.cloudSuppressorFilter.uniforms;
-          u.u_shading_threshold = cloudShadingConfig.threshold;
-          u.u_shading_softness = cloudShadingConfig.softness;
-          u.u_shading_brightness = cloudShadingConfig.brightness;
-          u.u_shading_contrast = cloudShadingConfig.contrast;
-          u.u_shading_gamma = cloudShadingConfig.gamma;
-        }
-        manageFilter(this.cloudSuppressorFilter, shouldUseSuppressor);
-      }
-  
-      if (this.bloomFilter) {
-        const fireConfig = foundry.utils.getProperty(fullConfig, "fire");
-        const bloomConfig = fireConfig?.bloom;
-        const shouldUseBloom =
-          this.parentContainer.visible && bloomConfig?.enabled;
-  
-        if (shouldUseBloom) {
-          this.bloomFilter.enabled = true;
-          foundry.utils.mergeObject(this.bloomFilter, bloomConfig);
-          if (canvas?.app?.screen) {
-            this.parentContainer.filterArea = canvas.app.screen;
-          }
-        } else {
-          this.parentContainer.filterArea = null;
-        }
-        manageFilter(this.bloomFilter, shouldUseBloom);
-      }
-      this.parentContainer.filters = allFilters.length > 0 ? allFilters : null;
     }
-  
-    destroyAllEmitters() {
-      if (!this.emitters) this.emitters = new Map();
-      if (!this.pendingTargets) this.pendingTargets = new Map();
-  
-      for (const { emitter } of this.emitters.values()) {
-        if (emitter._customMaskTexture) {
-          emitter._customMaskTexture.destroy(true);
-          emitter._customMaskTexture = null;
+
+    const allFilters = this.parentContainer.filters
+      ? [...this.parentContainer.filters]
+      : [];
+
+    const manageFilter = (filter, shouldBeActive) => {
+      const isPresent = allFilters.includes(filter);
+      if (shouldBeActive && !isPresent) {
+        allFilters.push(filter);
+      } else if (!shouldBeActive && isPresent) {
+        const index = allFilters.indexOf(filter);
+        if (index > -1) {
+          allFilters.splice(index, 1);
         }
-        emitter.destroy();
       }
-      this.emitters.clear();
-      this.pendingTargets.clear();
+    };
+
+    if (this.displacementFilter) {
+      const waterConfig = fullConfig.water;
+      const shouldUseDisplacement =
+        this.parentContainer.visible && waterConfig?.wave?.enabled;
+      manageFilter(this.displacementFilter, shouldUseDisplacement);
     }
-  
-    destroy() {
-      this.destroyAllEmitters();
-      this.rgbSplitFilter?.destroy();
-      this.bloomFilter?.destroy();
-      this.displacementFilter?.destroy();
-      this.displacementSprite?.destroy();
-      this.biofilmMaskFilter?.destroy();
-      this.particleOutputTexture?.destroy(true); // Destroy the new texture
-  
-      this.particleOnlyContainer?.destroy({
-        children: true,
+
+    if (this.biofilmMaskFilter) {
+      const shouldUseMask = this.parentContainer.visible;
+      manageFilter(this.biofilmMaskFilter, shouldUseMask);
+    }
+
+    // Manage the cloud suppressor filter.
+    if (this.cloudSuppressorFilter) {
+      const shouldUseSuppressor = this.parentContainer.visible;
+      this.cloudSuppressorFilter.enabled = shouldUseSuppressor;
+
+      if (shouldUseSuppressor) {
+        // Feed the shading settings from the main cloud shadows config into the suppressor filter.
+        const cloudShadingConfig = fullConfig.cloudShadows.shading;
+        const u = this.cloudSuppressorFilter.uniforms;
+        u.u_shading_threshold = cloudShadingConfig.threshold;
+        u.u_shading_softness = cloudShadingConfig.softness;
+        u.u_shading_brightness = cloudShadingConfig.brightness;
+        u.u_shading_contrast = cloudShadingConfig.contrast;
+        u.u_shading_gamma = cloudShadingConfig.gamma;
+      }
+      manageFilter(this.cloudSuppressorFilter, shouldUseSuppressor);
+    }
+
+    if (this.bloomFilter) {
+      const fireConfig = foundry.utils.getProperty(fullConfig, "fire");
+      const bloomConfig = fireConfig?.bloom;
+      const shouldUseBloom =
+        this.parentContainer.visible && bloomConfig?.enabled;
+
+      if (shouldUseBloom) {
+        this.bloomFilter.enabled = true;
+        foundry.utils.mergeObject(this.bloomFilter, bloomConfig);
+        if (canvas?.app?.screen) {
+          this.parentContainer.filterArea = canvas.app.screen;
+        }
+      } else {
+        this.parentContainer.filterArea = null;
+      }
+      manageFilter(this.bloomFilter, shouldUseBloom);
+    }
+    this.parentContainer.filters = allFilters.length > 0 ? allFilters : null;
+  }
+
+  destroyAllEmitters() {
+    if (!this.emitters) this.emitters = new Map();
+    if (!this.pendingTargets) this.pendingTargets = new Map();
+
+    for (const { emitter } of this.emitters.values()) {
+      if (emitter._customMaskTexture) {
+        emitter._customMaskTexture.destroy(true);
+        emitter._customMaskTexture = null;
+      }
+      emitter.destroy();
+    }
+    this.emitters.clear();
+    this.pendingTargets.clear();
+  }
+
+  destroy() {
+    this.destroyAllEmitters();
+    this.rgbSplitFilter?.destroy();
+    this.bloomFilter?.destroy();
+    this.displacementFilter?.destroy();
+    this.displacementSprite?.destroy();
+    this.biofilmMaskFilter?.destroy();
+    this.particleOutputTexture?.destroy(true); // Destroy the new texture
+
+    this.particleOnlyContainer?.destroy({
+      children: true,
+    });
+
+    this.parentContainer = null;
+  }
+}
+
+const buildParticleEmitterConfig = (
+  effectConfig,
+  targetData,
+  maskKey,
+  groupData = null,
+  options = {}
+) => {
+  const globalParticleConfig =
+    game.mapShine.profileManager.activeConfig.particleSystems;
+  const globalMultiplier = globalParticleConfig.globalDensityMultiplier ?? 1.0;
+  const config = effectConfig || {};
+  const rect = targetData?.rect;
+
+  if (!rect) {
+    return {
+      lifetime: {
+        min: 1,
+        max: 1,
+      },
+      frequency: 9999,
+      maxParticles: 0,
+      behaviors: [],
+    };
+  }
+
+  let intensityMultiplier = 1.0;
+  if (groupData?.emission) {
+    intensityMultiplier = groupData.emission.intensity ?? 1.0;
+  }
+
+  const spawnMaskTexture = targetData[maskKey];
+  // This guard clause ensures that if the expected texture map (e.g., _Water.webp)
+  // is not found for a given target, we do not proceed to create an invalid emitter configuration.
+  if (!spawnMaskTexture) {
+    return {
+      maxParticles: 0,
+      behaviors: [],
+    };
+  }
+
+  // Determine if the mask is a pre-rendered screen-space texture.
+  const isScreenSpaceMask = spawnMaskTexture instanceof PIXI.RenderTexture;
+
+  const spawnData = {
+    texture: spawnMaskTexture,
+    width: rect.width,
+    height: rect.height,
+    x: 0,
+    y: 0,
+    threshold: (config.maskThreshold ?? 0.5) * 255,
+    isDynamicScreenMask: isScreenSpaceMask,
+  };
+
+  if (options.spawnMode === "range") {
+    spawnData.spawnMode = "range";
+    spawnData.upperThreshold = (config.maskUpperThreshold ?? 0.8) * 255;
+  }
+
+  const spawnBehavior = {
+    type: "spawnShape",
+    config: {
+      type: "textureMask",
+      data: spawnData,
+    },
+  };
+
+  const behaviors = [
+    {
+      type: "textureSingle",
+      config: {
+        texture:
+          config.particleTexture ?? "modules/map-shine/assets/particle.webp",
+      },
+    },
+    spawnBehavior,
+  ];
+
+  const alphaConfig = config.alpha ?? {};
+  let fadeInTime = Math.max(0, alphaConfig.fadeIn ?? 0.1);
+  let fadeOutTime = Math.max(0, alphaConfig.fadeOut ?? 0.1);
+  if (fadeInTime + fadeOutTime >= 1) {
+    const total = fadeInTime + fadeOutTime;
+    fadeInTime /= total;
+    fadeOutTime /= total;
+  }
+  behaviors.push({
+    type: "alpha",
+    config: {
+      alpha: {
+        list: [
+          {
+            value: 0,
+            time: 0,
+          },
+          {
+            value: alphaConfig.max ?? 0.7,
+            time: fadeInTime,
+          },
+          {
+            value: alphaConfig.max ?? 0.7,
+            time: 1 - fadeOutTime,
+          },
+          {
+            value: 0,
+            time: 1,
+          },
+        ],
+      },
+    },
+  });
+
+  const scaleConfig = config.scale ?? {};
+  const startScale =
+    (scaleConfig.start ?? 0.05) * (scaleConfig.sizeMultiplier ?? 1.0);
+  const endScale =
+    (scaleConfig.end ?? 0.15) * (scaleConfig.sizeMultiplier ?? 1.0);
+  if (startScale === endScale) {
+    behaviors.push({
+      type: "scaleStatic",
+      config: {
+        min: startScale,
+        max: startScale,
+      },
+    });
+  } else {
+    behaviors.push({
+      type: "scale",
+      config: {
+        scale: {
+          start: startScale,
+          end: endScale,
+        },
+        minMult: scaleConfig.minMult ?? 0.5,
+      },
+    });
+  }
+
+  const speedConfig = config.speed ?? {};
+  const startSpeed = speedConfig.start ?? 5;
+  const endSpeed = speedConfig.end ?? 15;
+  if (startSpeed === endSpeed) {
+    behaviors.push({
+      type: "moveSpeedStatic",
+      config: {
+        min: startSpeed,
+        max: startSpeed,
+      },
+    });
+  } else {
+    behaviors.push({
+      type: "moveSpeed",
+      config: {
+        speed: {
+          start: startSpeed,
+          end: endSpeed,
+        },
+        minMult: speedConfig.minMult ?? 0.5,
+      },
+    });
+  }
+
+  // For metallic glints, use the custom behavior to sample color from the spawn texture.
+  // For all other effects, use the standard static or gradient color behaviors.
+  if (maskKey === "specular") {
+    behaviors.push({
+      type: "colorFromSpawn",
+      config: {},
+    });
+  } else {
+    const colorConfig = config.color ?? {};
+    const startColor = colorConfig.start ?? "#FFFFFF";
+    const endColor = colorConfig.end ?? "#FFFFFF";
+    if (startColor === endColor) {
+      behaviors.push({
+        type: "colorStatic",
+        config: {
+          color: startColor,
+        },
       });
-  
-      this.parentContainer = null;
+    } else {
+      behaviors.push({
+        type: "color",
+        config: {
+          color: {
+            start: startColor,
+            end: endColor,
+          },
+        },
+      });
     }
   }
 
-  const buildParticleEmitterConfig = (
-    effectConfig,
-    targetData,
-    maskKey,
-    groupData = null,
-    options = {}
-  ) => {
-    const globalParticleConfig =
-      game.mapShine.profileManager.activeConfig.particleSystems;
-    const globalMultiplier = globalParticleConfig.globalDensityMultiplier ?? 1.0;
-    const config = effectConfig || {};
-    const rect = targetData?.rect;
-  
-    if (!rect) {
-      return {
-        lifetime: {
-          min: 1,
-          max: 1,
-        },
-        frequency: 9999,
-        maxParticles: 0,
-        behaviors: [],
-      };
-    }
-  
-    let intensityMultiplier = 1.0;
-    if (groupData?.emission) {
-      intensityMultiplier = groupData.emission.intensity ?? 1.0;
-    }
-  
-    const spawnMaskTexture = targetData[maskKey];
-    // This guard clause ensures that if the expected texture map (e.g., _Water.webp)
-    // is not found for a given target, we do not proceed to create an invalid emitter configuration.
-    if (!spawnMaskTexture) {
-      return {
-        maxParticles: 0,
-        behaviors: [],
-      };
-    }
-  
-    // Determine if the mask is a pre-rendered screen-space texture.
-    const isScreenSpaceMask = spawnMaskTexture instanceof PIXI.RenderTexture;
-  
-    const spawnData = {
-      texture: spawnMaskTexture,
-      width: rect.width,
-      height: rect.height,
-      x: 0,
-      y: 0,
-      threshold: (config.maskThreshold ?? 0.5) * 255,
-      isDynamicScreenMask: isScreenSpaceMask,
-    };
-  
-    if (options.spawnMode === 'range') {
-      spawnData.spawnMode = 'range';
-      spawnData.upperThreshold = (config.maskUpperThreshold ?? 0.8) * 255;
-    }
-  
-    const spawnBehavior = {
-      type: "spawnShape",
-      config: {
-        type: "textureMask",
-        data: spawnData,
-      },
-    };
-  
-    const behaviors = [
-      {
-        type: "textureSingle",
-        config: {
-          texture:
-            config.particleTexture ?? "modules/map-shine/assets/particle.webp",
-        },
-      },
-      spawnBehavior,
-    ];
-  
-    const alphaConfig = config.alpha ?? {};
-    let fadeInTime = Math.max(0, alphaConfig.fadeIn ?? 0.1);
-    let fadeOutTime = Math.max(0, alphaConfig.fadeOut ?? 0.1);
-    if (fadeInTime + fadeOutTime >= 1) {
-      const total = fadeInTime + fadeOutTime;
-      fadeInTime /= total;
-      fadeOutTime /= total;
-    }
+  const rotConfig = config.rotation ?? {};
+  if (rotConfig.enabled) {
     behaviors.push({
-      type: "alpha",
+      type: "rotation",
       config: {
-        alpha: {
-          list: [
-            {
-              value: 0,
-              time: 0,
-            },
-            {
-              value: alphaConfig.max ?? 0.7,
-              time: fadeInTime,
-            },
-            {
-              value: alphaConfig.max ?? 0.7,
-              time: 1 - fadeOutTime,
-            },
-            {
-              value: 0,
-              time: 1,
-            },
-          ],
-        },
+        minStart: 0,
+        maxStart: 360,
+        minSpeed: rotConfig.minSpeed ?? 0,
+        maxSpeed: rotConfig.maxSpeed ?? 20,
+        accel: rotConfig.accel ?? 0,
       },
     });
-  
-    const scaleConfig = config.scale ?? {};
-    const startScale =
-      (scaleConfig.start ?? 0.05) * (scaleConfig.sizeMultiplier ?? 1.0);
-    const endScale =
-      (scaleConfig.end ?? 0.15) * (scaleConfig.sizeMultiplier ?? 1.0);
-    if (startScale === endScale) {
-      behaviors.push({
-        type: "scaleStatic",
-        config: {
-          min: startScale,
-          max: startScale,
-        },
-      });
-    } else {
-      behaviors.push({
-        type: "scale",
-        config: {
-          scale: {
-            start: startScale,
-            end: endScale,
-          },
-          minMult: scaleConfig.minMult ?? 0.5,
-        },
-      });
-    }
-  
-    const speedConfig = config.speed ?? {};
-    const startSpeed = speedConfig.start ?? 5;
-    const endSpeed = speedConfig.end ?? 15;
-    if (startSpeed === endSpeed) {
-      behaviors.push({
-        type: "moveSpeedStatic",
-        config: {
-          min: startSpeed,
-          max: startSpeed,
-        },
-      });
-    } else {
-      behaviors.push({
-        type: "moveSpeed",
-        config: {
-          speed: {
-            start: startSpeed,
-            end: endSpeed,
-          },
-          minMult: speedConfig.minMult ?? 0.5,
-        },
-      });
-    }
-  
-    // For metallic glints, use the custom behavior to sample color from the spawn texture.
-    // For all other effects, use the standard static or gradient color behaviors.
-    if (maskKey === "specular") {
-      behaviors.push({
-        type: "colorFromSpawn",
-        config: {},
-      });
-    } else {
-      const colorConfig = config.color ?? {};
-      const startColor = colorConfig.start ?? "#FFFFFF";
-      const endColor = colorConfig.end ?? "#FFFFFF";
-      if (startColor === endColor) {
-        behaviors.push({
-          type: "colorStatic",
-          config: {
-            color: startColor,
-          },
-        });
-      } else {
-        behaviors.push({
-          type: "color",
-          config: {
-            color: {
-              start: startColor,
-              end: endColor,
-            },
-          },
-        });
-      }
-    }
-  
-    const rotConfig = config.rotation ?? {};
-    if (rotConfig.enabled) {
-      behaviors.push({
-        type: "rotation",
-        config: {
-          minStart: 0,
-          maxStart: 360,
-          minSpeed: rotConfig.minSpeed ?? 0,
-          maxSpeed: rotConfig.maxSpeed ?? 20,
-          accel: rotConfig.accel ?? 0,
-        },
-      });
-    } else {
-      behaviors.push({
-        type: "rotationStatic",
-        config: {
-          min: 0,
-          max: 360,
-        },
-      });
-    }
-  
-    const lifetimeConfig = config.lifetime ?? {};
-    return {
-      lifetime: {
-        min: lifetimeConfig.min ?? 4,
-        max: lifetimeConfig.max ?? 12,
+  } else {
+    behaviors.push({
+      type: "rotationStatic",
+      config: {
+        min: 0,
+        max: 360,
       },
-      blendMode: config.blendMode ?? PIXI.BLEND_MODES.NORMAL,
-      frequency:
-        (config.frequency ?? 0.1) / globalMultiplier / intensityMultiplier,
-      emitterLifetime: -1,
-      maxParticles: Math.max(
-        1,
-        2000 *
-          (config.maskInfluence ?? 1.0) *
-          globalMultiplier *
-          intensityMultiplier
-      ),
-      pos: {
-        // If the mask is screen-space, the shape provides absolute world coordinates,
-        // so the emitter's own position must be at the origin. Otherwise, use the
-        // world position of the tile/background.
-        x: isScreenSpaceMask ? 0 : rect.x,
-        y: isScreenSpaceMask ? 0 : rect.y,
-      },
-      addAtBack: false,
-      behaviors: behaviors,
-    };
+    });
+  }
+
+  const lifetimeConfig = config.lifetime ?? {};
+  return {
+    lifetime: {
+      min: lifetimeConfig.min ?? 4,
+      max: lifetimeConfig.max ?? 12,
+    },
+    blendMode: config.blendMode ?? PIXI.BLEND_MODES.NORMAL,
+    frequency:
+      (config.frequency ?? 0.1) / globalMultiplier / intensityMultiplier,
+    emitterLifetime: -1,
+    maxParticles: Math.max(
+      1,
+      2000 *
+        (config.maskInfluence ?? 1.0) *
+        globalMultiplier *
+        intensityMultiplier
+    ),
+    pos: {
+      // If the mask is screen-space, the shape provides absolute world coordinates,
+      // so the emitter's own position must be at the origin. Otherwise, use the
+      // world position of the tile/background.
+      x: isScreenSpaceMask ? 0 : rect.x,
+      y: isScreenSpaceMask ? 0 : rect.y,
+    },
+    addAtBack: false,
+    behaviors: behaviors,
   };
+};
 
 const buildSparkEmitterConfig = (effectConfig, targetData, maskKey) => {
   const globalParticleConfig =
@@ -12882,7 +13036,7 @@ class TextureMaskShape {
     this.offsetX = config.x || 0;
     this.offsetY = config.y || 0;
     this.threshold = config.threshold ?? 128;
-    this.spawnMode = config.spawnMode || 'threshold';
+    this.spawnMode = config.spawnMode || "threshold";
     this.upperThreshold = config.upperThreshold ?? 255;
     this.validPoints = [];
     this.texture = null;
@@ -12974,14 +13128,18 @@ class TextureMaskShape {
           const index = (y * texture.width + x) * 4;
           const pixelValue = pixelData[index]; // Use red channel for grayscale
           let shouldSpawn = false;
-          if (this.spawnMode === 'range') {
-              if (pixelValue >= this.threshold && pixelValue <= this.upperThreshold) {
-                  shouldSpawn = true;
-              }
-          } else { // Default threshold behavior
-              if (pixelValue >= this.threshold) {
-                  shouldSpawn = true;
-              }
+          if (this.spawnMode === "range") {
+            if (
+              pixelValue >= this.threshold &&
+              pixelValue <= this.upperThreshold
+            ) {
+              shouldSpawn = true;
+            }
+          } else {
+            // Default threshold behavior
+            if (pixelValue >= this.threshold) {
+              shouldSpawn = true;
+            }
           }
           if (shouldSpawn) {
             // --- MODIFICATION START ---
@@ -13013,14 +13171,18 @@ class TextureMaskShape {
           const index = (y * texture.width + x) * 4;
           const pixelValue = pixelData[index]; // Use red channel for grayscale
           let shouldSpawn = false;
-          if (this.spawnMode === 'range') {
-              if (pixelValue >= this.threshold && pixelValue <= this.upperThreshold) {
-                  shouldSpawn = true;
-              }
-          } else { // Default threshold behavior
-              if (pixelValue >= this.threshold) {
-                  shouldSpawn = true;
-              }
+          if (this.spawnMode === "range") {
+            if (
+              pixelValue >= this.threshold &&
+              pixelValue <= this.upperThreshold
+            ) {
+              shouldSpawn = true;
+            }
+          } else {
+            // Default threshold behavior
+            if (pixelValue >= this.threshold) {
+              shouldSpawn = true;
+            }
           }
           if (shouldSpawn) {
             const relativeX = (x / texture.width) * this.width;
@@ -16610,6 +16772,70 @@ class FoamFilter extends PIXI.Filter {
             uniform float uBreakupNoisePersistence;
             uniform float uBreakupNoiseBrightness;
             uniform float uBreakupNoiseContrast;
+            
+            // Crest Foam (Wave Shape)
+            uniform bool uCrestFoamEnabled;
+            uniform float uCrestFoamIntensity;
+            uniform float uCrestFoamFrequency;
+            uniform float uCrestFoamSpeed;
+            uniform float uCrestFoamAngle;
+            uniform float uCrestFoamSharpness;
+            uniform float uCrestFoamPerturbStrength;
+            uniform float uCrestFoamPerturbScale;
+            uniform float uCrestFoamPerturbSpeed;
+            uniform int uCrestFoamPerturbOctaves;
+
+            // Crest Foam (Breakup Texture)
+            uniform float uCrestBreakupScale;
+            uniform float uCrestBreakupSpeed;
+            uniform int uCrestBreakupOctaves;
+            uniform float uCrestBreakupBrightness;
+            uniform float uCrestBreakupContrast;
+
+
+            vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 289.0);}
+            vec4 taylorInvSqrt(vec4 r){return 1.79284291400159 - 0.85373472095314 * r;}
+            float snoise(vec3 v) {
+                const vec2 C = vec2(1.0/6.0, 1.0/3.0);
+                const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+                vec3 i  = floor(v + dot(v, C.yyy) );
+                vec3 x0 =   v - i + dot(i, C.xxx) ;
+                vec3 g = step(x0.yzx, x0.xyz);
+                vec3 l = 1.0 - g;
+                vec3 i1 = min( g.xyz, l.zxy );
+                vec3 i2 = max( g.xyz, l.zxy );
+                vec3 x1 = x0 - i1 + C.xxx;
+                vec3 x2 = x0 - i2 + C.yyy;
+                vec3 x3 = x0 - D.yyy;
+                i = mod(i, 289.0);
+                vec4 p = permute( permute( i.z + vec4(0.0, i1.z, i2.z, 1.0 ))
+                    + i.y + vec4(0.0, i1.y, i2.y, 1.0 ))
+                    + i.x + vec4(0.0, i1.x, i2.x, 1.0 );
+                float n_ = 0.142857142857;
+                vec3  ns = n_ * D.wyz - D.xzx;
+                vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+                vec4 x_ = floor(j * ns.z);
+                vec4 y_ = floor(j - 7.0 * x_ );
+                vec4 x = x_ *ns.x + ns.yyyy;
+                vec4 y = y_ *ns.x + ns.yyyy;
+                vec4 h = 1.0 - abs(x) - abs(y);
+                vec4 b0 = vec4( x.xy, y.xy );
+                vec4 b1 = vec4( x.zw, y.zw );
+                vec4 s0 = floor(b0)*2.0 + 1.0;
+                vec4 s1 = floor(b1)*2.0 + 1.0;
+                vec4 sh = -step(h, vec4(0.0));
+                vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;
+                vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;
+                vec3 p0 = vec3(a0.xy,h.x);
+                vec3 p1 = vec3(a0.zw,h.y);
+                vec3 p2 = vec3(a1.xy,h.z);
+                vec3 p3 = vec3(a1.zw,h.w);
+                vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
+                p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
+                vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+                m = m * m;
+                return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3) ) );
+            }
 
             float random(vec2 st) {
                 return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
@@ -16632,7 +16858,19 @@ class FoamFilter extends PIXI.Filter {
                     st *= lacunarity;
                     amplitude *= persistence;
                 }
-                return value; // Returns range approx -0.5 to 0.5
+                return value;
+            }
+
+            float fbm_snoise(vec3 st, int octaves, float lacunarity, float persistence) {
+                float value = 0.0;
+                float amplitude = 0.5;
+                for (int i = 0; i < 8; i++) {
+                    if (i >= octaves) break;
+                    value += amplitude * snoise(st);
+                    st *= lacunarity;
+                    amplitude *= persistence;
+                }
+                return value;
             }
             
             float turbulentGaussianBlur(sampler2D tex, vec2 uv, float radius) {
@@ -16640,17 +16878,12 @@ class FoamFilter extends PIXI.Filter {
                 vec2 noise_uv = worldCoord * uBlurNoiseScale * 0.01 + u_time * uBlurNoiseSpeed;
                 vec2 noise_offset = vec2(noise(noise_uv), noise(noise_uv + vec2(17.3, -41.1))) - 0.5;
                 noise_offset *= uBlurNoiseStrength * uTexelSize * uCanvasScale.x;
-
-                // Apply a random rotation to the sample pattern for each pixel to hide artifacts.
-                float angle = random(vScreenCoord) * 6.2831853; // 2 * PI
+                float angle = random(vScreenCoord) * 6.2831853;
                 float s = sin(angle);
                 float c = cos(angle);
                 mat2 rotationMatrix = mat2(c, -s, s, c);
-
                 vec2 step = uTexelSize * uCanvasScale.x * radius;
                 float sum = 0.0;
-
-                // Unrolled loop with hardcoded Poisson disk samples for maximum compatibility.
                 sum += texture2D(tex, uv + rotationMatrix * vec2( 0.14383161, -0.14100790 ) * step + noise_offset).r;
                 sum += texture2D(tex, uv + rotationMatrix * vec2( 0.19984126, 0.78641367 ) * step + noise_offset).r;
                 sum += texture2D(tex, uv + rotationMatrix * vec2( -0.24188840, 0.99706507 ) * step + noise_offset).r;
@@ -16667,7 +16900,6 @@ class FoamFilter extends PIXI.Filter {
                 sum += texture2D(tex, uv + rotationMatrix * vec2( 0.94558609, -0.76890725 ) * step + noise_offset).r;
                 sum += texture2D(tex, uv + rotationMatrix * vec2( -0.94201624, -0.39906216 ) * step + noise_offset).r;
                 sum += texture2D(tex, uv + rotationMatrix * vec2( 0.34495938, 0.29387760 ) * step + noise_offset).r;
-
                 return sum / 16.0;
             }
 
@@ -16679,26 +16911,20 @@ class FoamFilter extends PIXI.Filter {
 
                 float smallBlur = turbulentGaussianBlur(uWaterMask, vScreenCoord, uSmallBlurSize);
                 float largeBlur = turbulentGaussianBlur(uWaterMask, vScreenCoord, uLargeBlurSize);
-
                 float edge = max(0.0, smallBlur - largeBlur);
-                
                 float foamMask = smoothstep(uThreshold, uThreshold + uSoftness, edge);
 
                 if (uBreakupNoiseEnabled) {
                     vec2 worldCoord = u_camera_offset + (vScreenCoord * u_view_size);
                     vec2 breakupNoiseUV = worldCoord * uBreakupNoiseScale * 0.01;
                     breakupNoiseUV.x += u_time * uBreakupNoiseEvolution;
-                    
                     float breakupNoise = fbm_parameterized(breakupNoiseUV, uBreakupNoiseOctaves, uBreakupNoiseLacunarity, uBreakupNoisePersistence);
-                    breakupNoise = breakupNoise + 0.5;
-                    
                     breakupNoise = (breakupNoise - 0.5 + uBreakupNoiseBrightness) * uBreakupNoiseContrast + 0.5;
                     breakupNoise = clamp(breakupNoise, 0.0, 1.0);
-
                     foamMask *= breakupNoise;
                 }
 
-                if (foamMask < 0.01) {
+                if (foamMask < 0.01 && !uCrestFoamEnabled) {
                     discard;
                 }
 
@@ -16708,8 +16934,37 @@ class FoamFilter extends PIXI.Filter {
                 float patternNoise = fbm_parameterized(noiseUV + timeOffset, uNoiseOctaves, uNoiseLacunarity, uNoisePersistence) + 0.5;
                 
                 float finalFoam = foamMask * patternNoise;
-                float finalAlpha = finalFoam * uIntensity * waterValue;
 
+                // --- CREST FOAM LOGIC ---
+                if (uCrestFoamEnabled) {
+                    // 1. Rotate coordinates based on wave angle
+                    mat2 rotationMatrix = mat2(cos(uCrestFoamAngle), -sin(uCrestFoamAngle), sin(uCrestFoamAngle), cos(uCrestFoamAngle));
+                    vec2 rotatedWorldCoord = rotationMatrix * worldCoord;
+                    
+                    // 2. Calculate perturbation noise to warp the wave shape
+                    vec3 perturbCoord = vec3(rotatedWorldCoord * uCrestFoamPerturbScale, u_time * uCrestFoamPerturbSpeed);
+                    float perturbValue = fbm_snoise(perturbCoord, uCrestFoamPerturbOctaves, 2.2, 0.45);
+                    
+                    // 3. Calculate the sine wave input, perturbed by noise
+                    float waveInput = rotatedWorldCoord.y * uCrestFoamFrequency * 0.01 + u_time * uCrestFoamSpeed + perturbValue * uCrestFoamPerturbStrength;
+                    
+                    // 4. Create the wave crest shape from the sine wave
+                    float sineWave = sin(waveInput);
+                    float crest = pow(sineWave * 0.5 + 0.5, uCrestFoamSharpness);
+                    
+                    // 5. Create the fine-grained breakup texture
+                    vec3 breakupCoord = vec3(worldCoord * uCrestBreakupScale, u_time * uCrestBreakupSpeed);
+                    float breakupNoise = fbm_snoise(breakupCoord, uCrestBreakupOctaves, 2.8, 0.4);
+                    breakupNoise = (breakupNoise - 0.5 + uCrestBreakupBrightness) * uCrestBreakupContrast + 0.5;
+
+                    // 6. Modulate the crest shape with the breakup texture
+                    crest *= clamp(breakupNoise, 0.0, 1.0);
+
+                    // 7. Add to final foam result
+                    finalFoam += crest * uCrestFoamIntensity;
+                }
+
+                float finalAlpha = finalFoam * uIntensity * waterValue;
                 gl_FragColor = vec4(uColor * finalAlpha, finalAlpha);
             }
         `;
@@ -16736,7 +16991,6 @@ class FoamFilter extends PIXI.Filter {
       uNoiseOctaves: options.noise?.octaves ?? 4,
       uNoiseLacunarity: options.noise?.lacunarity ?? 2.2,
       uNoisePersistence: options.noise?.persistence ?? 0.45,
-      // Breakup Noise Uniforms
       uBreakupNoiseEnabled: options.breakupNoise?.enabled ?? true,
       uBreakupNoiseScale: options.breakupNoise?.scale ?? 2.5,
       uBreakupNoiseEvolution: options.breakupNoise?.evolution ?? 0.01,
@@ -16745,6 +16999,24 @@ class FoamFilter extends PIXI.Filter {
       uBreakupNoisePersistence: options.breakupNoise?.persistence ?? 0.35,
       uBreakupNoiseBrightness: (options.breakupNoise?.brightness ?? 0.4) - 0.5,
       uBreakupNoiseContrast: options.breakupNoise?.contrast ?? 1.2,
+      // Crest Foam (Wave Shape)
+      uCrestFoamEnabled: options.crestFoam?.enabled ?? true,
+      uCrestFoamIntensity: options.crestFoam?.intensity ?? 1.8,
+      uCrestFoamFrequency: options.crestFoam?.frequency ?? 35.0,
+      uCrestFoamSpeed: options.crestFoam?.speed ?? 0.03,
+      uCrestFoamAngle: (options.crestFoam?.angle ?? 15.0) * (Math.PI / 180.0),
+      uCrestFoamSharpness: options.crestFoam?.sharpness ?? 12.0,
+      uCrestFoamPerturbStrength: options.crestFoam?.perturbStrength ?? 35.0,
+      uCrestFoamPerturbScale: options.crestFoam?.perturbScale ?? 0.04,
+      uCrestFoamPerturbSpeed: options.crestFoam?.perturbSpeed ?? 0.01,
+      uCrestFoamPerturbOctaves: options.crestFoam?.perturbOctaves ?? 4,
+      // Crest Foam (Breakup Texture)
+      uCrestBreakupScale: options.crestFoam?.crestBreakup?.scale ?? 0.35,
+      uCrestBreakupSpeed: options.crestFoam?.crestBreakup?.speed ?? 0.08,
+      uCrestBreakupOctaves: options.crestFoam?.crestBreakup?.octaves ?? 3,
+      uCrestBreakupBrightness:
+        (options.crestFoam?.crestBreakup?.brightness ?? 0.45) - 0.5,
+      uCrestBreakupContrast: options.crestFoam?.crestBreakup?.contrast ?? 1.8,
     });
   }
 }
@@ -16895,7 +17167,7 @@ class FoamLayer extends CanvasLayer {
           )}
         </div>
       </details>
-      <details>
+      <details id="details-foam-breakupNoise">
           <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
             "foam.breakupNoise.enabled",
             "Foam Breakup",
@@ -16956,6 +17228,134 @@ class FoamLayer extends CanvasLayer {
               )}
           </div>
       </details>
+      <details id="details-foam-crestFoam">
+          <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+            "foam.crestFoam.enabled",
+            "Wave Crest Foam",
+            true
+          )}</div></summary>
+          <div style="padding-left: 15px;">
+              <p class="description-text">Generates long, flowing wave crests using perturbed sine waves.</p>
+              ${DebuggerUIBuilder._createSliderHTML(
+                "foam.crestFoam.intensity",
+                "Intensity",
+                0,
+                5,
+                0.05
+              )}
+              ${DebuggerUIBuilder._createSliderHTML(
+                "foam.crestFoam.frequency",
+                "Frequency",
+                1,
+                100,
+                1,
+                "How many wave crests appear. Higher is more waves."
+              )}
+              ${DebuggerUIBuilder._createSliderHTML(
+                "foam.crestFoam.speed",
+                "Speed",
+                0,
+                0.2,
+                0.001,
+                "The travel speed of the waves."
+              )}
+               ${DebuggerUIBuilder._createSliderHTML(
+                 "foam.crestFoam.angle",
+                 "Angle",
+                 0,
+                 360,
+                 1,
+                 "The direction of the waves."
+               )}
+              ${DebuggerUIBuilder._createSliderHTML(
+                "foam.crestFoam.sharpness",
+                "Sharpness",
+                1,
+                40,
+                1,
+                "How sharp and defined the crests are."
+              )}
+              <details>
+                  <summary><span class="accordion-toggle"></span><strong>Perturbation (Wave Breakup)</strong></summary>
+                  <div style="padding-left:15px;">
+                      <p class="description-text">Controls the noise that makes the waves look organic and turbulent.</p>
+                      ${DebuggerUIBuilder._createSliderHTML(
+                        "foam.crestFoam.perturbStrength",
+                        "Strength",
+                        0,
+                        100,
+                        1,
+                        "How much the noise distorts the wave lines."
+                      )}
+                      ${DebuggerUIBuilder._createSliderHTML(
+                        "foam.crestFoam.perturbScale",
+                        "Scale",
+                        0.01,
+                        0.5,
+                        0.001,
+                        "The size of the turbulence patterns."
+                      )}
+                      ${DebuggerUIBuilder._createSliderHTML(
+                        "foam.crestFoam.perturbSpeed",
+                        "Speed",
+                        0,
+                        0.1,
+                        0.001,
+                        "The animation speed of the turbulence."
+                      )}
+                      ${DebuggerUIBuilder._createSliderHTML(
+                        "foam.crestFoam.perturbOctaves",
+                        "Complexity",
+                        1,
+                        8,
+                        1,
+                        "The level of detail in the turbulence."
+                      )}
+                  </div>
+              </details>
+              <details>
+                  <summary><span class="accordion-toggle"></span><strong>Crest Breakup (Texture)</strong></summary>
+                  <div style="padding-left:15px;">
+                      <p class="description-text">Controls the fine-grained noise that breaks the wave crests into a dot-like pattern.</p>
+                      ${DebuggerUIBuilder._createSliderHTML(
+                        "foam.crestFoam.crestBreakup.scale",
+                        "Scale",
+                        0.1,
+                        2,
+                        0.01
+                      )}
+                      ${DebuggerUIBuilder._createSliderHTML(
+                        "foam.crestFoam.crestBreakup.speed",
+                        "Speed",
+                        0,
+                        0.2,
+                        0.001
+                      )}
+                      ${DebuggerUIBuilder._createSliderHTML(
+                        "foam.crestFoam.crestBreakup.octaves",
+                        "Complexity",
+                        1,
+                        8,
+                        1
+                      )}
+                      ${DebuggerUIBuilder._createSliderHTML(
+                        "foam.crestFoam.crestBreakup.brightness",
+                        "Coverage",
+                        0,
+                        1,
+                        0.01
+                      )}
+                      ${DebuggerUIBuilder._createSliderHTML(
+                        "foam.crestFoam.crestBreakup.contrast",
+                        "Sharpness",
+                        0.1,
+                        5,
+                        0.05
+                      )}
+                  </div>
+              </details>
+          </div>
+      </details>
     `;
     return DebuggerUIBuilder._createAccordionHTML(
       effectKey,
@@ -16967,7 +17367,7 @@ class FoamLayer extends CanvasLayer {
   async _draw(options) {
     this._destroyed = false;
     this.time = 0;
-    
+
     try {
       this.foamFilter = new FoamFilter();
     } catch (e) {
@@ -16991,6 +17391,7 @@ class FoamLayer extends CanvasLayer {
 
     const resourceManager = game.mapShine.resourceManager;
     const waterMask = resourceManager?.getWaterMask();
+
     if (!waterMask?.valid) {
       this.effectSprite.visible = false;
       return;
@@ -17004,12 +17405,12 @@ class FoamLayer extends CanvasLayer {
     u.uWaterMask = waterMask;
     u.u_time = this.time;
     Object.assign(u, CoordinateManager.getShaderUniforms());
-    
+
     const screen = CoordinateManager.getScreenDimensions();
     u.uTexelSize = [1.0 / screen.width, 1.0 / screen.height];
     const scale = CoordinateManager.getCanvasScale();
     u.uCanvasScale = [scale, scale];
-    
+
     this.effectSprite.position.copyFrom(CoordinateManager.getCameraOffset());
     this.effectSprite.width = CoordinateManager.getViewSize().width;
     this.effectSprite.height = CoordinateManager.getViewSize().height;
@@ -17051,20 +17452,42 @@ class FoamLayer extends CanvasLayer {
       u.uBreakupNoisePersistence = bn.persistence;
       u.uBreakupNoiseBrightness = bn.brightness - 0.5;
       u.uBreakupNoiseContrast = bn.contrast;
+
+      const cf = fConfig.crestFoam;
+      u.uCrestFoamEnabled = cf.enabled;
+      u.uCrestFoamIntensity = cf.intensity;
+      u.uCrestFoamFrequency = cf.frequency;
+      u.uCrestFoamSpeed = cf.speed;
+      u.uCrestFoamAngle = cf.angle * (Math.PI / 180.0);
+      u.uCrestFoamSharpness = cf.sharpness;
+      u.uCrestFoamPerturbStrength = cf.perturbStrength;
+      u.uCrestFoamPerturbScale = cf.perturbScale;
+      u.uCrestFoamPerturbSpeed = cf.perturbSpeed;
+      u.uCrestFoamPerturbOctaves = cf.perturbOctaves;
+
+      const cb = cf.crestBreakup;
+      u.uCrestBreakupScale = cb.scale;
+      u.uCrestBreakupSpeed = cb.speed;
+      u.uCrestBreakupOctaves = cb.octaves;
+      u.uCrestBreakupBrightness = cb.brightness - 0.5;
+      u.uCrestBreakupContrast = cb.contrast;
     }
   }
 
   _onResize() {
     if (this._destroyed || !this.foamFilter) return;
     const screen = canvas.app.renderer.screen;
-    this.foamFilter.uniforms.uTexelSize = [1.0 / screen.width, 1.0 / screen.height];
+    this.foamFilter.uniforms.uTexelSize = [
+      1.0 / screen.width,
+      1.0 / screen.height,
+    ];
   }
 
   async _tearDown(options) {
     this._destroyed = true;
     canvas.app.ticker.remove(this._onAnimateBound);
     window.removeEventListener("resize", this._onResizeBound);
-    
+
     this.foamFilter?.destroy();
     this.effectSprite?.destroy();
 
@@ -23648,22 +24071,22 @@ class WaterFXLayer extends MaskedEffectLayer {
 
     // Flow
     if (wConfig.flow) {
-        u.u_flow_enabled = wConfig.flow.enabled;
-        const flowAngleRad = wConfig.flow.angle * (Math.PI / 180.0);
-        u.u_flow_direction = [Math.cos(flowAngleRad), Math.sin(flowAngleRad)];
-        u.u_flow_speed = (wConfig.flow.speed ?? 0.0) * 0.001;
+      u.u_flow_enabled = wConfig.flow.enabled;
+      const flowAngleRad = wConfig.flow.angle * (Math.PI / 180.0);
+      u.u_flow_direction = [Math.cos(flowAngleRad), Math.sin(flowAngleRad)];
+      u.u_flow_speed = (wConfig.flow.speed ?? 0.0) * 0.001;
     }
 
     // Murkiness
     if (wConfig.murkiness) {
-        u.u_murkiness_enabled = wConfig.murkiness.enabled;
-        u.u_murkiness_color = hexToRgbArray(wConfig.murkiness.color);
-        u.u_wavy_strength = wConfig.murkiness.wavyNoise.strength;
-        u.u_wavy_scale = wConfig.murkiness.wavyNoise.scale;
-        u.u_wavy_speed = wConfig.murkiness.wavyNoise.speed;
-        u.u_sandy_strength = wConfig.murkiness.sandyNoise.strength;
-        u.u_sandy_scale = wConfig.murkiness.sandyNoise.scale;
-        u.u_sandy_speed = wConfig.murkiness.sandyNoise.speed;
+      u.u_murkiness_enabled = wConfig.murkiness.enabled;
+      u.u_murkiness_color = hexToRgbArray(wConfig.murkiness.color);
+      u.u_wavy_strength = wConfig.murkiness.wavyNoise.strength;
+      u.u_wavy_scale = wConfig.murkiness.wavyNoise.scale;
+      u.u_wavy_speed = wConfig.murkiness.wavyNoise.speed;
+      u.u_sandy_strength = wConfig.murkiness.sandyNoise.strength;
+      u.u_sandy_scale = wConfig.murkiness.sandyNoise.scale;
+      u.u_sandy_speed = wConfig.murkiness.sandyNoise.speed;
     }
 
     u.u_wave_enabled = wConfig.wave.enabled;
@@ -23766,10 +24189,10 @@ class WaterFXLayer extends MaskedEffectLayer {
     // Get the biofilm texture and pass it to the displacement filter
     const resourceManager = game.mapShine.resourceManager;
     if (resourceManager) {
-        const biofilmTexture = resourceManager.getBiofilmOutputTexture();
-        if (biofilmTexture) {
-            this.displacementFilter.uniforms.uBiofilmMap = biofilmTexture;
-        }
+      const biofilmTexture = resourceManager.getBiofilmOutputTexture();
+      if (biofilmTexture) {
+        this.displacementFilter.uniforms.uBiofilmMap = biofilmTexture;
+      }
     }
     // --- MODIFICATION END ---
 
@@ -23792,7 +24215,7 @@ class WaterFXLayer extends MaskedEffectLayer {
     });
 
     const useShorelineMask = this.shorelineMaskSprites.size > 0;
-    
+
     const u = waterEffectsFilter.uniforms;
     const wConfig = game.mapShine.profileManager.activeConfig.water;
     if (wConfig?.wave) {
@@ -23846,8 +24269,10 @@ class WaterFXLayer extends MaskedEffectLayer {
       this.displacementFilter.uniforms.u_scale = waveConfig.scale;
       // Update new biofilm uniforms
       if (waveConfig.biofilmDistortion) {
-          this.displacementFilter.uniforms.u_useBiofilm = waveConfig.biofilmDistortion.enabled;
-          this.displacementFilter.uniforms.u_biofilmIntensity = waveConfig.biofilmDistortion.intensity;
+        this.displacementFilter.uniforms.u_useBiofilm =
+          waveConfig.biofilmDistortion.enabled;
+        this.displacementFilter.uniforms.u_biofilmIntensity =
+          waveConfig.biofilmDistortion.intensity;
       }
     }
     if (this.blurFilter) {
@@ -23862,10 +24287,18 @@ class WaterFXLayer extends MaskedEffectLayer {
     this.visible = config.enabled && wConfig.enabled;
 
     if (this.displacementFilter) {
+      const waveConfig = wConfig.wave;
       // Apply scaling factor
       this.displacementFilter.uniforms.u_speed =
-        (wConfig.wave.speed ?? 1.48) * 0.4;
-      this.displacementFilter.uniforms.u_scale = wConfig.wave.scale;
+        (waveConfig.speed ?? 1.48) * 0.4;
+      this.displacementFilter.uniforms.u_scale = waveConfig.scale;
+      // Update new waterSplash uniforms
+      if (waveConfig.waterSplashDistortion) {
+        this.displacementFilter.uniforms.u_useWaterSplash =
+          waveConfig.waterSplashDistortion.enabled;
+        this.displacementFilter.uniforms.u_waterSplashIntensity =
+          waveConfig.waterSplashDistortion.intensity;
+      }
     }
     if (this.blurFilter) {
       this.blurFilter.blur = wConfig.shoreline.detectionBlur;
@@ -23998,10 +24431,10 @@ class WaveDisplacementFilter extends PIXI.Filter {
                         uniform float u_speed;
                         uniform float u_scale;
 
-                        // Biofilm uniforms
-                        uniform sampler2D uBiofilmMap;
-                        uniform bool u_useBiofilm;
-                        uniform float u_biofilmIntensity;
+                        // Water Splash uniforms
+                        uniform sampler2D uWaterSplashMap;
+                        uniform bool u_useWaterSplash;
+                        uniform float u_waterSplashIntensity;
 
                         // World-space uniforms
                         uniform vec2 u_camera_offset;
@@ -24102,12 +24535,12 @@ class WaveDisplacementFilter extends PIXI.Filter {
                             // Combine noises for a more complex pattern
                             vec2 displacement = vec2(noise1_x + noise2_x, noise1_y + noise2_y) * 0.5;
                             
-                            // Add displacement from biofilm
-                            if (u_useBiofilm) {
-                                vec4 biofilmColor = texture2D(uBiofilmMap, vScreenCoord);
+                            // Add displacement from waterSplash
+                            if (u_useWaterSplash) {
+                                vec4 waterSplashColor = texture2D(uWaterSplashMap, vScreenCoord);
                                 // Use the alpha channel as the primary driver for displacement intensity
-                                float biofilmAmount = biofilmColor.a;
-                                displacement.y += biofilmAmount * u_biofilmIntensity;
+                                float waterSplashAmount = waterSplashColor.a;
+                                displacement.y += waterSplashAmount * u_waterSplashIntensity;
                             }
             
                             // Output the displacement vector in the R and G channels, normalized to 0-1 range
@@ -24120,9 +24553,9 @@ class WaveDisplacementFilter extends PIXI.Filter {
       u_scale: options.scale ?? 4.0,
       u_camera_offset: [0, 0],
       u_view_size: [1, 1],
-      uBiofilmMap: PIXI.Texture.EMPTY,
-      u_useBiofilm: false,
-      u_biofilmIntensity: 0.0,
+      uWaterSplashMap: PIXI.Texture.EMPTY,
+      u_useWaterSplash: false,
+      u_waterSplashIntensity: 0.0,
     });
   }
 }
@@ -25469,11 +25902,11 @@ const CLIENT_OVERRIDES_CONFIG = {
     tooltip:
       "Emits energetic sparks that fly off in turbulent paths, suitable for forges or electrical effects.",
   },
-  biofilm: {
-    name: "Biofilm",
-    path: "biofilm",
+  waterSplash: {
+    name: "Water Splash",
+    path: "waterSplash",
     intensitySubPath: "maskInfluence",
-    tooltip: "Adds scummy biofilm particles to water surfaces.",
+    tooltip: "Adds splash or spray particles to water surfaces.",
   },
   lightning: {
     name: "Lightning",
