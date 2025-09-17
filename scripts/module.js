@@ -1,5 +1,3 @@
-// Diagnostic: Remind me to keep an eye out for the flame particles disappearing when changing scenes.
-
 /******************************************************************************
  *
  *                            MAP SHINE
@@ -2127,6 +2125,10 @@ const MODULE_DEFAULTS = {
       speed: 0.0148,
       scale: 37.7,
       intensity: 0.0018,
+      biofilmDistortion: {
+        enabled: true,
+        intensity: 0.005,
+      },
     },
     murkiness: {
       enabled: false,
@@ -2239,6 +2241,39 @@ const MODULE_DEFAULTS = {
         maxSpeed: 123,
         accel: 52,
       },
+    },
+  },
+  foam: {
+    enabled: true,
+    blendMode: 1, // ADD
+    smallBlur: 2,
+    largeBlur: 10,
+    intensity: 1.5,
+    threshold: 0.2,
+    softness: 0.1,
+    color: "#FFFFFF",
+    noise: {
+      scale: 15,
+      speed: 0.02,
+      evolution: 0.05,
+      octaves: 4,
+      lacunarity: 2.2,
+      persistence: 0.45,
+    },
+    breakupNoise: {
+      enabled: true,
+      scale: 2.5,
+      evolution: 0.01,
+      octaves: 5,
+      lacunarity: 2.8,
+      persistence: 0.35,
+      brightness: 0.4,
+      contrast: 1.2,
+    },
+    blurTurbulence: {
+      strength: 8.0,
+      scale: 0.5,
+      speed: 0.01,
     },
   },
   fire: {
@@ -3232,11 +3267,7 @@ class MapShineInitialiser {
         group: "primary",
         zIndex: 26, // Contains the shine mix-in, correctly rendered under tiles.
       },
-      buildingShadows: {
-        layerClass: BuildingShadowsLayer,
-        group: "primary",
-        zIndex: 28, // A ground-based shadow effect that should be under tiles.
-      },
+
 
       // --- Layers Above Tiles but Below Tokens (30 < zIndex < 100) ---
       metallicShine: {
@@ -3288,11 +3319,22 @@ class MapShineInitialiser {
         group: "primary",
         zIndex: 251,
       },
+      buildingShadows: {
+        layerClass: BuildingShadowsLayer,
+        group: "primary",
+        zIndex: 28, // A ground-based shadow effect that should be under tiles.
+      },
       waterFX: {
         layerClass: WaterFXLayer,
         group: "primary",
         zIndex: 252,
       },
+      foam: {
+        layerClass: FoamLayer,
+        group: "primary",
+        zIndex: 253,
+      },
+
       heatDistortion: {
         layerClass: HeatDistortionLayer,
         group: "primary",
@@ -5171,7 +5213,7 @@ class ResourceManager {
   
       @returns {PIXI.RenderTexture|null}
       */
-  getWaterDisplacementMap(deltaTime) {
+getWaterDisplacementMap(deltaTime) {
     if (this._destroyed) return null;
     if (this._frameCache.waterDisplacementMap)
       return this._frameCache.waterDisplacementMap;
@@ -5194,6 +5236,31 @@ class ResourceManager {
     this._frameCache.waterDisplacementMap = layer.displacementTexture;
     return layer.displacementTexture;
   }
+
+  /**
+   * Retrieves the rendered texture of the biofilm particles.
+   * Caches the texture for the duration of the current frame.
+   * @returns {PIXI.RenderTexture|null} The biofilm particle texture.
+   */
+  getBiofilmOutputTexture() {
+    if (this._destroyed) return null;
+    if (this._frameCache.biofilmOutputTexture) {
+      return this._frameCache.biofilmOutputTexture;
+    }
+
+    const particleManager = game.mapShine.particleManager;
+    if (!particleManager) return null;
+
+    const biofilmController = particleManager.controllers.get("biofilm");
+    if (!biofilmController || typeof biofilmController.getOutputTexture !== 'function') {
+      return null;
+    }
+
+    const texture = biofilmController.getOutputTexture();
+    this._frameCache.biofilmOutputTexture = texture;
+    return texture;
+  }
+
 }
 
 // =================================================================================
@@ -10797,6 +10864,8 @@ Below are the variables/options that are required when creating particles. Be su
       this.displacementFilter = null;
       this.displacementSprite = null;
       this.biofilmMaskFilter = null;
+      // This will hold the final rendered output of the biofilm particles for other systems to use.
+      this.particleOutputTexture = null;
   
       // This will be the container that holds only the particles for effects needing pre-filtering blending.
       this.particleOnlyContainer = null;
@@ -10806,6 +10875,12 @@ Below are the variables/options that are required when creating particles. Be su
         this.rgbSplitFilter = new ParticleRgbSplitFilter();
       }
       if (definition.configPath === "biofilm") {
+        const screen = CoordinateManager.getScreenDimensions();
+        this.particleOutputTexture = PIXI.RenderTexture.create({
+          width: screen.width,
+          height: screen.height,
+        });
+  
         this.displacementSprite = new PIXI.Sprite();
         this.displacementFilter = new PIXI.DisplacementFilter(
           this.displacementSprite
@@ -10834,6 +10909,7 @@ Below are the variables/options that are required when creating particles. Be su
         this.cloudSuppressorFilter = new CloudSuppressorFilter();
       }
     }
+  
   
     static getSettingsHTML(effectKey) {
       const definition = PARTICLE_EFFECT_DEFINITIONS[effectKey];
@@ -11954,79 +12030,91 @@ Below are the variables/options that are required when creating particles. Be su
       }
     }
   
-    async update(deltaTime) {
-      if (!this.pendingTargets || !this.emitters) return;
-  
-      if (this.pendingTargets.size > 0) {
-        const successfullyCreated = new Set();
-        for (const [targetId, targetData] of this.pendingTargets.entries()) {
-          const success = await this._createEmitterForTarget(
-            targetData,
-            targetId
-          );
-          if (success) {
-            successfullyCreated.add(targetId);
-          }
-        }
-  
-        for (const targetId of successfullyCreated) {
-          this.pendingTargets.delete(targetId);
-        }
-      }
-  
-      if (this.displacementFilter) {
-        const resourceManager = game.mapShine.resourceManager;
-        const waterConfig = game.mapShine.profileManager.activeConfig.water;
-  
-        if (resourceManager && waterConfig?.wave?.enabled) {
-          const displacementMap =
-            resourceManager.getWaterDisplacementMap(deltaTime);
-          if (displacementMap) {
-            this.displacementSprite.texture = displacementMap;
-            const scale =
-              waterConfig.wave.intensity *
-              Math.max(canvas.app.screen.width, canvas.app.screen.height);
-            this.displacementFilter.scale.x = scale;
-            this.displacementFilter.scale.y = scale;
-          }
+getOutputTexture() {
+    return this.particleOutputTexture;
+  }
+
+  async update(deltaTime) {
+    if (!this.pendingTargets || !this.emitters) return;
+
+    if (this.pendingTargets.size > 0) {
+      const successfullyCreated = new Set();
+      for (const [targetId, targetData] of this.pendingTargets.entries()) {
+        const success = await this._createEmitterForTarget(
+          targetData,
+          targetId
+        );
+        if (success) {
+          successfullyCreated.add(targetId);
         }
       }
-  
-      if (this.biofilmMaskFilter) {
-        const resourceManager = game.mapShine.resourceManager;
-        if (resourceManager) {
-          this.biofilmMaskFilter.uniforms.uOutdoorsMask =
-            resourceManager.getOutdoorsMask() || PIXI.Texture.WHITE;
-        }
-      }
-  
-      // Update the cloud suppressor filter uniform with the latest cloud texture.
-      if (this.cloudSuppressorFilter && this.cloudSuppressorFilter.enabled) {
-        const resourceManager = game.mapShine.resourceManager;
-        if (resourceManager) {
-          this.cloudSuppressorFilter.uniforms.uCloudTexture =
-            resourceManager.getRawCloudTexture(deltaTime) || PIXI.Texture.WHITE;
-        }
-      }
-  
-      // Periodically update the spawn points for metallic glints
-      if (this.definition.configPath === "metallicGlints") {
-        for (const { emitter } of this.emitters.values()) {
-          if (!emitter || !emitter.behaviors) continue;
-  
-          const spawnBehavior = emitter.behaviors.find(
-            (b) => b.type === "spawnShape"
-          );
-          if (spawnBehavior?.shape?.update) {
-            spawnBehavior.shape.update();
-          }
-        }
-      }
-  
-      for (const { emitter } of this.emitters.values()) {
-        emitter.update(deltaTime);
+
+      for (const targetId of successfullyCreated) {
+        this.pendingTargets.delete(targetId);
       }
     }
+
+    if (this.displacementFilter) {
+      const resourceManager = game.mapShine.resourceManager;
+      const waterConfig = game.mapShine.profileManager.activeConfig.water;
+
+      if (resourceManager && waterConfig?.wave?.enabled) {
+        const displacementMap =
+          resourceManager.getWaterDisplacementMap(deltaTime);
+        if (displacementMap) {
+          this.displacementSprite.texture = displacementMap;
+          const scale =
+            waterConfig.wave.intensity *
+            Math.max(canvas.app.screen.width, canvas.app.screen.height);
+          this.displacementFilter.scale.x = scale;
+          this.displacementFilter.scale.y = scale;
+        }
+      }
+    }
+
+    if (this.biofilmMaskFilter) {
+      const resourceManager = game.mapShine.resourceManager;
+      if (resourceManager) {
+        this.biofilmMaskFilter.uniforms.uOutdoorsMask =
+          resourceManager.getOutdoorsMask() || PIXI.Texture.WHITE;
+      }
+    }
+
+    // Update the cloud suppressor filter uniform with the latest cloud texture.
+    if (this.cloudSuppressorFilter && this.cloudSuppressorFilter.enabled) {
+      const resourceManager = game.mapShine.resourceManager;
+      if (resourceManager) {
+        this.cloudSuppressorFilter.uniforms.uCloudTexture =
+          resourceManager.getRawCloudTexture(deltaTime) || PIXI.Texture.WHITE;
+      }
+    }
+
+    // Periodically update the spawn points for metallic glints
+    if (this.definition.configPath === "metallicGlints") {
+      for (const { emitter } of this.emitters.values()) {
+        if (!emitter || !emitter.behaviors) continue;
+
+        const spawnBehavior = emitter.behaviors.find(
+          (b) => b.type === "spawnShape"
+        );
+        if (spawnBehavior?.shape?.update) {
+          spawnBehavior.shape.update();
+        }
+      }
+    }
+
+    for (const { emitter } of this.emitters.values()) {
+      emitter.update(deltaTime);
+    }
+
+    // If this controller is for biofilm, render its output to the dedicated texture.
+    if (this.definition.configPath === "biofilm" && this.particleOutputTexture) {
+      canvas.app.renderer.render(this.parentContainer, {
+        renderTexture: this.particleOutputTexture,
+        clear: true,
+      });
+    }
+  }
   
     updateFromConfig(fullConfig) {
       this.config = foundry.utils.getProperty(
@@ -12172,6 +12260,7 @@ Below are the variables/options that are required when creating particles. Be su
       this.displacementFilter?.destroy();
       this.displacementSprite?.destroy();
       this.biofilmMaskFilter?.destroy();
+      this.particleOutputTexture?.destroy(true); // Destroy the new texture
   
       this.particleOnlyContainer?.destroy({
         children: true,
@@ -16457,6 +16546,529 @@ class BiofilmMaskFilter extends PIXI.Filter {
     super(vertexSrc, fragmentSrc, {
       uOutdoorsMask: options.uOutdoorsMask ?? PIXI.Texture.EMPTY,
     });
+  }
+}
+
+class FoamFilter extends PIXI.Filter {
+  constructor(options = {}) {
+    const vertexSrc = `
+            attribute vec2 aVertexPosition;
+            attribute vec2 aTextureCoord;
+            uniform mat3 projectionMatrix;
+            varying vec2 vTextureCoord;
+            varying vec2 vScreenCoord;
+
+            void main(void) {
+                gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
+                vTextureCoord = aTextureCoord;
+                vScreenCoord = gl_Position.xy * 0.5 + 0.5;
+            }
+        `;
+
+    const fragmentSrc = `
+            precision mediump float;
+            varying vec2 vTextureCoord;
+            varying vec2 vScreenCoord;
+
+            // Input Textures
+            uniform sampler2D uWaterMask;
+            
+            // World & Camera
+            uniform vec2 u_camera_offset;
+            uniform vec2 u_view_size;
+            uniform float u_time;
+            uniform vec2 uTexelSize;
+            uniform vec2 uCanvasScale;
+            
+            // Foam Parameters
+            uniform float uIntensity;
+            uniform float uThreshold;
+            uniform float uSoftness;
+            uniform vec3 uColor;
+            uniform float uSmallBlurSize;
+            uniform float uLargeBlurSize;
+
+            // Blur Turbulence
+            uniform float uBlurNoiseStrength;
+            uniform float uBlurNoiseScale;
+            uniform float uBlurNoiseSpeed;
+
+            // Main Foam Pattern Noise
+            uniform float uNoiseScale;
+            uniform float uNoiseSpeed;
+            uniform float uNoiseEvolution;
+            uniform int uNoiseOctaves;
+            uniform float uNoiseLacunarity;
+            uniform float uNoisePersistence;
+            
+            // Foam Breakup Noise
+            uniform bool uBreakupNoiseEnabled;
+            uniform float uBreakupNoiseScale;
+            uniform float uBreakupNoiseEvolution;
+            uniform int uBreakupNoiseOctaves;
+            uniform float uBreakupNoiseLacunarity;
+            uniform float uBreakupNoisePersistence;
+            uniform float uBreakupNoiseBrightness;
+            uniform float uBreakupNoiseContrast;
+
+            float random(vec2 st) {
+                return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
+            }
+
+            float noise(vec2 st) {
+                vec2 i = floor(st);
+                vec2 f = fract(st);
+                vec2 u = f * f * (3.0 - 2.0 * f);
+                return mix(mix(random(i + vec2(0.0, 0.0)), random(i + vec2(1.0, 0.0)), u.x),
+                        mix(random(i + vec2(0.0, 1.0)), random(i + vec2(1.0, 1.0)), u.x), u.y);
+            }
+
+            float fbm_parameterized(vec2 st, int octaves, float lacunarity, float persistence) {
+                float value = 0.0;
+                float amplitude = 0.5;
+                for (int i = 0; i < 8; i++) {
+                    if (i >= octaves) break;
+                    value += amplitude * noise(st);
+                    st *= lacunarity;
+                    amplitude *= persistence;
+                }
+                return value; // Returns range approx -0.5 to 0.5
+            }
+            
+            float turbulentGaussianBlur(sampler2D tex, vec2 uv, float radius) {
+                vec2 worldCoord = u_camera_offset + (uv * u_view_size);
+                vec2 noise_uv = worldCoord * uBlurNoiseScale * 0.01 + u_time * uBlurNoiseSpeed;
+                vec2 noise_offset = vec2(noise(noise_uv), noise(noise_uv + vec2(17.3, -41.1))) - 0.5;
+                noise_offset *= uBlurNoiseStrength * uTexelSize * uCanvasScale.x;
+
+                // Apply a random rotation to the sample pattern for each pixel to hide artifacts.
+                float angle = random(vScreenCoord) * 6.2831853; // 2 * PI
+                float s = sin(angle);
+                float c = cos(angle);
+                mat2 rotationMatrix = mat2(c, -s, s, c);
+
+                vec2 step = uTexelSize * uCanvasScale.x * radius;
+                float sum = 0.0;
+
+                // Unrolled loop with hardcoded Poisson disk samples for maximum compatibility.
+                sum += texture2D(tex, uv + rotationMatrix * vec2( 0.14383161, -0.14100790 ) * step + noise_offset).r;
+                sum += texture2D(tex, uv + rotationMatrix * vec2( 0.19984126, 0.78641367 ) * step + noise_offset).r;
+                sum += texture2D(tex, uv + rotationMatrix * vec2( -0.24188840, 0.99706507 ) * step + noise_offset).r;
+                sum += texture2D(tex, uv + rotationMatrix * vec2( -0.81409955, 0.91437590 ) * step + noise_offset).r;
+                sum += texture2D(tex, uv + rotationMatrix * vec2( -0.26496911, -0.41893023 ) * step + noise_offset).r;
+                sum += texture2D(tex, uv + rotationMatrix * vec2( 0.79197514, 0.19090188 ) * step + noise_offset).r;
+                sum += texture2D(tex, uv + rotationMatrix * vec2( 0.53742981, -0.47373420 ) * step + noise_offset).r;
+                sum += texture2D(tex, uv + rotationMatrix * vec2( 0.44323325, -0.97511554 ) * step + noise_offset).r;
+                sum += texture2D(tex, uv + rotationMatrix * vec2( 0.97484398, 0.75648379 ) * step + noise_offset).r;
+                sum += texture2D(tex, uv + rotationMatrix * vec2( -0.38277543, 0.27676845 ) * step + noise_offset).r;
+                sum += texture2D(tex, uv + rotationMatrix * vec2( -0.91588581, 0.45771432 ) * step + noise_offset).r;
+                sum += texture2D(tex, uv + rotationMatrix * vec2( -0.81544232, -0.87912464 ) * step + noise_offset).r;
+                sum += texture2D(tex, uv + rotationMatrix * vec2( -0.094184101, -0.92938870 ) * step + noise_offset).r;
+                sum += texture2D(tex, uv + rotationMatrix * vec2( 0.94558609, -0.76890725 ) * step + noise_offset).r;
+                sum += texture2D(tex, uv + rotationMatrix * vec2( -0.94201624, -0.39906216 ) * step + noise_offset).r;
+                sum += texture2D(tex, uv + rotationMatrix * vec2( 0.34495938, 0.29387760 ) * step + noise_offset).r;
+
+                return sum / 16.0;
+            }
+
+            void main() {
+                float waterValue = texture2D(uWaterMask, vScreenCoord).r;
+                if (waterValue < 0.01) {
+                    discard;
+                }
+
+                float smallBlur = turbulentGaussianBlur(uWaterMask, vScreenCoord, uSmallBlurSize);
+                float largeBlur = turbulentGaussianBlur(uWaterMask, vScreenCoord, uLargeBlurSize);
+
+                float edge = max(0.0, smallBlur - largeBlur);
+                
+                float foamMask = smoothstep(uThreshold, uThreshold + uSoftness, edge);
+
+                if (uBreakupNoiseEnabled) {
+                    vec2 worldCoord = u_camera_offset + (vScreenCoord * u_view_size);
+                    vec2 breakupNoiseUV = worldCoord * uBreakupNoiseScale * 0.01;
+                    breakupNoiseUV.x += u_time * uBreakupNoiseEvolution;
+                    
+                    float breakupNoise = fbm_parameterized(breakupNoiseUV, uBreakupNoiseOctaves, uBreakupNoiseLacunarity, uBreakupNoisePersistence);
+                    breakupNoise = breakupNoise + 0.5;
+                    
+                    breakupNoise = (breakupNoise - 0.5 + uBreakupNoiseBrightness) * uBreakupNoiseContrast + 0.5;
+                    breakupNoise = clamp(breakupNoise, 0.0, 1.0);
+
+                    foamMask *= breakupNoise;
+                }
+
+                if (foamMask < 0.01) {
+                    discard;
+                }
+
+                vec2 worldCoord = u_camera_offset + (vScreenCoord * u_view_size);
+                vec2 noiseUV = worldCoord * uNoiseScale * 0.01;
+                vec2 timeOffset = vec2(u_time * uNoiseSpeed, u_time * uNoiseEvolution);
+                float patternNoise = fbm_parameterized(noiseUV + timeOffset, uNoiseOctaves, uNoiseLacunarity, uNoisePersistence) + 0.5;
+                
+                float finalFoam = foamMask * patternNoise;
+                float finalAlpha = finalFoam * uIntensity * waterValue;
+
+                gl_FragColor = vec4(uColor * finalAlpha, finalAlpha);
+            }
+        `;
+
+    super(vertexSrc, fragmentSrc, {
+      uWaterMask: PIXI.Texture.EMPTY,
+      u_camera_offset: [0, 0],
+      u_view_size: [1, 1],
+      u_time: 0.0,
+      uTexelSize: [1 / (window.innerWidth || 1), 1 / (window.innerHeight || 1)],
+      uCanvasScale: [1.0, 1.0],
+      uIntensity: options.intensity ?? 1.5,
+      uThreshold: options.threshold ?? 0.2,
+      uSoftness: options.softness ?? 0.1,
+      uColor: options.color ?? [1.0, 1.0, 1.0],
+      uSmallBlurSize: options.smallBlur ?? 2.0,
+      uLargeBlurSize: options.largeBlur ?? 10.0,
+      uBlurNoiseStrength: options.blurTurbulence?.strength ?? 8.0,
+      uBlurNoiseScale: options.blurTurbulence?.scale ?? 0.5,
+      uBlurNoiseSpeed: options.blurTurbulence?.speed ?? 0.01,
+      uNoiseScale: options.noise?.scale ?? 15.0,
+      uNoiseSpeed: options.noise?.speed ?? 0.02,
+      uNoiseEvolution: options.noise?.evolution ?? 0.05,
+      uNoiseOctaves: options.noise?.octaves ?? 4,
+      uNoiseLacunarity: options.noise?.lacunarity ?? 2.2,
+      uNoisePersistence: options.noise?.persistence ?? 0.45,
+      // Breakup Noise Uniforms
+      uBreakupNoiseEnabled: options.breakupNoise?.enabled ?? true,
+      uBreakupNoiseScale: options.breakupNoise?.scale ?? 2.5,
+      uBreakupNoiseEvolution: options.breakupNoise?.evolution ?? 0.01,
+      uBreakupNoiseOctaves: options.breakupNoise?.octaves ?? 5,
+      uBreakupNoiseLacunarity: options.breakupNoise?.lacunarity ?? 2.8,
+      uBreakupNoisePersistence: options.breakupNoise?.persistence ?? 0.35,
+      uBreakupNoiseBrightness: (options.breakupNoise?.brightness ?? 0.4) - 0.5,
+      uBreakupNoiseContrast: options.breakupNoise?.contrast ?? 1.2,
+    });
+  }
+}
+
+class FoamLayer extends CanvasLayer {
+  constructor() {
+    super();
+
+    this.foamFilter = null;
+    this.effectSprite = null;
+
+    this.time = 0;
+    this._destroyed = false;
+  }
+
+  static getSettingsHTML() {
+    const effectKey = "foam";
+    const content = `
+      <p class="description-text">Renders a noisy foam effect along the edges of water bodies, especially on sharp coastlines. Requires a _Water mask.</p>
+      ${DebuggerUIBuilder._createSelectHTML(
+        "foam.blendMode",
+        "Blend Mode",
+        BLEND_MODE_OPTIONS
+      )}
+      ${DebuggerUIBuilder._createColorPickerHTML("foam.color", "Foam Color")}
+      ${DebuggerUIBuilder._createSliderHTML(
+        "foam.intensity",
+        "Intensity",
+        0,
+        5,
+        0.05
+      )}
+      <details>
+        <summary><span class="accordion-toggle"></span><strong>Edge Detection</strong></summary>
+        <div style="padding-left: 15px;">
+          <p class="description-text">Controls how the foam detects and clings to the shoreline.</p>
+          ${DebuggerUIBuilder._createSliderHTML(
+            "foam.smallBlur",
+            "Small Blur",
+            1,
+            20,
+            0.5,
+            "The world-pixel radius of the inner blur. Should be smaller than the large blur."
+          )}
+          ${DebuggerUIBuilder._createSliderHTML(
+            "foam.largeBlur",
+            "Large Blur",
+            2,
+            100,
+            1,
+            "The world-pixel radius of the outer blur. The difference between blurs creates the edge."
+          )}
+          ${DebuggerUIBuilder._createSliderHTML(
+            "foam.threshold",
+            "Threshold",
+            0.01,
+            1,
+            0.01,
+            "The minimum edge difference required to start showing foam."
+          )}
+          ${DebuggerUIBuilder._createSliderHTML(
+            "foam.softness",
+            "Softness",
+            0.01,
+            1,
+            0.01,
+            "The softness of the transition at the edge threshold."
+          )}
+        </div>
+      </details>
+      <details>
+        <summary><span class="accordion-toggle"></span><strong>Blur Turbulence</strong></summary>
+        <div style="padding-left: 15px;">
+          <p class="description-text">Introduces noise into the blur calculation to create more organic, irregular foam shapes.</p>
+          ${DebuggerUIBuilder._createSliderHTML(
+            "foam.blurTurbulence.strength",
+            "Strength",
+            0,
+            20,
+            0.5,
+            "How much the noise distorts the blur pattern."
+          )}
+          ${DebuggerUIBuilder._createSliderHTML(
+            "foam.blurTurbulence.scale",
+            "Scale",
+            0.1,
+            5,
+            0.05,
+            "The zoom level of the turbulence noise."
+          )}
+          ${DebuggerUIBuilder._createSliderHTML(
+            "foam.blurTurbulence.speed",
+            "Speed",
+            0,
+            0.05,
+            0.001,
+            "The animation speed of the turbulence."
+          )}
+        </div>
+      </details>
+      <details>
+        <summary><span class="accordion-toggle"></span><strong>Foam Pattern Noise</strong></summary>
+        <div style="padding-left: 15px;">
+          <p class="description-text">Controls the procedural noise used to create the foam's visual texture.</p>
+          ${DebuggerUIBuilder._createSliderHTML(
+            "foam.noise.scale",
+            "Scale",
+            1,
+            50,
+            0.5
+          )}
+          ${DebuggerUIBuilder._createSliderHTML(
+            "foam.noise.speed",
+            "Speed",
+            0,
+            0.1,
+            0.001,
+            "Directional drift speed of the foam pattern."
+          )}
+          ${DebuggerUIBuilder._createSliderHTML(
+            "foam.noise.evolution",
+            "Evolution",
+            0,
+            0.2,
+            0.001,
+            'Internal "boiling" speed of the foam pattern.'
+          )}
+          ${DebuggerUIBuilder._createSliderHTML(
+            "foam.noise.octaves",
+            "Complexity (Octaves)",
+            1,
+            8,
+            1
+          )}
+          ${DebuggerUIBuilder._createSliderHTML(
+            "foam.noise.lacunarity",
+            "Detail Scale",
+            1.5,
+            4,
+            0.05
+          )}
+          ${DebuggerUIBuilder._createSliderHTML(
+            "foam.noise.persistence",
+            "Roughness",
+            0.1,
+            1,
+            0.05
+          )}
+        </div>
+      </details>
+      <details>
+          <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+            "foam.breakupNoise.enabled",
+            "Foam Breakup",
+            true
+          )}</div></summary>
+          <div style="padding-left: 15px;">
+              <p class="description-text">Uses a second noise pattern to break up the foam, creating a more patchy appearance.</p>
+              ${DebuggerUIBuilder._createSliderHTML(
+                "foam.breakupNoise.scale",
+                "Scale",
+                0.1,
+                20,
+                0.1
+              )}
+              ${DebuggerUIBuilder._createSliderHTML(
+                "foam.breakupNoise.evolution",
+                "Evolution",
+                0,
+                0.1,
+                0.001
+              )}
+              ${DebuggerUIBuilder._createSliderHTML(
+                "foam.breakupNoise.octaves",
+                "Complexity (Octaves)",
+                1,
+                8,
+                1
+              )}
+              ${DebuggerUIBuilder._createSliderHTML(
+                "foam.breakupNoise.lacunarity",
+                "Detail Scale",
+                1.5,
+                4,
+                0.05
+              )}
+              ${DebuggerUIBuilder._createSliderHTML(
+                "foam.breakupNoise.persistence",
+                "Roughness",
+                0.1,
+                1,
+                0.05
+              )}
+              ${DebuggerUIBuilder._createSliderHTML(
+                "foam.breakupNoise.brightness",
+                "Coverage",
+                0,
+                1,
+                0.01,
+                "Controls the overall amount of foam that gets broken up. Higher = less foam."
+              )}
+              ${DebuggerUIBuilder._createSliderHTML(
+                "foam.breakupNoise.contrast",
+                "Sharpness",
+                0.1,
+                5,
+                0.05,
+                "Controls the sharpness of the broken-up edges."
+              )}
+          </div>
+      </details>
+    `;
+    return DebuggerUIBuilder._createAccordionHTML(
+      effectKey,
+      "Water Foam",
+      content
+    );
+  }
+
+  async _draw(options) {
+    this._destroyed = false;
+    this.time = 0;
+    
+    try {
+      this.foamFilter = new FoamFilter();
+    } catch (e) {
+      console.error("MapShine | Failed to create FoamFilter.", e);
+    }
+
+    this.effectSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
+    this.effectSprite.filters = this.foamFilter ? [this.foamFilter] : [];
+    this.addChild(this.effectSprite);
+
+    this._onAnimateBound = this._onAnimate.bind(this);
+    this._onResizeBound = this._onResize.bind(this);
+    canvas.app.ticker.add(this._onAnimateBound);
+    window.addEventListener("resize", this._onResizeBound);
+
+    await this.updateFromConfig(game.mapShine.profileManager.activeConfig);
+  }
+
+  _onAnimate(deltaTime) {
+    if (this._destroyed || !this.visible || !this.foamFilter) return;
+
+    const resourceManager = game.mapShine.resourceManager;
+    const waterMask = resourceManager?.getWaterMask();
+    if (!waterMask?.valid) {
+      this.effectSprite.visible = false;
+      return;
+    }
+    this.effectSprite.visible = true;
+
+    const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
+    this.time += (deltaTime / 60) * timeFactor;
+
+    const u = this.foamFilter.uniforms;
+    u.uWaterMask = waterMask;
+    u.u_time = this.time;
+    Object.assign(u, CoordinateManager.getShaderUniforms());
+    
+    const screen = CoordinateManager.getScreenDimensions();
+    u.uTexelSize = [1.0 / screen.width, 1.0 / screen.height];
+    const scale = CoordinateManager.getCanvasScale();
+    u.uCanvasScale = [scale, scale];
+    
+    this.effectSprite.position.copyFrom(CoordinateManager.getCameraOffset());
+    this.effectSprite.width = CoordinateManager.getViewSize().width;
+    this.effectSprite.height = CoordinateManager.getViewSize().height;
+  }
+
+  async updateFromConfig(config) {
+    const fConfig = config.foam;
+    this.visible = config.enabled && fConfig.enabled;
+    this.blendMode = fConfig.blendMode;
+
+    if (this.foamFilter) {
+      const u = this.foamFilter.uniforms;
+      u.uIntensity = fConfig.intensity;
+      u.uThreshold = fConfig.threshold;
+      u.uSoftness = fConfig.softness;
+      u.uColor = hexToRgbArray(fConfig.color);
+      u.uSmallBlurSize = fConfig.smallBlur;
+      u.uLargeBlurSize = fConfig.largeBlur;
+
+      const bt = fConfig.blurTurbulence;
+      u.uBlurNoiseStrength = bt.strength;
+      u.uBlurNoiseScale = bt.scale;
+      u.uBlurNoiseSpeed = bt.speed;
+
+      const n = fConfig.noise;
+      u.uNoiseScale = n.scale;
+      u.uNoiseSpeed = n.speed;
+      u.uNoiseEvolution = n.evolution;
+      u.uNoiseOctaves = n.octaves;
+      u.uNoiseLacunarity = n.lacunarity;
+      u.uNoisePersistence = n.persistence;
+
+      const bn = fConfig.breakupNoise;
+      u.uBreakupNoiseEnabled = bn.enabled;
+      u.uBreakupNoiseScale = bn.scale;
+      u.uBreakupNoiseEvolution = bn.evolution;
+      u.uBreakupNoiseOctaves = bn.octaves;
+      u.uBreakupNoiseLacunarity = bn.lacunarity;
+      u.uBreakupNoisePersistence = bn.persistence;
+      u.uBreakupNoiseBrightness = bn.brightness - 0.5;
+      u.uBreakupNoiseContrast = bn.contrast;
+    }
+  }
+
+  _onResize() {
+    if (this._destroyed || !this.foamFilter) return;
+    const screen = canvas.app.renderer.screen;
+    this.foamFilter.uniforms.uTexelSize = [1.0 / screen.width, 1.0 / screen.height];
+  }
+
+  async _tearDown(options) {
+    this._destroyed = true;
+    canvas.app.ticker.remove(this._onAnimateBound);
+    window.removeEventListener("resize", this._onResizeBound);
+    
+    this.foamFilter?.destroy();
+    this.effectSprite?.destroy();
+
+    await super._tearDown(options);
   }
 }
 
@@ -23143,14 +23755,23 @@ class WaterFXLayer extends MaskedEffectLayer {
       screen.height / stage.scale.y,
     ];
 
-    // --- FIX START ---
+    // --- MODIFICATION START ---
     // The uniforms for the displacement filter must be updated BEFORE it is rendered.
     this.displacementFilter.uniforms.u_time = this.time;
     Object.assign(
       this.displacementFilter.uniforms,
       CoordinateManager.getShaderUniforms()
     );
-    // --- FIX END ---
+
+    // Get the biofilm texture and pass it to the displacement filter
+    const resourceManager = game.mapShine.resourceManager;
+    if (resourceManager) {
+        const biofilmTexture = resourceManager.getBiofilmOutputTexture();
+        if (biofilmTexture) {
+            this.displacementFilter.uniforms.uBiofilmMap = biofilmTexture;
+        }
+    }
+    // --- MODIFICATION END ---
 
     renderer.render(this.displacementSprite, {
       renderTexture: this.displacementTexture,
@@ -23172,13 +23793,6 @@ class WaterFXLayer extends MaskedEffectLayer {
 
     const useShorelineMask = this.shorelineMaskSprites.size > 0;
     
-    // This block is now redundant as it was moved before the render call.
-    // this.displacementFilter.uniforms.u_time = this.time;
-    // Object.assign(
-    //   this.displacementFilter.uniforms,
-    //   CoordinateManager.getShaderUniforms()
-    // );
-
     const u = waterEffectsFilter.uniforms;
     const wConfig = game.mapShine.profileManager.activeConfig.water;
     if (wConfig?.wave) {
@@ -23204,7 +23818,6 @@ class WaterFXLayer extends MaskedEffectLayer {
       u.uSceneRectNorm = [0, 0, 1, 1];
     }
 
-    const resourceManager = game.mapShine.resourceManager;
     if (resourceManager) {
       u.u_cloudShadows =
         resourceManager.getRawCloudTexture(deltaInSeconds) ??
@@ -23219,6 +23832,29 @@ class WaterFXLayer extends MaskedEffectLayer {
     u.u_useShorelineMask = useShorelineMask;
     u.u_camera_offset = [topLeft.x, topLeft.y];
     u.u_view_size = viewSize;
+  }
+
+  async updateFromConfig(config) {
+    const wConfig = config.water;
+    this.visible = config.enabled && wConfig.enabled;
+
+    if (this.displacementFilter) {
+      const waveConfig = wConfig.wave;
+      // Apply scaling factor
+      this.displacementFilter.uniforms.u_speed =
+        (waveConfig.speed ?? 1.48) * 0.4;
+      this.displacementFilter.uniforms.u_scale = waveConfig.scale;
+      // Update new biofilm uniforms
+      if (waveConfig.biofilmDistortion) {
+          this.displacementFilter.uniforms.u_useBiofilm = waveConfig.biofilmDistortion.enabled;
+          this.displacementFilter.uniforms.u_biofilmIntensity = waveConfig.biofilmDistortion.intensity;
+      }
+    }
+    if (this.blurFilter) {
+      this.blurFilter.blur = wConfig.shoreline.detectionBlur;
+    }
+
+    this._updateWaterFilterUniforms(this.waterEffectsFilter, wConfig);
   }
 
   async updateFromConfig(config) {
@@ -23362,6 +23998,11 @@ class WaveDisplacementFilter extends PIXI.Filter {
                         uniform float u_speed;
                         uniform float u_scale;
 
+                        // Biofilm uniforms
+                        uniform sampler2D uBiofilmMap;
+                        uniform bool u_useBiofilm;
+                        uniform float u_biofilmIntensity;
+
                         // World-space uniforms
                         uniform vec2 u_camera_offset;
                         uniform vec2 u_view_size;
@@ -23460,6 +24101,14 @@ class WaveDisplacementFilter extends PIXI.Filter {
             
                             // Combine noises for a more complex pattern
                             vec2 displacement = vec2(noise1_x + noise2_x, noise1_y + noise2_y) * 0.5;
+                            
+                            // Add displacement from biofilm
+                            if (u_useBiofilm) {
+                                vec4 biofilmColor = texture2D(uBiofilmMap, vScreenCoord);
+                                // Use the alpha channel as the primary driver for displacement intensity
+                                float biofilmAmount = biofilmColor.a;
+                                displacement.y += biofilmAmount * u_biofilmIntensity;
+                            }
             
                             // Output the displacement vector in the R and G channels, normalized to 0-1 range
                             gl_FragColor = vec4(displacement * 0.5 + 0.5, 0.0, 1.0);
@@ -23471,6 +24120,9 @@ class WaveDisplacementFilter extends PIXI.Filter {
       u_scale: options.scale ?? 4.0,
       u_camera_offset: [0, 0],
       u_view_size: [1, 1],
+      uBiofilmMap: PIXI.Texture.EMPTY,
+      u_useBiofilm: false,
+      u_biofilmIntensity: 0.0,
     });
   }
 }
@@ -26168,6 +26820,7 @@ class DebuggerUIBuilder {
       TimeOfDayLayer.getSettingsHTML(),
       BuildingShadowsLayer.getSettingsHTML(),
       WaterFXLayer.getSettingsHTML(),
+      FoamLayer.getSettingsHTML(),
       CloudShadowsLayer.getSettingsHTML(),
       IridescenceLayer.getSettingsHTML(),
       HeatDistortionLayer.getSettingsHTML(),
