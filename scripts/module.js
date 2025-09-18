@@ -2074,7 +2074,7 @@ const MODULE_DEFAULTS = {
       accel: 0,
     },
   },
-  waterSplash: {
+  biofilm: {
     enabled: true,
     blendMode: 0,
     maskThreshold: 0.2,
@@ -2111,136 +2111,6 @@ const MODULE_DEFAULTS = {
       minSpeed: 0,
       maxSpeed: 20,
       accel: 0,
-    },
-  },
-  water: {
-    enabled: true,
-    flow: {
-      enabled: false,
-      angle: 45,
-      speed: 5,
-    },
-    wave: {
-      enabled: true,
-      speed: 0.0148,
-      scale: 37.7,
-      intensity: 0.0018,
-      waterSplashDistortion: {
-        enabled: true,
-        intensity: 0.005,
-      },
-    },
-    murkiness: {
-      enabled: false,
-      color: "#1a2c22",
-      wavyNoise: {
-        strength: 0.8,
-        scale: 2.0,
-        speed: 0.005,
-      },
-      sandyNoise: {
-        strength: 0.3,
-        scale: 15.0,
-        speed: 0.02,
-      },
-    },
-    surface: {
-      enabled: true,
-      foamColor: "#33adff",
-      foamIntensity: 0,
-      foamCoverage: 0,
-      foamSharpness: 0.13,
-      fbmScale: 15.196,
-      fbmSpeed: 0.01,
-      fbmEvolution: 0.03,
-      fbmOctaves: 5,
-      fbmLacunarity: 4,
-      fbmPersistence: 0.1,
-      sheenEnabled: true,
-      sheenIntensity: 0.448,
-      sheenColor: "#FFFFFF",
-      sheenScale: 0.5,
-      sheenSpeed: 0.002,
-      sheenStretch: 1,
-      sheenSharpness: 0.8,
-    },
-    caustics: {
-      enabled: true,
-      intensity: 0.11,
-      scale: 1,
-      speed: 0.08,
-      color: "#87CEFA",
-      lineSharpness: 5,
-      bloomIntensity: 1,
-      lineDistortion: 0.1,
-      lineDistortionScale: 5,
-      intersectionBoost: 20,
-      roughnessScale: 4.2,
-      roughnessIntensity: 0.83,
-      cloudOcclusion: {
-        enabled: true,
-        intensity: 0.8,
-      },
-    },
-    shoreline: {
-      enabled: false,
-      detectionBlur: 1,
-      foamColor: "#FFFFFF",
-      foamIntensity: 0.5,
-      foamPattern: {
-        scale: 1,
-        speed: 0,
-        evolution: 0.01,
-        octaves: 4,
-        lacunarity: 2.05,
-        persistence: 0.15,
-        brightness: 0.5,
-        contrast: 1,
-      },
-      displacement: {
-        enabled: false,
-        scale: 0.4,
-        speed: 0.011,
-        strength: 0.0025,
-      },
-    },
-    glintParticles: {
-      enabled: true,
-      blendMode: 9,
-      maskThreshold: 0.17,
-      maskInfluence: 1.95,
-      particleTexture: "modules/map-shine/assets/glint.webp",
-      frequency: 0.99,
-      lifetime: {
-        min: 0.8,
-        max: 0.8,
-      },
-      color: {
-        start: "#eef7ff",
-        end: "#95b3ff",
-      },
-      alpha: {
-        max: 0.5,
-        fadeIn: 0.25,
-        fadeOut: 0.25,
-      },
-      scale: {
-        sizeMultiplier: 1.9,
-        start: 0.76,
-        end: 0.82,
-        minMult: 0.95,
-      },
-      speed: {
-        start: 5,
-        end: 11,
-        minMult: 0.47,
-      },
-      rotation: {
-        enabled: true,
-        minSpeed: 116,
-        maxSpeed: 123,
-        accel: 52,
-      },
     },
   },
   water: {
@@ -3406,6 +3276,11 @@ class MapShineInitialiser {
 
     Object.assign(CONFIG.Canvas.layers, {
       // --- Layers Below Tiles (zIndex < 30) ---
+      backgroundEffectTile: {
+        layerClass: BackgroundEffectTileLayer,
+        group: "primary",
+        zIndex: 23, // Renders effect-target tiles below effects but above background.
+      },
       iridescence: {
         layerClass: IridescenceLayer,
         group: "primary",
@@ -3680,7 +3555,10 @@ class MapShineInitialiser {
       applyTileOpacities() {
         const config = game.mapShine.profileManager.activeConfig;
         for (const tile of canvas.tiles.placeables) {
-          if (!tile.mesh || tile.isManagedByOverheadLayer) continue;
+              
+if (!tile.mesh || tile.isManagedByOverheadLayer || tile.isManagedByBgLayer) continue;
+
+  
           const isTargetWithEffects =
             this.targets.tiles.has(tile.id) && config.enabled;
           if (isTargetWithEffects && !tile.document.overhead) {
@@ -5386,29 +5264,29 @@ class ResourceManager {
   }
 
   /**
-   * Retrieves the rendered texture of the water splash particles.
+   * Retrieves the rendered texture of the biofilm particles.
    * Caches the texture for the duration of the current frame.
-   * @returns {PIXI.RenderTexture|null} The water splash particle texture.
+   * @returns {PIXI.RenderTexture|null} The biofilm particle texture.
    */
-  getWaterSplashOutputTexture() {
+  getBiofilmOutputTexture() {
     if (this._destroyed) return null;
-    if (this._frameCache.waterSplashOutputTexture) {
-      return this._frameCache.waterSplashOutputTexture;
+    if (this._frameCache.biofilmOutputTexture) {
+      return this._frameCache.biofilmOutputTexture;
     }
 
     const particleManager = game.mapShine.particleManager;
     if (!particleManager) return null;
 
-    const waterSplashController = particleManager.controllers.get("waterSplash");
+    const biofilmController = particleManager.controllers.get("biofilm");
     if (
-      !waterSplashController ||
-      typeof waterSplashController.getOutputTexture !== "function"
+      !biofilmController ||
+      typeof biofilmController.getOutputTexture !== "function"
     ) {
       return null;
     }
 
-    const texture = waterSplashController.getOutputTexture();
-    this._frameCache.waterSplashOutputTexture = texture;
+    const texture = biofilmController.getOutputTexture();
+    this._frameCache.biofilmOutputTexture = texture;
     return texture;
   }
 }
@@ -10925,83 +10803,83 @@ Below are the variables/options that are required when creating particles. Be su
   ]
 } */
 
-  const PARTICLE_EFFECT_DEFINITIONS = {
-    dust: {
-      title: "Dust Motes",
-      description:
-        "Floating dust particles that appear in areas defined by the _Dust map. Requires a _Dust.webp texture.",
-      configPath: "dust",
-      triggerTexture: "dust",
-      buildEmitterConfig: (effectConfig, targetData) =>
-        buildParticleEmitterConfig(effectConfig, targetData, "dust"),
-    },
-    glint: {
-      title: "Glint Particles",
-      description:
-        "Sparkling glints that appear in areas defined by the _Prism map. Requires a _Prism.webp texture.",
-      configPath: "glint",
-      triggerTexture: "prism",
-      buildEmitterConfig: (effectConfig, targetData) =>
-        buildParticleEmitterConfig(effectConfig, targetData, "prism"),
-    },
-    smellyFlies: {
-      title: "Smelly Flies",
-      description:
-        "Simulates a swarm of flies orbiting a central point, occasionally landing and walking around. Requires a Point or Area group from Map Points. The first point of the group defines the center of the swarm, and the area defines where they can walk.",
-      configPath: "smellyFlies",
-      triggerTexture: "smellyFlies", // This is a dummy key for the UI, effect is geometry-based
-      buildEmitterConfig: (effectConfig, targetData, maskKey, group) =>
-        buildSmellyFliesEmitterConfig(effectConfig, targetData, group),
-    },
-    waterGlints: {
-      title: "Water Glints / Spray",
-      description:
-        "General-purpose particles spawned across the entire water surface.",
-      configPath: "water.glintParticles",
-      triggerTexture: "water",
-      spawnOn: "tiles",
-      buildEmitterConfig: (effectConfig, targetData) =>
-        buildParticleEmitterConfig(effectConfig, targetData, "water"),
-    },
-    fire: {
-      title: "Flames",
-      description:
-        "A multi-stage effect for fire, combining particles and a bloom glow. Requires a _Fire.webp map where white areas are the heart of the flame.",
-      configPath: "fire.particles",
-      triggerTexture: "fire",
-      buildEmitterConfig: (effectConfig, targetData) =>
-        buildParticleEmitterConfig(effectConfig, targetData, "fire"),
-    },
-    metallicGlints: {
-      title: "Metallic Glints",
-      description:
-        "Sparkling glints that appear on specular surfaces. Requires a _Specular.webp map.",
-      configPath: "metallicGlints",
-      triggerTexture: "specular",
-      buildEmitterConfig: (effectConfig, targetData) =>
-        buildParticleEmitterConfig(effectConfig, targetData, "specular"),
-    },
-    sparks: {
-      title: "Sparks",
-      description:
-        "Creates sparks that fly off in turbulent paths. Requires a _Sparks.webp map.",
-      configPath: "sparks",
-      triggerTexture: "sparks",
-      buildEmitterConfig: (effectConfig, targetData) =>
-        buildSparkEmitterConfig(effectConfig, targetData, "sparks"),
-    },
-    waterSplash: {
-      title: "Water Splash",
-      description:
-        "Water splash or spray particles that appear on the water surface. Requires a _Water.webp texture.",
-      configPath: "waterSplash",
-      triggerTexture: "water",
-      buildEmitterConfig: (effectConfig, targetData) =>
-        buildParticleEmitterConfig(effectConfig, targetData, "water", null, {
-          spawnMode: "range",
-        }),
-    },
-  };
+const PARTICLE_EFFECT_DEFINITIONS = {
+  dust: {
+    title: "Dust Motes",
+    description:
+      "Floating dust particles that appear in areas defined by the _Dust map. Requires a _Dust.webp texture.",
+    configPath: "dust",
+    triggerTexture: "dust",
+    buildEmitterConfig: (effectConfig, targetData) =>
+      buildParticleEmitterConfig(effectConfig, targetData, "dust"),
+  },
+  glint: {
+    title: "Glint Particles",
+    description:
+      "Sparkling glints that appear in areas defined by the _Prism map. Requires a _Prism.webp texture.",
+    configPath: "glint",
+    triggerTexture: "prism",
+    buildEmitterConfig: (effectConfig, targetData) =>
+      buildParticleEmitterConfig(effectConfig, targetData, "prism"),
+  },
+  smellyFlies: {
+    title: "Smelly Flies",
+    description:
+      "Simulates a swarm of flies orbiting a central point, occasionally landing and walking around. Requires a Point or Area group from Map Points. The first point of the group defines the center of the swarm, and the area defines where they can walk.",
+    configPath: "smellyFlies",
+    triggerTexture: "smellyFlies", // This is a dummy key for the UI, effect is geometry-based
+    buildEmitterConfig: (effectConfig, targetData, maskKey, group) =>
+      buildSmellyFliesEmitterConfig(effectConfig, targetData, group),
+  },
+  waterGlints: {
+    title: "Water Glints / Spray",
+    description:
+      "General-purpose particles spawned across the entire water surface.",
+    configPath: "water.glintParticles",
+    triggerTexture: "water",
+    spawnOn: "tiles",
+    buildEmitterConfig: (effectConfig, targetData) =>
+      buildParticleEmitterConfig(effectConfig, targetData, "water"),
+  },
+  fire: {
+    title: "Flames",
+    description:
+      "A multi-stage effect for fire, combining particles and a bloom glow. Requires a _Fire.webp map where white areas are the heart of the flame.",
+    configPath: "fire.particles",
+    triggerTexture: "fire",
+    buildEmitterConfig: (effectConfig, targetData) =>
+      buildParticleEmitterConfig(effectConfig, targetData, "fire"),
+  },
+  metallicGlints: {
+    title: "Metallic Glints",
+    description:
+      "Sparkling glints that appear on specular surfaces. Requires a _Specular.webp map.",
+    configPath: "metallicGlints",
+    triggerTexture: "specular",
+    buildEmitterConfig: (effectConfig, targetData) =>
+      buildParticleEmitterConfig(effectConfig, targetData, "specular"),
+  },
+  sparks: {
+    title: "Sparks",
+    description:
+      "Creates sparks that fly off in turbulent paths. Requires a _Sparks.webp map.",
+    configPath: "sparks",
+    triggerTexture: "sparks",
+    buildEmitterConfig: (effectConfig, targetData) =>
+      buildSparkEmitterConfig(effectConfig, targetData, "sparks"),
+  },
+  biofilm: {
+    title: "Biofilm",
+    description:
+      "Scummy biofilm particles that appear on the water surface. Requires a _Water.webp texture.",
+    configPath: "biofilm",
+    triggerTexture: "water",
+    buildEmitterConfig: (effectConfig, targetData) =>
+      buildParticleEmitterConfig(effectConfig, targetData, "water", null, {
+        spawnMode: "range",
+      }),
+  },
+};
 
 class ParticleEffectController {
   constructor(definition, parentContainer) {
@@ -17501,6 +17379,105 @@ class FoamLayer extends CanvasLayer {
 // Description: The main CanvasLayer implementations and any PIXI.Filters
 //              that are tightly coupled to a single layer.
 // ---------------------------------------------------------------------------------
+
+class BackgroundEffectTileLayer extends CanvasLayer {
+  constructor() {
+    super();
+    this.backgroundSprites = new Map();
+    this.spritesContainer = null;
+    this._boundRefresh = this._refreshBackgroundTiles.bind(this);
+    this._boundOnAnimate = this._onAnimate.bind(this);
+  }
+
+  async _draw(options) {
+    this._destroyed = false;
+    this.eventMode = "none";
+    this.spritesContainer = this.addChild(new PIXI.Container());
+
+    Hooks.on("mapShine:targetsRefreshed", this._boundRefresh);
+    canvas.app.ticker.add(this._boundOnAnimate);
+
+    // Initial population
+    this._refreshBackgroundTiles();
+  }
+
+  async _tearDown(options) {
+    this._destroyed = true;
+
+    // Restore original tiles
+    for (const tileId of this.backgroundSprites.keys()) {
+      const tile = canvas.tiles.get(tileId);
+      if (tile) {
+        tile.isManagedByBgLayer = false;
+        if (tile.mesh) tile.mesh.alpha = 1.0;
+      }
+    }
+
+    Hooks.off("mapShine:targetsRefreshed", this._boundRefresh);
+    canvas.app.ticker.remove(this._boundOnAnimate);
+
+    this.spritesContainer?.destroy({ children: true });
+    this.backgroundSprites.clear();
+
+    return super._tearDown(options);
+  }
+
+  _onAnimate(deltaTime) {
+    if (this._destroyed || !this.visible || this.backgroundSprites.size === 0) {
+      return;
+    }
+
+    // Sync sprite positions with their source tiles
+    for (const [id, sprite] of this.backgroundSprites.entries()) {
+      const tile = canvas.tiles.get(id);
+      if (tile?.texture?.valid && tile.mesh) {
+        sprite.position.copyFrom(tile.mesh.position);
+        sprite.width = tile.document.width;
+        sprite.height = tile.document.height;
+        sprite.rotation = tile.mesh.rotation;
+        sprite.texture = tile.texture;
+        sprite.anchor.copyFrom(tile.mesh.anchor);
+      }
+    }
+  }
+
+  _refreshBackgroundTiles() {
+    if (!this.spritesContainer || this._destroyed) return;
+
+    const effectTargets = game.mapShine.effectTargetManager?.targets?.tiles;
+    if (!effectTargets) return;
+
+    const currentTargetIds = new Set(effectTargets.keys());
+
+    // Add or update sprites for current targets
+    for (const tileId of currentTargetIds) {
+      const tile = canvas.tiles.get(tileId);
+      // Ensure the tile exists and is not an overhead tile to avoid conflicts
+      if (tile && !tile.document.overhead) {
+        if (!this.backgroundSprites.has(tileId)) {
+          const sprite = new PIXI.Sprite(tile.texture);
+          this.backgroundSprites.set(tileId, sprite);
+          this.spritesContainer.addChild(sprite);
+          tile.isManagedByBgLayer = true;
+          if (tile.mesh) tile.mesh.alpha = 0;
+        }
+      }
+    }
+
+    // Remove sprites for tiles that are no longer targets
+    for (const [id, sprite] of this.backgroundSprites.entries()) {
+      if (!currentTargetIds.has(id)) {
+        const tile = canvas.tiles.get(id);
+        if (tile) {
+          tile.isManagedByBgLayer = false;
+          if (tile.mesh) tile.mesh.alpha = 1.0;
+        }
+        sprite.destroy();
+        this.backgroundSprites.delete(id);
+      }
+    }
+  }
+}
 
 class MaskedEffectLayer extends CanvasLayer {
   constructor(options) {
@@ -24287,18 +24264,10 @@ class WaterFXLayer extends MaskedEffectLayer {
     this.visible = config.enabled && wConfig.enabled;
 
     if (this.displacementFilter) {
-      const waveConfig = wConfig.wave;
       // Apply scaling factor
       this.displacementFilter.uniforms.u_speed =
-        (waveConfig.speed ?? 1.48) * 0.4;
-      this.displacementFilter.uniforms.u_scale = waveConfig.scale;
-      // Update new waterSplash uniforms
-      if (waveConfig.waterSplashDistortion) {
-        this.displacementFilter.uniforms.u_useWaterSplash =
-          waveConfig.waterSplashDistortion.enabled;
-        this.displacementFilter.uniforms.u_waterSplashIntensity =
-          waveConfig.waterSplashDistortion.intensity;
-      }
+        (wConfig.wave.speed ?? 1.48) * 0.4;
+      this.displacementFilter.uniforms.u_scale = wConfig.wave.scale;
     }
     if (this.blurFilter) {
       this.blurFilter.blur = wConfig.shoreline.detectionBlur;
@@ -24431,10 +24400,10 @@ class WaveDisplacementFilter extends PIXI.Filter {
                         uniform float u_speed;
                         uniform float u_scale;
 
-                        // Water Splash uniforms
-                        uniform sampler2D uWaterSplashMap;
-                        uniform bool u_useWaterSplash;
-                        uniform float u_waterSplashIntensity;
+                        // Biofilm uniforms
+                        uniform sampler2D uBiofilmMap;
+                        uniform bool u_useBiofilm;
+                        uniform float u_biofilmIntensity;
 
                         // World-space uniforms
                         uniform vec2 u_camera_offset;
@@ -24535,12 +24504,12 @@ class WaveDisplacementFilter extends PIXI.Filter {
                             // Combine noises for a more complex pattern
                             vec2 displacement = vec2(noise1_x + noise2_x, noise1_y + noise2_y) * 0.5;
                             
-                            // Add displacement from waterSplash
-                            if (u_useWaterSplash) {
-                                vec4 waterSplashColor = texture2D(uWaterSplashMap, vScreenCoord);
+                            // Add displacement from biofilm
+                            if (u_useBiofilm) {
+                                vec4 biofilmColor = texture2D(uBiofilmMap, vScreenCoord);
                                 // Use the alpha channel as the primary driver for displacement intensity
-                                float waterSplashAmount = waterSplashColor.a;
-                                displacement.y += waterSplashAmount * u_waterSplashIntensity;
+                                float biofilmAmount = biofilmColor.a;
+                                displacement.y += biofilmAmount * u_biofilmIntensity;
                             }
             
                             // Output the displacement vector in the R and G channels, normalized to 0-1 range
@@ -24553,9 +24522,9 @@ class WaveDisplacementFilter extends PIXI.Filter {
       u_scale: options.scale ?? 4.0,
       u_camera_offset: [0, 0],
       u_view_size: [1, 1],
-      uWaterSplashMap: PIXI.Texture.EMPTY,
-      u_useWaterSplash: false,
-      u_waterSplashIntensity: 0.0,
+      uBiofilmMap: PIXI.Texture.EMPTY,
+      u_useBiofilm: false,
+      u_biofilmIntensity: 0.0,
     });
   }
 }
@@ -25902,11 +25871,11 @@ const CLIENT_OVERRIDES_CONFIG = {
     tooltip:
       "Emits energetic sparks that fly off in turbulent paths, suitable for forges or electrical effects.",
   },
-  waterSplash: {
-    name: "Water Splash",
-    path: "waterSplash",
+  biofilm: {
+    name: "Biofilm",
+    path: "biofilm",
     intensitySubPath: "maskInfluence",
-    tooltip: "Adds splash or spray particles to water surfaces.",
+    tooltip: "Adds scummy biofilm particles to water surfaces.",
   },
   lightning: {
     name: "Lightning",
