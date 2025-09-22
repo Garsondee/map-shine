@@ -2044,6 +2044,7 @@ const MODULE_DEFAULTS = {
     enabled: true,
     blendMode: 1,
     maskThreshold: 0.9,
+    darknessAffectsFrequency: true,
     maskInfluence: 5,
     particleTexture: "modules/map-shine/assets/glint.webp",
     frequency: 0.032,
@@ -6134,7 +6135,13 @@ class SceneChangeManager {
         SCREEN_FX_INIT: 75,
         MANAGERS_INIT: 85,
         CANVAS_MANAGERS_INIT: 95,
-        STRUCTURAL_HIGHLIGHTS: 98,
+        STRUCTURAL_HIGHLIGHTS: 96,
+        PREWARM_WATER: 97,
+        PREWARM_HEAT: 98,
+        PREWARM_CLOUDS: 98,
+        PREWARM_SHINE: 99,
+        PREWARM_FOAM: 99,
+        PREWARM_IRIDESCENCE: 99,
         SETUP_COMPLETE: 100,
       },
       messages: {
@@ -6150,7 +6157,13 @@ class SceneChangeManager {
         SCREEN_FX_INIT: "Initializing screen effects...",
         MANAGERS_INIT: "Initializing system managers...",
         CANVAS_MANAGERS_INIT: "Initializing canvas managers...",
-        STRUCTURAL_HIGHLIGHTS: "Rendering structural highlights...",
+        STRUCTURAL_HIGHLIGHTS: "Pre-rendering structural highlights...",
+        PREWARM_WATER: "Pre-rendering water effects...",
+        PREWARM_HEAT: "Pre-rendering heat distortion...",
+        PREWARM_CLOUDS: "Pre-rendering cloud shadows...",
+        PREWARM_SHINE: "Pre-rendering metallic shine...",
+        PREWARM_FOAM: "Pre-rendering shoreline foam...",
+        PREWARM_IRIDESCENCE: "Pre-rendering iridescence...",
         SETUP_COMPLETE: "Finalizing scene...",
       },
       setProgress(waypoint) {
@@ -7150,8 +7163,6 @@ class OverheadEffectLayer extends CanvasLayer {
     Hooks.on("canvasReady", this._boundOnCanvasReady);
     canvas.app.ticker.add(this._boundOnAnimate);
     window.addEventListener("resize", this._boundOnResize);
-
-    this.updateFromConfig(game.mapShine.profileManager.activeConfig);
   }
 
   async _tearDown(options) {
@@ -7869,8 +7880,53 @@ class MapShineLifecycle {
       (l) => l instanceof StructuralShadowsLayer
     );
     if (structuralLayer?.visible) {
-      // Pass a delta time of 0 for a single-frame, non-animated render.
       structuralLayer.renderEffectNow(0);
+    }
+
+    // Pre-warm the water effects layer to prevent pop-in.
+    await loadingManager?.tick("PREWARM_WATER");
+    const waterLayer = canvas.layers.find((l) => l instanceof WaterFXLayer);
+    if (waterLayer?.visible) {
+      await waterLayer.prewarmTextures();
+    }
+
+    // Pre-warm the heat distortion layer to prevent pop-in.
+    await loadingManager?.tick("PREWARM_HEAT");
+    const heatLayer = canvas.layers.find(
+      (l) => l instanceof HeatDistortionLayer
+    );
+    if (heatLayer?.visible) {
+      heatLayer.renderEffectNow(0);
+    }
+
+    // Pre-warm the cloud shadows layer.
+    await loadingManager?.tick("PREWARM_CLOUDS");
+    const cloudLayer = canvas.layers.find((l) => l instanceof CloudShadowsLayer);
+    if (cloudLayer?.visible) {
+      cloudLayer.renderEffectNow(0);
+    }
+
+    // Pre-warm the metallic shine layer.
+    await loadingManager?.tick("PREWARM_SHINE");
+    const shineLayer = canvas.layers.find((l) => l instanceof MetallicShineLayer);
+    if (shineLayer?.visible) {
+      shineLayer.renderEffectNow(0);
+    }
+
+    // Pre-warm the foam layer.
+    await loadingManager?.tick("PREWARM_FOAM");
+    const foamLayer = canvas.layers.find((l) => l instanceof FoamLayer);
+    if (foamLayer?.visible) {
+      foamLayer.renderEffectNow(0);
+    }
+
+    // Pre-warm the iridescence layer.
+    await loadingManager?.tick("PREWARM_IRIDESCENCE");
+    const iridescenceLayer = canvas.layers.find(
+      (l) => l instanceof IridescenceLayer
+    );
+    if (iridescenceLayer?.visible) {
+      iridescenceLayer.prewarm();
     }
 
     // 8. Hide the loading screen.
@@ -11262,7 +11318,7 @@ class ParticleEffectController {
     }
 
     // Common particle sections
-    content += `
+    let spawningDetails = `
                             <details>
                                 <summary><span class="accordion-toggle"></span><strong>Spawning & Density</strong></summary>
                                 <div style="padding-left: 15px;">
@@ -11298,9 +11354,25 @@ class ParticleEffectController {
       0.01,
       "Luminance from the mask required to spawn particles."
     )}
-                          
+    `;
+
+    if (effectKey === "metallicGlints") {
+      spawningDetails += DebuggerUIBuilder._createCheckboxHTML(
+        `${path}.darknessAffectsFrequency`,
+        "Reduce with Darkness",
+        false,
+        "Reduces particle count as scene darkness increases. At full darkness, no particles spawn."
+      );
+    }
+
+    spawningDetails += `
                                 </div>
                             </details>
+    `;
+
+    content += spawningDetails;
+
+    content += `
                             <details>
                                 <summary><span class="accordion-toggle"></span><strong>Particle Appearance</strong></summary>
                                 <div style="padding-left: 15px;">
@@ -11943,6 +12015,7 @@ class ParticleEffectController {
 
       const emitterParent = this.particleOnlyContainer || this.parentContainer;
       const emitter = new PIXI.particles.Emitter(emitterParent, emitterConfig);
+      emitter.baseFrequency = emitterConfig.frequency; // Store the base frequency
       if (customMaskTexture) emitter._customMaskTexture = customMaskTexture;
       emitter.autoUpdate = false;
 
@@ -12113,6 +12186,30 @@ class ParticleEffectController {
         );
         if (spawnBehavior?.shape?.update) {
           spawnBehavior.shape.update();
+        }
+      }
+    }
+
+    // Dynamically adjust frequency and emission for metallic glints based on scene darkness
+    if (
+      this.definition.configPath === "metallicGlints" &&
+      this.config.darknessAffectsFrequency
+    ) {
+      const darkness = canvas.scene.environment.darknessLevel;
+      const darknessMultiplier = Math.max(0.001, 1 - darkness);
+
+      for (const { emitter } of this.emitters.values()) {
+        // If it's almost completely dark, explicitly stop the emitter.
+        if (darkness >= 0.99) {
+          emitter.emit = false;
+        } else {
+          // Otherwise, ensure the emitter is on and set its frequency.
+          emitter.emit = true;
+          if (emitter.baseFrequency) {
+            emitter.frequency = emitter.baseFrequency / darknessMultiplier;
+            // When resuming, reset the spawn timer to prevent a burst of particles.
+            emitter._spawnTimer = 0;
+          }
         }
       }
     }
@@ -12372,31 +12469,26 @@ const buildParticleEmitterConfig = (
     fadeInTime /= total;
     fadeOutTime /= total;
   }
-  behaviors.push({
-    type: "alpha",
-    config: {
-      alpha: {
-        list: [
-          {
-            value: 0,
-            time: 0,
-          },
-          {
-            value: alphaConfig.max ?? 0.7,
-            time: fadeInTime,
-          },
-          {
-            value: alphaConfig.max ?? 0.7,
-            time: 1 - fadeOutTime,
-          },
-          {
-            value: 0,
-            time: 1,
-          },
-        ],
+  const alphaList = {
+    list: [
+      {
+        value: 0,
+        time: 0,
       },
-    },
-  });
+      {
+        value: alphaConfig.max ?? 0.7,
+        time: fadeInTime,
+      },
+      {
+        value: alphaConfig.max ?? 0.7,
+        time: 1 - fadeOutTime,
+      },
+      {
+        value: 0,
+        time: 1,
+      },
+    ],
+  };
 
   const scaleConfig = config.scale ?? {};
   const startScale =
@@ -12448,14 +12540,25 @@ const buildParticleEmitterConfig = (
     });
   }
 
-  // For metallic glints, use the custom behavior to sample color from the spawn texture.
-  // For all other effects, use the standard static or gradient color behaviors.
+  // For metallic glints, use the custom behavior to sample color AND alpha from the spawn texture.
+  // For all other effects, use the standard static or gradient color behaviors and the standard alpha behavior.
   if (maskKey === "specular") {
     behaviors.push({
       type: "colorFromSpawn",
-      config: {},
+      config: {
+        alpha: alphaList, // Pass the alpha list to the combined behavior
+      },
     });
   } else {
+    // Add standard alpha behavior
+    behaviors.push({
+      type: "alpha",
+      config: {
+        alpha: alphaList,
+      },
+    });
+
+    // Add standard color behavior
     const colorConfig = config.color ?? {};
     const startColor = colorConfig.start ?? "#FFFFFF";
     const endColor = colorConfig.end ?? "#FFFFFF";
@@ -14317,6 +14420,13 @@ class ColorFromSpawnBehavior {
 
   constructor(config) {
     this.order = PIXI.particles.behaviors.BehaviorOrder.Normal;
+    // Handle alpha property list passed from the emitter config
+    if (config.alpha) {
+      this.alpha = new PIXI.particles.PropertyList(false);
+      this.alpha.reset(PIXI.particles.PropertyNode.createList(config.alpha));
+    } else {
+      this.alpha = null;
+    }
   }
 
   initParticles(first) {
@@ -14326,8 +14436,27 @@ class ColorFromSpawnBehavior {
         const color = next.spawnColor; // [r, g, b] from 0-255
         // Convert the RGB array to a single hex number for the tint property.
         next.tint = (color[0] << 16) + (color[1] << 8) + color[2];
+
+        // Calculate luminance (0-1) from the spawn color.
+        const luminance =
+          (0.299 * color[0] + 0.587 * color[1] + 0.114 * color[2]) / 255;
+        // This will act as the max alpha multiplier for this specific particle.
+        next.spawnAlphaMultiplier = luminance;
+      } else {
+        // Provide a fallback multiplier if spawnColor isn't available for some reason.
+        next.spawnAlphaMultiplier = 1.0;
       }
       next = next.next;
+    }
+  }
+
+  updateParticle(particle, deltaSec) {
+    // If this behavior is managing alpha and the particle has a multiplier, calculate the new alpha.
+    if (this.alpha && particle.spawnAlphaMultiplier !== undefined) {
+      // Get the alpha from the list based on the particle's lifetime progress.
+      const lifetimeAlpha = this.alpha.interpolate(particle.agePercent);
+      // Modulate the standard lifetime alpha by the brightness of the pixel it spawned from.
+      particle.alpha = lifetimeAlpha * particle.spawnAlphaMultiplier;
     }
   }
 }
@@ -17256,8 +17385,10 @@ class FoamLayer extends CanvasLayer {
     this._onResizeBound = this._onResize.bind(this);
     canvas.app.ticker.add(this._onAnimateBound);
     window.addEventListener("resize", this._onResizeBound);
+  }
 
-    await this.updateFromConfig(game.mapShine.profileManager.activeConfig);
+  renderEffectNow(deltaTime) {
+    this._onAnimate(deltaTime);
   }
 
   _onAnimate(deltaTime) {
@@ -17339,7 +17470,7 @@ class FoamLayer extends CanvasLayer {
       u.uCrestFoamPerturbSpeed = cf.perturbSpeed;
       u.uCrestFoamPerturbOctaves = cf.perturbOctaves;
 
-      const cb = cf.crestBreakup;
+      const cb = cf.crestFoam;
       u.uCrestBreakupScale = cb.scale;
       u.uCrestBreakupSpeed = cb.speed;
       u.uCrestBreakupOctaves = cb.octaves;
@@ -19538,7 +19669,7 @@ class MetallicShineLayer extends CanvasLayer {
     // as it's just a dummy sprite to hold the filter.
     // We will render it directly to the stage.
   }
-  
+
   renderEffectNow(deltaTime) {
     if (this._destroyed || !this.visible || !this.shineFilter) return;
 
@@ -20176,8 +20307,6 @@ class CloudShadowsLayer extends MaskedEffectLayer {
 
     this.effectSprite = new PIXI.Sprite(this.cloudShadowTexture);
     this.addChild(this.effectSprite);
-
-    this.updateFromConfig(game.mapShine.profileManager.activeConfig);
   }
 
   _onPan() {
@@ -21442,8 +21571,12 @@ class IridescenceLayer extends MaskedEffectLayer {
       ? [this.iridescenceFilter]
       : [];
     this.addChild(this.effectSprite);
+  }
 
-    this.updateFromConfig(game.mapShine.profileManager.activeConfig);
+  prewarm() {
+    if (this._destroyed || !this.visible || !this.iridescenceFilter) return;
+    this.distortionNoiseManager.update(0, canvas.app.renderer);
+    this._onAnimate(0);
   }
 
   _onAnimate(deltaTime) {
@@ -22492,6 +22625,11 @@ class HeatDistortionLayer extends CanvasLayer {
   }
 
   _onAnimate(deltaTime) {
+    if (this._destroyed) return;
+    this.renderEffectNow(deltaTime);
+  }
+
+  renderEffectNow(deltaTime = 0) {
     if (this._destroyed) return;
 
     this._framesSinceLoad++;
@@ -23972,6 +24110,42 @@ class WaterFXLayer extends MaskedEffectLayer {
     );
   }
 
+  async prewarmTextures() {
+    if (this._destroyed || !this.visible) return;
+    const renderer = canvas.app.renderer;
+
+    // 1. Render the main water mask (_Water.webp tiles)
+    this.renderMask();
+
+    // 2. Render the blurred water mask for shoreline detection
+    this.blurSourceSprite.texture = this.getMaskTexture();
+    renderer.render(this.blurSourceSprite, {
+      renderTexture: this.blurredWaterMaskTexture,
+      clear: true,
+    });
+
+    // 3. Render the shoreline override mask (_Shoreline.webp tiles)
+    renderer.render(this.shorelineMaskContainer, {
+      renderTexture: this.shorelineMaskTexture,
+      transform: canvas.stage.transform.worldTransform,
+      clear: true,
+    });
+    this._needsShorelineMaskUpdate = false;
+
+    // 4. Render the initial state of the displacement map
+    this.displacementFilter.uniforms.u_time = 0; // Render at time 0
+    Object.assign(
+      this.displacementFilter.uniforms,
+      CoordinateManager.getShaderUniforms()
+    );
+    renderer.render(this.displacementSprite, {
+      renderTexture: this.displacementTexture,
+      clear: true,
+    });
+
+    console.log("Map Shine | WaterFXLayer textures pre-warmed.");
+  }
+
   async _draw(options) {
     await super._draw(options);
     this.time = 0;
@@ -24011,9 +24185,14 @@ class WaterFXLayer extends MaskedEffectLayer {
     const initialBlur =
       game.mapShine.profileManager.activeConfig.water.shoreline.detectionBlur;
     this.blurFilter = new PIXI.BlurFilter(initialBlur, 4);
+    // Apply resolution scaling to the blur filter itself
+    this.blurFilter.resolution = 0.5;
+
+    // Apply resolution scaling to the intermediate textures
     this.blurredWaterMaskTexture = PIXI.RenderTexture.create({
       width: renderer.screen.width,
       height: renderer.screen.height,
+      resolution: 0.5,
     });
     this.blurSourceSprite = new PIXI.Sprite(this.getMaskTexture());
     this.blurSourceSprite.filters = [this.blurFilter];
@@ -24021,9 +24200,8 @@ class WaterFXLayer extends MaskedEffectLayer {
     this.shorelineMaskTexture = PIXI.RenderTexture.create({
       width: renderer.screen.width,
       height: renderer.screen.height,
+      resolution: 0.5,
     });
-
-    this.updateFromConfig(game.mapShine.profileManager.activeConfig);
   }
 
   _updateWaterFilterUniforms(filter, wConfig) {
@@ -24235,23 +24413,6 @@ class WaterFXLayer extends MaskedEffectLayer {
         this.displacementFilter.uniforms.u_biofilmIntensity =
           waveConfig.biofilmDistortion.intensity;
       }
-    }
-    if (this.blurFilter) {
-      this.blurFilter.blur = wConfig.shoreline.detectionBlur;
-    }
-
-    this._updateWaterFilterUniforms(this.waterEffectsFilter, wConfig);
-  }
-
-  async updateFromConfig(config) {
-    const wConfig = config.water;
-    this.visible = config.enabled && wConfig.enabled;
-
-    if (this.displacementFilter) {
-      // Apply scaling factor
-      this.displacementFilter.uniforms.u_speed =
-        (wConfig.wave.speed ?? 1.48) * 0.4;
-      this.displacementFilter.uniforms.u_scale = wConfig.wave.scale;
     }
     if (this.blurFilter) {
       this.blurFilter.blur = wConfig.shoreline.detectionBlur;
@@ -24707,9 +24868,8 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
       this.filter = null;
     }
 
-    // Set initial time from the active configuration
-    this.currentTime =
-      game.mapShine.profileManager.activeConfig.timeOfDay.currentTime ?? 12.0;
+    // Set a default time; the correct time will be applied by updateFromConfig later.
+    this.currentTime = 12.0;
 
     // Initial resize call to set texel size
     this._onResize();
