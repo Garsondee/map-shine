@@ -27614,13 +27614,13 @@ class DebuggerEventHandler {
   async _createParticleEffectArea(effectKey) {
     // 1. Ensure map points editor is open.
     if (!game.mapShine.mapPointsEditor || game.mapShine.mapPointsEditor.closing) {
-        const editor = new MapPointsEditor();
-        game.mapShine.mapPointsEditor = editor;
-        editor.render(true);
-        // Wait a moment for the editor to render and initialize
-        await new Promise(resolve => setTimeout(resolve, 100));
+      const editor = new MapPointsEditor();
+      game.mapShine.mapPointsEditor = editor;
+      editor.render(true);
+      // Wait a moment for the editor to render and initialize
+      await new Promise(resolve => setTimeout(resolve, 100));
     } else {
-        game.mapShine.mapPointsEditor.bringToTop();
+      game.mapShine.mapPointsEditor.bringToTop();
     }
 
     // 2. Create a new group.
@@ -27629,32 +27629,32 @@ class DebuggerEventHandler {
 
     let groupType = 'area'; // Default for most particle effects
     if (effectKey === 'lightning') {
-        groupType = 'line';
+      groupType = 'line';
     }
-    
+
     const newGroupId = await MapPointsManager.createGroup({
-        label: `New ${effectName} Area`,
-        type: groupType,
+      label: `New ${effectName} Area`,
+      type: groupType,
     });
 
     if (!newGroupId) {
-        ui.notifications.error("Failed to create a new map point group.");
-        return;
+      ui.notifications.error("Failed to create a new map point group.");
+      return;
     }
 
     // 3. Configure the new group for the effect.
     await MapPointsManager.updateGroupProperties(newGroupId, {
-        isEffectSource: true,
-        effectTarget: effectKey
+      isEffectSource: true,
+      effectTarget: effectKey
     });
     // The MapPointsEditor hook will automatically select the new group when it re-renders.
 
     // 4. Activate placement mode.
     const manager = game.mapShine.mapPointsInteractionManager;
     if (!manager.isActive) {
-        manager.activate();
+      manager.activate();
     }
-    
+
     ui.notifications.info(`Ready to draw the new ${groupType} for "${effectName}". Click on the map to add points.`);
   }
 
@@ -27824,7 +27824,7 @@ class DebuggerEventHandler {
       case "create-particle-effect-area": {
         const effectKey = target.dataset.effectKey;
         if (effectKey) {
-            this._createParticleEffectArea(effectKey);
+          this._createParticleEffectArea(effectKey);
         }
         break;
       }
@@ -29282,7 +29282,7 @@ class DebuggerEventHandler {
       this.uiClock.destroy();
       this.uiClock = null;
     }
-    
+
     // Clean up window listeners just in case a drag was interrupted
     window.removeEventListener("mousemove", this._onDebuggerClockDragBound);
     window.removeEventListener("mouseup", this._onDebuggerClockDragEndBound);
@@ -29868,7 +29868,7 @@ Hooks.on("renderSceneControls", (app, html, data) => {
     clockContainer.id = "map-shine-main-ui-clock"; // ID for idempotency check
     clockContainer.classList.add("scene-control-clock-wrapper");
     clockContainer.title = "Map Shine Day/Night Cycle";
-    
+
     tokenControls.appendChild(clockContainer);
 
     // Instantiate the clock component, passing null for the application instance.
