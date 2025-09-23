@@ -1519,1108 +1519,1107 @@ const COLOR_CORRECTION_PRESETS = {
 };
 
 const MODULE_DEFAULTS = {
-  timeControl: {
-    globalTime: 100,
+  "timeControl": {
+    "globalTime": 100
   },
-  enabled: true,
-  debug: true,
-  showTokenMask: false,
-  showDustMaskDebug: false,
-  showGlintMaskDebug: false,
-  tileOpacity: 0,
-  baseShine: {
-    enabled: true,
-    compositing: {
-      layerBlendMode: 1,
+  "enabled": true,
+  "debug": true,
+  "showTokenMask": false,
+  "showDustMaskDebug": false,
+  "showGlintMaskDebug": false,
+  "tileOpacity": 0,
+  "baseShine": {
+    "enabled": true,
+    "compositing": {
+      "layerBlendMode": 1
     },
-    animation: {
-      globalIntensity: 2,
+    "animation": {
+      "globalIntensity": 2
     },
-    pattern: {
-      stripes: {
-        enabled: true,
-        speed: -0.001,
-        angle: 38,
-        scale: 1.5,
-        parallax: 1,
-        width: 1,
-        softness: 0.5,
-        randomWidth: 0.49,
-        randomIntensity: 1,
+    "pattern": {
+      "stripes": {
+        "enabled": true,
+        "speed": -0.001,
+        "angle": 38,
+        "scale": 1.5,
+        "parallax": 1,
+        "width": 1,
+        "softness": 0.5,
+        "randomWidth": 0.49,
+        "randomIntensity": 1
+      }
+    },
+    "colorCorrection": {
+      "enabled": true,
+      "saturation": 1.5,
+      "brightness": 0.53,
+      "contrast": 3.25,
+      "gamma": 1,
+      "tint": {
+        "color": "#FFFFFF",
+        "amount": 0
       },
+      "invert": false
     },
-    colorCorrection: {
-      enabled: true,
-      saturation: 1.5,
-      brightness: 0.53,
-      contrast: 3.25,
-      gamma: 1,
-      tint: {
-        color: "#FFFFFF",
-        amount: 0,
+    "cloudOcclusion": {
+      "enabled": true,
+      "intensity": 0.81
+    }
+  },
+  "cloudShadows": {
+    "enabled": true,
+    "blendMode": 0,
+    "shadowIntensity": 0.3,
+    "maskBlur": 0,
+    "shadowInteraction": {
+      "enabled": false,
+      "intensity": 1,
+      "luminanceThreshold": 0.97,
+      "softness": 0.01
+    },
+    "wind": {
+      "angle": 45,
+      "speed": 0.0012
+    },
+    "noise": {
+      "scale": 0.07,
+      "octaves": 7,
+      "persistence": 0.15,
+      "lacunarity": 3.1
+    },
+    "shading": {
+      "threshold": 1,
+      "softness": 0.71,
+      "brightness": 0.38,
+      "contrast": 5,
+      "gamma": 1.6
+    }
+  },
+  "iridescence": {
+    "enabled": true,
+    "texturePath": "",
+    "blendMode": 1,
+    "intensity": 0.9,
+    "speed": 0.01,
+    "scale": 0.7,
+    "parallax": 0,
+    "fbm": {
+      "octaves": 5,
+      "persistence": 0.33,
+      "lacunarity": 1.9,
+      "evolution": 0,
+      "brightness": 0.45,
+      "contrast": 0.8
+    },
+    "distortion": {
+      "enabled": true,
+      "strength": 5.26
+    },
+    "noise": {
+      "enabled": true,
+      "speed": 0.042,
+      "scale": 9.7,
+      "threshold": 0.47,
+      "brightness": 0.74,
+      "contrast": 2.45,
+      "softness": 0.5
+    },
+    "gradient": {
+      "name": "rainbow",
+      "hueShift": 0,
+      "brightness": 0.04,
+      "contrast": 0.5
+    }
+  },
+  "canopy": {
+    "enabled": true,
+    "shadowIntensity": 0.41,
+    "tint": "#050805",
+    "distortion": {
+      "enabled": true,
+      "strength": 0.0079,
+      "speed": 0.07,
+      "scale": 1.4,
+      "evolution": 0.34,
+      "threshold": 0,
+      "brightness": 0,
+      "contrast": 0.45,
+      "softness": 1
+    },
+    "postScale": 1
+  },
+  "structuralShadows": {
+    "enabled": true,
+    "intensity": 0.55,
+    "blendMode": 2,
+    "colorCorrection": {
+      "enabled": true,
+      "saturation": 1,
+      "brightness": 0,
+      "contrast": 1,
+      "gamma": 1,
+      "tint": {
+        "color": "#FFFFFF",
+        "amount": 0
+      }
+    },
+    "cloudOcclusion": {
+      "enabled": true,
+      "intensity": 0.88,
+      "threshold": 0.94,
+      "softness": 1
+    }
+  },
+  "prism": {
+    "enabled": true,
+    "intensity": 1,
+    "angle": 218,
+    "threshold": 0.1,
+    "softness": 1,
+    "distortionStrength": 1.9,
+    "distortionNoise": {
+      "enabled": true,
+      "speed": 0,
+      "scale": 3.83,
+      "evolution": 0,
+      "threshold": 0,
+      "brightness": 0.11,
+      "contrast": 1.85,
+      "softness": 1
+    }
+  },
+  "ambient": {
+    "enabled": true,
+    "texturePath": "",
+    "blendMode": 1,
+    "intensity": 1,
+    "masking": {
+      "enabled": true,
+      "threshold": 0,
+      "softness": 0.25
+    },
+    "tokenMasking": {
+      "enabled": true,
+      "threshold": 0
+    },
+    "colorCorrection": {
+      "enabled": true,
+      "saturation": 1.2,
+      "brightness": 0,
+      "contrast": 1,
+      "gamma": 1,
+      "tint": {
+        "color": "#ff0209",
+        "amount": 0
+      }
+    }
+  },
+  "groundGlow": {
+    "enabled": false,
+    "texturePath": "",
+    "blendMode": 1,
+    "intensity": 1.05,
+    "luminanceThreshold": 0.25,
+    "brightness": 1.2,
+    "saturation": 1.2,
+    "softness": 1,
+    "invert": false,
+    "tokenMasking": {
+      "enabled": true,
+      "threshold": 0
+    }
+  },
+  "heatDistortion": {
+    "enabled": true,
+    "texturePath": "",
+    "intensity": 0.0015,
+    "noise": {
+      "primary": {
+        "speed": 0.002,
+        "scale": 0.5,
+        "octaves": 3,
+        "lacunarity": 2.2,
+        "persistence": 0.45
       },
-      invert: false,
-    },
-    cloudOcclusion: {
-      enabled: true,
-      intensity: 0.81,
-    },
-  },
-  cloudShadows: {
-    enabled: true,
-    blendMode: 0,
-    shadowIntensity: 0.3,
-    maskBlur: 0,
-    shadowInteraction: {
-      enabled: false,
-      intensity: 1,
-      luminanceThreshold: 0.97,
-      softness: 0.01,
-    },
-    wind: {
-      angle: 45,
-      speed: 0.0012,
-    },
-    noise: {
-      scale: 0.37,
-      octaves: 7,
-      persistence: 0.25,
-      lacunarity: 1.9,
-    },
-    shading: {
-      threshold: 1,
-      softness: 0.71,
-      brightness: 0.38,
-      contrast: 5,
-      gamma: 1.6,
-    },
-  },
-  iridescence: {
-    enabled: true,
-    texturePath: "",
-    blendMode: 1,
-    intensity: 0.9,
-    speed: 0.01,
-    scale: 0.7,
-    parallax: 0,
-    fbm: {
-      octaves: 5,
-      persistence: 0.33,
-      lacunarity: 1.9,
-      evolution: 0,
-      brightness: 0.45,
-      contrast: 0.8,
-    },
-    distortion: {
-      enabled: true,
-      strength: 5.26,
-    },
-    noise: {
-      enabled: true,
-      speed: 0.042,
-      scale: 9.7,
-      threshold: 0.47,
-      brightness: 0.74,
-      contrast: 2.45,
-      softness: 0.5,
-    },
-    gradient: {
-      name: "rainbow",
-      hueShift: 0,
-      brightness: 0.04,
-      contrast: 0.5,
-    },
-  },
-  canopy: {
-    enabled: true,
-    shadowIntensity: 0.41,
-    tint: "#050805",
-    distortion: {
-      enabled: true,
-      strength: 0.0079,
-      speed: 0.07,
-      scale: 1.4,
-      evolution: 0.34,
-      threshold: 0,
-      brightness: 0,
-      contrast: 0.45,
-      softness: 1,
-    },
-    postScale: 1,
-  },
-  structuralShadows: {
-    enabled: true,
-    intensity: 0.55,
-    blendMode: 2,
-    colorCorrection: {
-      enabled: true,
-      saturation: 1,
-      brightness: 0,
-      contrast: 1,
-      gamma: 1,
-      tint: {
-        color: "#FFFFFF",
-        amount: 0,
+      "secondary": {
+        "speed": 0.08,
+        "scale": 3,
+        "octaves": 7,
+        "lacunarity": 3.8,
+        "persistence": 0.3
       },
-    },
-    cloudOcclusion: {
-      enabled: true,
-      intensity: 0.88,
-      threshold: 0.94,
-      softness: 1,
-    },
+      "rising": {
+        "speed": 0.02,
+        "intensity": 0.4
+      }
+    }
   },
-  prism: {
-    enabled: true,
-    intensity: 1,
-    angle: 218,
-    threshold: 0.1,
-    softness: 1,
-    distortionStrength: 1.9,
-    distortionNoise: {
-      enabled: true,
-      speed: 0,
-      scale: 3.83,
-      evolution: 0,
-      threshold: 0,
-      brightness: 0.11,
-      contrast: 1.85,
-      softness: 1,
-    },
+  "advancedBloom": {
+    "enabled": false,
+    "blendMode": 1,
+    "threshold": 0.85,
+    "bloomScale": 1.5,
+    "brightness": 1.2,
+    "blur": 8,
+    "quality": 5
   },
-  ambient: {
-    enabled: true,
-    texturePath: "",
-    blendMode: 1,
-    intensity: 1,
-    masking: {
-      enabled: true,
-      threshold: 0,
-      softness: 0.25,
-    },
-    tokenMasking: {
-      enabled: true,
-      threshold: 0,
-    },
-    colorCorrection: {
-      enabled: true,
-      saturation: 1.2,
-      brightness: 0,
-      contrast: 1,
-      gamma: 1,
-      tint: {
-        color: "#ff0209",
-        amount: 0,
-      },
-    },
+  "sceneAppearance": {
+    "transitionDuration": 3500
   },
-  groundGlow: {
-    enabled: false,
-    texturePath: "",
-    blendMode: 1,
-    intensity: 1.05,
-    luminanceThreshold: 0.25,
-    brightness: 1.2,
-    saturation: 1.2,
-    softness: 1,
-    invert: false,
-    tokenMasking: {
-      enabled: true,
-      threshold: 0,
-    },
-  },
-  heatDistortion: {
-    enabled: true,
-    texturePath: "",
-    intensity: 0.0015,
-    noise: {
-      primary: {
-        speed: 0.002,
-        scale: 0.5,
-        octaves: 3,
-        lacunarity: 2.2,
-        persistence: 0.45,
+  "postProcessing": {
+    "enabled": true,
+    "colorCorrection": {
+      "enabled": true,
+      "saturation": 1,
+      "brightness": 0,
+      "contrast": 1,
+      "invert": false,
+      "tint": {
+        "color": "#FFFFFF",
+        "amount": 0
       },
-      secondary: {
-        speed: 0.08,
-        scale: 3,
-        octaves: 7,
-        lacunarity: 3.8,
-        persistence: 0.3,
+      "exposure": 0.8,
+      "gamma": 0.9,
+      "levels": {
+        "inBlack": 0,
+        "inWhite": 1
       },
-      rising: {
-        speed: 0.02,
-        intensity: 0.4,
+      "whiteBalance": {
+        "temperature": 0,
+        "tint": 0
       },
-    },
-  },
-  advancedBloom: {
-    enabled: false,
-    blendMode: 1, // ADD
-    threshold: 0.85,
-    bloomScale: 1.5,
-    brightness: 1.2,
-    blur: 8,
-    quality: 5,
-  },
-  sceneAppearance: {
-    transitionDuration: 3500,
-  },
-  postProcessing: {
-    enabled: true,
-    colorCorrection: {
-      enabled: true,
-      saturation: 1,
-      brightness: 0,
-      contrast: 1,
-      invert: false,
-      tint: {
-        color: "#FFFFFF",
-        amount: 0,
+      "selective": {
+        "enabled": false,
+        "color": "#fb0045",
+        "hueRange": 0.09,
+        "saturationRange": 0.5,
+        "luminanceRange": 0.5,
+        "targetLuminance": 0.04,
+        "softness": 0.1,
+        "invert": false,
+        "desaturation": 1,
+        "targetSaturation": 1,
+        "targetBrightness": 0
       },
-      exposure: 0,
-      gamma: 1,
-      levels: {
-        inBlack: 0,
-        inWhite: 1,
-      },
-      whiteBalance: {
-        temperature: 0,
-        tint: 0,
-      },
-      selective: {
-        enabled: false,
-        color: "#fb0045",
-        hueRange: 0.09,
-        saturationRange: 0.5,
-        luminanceRange: 0.5,
-        targetLuminance: 0.04,
-        softness: 0.1,
-        invert: false,
-        desaturation: 1,
-        targetSaturation: 1,
-        targetBrightness: 0,
-      },
-      curves: {
-        enabled: false,
-        activeChannel: "rgb",
-        rgb: {
-          points: [
+      "curves": {
+        "enabled": false,
+        "activeChannel": "rgb",
+        "rgb": {
+          "points": [
             {
-              x: 0,
-              y: 0,
+              "x": 0,
+              "y": 0
             },
             {
-              x: 0.25,
-              y: 0.25,
+              "x": 0.25,
+              "y": 0.25
             },
             {
-              x: 0.75,
-              y: 0.75,
+              "x": 0.75,
+              "y": 0.75
             },
             {
-              x: 1,
-              y: 1,
-            },
-          ],
+              "x": 1,
+              "y": 1
+            }
+          ]
         },
-        red: {
-          points: [
+        "red": {
+          "points": [
             {
-              x: 0,
-              y: 0,
+              "x": 0,
+              "y": 0
             },
             {
-              x: 0.25,
-              y: 0.25,
+              "x": 0.25,
+              "y": 0.25
             },
             {
-              x: 0.75,
-              y: 0.75,
+              "x": 0.75,
+              "y": 0.75
             },
             {
-              x: 1,
-              y: 1,
-            },
-          ],
+              "x": 1,
+              "y": 1
+            }
+          ]
         },
-        green: {
-          points: [
+        "green": {
+          "points": [
             {
-              x: 0,
-              y: 0,
+              "x": 0,
+              "y": 0
             },
             {
-              x: 0.25,
-              y: 0.25,
+              "x": 0.25,
+              "y": 0.25
             },
             {
-              x: 0.75,
-              y: 0.75,
+              "x": 0.75,
+              "y": 0.75
             },
             {
-              x: 1,
-              y: 1,
-            },
-          ],
+              "x": 1,
+              "y": 1
+            }
+          ]
         },
-        blue: {
-          points: [
+        "blue": {
+          "points": [
             {
-              x: 0,
-              y: 0,
+              "x": 0,
+              "y": 0
             },
             {
-              x: 0.25,
-              y: 0.25,
+              "x": 0.25,
+              "y": 0.25
             },
             {
-              x: 0.75,
-              y: 0.75,
+              "x": 0.75,
+              "y": 0.75
             },
             {
-              x: 1,
-              y: 1,
-            },
-          ],
-        },
+              "x": 1,
+              "y": 1
+            }
+          ]
+        }
       },
-      dynamicExposure: {
-        enabled: true,
-        intensity: 1.5,
-        duration: 8000,
-        resetPeriod: 60000,
+      "dynamicExposure": {
+        "enabled": true,
+        "intensity": 1.5,
+        "duration": 8000,
+        "resetPeriod": 60000
+      }
+    },
+    "vignette": {
+      "enabled": false,
+      "amount": 0.24,
+      "softness": 0.36
+    },
+    "lensDistortion": {
+      "enabled": false,
+      "amount": 0.015,
+      "centerX": 0.5,
+      "centerY": 0.5
+    },
+    "chromaticAberration": {
+      "enabled": false,
+      "amount": 0.001,
+      "centerX": 0.5,
+      "centerY": 0.5
+    },
+    "tiltShift": {
+      "enabled": false,
+      "blur": 23,
+      "gradientBlur": 3610,
+      "startX": 0,
+      "startY": 0.5,
+      "endX": 1,
+      "endY": 0.5
+    },
+    "grain": {
+      "enabled": false,
+      "intensity": 0.1,
+      "size": 1.5,
+      "monochromatic": true,
+      "luminanceResponse": {
+        "shadows": 0.8,
+        "highlights": 0.2
+      }
+    },
+    "lut": {
+      "enabled": true,
+      "texturePath": "",
+      "intensity": 1,
+      "presetName": "custom",
+      "diagnosticMode": 0,
+      "diagnosticSlice": 1,
+      "domainMin": {
+        "r": 0,
+        "g": 0,
+        "b": 0
       },
-    },
-    vignette: {
-      enabled: false,
-      amount: 0.24,
-      softness: 0.36,
-    },
-    lensDistortion: {
-      enabled: false,
-      amount: 0.015,
-      centerX: 0.5,
-      centerY: 0.5,
-    },
-    chromaticAberration: {
-      enabled: false,
-      amount: 0.001,
-      centerX: 0.5,
-      centerY: 0.5,
-    },
-    tiltShift: {
-      enabled: false,
-      blur: 23,
-      gradientBlur: 3610,
-      startX: 0,
-      startY: 0.5,
-      endX: 1,
-      endY: 0.5,
-    },
-    grain: {
-      enabled: false,
-      intensity: 0.1,
-      size: 1.5,
-      monochromatic: true,
-      luminanceResponse: {
-        shadows: 0.8,
-        highlights: 0.2,
+      "domainMax": {
+        "r": 1,
+        "g": 1,
+        "b": 1
       },
-    },
-    lut: {
-      enabled: true,
-      texturePath: "",
-      intensity: 1,
-      presetName: "custom",
-      diagnosticMode: 0,
-      diagnosticSlice: 1,
-      domainMin: {
-        r: 0,
-        g: 0,
-        b: 0,
+      "preLutBlur": {
+        "enabled": false,
+        "amount": 0
       },
-      domainMax: {
-        r: 1,
-        g: 1,
-        b: 1,
-      },
-      preLutBlur: {
-        enabled: false,
-        amount: 0,
-      },
-      inputProcessing: {
-        enabled: false,
-        saturation: 1,
-        brightness: 0,
-        contrast: 1,
-        gamma: 0.9,
-        hue: 0,
-      },
-    },
+      "inputProcessing": {
+        "enabled": false,
+        "saturation": 1,
+        "brightness": 0,
+        "contrast": 1,
+        "gamma": 0.9,
+        "hue": 0
+      }
+    }
   },
-  dust: {
-    enabled: true,
-    blendMode: 0,
-    maskThreshold: 0.39,
-    maskInfluence: 5,
-    particleTexture: "modules/map-shine/assets/particle.webp",
-    frequency: 0.097,
-    lifetime: {
-      min: 4,
-      max: 12,
+  "dust": {
+    "enabled": true,
+    "blendMode": 0,
+    "maskThreshold": 0.39,
+    "maskInfluence": 5,
+    "particleTexture": "modules/map-shine/assets/particle.webp",
+    "frequency": 0.097,
+    "lifetime": {
+      "min": 4,
+      "max": 12
     },
-    color: {
-      start: "#ffd275",
-      end: "#ffe9b9",
+    "color": {
+      "start": "#ffd275",
+      "end": "#ffe9b9"
     },
-    alpha: {
-      max: 0.51,
-      fadeIn: 0.5,
-      fadeOut: 0.5,
+    "alpha": {
+      "max": 0.51,
+      "fadeIn": 0.5,
+      "fadeOut": 0.5
     },
-    scale: {
-      sizeMultiplier: 0.6,
-      start: 0.9,
-      end: 1.09,
-      minMult: 0.86,
+    "scale": {
+      "sizeMultiplier": 0.6,
+      "start": 0.9,
+      "end": 1.09,
+      "minMult": 0.86
     },
-    speed: {
-      start: 3,
-      end: 6,
-      minMult: 0.5,
+    "speed": {
+      "start": 3,
+      "end": 6,
+      "minMult": 0.5
     },
-    rotation: {
-      enabled: false,
-      minSpeed: 0,
-      maxSpeed: 20,
-      accel: 0,
-    },
+    "rotation": {
+      "enabled": false,
+      "minSpeed": 0,
+      "maxSpeed": 20,
+      "accel": 0
+    }
   },
-  glint: {
-    enabled: true,
-    darknessAffectsIntensity: true,
-    blendMode: 0,
-    maskThreshold: 0.9,
-    maskInfluence: 0.09,
-    particleTexture: "modules/map-shine/assets/glint.webp",
-    frequency: 0.932,
-    lifetime: {
-      min: 0.8,
-      max: 2.9,
+  "glint": {
+    "enabled": true,
+    "darknessAffectsIntensity": true,
+    "blendMode": 0,
+    "maskThreshold": 0.9,
+    "maskInfluence": 0.09,
+    "particleTexture": "modules/map-shine/assets/glint.webp",
+    "frequency": 0.932,
+    "lifetime": {
+      "min": 0.8,
+      "max": 2.9
     },
-    color: {
-      start: "#FFFFFF",
-      end: "#FFFFFF",
+    "color": {
+      "start": "#FFFFFF",
+      "end": "#FFFFFF"
     },
-    alpha: {
-      max: 0.95,
-      fadeIn: 0.05,
-      fadeOut: 0.94,
+    "alpha": {
+      "max": 0.95,
+      "fadeIn": 0.05,
+      "fadeOut": 0.94
     },
-    scale: {
-      sizeMultiplier: 9,
-      start: 1.5,
-      end: 0.61,
-      minMult: 0.9,
+    "scale": {
+      "sizeMultiplier": 9,
+      "start": 1.5,
+      "end": 0.61,
+      "minMult": 0.9
     },
-    speed: {
-      start: 0,
-      end: 0,
-      minMult: 0.5,
+    "speed": {
+      "start": 0,
+      "end": 0,
+      "minMult": 0.5
     },
-    rotation: {
-      enabled: false,
-      minSpeed: 0,
-      maxSpeed: 20,
-      accel: 0,
+    "rotation": {
+      "enabled": false,
+      "minSpeed": 0,
+      "maxSpeed": 20,
+      "accel": 0
     },
-    rgbSplit: {
-      enabled: true,
-      amount: 8.2,
-    },
+    "rgbSplit": {
+      "enabled": true,
+      "amount": 8.2
+    }
   },
-  metallicGlints: {
-    enabled: true,
-    blendMode: 1,
-    maskThreshold: 0.9,
-    darknessAffectsFrequency: true,
-    maskInfluence: 5,
-    particleTexture: "modules/map-shine/assets/glint.webp",
-    frequency: 0.032,
-    lifetime: {
-      min: 0.4,
-      max: 1.2,
+  "metallicGlints": {
+    "enabled": true,
+    "blendMode": 1,
+    "maskThreshold": 0.9,
+    "maskInfluence": 5,
+    "particleTexture": "modules/map-shine/assets/glint.webp",
+    "frequency": 0.032,
+    "lifetime": {
+      "min": 0.4,
+      "max": 1.2
     },
-    alpha: {
-      max: 0.75,
-      fadeIn: 0.1,
-      fadeOut: 0.9,
+    "alpha": {
+      "max": 0.75,
+      "fadeIn": 0.1,
+      "fadeOut": 0.9
     },
-    scale: {
-      sizeMultiplier: 4,
-      start: 1,
-      end: 0.1,
-      minMult: 0.7,
+    "scale": {
+      "sizeMultiplier": 4,
+      "start": 1,
+      "end": 0.1,
+      "minMult": 0.7
     },
-    speed: {
-      start: 0,
-      end: 0,
-      minMult: 0.5,
+    "speed": {
+      "start": 0,
+      "end": 0,
+      "minMult": 0.5
     },
-    rotation: {
-      enabled: false,
-      minSpeed: 0,
-      maxSpeed: 0,
-      accel: 0,
-    },
+    "rotation": {
+      "enabled": false,
+      "minSpeed": 0,
+      "maxSpeed": 0,
+      "accel": 0
+    }
   },
-  biofilm: {
-    enabled: true,
-    blendMode: 0,
-    maskThreshold: 0.2,
-    maskUpperThreshold: 0.6,
-    maskInfluence: 5,
-    particleTexture: "modules/map-shine/assets/particle.webp",
-    frequency: 0.097,
-    lifetime: {
-      min: 4,
-      max: 12,
+  "biofilm": {
+    "enabled": true,
+    "blendMode": 1,
+    "maskThreshold": 0.05,
+    "maskUpperThreshold": 0.6,
+    "maskInfluence": 4.13,
+    "particleTexture": "modules/map-shine/assets/foam.webp",
+    "frequency": 0.011,
+    "lifetime": {
+      "min": 0.8,
+      "max": 1.7
     },
-    color: {
-      start: "#b0e089",
-      end: "#d0f0c0",
+    "color": {
+      "start": "#d1d1d1",
+      "end": "#232e1f"
     },
-    alpha: {
-      max: 0.51,
-      fadeIn: 0.5,
-      fadeOut: 0.5,
+    "alpha": {
+      "max": 0.92,
+      "fadeIn": 0.04,
+      "fadeOut": 1
     },
-    scale: {
-      sizeMultiplier: 0.6,
-      start: 0.9,
-      end: 1.09,
-      minMult: 0.3,
+    "scale": {
+      "sizeMultiplier": 2.1,
+      "start": 0.06,
+      "end": 0.79,
+      "minMult": 1
     },
-    speed: {
-      start: 3,
-      end: 6,
-      minMult: 0.5,
+    "speed": {
+      "start": 21,
+      "end": -29,
+      "minMult": 0.86
     },
-    rotation: {
-      enabled: false,
-      minSpeed: 0,
-      maxSpeed: 20,
-      accel: 0,
-    },
+    "rotation": {
+      "enabled": true,
+      "minSpeed": -33,
+      "maxSpeed": 36,
+      "accel": 0
+    }
   },
-  water: {
-    enabled: true,
-    flow: {
-      enabled: false,
-      angle: 45,
-      speed: 5,
+  "water": {
+    "enabled": true,
+    "flow": {
+      "enabled": true,
+      "angle": 43,
+      "speed": 50
     },
-    wave: {
-      enabled: true,
-      speed: 0.0148,
-      scale: 37.7,
-      intensity: 0.0018,
-      biofilmDistortion: {
-        enabled: true,
-        intensity: 0.005,
-      },
+    "wave": {
+      "enabled": true,
+      "speed": 1.5,
+      "scale": 0.5,
+      "intensity": 0.0026,
+      "biofilmDistortion": {
+        "enabled": true,
+        "intensity": 0.005
+      }
     },
-    murkiness: {
-      enabled: false,
-      color: "#1a2c22",
-      wavyNoise: {
-        strength: 0.8,
-        scale: 2.0,
-        speed: 0.005,
+    "murkiness": {
+      "enabled": true,
+      "color": "#1a2c22",
+      "wavyNoise": {
+        "strength": 0.67,
+        "scale": 0.06,
+        "speed": 0.23
       },
-      sandyNoise: {
-        strength: 0.3,
-        scale: 15.0,
-        speed: 0.02,
-      },
+      "sandyNoise": {
+        "strength": 0.39,
+        "scale": 27.5,
+        "speed": 2
+      }
     },
-    surface: {
-      enabled: true,
-      foamColor: "#33adff",
-      foamIntensity: 0,
-      foamCoverage: 0,
-      foamSharpness: 0.13,
-      fbmScale: 15.196,
-      fbmSpeed: 0.01,
-      fbmEvolution: 0.03,
-      fbmOctaves: 5,
-      fbmLacunarity: 4,
-      fbmPersistence: 0.1,
-      sheenEnabled: true,
-      sheenIntensity: 0.448,
-      sheenColor: "#FFFFFF",
-      sheenScale: 0.5,
-      sheenSpeed: 0.002,
-      sheenStretch: 1,
-      sheenSharpness: 0.8,
+    "surface": {
+      "enabled": true,
+      "foamColor": "#ffffff",
+      "foamIntensity": 0.5,
+      "foamCoverage": 0.23,
+      "foamSharpness": 0.12,
+      "fbmScale": 0.1278,
+      "fbmSpeed": 0.1,
+      "fbmEvolution": 0.11,
+      "fbmOctaves": 7,
+      "fbmLacunarity": 2.25,
+      "fbmPersistence": 0.65,
+      "sheenEnabled": true,
+      "sheenIntensity": 0.558,
+      "sheenColor": "#FFFFFF",
+      "sheenScale": 6.2,
+      "sheenSpeed": 25,
+      "sheenStretch": 1,
+      "sheenSharpness": 1.1
     },
-    caustics: {
-      enabled: true,
-      intensity: 0.11,
-      scale: 1,
-      speed: 0.08,
-      color: "#87CEFA",
-      lineSharpness: 5,
-      bloomIntensity: 1,
-      lineDistortion: 0.1,
-      lineDistortionScale: 5,
-      intersectionBoost: 20,
-      roughnessScale: 4.2,
-      roughnessIntensity: 0.83,
-      cloudOcclusion: {
-        enabled: true,
-        intensity: 0.8,
-      },
+    "caustics": {
+      "enabled": true,
+      "intensity": 0.008,
+      "scale": 0.3,
+      "speed": 3.6,
+      "color": "#b3fff0",
+      "lineSharpness": 1,
+      "bloomIntensity": 0.37,
+      "lineDistortion": 0.1,
+      "lineDistortionScale": 5,
+      "intersectionBoost": 20,
+      "roughnessScale": 0.7,
+      "roughnessIntensity": 1,
+      "cloudOcclusion": {
+        "enabled": true,
+        "intensity": 0.93
+      }
     },
-    shoreline: {
-      enabled: false,
-      detectionBlur: 1,
-      foamColor: "#FFFFFF",
-      foamIntensity: 0.5,
-      foamPattern: {
-        scale: 1,
-        speed: 0,
-        evolution: 0.01,
-        octaves: 4,
-        lacunarity: 2.05,
-        persistence: 0.15,
-        brightness: 0.5,
-        contrast: 1,
+    "shoreline": {
+      "enabled": false,
+      "detectionBlur": 1,
+      "foamColor": "#FFFFFF",
+      "foamIntensity": 0.5,
+      "foamPattern": {
+        "scale": 1,
+        "speed": 0,
+        "evolution": 0.01,
+        "octaves": 4,
+        "lacunarity": 2.05,
+        "persistence": 0.15,
+        "brightness": 0.5,
+        "contrast": 1
       },
-      displacement: {
-        enabled: false,
-        scale: 0.4,
-        speed: 0.011,
-        strength: 0.0025,
-      },
+      "displacement": {
+        "enabled": false,
+        "scale": 0.4,
+        "speed": 0.011,
+        "strength": 0.0025
+      }
     },
-    glintParticles: {
-      enabled: true,
-      blendMode: 9,
-      maskThreshold: 0.17,
-      maskInfluence: 1.95,
-      particleTexture: "modules/map-shine/assets/glint.webp",
-      frequency: 0.99,
-      lifetime: {
-        min: 0.8,
-        max: 0.8,
+    "glintParticles": {
+      "enabled": true,
+      "blendMode": 9,
+      "maskThreshold": 0.17,
+      "maskInfluence": 5,
+      "particleTexture": "modules/map-shine/assets/glint.webp",
+      "frequency": 0.089,
+      "lifetime": {
+        "min": 0.2,
+        "max": 1.4
       },
-      color: {
-        start: "#eef7ff",
-        end: "#95b3ff",
+      "color": {
+        "start": "#eef7ff",
+        "end": "#95b3ff"
       },
-      alpha: {
-        max: 0.5,
-        fadeIn: 0.25,
-        fadeOut: 0.25,
+      "alpha": {
+        "max": 1,
+        "fadeIn": 0.25,
+        "fadeOut": 0.25
       },
-      scale: {
-        sizeMultiplier: 1.9,
-        start: 0.76,
-        end: 0.82,
-        minMult: 0.95,
+      "scale": {
+        "sizeMultiplier": 0.7,
+        "start": 0.76,
+        "end": 0.82,
+        "minMult": 0.95
       },
-      speed: {
-        start: 5,
-        end: 11,
-        minMult: 0.47,
+      "speed": {
+        "start": 5,
+        "end": 11,
+        "minMult": 0.47
       },
-      rotation: {
-        enabled: true,
-        minSpeed: 116,
-        maxSpeed: 123,
-        accel: 52,
-      },
-    },
+      "rotation": {
+        "enabled": true,
+        "minSpeed": -20,
+        "maxSpeed": 11,
+        "accel": -1
+      }
+    }
   },
-  foam: {
-    enabled: true,
-    blendMode: 1, // ADD
-    smallBlur: 2,
-    largeBlur: 10,
-    intensity: 1.5,
-    threshold: 0.2,
-    softness: 0.1,
-    color: "#FFFFFF",
-    noise: {
-      scale: 15,
-      speed: 0.02,
-      evolution: 0.05,
-      octaves: 4,
-      lacunarity: 2.2,
-      persistence: 0.45,
+  "foam": {
+    "enabled": true,
+    "blendMode": 0,
+    "smallBlur": 1,
+    "largeBlur": 37,
+    "intensity": 1.55,
+    "threshold": 0.01,
+    "softness": 0.79,
+    "color": "#edf1eb",
+    "noise": {
+      "scale": 23,
+      "speed": 0.5,
+      "evolution": 0.5,
+      "octaves": 3,
+      "lacunarity": 1.9,
+      "persistence": 0.2
     },
-    breakupNoise: {
-      enabled: true,
-      scale: 2.5,
-      evolution: 0.01,
-      octaves: 5,
-      lacunarity: 2.8,
-      persistence: 0.35,
-      brightness: 0.4,
-      contrast: 1.2,
+    "breakupNoise": {
+      "enabled": true,
+      "scale": 0.7,
+      "evolution": 0.1,
+      "octaves": 2,
+      "lacunarity": 3.75,
+      "persistence": 0.1,
+      "brightness": 0.04,
+      "contrast": 0.1
     },
-    blurTurbulence: {
-      strength: 8.0,
-      scale: 0.5,
-      speed: 0.01,
+    "blurTurbulence": {
+      "strength": 3,
+      "scale": 4.3,
+      "speed": 0.05
     },
-    crestFoam: {
-      enabled: true,
-      intensity: 1.8,
-      frequency: 35,
-      speed: 0.03,
-      angle: 15,
-      sharpness: 12,
-      perturbStrength: 35,
-      perturbScale: 0.04,
-      perturbSpeed: 0.01,
-      perturbOctaves: 4,
-      crestBreakup: {
-        scale: 0.35,
-        speed: 0.08,
-        octaves: 3,
-        brightness: 0.45,
-        contrast: 1.8,
-      },
-    },
+    "crestFoam": {
+      "enabled": true,
+      "intensity": 0.35,
+      "frequency": 4,
+      "speed": 0.2,
+      "angle": 16,
+      "sharpness": 39,
+      "perturbStrength": 100,
+      "perturbScale": 0.01,
+      "perturbSpeed": 0.074,
+      "perturbOctaves": 1,
+      "crestBreakup": {
+        "scale": 0.24,
+        "speed": 0.174,
+        "octaves": 1,
+        "brightness": 0.06,
+        "contrast": 3.9
+      }
+    }
   },
-  fire: {
-    enabled: true,
-    bloom: {
-      enabled: true,
-      threshold: 0.04,
-      bloomScale: 5,
-      brightness: 5,
-      blur: 0,
-      quality: 4,
+  "fire": {
+    "enabled": true,
+    "bloom": {
+      "enabled": true,
+      "threshold": 0.04,
+      "bloomScale": 5,
+      "brightness": 5,
+      "blur": 0,
+      "quality": 4
     },
-    particles: {
-      enabled: true,
-      blendMode: 1,
-      maskThreshold: 0.06,
-      maskInfluence: 0.08,
-      particleTexture: "modules/map-shine/assets/flame.webp",
-      frequency: 0.001,
-      lifetime: {
-        min: 0.1,
-        max: 1.4,
+    "particles": {
+      "enabled": true,
+      "blendMode": 1,
+      "maskThreshold": 0.06,
+      "maskInfluence": 0.08,
+      "particleTexture": "modules/map-shine/assets/flame.webp",
+      "frequency": 0.001,
+      "lifetime": {
+        "min": 0.1,
+        "max": 1.4
       },
-      color: {
-        start: "#FFDD88",
-        end: "#ea7500",
+      "color": {
+        "start": "#FFDD88",
+        "end": "#ea7500"
       },
-      alpha: {
-        max: 0.1,
-        fadeIn: 0.01,
-        fadeOut: 1,
+      "alpha": {
+        "max": 0.1,
+        "fadeIn": 0.01,
+        "fadeOut": 1
       },
-      scale: {
-        sizeMultiplier: 0.4,
-        start: 0.32,
-        end: 1.24,
-        minMult: 0.95,
+      "scale": {
+        "sizeMultiplier": 0.4,
+        "start": 0.32,
+        "end": 1.24,
+        "minMult": 0.95
       },
-      speed: {
-        start: 1,
-        end: 2,
-        minMult: 0.5,
+      "speed": {
+        "start": 1,
+        "end": 2,
+        "minMult": 0.5
       },
-      rotation: {
-        enabled: true,
-        minSpeed: -180,
-        maxSpeed: 180,
-        accel: 4,
+      "rotation": {
+        "enabled": true,
+        "minSpeed": -180,
+        "maxSpeed": 180,
+        "accel": 4
       },
-      wind: {
-        enabled: false,
-        force: 0,
-        baseSpeed: 0,
-        gustSpeed: 0,
-        gustFrequencyMin: 3,
-        gustFrequencyMax: 8,
-        gustDurationMin: 0.2,
-        gustDurationMax: 0.8,
-        angleChangeFrequencyMin: 5,
-        angleChangeFrequencyMax: 15,
-        angleChangeRange: 20,
-      },
-    },
+      "wind": {
+        "enabled": false,
+        "force": 0,
+        "baseSpeed": 0,
+        "gustSpeed": 0,
+        "gustFrequencyMin": 3,
+        "gustFrequencyMax": 8,
+        "gustDurationMin": 0.2,
+        "gustDurationMax": 0.8,
+        "angleChangeFrequencyMin": 5,
+        "angleChangeFrequencyMax": 15,
+        "angleChangeRange": 20
+      }
+    }
   },
-  sparks: {
-    enabled: true,
-    blendMode: 1,
-    maskThreshold: 0.95,
-    maskInfluence: 1.12,
-    particleTexture: "modules/map-shine/assets/particle.webp",
-    frequency: 0.08,
-    lifetime: {
-      min: 1.5,
-      max: 3,
+  "sparks": {
+    "enabled": true,
+    "blendMode": 1,
+    "maskThreshold": 0.95,
+    "maskInfluence": 1.12,
+    "particleTexture": "modules/map-shine/assets/particle.webp",
+    "frequency": 0.08,
+    "lifetime": {
+      "min": 1.5,
+      "max": 3
     },
-    color: {
-      start: "#ffbc40",
-      end: "#fffb55",
+    "color": {
+      "start": "#ffbc40",
+      "end": "#fffb55"
     },
-    alpha: {
-      max: 0.69,
-      fadeIn: 0.1,
-      fadeOut: 0.03,
+    "alpha": {
+      "max": 0.69,
+      "fadeIn": 0.1,
+      "fadeOut": 0.03
     },
-    scale: {
-      sizeMultiplier: 1.55,
-      start: 1,
-      end: 0.1,
-      minMult: 0.5,
+    "scale": {
+      "sizeMultiplier": 1.55,
+      "start": 1,
+      "end": 0.1,
+      "minMult": 0.5
     },
-    path: {
-      speed: {
-        start: 32,
-        end: 10,
-        minMult: 0.6,
+    "path": {
+      "speed": {
+        "start": 32,
+        "end": 10,
+        "minMult": 0.6
       },
-      amplitude: {
-        min: 10,
-        max: 100,
+      "amplitude": {
+        "min": 10,
+        "max": 100
       },
-      frequency: {
-        min: 40,
-        max: 189,
+      "frequency": {
+        "min": 40,
+        "max": 189
       },
-      offset: {
-        min: 0,
-        max: 6.28,
+      "offset": {
+        "min": 0,
+        "max": 6.28
       },
-      damping: 0.05,
-      angle: {
-        min: -90,
-        max: 90,
+      "damping": 0.05,
+      "angle": {
+        "min": -90,
+        "max": 90
       },
-      motionBlur: {
-        enabled: true,
-        strength: 0.15,
-        maxLength: 2.4,
-      },
-    },
+      "motionBlur": {
+        "enabled": true,
+        "strength": 0.15,
+        "maxLength": 2.4
+      }
+    }
   },
-  lightning: {
-    enabled: false,
-    offPeriodMin: 1,
-    offPeriodMax: 1761,
-    strikeDuration: 50,
-    flickerInterval: 10,
-    flickerIntensity: 0.2,
-    fadeEasePower: 2,
-    color: "#99DDFF",
-    coreColor: "#FFFFFF",
-    brightness: 3,
-    sheathOpacity: 1,
-    coreOpacity: 1,
-    width: {
-      start: 12,
-      end: 2,
-      variationEnabled: true,
-      variationAmount: 0.5,
-      variationScale: 0.1,
-      variationSpeed: 0.1,
+  "lightning": {
+    "enabled": false,
+    "offPeriodMin": 1,
+    "offPeriodMax": 1761,
+    "strikeDuration": 50,
+    "flickerInterval": 10,
+    "flickerIntensity": 0.2,
+    "fadeEasePower": 2,
+    "color": "#99DDFF",
+    "coreColor": "#FFFFFF",
+    "brightness": 3,
+    "sheathOpacity": 1,
+    "coreOpacity": 1,
+    "width": {
+      "start": 12,
+      "end": 2,
+      "variationEnabled": true,
+      "variationAmount": 0.5,
+      "variationScale": 0.1,
+      "variationSpeed": 0.1
     },
-    coreWidth: {
-      start: 4,
-      end: 0.5,
+    "coreWidth": {
+      "start": 4,
+      "end": 0.5
     },
-    path: {
-      segments: 100,
-      endPointRandomness: 15,
+    "path": {
+      "segments": 100,
+      "endPointRandomness": 15
     },
-    curve: {
-      startAngleMin: -45,
-      startAngleMax: 45,
-      endAngleMin: 135,
-      endAngleMax: 225,
-      controlPointDistanceMin: 100,
-      controlPointDistanceMax: 160,
+    "curve": {
+      "startAngleMin": -45,
+      "startAngleMax": 45,
+      "endAngleMin": 135,
+      "endAngleMax": 225,
+      "controlPointDistanceMin": 100,
+      "controlPointDistanceMax": 160
     },
-    fork: {
-      maxDepth: 4,
-      chance: 1,
-      angleRange: 168,
-      lengthFalloff: 0.7,
-      widthFalloff: 0.86,
+    "fork": {
+      "maxDepth": 4,
+      "chance": 1,
+      "angleRange": 168,
+      "lengthFalloff": 0.7,
+      "widthFalloff": 0.86
     },
-    displacement: {
-      enabled: true,
-      magnitude: 15,
-      speed: 0.2,
-      scale: 0.05,
+    "displacement": {
+      "enabled": true,
+      "magnitude": 15,
+      "speed": 0.2,
+      "scale": 0.05
     },
-    displacementFine: {
-      enabled: true,
-      magnitude: 5,
-      speed: 0.1,
-      scale: 0.005,
+    "displacementFine": {
+      "enabled": true,
+      "magnitude": 5,
+      "speed": 0.1,
+      "scale": 0.005
     },
-    bloom: {
-      enabled: true,
-      blendMode: 1,
-      threshold: 0.5,
-      bloomScale: 1,
-      brightness: 2,
-      blur: 8,
-      quality: 4,
-      rgbSplit: {
-        enabled: true,
-        amount: 0.5,
-      },
-    },
+    "bloom": {
+      "enabled": true,
+      "blendMode": 1,
+      "threshold": 0.5,
+      "bloomScale": 1,
+      "brightness": 2,
+      "blur": 8,
+      "quality": 4,
+      "rgbSplit": {
+        "enabled": true,
+        "amount": 0.5
+      }
+    }
   },
-  smellyFlies: {
-    enabled: false,
-    blendMode: 0,
-    particleTexture: "modules/map-shine/assets/fly.webp",
-    maxParticles: 10,
-    flying: {
-      takeoffDuration: 0.5,
-      takeoffSpeedMin: 100,
-      takeoffSpeedMax: 200,
-      noiseStrength: 2000,
-      noiseFrequency: 25,
-      tetherStrength: 15.8,
-      maxSpeed: 1000,
-      drag: 0.8,
-      landChance: 0.05,
-      landingDuration: 1,
+  "smellyFlies": {
+    "enabled": false,
+    "blendMode": 0,
+    "particleTexture": "modules/map-shine/assets/fly.webp",
+    "maxParticles": 10,
+    "flying": {
+      "takeoffDuration": 0.5,
+      "takeoffSpeedMin": 100,
+      "takeoffSpeedMax": 200,
+      "noiseStrength": 2000,
+      "noiseFrequency": 25,
+      "tetherStrength": 15.8,
+      "maxSpeed": 1000,
+      "drag": 0.8,
+      "landChance": 0.05,
+      "landingDuration": 1
     },
-    walking: {
-      walkSpeed: 60,
-      minIdleTime: 0.5,
-      maxIdleTime: 2.5,
-      minRotateTime: 0.2,
-      maxRotateTime: 0.7,
-      minMoveTime: 0.3,
-      maxMoveTime: 5.3,
-      minMoveDistance: 5,
-      maxMoveDistance: 95,
-      takeoffChance: 0.05,
+    "walking": {
+      "walkSpeed": 60,
+      "minIdleTime": 0.5,
+      "maxIdleTime": 2.5,
+      "minRotateTime": 0.2,
+      "maxRotateTime": 0.7,
+      "minMoveTime": 0.3,
+      "maxMoveTime": 5.3,
+      "minMoveDistance": 5,
+      "maxMoveDistance": 95,
+      "takeoffChance": 0.05
     },
-    motionBlur: {
-      enabled: true,
-      strength: 0.03,
-      maxLength: 1.6,
+    "motionBlur": {
+      "enabled": true,
+      "strength": 0.03,
+      "maxLength": 1.6
+    }
+  },
+  "particleSystems": {
+    "enabled": true,
+    "globalDensityMultiplier": 0.6,
+    "globalParticleLimit": 500
+  },
+  "buildingShadows": {
+    "enabled": true,
+    "intensity": 0.21,
+    "maxOffset": 99,
+    "maxBlur": 14,
+    "sunAngle": 0
+  },
+  "timeOfDay": {
+    "enabled": true,
+    "intensity": 0.2,
+    "currentTime": 12.20015142058729,
+    "keyframes": {
+      "midnight": {
+        "time": 0,
+        "temperature": -0.2,
+        "tint": -0.05,
+        "saturation": 0.8,
+        "brightness": 0,
+        "contrast": 1.1,
+        "exposure": -0.62,
+        "gamma": 1.1
+      },
+      "dawn": {
+        "time": 6,
+        "temperature": 0.3,
+        "tint": -0.09,
+        "saturation": 0.7,
+        "brightness": -0.02,
+        "contrast": 1.05,
+        "exposure": -0.31,
+        "gamma": 0.98
+      },
+      "midday": {
+        "time": 12,
+        "temperature": 0,
+        "tint": 0,
+        "saturation": 1,
+        "brightness": 0,
+        "contrast": 1,
+        "exposure": 0.21,
+        "gamma": 1
+      },
+      "dusk": {
+        "time": 18,
+        "temperature": 0.4,
+        "tint": -0.1,
+        "saturation": 0.74,
+        "brightness": -0.05,
+        "contrast": 1.1,
+        "exposure": -0.44,
+        "gamma": 1
+      },
+      "twilight": {
+        "time": 21,
+        "temperature": -0.44,
+        "tint": -0.42,
+        "saturation": 0.55,
+        "brightness": 0,
+        "contrast": 1,
+        "exposure": -0.55,
+        "gamma": 1
+      }
+    }
+  },
+  "diagnostic": {
+    "enabled": false,
+    "showMasks": false,
+    "pixelInspector": false,
+    "displaySuffix": "scene_brightness_mask"
+  },
+  "overheadEffect": {
+    "enabled": true,
+    "blurMinZoom": 0,
+    "blurMidZoom": 7.5,
+    "blurMaxZoom": 37,
+    "opacityMinZoom": 1,
+    "opacityMidZoom": 0.24,
+    "opacityMaxZoom": 0.07,
+    "zoomPointMin": 0.2,
+    "zoomPointMid": 1.75,
+    "zoomPointMax": 2.8,
+    "recolor": {
+      "enabled": false,
+      "intensity": 2,
+      "tint": "#80DEEA",
+      "cloudShadowDarken": {
+        "enabled": true,
+        "intensity": 0.3
+      }
     },
+    "hoverFadeDuration": 500,
+    "tokenMasking": {
+      "enabled": true,
+      "blurAmount": 10
+    }
   },
-  particleSystems: {
-    enabled: true,
-    globalDensityMultiplier: 1,
-    globalParticleLimit: 1000,
-  },
-  buildingShadows: {
-    enabled: true,
-    intensity: 0.31,
-    maxOffset: 190,
-    maxBlur: 50,
-    sunAngle: 3,
-  },
-  timeOfDay: {
-    enabled: true,
-    intensity: 0.2,
-    currentTime: 12.051098446759717,
-    keyframes: {
-      midnight: {
-        time: 0,
-        temperature: -0.2,
-        tint: -0.05,
-        saturation: 0.8,
-        brightness: 0,
-        contrast: 1.1,
-        exposure: -0.62,
-        gamma: 1.1,
-      },
-      dawn: {
-        time: 6,
-        temperature: 0.3,
-        tint: -0.09,
-        saturation: 0.7,
-        brightness: -0.02,
-        contrast: 1.05,
-        exposure: -0.31,
-        gamma: 0.98,
-      },
-      midday: {
-        time: 12,
-        temperature: 0,
-        tint: 0,
-        saturation: 1,
-        brightness: 0,
-        contrast: 1,
-        exposure: 0.21,
-        gamma: 1,
-      },
-      dusk: {
-        time: 18,
-        temperature: 0.4,
-        tint: -0.1,
-        saturation: 0.74,
-        brightness: -0.05,
-        contrast: 1.1,
-        exposure: -0.44,
-        gamma: 1,
-      },
-      twilight: {
-        time: 21,
-        temperature: -0.44,
-        tint: -0.42,
-        saturation: 0.55,
-        brightness: 0,
-        contrast: 1,
-        exposure: -0.55,
-        gamma: 1,
-      },
-    },
-  },
-  diagnostic: {
-    enabled: false,
-    showMasks: true,
-    pixelInspector: false,
-    displaySuffix: "scene_brightness_mask",
-  },
-  overheadEffect: {
-    enabled: true,
-    blurMinZoom: 0,
-    blurMidZoom: 7.5,
-    blurMaxZoom: 37,
-    opacityMinZoom: 1,
-    opacityMidZoom: 0.24,
-    opacityMaxZoom: 0.07,
-    zoomPointMin: 0.2,
-    zoomPointMid: 1.75,
-    zoomPointMax: 2.8,
-    recolor: {
-      enabled: false,
-      intensity: 2,
-      tint: "#80DEEA",
-      cloudShadowDarken: {
-        enabled: true,
-        intensity: 0.3,
-      },
-    },
-    hoverFadeDuration: 500,
-    tokenMasking: {
-      enabled: true,
-      blurAmount: 10,
-    },
-  },
-  ambientLayerZIndex: 250,
+  "ambientLayerZIndex": 250
 };
 
 const hexToRgbArray = (hex) => {
@@ -3185,6 +3184,20 @@ class MapShineInitialiser {
       type: Boolean,
       default: false,
       onChange: this._requestRefresh,
+    });
+
+    game.settings.register(MODULE_ID, "scene-transition-timeout", {
+      name: "Scene Transition Timeout (ms)",
+      hint: "The maximum time to wait for effects to finish loading before forcing the scene to fade in. Increase this if you see timeout warnings in the console on slow-loading scenes.",
+      scope: "client",
+      config: true,
+      type: Number,
+      default: 90000,
+      range: {
+        min: 5000,
+        max: 90000,
+        step: 1000,
+      },
     });
 
     // Register all individual effect overrides
@@ -3775,13 +3788,14 @@ class MapShineInitialiser {
           // This triggers the scene change, canvas teardown, and canvas ready hooks.
           const result = await wrapped(...args);
 
+          const timeoutDuration = game.settings.get(MODULE_ID, "scene-transition-timeout");
           const timeoutPromise = new Promise((resolve) =>
             setTimeout(() => {
               console.warn(
-                "[MapShine Transition] Timed out waiting for systems ready signal. Fading in anyway."
+                `[MapShine Transition] Timed out waiting for systems ready signal after ${timeoutDuration}ms. Fading in anyway.`
               );
               resolve();
-            }, 10000)
+            }, timeoutDuration)
           );
 
           await Promise.race([
@@ -4923,6 +4937,11 @@ class ResourceManager {
     );
     if (!cloudLayer) return null;
 
+    // Ensure the mask is rendered for the current frame if an update is pending.
+    if (cloudLayer._needsMaskUpdate) {
+      cloudLayer.renderMask();
+    }
+
     const texture = cloudLayer.getMaskTexture();
     this._frameCache.outdoorsMask = texture;
     return texture;
@@ -5175,6 +5194,11 @@ class ResourceManager {
 
     const layer = canvas.layers.find((l) => l instanceof WaterFXLayer);
     if (!layer) return null;
+
+    // Ensure the mask is rendered for the current frame if an update is pending.
+    if (layer._needsMaskUpdate) {
+      layer.renderMask();
+    }
 
     const texture = layer.getMaskTexture();
     this._frameCache.waterMask = texture;
@@ -6055,11 +6079,9 @@ class SceneChangeManager {
 
     if (game.mapShine.pauseEffectManager) {
       game.mapShine.pauseEffectManager.destroy();
-      game.mapShine.pauseEffectManager = null;
     }
     if (game.mapShine.combatEffectManager) {
       game.mapShine.combatEffectManager.destroy();
-      game.mapShine.combatEffectManager = null;
     }
     if (game.mapShine.fireWindManager) {
       game.mapShine.fireWindManager.destroy();
@@ -6135,13 +6157,7 @@ class SceneChangeManager {
         SCREEN_FX_INIT: 75,
         MANAGERS_INIT: 85,
         CANVAS_MANAGERS_INIT: 95,
-        STRUCTURAL_HIGHLIGHTS: 96,
-        PREWARM_WATER: 97,
-        PREWARM_HEAT: 98,
-        PREWARM_CLOUDS: 98,
-        PREWARM_SHINE: 99,
-        PREWARM_FOAM: 99,
-        PREWARM_IRIDESCENCE: 99,
+        STRUCTURAL_HIGHLIGHTS: 98,
         SETUP_COMPLETE: 100,
       },
       messages: {
@@ -6157,13 +6173,7 @@ class SceneChangeManager {
         SCREEN_FX_INIT: "Initializing screen effects...",
         MANAGERS_INIT: "Initializing system managers...",
         CANVAS_MANAGERS_INIT: "Initializing canvas managers...",
-        STRUCTURAL_HIGHLIGHTS: "Pre-rendering structural highlights...",
-        PREWARM_WATER: "Pre-rendering water effects...",
-        PREWARM_HEAT: "Pre-rendering heat distortion...",
-        PREWARM_CLOUDS: "Pre-rendering cloud shadows...",
-        PREWARM_SHINE: "Pre-rendering metallic shine...",
-        PREWARM_FOAM: "Pre-rendering shoreline foam...",
-        PREWARM_IRIDESCENCE: "Pre-rendering iridescence...",
+        STRUCTURAL_HIGHLIGHTS: "Rendering structural highlights...",
         SETUP_COMPLETE: "Finalizing scene...",
       },
       setProgress(waypoint) {
@@ -7163,6 +7173,8 @@ class OverheadEffectLayer extends CanvasLayer {
     Hooks.on("canvasReady", this._boundOnCanvasReady);
     canvas.app.ticker.add(this._boundOnAnimate);
     window.addEventListener("resize", this._boundOnResize);
+
+    this.updateFromConfig(game.mapShine.profileManager.activeConfig);
   }
 
   async _tearDown(options) {
@@ -7272,8 +7284,9 @@ class OverheadEffectLayer extends CanvasLayer {
           resourceManager.getStructuralMask() ?? PIXI.Texture.WHITE;
         this.recolorFilter.uniforms.uCloudShadows =
           resourceManager.getRawCloudTexture(deltaTime) ?? PIXI.Texture.WHITE;
-        this.recolorFilter.uniforms.uSceneDarkness = canvas.scene.environment.darknessLevel;
       }
+      // Pass the scene darkness level to the filter
+      this.recolorFilter.uniforms.uDarkness = canvas.scene?.environment.darknessLevel ?? 0;
     }
 
     const renderer = canvas.app.renderer;
@@ -7283,6 +7296,10 @@ class OverheadEffectLayer extends CanvasLayer {
       transform: canvas.stage.transform.worldTransform,
     });
 
+    // This is the corrected logic for positioning and scaling the final composite sprite.
+    // Instead of setting width/height, we set the scale directly. This is more robust.
+    // The texture of compositeSprite is screen-sized. To make the sprite have a world-size
+    // that perfectly matches the viewport, we need to scale it by 1 / canvasScale.
     const scale = CoordinateManager.getCanvasScale();
     this.compositeSprite.position.copyFrom(CoordinateManager.getCameraOffset());
     if (scale > 0) {
@@ -7729,64 +7746,56 @@ class LoadingScreen {
 class MapShineLifecycle {
   // onCanvasReady and onCanvasTearDown are removed as their roles are now taken by SceneChangeManager.
 
-  static async beginPersistentDiscovery(canvas, attempt = 1, maxAttempts = 5) {
-    if (!canvas?.scene || !canvas.mapShine?.isModuleActive) {
-      console.log("Map Shine | Discovery aborted, canvas is no longer active.");
-      return;
-    }
-
-    if (attempt > maxAttempts) {
-      console.warn(
-        `Map Shine | Texture discovery failed after ${maxAttempts} attempts. No effect maps found.`
-      );
-      if (game.mapShine.loadingScreen) {
-        await game.mapShine.loadingScreen.hide();
-        game.mapShine.loadingScreen = null;
-        if (game.mapShine.loadingManager)
-          game.mapShine.loadingManager.screen = null;
+  static async beginPersistentDiscovery(canvas, maxAttempts = 5) {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      if (!canvas?.scene || !canvas.mapShine?.isModuleActive) {
+        console.log("Map Shine | Discovery aborted, canvas is no longer active.");
+        // If discovery is aborted, we must still resolve the setup promise to prevent a hang.
+        await this.runMinimalSetup(canvas);
+        return;
       }
-      this.runMinimalSetup(canvas);
-      return;
+
+      // Wait between attempts, giving the scene more time to draw.
+      // The delay is increased for subsequent attempts.
+      await new Promise((resolve) => setTimeout(resolve, attempt === 1 ? 250 : 500));
+
+      if (game.mapShine.loadingManager) {
+        const message =
+          attempt > 1
+            ? `Discovering effect maps (Attempt ${attempt})...`
+            : game.mapShine.loadingManager.messages.DISCOVERY_START;
+        game.mapShine.loadingManager.screen?.setProgress(
+          game.mapShine.loadingManager.waypoints.DISCOVERY_START,
+          message
+        );
+      }
+
+      await game.mapShine.effectTargetManager.refresh();
+      const targets = game.mapShine.effectTargetManager.targets;
+      const hasBackgroundTarget =
+        targets.background &&
+        Object.values(targets.background).some((v) => v && typeof v === "string");
+      const hasTileTargets = Array.from(targets.tiles.values()).length > 0;
+
+      if (hasBackgroundTarget || hasTileTargets) {
+        console.log(
+          `Map Shine | Texture discovery successful on attempt #${attempt}. Initializing all systems.`
+        );
+        game.mapShine.loadingManager?.setProgress("DISCOVERY_END");
+        await this.runFullSetup(canvas);
+        return; // Success, exit the loop and the function.
+      } else {
+        console.log(
+          `Map Shine | Texture discovery attempt #${attempt} found no targets. Retrying...`
+        );
+      }
     }
 
-    await new Promise((resolve) =>
-      setTimeout(resolve, attempt === 1 ? 100 : 250)
+    // If the loop finishes without returning, all attempts have failed.
+    console.warn(
+      `Map Shine | Texture discovery failed after ${maxAttempts} attempts. No effect maps found.`
     );
-
-    if (game.mapShine.loadingManager) {
-      const message =
-        attempt > 1
-          ? `Discovering effect maps (Attempt ${attempt})...`
-          : game.mapShine.loadingManager.messages.DISCOVERY_START;
-      game.mapShine.loadingManager.screen?.setProgress(
-        game.mapShine.loadingManager.waypoints.DISCOVERY_START,
-        message
-      );
-    }
-
-    await game.mapShine.effectTargetManager.refresh();
-    const targets = game.mapShine.effectTargetManager.targets;
-    const hasBackgroundTarget =
-      targets.background &&
-      Object.values(targets.background).some((v) => v && typeof v === "string");
-    const hasTileTargets = Array.from(targets.tiles.values()).length > 0;
-
-    if (hasBackgroundTarget || hasTileTargets) {
-      console.log(
-        `Map Shine | Texture discovery successful on attempt #${attempt}. Initializing all systems.`
-      );
-      game.mapShine.loadingManager?.setProgress("DISCOVERY_END");
-      this.runFullSetup(canvas);
-    } else {
-      console.log(
-        `Map Shine | Texture discovery attempt #${attempt} found no targets. Retrying...`
-      );
-      MapShineLifecycle.beginPersistentDiscovery(
-        canvas,
-        attempt + 1,
-        maxAttempts
-      );
-    }
+    await this.runMinimalSetup(canvas);
   }
 
   static async runFullSetup(canvas) {
@@ -7880,53 +7889,8 @@ class MapShineLifecycle {
       (l) => l instanceof StructuralShadowsLayer
     );
     if (structuralLayer?.visible) {
+      // Pass a delta time of 0 for a single-frame, non-animated render.
       structuralLayer.renderEffectNow(0);
-    }
-
-    // Pre-warm the water effects layer to prevent pop-in.
-    await loadingManager?.tick("PREWARM_WATER");
-    const waterLayer = canvas.layers.find((l) => l instanceof WaterFXLayer);
-    if (waterLayer?.visible) {
-      await waterLayer.prewarmTextures();
-    }
-
-    // Pre-warm the heat distortion layer to prevent pop-in.
-    await loadingManager?.tick("PREWARM_HEAT");
-    const heatLayer = canvas.layers.find(
-      (l) => l instanceof HeatDistortionLayer
-    );
-    if (heatLayer?.visible) {
-      heatLayer.renderEffectNow(0);
-    }
-
-    // Pre-warm the cloud shadows layer.
-    await loadingManager?.tick("PREWARM_CLOUDS");
-    const cloudLayer = canvas.layers.find((l) => l instanceof CloudShadowsLayer);
-    if (cloudLayer?.visible) {
-      cloudLayer.renderEffectNow(0);
-    }
-
-    // Pre-warm the metallic shine layer.
-    await loadingManager?.tick("PREWARM_SHINE");
-    const shineLayer = canvas.layers.find((l) => l instanceof MetallicShineLayer);
-    if (shineLayer?.visible) {
-      shineLayer.renderEffectNow(0);
-    }
-
-    // Pre-warm the foam layer.
-    await loadingManager?.tick("PREWARM_FOAM");
-    const foamLayer = canvas.layers.find((l) => l instanceof FoamLayer);
-    if (foamLayer?.visible) {
-      foamLayer.renderEffectNow(0);
-    }
-
-    // Pre-warm the iridescence layer.
-    await loadingManager?.tick("PREWARM_IRIDESCENCE");
-    const iridescenceLayer = canvas.layers.find(
-      (l) => l instanceof IridescenceLayer
-    );
-    if (iridescenceLayer?.visible) {
-      iridescenceLayer.prewarm();
     }
 
     // 8. Hide the loading screen.
@@ -9906,10 +9870,14 @@ class LightningEffect {
     }
   }
 
-  update(deltaTime) {
+  update(deltaTime, timeFactor) {
     if (this._destroyed) return;
 
-    this.age += deltaTime;
+    // This is a candidate for a future performance refactor to move the noise
+    // calculation entirely to the GPU using a NoiseTextureManager.
+    const scaledDelta = deltaTime * timeFactor;
+
+    this.age += scaledDelta;
     if (this.age > this.config.strikeDuration) {
       this.isExpired = true;
     }
@@ -10097,6 +10065,7 @@ class LightningManager {
     this.container = null;
     this.bloomFilter = null;
     this.rgbSplitFilter = null;
+    this.occlusionFilter = null; // New filter for masking
     this._tickerFunction = this.update.bind(this);
     this._destroyed = false;
 
@@ -10144,6 +10113,7 @@ class LightningManager {
 
   static getSettingsHTML() {
     const effectKey = "lightning";
+    const headerExtra = `<button type="button" class="create-effect-from-ui" data-action="create-particle-effect-area" data-effect-key="${effectKey}" title="Create new area for this particle effect"><i class="fas fa-plus-square"></i></button>`;
     const content = `
                     <p class="description-text">Configuration for the procedural lightning effect.</p>
                     <details>
@@ -10574,7 +10544,8 @@ class LightningManager {
     return DebuggerUIBuilder._createAccordionHTML(
       effectKey,
       "Lightning Effect",
-      content
+      content,
+      headerExtra
     );
   }
 
@@ -10597,10 +10568,14 @@ class LightningManager {
     }
     this.rgbSplitFilter = new ChromaticAberrationFilter();
     this.rgbSplitFilter.enabled = false;
+    this.occlusionFilter = new LightningOcclusionFilter();
+    this.occlusionFilter.enabled = false;
 
-    this.container.filters = [this.bloomFilter, this.rgbSplitFilter].filter(
-      Boolean
-    );
+    this.container.filters = [
+      this.bloomFilter,
+      this.rgbSplitFilter,
+      this.occlusionFilter,
+    ].filter(Boolean);
 
     // The `eventMode` property prevents the container from blocking pointer events.
     this.container.eventMode = "none";
@@ -10626,8 +10601,10 @@ class LightningManager {
 
     this.bloomFilter?.destroy();
     this.rgbSplitFilter?.destroy();
+    this.occlusionFilter?.destroy();
     this.bloomFilter = null;
     this.rgbSplitFilter = null;
+    this.occlusionFilter = null;
 
     if (this.container) {
       this.container.filters = null;
@@ -10657,15 +10634,14 @@ class LightningManager {
       this.container.visible = false;
       if (this.bloomFilter) this.bloomFilter.enabled = false;
       if (this.rgbSplitFilter) this.rgbSplitFilter.enabled = false;
+      if (this.occlusionFilter) this.occlusionFilter.enabled = false;
       return;
     }
-
-    const scaledDelta = deltaTime * timeFactor;
 
     // Update one-off effects and remove them when they expire.
     const expiredEffectIds = [];
     this.effects.forEach((effect, id) => {
-      effect.update(scaledDelta);
+      effect.update(deltaTime, timeFactor);
       if (effect.isExpired) {
         expiredEffectIds.push(id);
       }
@@ -10678,7 +10654,7 @@ class LightningManager {
     // Update persistent effects and their state transitions.
     this.persistentEffects.forEach((persistent) => {
       if (persistent.state === "IDLE") {
-        persistent.nextEventTime -= scaledDelta;
+        persistent.nextEventTime -= deltaTime * timeFactor;
         if (persistent.nextEventTime <= 0) {
           if (this._destroyed || !this.container || this.container.destroyed)
             return;
@@ -10699,7 +10675,7 @@ class LightningManager {
       } else if (persistent.state === "STRIKING") {
         if (persistent.effect) {
           persistent.effect.config = config; // Ensure it has the latest config
-          persistent.effect.update(scaledDelta);
+          persistent.effect.update(deltaTime, timeFactor);
           if (persistent.effect.isExpired) {
             persistent.effect.destroy();
             persistent.effect = null;
@@ -10762,7 +10738,74 @@ class LightningManager {
       }
     }
 
+    // New: Update and enable/disable the occlusion filter
+    if (this.occlusionFilter) {
+      const resourceManager = game.mapShine.resourceManager;
+      const outdoorsMask = resourceManager?.getOutdoorsMask();
+      const cloudTexture = resourceManager?.getRawCloudTexture(deltaTime);
+
+      if (outdoorsMask?.valid && cloudTexture?.valid) {
+        this.occlusionFilter.enabled = this.container.visible;
+        this.occlusionFilter.uniforms.uOutdoorsMask = outdoorsMask;
+        this.occlusionFilter.uniforms.uCloudTexture = cloudTexture;
+      } else {
+        this.occlusionFilter.enabled = false;
+      }
+    }
+
     this.container.blendMode = bloomConfig.blendMode ?? PIXI.BLEND_MODES.ADD;
+  }
+}
+
+class LightningOcclusionFilter extends PIXI.Filter {
+  constructor(options = {}) {
+    const vertexSrc = `
+            attribute vec2 aVertexPosition;
+            attribute vec2 aTextureCoord;
+            uniform mat3 projectionMatrix;
+            varying vec2 vTextureCoord;
+            varying vec2 vScreenCoord;
+
+            void main(void) {
+                gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
+                vTextureCoord = aTextureCoord;
+                vScreenCoord = gl_Position.xy * 0.5 + 0.5;
+            }
+        `;
+
+    const fragmentSrc = `
+            precision mediump float;
+            varying vec2 vTextureCoord;
+            varying vec2 vScreenCoord;
+
+            uniform sampler2D uSampler; // The rendered lightning
+            uniform sampler2D uOutdoorsMask;
+            uniform sampler2D uCloudTexture;
+
+            void main() {
+                vec4 lightningColor = texture2D(uSampler, vTextureCoord);
+                
+                if (lightningColor.a == 0.0) {
+                    discard;
+                    return;
+                }
+
+                float outdoorsValue = texture2D(uOutdoorsMask, vScreenCoord).r;
+                float cloudValue = texture2D(uCloudTexture, vScreenCoord).r; // 0=clear, 1=cloud
+
+                // Final alpha is the lightning's own alpha, multiplied by the outdoors mask,
+                // and then by the inverse of the cloud value (so clouds block light).
+                float finalAlpha = lightningColor.a * outdoorsValue * (1.0 - cloudValue);
+
+                gl_FragColor = vec4(lightningColor.rgb, finalAlpha);
+            }
+        `;
+
+    super(vertexSrc, fragmentSrc, {
+      uOutdoorsMask: PIXI.Texture.EMPTY,
+      uCloudTexture: PIXI.Texture.EMPTY,
+      ...options,
+    });
   }
 }
 
@@ -10934,33 +10977,20 @@ class ParticleEffectController {
     this.rgbSplitFilter = null;
     this.bloomFilter = null;
     this.cloudSuppressorFilter = null;
+
+    // Defer biofilm-specific resource creation
     this.displacementFilter = null;
     this.displacementSprite = null;
     this.biofilmMaskFilter = null;
-    // This will hold the final rendered output of the biofilm particles for other systems to use.
     this.particleOutputTexture = null;
 
-    // This will be the container that holds only the particles for effects needing pre-filtering blending.
     this.particleOnlyContainer = null;
 
     // Special handling for effects with filters that need to operate on blended particles
     if (definition.configPath === "glint") {
       this.rgbSplitFilter = new ParticleRgbSplitFilter();
     }
-    if (definition.configPath === "biofilm") {
-      const screen = CoordinateManager.getScreenDimensions();
-      this.particleOutputTexture = PIXI.RenderTexture.create({
-        width: screen.width,
-        height: screen.height,
-      });
 
-      this.displacementSprite = new PIXI.Sprite();
-      this.displacementFilter = new PIXI.DisplacementFilter(
-        this.displacementSprite
-      );
-      this.biofilmMaskFilter = new BiofilmMaskFilter();
-      this.parentContainer.filterArea = canvas.app.screen; // Crucial for filters on containers
-    }
     if (definition.configPath === "fire.particles") {
       const BloomFilterConstructor =
         PIXI.filters.AdvancedBloomFilter ||
@@ -10981,6 +11011,29 @@ class ParticleEffectController {
     ) {
       this.cloudSuppressorFilter = new CloudSuppressorFilter();
     }
+  }
+
+  /**
+   * Initializes biofilm-specific PIXI resources on demand.
+   * This ensures resources are created only when the canvas is fully ready.
+   * @private
+   */
+  _initializeBiofilmResources() {
+    // This is a one-time initialization. If resources exist, do nothing.
+    if (this.particleOutputTexture) return;
+
+    const screen = CoordinateManager.getScreenDimensions();
+    this.particleOutputTexture = PIXI.RenderTexture.create({
+      width: screen.width,
+      height: screen.height,
+    });
+
+    this.displacementSprite = new PIXI.Sprite();
+    this.displacementFilter = new PIXI.DisplacementFilter(
+      this.displacementSprite
+    );
+    this.biofilmMaskFilter = new BiofilmMaskFilter();
+    this.parentContainer.filterArea = canvas.app.screen; // Crucial for filters on containers
   }
 
   static getSettingsHTML(effectKey) {
@@ -11310,15 +11363,17 @@ class ParticleEffectController {
                                 </div>
                             </details>
                         `;
+      const headerExtra = `<button type="button" class="create-effect-from-ui" data-action="create-particle-effect-area" data-effect-key="${effectKey}" title="Create new area for this particle effect"><i class="fas fa-plus-square"></i></button>`;
       return DebuggerUIBuilder._createAccordionHTML(
         effectKey,
         definition.title,
-        sparksContent
+        sparksContent,
+        headerExtra
       );
     }
 
     // Common particle sections
-    let spawningDetails = `
+    content += `
                             <details>
                                 <summary><span class="accordion-toggle"></span><strong>Spawning & Density</strong></summary>
                                 <div style="padding-left: 15px;">
@@ -11354,25 +11409,9 @@ class ParticleEffectController {
       0.01,
       "Luminance from the mask required to spawn particles."
     )}
-    `;
-
-    if (effectKey === "metallicGlints") {
-      spawningDetails += DebuggerUIBuilder._createCheckboxHTML(
-        `${path}.darknessAffectsFrequency`,
-        "Reduce with Darkness",
-        false,
-        "Reduces particle count as scene darkness increases. At full darkness, no particles spawn."
-      );
-    }
-
-    spawningDetails += `
+                          
                                 </div>
                             </details>
-    `;
-
-    content += spawningDetails;
-
-    content += `
                             <details>
                                 <summary><span class="accordion-toggle"></span><strong>Particle Appearance</strong></summary>
                                 <div style="padding-left: 15px;">
@@ -11674,10 +11713,13 @@ class ParticleEffectController {
     const mainAccordionId =
       effectKey === "fire" ? "details-fire-particles" : `details-${effectKey}`;
 
+    const headerExtra = `<button type="button" class="create-effect-from-ui" data-action="create-particle-effect-area" data-effect-key="${effectKey}" title="Create new area for this particle effect"><i class="fas fa-plus-square"></i></button>`;
+
     return DebuggerUIBuilder._createAccordionHTML(
       effectKey,
       definition.title,
-      content
+      content,
+      headerExtra
     )
       .replace(`details-${effectKey}`, mainAccordionId)
       .replace(`${path}.enabled`, mainAccordionPath);
@@ -11686,6 +11728,7 @@ class ParticleEffectController {
   // NOTE: IMPORTANT. AT SOME POINT THIS NEEDS TO BE MOVED TO THE CORRECT PLACE. DON'T FORGET.
   static getSmellyFliesSettingsHTML() {
     const effectKey = "smellyFlies";
+    const headerExtra = `<button type="button" class="create-effect-from-ui" data-action="create-particle-effect-area" data-effect-key="${effectKey}" title="Create new area for this particle effect"><i class="fas fa-plus-square"></i></button>`;
     const content = `
           <p class="description-text">Simulates a swarm of flies that fly around, land, and walk on surfaces defined by a Map Point Area group.</p>
           ${DebuggerUIBuilder._createSelectHTML(
@@ -11905,7 +11948,8 @@ class ParticleEffectController {
     return DebuggerUIBuilder._createAccordionHTML(
       effectKey,
       "Smelly Flies",
-      content
+      content,
+      headerExtra
     );
   }
 
@@ -12015,7 +12059,6 @@ class ParticleEffectController {
 
       const emitterParent = this.particleOnlyContainer || this.parentContainer;
       const emitter = new PIXI.particles.Emitter(emitterParent, emitterConfig);
-      emitter.baseFrequency = emitterConfig.frequency; // Store the base frequency
       if (customMaskTexture) emitter._customMaskTexture = customMaskTexture;
       emitter.autoUpdate = false;
 
@@ -12029,7 +12072,7 @@ class ParticleEffectController {
         err
       );
       customMaskTexture?.destroy(true);
-      return true; // Indicate "success" to avoid retrying a failed load.
+      return false; // Indicate failure to allow retrying on the next frame.
     }
   }
 
@@ -12120,6 +12163,9 @@ class ParticleEffectController {
   }
 
   async update(deltaTime) {
+    if (this.definition.configPath === "biofilm") {
+      this._initializeBiofilmResources();
+    }
     if (!this.pendingTargets || !this.emitters) return;
 
     if (this.pendingTargets.size > 0) {
@@ -12190,30 +12236,6 @@ class ParticleEffectController {
       }
     }
 
-    // Dynamically adjust frequency and emission for metallic glints based on scene darkness
-    if (
-      this.definition.configPath === "metallicGlints" &&
-      this.config.darknessAffectsFrequency
-    ) {
-      const darkness = canvas.scene.environment.darknessLevel;
-      const darknessMultiplier = Math.max(0.001, 1 - darkness);
-
-      for (const { emitter } of this.emitters.values()) {
-        // If it's almost completely dark, explicitly stop the emitter.
-        if (darkness >= 0.99) {
-          emitter.emit = false;
-        } else {
-          // Otherwise, ensure the emitter is on and set its frequency.
-          emitter.emit = true;
-          if (emitter.baseFrequency) {
-            emitter.frequency = emitter.baseFrequency / darknessMultiplier;
-            // When resuming, reset the spawn timer to prevent a burst of particles.
-            emitter._spawnTimer = 0;
-          }
-        }
-      }
-    }
-
     for (const { emitter } of this.emitters.values()) {
       emitter.update(deltaTime);
     }
@@ -12231,6 +12253,10 @@ class ParticleEffectController {
   }
 
   updateFromConfig(fullConfig) {
+    // Force initialization of special resources before configuration is applied.
+    if (this.definition.configPath === "biofilm") {
+      this._initializeBiofilmResources();
+    }
     this.config = foundry.utils.getProperty(
       fullConfig,
       this.definition.configPath
@@ -12374,13 +12400,24 @@ class ParticleEffectController {
     this.displacementFilter?.destroy();
     this.displacementSprite?.destroy();
     this.biofilmMaskFilter?.destroy();
-    this.particleOutputTexture?.destroy(true); // Destroy the new texture
+    this.particleOutputTexture?.destroy(true);
+
+    this.rgbSplitFilter = null;
+    this.bloomFilter = null;
+    this.displacementFilter = null;
+    this.displacementSprite = null;
+    this.biofilmMaskFilter = null;
+    this.particleOutputTexture = null;
 
     this.particleOnlyContainer?.destroy({
       children: true,
     });
+    this.particleOnlyContainer = null;
 
-    this.parentContainer = null;
+    if (this.parentContainer) {
+      this.parentContainer.filters = null;
+      this.parentContainer = null;
+    }
   }
 }
 
@@ -12469,26 +12506,31 @@ const buildParticleEmitterConfig = (
     fadeInTime /= total;
     fadeOutTime /= total;
   }
-  const alphaList = {
-    list: [
-      {
-        value: 0,
-        time: 0,
+  behaviors.push({
+    type: "alpha",
+    config: {
+      alpha: {
+        list: [
+          {
+            value: 0,
+            time: 0,
+          },
+          {
+            value: alphaConfig.max ?? 0.7,
+            time: fadeInTime,
+          },
+          {
+            value: alphaConfig.max ?? 0.7,
+            time: 1 - fadeOutTime,
+          },
+          {
+            value: 0,
+            time: 1,
+          },
+        ],
       },
-      {
-        value: alphaConfig.max ?? 0.7,
-        time: fadeInTime,
-      },
-      {
-        value: alphaConfig.max ?? 0.7,
-        time: 1 - fadeOutTime,
-      },
-      {
-        value: 0,
-        time: 1,
-      },
-    ],
-  };
+    },
+  });
 
   const scaleConfig = config.scale ?? {};
   const startScale =
@@ -12540,25 +12582,14 @@ const buildParticleEmitterConfig = (
     });
   }
 
-  // For metallic glints, use the custom behavior to sample color AND alpha from the spawn texture.
-  // For all other effects, use the standard static or gradient color behaviors and the standard alpha behavior.
+  // For metallic glints, use the custom behavior to sample color from the spawn texture.
+  // For all other effects, use the standard static or gradient color behaviors.
   if (maskKey === "specular") {
     behaviors.push({
       type: "colorFromSpawn",
-      config: {
-        alpha: alphaList, // Pass the alpha list to the combined behavior
-      },
+      config: {},
     });
   } else {
-    // Add standard alpha behavior
-    behaviors.push({
-      type: "alpha",
-      config: {
-        alpha: alphaList,
-      },
-    });
-
-    // Add standard color behavior
     const colorConfig = config.color ?? {};
     const startColor = colorConfig.start ?? "#FFFFFF";
     const endColor = colorConfig.end ?? "#FFFFFF";
@@ -14420,13 +14451,6 @@ class ColorFromSpawnBehavior {
 
   constructor(config) {
     this.order = PIXI.particles.behaviors.BehaviorOrder.Normal;
-    // Handle alpha property list passed from the emitter config
-    if (config.alpha) {
-      this.alpha = new PIXI.particles.PropertyList(false);
-      this.alpha.reset(PIXI.particles.PropertyNode.createList(config.alpha));
-    } else {
-      this.alpha = null;
-    }
   }
 
   initParticles(first) {
@@ -14436,27 +14460,8 @@ class ColorFromSpawnBehavior {
         const color = next.spawnColor; // [r, g, b] from 0-255
         // Convert the RGB array to a single hex number for the tint property.
         next.tint = (color[0] << 16) + (color[1] << 8) + color[2];
-
-        // Calculate luminance (0-1) from the spawn color.
-        const luminance =
-          (0.299 * color[0] + 0.587 * color[1] + 0.114 * color[2]) / 255;
-        // This will act as the max alpha multiplier for this specific particle.
-        next.spawnAlphaMultiplier = luminance;
-      } else {
-        // Provide a fallback multiplier if spawnColor isn't available for some reason.
-        next.spawnAlphaMultiplier = 1.0;
       }
       next = next.next;
-    }
-  }
-
-  updateParticle(particle, deltaSec) {
-    // If this behavior is managing alpha and the particle has a multiplier, calculate the new alpha.
-    if (this.alpha && particle.spawnAlphaMultiplier !== undefined) {
-      // Get the alpha from the list based on the particle's lifetime progress.
-      const lifetimeAlpha = this.alpha.interpolate(particle.agePercent);
-      // Modulate the standard lifetime alpha by the brightness of the pixel it spawned from.
-      particle.alpha = lifetimeAlpha * particle.spawnAlphaMultiplier;
     }
   }
 }
@@ -16735,7 +16740,6 @@ class FoamFilter extends PIXI.Filter {
             uniform float u_time;
             uniform vec2 uTexelSize;
             uniform vec2 uCanvasScale;
-            uniform vec4 uSceneRectNorm;
             
             // Foam Parameters
             uniform float uIntensity;
@@ -16865,7 +16869,7 @@ class FoamFilter extends PIXI.Filter {
                     st *= lacunarity;
                     amplitude *= persistence;
                 }
-                return value * 0.5 + 0.5;
+                return value;
             }
             
             float turbulentGaussianBlur(sampler2D tex, vec2 uv, float radius) {
@@ -16899,13 +16903,6 @@ class FoamFilter extends PIXI.Filter {
             }
 
             void main() {
-                vec2 sceneMin = uSceneRectNorm.xy;
-                vec2 sceneMax = uSceneRectNorm.xy + uSceneRectNorm.zw;
-                if (vScreenCoord.x < sceneMin.x || vScreenCoord.x > sceneMax.x || vScreenCoord.y < sceneMin.y || vScreenCoord.y > sceneMax.y) {
-                    discard;
-                    return;
-                }
-                
                 float waterValue = texture2D(uWaterMask, vScreenCoord).r;
                 if (waterValue < 0.01) {
                     discard;
@@ -16978,7 +16975,6 @@ class FoamFilter extends PIXI.Filter {
       u_time: 0.0,
       uTexelSize: [1 / (window.innerWidth || 1), 1 / (window.innerHeight || 1)],
       uCanvasScale: [1.0, 1.0],
-      uSceneRectNorm: [0, 0, 1, 1],
       uIntensity: options.intensity ?? 1.5,
       uThreshold: options.threshold ?? 0.2,
       uSoftness: options.softness ?? 0.1,
@@ -17385,10 +17381,8 @@ class FoamLayer extends CanvasLayer {
     this._onResizeBound = this._onResize.bind(this);
     canvas.app.ticker.add(this._onAnimateBound);
     window.addEventListener("resize", this._onResizeBound);
-  }
 
-  renderEffectNow(deltaTime) {
-    this._onAnimate(deltaTime);
+    await this.updateFromConfig(game.mapShine.profileManager.activeConfig);
   }
 
   _onAnimate(deltaTime) {
@@ -17470,7 +17464,7 @@ class FoamLayer extends CanvasLayer {
       u.uCrestFoamPerturbSpeed = cf.perturbSpeed;
       u.uCrestFoamPerturbOctaves = cf.perturbOctaves;
 
-      const cb = cf.crestFoam;
+      const cb = cf.crestBreakup;
       u.uCrestBreakupScale = cb.scale;
       u.uCrestBreakupSpeed = cb.speed;
       u.uCrestBreakupOctaves = cb.octaves;
@@ -17750,12 +17744,11 @@ class MaskedEffectLayer extends CanvasLayer {
     // Bind the render texture system to our target texture
     renderer.renderTexture.bind(this.combinedMaskTexture);
 
-    // Manually clear the texture to solid white. This ensures areas outside
-    // any explicit mask are treated as fully "outdoors" (value of 1.0),
-    // preventing them from casting shadows from off-screen.
-    renderer.renderTexture.clear([1.0, 1.0, 1.0, 1.0]);
+    // Manually clear the texture to transparent black. This is the correct default
+    // state for a mask, where no effect should occur unless explicitly defined by a mask sprite.
+    renderer.renderTexture.clear([0.0, 0.0, 0.0, 0.0]);
 
-    // Render the container of mask sprites onto the now-white texture.
+    // Render the container of mask sprites onto the now-cleared texture.
     // The `clear` option is set to false to prevent overwriting our manual clear.
     renderer.render(this.maskContainer, {
       renderTexture: this.combinedMaskTexture,
@@ -19165,7 +19158,7 @@ class MetallicShineFilter extends PIXI.Filter {
           uniform bool uCloudOcclusionEnabled;
           uniform float uCloudOcclusionIntensity;
           uniform float uGlobalIntensity;
-          uniform float uSceneDarkness;
+          uniform float uDarkness;
 
           // Color Correction Uniforms
           uniform bool uColorCorrectionEnabled;
@@ -19232,9 +19225,11 @@ class MetallicShineFilter extends PIXI.Filter {
               
               // Apply the global intensity multiplier from the layer.
               finalAlpha *= uGlobalIntensity;
-              
-              // Apply darkness dimming, reducing intensity by up to 75% at full darkness
-              finalAlpha *= (1.0 - uSceneDarkness * 0.75);
+
+              // Apply scene darkness to the final visibility/intensity of the shine.
+              // This is applied to the alpha because the workingColor can have HDR values from
+              // color correction which would be clamped, nullifying the darkness effect.
+              finalAlpha *= (1.0 - uDarkness * 0.75);
 
               // The output color is the original color from the specular map.
               // We multiply by finalAlpha for premultiplied alpha, which is standard for PIXI filters
@@ -19252,7 +19247,7 @@ class MetallicShineFilter extends PIXI.Filter {
       uCloudOcclusionEnabled: false,
       uCloudOcclusionIntensity: 1.0,
       uGlobalIntensity: 1.0,
-      uSceneDarkness: 0.0,
+      uDarkness: 0.0,
       uColorCorrectionEnabled: true,
       uSaturation: 1.0,
       uBrightness: 0.0,
@@ -19673,6 +19668,7 @@ class MetallicShineLayer extends CanvasLayer {
   renderEffectNow(deltaTime) {
     if (this._destroyed || !this.visible || !this.shineFilter) return;
 
+
     if (this._needsMaskUpdate) {
       this._renderSpecularCompositeTexture();
     }
@@ -19704,7 +19700,7 @@ class MetallicShineLayer extends CanvasLayer {
     u.uCloudOcclusionMask = cloudTexture;
     u.uStructuralMask = structuralMask;
     u.uOutdoorsMask = outdoorsMask;
-    u.uSceneDarkness = canvas.scene.environment.darknessLevel;
+    u.uDarkness = canvas.scene?.environment.darknessLevel ?? 0;
 
     const cameraOffset = CoordinateManager.getCameraOffset();
     const viewSize = CoordinateManager.getViewSize();
@@ -19721,6 +19717,8 @@ class MetallicShineLayer extends CanvasLayer {
       clear: true,
     });
   }
+
+
 
   _renderSpecularCompositeTexture() {
     if (!this.sourceContainer || !this.specularCompositeTexture) return;
@@ -20123,8 +20121,8 @@ class CloudShadowsLayer extends MaskedEffectLayer {
       "cloudShadows.wind.speed",
       "Speed",
       0,
-      0.5,
-      0.05
+      0.01,
+      0.0001
     )}
                             </div>
                         </details>
@@ -20307,6 +20305,8 @@ class CloudShadowsLayer extends MaskedEffectLayer {
 
     this.effectSprite = new PIXI.Sprite(this.cloudShadowTexture);
     this.addChild(this.effectSprite);
+
+    this.updateFromConfig(game.mapShine.profileManager.activeConfig);
   }
 
   _onPan() {
@@ -21571,12 +21571,8 @@ class IridescenceLayer extends MaskedEffectLayer {
       ? [this.iridescenceFilter]
       : [];
     this.addChild(this.effectSprite);
-  }
 
-  prewarm() {
-    if (this._destroyed || !this.visible || !this.iridescenceFilter) return;
-    this.distortionNoiseManager.update(0, canvas.app.renderer);
-    this._onAnimate(0);
+    this.updateFromConfig(game.mapShine.profileManager.activeConfig);
   }
 
   _onAnimate(deltaTime) {
@@ -22625,11 +22621,6 @@ class HeatDistortionLayer extends CanvasLayer {
   }
 
   _onAnimate(deltaTime) {
-    if (this._destroyed) return;
-    this.renderEffectNow(deltaTime);
-  }
-
-  renderEffectNow(deltaTime = 0) {
     if (this._destroyed) return;
 
     this._framesSinceLoad++;
@@ -24110,42 +24101,6 @@ class WaterFXLayer extends MaskedEffectLayer {
     );
   }
 
-  async prewarmTextures() {
-    if (this._destroyed || !this.visible) return;
-    const renderer = canvas.app.renderer;
-
-    // 1. Render the main water mask (_Water.webp tiles)
-    this.renderMask();
-
-    // 2. Render the blurred water mask for shoreline detection
-    this.blurSourceSprite.texture = this.getMaskTexture();
-    renderer.render(this.blurSourceSprite, {
-      renderTexture: this.blurredWaterMaskTexture,
-      clear: true,
-    });
-
-    // 3. Render the shoreline override mask (_Shoreline.webp tiles)
-    renderer.render(this.shorelineMaskContainer, {
-      renderTexture: this.shorelineMaskTexture,
-      transform: canvas.stage.transform.worldTransform,
-      clear: true,
-    });
-    this._needsShorelineMaskUpdate = false;
-
-    // 4. Render the initial state of the displacement map
-    this.displacementFilter.uniforms.u_time = 0; // Render at time 0
-    Object.assign(
-      this.displacementFilter.uniforms,
-      CoordinateManager.getShaderUniforms()
-    );
-    renderer.render(this.displacementSprite, {
-      renderTexture: this.displacementTexture,
-      clear: true,
-    });
-
-    console.log("Map Shine | WaterFXLayer textures pre-warmed.");
-  }
-
   async _draw(options) {
     await super._draw(options);
     this.time = 0;
@@ -24185,14 +24140,9 @@ class WaterFXLayer extends MaskedEffectLayer {
     const initialBlur =
       game.mapShine.profileManager.activeConfig.water.shoreline.detectionBlur;
     this.blurFilter = new PIXI.BlurFilter(initialBlur, 4);
-    // Apply resolution scaling to the blur filter itself
-    this.blurFilter.resolution = 0.5;
-
-    // Apply resolution scaling to the intermediate textures
     this.blurredWaterMaskTexture = PIXI.RenderTexture.create({
       width: renderer.screen.width,
       height: renderer.screen.height,
-      resolution: 0.5,
     });
     this.blurSourceSprite = new PIXI.Sprite(this.getMaskTexture());
     this.blurSourceSprite.filters = [this.blurFilter];
@@ -24200,8 +24150,9 @@ class WaterFXLayer extends MaskedEffectLayer {
     this.shorelineMaskTexture = PIXI.RenderTexture.create({
       width: renderer.screen.width,
       height: renderer.screen.height,
-      resolution: 0.5,
     });
+
+    this.updateFromConfig(game.mapShine.profileManager.activeConfig);
   }
 
   _updateWaterFilterUniforms(filter, wConfig) {
@@ -24413,6 +24364,23 @@ class WaterFXLayer extends MaskedEffectLayer {
         this.displacementFilter.uniforms.u_biofilmIntensity =
           waveConfig.biofilmDistortion.intensity;
       }
+    }
+    if (this.blurFilter) {
+      this.blurFilter.blur = wConfig.shoreline.detectionBlur;
+    }
+
+    this._updateWaterFilterUniforms(this.waterEffectsFilter, wConfig);
+  }
+
+  async updateFromConfig(config) {
+    const wConfig = config.water;
+    this.visible = config.enabled && wConfig.enabled;
+
+    if (this.displacementFilter) {
+      // Apply scaling factor
+      this.displacementFilter.uniforms.u_speed =
+        (wConfig.wave.speed ?? 1.48) * 0.4;
+      this.displacementFilter.uniforms.u_scale = wConfig.wave.scale;
     }
     if (this.blurFilter) {
       this.blurFilter.blur = wConfig.shoreline.detectionBlur;
@@ -24868,8 +24836,9 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
       this.filter = null;
     }
 
-    // Set a default time; the correct time will be applied by updateFromConfig later.
-    this.currentTime = 12.0;
+    // Set initial time from the active configuration
+    this.currentTime =
+      game.mapShine.profileManager.activeConfig.timeOfDay.currentTime ?? 12.0;
 
     // Initial resize call to set texel size
     this._onResize();
@@ -25027,13 +24996,13 @@ class OverheadRecolorFilter extends PIXI.Filter {
             uniform float uRecolorIntensity;
             uniform bool uRecolorEnabled;
 
-            // Cloud darkening uniforms
+            // New cloud darkening uniforms
             uniform sampler2D uCloudShadows;
             uniform float uCloudShadowDarkenIntensity;
             uniform bool uCloudShadowDarkenEnabled;
 
             // Scene darkness uniform
-            uniform float uSceneDarkness;
+            uniform float uDarkness;
 
             void main() {
                 vec4 originalColor = texture2D(uSampler, vTextureCoord);
@@ -25049,14 +25018,20 @@ class OverheadRecolorFilter extends PIXI.Filter {
                 }
 
                 if (uCloudShadowDarkenEnabled) {
+                    // uCloudShadows texture has high values (near 1.0) for clouds and low values (near 0.0) for clear sky.
                     float cloudValue = texture2D(uCloudShadows, vScreenCoord).r;
+                    
+                    // We want to darken the color where cloudValue is high.
+                    // A darkeningFactor of 1.0 means no change. A factor of 0.0 is fully black.
+                    // This formula creates the correct factor based on cloud presence and intensity.
                     float darkeningFactor = 1.0 - (cloudValue * uCloudShadowDarkenIntensity);
+                    
+                    // Apply the darkening factor.
                     workingColor *= darkeningFactor;
                 }
 
-                // Apply darkness dimming, reducing brightness by up to 75% at full darkness
-                float darknessFactor = 1.0 - (uSceneDarkness * 0.75);
-                workingColor *= darknessFactor;
+                // Apply scene darkness. A darkness of 1.0 will make the color black.
+                workingColor *= (1.0 - uDarkness * 0.75);
                 
                 gl_FragColor = vec4(workingColor, originalColor.a);
             }
@@ -25067,296 +25042,79 @@ class OverheadRecolorFilter extends PIXI.Filter {
       uRecolorTint: [1.0, 1.0, 1.0],
       uRecolorIntensity: 0.5,
       uRecolorEnabled: false,
+      // New uniforms
       uCloudShadows: PIXI.Texture.EMPTY,
       uCloudShadowDarkenIntensity: 0.5,
       uCloudShadowDarkenEnabled: false,
-      uSceneDarkness: 0.0, // Initialize the new uniform
+      // Darkness uniform
+      uDarkness: 0.0,
     });
   }
 }
 
-class DayNightClock extends Application {
-  constructor(options = {}) {
-    super(options);
-    // Default to midday. Use a float for precision.
+class MapShineClock {
+  constructor(element, application = null, options = {}) {
+    this.element = $(element);
+    this.application = application;
+    this.options = foundry.utils.mergeObject(
+      {
+        showDragHandle: true,
+        showDisclaimer: true,
+      },
+      options
+    );
+
     this.currentTime =
       game.mapShine?.profileManager?.activeConfig?.timeOfDay?.currentTime ??
       12.0;
     this._isDragging = false;
     this._dragData = {};
 
-    // Listen for external time changes to stay in sync
     this._onExternalTimeChangeBound = this._onExternalTimeChange.bind(this);
     Hooks.on("mapShine:timeChanged", this._onExternalTimeChangeBound);
+
+    this.render();
   }
 
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      id: "day-night-clock",
-      title: "Day/Night Cycle",
-      template: null,
-      width: 180,
-      height: "auto",
-      resizable: false,
-      classes: ["day-night-clock-app"],
-      header: false, // Remove default Foundry header
-    });
+  render() {
+    this.element.html(this._getHTML());
+    this.activateListeners();
+    this._updateTime(this.currentTime, { fromHook: true });
   }
 
-  /**
-   * Converts a floating-point time into a HH:MM string format.
-   * @param {number} time The time in hours (e.g., 14.75).
-   * @returns {string} The formatted time string (e.g., "14:45").
-   */
-  _formatTime(time) {
-    const hour = Math.floor(time);
-    const minutes = Math.round((time - hour) * 60);
-    return `${String(hour).padStart(2, "0")}:${String(minutes).padStart(
-      2,
-      "0"
-    )}`;
-  }
-
-  _getAngleForTime(time) {
-    // time is 0-23.99
-    // Maps time to angle where 12:00 is top (0 deg)
-    let hour = time;
-    if (hour < 12) {
-      hour += 24;
-    }
-    const degrees = (hour - 12) * 15;
-    return degrees;
-  }
-
-  _getTimeForAngle(angleDegrees) {
-    // Convert angle (0-360) to a continuous hour (0-23.99)
-    let hour = angleDegrees / 15 + 12;
-    if (hour >= 24) {
-      hour -= 24;
-    }
-    return hour;
-  }
-
-  /**
-   * Calculates a single representative color for a given time of day based on active settings.
-   * This is a robust method with fallbacks to prevent calculation errors.
-   * @param {number} time The time in hours (0-23.99).
-   * @returns {string} A CSS rgb() color string.
-   */
-  _getColorForTime(time) {
-    const config = game.mapShine.profileManager.activeConfig.timeOfDay;
-    const defaults = MODULE_DEFAULTS.timeOfDay.keyframes.midday;
-
-    if (!config || !config.enabled) {
-      return "rgb(128, 128, 128)";
-    }
-
-    const keyframesSource = config.keyframes;
-    if (!keyframesSource) return "rgb(128, 128, 128)";
-
-    const keyframes = Object.values(keyframesSource).sort(
-      (a, b) => a.time - b.time
-    );
-    if (keyframes.length < 2) {
-      return "rgb(128, 128, 128)";
-    }
-
-    const extendedKeyframes = [
-      ...keyframes,
-      {
-        ...keyframes[0],
-        time: keyframes[0].time + 24,
-      },
-    ];
-
-    let fromFrame, toFrame;
-    let currentTime = time;
-    if (currentTime < extendedKeyframes[0].time) {
-      currentTime += 24;
-    }
-
-    for (let i = 0; i < extendedKeyframes.length - 1; i++) {
-      const current = extendedKeyframes[i];
-      const next = extendedKeyframes[i + 1];
-      if (currentTime >= current.time && currentTime < next.time) {
-        fromFrame = current;
-        toFrame = next;
-        break;
-      }
-    }
-
-    if (!fromFrame) {
-      fromFrame = keyframes[keyframes.length - 1];
-      toFrame = extendedKeyframes[extendedKeyframes.length - 1];
-    }
-
-    const frameDuration = toFrame.time - fromFrame.time;
-    let timeIntoFrame = time - fromFrame.time;
-    if (timeIntoFrame < 0) timeIntoFrame += 24;
-
-    const blendFactor =
-      frameDuration > 0
-        ? Math.max(0, Math.min(1, timeIntoFrame / frameDuration))
-        : 0;
-
-    const lerp = (start, end, amount) => (1 - amount) * start + amount * end;
-
-    // Robustly get values with fallbacks to prevent NaN results from incomplete profiles.
-    const saturation = lerp(
-      fromFrame.saturation ?? defaults.saturation,
-      toFrame.saturation ?? defaults.saturation,
-      blendFactor
-    );
-    const brightness = lerp(
-      fromFrame.brightness ?? defaults.brightness,
-      toFrame.brightness ?? defaults.brightness,
-      blendFactor
-    );
-    const contrast = lerp(
-      fromFrame.contrast ?? defaults.contrast,
-      toFrame.contrast ?? defaults.contrast,
-      blendFactor
-    );
-    const exposure = lerp(
-      fromFrame.exposure ?? defaults.exposure,
-      toFrame.exposure ?? defaults.exposure,
-      blendFactor
-    );
-    const gamma = lerp(
-      fromFrame.gamma ?? defaults.gamma,
-      toFrame.gamma ?? defaults.gamma,
-      blendFactor
-    );
-    const temperature = lerp(
-      fromFrame.temperature ?? defaults.temperature,
-      toFrame.temperature ?? defaults.temperature,
-      blendFactor
-    );
-    const tint = lerp(
-      fromFrame.tint ?? defaults.tint,
-      toFrame.tint ?? defaults.tint,
-      blendFactor
-    );
-
-    let color = {
-      r: 0.5,
-      g: 0.5,
-      b: 0.5,
-    }; // Start with a neutral mid-grey for simulation.
-
-    color.r *= Math.pow(2.0, exposure);
-    color.g *= Math.pow(2.0, exposure);
-    color.b *= Math.pow(2.0, exposure);
-
-    if (gamma > 0.0) {
-      color.r = Math.pow(Math.max(color.r, 0.0), 1.0 / gamma);
-      color.g = Math.pow(Math.max(color.g, 0.0), 1.0 / gamma);
-      color.b = Math.pow(Math.max(color.b, 0.0), 1.0 / gamma);
-    }
-
-    color.r += brightness;
-    color.g += brightness;
-    color.b += brightness;
-
-    color.r = (color.r - 0.5) * contrast + 0.5;
-    color.g = (color.g - 0.5) * contrast + 0.5;
-    color.b = (color.b - 0.5) * contrast + 0.5;
-
-    const luminance = color.r * 0.299 + color.g * 0.587 + color.b * 0.114;
-    color.r = luminance + saturation * (color.r - luminance);
-    color.g = luminance + saturation * (color.g - luminance);
-    color.b = luminance + saturation * (color.b - luminance);
-
-    color.r += temperature * 0.15;
-    color.g += temperature * 0.075;
-    color.b -= temperature * 0.15;
-    color.g += tint * 0.15;
-    color.r -= tint * 0.075;
-    color.b -= tint * 0.075;
-
-    const finalR = Math.round(Math.max(0, Math.min(1, color.r)) * 255);
-    const finalG = Math.round(Math.max(0, Math.min(1, color.g)) * 255);
-    const finalB = Math.round(Math.max(0, Math.min(1, color.b)) * 255);
-
-    return `rgb(${finalR}, ${finalG}, ${finalB})`;
-  }
-
-  /**
-   * Central method to update the clock's time and UI.
-   * @param {number} newTime - The new time in hours (0-23.99).
-   * @param {object} [options={}] - Options for the update.
-   * @param {boolean} [options.fromHook=false] - True if the update is from an external hook.
-   */
-  _updateTime(newTime, { fromHook = false } = {}) {
-    this.currentTime = (newTime + 24) % 24;
-
-    if (!this.element) return;
-
-    // Update Dynamic Tint via CSS variable
-    const tintColor = this._getColorForTime(this.currentTime);
-    this.element.find(".clock-face").css("--clock-tint-color", tintColor);
-
-    // Update Hand and Input
-    const angle = this._getAngleForTime(this.currentTime);
-    const formattedTime = this._formatTime(this.currentTime);
-    const isNight = this.currentTime < 6 || this.currentTime >= 18;
-
-    this.element.find(".clock-hand").css("transform", `rotate(${angle}deg)`);
-    this.element.find(".time-display-input").val(formattedTime);
-
-    // Update icon
-    const icon = this.element.find(".clock-icon");
-    const newIconSrc = isNight
-      ? "modules/map-shine/assets/moon.webp"
-      : "modules/map-shine/assets/sun.webp";
-    if (icon.attr("src") !== newIconSrc) {
-      icon.attr("src", newIconSrc);
-    }
-
-    if (!fromHook) {
-      game.mapShine.updateTimeOfDay(this.currentTime);
-    }
-  }
-
-  _onExternalTimeChange(time) {
-    if (Math.abs(this.currentTime - time) > 0.01) {
-      this._updateTime(time, {
-        fromHook: true,
-      });
-    }
-  }
-
-  async _renderInner(data) {
-    const initialAngle = this._getAngleForTime(this.currentTime);
+  _getHTML() {
+    const initialAngle = MapShineClock._getAngleForTime(this.currentTime);
     const isNight = this.currentTime < 6 || this.currentTime >= 18;
     const initialIcon = isNight
       ? "modules/map-shine/assets/moon.webp"
       : "modules/map-shine/assets/sun.webp";
-    const initialTintColor = this._getColorForTime(this.currentTime);
+    const initialTintColor = MapShineClock._getColorForTime(this.currentTime);
 
-    const html = `
+    const dragHandleHTML = this.options.showDragHandle
+      ? '<div class="clock-drag-handle"></div>'
+      : "";
+    const disclaimerHTML = this.options.showDisclaimer
+      ? '<p class="clock-disclaimer">Controls scene visuals only. Does not change Foundry\'s world time.</p>'
+      : "";
+
+    // Adjustments for embedded version (smaller size)
+    const containerWidth = this.options.showDragHandle ? "128px" : "100px";
+    const bodyPadding = this.options.showDragHandle ? "10px" : "5px";
+
+    return `
             <style>
-				.day-night-clock-app { 
-                    background: #1e1e1e; 
-                    box-shadow: 0 0 15px rgba(0,0,0,0.6); 
-                    border: 1px solid #111;
-                    border-radius: 8px;
-                }
-				.day-night-clock-app .window-content { padding: 0; background: none; border: none; overflow: visible; }
-                .day-night-clock-app .clock-body { padding: 10px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+				/* Styles are scoped to the component */
+                .day-night-clock-component { padding: ${bodyPadding}; display: flex; flex-direction: column; align-items: center; gap: 8px; }
                 .clock-drag-handle { width: 100%; height: 20px; cursor: move; display: flex; align-items: center; justify-content: center; opacity: 0.5; transition: opacity 0.2s; }
                 .clock-drag-handle:hover { opacity: 1; }
                 .clock-drag-handle::before { content: '...'; font-size: 24px; color: #aaa; line-height: 10px; letter-spacing: 2px; }
-                .clock-container { position: relative; width: 128px; height: 128px; margin: 0 auto; border-radius: 50%; cursor: grab; user-select: none; }
+                .clock-container { position: relative; width: ${containerWidth}; height: ${containerWidth}; margin: 0 auto; border-radius: 50%; cursor: grab; user-select: none; }
                 .clock-container:active { cursor: grabbing; }
                 .clock-face {
                     width: 100%; height: 100%; border-radius: 50%;
-                    /* --- STATIC IMAGE BACKGROUND --- */
-                    /* Replace the path below with the path to your clock face image. */
                     background-image: url('modules/map-shine/assets/clock-face.webp');
                     background-size: cover;
                     background-position: center;
-                    /* --- END STATIC IMAGE BACKGROUND --- */
                     border: 4px solid #333;
                     box-shadow: 0 0 10px rgba(0,0,0,0.5) inset;
                     position: relative;
@@ -25402,8 +25160,8 @@ class DayNightClock extends Application {
                     line-height: 1.3;
                 }
             </style>
-            <div class="clock-body">
-                <div class="clock-drag-handle"></div>
+            <div class="day-night-clock-component">
+                ${dragHandleHTML}
                 <div class="clock-container">
                     <div class="clock-face" style="--clock-tint-color: ${initialTintColor};">
                         <div class="time-marker m-12">12</div> <div class="time-marker m-6">6</div>
@@ -25413,59 +25171,45 @@ class DayNightClock extends Application {
                 </div>
                 <div class="clock-controls">
                     <button data-action="adjust-time" data-amount="-0.25" title="Subtract 15 Minutes">-</button>
-                    <input type="text" class="time-display-input" value="${this._formatTime(
+                    <input type="text" class="time-display-input" value="${MapShineClock._formatTime(
       this.currentTime
     )}">
                     <button data-action="adjust-time" data-amount="0.25" title="Add 15 Minutes">+</button>
                 </div>
-                <p class="clock-disclaimer">Controls scene visuals only. Does not change Foundry's world time.</p>
+                ${disclaimerHTML}
             </div>
         `;
-    return $(html);
   }
 
-  activateListeners(html) {
-    super.activateListeners(html);
-    const clockContainer = html.find(".clock-container");
+  activateListeners() {
+    const clockContainer = this.element.find(".clock-container");
 
-    // Dragging the clock face
+    this._onDragBound = this._onDrag.bind(this);
+    this._onDragEndBound = this._onDragEnd.bind(this);
+
     clockContainer.on("mousedown", (event) => {
       this._isDragging = true;
       this._onDrag(event);
-      $(window).on("mousemove.daynightclock", this._onDrag.bind(this));
-      $(window).on("mouseup.daynightclock", this._onDragEnd.bind(this));
+      $(window).on("mousemove.daynightclock", this._onDragBound);
+      $(window).on("mouseup.daynightclock", this._onDragEndBound);
     });
 
-    // Dragging the handle
-    const handle = html.find(".clock-drag-handle");
-    handle.on("mousedown", (e) => {
-      e.preventDefault();
-      this._dragData.initial = {
-        x: this.position.left,
-        y: this.position.top,
-      };
-      this._dragData.mouse = {
-        x: e.clientX,
-        y: e.clientY,
-      };
-      $(window).on(
-        "mousemove.daynightclockdrag",
-        this._onWindowDrag.bind(this)
-      );
-      $(window).on(
-        "mouseup.daynightclockdrag",
-        this._onWindowDragEnd.bind(this)
-      );
-    });
+    if (this.options.showDragHandle && this.application) {
+      const handle = this.element.find(".clock-drag-handle");
+      handle.on("mousedown", (e) => {
+        // Correctly call the application's drag handler
+        this.application._onDragMouseDown(e);
+      });
+    }
 
-    // Button clicks
-    html.find('button[data-action="adjust-time"]').on("click", (event) => {
-      const amount = parseFloat(event.currentTarget.dataset.amount);
-      this._updateTime(this.currentTime + amount);
-    });
+    this.element
+      .find('button[data-action="adjust-time"]')
+      .on("click", (event) => {
+        const amount = parseFloat(event.currentTarget.dataset.amount);
+        this._updateTime(this.currentTime + amount);
+      });
 
-    // Manual time input
-    html.find(".time-display-input").on("change", (event) => {
+    this.element.find(".time-display-input").on("change", (event) => {
       const inputVal = event.currentTarget.value;
       const parts = inputVal.split(":");
       if (parts.length === 2) {
@@ -25479,22 +25223,173 @@ class DayNightClock extends Application {
     });
   }
 
-  _onWindowDrag(event) {
-    if (!this._dragData.initial) return;
-    const delta = {
-      x: event.clientX - this._dragData.mouse.x,
-      y: event.clientY - this._dragData.mouse.y,
-    };
-    this.setPosition({
-      left: this._dragData.initial.x + delta.x,
-      top: this._dragData.initial.y + delta.y,
-    });
+  destroy() {
+    Hooks.off("mapShine:timeChanged", this._onExternalTimeChangeBound);
+    $(window).off(".daynightclock");
   }
 
-  _onWindowDragEnd(event) {
-    this._dragData = {};
-    $(window).off("mousemove.daynightclockdrag");
-    $(window).off("mouseup.daynightclockdrag");
+  static _formatTime(time) {
+    const hour = Math.floor(time);
+    const minutes = Math.round((time - hour) * 60);
+    return `${String(hour).padStart(2, "0")}:${String(minutes).padStart(
+      2,
+      "0"
+    )}`;
+  }
+
+  static _getAngleForTime(time) {
+    let hour = time;
+    if (hour < 12) {
+      hour += 24;
+    }
+    const degrees = (hour - 12) * 15;
+    return degrees;
+  }
+
+  static _getTimeForAngle(angleDegrees) {
+    let hour = angleDegrees / 15 + 12;
+    if (hour >= 24) {
+      hour -= 24;
+    }
+    return hour;
+  }
+
+  static _getColorForTime(time) {
+    const config = game.mapShine.profileManager.activeConfig.timeOfDay;
+    const defaults = MODULE_DEFAULTS.timeOfDay.keyframes.midday;
+    if (!config || !config.enabled) {
+      return "rgb(128, 128, 128)";
+    }
+    const keyframesSource = config.keyframes;
+    if (!keyframesSource) return "rgb(128, 128, 128)";
+    const keyframes = Object.values(keyframesSource).sort(
+      (a, b) => a.time - b.time
+    );
+    if (keyframes.length < 2) {
+      return "rgb(128, 128, 128)";
+    }
+    const extendedKeyframes = [
+      ...keyframes,
+      { ...keyframes[0], time: keyframes[0].time + 24 },
+    ];
+    let fromFrame, toFrame;
+    let currentTime = time;
+    if (currentTime < extendedKeyframes[0].time) {
+      currentTime += 24;
+    }
+    for (let i = 0; i < extendedKeyframes.length - 1; i++) {
+      const current = extendedKeyframes[i];
+      const next = extendedKeyframes[i + 1];
+      if (currentTime >= current.time && currentTime < next.time) {
+        fromFrame = current;
+        toFrame = next;
+        break;
+      }
+    }
+    if (!fromFrame) {
+      fromFrame = keyframes[keyframes.length - 1];
+      toFrame = extendedKeyframes[extendedKeyframes.length - 1];
+    }
+    const frameDuration = toFrame.time - fromFrame.time;
+    let timeIntoFrame = time - fromFrame.time;
+    if (timeIntoFrame < 0) timeIntoFrame += 24;
+    const blendFactor =
+      frameDuration > 0
+        ? Math.max(0, Math.min(1, timeIntoFrame / frameDuration))
+        : 0;
+    const lerp = (start, end, amount) => (1 - amount) * start + amount * end;
+    const saturation = lerp(
+      fromFrame.saturation ?? defaults.saturation,
+      toFrame.saturation ?? defaults.saturation,
+      blendFactor
+    );
+    const brightness = lerp(
+      fromFrame.brightness ?? defaults.brightness,
+      toFrame.brightness ?? defaults.brightness,
+      blendFactor
+    );
+    const contrast = lerp(
+      fromFrame.contrast ?? defaults.contrast,
+      toFrame.contrast ?? defaults.contrast,
+      blendFactor
+    );
+    const exposure = lerp(
+      fromFrame.exposure ?? defaults.exposure,
+      toFrame.exposure ?? defaults.exposure,
+      blendFactor
+    );
+    const gamma = lerp(
+      fromFrame.gamma ?? defaults.gamma,
+      toFrame.gamma ?? defaults.gamma,
+      blendFactor
+    );
+    const temperature = lerp(
+      fromFrame.temperature ?? defaults.temperature,
+      toFrame.temperature ?? defaults.temperature,
+      blendFactor
+    );
+    const tint = lerp(
+      fromFrame.tint ?? defaults.tint,
+      toFrame.tint ?? defaults.tint,
+      blendFactor
+    );
+    let color = { r: 0.5, g: 0.5, b: 0.5 };
+    color.r *= Math.pow(2.0, exposure);
+    color.g *= Math.pow(2.0, exposure);
+    color.b *= Math.pow(2.0, exposure);
+    if (gamma > 0.0) {
+      color.r = Math.pow(Math.max(color.r, 0.0), 1.0 / gamma);
+      color.g = Math.pow(Math.max(color.g, 0.0), 1.0 / gamma);
+      color.b = Math.pow(Math.max(color.b, 0.0), 1.0 / gamma);
+    }
+    color.r += brightness;
+    color.g += brightness;
+    color.b += brightness;
+    color.r = (color.r - 0.5) * contrast + 0.5;
+    color.g = (color.g - 0.5) * contrast + 0.5;
+    color.b = (color.b - 0.5) * contrast + 0.5;
+    const luminance = color.r * 0.299 + color.g * 0.587 + color.b * 0.114;
+    color.r = luminance + saturation * (color.r - luminance);
+    color.g = luminance + saturation * (color.g - luminance);
+    color.b = luminance + saturation * (color.b - luminance);
+    color.r += temperature * 0.15;
+    color.g += temperature * 0.075;
+    color.b -= temperature * 0.15;
+    color.g += tint * 0.15;
+    color.r -= tint * 0.075;
+    color.b -= tint * 0.075;
+    const finalR = Math.round(Math.max(0, Math.min(1, color.r)) * 255);
+    const finalG = Math.round(Math.max(0, Math.min(1, color.g)) * 255);
+    const finalB = Math.round(Math.max(0, Math.min(1, color.b)) * 255);
+    return `rgb(${finalR}, ${finalG}, ${finalB})`;
+  }
+
+  _updateTime(newTime, { fromHook = false } = {}) {
+    this.currentTime = (newTime + 24) % 24;
+    if (!this.element) return;
+    const tintColor = this.constructor._getColorForTime(this.currentTime);
+    this.element.find(".clock-face").css("--clock-tint-color", tintColor);
+    const angle = this.constructor._getAngleForTime(this.currentTime);
+    const formattedTime = this.constructor._formatTime(this.currentTime);
+    const isNight = this.currentTime < 6 || this.currentTime >= 18;
+    this.element.find(".clock-hand").css("transform", `rotate(${angle}deg)`);
+    this.element.find(".time-display-input").val(formattedTime);
+    const icon = this.element.find(".clock-icon");
+    const newIconSrc = isNight
+      ? "modules/map-shine/assets/moon.webp"
+      : "modules/map-shine/assets/sun.webp";
+    if (icon.attr("src") !== newIconSrc) {
+      icon.attr("src", newIconSrc);
+    }
+    if (!fromHook) {
+      game.mapShine.updateTimeOfDay(this.currentTime);
+    }
+  }
+
+  _onExternalTimeChange(time) {
+    if (Math.abs(this.currentTime - time) > 0.01) {
+      this._updateTime(time, { fromHook: true });
+    }
   }
 
   _onDrag(event) {
@@ -25508,18 +25403,53 @@ class DayNightClock extends Application {
     let angleRad = Math.atan2(deltaY, deltaX) + Math.PI / 2;
     if (angleRad < 0) angleRad += 2 * Math.PI;
     const angleDeg = angleRad * (180 / Math.PI);
-    const newTime = this._getTimeForAngle(angleDeg);
+    const newTime = this.constructor._getTimeForAngle(angleDeg);
     this._updateTime(newTime);
   }
 
   _onDragEnd(event) {
     this._isDragging = false;
-    $(window).off("mousemove.daynightclock");
-    $(window).off("mouseup.daynightclock");
+    $(window).off("mousemove.daynightclock", this._onDragBound);
+    $(window).off("mouseup.daynightclock", this._onDragEndBound);
+  }
+}
+
+class DayNightClock extends Application {
+  constructor(options = {}) {
+    super(options);
+    this.clockComponent = null;
+  }
+
+  static get defaultOptions() {
+    return foundry.utils.mergeObject(super.defaultOptions, {
+      id: "day-night-clock",
+      title: "Day/Night Cycle",
+      template: null,
+      width: 180,
+      height: "auto",
+      resizable: false,
+      classes: ["day-night-clock-app"],
+      header: false,
+    });
+  }
+
+  async _renderInner(data) {
+    // The application just needs to provide a container for the component.
+    const container = document.createElement("div");
+    container.style.backgroundColor = "#1e1e1e";
+    container.style.borderRadius = "8px";
+    container.style.border = "1px solid #111";
+    return $(container);
+  }
+
+  activateListeners(html) {
+    super.activateListeners(html);
+    // Instantiate the component, passing `this` (the Application instance) for drag handling.
+    this.clockComponent = new MapShineClock(html[0], this);
   }
 
   async close(options) {
-    Hooks.off("mapShine:timeChanged", this._onExternalTimeChangeBound);
+    this.clockComponent?.destroy();
     game.mapShine.dayNightClock = null;
     ui.controls.render(true);
     return super.close(options);
@@ -26586,9 +26516,27 @@ class DebuggerUIBuilder {
     flex-shrink: 0; /* prevent shrinking */
 }
 #material-editor-debugger .reset-accordion-btn:hover {
-    background: #803030;
-    color: #fff;
-    border-color: #c06060;
+background: #803030;
+color: #fff;
+border-color: #c06060;
+}
+.create-effect-from-ui {
+width: 22px;
+height: 22px;
+font-size: 11px;
+padding: 0;
+line-height: 20px;
+border-radius: 4px;
+background: transparent;
+border: 1px solid #4CAF50; /* Green */
+color: #4CAF50;
+margin-left: 5px;
+transition: all 0.2s;
+}
+.create-effect-from-ui:hover {
+background: rgba(76, 250, 64, 0.2);
+color: #fff;
+border-color: #6fdd73;
 }
 /* --- Main Controls Styles --- */
 
@@ -26807,7 +26755,10 @@ class DebuggerUIBuilder {
                             .warning-box { background: #552222; border: 1px solid #ff6666; padding: 5px; margin: 5px 0; border-radius: 3px; font-size: 10px; }
                             .warning-box strong { color: #ffaaaa; }
                             .profile-group-title { font-weight: bold; text-align: center; display: block; margin-bottom: 5px; color: #ccc; border-bottom: 1px solid #555; padding-bottom: 3px;}
-                            #material-editor-bottom-bar { padding: 10px 15px; margin-top: 5px; background: rgba(15, 15, 15, 0.5); border-radius: 5px; border: 1px solid #666; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 30px; }
+                                
+#material-editor-bottom-bar { padding: 10px 15px; margin-top: 5px; background: rgba(15, 15, 15, 0.5); border-radius: 5px; border: 1px solid #666; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 30px; }
+
+  
                             #material-editor-bottom-bar .about-text { font-size: 11px; line-height: 1.5; color: #ccc; }
                             #material-editor-bottom-bar .about-text p { margin: 0; }
                             #material-editor-bottom-bar .about-text p:first-child { margin-bottom: 5px; }
@@ -27170,19 +27121,24 @@ class DebuggerUIBuilder {
 
   static _buildBottomBar() {
     return `
-                    <div class="about-text">
-                        <p><strong>Map Shine:</strong> A free toolkit for creating memorable, animated, and visually striking maps. It will always be free for commercial use. Map making is both my passion and helps me support my family. If you use this module, please consider giving credit by linking my Patreon or map stores.</p>
-                    </div>
-                    <div class="support-links">
-                        <a href="https://www.patreon.com/c/MythicaMachina" target="_blank" class="patreon-link">
-                            <span>Support on Patreon</span>
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/9/94/Patreon_logo.svg" class="patreon-logo" alt="Patreon Logo">
-                        </a>
-                        <div class="stores-group">
-                            <h5 class="stores-heading">BUY MY MAPS AND HELP SUPPORT ME</h5>
-                            <div class="store-links-inner">
-                                <a href="https://www.foundryvtt.store/creators/mythica-machina" target="_blank">Foundry VTT Store</a>
-                                <a href="https://www.drivethrurpg.com/en/publisher/29377/mythicamachina" target="_blank">DriveThruRPG</a>
+                    <div id="material-editor-bottom-bar">
+                        <div id="debugger-ui-clock-container">
+                            <!-- Clock will be rendered here by JS -->
+                        </div>
+                        <div class="about-text">
+                            <p><strong>Map Shine:</strong> A free toolkit for creating memorable, animated, and visually striking maps. It will always be free for commercial use. Map making is both my passion and helps me support my family. If you use this module, please consider giving credit by linking my Patreon or map stores.</p>
+                        </div>
+                        <div class="support-links">
+                            <a href="https://www.patreon.com/c/MythicaMachina" target="_blank" class="patreon-link">
+                                <span>Support on Patreon</span>
+                                <img src="https://upload.wikimedia.org/wikipedia/commons/9/94/Patreon_logo.svg" class="patreon-logo" alt="Patreon Logo">
+                            </a>
+                            <div class="stores-group">
+                                <h5 class="stores-heading">BUY MY MAPS AND HELP SUPPORT ME</h5>
+                                <div class="store-links-inner">
+                                    <a href="https://www.foundryvtt.store/creators/mythica-machina" target="_blank">Foundry VTT Store</a>
+                                    <a href="https://www.drivethrurpg.com/en/publisher/29377/mythicamachina" target="_blank">DriveThruRPG</a>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -27536,6 +27492,11 @@ class DebuggerEventHandler {
     this.allLutPresets = {};
     this._isDebuggerClockDragging = false;
     this._onTimeChangedBound = this._onTimeChanged.bind(this);
+    this.uiClock = null;
+
+    // Store bound listeners for reliable add/remove
+    this._onDebuggerClockDragBound = this._onDebuggerClockDrag.bind(this);
+    this._onDebuggerClockDragEndBound = this._onDebuggerClockDragEnd.bind(this);
   }
 
   get config() {
@@ -27650,6 +27611,53 @@ class DebuggerEventHandler {
     }
   }
 
+  async _createParticleEffectArea(effectKey) {
+    // 1. Ensure map points editor is open.
+    if (!game.mapShine.mapPointsEditor || game.mapShine.mapPointsEditor.closing) {
+        const editor = new MapPointsEditor();
+        game.mapShine.mapPointsEditor = editor;
+        editor.render(true);
+        // Wait a moment for the editor to render and initialize
+        await new Promise(resolve => setTimeout(resolve, 100));
+    } else {
+        game.mapShine.mapPointsEditor.bringToTop();
+    }
+
+    // 2. Create a new group.
+    // Use the comprehensive EFFECT_SOURCE_OPTIONS for names
+    const effectName = EFFECT_SOURCE_OPTIONS[effectKey] || 'New Effect';
+
+    let groupType = 'area'; // Default for most particle effects
+    if (effectKey === 'lightning') {
+        groupType = 'line';
+    }
+    
+    const newGroupId = await MapPointsManager.createGroup({
+        label: `New ${effectName} Area`,
+        type: groupType,
+    });
+
+    if (!newGroupId) {
+        ui.notifications.error("Failed to create a new map point group.");
+        return;
+    }
+
+    // 3. Configure the new group for the effect.
+    await MapPointsManager.updateGroupProperties(newGroupId, {
+        isEffectSource: true,
+        effectTarget: effectKey
+    });
+    // The MapPointsEditor hook will automatically select the new group when it re-renders.
+
+    // 4. Activate placement mode.
+    const manager = game.mapShine.mapPointsInteractionManager;
+    if (!manager.isActive) {
+        manager.activate();
+    }
+    
+    ui.notifications.info(`Ready to draw the new ${groupType} for "${effectName}". Click on the map to add points.`);
+  }
+
   rebindDynamicControls() {
     this._populateDiagnosticDropdown();
     this._populateLutDropdown();
@@ -27659,6 +27667,21 @@ class DebuggerEventHandler {
     this._updateFavoritesList();
     this._initializeCurveEditor();
     this.updatePlacementStatus();
+
+    // Instantiate the clock in the bottom bar
+    if (this.uiClock) {
+      this.uiClock.destroy();
+      this.uiClock = null;
+    }
+    const clockContainer = this.element.querySelector("#debugger-ui-clock-container");
+    if (clockContainer) {
+      this.uiClock = new MapShineClock(clockContainer, null, {
+        showDragHandle: false,
+        showDisclaimer: false,
+      });
+    }
+
+
     // Link the transition manager to the UI update function
     if (game.mapShine.transitionManager) {
       game.mapShine.transitionManager.onStatusUpdate(
@@ -27794,6 +27817,17 @@ class DebuggerEventHandler {
     if (action === "add-list-item" || action === "remove-list-item") {
       this._handleListManagerClick(e);
       return;
+    }
+
+    // All other actions
+    switch (action) {
+      case "create-particle-effect-area": {
+        const effectKey = target.dataset.effectKey;
+        if (effectKey) {
+            this._createParticleEffectArea(effectKey);
+        }
+        break;
+      }
     }
 
     // All other actions
@@ -27955,10 +27989,8 @@ class DebuggerEventHandler {
   _onDebuggerClockMouseDown(event) {
     this._isDebuggerClockDragging = true;
     this._onDebuggerClockDrag(event); // Handle the initial click
-    const onDrag = this._onDebuggerClockDrag.bind(this);
-    const onDragEnd = this._onDebuggerClockDragEnd.bind(this);
-    window.addEventListener("mousemove", onDrag);
-    window.addEventListener("mouseup", onDragEnd, {
+    window.addEventListener("mousemove", this._onDebuggerClockDragBound);
+    window.addEventListener("mouseup", this._onDebuggerClockDragEndBound, {
       once: true,
     });
   }
@@ -27976,18 +28008,14 @@ class DebuggerEventHandler {
     let angleRad = Math.atan2(deltaY, deltaX) + Math.PI / 2;
     if (angleRad < 0) angleRad += 2 * Math.PI;
     const angleDeg = angleRad * (180 / Math.PI);
-    const newTime =
-      game.mapShine.dayNightClock?._getTimeForAngle(angleDeg) ??
-      (angleDeg / 15 + 12) % 24;
+    const newTime = MapShineClock._getTimeForAngle(angleDeg);
     this._updateDebuggerTime(newTime);
   }
 
   _onDebuggerClockDragEnd(event) {
     this._isDebuggerClockDragging = false;
-    window.removeEventListener(
-      "mousemove",
-      this._onDebuggerClockDrag.bind(this)
-    );
+    window.removeEventListener("mousemove", this._onDebuggerClockDragBound);
+    // The "mouseup" listener is {once: true}, so it removes itself automatically.
   }
 
   _onDebuggerClockButtonClick(event) {
@@ -28098,15 +28126,14 @@ class DebuggerEventHandler {
       this._updateSliderValue(timeSlider.id, timeValue, timeSlider.step);
     }
 
-    const clockHelper = game.mapShine.dayNightClock || new DayNightClock();
-    const angle = clockHelper._getAngleForTime(clockTime);
-    const formattedTime = clockHelper._formatTime(clockTime);
+    const angle = MapShineClock._getAngleForTime(clockTime);
+    const formattedTime = MapShineClock._formatTime(clockTime);
     const isNight = clockTime < 6 || clockTime >= 18;
     const iconSrc = isNight
       ? "modules/map-shine/assets/moon.webp"
       : "modules/map-shine/assets/sun.webp";
 
-    const tintColor = clockHelper._getColorForTime(clockTime);
+    const tintColor = MapShineClock._getColorForTime(clockTime);
     const clockFace = this.element.querySelector(
       "#debugger-clock-container .clock-face"
     );
@@ -29245,6 +29272,21 @@ class DebuggerEventHandler {
     };
     header.onmousedown = dragMouseDown;
   }
+
+  destroy() {
+    // Remove the global hook listener
+    Hooks.off("mapShine:timeChanged", this._onTimeChangedBound);
+
+    // Destroy the UI clock component if it exists
+    if (this.uiClock) {
+      this.uiClock.destroy();
+      this.uiClock = null;
+    }
+    
+    // Clean up window listeners just in case a drag was interrupted
+    window.removeEventListener("mousemove", this._onDebuggerClockDragBound);
+    window.removeEventListener("mouseup", this._onDebuggerClockDragEndBound);
+  }
 }
 
 class MaterialEditorDebugger {
@@ -29410,6 +29452,9 @@ class MaterialEditorDebugger {
       Hooks.off("updateScene", this._updateSceneHookId);
       this._updateSceneHookId = null;
     }
+
+    // Destroy the event handler and its components
+    this.eventHandler?.destroy();
 
     // Remove the UI element from the DOM
     this.element.remove();
@@ -29808,5 +29853,28 @@ Hooks.on("canvasDraw", (canvas) => {
   if (layersToWrap.length > 0) {
     worldContainer.addChild(...layersToWrap);
     worldContainer.sortChildren();
+  }
+});
+
+Hooks.on("renderSceneControls", (app, html, data) => {
+  if (!game.user.isGM) return;
+
+  // Prevent duplicate clocks on re-renders
+  if (html.querySelector("#map-shine-main-ui-clock")) return;
+
+  const tokenControls = html.querySelector('ol.main-controls[data-control="token"]');
+  if (tokenControls) {
+    const clockContainer = document.createElement("li");
+    clockContainer.id = "map-shine-main-ui-clock"; // ID for idempotency check
+    clockContainer.classList.add("scene-control-clock-wrapper");
+    clockContainer.title = "Map Shine Day/Night Cycle";
+    
+    tokenControls.appendChild(clockContainer);
+
+    // Instantiate the clock component, passing null for the application instance.
+    game.mapShine.mainUIClock = new MapShineClock(clockContainer, null, {
+      showDragHandle: false,
+      showDisclaimer: false,
+    });
   }
 });
