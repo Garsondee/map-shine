@@ -16,7 +16,7 @@
 	******************************************************************************/
 
 // =================================================================================
-// SECTION 1: MODULE SETUP & CONFIGURATION
+// SECTION 0: MODULE SETUP & CONFIGURATION
 // =================================================================================
 // Description: Global constants, default settings, and simple utility functions.
 // ---------------------------------------------------------------------------------
@@ -2812,12 +2812,14 @@ class FontLoader {
 }
 
 // =================================================================================
-// SECTION 2: CORE SYSTEMS & MANAGERS
+// SECTION 1: MODULE INITIALISER
 // =================================================================================
-// Description: The "brains" of the module. These classes manage state, data,
-//              and the overall lifecycle of effects.
+// Description: Handles the overall initialization of the module.
 // ---------------------------------------------------------------------------------
 
+/**
+	* Orchestrates the entire module initialization sequence.
+	*/
 class MapShineInitialiser {
 	/**
 		* Main entry point for module initialization. Called once during the 'init' hook.
@@ -2830,17 +2832,15 @@ class MapShineInitialiser {
 			return;
 		}
 
-		// Register all settings with Foundry's core.
-		this._registerSettings();
-
-		// Register all custom canvas layers.
-		this._registerLayers();
+		// Delegate registration to dedicated manager classes.
+		SettingsManager.registerSettings();
+		LayerManager.registerLayers();
 
 		// Create the global namespace and its core managers.
 		this._initializeGlobalNamespace();
 
 		// Set up hooks, patches, and other integrations.
-		this._registerIntegrationsAndHooks();
+		HooksManager.registerIntegrationsAndHooks();
 
 		// Finalize setup by initializing the scene change manager, which relies on the global namespace.
 		game.mapShine.sceneChangeManager.initialize();
@@ -2851,9 +2851,242 @@ class MapShineInitialiser {
 	}
 
 	/**
+		* Creates the global `game.mapShine` object and initializes its core managers and state.
+		*/
+	static _initializeGlobalNamespace() {
+		game.mapShine = {
+			initialized: true,
+			isCustomPaused: false,
+			transitionActive: false,
+			pauseEffectManager: new PauseEffectManager(),
+			combatEffectManager: new CombatEffectManager(),
+			timeControl: {
+				timeFactor: 1.0,
+			},
+			systemsReady: false,
+			loadingScreen: null,
+			profileManager: new ProfileManager(),
+			transitionManager: null, // Initialized below
+			sceneChangeManager: new SceneChangeManager(),
+			setupCompletionPromise: null,
+			resolveSetupCompletion: null,
+			debugger: null,
+			particleManager: null,
+			fireWindManager: null,
+			tokenManager: null,
+			dynamicExposureManager: null,
+			resourceManager: null, // The new resource manager
+			mapPointsManager: MapPointsManager,
+			mapPointsInteractionManager: new MapPointsInteractionManager(),
+			mapPointsEditor: null,
+			geometryMaskManager: null,
+			activeMapPointGroup: null,
+			mapPointsInitialized: false,
+			userGuide: null,
+		};
+
+		// This is the core function that gets called repeatedly when the clock is dragged.
+		const doUpdateTimeOfDay = async function (time) {
+			if (game.mapShine.profileManager) {
+				// Record the change. This updates the activeConfig immediately.
+				await game.mapShine.profileManager.recordUserChange(
+					"timeOfDay.currentTime",
+					time
+				);
+				// Trigger the expensive update for all visual systems.
+				await game.mapShine.profileManager.updateAllSystemsFromConfig();
+				// Notify other components (like the clock UI itself) that the time has officially changed.
+				Hooks.callAll("mapShine:timeChanged", time);
+			}
+		};
+		// Create the throttled (debounced) version of the function and assign it to the global namespace.
+		// This will wait for a 100ms pause in calls before executing, preventing overload.
+		game.mapShine.updateTimeOfDay = foundry.utils.throttle(
+			doUpdateTimeOfDay,
+			100
+		);
+
+		game.mapShine.effectTargetManager = {
+			targets: {
+				background: null,
+				tiles: new Map(),
+			},
+			async refresh() {
+				console.log("MapShine | Refreshing effect targets...");
+				const FLAG_NAME = "mapShineTargets";
+
+				if (game.user.isGM) {
+					const loader = new TextureAutoLoader();
+					const discoveredTargets = await loader.discoverAllTargets();
+
+					const serializableTiles = Array.from(
+						discoveredTargets.tiles.entries()
+					).map(([tileId, targetData]) => {
+						const { tile, ...rest } = targetData;
+						return [tileId, rest];
+					});
+
+					const serializableTargets = {
+						background: discoveredTargets.background,
+						tiles: serializableTiles,
+					};
+
+					const oldFlagData = canvas.scene.getFlag(MODULE_ID, FLAG_NAME);
+
+					if (
+						JSON.stringify(serializableTargets) === JSON.stringify(oldFlagData)
+					) {
+						console.log(
+							"MapShine | Discovered targets are unchanged. No flag update needed."
+						);
+						this.targets = discoveredTargets;
+					} else {
+						console.log(
+							"MapShine | New effect targets discovered. Updating scene flag."
+						);
+						await canvas.scene.setFlag(
+							MODULE_ID,
+							FLAG_NAME,
+							serializableTargets
+						);
+						return; // The updateScene hook will trigger the rest of the refresh on all clients.
+					}
+				} else {
+					const flagData = canvas.scene.getFlag(MODULE_ID, FLAG_NAME);
+					if (flagData) {
+						const rehydratedTiles = new Map();
+						if (flagData.tiles) {
+							for (const [tileId, targetData] of flagData.tiles) {
+								const tile = canvas.tiles.get(tileId);
+								if (tile) {
+									rehydratedTiles.set(tileId, {
+										...targetData,
+										tile: tile,
+									});
+								}
+							}
+						}
+						this.targets = {
+							background: flagData.background,
+							tiles: rehydratedTiles,
+						};
+					} else {
+						this.targets = {
+							background: null,
+							tiles: new Map(),
+						};
+					}
+				}
+
+				const allTargets = [
+					this.targets.background,
+					...this.targets.tiles.values(),
+				].filter((t) => t);
+				for (const key of Object.keys(TextureAutoLoader.SUFFIX_MAP)) {
+					const foundPath = allTargets.map((t) => t[key]).find((p) => p);
+					if (foundPath) {
+						systemStatus.update("textures", key, {
+							state: "ok",
+							message: foundPath,
+						});
+					} else {
+						systemStatus.update("textures", key, {
+							state: "inactive",
+							message: "Auto-discovery found no matching file.",
+						});
+					}
+				}
+
+				this.applyTileOpacities();
+				await this.broadcastUpdate();
+				Hooks.callAll("mapShine:targetsRefreshed");
+			},
+			async broadcastUpdate() {
+				const updatePromises = [];
+				for (const layer of canvas.layers) {
+					if (typeof layer.updateEffectTargets === "function") {
+						updatePromises.push(layer.updateEffectTargets(this.targets));
+					}
+				}
+				await Promise.all(updatePromises);
+			},
+			applyTileOpacities() {
+				const config = game.mapShine.profileManager.activeConfig;
+				for (const tile of canvas.tiles.placeables) {
+
+					if (!tile.mesh || tile.isManagedByOverheadLayer || tile.isManagedByBgLayer) continue;
+
+
+					const isTargetWithEffects =
+						this.targets.tiles.has(tile.id) && config.enabled;
+					if (isTargetWithEffects && !tile.document.overhead) {
+						tile.mesh.alpha = config.tileOpacity;
+					} else if (!isTargetWithEffects) {
+						tile.mesh.alpha = 1.0;
+					}
+				}
+			},
+		};
+
+		game.mapShine.debugger = null;
+		game.mapShine.activeEditor = null;
+		game.mapShine.showEditor = async function () {
+			if (game.mapShine.activeEditor) {
+				await game.mapShine.activeEditor.close();
+			}
+			const isAdvancedMode = game.settings.get(MODULE_ID, "advanced-ui-mode");
+			const editor = isAdvancedMode
+				? new MaterialEditorDebugger()
+				: new SimpleUIPanel();
+			game.mapShine.activeEditor = editor;
+			if (isAdvancedMode) {
+				game.mapShine.debugger = editor;
+				editor.initialize(game.mapShine.profileManager);
+			} else {
+				game.mapShine.debugger = null;
+				editor.render(true);
+			}
+		};
+
+		game.mapShine.dayNightClock = null;
+		game.mapShine.showDayNightClock = function () {
+			if (game.mapShine.dayNightClock) {
+				game.mapShine.dayNightClock.close();
+			} else {
+				game.mapShine.dayNightClock = new DayNightClock().render(true);
+			}
+		};
+
+		game.mapShine.userGuide = null;
+		game.mapShine.showUserGuide = function () {
+			if (game.mapShine.userGuide) {
+				game.mapShine.userGuide.bringToTop();
+			} else {
+				game.mapShine.userGuide = new UserGuide().render(true);
+			}
+		};
+
+		// Initialize the transition manager, providing it with the profile manager instance.
+		game.mapShine.transitionManager = new AppearanceTransitionManager(
+			game.mapShine.profileManager
+		);
+
+		// Show the loading screen now that the global namespace exists.
+		if (!game.settings.get(MODULE_ID, "disable-loading-screen")) {
+			game.mapShine.loadingScreen = new LoadingScreen();
+			game.mapShine.loadingScreen.show();
+		}
+	}
+}
+
+/**
+	* Manages the registration of all module settings.
+	*/
+class SettingsManager {
+	/**
 		* Registers all module settings with Foundry's settings system.
 		*/
-	static _registerSettings() {
+	static registerSettings() {
 		game.settings.register(MODULE_ID, "disable-loading-screen", {
 			name: "Disable Loading Screen",
 			hint: "Completely disables the loading screen feature. Disabling this may cause some effects and layers to pop into existence a moment after the scene has finished loading, which can be jarring. Recommended to keep enabled unless it causes issues.",
@@ -3179,7 +3412,7 @@ class MapShineInitialiser {
 			config: true,
 			type: Boolean,
 			default: false,
-			onChange: this._requestRefresh,
+			onChange: SettingsManager.requestRefresh,
 		});
 
 		game.settings.register(MODULE_ID, "user-disable-color-fringe", {
@@ -3189,7 +3422,7 @@ class MapShineInitialiser {
 			config: true,
 			type: Boolean,
 			default: false,
-			onChange: this._requestRefresh,
+			onChange: SettingsManager.requestRefresh,
 		});
 
 		game.settings.register(MODULE_ID, "scene-transition-timeout", {
@@ -3215,7 +3448,7 @@ class MapShineInitialiser {
 				config: true,
 				type: Boolean,
 				default: true,
-				onChange: this._requestRefresh,
+				onChange: SettingsManager.requestRefresh,
 			});
 
 			if (data.intensitySubPath) {
@@ -3231,7 +3464,7 @@ class MapShineInitialiser {
 						step: 1,
 					},
 					default: 100,
-					onChange: this._requestRefresh,
+					onChange: SettingsManager.requestRefresh,
 				});
 			}
 		});
@@ -3278,17 +3511,22 @@ class MapShineInitialiser {
 	/**
 		* A helper function to trigger a full refresh when a client setting changes.
 		*/
-	static _requestRefresh() {
+	static requestRefresh() {
 		if (canvas?.ready && game.mapShine?.profileManager) {
 			game.mapShine.profileManager.initializeForScene();
 			game.mapShine.profileManager.updateAllSystemsFromConfig();
 		}
 	}
+}
 
+/**
+	* Manages the registration of all custom canvas layers.
+	*/
+class LayerManager {
 	/**
 		* Registers all custom canvas layers with Foundry's configuration.
 		*/
-	static _registerLayers() {
+	static registerLayers() {
 		const ambientZIndex = game.settings.get(MODULE_ID, "ambientLayerZIndex");
 
 		// Define z-indices for core Foundry layers for reference.
@@ -3411,242 +3649,16 @@ class MapShineInitialiser {
 			`MapShine | Registered all layers with explicit z-indices. AmbientLayer zIndex set to: ${ambientZIndex}.`
 		);
 	}
+}
 
-	/**
-		* Creates the global `game.mapShine` object and initializes its core managers and state.
-		*/
-	static _initializeGlobalNamespace() {
-		game.mapShine = {
-			initialized: true,
-			isCustomPaused: false,
-			transitionActive: false,
-			pauseEffectManager: new PauseEffectManager(),
-			combatEffectManager: new CombatEffectManager(),
-			timeControl: {
-				timeFactor: 1.0,
-			},
-			systemsReady: false,
-			loadingScreen: null,
-			profileManager: new ProfileManager(),
-			transitionManager: null, // Initialized below
-			sceneChangeManager: new SceneChangeManager(),
-			setupCompletionPromise: null,
-			resolveSetupCompletion: null,
-			debugger: null,
-			particleManager: null,
-			fireWindManager: null,
-			tokenManager: null,
-			dynamicExposureManager: null,
-			resourceManager: null, // The new resource manager
-			mapPointsManager: MapPointsManager,
-			mapPointsInteractionManager: new MapPointsInteractionManager(),
-			mapPointsEditor: null,
-			geometryMaskManager: null,
-			activeMapPointGroup: null,
-			mapPointsInitialized: false,
-			userGuide: null,
-		};
-
-		// This is the core function that gets called repeatedly when the clock is dragged.
-		const doUpdateTimeOfDay = async function (time) {
-			if (game.mapShine.profileManager) {
-				// Record the change. This updates the activeConfig immediately.
-				await game.mapShine.profileManager.recordUserChange(
-					"timeOfDay.currentTime",
-					time
-				);
-				// Trigger the expensive update for all visual systems.
-				await game.mapShine.profileManager.updateAllSystemsFromConfig();
-				// Notify other components (like the clock UI itself) that the time has officially changed.
-				Hooks.callAll("mapShine:timeChanged", time);
-			}
-		};
-		// Create the throttled (debounced) version of the function and assign it to the global namespace.
-		// This will wait for a 100ms pause in calls before executing, preventing overload.
-		game.mapShine.updateTimeOfDay = foundry.utils.throttle(
-			doUpdateTimeOfDay,
-			100
-		);
-
-		game.mapShine.effectTargetManager = {
-			targets: {
-				background: null,
-				tiles: new Map(),
-			},
-			async refresh() {
-				console.log("MapShine | Refreshing effect targets...");
-				const FLAG_NAME = "mapShineTargets";
-
-				if (game.user.isGM) {
-					const loader = new TextureAutoLoader();
-					const discoveredTargets = await loader.discoverAllTargets();
-
-					const serializableTiles = Array.from(
-						discoveredTargets.tiles.entries()
-					).map(([tileId, targetData]) => {
-						const { tile, ...rest } = targetData;
-						return [tileId, rest];
-					});
-
-					const serializableTargets = {
-						background: discoveredTargets.background,
-						tiles: serializableTiles,
-					};
-
-					const oldFlagData = canvas.scene.getFlag(MODULE_ID, FLAG_NAME);
-
-					if (
-						JSON.stringify(serializableTargets) === JSON.stringify(oldFlagData)
-					) {
-						console.log(
-							"MapShine | Discovered targets are unchanged. No flag update needed."
-						);
-						this.targets = discoveredTargets;
-					} else {
-						console.log(
-							"MapShine | New effect targets discovered. Updating scene flag."
-						);
-						await canvas.scene.setFlag(
-							MODULE_ID,
-							FLAG_NAME,
-							serializableTargets
-						);
-						return; // The updateScene hook will trigger the rest of the refresh on all clients.
-					}
-				} else {
-					const flagData = canvas.scene.getFlag(MODULE_ID, FLAG_NAME);
-					if (flagData) {
-						const rehydratedTiles = new Map();
-						if (flagData.tiles) {
-							for (const [tileId, targetData] of flagData.tiles) {
-								const tile = canvas.tiles.get(tileId);
-								if (tile) {
-									rehydratedTiles.set(tileId, {
-										...targetData,
-										tile: tile,
-									});
-								}
-							}
-						}
-						this.targets = {
-							background: flagData.background,
-							tiles: rehydratedTiles,
-						};
-					} else {
-						this.targets = {
-							background: null,
-							tiles: new Map(),
-						};
-					}
-				}
-
-				const allTargets = [
-					this.targets.background,
-					...this.targets.tiles.values(),
-				].filter((t) => t);
-				for (const key of Object.keys(TextureAutoLoader.SUFFIX_MAP)) {
-					const foundPath = allTargets.map((t) => t[key]).find((p) => p);
-					if (foundPath) {
-						systemStatus.update("textures", key, {
-							state: "ok",
-							message: foundPath,
-						});
-					} else {
-						systemStatus.update("textures", key, {
-							state: "inactive",
-							message: "Auto-discovery found no matching file.",
-						});
-					}
-				}
-
-				this.applyTileOpacities();
-				await this.broadcastUpdate();
-				Hooks.callAll("mapShine:targetsRefreshed");
-			},
-			async broadcastUpdate() {
-				const updatePromises = [];
-				for (const layer of canvas.layers) {
-					if (typeof layer.updateEffectTargets === "function") {
-						updatePromises.push(layer.updateEffectTargets(this.targets));
-					}
-				}
-				await Promise.all(updatePromises);
-			},
-			applyTileOpacities() {
-				const config = game.mapShine.profileManager.activeConfig;
-				for (const tile of canvas.tiles.placeables) {
-
-					if (!tile.mesh || tile.isManagedByOverheadLayer || tile.isManagedByBgLayer) continue;
-
-
-					const isTargetWithEffects =
-						this.targets.tiles.has(tile.id) && config.enabled;
-					if (isTargetWithEffects && !tile.document.overhead) {
-						tile.mesh.alpha = config.tileOpacity;
-					} else if (!isTargetWithEffects) {
-						tile.mesh.alpha = 1.0;
-					}
-				}
-			},
-		};
-
-		game.mapShine.debugger = null;
-		game.mapShine.activeEditor = null;
-		game.mapShine.showEditor = async function () {
-			if (game.mapShine.activeEditor) {
-				await game.mapShine.activeEditor.close();
-			}
-			const isAdvancedMode = game.settings.get(MODULE_ID, "advanced-ui-mode");
-			const editor = isAdvancedMode
-				? new MaterialEditorDebugger()
-				: new SimpleUIPanel();
-			game.mapShine.activeEditor = editor;
-			if (isAdvancedMode) {
-				game.mapShine.debugger = editor;
-				editor.initialize(game.mapShine.profileManager);
-			} else {
-				game.mapShine.debugger = null;
-				editor.render(true);
-			}
-		};
-
-		game.mapShine.dayNightClock = null;
-		game.mapShine.showDayNightClock = function () {
-			if (game.mapShine.dayNightClock) {
-				game.mapShine.dayNightClock.close();
-			} else {
-				game.mapShine.dayNightClock = new DayNightClock().render(true);
-			}
-		};
-
-		game.mapShine.userGuide = null;
-		game.mapShine.showUserGuide = function () {
-			if (game.mapShine.userGuide) {
-				game.mapShine.userGuide.bringToTop();
-			} else {
-				game.mapShine.userGuide = new UserGuide().render(true);
-			}
-		};
-
-		// Initialize the transition manager, providing it with the profile manager instance.
-		game.mapShine.transitionManager = new AppearanceTransitionManager(
-			game.mapShine.profileManager
-		);
-
-		// Show the loading screen now that the global namespace exists.
-		if (!game.settings.get(MODULE_ID, "disable-loading-screen")) {
-			game.mapShine.loadingScreen = new LoadingScreen();
-			game.mapShine.loadingScreen.show();
-		}
-	}
-
+/**
+	* Manages the registration of all hooks and libWrapper patches.
+	*/
+class HooksManager {
 	/**
 		* Registers libWrapper patches, hooks, and other event listeners.
 		*/
-	/**
-		* Registers libWrapper patches, hooks, and other event listeners.
-		*/
-	static _registerIntegrationsAndHooks() {
+	static registerIntegrationsAndHooks() {
 		// --- Particle Library Integration ---
 		console.log("Map Shine | Library Test: Verifying PIXI.particles global.");
 		if (PIXI.particles && typeof PIXI.particles.Emitter === "function") {
@@ -3958,6 +3970,21 @@ class MapShineInitialiser {
 		});
 	}
 }
+
+
+
+// =================================================================================
+// SECTION 2: CORE SYSTEMS & MANAGERS
+// =================================================================================
+// Description: The "brains" of the module. These classes manage state, data,
+//              and the overall lifecycle of effects.
+// ---------------------------------------------------------------------------------
+
+
+
+
+
+
 
 /***************************************************************************************
 	*
@@ -6163,15 +6190,21 @@ class SceneChangeManager {
 			waypoints: {
 				START: 0,
 				DEPENDENCIES_START: 5,
-				DEPENDENCIES_END: 15,
-				DISCOVERY_START: 20,
-				DISCOVERY_END: 40,
-				SETUP_START: 45,
-				PROFILES_INIT: 50,
-				CONFIG_FINALIZE: 55,
-				LAYERS_UPDATE: 65,
-				SCREEN_FX_INIT: 75,
-				MANAGERS_INIT: 85,
+				DEPENDENCIES_END: 10,
+				DISCOVERY_START: 15,
+				DISCOVERY_END: 35,
+				SETUP_START: 40,
+				RESOURCE_MANAGER_INIT: 42,
+				PROFILES_INIT: 45,
+				FIRE_WIND_INIT: 48,
+				CONFIG_FINALIZE: 50,
+				LAYERS_UPDATE_START: 55,
+				LAYERS_UPDATE_END: 65,
+				SCREEN_FX_INIT: 70,
+				TOKEN_MANAGER_INIT: 75,
+				DYNAMIC_EXPOSURE_INIT: 80,
+				PAUSE_COMBAT_INIT: 85,
+				GEOMETRY_MANAGER_INIT: 90,
 				CANVAS_MANAGERS_INIT: 95,
 				STRUCTURAL_HIGHLIGHTS: 98,
 				SETUP_COMPLETE: 100,
@@ -6183,11 +6216,17 @@ class SceneChangeManager {
 				DISCOVERY_START: "Discovering effect maps...",
 				DISCOVERY_END: "Effect maps found.",
 				SETUP_START: "Configuring effects...",
+				RESOURCE_MANAGER_INIT: "Preparing resource manager...",
 				PROFILES_INIT: "Loading profiles...",
+				FIRE_WIND_INIT: "Calculating wind...",
 				CONFIG_FINALIZE: "Finalizing configuration...",
-				LAYERS_UPDATE: "Updating effect layers...",
+				LAYERS_UPDATE_START: "Updating effect layers...",
+				LAYERS_UPDATE_END: "Layers updated.",
 				SCREEN_FX_INIT: "Initializing screen effects...",
-				MANAGERS_INIT: "Initializing system managers...",
+				TOKEN_MANAGER_INIT: "Tracking tokens...",
+				DYNAMIC_EXPOSURE_INIT: "Calibrating exposure...",
+				PAUSE_COMBAT_INIT: "Preparing game state effects...",
+				GEOMETRY_MANAGER_INIT: "Building geometry masks...",
 				CANVAS_MANAGERS_INIT: "Initializing canvas managers...",
 				STRUCTURAL_HIGHLIGHTS: "Rendering structural highlights...",
 				SETUP_COMPLETE: "Finalizing scene...",
@@ -7823,6 +7862,7 @@ class MapShineLifecycle {
 		// Initialize the new resource manager
 		game.mapShine.resourceManager = new ResourceManager();
 		game.mapShine.resourceManager.initialize();
+		await loadingManager?.tick("RESOURCE_MANAGER_INIT");
 
 		// 1. Initialize the profile manager with whatever is saved for the scene.
 		game.mapShine.profileManager.initializeForScene();
@@ -7835,12 +7875,14 @@ class MapShineLifecycle {
 		game.mapShine.fireWindManager.updateFromConfig(
 			game.mapShine.profileManager.activeConfig.fire.particles.wind
 		);
+		await loadingManager?.tick("FIRE_WIND_INIT");
 
 		// 3. (NEW) Finalize the configuration based on discovered textures.
 		this.finalizeConfigurationAndUI();
 		await loadingManager?.tick("CONFIG_FINALIZE");
 
 		// 5. NOW we broadcast the finalized configuration to all systems.
+		await loadingManager?.tick("LAYERS_UPDATE_START");
 		const config = game.mapShine.profileManager.activeConfig;
 		for (const layer of canvas.layers) {
 			if (layer instanceof ParticleLayer) continue; // Skip the particle layer
@@ -7856,7 +7898,7 @@ class MapShineLifecycle {
 			}
 		}
 		ScreenEffectsManager.updateAllFiltersFromConfig(config);
-		await loadingManager?.tick("LAYERS_UPDATE");
+		await loadingManager?.tick("LAYERS_UPDATE_END");
 
 		// 6. Initialize the global screen filters.
 		ScreenEffectsManager.initialize(game.mapShine.worldContainer);
@@ -7869,10 +7911,12 @@ class MapShineLifecycle {
 		if (!game.mapShine.tokenManager)
 			game.mapShine.tokenManager = new TokenManager();
 		game.mapShine.tokenManager.initialize();
+		await loadingManager?.tick("TOKEN_MANAGER_INIT");
 
 		if (!game.mapShine.dynamicExposureManager)
 			game.mapShine.dynamicExposureManager = new DynamicExposureManager();
 		game.mapShine.dynamicExposureManager.initialize();
+		await loadingManager?.tick("DYNAMIC_EXPOSURE_INIT");
 
 		if (game.mapShine.pauseEffectManager) {
 			game.mapShine.pauseEffectManager.initialize();
@@ -7881,13 +7925,13 @@ class MapShineLifecycle {
 		if (game.mapShine.combatEffectManager) {
 			game.mapShine.combatEffectManager.initialize();
 		}
+		await loadingManager?.tick("PAUSE_COMBAT_INIT");
 
 		if (!game.mapShine.geometryMaskManager) {
 			game.mapShine.geometryMaskManager = new GeometryMaskManager();
 		}
 		game.mapShine.geometryMaskManager.initialize();
-
-		await loadingManager?.tick("MANAGERS_INIT");
+		await loadingManager?.tick("GEOMETRY_MANAGER_INIT");
 
 		// 6. (NEW) Update the UI controls to reflect the finalized configuration.
 		if (game.mapShine.debugger) {
@@ -19152,6 +19196,15 @@ class MetallicShineFilter extends PIXI.Filter {
           uniform float uCloudOcclusionIntensity;
           uniform float uGlobalIntensity;
           uniform float uDarkness;
+          uniform vec4 uSceneRectNorm;
+
+          // Building Shadow Uniforms
+          uniform bool uBuildingShadowsEnabled;
+          uniform float uBuildingShadowIntensity;
+          uniform vec2 uBuildingShadowOffset;
+          uniform float uBuildingShadowBlur;
+          uniform vec2 uBuildingTexelSize;
+          uniform vec2 uBuildingCanvasScale;
 
           // Color Correction Uniforms
           uniform bool uColorCorrectionEnabled;
@@ -19163,27 +19216,27 @@ class MetallicShineFilter extends PIXI.Filter {
           uniform float uTintAmount;
           uniform bool uInvert;
 
-          // A constant vector for calculating luminance from an RGB color.
           const vec3 LUM_WEIGHTS = vec3(0.299, 0.587, 0.114);
 
+          float sampleCaster(vec2 uv) {
+              vec2 sceneMin = uSceneRectNorm.xy;
+              vec2 sceneMax = uSceneRectNorm.xy + uSceneRectNorm.zw;
+              if (uv.x < sceneMin.x || uv.x > sceneMax.x || uv.y < sceneMin.y || uv.y > sceneMax.y) {
+                  return 1.0; // Treat as outdoors (no shadow)
+              }
+              return texture2D(uOutdoorsMask, uv).r;
+          }
+
           void main() {
-              // Sample the color and alpha from the specular map at the current screen position.
               vec4 specularColor = texture2D(uSpecularMap, vScreenCoord);
               vec3 workingColor = specularColor.rgb;
-
-              // Calculate the luminance (brightness) of the specular color.
               float specularLuminance = dot(workingColor, LUM_WEIGHTS);
-
-              // Create a combined mask from both the texture's alpha channel and its brightness.
-              // This ensures the shine appears only in areas that are both non-transparent AND bright.
               float specularMask = specularColor.a * specularLuminance;
 
-              // If the combined mask value is very low, discard the pixel entirely.
               if (specularMask < 0.01) {
                   discard;
               }
 
-              // Apply Color Correction if enabled
               if (uColorCorrectionEnabled) {
                   if (uGamma > 0.0) workingColor = pow(workingColor, vec3(1.0 / uGamma));
                   workingColor += uBrightness;
@@ -19194,39 +19247,47 @@ class MetallicShineFilter extends PIXI.Filter {
                   if (uInvert) workingColor = 1.0 - workingColor;
               }
 
-              // Sample the stripe intensity from the pre-rendered pattern.
               float stripeIntensity = texture2D(uStripePattern, vScreenCoord).r;
-
-              // The final alpha is modulated by our new combined mask and the stripe intensity.
               float finalAlpha = specularMask * stripeIntensity;
               
               if (uCloudOcclusionEnabled) {
-                  // The cloud shadow texture value is between 0 (full shadow) and 1 (no shadow).
                   float cloudValue = texture2D(uCloudOcclusionMask, vScreenCoord).r;
-                  // We mix between the original alpha (1.0) and the cloud-reduced alpha based on the effect's intensity.
                   finalAlpha *= mix(1.0, cloudValue, uCloudOcclusionIntensity);
               }
 
-              // Reduce shine in dark indoor areas based on the structural map.
               float outdoorsMaskValue = texture2D(uOutdoorsMask, vScreenCoord).r;
-              if (outdoorsMaskValue < 0.5) { // If indoors (dark part of outdoors mask)
-                  // The structural mask is white for light, black for shadow.
-                  // We want to reduce shine in the dark parts, so we multiply by the mask's brightness.
+
+              if (uBuildingShadowsEnabled && outdoorsMaskValue > 0.5) {
+                  vec2 baseSampleCoord = vScreenCoord - (uBuildingShadowOffset * uBuildingCanvasScale) * uBuildingTexelSize;
+                  float shadowFactor = 0.0;
+                  float blurPixels = uBuildingShadowBlur * uBuildingCanvasScale.x;
+                  vec2 blurUv = blurPixels * uBuildingTexelSize;
+
+                  shadowFactor += sampleCaster(baseSampleCoord + vec2(-blurUv.x, -blurUv.y));
+                  shadowFactor += sampleCaster(baseSampleCoord + vec2(0.0, -blurUv.y));
+                  shadowFactor += sampleCaster(baseSampleCoord + vec2(blurUv.x, -blurUv.y));
+                  shadowFactor += sampleCaster(baseSampleCoord + vec2(-blurUv.x, 0.0));
+                  shadowFactor += sampleCaster(baseSampleCoord);
+                  shadowFactor += sampleCaster(baseSampleCoord + vec2(blurUv.x, 0.0));
+                  shadowFactor += sampleCaster(baseSampleCoord + vec2(-blurUv.x, blurUv.y));
+                  shadowFactor += sampleCaster(baseSampleCoord + vec2(0.0, blurUv.y));
+                  shadowFactor += sampleCaster(baseSampleCoord + vec2(blurUv.x, blurUv.y));
+                  shadowFactor /= 9.0;
+                  
+                  float shadowAmount = 1.0 - shadowFactor;
+                  float adjustedIntensity = pow(uBuildingShadowIntensity, 0.33);
+                  float shadowMultiplier = 1.0 - (shadowAmount * adjustedIntensity);
+                  finalAlpha *= shadowMultiplier;
+              }
+              
+              if (outdoorsMaskValue < 0.5) {
                   float structuralMaskValue = texture2D(uStructuralMask, vScreenCoord).r;
                   finalAlpha *= structuralMaskValue;
               }
               
-              // Apply the global intensity multiplier from the layer.
               finalAlpha *= uGlobalIntensity;
-
-              // Apply scene darkness to the final visibility/intensity of the shine.
-              // This is applied to the alpha because the workingColor can have HDR values from
-              // color correction which would be clamped, nullifying the darkness effect.
               finalAlpha *= (1.0 - uDarkness * 0.75);
 
-              // The output color is the original color from the specular map.
-              // We multiply by finalAlpha for premultiplied alpha, which is standard for PIXI filters
-              // and ensures correct blending with the scene.
               gl_FragColor = vec4(clamp(workingColor, 0.0, 1.0) * finalAlpha, finalAlpha);
           }
       `;
@@ -19249,6 +19310,13 @@ class MetallicShineFilter extends PIXI.Filter {
 			uTintColor: [1.0, 1.0, 1.0],
 			uTintAmount: 0.0,
 			uInvert: false,
+			uSceneRectNorm: [0, 0, 1, 1],
+			uBuildingShadowsEnabled: false,
+			uBuildingShadowIntensity: 0.5,
+			uBuildingShadowOffset: [0, 0],
+			uBuildingShadowBlur: 0.0,
+			uBuildingTexelSize: [0.001, 0.001],
+			uBuildingCanvasScale: [1.0, 1.0],
 			...options,
 		});
 	}
@@ -19385,6 +19453,7 @@ class MetallicShineLayer extends CanvasLayer {
 		this.finalShineTexture = null;
 
 		this.time = 0;
+		this.currentTime = 12.0;
 		this._needsMaskUpdate = true;
 	}
 
@@ -19649,13 +19718,7 @@ class MetallicShineLayer extends CanvasLayer {
 		const resourceManager = game.mapShine.resourceManager;
 		if (!resourceManager) return;
 
-		// This layer is now driven by the ResourceManager.
-		// This call will trigger renderEffectNow if needed for this frame.
 		resourceManager.getAnimatedShineTexture(deltaTime);
-
-		// The effectSprite no longer needs its texture set here,
-		// as it's just a dummy sprite to hold the filter.
-		// We will render it directly to the stage.
 	}
 
 	renderEffectNow(deltaTime) {
@@ -19695,6 +19758,40 @@ class MetallicShineLayer extends CanvasLayer {
 		u.uOutdoorsMask = outdoorsMask;
 		u.uDarkness = canvas.scene?.environment.darknessLevel ?? 0;
 
+		const config = game.mapShine.profileManager.activeConfig;
+		const buildingShadowsConfig = config.buildingShadows;
+		const time = this.currentTime;
+
+		if (buildingShadowsConfig && buildingShadowsConfig.enabled && time >= 6 && time < 18) {
+			u.uBuildingShadowsEnabled = true;
+
+			const sunPos = (time - 12) / 6.0;
+			const offsetMagnitude = buildingShadowsConfig.maxOffset * sunPos;
+			const sunAngleRad = (buildingShadowsConfig.sunAngle ?? 45) * (Math.PI / 180.0);
+
+			u.uBuildingShadowOffset = [
+				Math.cos(sunAngleRad) * offsetMagnitude,
+				Math.sin(sunAngleRad) * offsetMagnitude,
+			];
+
+			const effectiveDaylight = 1.0 - Math.abs(time - 12) / 6.0;
+			const blurPixels = buildingShadowsConfig.maxBlur * (1.0 - effectiveDaylight);
+			u.uBuildingShadowBlur = Math.max(0.1, blurPixels);
+
+			u.uBuildingShadowIntensity = buildingShadowsConfig.intensity;
+
+			const screen = CoordinateManager.getScreenDimensions();
+			u.uBuildingTexelSize = [1.0 / screen.width, 1.0 / screen.height];
+
+			const canvasScale = CoordinateManager.getCanvasScale();
+			u.uBuildingCanvasScale = [canvasScale, canvasScale];
+
+			u.uSceneRectNorm = CoordinateManager.getSceneRectNormalizedArray();
+
+		} else {
+			u.uBuildingShadowsEnabled = false;
+		}
+
 		const cameraOffset = CoordinateManager.getCameraOffset();
 		const viewSize = CoordinateManager.getViewSize();
 
@@ -19702,8 +19799,6 @@ class MetallicShineLayer extends CanvasLayer {
 		this.effectSprite.width = viewSize.width;
 		this.effectSprite.height = viewSize.height;
 
-		// This is the critical fix: we now provide the main camera's transform.
-		// This correctly renders the world-space sprite into the screen-space texture.
 		canvas.app.renderer.render(this.effectSprite, {
 			renderTexture: this.finalShineTexture,
 			transform: canvas.stage.transform.worldTransform,
@@ -19795,6 +19890,11 @@ class MetallicShineLayer extends CanvasLayer {
 		}
 
 		this.visible = config.enabled && bsConfig.enabled;
+
+		const timeOfDayConfig = config.timeOfDay;
+		if (timeOfDayConfig && timeOfDayConfig.currentTime !== undefined) {
+			this.currentTime = timeOfDayConfig.currentTime;
+		}
 
 		this.blendMode = bsConfig.compositing.layerBlendMode;
 
@@ -26629,6 +26729,7 @@ border-color: #6fdd73;
                             #material-editor-header h3 { margin: 0; padding: 0; border: none; flex-grow: 1; text-align: center; cursor: move; user-select: none; font-size: 1.4em; }
                             .header-btn { display: inline-block; text-decoration: none; background: #3a3a3a; border: 1px solid #666; color: #ccc; font-weight: bold; width: 22px; height: 22px; line-height: 22px; text-align: center; cursor: pointer; border-radius: 4px; flex-shrink: 0; font-size: 14px; padding: 0; }
                             .header-btn:hover { background: #555; border-color: #888; }
+																												#material-editor-debugger .summary-control .header-btn { width: 22px; height: 22px; font-size: 11px; padding: 0; }
                             #material-editor-debugger .file-picker-btn {
                                 flex-shrink: 0;
                                 width: 22px;
@@ -27097,45 +27198,57 @@ border-color: #6fdd73;
 
 	static _createAccordionHTML(id, title, content, headerExtra = "") {
 		let path = `${id}.enabled`;
-		if (id === "loadingScreen" || id === "fontManager") {
-			path = "loadingScreen.accordion";
+
+		// Special cases for accordions tied to game settings, not a single profile path.
+		if (id === "loadingScreen" || id === "fontManager" || id === "pauseEffectOverlay") {
+			path = "loadingScreen.accordion"; // Dummy path
 			const labelHtml = `<span class="summary-label">${title}</span>`;
 			const resetButtonHtml = `<button type="button" class="reset-accordion-btn" data-action="reset-accordion" data-effect-key="${id}" title="Reset this section to defaults">R</button>`;
+			const copyButtonHtml = `<button type="button" class="header-btn" data-action="copy-accordion" data-effect-key="${id}" title="Copy Settings"><i class="fas fa-copy"></i></button>`;
+			const pasteButtonHtml = `<button type="button" class="header-btn" data-action="paste-accordion" data-effect-key="${id}" title="Paste Settings"><i class="fas fa-paste"></i></button>`;
 
 			return `<details id="details-${id}">
-                              <summary>
-                                  <span class="accordion-toggle"></span>
-                                  <div class="summary-control" style="justify-content: flex-start;">
-                                      <div style="display: flex; align-items: center; gap: 5px;">
-                                          ${labelHtml}
-                                          ${resetButtonHtml}
-                                          ${headerExtra}
-                                      </div>
-                                  </div>
-                              </summary>
-                              <div style="padding-top: 5px;">${content}</div>
-                          </details>`;
+																															<summary>
+																																			<span class="accordion-toggle"></span>
+																																			<div class="summary-control" style="justify-content: space-between;">
+																																							<div style="display: flex; align-items: center; gap: 5px;">
+																																											${labelHtml}
+																																											${resetButtonHtml}
+																																											${headerExtra}
+																																							</div>
+																																							<div class="widget-group">
+																																											${copyButtonHtml}
+																																											${pasteButtonHtml}
+																																							</div>
+																																			</div>
+																															</summary>
+																															<div style="padding-top: 5px;">${content}</div>
+																											</details>`;
 		}
 
 		const checkboxId = this._createSafeId(path);
 		const labelHtml = `<span class="summary-label">${title}</span>`;
 		const resetButtonHtml = `<button type="button" class="reset-accordion-btn" data-action="reset-accordion" data-effect-key="${id}" title="Reset this section to defaults">R</button>`;
-		const widgetsHtml = `<div class="widget-group"><input type="checkbox" name="${path}" id="${checkboxId}" data-path="${path}"></div>`;
+		const widgetsHtml = `<div class="widget-group">
+																																	<button type="button" class="header-btn" data-action="copy-accordion" data-effect-key="${id}" title="Copy Settings"><i class="fas fa-copy"></i></button>
+																																	<button type="button" class="header-btn" data-action="paste-accordion" data-effect-key="${id}" title="Paste Settings"><i class="fas fa-paste"></i></button>
+																																	<input type="checkbox" name="${path}" id="${checkboxId}" data-path="${path}">
+																													</div>`;
 
 		return `<details id="details-${id}">
-                            <summary>
-                                <span class="accordion-toggle"></span>
-                                <div class="summary-control">
-                                    <div style="display: flex; align-items: center; gap: 5px;">
-                                        ${labelHtml}
-                                        ${resetButtonHtml}
-                                        ${headerExtra}
-                                    </div>
-                                    ${widgetsHtml}
-                                </div>
-                            </summary>
-                            <div style="padding-top: 5px;">${content}</div>
-                        </details>`;
+																									<summary>
+																													<span class="accordion-toggle"></span>
+																													<div class="summary-control">
+																																	<div style="display: flex; align-items: center; gap: 5px;">
+																																					${labelHtml}
+																																					${resetButtonHtml}
+																																					${headerExtra}
+																																	</div>
+																																	${widgetsHtml}
+																													</div>
+																									</summary>
+																									<div style="padding-top: 5px;">${content}</div>
+																					</details>`;
 	}
 
 	static _createCheckboxHTML(path, label, isSummary = false, title = "") {
@@ -27677,6 +27790,94 @@ class DebuggerEventHandler {
 		// rebindDynamicControls is now called by the main editor's render method
 	}
 
+	async _onCopyAccordion(effectKey) {
+		let settingsToCopy;
+		const isGameSettingAccordion = ['loadingScreen', 'fontManager', 'pauseEffectOverlay'].includes(effectKey);
+
+		if (isGameSettingAccordion) {
+			settingsToCopy = {};
+			const allSettings = game.settings.settings;
+			const prefixes = {
+				loadingScreen: ['loading-screen-', 'universal.sceneTransition.'],
+				fontManager: ['universal.fontManager.'],
+				pauseEffectOverlay: ['universal.pauseEffect.']
+			}[effectKey];
+
+			for (const [key, setting] of allSettings.entries()) {
+				if (key.startsWith(MODULE_ID)) {
+					const settingKey = key.replace(`${MODULE_ID}.`, "");
+					if (prefixes.some(p => settingKey.startsWith(p))) {
+						settingsToCopy[settingKey] = game.settings.get(MODULE_ID, settingKey);
+					}
+				}
+			}
+		} else {
+			settingsToCopy = foundry.utils.getProperty(this.profileManager.getCurrentConfig({
+				excludeClientOverrides: true
+			}), effectKey);
+		}
+
+		if (settingsToCopy === undefined) {
+			ui.notifications.error(`Could not find settings for "${effectKey}".`);
+			return;
+		}
+
+		const clipboardData = {
+			type: 'map-shine-accordion',
+			key: effectKey,
+			data: settingsToCopy
+		};
+
+		try {
+			await navigator.clipboard.writeText(JSON.stringify(clipboardData, null, 2));
+			ui.notifications.info(`"${effectKey}" settings copied to clipboard.`);
+		} catch (err) {
+			console.error("Map Shine | Failed to copy settings:", err);
+			ui.notifications.error("Could not copy settings. See console for details.");
+		}
+	}
+
+	async _onPasteAccordion(effectKey) {
+		try {
+			const clipboardText = await navigator.clipboard.readText();
+			if (!clipboardText) {
+				ui.notifications.warn("Clipboard is empty.");
+				return;
+			}
+
+			const clipboardData = JSON.parse(clipboardText);
+
+			if (clipboardData.type !== 'map-shine-accordion' || clipboardData.key !== effectKey) {
+				ui.notifications.error(`Clipboard data is not for "${effectKey}" settings.`);
+				return;
+			}
+
+			const settingsToPaste = clipboardData.data;
+			const isGameSettingAccordion = ['loadingScreen', 'fontManager', 'pauseEffectOverlay'].includes(effectKey);
+
+			if (isGameSettingAccordion) {
+				for (const key in settingsToPaste) {
+					if (game.settings.settings.has(`${MODULE_ID}.${key}`)) {
+						await game.settings.set(MODULE_ID, key, settingsToPaste[key]);
+					}
+				}
+				await this.profileManager.initializeForScene();
+				await this.profileManager.updateAllSystemsFromConfig();
+
+			} else {
+				await this.profileManager.recordUserChange(effectKey, settingsToPaste);
+				await this.profileManager.updateAllSystemsFromConfig();
+			}
+
+			this.updateAllControls();
+			ui.notifications.info(`Pasted settings for "${effectKey}".`);
+
+		} catch (err) {
+			console.error("Map Shine | Failed to paste settings:", err);
+			ui.notifications.error("Could not paste settings. See console for details.");
+		}
+	}
+
 	async _onSaveSceneProfileClick() {
 		const nameInput = this.element.querySelector("#new-scene-profile-name");
 		if (!nameInput) return;
@@ -28209,6 +28410,16 @@ class DebuggerEventHandler {
 
 		// All other actions
 		switch (action) {
+			case "copy-accordion": {
+				const effectKey = target.dataset.effectKey;
+				if (effectKey) this._onCopyAccordion(effectKey);
+				break;
+			}
+			case "paste-accordion": {
+				const effectKey = target.dataset.effectKey;
+				if (effectKey) this._onPasteAccordion(effectKey);
+				break;
+			}
 			case "create-particle-effect-area": {
 				const effectKey = target.dataset.effectKey;
 				if (effectKey) {
