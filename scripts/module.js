@@ -1,19 +1,19 @@
 /******************************************************************************
- *
- *                            MAP SHINE
- *
- *  The major objective of this module is to provide map makers with a range
- *  of new tools for producing highly specific visual effects.
- *
- *  Ultimately, all effects are designed to activate automatically when a
- *  correctly named texture is found. This means map makers only need to
- *  create the specific maps they want to enable the corresponding features.
- *
- *  I plan to continuously add new effects, filters, and texture overlays,
- *  with the goal of making this a powerful and flexible toolkit that can
- *  bring life and animation to scenes in new and unusual ways.
- *
- ******************************************************************************/
+	*
+	*                            MAP SHINE
+	*
+	*  The major objective of this module is to provide map makers with a range
+	*  of new tools for producing highly specific visual effects.
+	*
+	*  Ultimately, all effects are designed to activate automatically when a
+	*  correctly named texture is found. This means map makers only need to
+	*  create the specific maps they want to enable the corresponding features.
+	*
+	*  I plan to continuously add new effects, filters, and texture overlays,
+	*  with the goal of making this a powerful and flexible toolkit that can
+	*  bring life and animation to scenes in new and unusual ways.
+	*
+	******************************************************************************/
 
 // =================================================================================
 // SECTION 1: MODULE SETUP & CONFIGURATION
@@ -2210,28 +2210,25 @@ const MODULE_DEFAULTS = {
 			}
 		},
 		"glintParticles": {
-    "enabled": true,
-    "blendMode": 9,
-    "maskThreshold": 0.17,
-    "maskInfluence": 5,
-    "particleTexture": "modules/map-shine/assets/glint.webp",
-    "frequency": 0.089,
-    "lifetime": {
-        "min": 0.2,
-        "max": 1.4
-    },
-    "colorAlphaGradient": [
-        { "time": 0, "color": "#eef7ff", "alpha": 0.0 },
-        { "time": 0.25, "color": "#d5dffb", "alpha": 1.0 },
-        { "time": 0.75, "color": "#b5c9fa", "alpha": 1.0 },
-        { "time": 1, "color": "#95b3ff", "alpha": 0.0 }
-    ],
-    "emissiveGradient": [
-        { "time": 0, "color": "#eef7ff", "alpha": 0.0 },
-        { "time": 0.25, "color": "#d5dffb", "alpha": 1.0 },
-        { "time": 0.75, "color": "#b5c9fa", "alpha": 1.0 },
-        { "time": 1, "color": "#95b3ff", "alpha": 0.0 }
-    ],
+			"enabled": true,
+			"blendMode": 9,
+			"maskThreshold": 0.17,
+			"maskInfluence": 5,
+			"particleTexture": "modules/map-shine/assets/glint.webp",
+			"frequency": 0.089,
+			"lifetime": {
+				"min": 0.2,
+				"max": 1.4
+			},
+			"colorAlphaGradient": [
+				{ "time": 0, "color": "#FFFFFF", "alpha": 0.0 },
+				{ "time": 0.1, "color": "#FFFFFF", "alpha": 0.8 },
+				{ "time": 1, "color": "#FFFFFF", "alpha": 0.0 }
+			],
+			"emissiveGradient": [
+				{ "time": 0, "color": "#000000", "alpha": 1.0 },
+				{ "time": 1, "color": "#000000", "alpha": 1.0 }
+			],
 			"scale": {
 				"sizeMultiplier": 0.7,
 				"start": 0.76,
@@ -2325,14 +2322,14 @@ const MODULE_DEFAULTS = {
 				"max": 1.4
 			},
 			"colorAlphaGradient": [
-        { "time": 0, "color": "#FFDD88", "alpha": 0.0 },
-        { "time": 0.01, "color": "#fedb86", "alpha": 0.1 },
-        { "time": 1, "color": "#ea7500", "alpha": 0.0 }
-    ],
-    "emissiveGradient": [
-        { "time": 0, "color": "#FFDD88", "alpha": 1.0 },
-        { "time": 1, "color": "#ea7500", "alpha": 1.0 }
-    ],
+				{ "time": 0, "color": "#FFDD88", "alpha": 0.0 },
+				{ "time": 0.01, "color": "#fedb86", "alpha": 0.1 },
+				{ "time": 1, "color": "#ea7500", "alpha": 0.0 }
+			],
+			"emissiveGradient": [
+				{ "time": 0, "color": "#FFDD88", "alpha": 1.0 },
+				{ "time": 1, "color": "#ea7500", "alpha": 1.0 }
+			],
 			"scale": {
 				"sizeMultiplier": 0.4,
 				"start": 0.32,
@@ -2653,15 +2650,15 @@ const hexToNumber = (hex) => {
 
 class NativeAnimation {
 	/**
-	 * A map to store active animations, allowing them to be cancelled.
-	 * The key can be any unique identifier (e.g., a PIXI object, a string).
-	 */
+		* A map to store active animations, allowing them to be cancelled.
+		* The key can be any unique identifier (e.g., a PIXI object, a string).
+		*/
 	static activeAnimations = new Map();
 
 	/**
-	 * A collection of common easing functions.
-	 * @type {Object.<string, function(number): number>}
-	 */
+		* A collection of common easing functions.
+		* @type {Object.<string, function(number): number>}
+		*/
 	static easing = {
 		linear: (t) => t,
 		power2: {
@@ -2675,11 +2672,11 @@ class NativeAnimation {
 	};
 
 	/**
-	 * A simple GSAP `to` replacement using requestAnimationFrame.
-	 * @param {object} target The object whose properties you want to animate.
-	 * @param {object} config The animation configuration.
-	 * @returns {{kill: function}} An object with a kill method to stop the animation.
-	 */
+		* A simple GSAP `to` replacement using requestAnimationFrame.
+		* @param {object} target The object whose properties you want to animate.
+		* @param {object} config The animation configuration.
+		* @returns {{kill: function}} An object with a kill method to stop the animation.
+		*/
 	static to(target, config) {
 		const { duration, onUpdate, onComplete, ease, ...properties } = config;
 		const key = config.key || target; // Use a provided key or the target object itself
@@ -2749,10 +2746,10 @@ class FontLoader {
 	static STYLESHEET_ID = "map-shine-google-fonts";
 
 	/**
-	 * Loads one or more Google Fonts by injecting or updating a stylesheet link in the document head.
-	 * This function is additive and idempotent.
-	 * @param {string[]} fontFamilies - An array of font family names to load.
-	 */
+		* Loads one or more Google Fonts by injecting or updating a stylesheet link in the document head.
+		* This function is additive and idempotent.
+		* @param {string[]} fontFamilies - An array of font family names to load.
+		*/
 	static load(fontFamilies) {
 		const uniqueFontsToLoad = [...new Set(fontFamilies)].filter(Boolean);
 		if (uniqueFontsToLoad.length === 0) return;
@@ -2777,10 +2774,10 @@ class FontLoader {
 	}
 
 	/**
-	 * Creates and appends the stylesheet link element if it doesn't exist.
-	 * @returns {HTMLLinkElement} The link element.
-	 * @private
-	 */
+		* Creates and appends the stylesheet link element if it doesn't exist.
+		* @returns {HTMLLinkElement} The link element.
+		* @private
+		*/
 	static _createLink() {
 		const link = document.createElement("link");
 		link.id = this.STYLESHEET_ID;
@@ -2790,11 +2787,11 @@ class FontLoader {
 	}
 
 	/**
-	 * Parses the href of the stylesheet link to determine which fonts are already being loaded.
-	 * @param {HTMLLinkElement} link - The stylesheet link element.
-	 * @returns {Set<string>} A set of font family names.
-	 * @private
-	 */
+		* Parses the href of the stylesheet link to determine which fonts are already being loaded.
+		* @param {HTMLLinkElement} link - The stylesheet link element.
+		* @returns {Set<string>} A set of font family names.
+		* @private
+		*/
 	static _getLoadedFonts(link) {
 		const loaded = new Set();
 		if (!link.href) return loaded;
@@ -2823,8 +2820,8 @@ class FontLoader {
 
 class MapShineInitialiser {
 	/**
-	 * Main entry point for module initialization. Called once during the 'init' hook.
-	 */
+		* Main entry point for module initialization. Called once during the 'init' hook.
+		*/
 	static initialize() {
 		if (game.mapShine?.initialized) {
 			console.log(
@@ -2854,8 +2851,8 @@ class MapShineInitialiser {
 	}
 
 	/**
-	 * Registers all module settings with Foundry's settings system.
-	 */
+		* Registers all module settings with Foundry's settings system.
+		*/
 	static _registerSettings() {
 		game.settings.register(MODULE_ID, "disable-loading-screen", {
 			name: "Disable Loading Screen",
@@ -3279,8 +3276,8 @@ class MapShineInitialiser {
 	}
 
 	/**
-	 * A helper function to trigger a full refresh when a client setting changes.
-	 */
+		* A helper function to trigger a full refresh when a client setting changes.
+		*/
 	static _requestRefresh() {
 		if (canvas?.ready && game.mapShine?.profileManager) {
 			game.mapShine.profileManager.initializeForScene();
@@ -3289,8 +3286,8 @@ class MapShineInitialiser {
 	}
 
 	/**
-	 * Registers all custom canvas layers with Foundry's configuration.
-	 */
+		* Registers all custom canvas layers with Foundry's configuration.
+		*/
 	static _registerLayers() {
 		const ambientZIndex = game.settings.get(MODULE_ID, "ambientLayerZIndex");
 
@@ -3416,8 +3413,8 @@ class MapShineInitialiser {
 	}
 
 	/**
-	 * Creates the global `game.mapShine` object and initializes its core managers and state.
-	 */
+		* Creates the global `game.mapShine` object and initializes its core managers and state.
+		*/
 	static _initializeGlobalNamespace() {
 		game.mapShine = {
 			initialized: true,
@@ -3644,11 +3641,11 @@ class MapShineInitialiser {
 	}
 
 	/**
-	 * Registers libWrapper patches, hooks, and other event listeners.
-	 */
+		* Registers libWrapper patches, hooks, and other event listeners.
+		*/
 	/**
-	 * Registers libWrapper patches, hooks, and other event listeners.
-	 */
+		* Registers libWrapper patches, hooks, and other event listeners.
+		*/
 	static _registerIntegrationsAndHooks() {
 		// --- Particle Library Integration ---
 		console.log("Map Shine | Library Test: Verifying PIXI.particles global.");
@@ -3963,36 +3960,36 @@ class MapShineInitialiser {
 }
 
 /***************************************************************************************
- *
- *                             COORDINATE MANAGER
- *
- *  PURPOSE:
- *  The CoordinateManager is a static utility class that serves as the single source of truth
- *  for all coordinate system transformations within the Map Shine module. Its primary goal is
- *  to solve the problem of mixing "World Space" (canvas coordinates) and "Screen Space"
- *  (pixel coordinates) by providing a centralized, efficient, and consistent way to handle
- *  the relationship between them.
- *
- *  ARCHITECTURE:
- *  1.  Centralized Calculation: The `update()` method is called once per animation frame.
- *      It calculates all necessary data about the current camera view, such as the world-space
- *      position of the screen's top-left corner, the visible world dimensions, and the
- *      current zoom level.
- *
- *  2.  Static Access: All properties and methods are static, meaning there is only one
- *      instance of this data per frame. Any layer or filter can access it directly via
- *      `CoordinateManager.propertyName` without needing an instance.
- *
- *  3.  Standardized Shader Uniforms: The `getShaderUniforms()` method provides a consistent
- *      object that can be passed directly to any PIXI.Filter's uniform group. This ensures
- *      all world-space shaders use the exact same transformation logic.
- *
- *  REQUIRED METHOD:
- *  This class is the required method for all filters, textures, PIXI canvas layers, etc.,
- *  to obtain coordinate and transformation data. Do not perform these calculations
- *  manually within other components.
- *
- ***************************************************************************************/
+	*
+	*                             COORDINATE MANAGER
+	*
+	*  PURPOSE:
+	*  The CoordinateManager is a static utility class that serves as the single source of truth
+	*  for all coordinate system transformations within the Map Shine module. Its primary goal is
+	*  to solve the problem of mixing "World Space" (canvas coordinates) and "Screen Space"
+	*  (pixel coordinates) by providing a centralized, efficient, and consistent way to handle
+	*  the relationship between them.
+	*
+	*  ARCHITECTURE:
+	*  1.  Centralized Calculation: The `update()` method is called once per animation frame.
+	*      It calculates all necessary data about the current camera view, such as the world-space
+	*      position of the screen's top-left corner, the visible world dimensions, and the
+	*      current zoom level.
+	*
+	*  2.  Static Access: All properties and methods are static, meaning there is only one
+	*      instance of this data per frame. Any layer or filter can access it directly via
+	*      `CoordinateManager.propertyName` without needing an instance.
+	*
+	*  3.  Standardized Shader Uniforms: The `getShaderUniforms()` method provides a consistent
+	*      object that can be passed directly to any PIXI.Filter's uniform group. This ensures
+	*      all world-space shaders use the exact same transformation logic.
+	*
+	*  REQUIRED METHOD:
+	*  This class is the required method for all filters, textures, PIXI canvas layers, etc.,
+	*  to obtain coordinate and transformation data. Do not perform these calculations
+	*  manually within other components.
+	*
+	***************************************************************************************/
 class CoordinateManager {
 	// --- Frame-specific cached data ---
 	static cameraOffset = { x: 0, y: 0 };
@@ -4002,9 +3999,9 @@ class CoordinateManager {
 	static sceneRectNormalized = { x: 0, y: 0, width: 1, height: 1 };
 
 	/**
-	 * Updates the coordinate data for the current animation frame.
-	 * This should be called exactly once per frame from the primary ticker.
-	 */
+		* Updates the coordinate data for the current animation frame.
+		* This should be called exactly once per frame from the primary ticker.
+		*/
 	static update() {
 		if (!canvas?.stage || !canvas.app?.renderer) return;
 
@@ -4051,10 +4048,10 @@ class CoordinateManager {
 	}
 
 	/**
-	 * Provides a standardized object of uniforms for shaders that need to perform
-	 * world-space calculations.
-	 * @returns {object} An object containing shader uniforms.
-	 */
+		* Provides a standardized object of uniforms for shaders that need to perform
+		* world-space calculations.
+		* @returns {object} An object containing shader uniforms.
+		*/
 	static getShaderUniforms() {
 		return {
 			u_camera_offset: [this.cameraOffset.x, this.cameraOffset.y],
@@ -4071,25 +4068,25 @@ class CoordinateManager {
 	}
 
 	/**
-	 * Gets the world-space coordinate of the top-left corner of the screen.
-	 * @returns {{x: number, y: number}}
-	 */
+		* Gets the world-space coordinate of the top-left corner of the screen.
+		* @returns {{x: number, y: number}}
+		*/
 	static getCameraOffset() {
 		return this.cameraOffset;
 	}
 
 	/**
-	 * Gets the dimensions of the visible canvas area in world-space coordinates.
-	 * @returns {{width: number, height: number}}
-	 */
+		* Gets the dimensions of the visible canvas area in world-space coordinates.
+		* @returns {{width: number, height: number}}
+		*/
 	static getViewSize() {
 		return this.viewSize;
 	}
 
 	/**
-	 * Gets the dimensions of the canvas in screen-space pixels.
-	 * @returns {{width: number, height: number}}
-	 */
+		* Gets the dimensions of the canvas in screen-space pixels.
+		* @returns {{width: number, height: number}}
+		*/
 	static getScreenDimensions() {
 		// Robustness check to prevent framebuffer errors if called too early.
 		if (
@@ -4112,17 +4109,17 @@ class CoordinateManager {
 	}
 
 	/**
-	 * Gets the current zoom level of the canvas.
-	 * @returns {number}
-	 */
+		* Gets the current zoom level of the canvas.
+		* @returns {number}
+		*/
 	static getCanvasScale() {
 		return this.canvasScale;
 	}
 
 	/**
-	 * Gets the scene rectangle in normalized screen coordinates [x, y, width, height].
-	 * @returns {number[]}
-	 */
+		* Gets the scene rectangle in normalized screen coordinates [x, y, width, height].
+		* @returns {number[]}
+		*/
 	static getSceneRectNormalizedArray() {
 		return [
 			this.sceneRectNormalized.x,
@@ -4139,9 +4136,9 @@ class ProfileDataManager {
 	}
 
 	/**
-	 * Loads world-level profiles and the world default setting.
-	 * @returns {{profiles: object, defaultProfileName: string}}
-	 */
+		* Loads world-level profiles and the world default setting.
+		* @returns {{profiles: object, defaultProfileName: string}}
+		*/
 	loadWorldData() {
 		const profiles = game.settings.get(this.moduleId, PROFILES_SETTING) || {};
 		const defaultProfileName =
@@ -4150,10 +4147,10 @@ class ProfileDataManager {
 	}
 
 	/**
-	 * Saves world-level profiles and the world default setting.
-	 * @param {object} profiles - The entire world profiles object to save.
-	 * @param {string} [defaultProfileName] - If provided, saves the new world default profile name.
-	 */
+		* Saves world-level profiles and the world default setting.
+		* @param {object} profiles - The entire world profiles object to save.
+		* @param {string} [defaultProfileName] - If provided, saves the new world default profile name.
+		*/
 	async saveWorldData(profiles, defaultProfileName) {
 		await game.settings.set(this.moduleId, PROFILES_SETTING, profiles);
 		if (defaultProfileName !== undefined) {
@@ -4166,9 +4163,9 @@ class ProfileDataManager {
 	}
 
 	/**
-	 * Loads scene-specific profile data from flags.
-	 * @returns {{profiles: Array<object>, activeProfileId: string|null}}
-	 */
+		* Loads scene-specific profile data from flags.
+		* @returns {{profiles: Array<object>, activeProfileId: string|null}}
+		*/
 	loadSceneData() {
 		if (!canvas.scene) return { profiles: [], activeProfileId: null };
 		const profiles = canvas.scene.getFlag(this.moduleId, "profiles") || [];
@@ -4181,11 +4178,11 @@ class ProfileDataManager {
 	}
 
 	/**
-	 * Saves scene-specific profile data to flags.
-	 * @param {object} saveData - The data to save.
-	 * @param {Array<object>} [saveData.profiles] - The array of scene profiles.
-	 * @param {string|null} [saveData.activeProfileId] - The ID of the active profile.
-	 */
+		* Saves scene-specific profile data to flags.
+		* @param {object} saveData - The data to save.
+		* @param {Array<object>} [saveData.profiles] - The array of scene profiles.
+		* @param {string|null} [saveData.activeProfileId] - The ID of the active profile.
+		*/
 	async saveSceneData({ profiles, activeProfileId }) {
 		if (!canvas.scene) return;
 		const updates = {};
@@ -4202,10 +4199,10 @@ class ProfileDataManager {
 	}
 
 	/**
-	 * Loads user-specific temporary overrides for a given scene.
-	 * @param {string} sceneId - The ID of the scene.
-	 * @returns {object} The user overrides object for that scene.
-	 */
+		* Loads user-specific temporary overrides for a given scene.
+		* @param {string} sceneId - The ID of the scene.
+		* @returns {object} The user overrides object for that scene.
+		*/
 	loadUserOverrides(sceneId) {
 		if (!sceneId) return {};
 		const allUserOverrides =
@@ -4214,10 +4211,10 @@ class ProfileDataManager {
 	}
 
 	/**
-	 * Saves user-specific temporary overrides for a given scene.
-	 * @param {string} sceneId - The ID of the scene.
-	 * @param {object} overrides - The user overrides object to save.
-	 */
+		* Saves user-specific temporary overrides for a given scene.
+		* @param {string} sceneId - The ID of the scene.
+		* @param {object} overrides - The user overrides object to save.
+		*/
 	async saveUserOverrides(sceneId, overrides) {
 		if (!sceneId) return;
 		const allUserOverrides =
@@ -4231,9 +4228,9 @@ class ProfileDataManager {
 	}
 
 	/**
-	 * Clears user-specific temporary overrides for a given scene.
-	 * @param {string} sceneId - The ID of the scene.
-	 */
+		* Clears user-specific temporary overrides for a given scene.
+		* @param {string} sceneId - The ID of the scene.
+		*/
 	async clearUserOverrides(sceneId) {
 		if (!sceneId) return;
 		const allUserOverrides =
@@ -4249,11 +4246,11 @@ class ProfileDataManager {
 
 class ConfigBuilder {
 	/**
-	 * Removes properties from `settings` that do not exist in `template`.
-	 * @param {object} template - The reference object with the correct structure.
-	 * @param {object} settings - The object to clean.
-	 * @returns {object} The cleaned settings object.
-	 */
+		* Removes properties from `settings` that do not exist in `template`.
+		* @param {object} template - The reference object with the correct structure.
+		* @param {object} settings - The object to clean.
+		* @returns {object} The cleaned settings object.
+		*/
 	static _reconcile(template, settings) {
 		for (const key in settings) {
 			if (!(key in template)) {
@@ -4285,10 +4282,10 @@ class ConfigBuilder {
 	}
 
 	/**
-	 * A custom merge function that handles nested objects correctly.
-	 * @param {object} target - The object to merge into.
-	 * @param {object} source - The object to merge from.
-	 */
+		* A custom merge function that handles nested objects correctly.
+		* @param {object} target - The object to merge into.
+		* @param {object} source - The object to merge from.
+		*/
 	static _customMerge(target, source) {
 		for (const key of Object.keys(source)) {
 			const sourceValue = source[key];
@@ -4313,11 +4310,11 @@ class ConfigBuilder {
 	}
 
 	/**
-	 * Builds the final, live configuration by layering all data sources.
-	 * @param {object} data - An object containing all the raw data.
-	 * @param {object} options - Options for the build process.
-	 * @returns {object} An object containing the final config and status information.
-	 */
+		* Builds the final, live configuration by layering all data sources.
+		* @param {object} data - An object containing all the raw data.
+		* @param {object} options - Options for the build process.
+		* @returns {object} An object containing the final config and status information.
+		*/
 	static buildEffectiveConfig(
 		{
 			sceneProfiles,
@@ -4870,38 +4867,38 @@ class ProfileManager {
 }
 
 /***************************************************************************************
- *
- *                              RESOURCE MANAGER
- *
- *  PURPOSE:
- *  The ResourceManager acts as a centralized hub for all shared rendering resources
- *  (e.g., PIXI.RenderTextures) used by the various effects in Map Shine. Its mission
- *  is to untangle the "web of dependencies" where individual layers and filters directly
- *  pull data from each other, leading to timing issues, redundant work, and difficult
- *  debugging.
- *
- *  ARCHITECTURE (THE FACADE & CACHING PATTERN):
- *  1. Centralized Access: Instead of an effect layer knowing about `IlluminationManager`,
- *     `CloudShadowsLayer`, etc., it will only ask the ResourceManager for what it needs
- *     (e.g., `resourceManager.getIlluminationTexture()`).
- *
- *  2. Lazy Generation & Caching: The manager creates resources only when they are first
- *     requested within a single animation frame. It then caches that resource and serves
- *     the cached version to any other effect that asks for it in the same frame. The
- *     cache is cleared at the start of the next frame. This guarantees that resources
- *     are always up-to-date for the current frame and are only ever generated once.
- *
- *  3. Dependency Management: The manager will eventually understand the entire render
- *     pipeline. If a resource depends on another (e.g., a corrected illumination texture
- *     needs the base illumination and a shadow mask), the manager will ensure the
- *     dependencies are generated first before creating the final product.
- *
- *  MIGRATION PLAN:
- *  The migration to this new system is being done incrementally and with caution. Each
- *  effect is being refactored one by one to source its dependencies from this manager
- *  instead of its original source. This ensures stability throughout the transition.
- *
- ***************************************************************************************/
+	*
+	*                              RESOURCE MANAGER
+	*
+	*  PURPOSE:
+	*  The ResourceManager acts as a centralized hub for all shared rendering resources
+	*  (e.g., PIXI.RenderTextures) used by the various effects in Map Shine. Its mission
+	*  is to untangle the "web of dependencies" where individual layers and filters directly
+	*  pull data from each other, leading to timing issues, redundant work, and difficult
+	*  debugging.
+	*
+	*  ARCHITECTURE (THE FACADE & CACHING PATTERN):
+	*  1. Centralized Access: Instead of an effect layer knowing about `IlluminationManager`,
+	*     `CloudShadowsLayer`, etc., it will only ask the ResourceManager for what it needs
+	*     (e.g., `resourceManager.getIlluminationTexture()`).
+	*
+	*  2. Lazy Generation & Caching: The manager creates resources only when they are first
+	*     requested within a single animation frame. It then caches that resource and serves
+	*     the cached version to any other effect that asks for it in the same frame. The
+	*     cache is cleared at the start of the next frame. This guarantees that resources
+	*     are always up-to-date for the current frame and are only ever generated once.
+	*
+	*  3. Dependency Management: The manager will eventually understand the entire render
+	*     pipeline. If a resource depends on another (e.g., a corrected illumination texture
+	*     needs the base illumination and a shadow mask), the manager will ensure the
+	*     dependencies are generated first before creating the final product.
+	*
+	*  MIGRATION PLAN:
+	*  The migration to this new system is being done incrementally and with caution. Each
+	*  effect is being refactored one by one to source its dependencies from this manager
+	*  instead of its original source. This ensures stability throughout the transition.
+	*
+	***************************************************************************************/
 class ResourceManager {
 	constructor() {
 		this._frameCache = {};
@@ -4909,9 +4906,9 @@ class ResourceManager {
 	}
 
 	/**
-  
+	 
 			Initializes the manager by acquiring references to other essential managers.
-  
+	 
 			This should be called once during canvas setup.
 			*/
 	initialize() {
@@ -4919,7 +4916,7 @@ class ResourceManager {
 	}
 
 	/**
-  
+	 
 			Cleans up resources. Called during canvas tear down.
 			*/
 	destroy() {
@@ -4929,7 +4926,7 @@ class ResourceManager {
 	}
 
 	/**
-  
+	 
 			Called at the start of each animation frame to clear cached resources.
 			*/
 	onFrameStart() {
@@ -4937,11 +4934,11 @@ class ResourceManager {
 	}
 
 	/**
-  
+	 
 			Retrieves the mask texture generated by the CloudShadowsLayer.
-  
+	 
 			Caches the texture for the duration of the current frame.
-  
+	 
 			@returns {PIXI.RenderTexture|null} The outdoors mask texture.
 			*/
 	getOutdoorsMask() {
@@ -4967,13 +4964,13 @@ class ResourceManager {
 	}
 
 	/**
-  
+	 
 			Retrieves the final rendered cloud shadow texture from the CloudShadowsLayer.
-  
+	 
 			If the texture hasn't been rendered this frame, this will command the layer to render it.
-  
+	 
 			Caches the texture for the duration of the current frame.
-  
+	 
 			@returns {PIXI.RenderTexture|null} The cloud shadow texture.
 			*/
 	getCloudShadowTexture(deltaTime) {
@@ -5000,17 +4997,17 @@ class ResourceManager {
 	}
 
 	/**
-  
+	 
 			Retrieves the raw, unmasked cloud pattern texture from the CloudShadowsLayer.
-  
+	 
 			This is useful for effects that need the cloud pattern indoors.
-  
+	 
 			If the texture hasn't been rendered this frame, this will command the layer to render it.
-  
+	 
 			Caches the texture for the duration of the current frame.
-  
+	 
 			@param {number} deltaTime - The time since the last frame.
-  
+	 
 			@returns {PIXI.RenderTexture|null} The raw cloud pattern texture.
 			*/
 	getRawCloudTexture(deltaTime) {
@@ -5038,13 +5035,13 @@ class ResourceManager {
 	}
 
 	/**
-  
+	 
 			Retrieves the raw, unmasked structural pattern texture from the StructuralShadowsLayer.
-  
+	 
 			This is the combined mask of all _Structural.webp textures.
-  
+	 
 			Caches the texture for the duration of the current frame.
-  
+	 
 			@returns {PIXI.RenderTexture|null} The raw structural mask texture.
 			*/
 	getStructuralMask() {
@@ -5071,13 +5068,13 @@ class ResourceManager {
 	}
 
 	/**
-  
+	 
 			Retrieves the final rendered canopy shadow texture.
-  
+	 
 			If not rendered this frame, commands the CanopyLayer to render.
-  
+	 
 			@param {number} deltaTime - The time since the last frame.
-  
+	 
 			@returns {PIXI.RenderTexture|null} The canopy shadow texture.
 			*/
 	getCanopyShadowTexture(deltaTime) {
@@ -5096,13 +5093,13 @@ class ResourceManager {
 	}
 
 	/**
-  
+	 
 			Retrieves the mask texture generated by the CanopyLayer.
-  
+	 
 			This is the raw _Canopy.webp mask.
-  
+	 
 			Caches the texture for the duration of the current frame.
-  
+	 
 			@returns {PIXI.RenderTexture|null} The canopy mask texture.
 			*/
 	getCanopyMask() {
@@ -5121,11 +5118,11 @@ class ResourceManager {
 	}
 
 	/**
-  
+	 
 			Retrieves the mask of all visible tokens on the canvas.
-  
+	 
 			Caches the texture for the duration of the current frame.
-  
+	 
 			@returns {PIXI.RenderTexture|null} The token mask texture.
 			*/
 	getTokenMask() {
@@ -5142,13 +5139,13 @@ class ResourceManager {
 	}
 
 	/**
-  
+	 
 			Retrieves a texture representing the combined specular masks for the metallic shine effect.
-  
+	 
 			This is a pre-computation that does not include the animated shine itself.
-  
+	 
 			Caches the texture for the duration of the current frame.
-  
+	 
 			@returns {PIXI.RenderTexture|null} The specular mask texture.
 			*/
 	getMetallicSpecularMask() {
@@ -5169,13 +5166,13 @@ class ResourceManager {
 	}
 
 	/**
-  
+	 
 			Retrieves the final rendered animated metallic shine texture.
-  
+	 
 			If not generated this frame, commands the MetallicShineLayer to render it.
-  
+	 
 			@param {number} deltaTime - The time since the last frame.
-  
+	 
 			@returns {PIXI.RenderTexture|null} The animated shine texture.
 			*/
 	getAnimatedShineTexture(deltaTime) {
@@ -5202,9 +5199,9 @@ class ResourceManager {
 	}
 
 	/**
-  
+	 
 			Retrieves the primary water mask (_Water textures).
-  
+	 
 			@returns {PIXI.RenderTexture|null}
 			*/
 	getWaterMask() {
@@ -5225,9 +5222,9 @@ class ResourceManager {
 	}
 
 	/**
-  
+	 
 			Retrieves the blurred version of the primary water mask for shoreline detection.
-  
+	 
 			@returns {PIXI.RenderTexture|null}
 			*/
 	getBlurredWaterMask() {
@@ -5251,9 +5248,9 @@ class ResourceManager {
 	}
 
 	/**
-  
+	 
 			Retrieves the composite mask of all _Shoreline textures.
-  
+	 
 			@returns {PIXI.RenderTexture|null}
 			*/
 	getShorelineMask() {
@@ -5276,11 +5273,11 @@ class ResourceManager {
 	}
 
 	/**
-  
+	 
 			Retrieves the wave displacement map for water effects.
-  
+	 
 			@param {number} deltaTime - Time since the last frame.
-  
+	 
 			@returns {PIXI.RenderTexture|null}
 			*/
 	getWaterDisplacementMap(deltaTime) {
@@ -5308,10 +5305,10 @@ class ResourceManager {
 	}
 
 	/**
-	 * Retrieves the rendered texture of the biofilm particles.
-	 * Caches the texture for the duration of the current frame.
-	 * @returns {PIXI.RenderTexture|null} The biofilm particle texture.
-	 */
+		* Retrieves the rendered texture of the biofilm particles.
+		* Caches the texture for the duration of the current frame.
+		* @returns {PIXI.RenderTexture|null} The biofilm particle texture.
+		*/
 	getBiofilmOutputTexture() {
 		if (this._destroyed) return null;
 		if (this._frameCache.biofilmOutputTexture) {
@@ -5613,10 +5610,10 @@ class SceneChangeManager {
 	}
 
 	/**
-	 * Manages the hint cycling animation during a scene transition.
-	 * @param {object} config The sceneTransition configuration object.
-	 * @private
-	 */
+		* Manages the hint cycling animation during a scene transition.
+		* @param {object} config The sceneTransition configuration object.
+		* @private
+		*/
 	_cycleHints(config) {
 		if (!this.transitionOverlay) return;
 		const hintElement =
@@ -5695,9 +5692,9 @@ class SceneChangeManager {
 	}
 
 	/**
-	 * Clears the hint cycling interval/timeline and resets state.
-	 * @private
-	 */
+		* Clears the hint cycling interval/timeline and resets state.
+		* @private
+		*/
 	_stopHintCycle() {
 		if (this._hintInterval) {
 			clearTimeout(this._hintInterval);
@@ -5716,11 +5713,11 @@ class SceneChangeManager {
 	}
 
 	/**
-	 * Preloads all necessary image assets for the transition to prevent pop-in.
-	 * @param {object} config - The sceneTransition configuration object.
-	 * @returns {Promise<{bgPath: string|null}>} - A promise that resolves with the chosen background path.
-	 * @private
-	 */
+		* Preloads all necessary image assets for the transition to prevent pop-in.
+		* @param {object} config - The sceneTransition configuration object.
+		* @returns {Promise<{bgPath: string|null}>} - A promise that resolves with the chosen background path.
+		* @private
+		*/
 	async _preloadAssets(config) {
 		const assetsToLoad = [];
 		if (config.logoPath) {
@@ -5762,11 +5759,11 @@ class SceneChangeManager {
 	}
 
 	/**
-	 * Populates the overlay's DOM elements with content from the configuration.
-	 * @param {object} config - The sceneTransition configuration object.
-	 * @param {string} sceneName - The name of the destination scene.
-	 * @private
-	 */
+		* Populates the overlay's DOM elements with content from the configuration.
+		* @param {object} config - The sceneTransition configuration object.
+		* @param {string} sceneName - The name of the destination scene.
+		* @private
+		*/
 	_populateOverlayContent(config, sceneName) {
 		const {
 			logoPath,
@@ -7587,9 +7584,9 @@ class LoadingScreen {
 	}
 
 	/**
-	 * Manages the hint cycling animation.
-	 * @private
-	 */
+		* Manages the hint cycling animation.
+		* @private
+		*/
 	_cycleHints() {
 		if (!this.element) return;
 
@@ -7681,9 +7678,9 @@ class LoadingScreen {
 	}
 
 	/**
-	 * Clears the hint cycling interval/timeline.
-	 * @private
-	 */
+		* Clears the hint cycling interval/timeline.
+		* @private
+		*/
 	_stopHintCycle() {
 		if (this._hintInterval) {
 			clearTimeout(this._hintInterval);
@@ -8278,9 +8275,9 @@ class MapPointsManager {
 	static FLAG_NAME = "mapPointGroups";
 
 	/**
-	 * Retrieves all map point groups from the current scene.
-	 * @returns {object} The object containing all point groups, or an empty object if none exist.
-	 */
+		* Retrieves all map point groups from the current scene.
+		* @returns {object} The object containing all point groups, or an empty object if none exist.
+		*/
 	static getGroups() {
 		if (!canvas.scene?.id) {
 			// This is a genuine error state we should still check for.
@@ -8299,22 +8296,22 @@ class MapPointsManager {
 	}
 
 	/**
-	 * Retrieves a single map point group by its ID.
-	 * @param {string} groupId The ID of the group to retrieve.
-	 * @returns {object|undefined} The group object, or undefined if not found.
-	 */
+		* Retrieves a single map point group by its ID.
+		* @param {string} groupId The ID of the group to retrieve.
+		* @returns {object|undefined} The group object, or undefined if not found.
+		*/
 	static getGroup(groupId) {
 		const groups = this.getGroups();
 		return groups[groupId];
 	}
 
 	/**
-	 * Creates a new, empty group for map points.
-	 * @param {object} [options={}] Options for the new group.
-	 * @param {string} [options.label="New Group"] A user-friendly label for the group.
-	 * @param {string} [options.type="point"] The type of group ('point', 'line', 'area').
-	 * @returns {Promise<string>} The ID of the newly created group.
-	 */
+		* Creates a new, empty group for map points.
+		* @param {object} [options={}] Options for the new group.
+		* @param {string} [options.label="New Group"] A user-friendly label for the group.
+		* @param {string} [options.type="point"] The type of group ('point', 'line', 'area').
+		* @returns {Promise<string>} The ID of the newly created group.
+		*/
 	static async createGroup({ label = "New Group", type = "point" } = {}) {
 		if (!game.user.isGM) {
 			ui.notifications.warn(
@@ -8485,10 +8482,10 @@ class MapPointsManager {
 	}
 
 	/**
-	 * Validates a group, primarily checking for self-intersections in polygons.
-	 * @param {object} group The group object to validate.
-	 * @returns {object} The group object with updated 'isBroken' and 'reason' fields.
-	 */
+		* Validates a group, primarily checking for self-intersections in polygons.
+		* @param {object} group The group object to validate.
+		* @returns {object} The group object with updated 'isBroken' and 'reason' fields.
+		*/
 	static validate(group) {
 		if (group.type !== "area" || group.points.length < 4) {
 			group.isBroken = false;
@@ -8524,13 +8521,13 @@ class MapPointsManager {
 	}
 
 	/**
-	 * Checks if two line segments intersect.
-	 * @param {{x,y}} p1 - Start of line 1
-	 * @param {{x,y}} p2 - End of line 1
-	 * @param {{x,y}} p3 - Start of line 2
-	 * @param {{x,y}} p4 - End of line 2
-	 * @returns {boolean} True if they intersect, false otherwise.
-	 */
+		* Checks if two line segments intersect.
+		* @param {{x,y}} p1 - Start of line 1
+		* @param {{x,y}} p2 - End of line 1
+		* @param {{x,y}} p3 - Start of line 2
+		* @param {{x,y}} p4 - End of line 2
+		* @returns {boolean} True if they intersect, false otherwise.
+		*/
 	static _checkIntersection(p1, p2, p3, p4) {
 		const den = (p1.x - p2.x) * (p3.y - p4.y) - (p1.y - p2.y) * (p3.x - p4.x);
 		if (den === 0) return false; // Parallel or collinear
@@ -8753,31 +8750,31 @@ class GeometryMaskManager {
 	}
 
 	/**
-	 * Retrieves a generated mask for a specific effect.
-	 * @param {string} effectKey The key of the effect (e.g., 'sparks').
-	 * @returns {PIXI.RenderTexture | null} The mask texture, or null if not found.
-	 */
+		* Retrieves a generated mask for a specific effect.
+		* @param {string} effectKey The key of the effect (e.g., 'sparks').
+		* @returns {PIXI.RenderTexture | null} The mask texture, or null if not found.
+		*/
 	getMask(effectKey) {
 		return this.masks.get(effectKey)?.texture || null;
 	}
 }
 
 /**
- * Performs linear interpolation between two values.
- * @param {number} start The starting value.
- * @param {number} end The ending value.
- * @param {number} amount The interpolation factor, typically between 0 and 1.
- * @returns {number} The interpolated value.
- */
+	* Performs linear interpolation between two values.
+	* @param {number} start The starting value.
+	* @param {number} end The ending value.
+	* @param {number} amount The interpolation factor, typically between 0 and 1.
+	* @returns {number} The interpolated value.
+	*/
 function lerp(start, end, amount) {
 	return (1 - amount) * start + amount * end;
 }
 
 class PauseScreenManager {
 	/**
-	 * Registers the necessary hooks to manage the custom pause screen.
-	 * This is the single entry point for this system.
-	 */
+		* Registers the necessary hooks to manage the custom pause screen.
+		* This is the single entry point for this system.
+		*/
 	static initialize() {
 		Hooks.on("pauseGame", (paused) => {
 			// Only apply the custom screen if the pause effect is enabled in settings.
@@ -8811,10 +8808,10 @@ class PauseScreenManager {
 	}
 
 	/**
-	 * Retrieves all necessary settings for the pause screen from the game settings.
-	 * @returns {object} An object containing all the configured values.
-	 * @private
-	 */
+		* Retrieves all necessary settings for the pause screen from the game settings.
+		* @returns {object} An object containing all the configured values.
+		* @private
+		*/
 	static _getSettings() {
 		const getSetting = (key) =>
 			game.settings.get(MODULE_ID, `universal.pauseEffect.${key}`);
@@ -8846,9 +8843,9 @@ class PauseScreenManager {
 	}
 
 	/**
-	 * Finds the #pause element, clears it, and injects our fully custom content and styles.
-	 * @private
-	 */
+		* Finds the #pause element, clears it, and injects our fully custom content and styles.
+		* @private
+		*/
 	static _applyCustomPauseScreen() {
 		const MAX_ATTEMPTS = 120; // Try for ~2 seconds
 		let attempts = 0;
@@ -9023,10 +9020,10 @@ class PauseScreenManager {
 	}
 
 	/**
-	 * Resets the #pause element by removing our custom class and content.
-	 * This allows Foundry to repopulate it with its defaults if needed later.
-	 * @private
-	 */
+		* Resets the #pause element by removing our custom class and content.
+		* This allows Foundry to repopulate it with its defaults if needed later.
+		* @private
+		*/
 	static _revertCustomPauseScreen() {
 		const pauseElement = document.getElementById("pause");
 		if (pauseElement) {
@@ -9482,12 +9479,12 @@ class DynamicTokenMaskManager {
 
 class CompositeMaskGenerator {
 	/**
-	 * Creates a new texture by blending two source textures with a MULTIPLY effect.
-	 * @param {string} baseTexturePath - The path to the first texture (e.g., _Dust).
-	 * @param {string} overlayTexturePath - The path to the second texture (e.g., _Structural).
-	 * @param {PIXI.Rectangle} rect - The world-space rectangle defining the target area.
-	 * @returns {Promise<PIXI.RenderTexture|null>} A promise that resolves to the new composite texture, or null on failure.
-	 */
+		* Creates a new texture by blending two source textures with a MULTIPLY effect.
+		* @param {string} baseTexturePath - The path to the first texture (e.g., _Dust).
+		* @param {string} overlayTexturePath - The path to the second texture (e.g., _Structural).
+		* @param {PIXI.Rectangle} rect - The world-space rectangle defining the target area.
+		* @returns {Promise<PIXI.RenderTexture|null>} A promise that resolves to the new composite texture, or null on failure.
+		*/
 	static async generate(baseTexturePath, overlayTexturePath, rect) {
 		const renderer = canvas.app?.renderer;
 		if (!renderer || !rect || !baseTexturePath || !overlayTexturePath)
@@ -10835,43 +10832,43 @@ class LightningOcclusionFilter extends PIXI.Filter {
 // ---------------------------------------------------------------------------------
 
 /***************************************************************************************
- *
- *                              PARTICLE SYSTEM BUG REPORT
- *
- *  ROOT CAUSE:
- *  A bug was identified within the external `particle-emitter.min.js` library in the
- *  `PropertyNode.createList()` method. This method has an optimization that fails when
- *  it is provided a property list with exactly two entries that have identical values
- *  (e.g., `list: [{value: 1, time: 0}, {value: 1, time: 1}]`).
- *
- *  BUG BEHAVIOR:
- *  Instead of creating a two-node linked list, the optimization creates a single-node list.
- *  The system then incorrectly selects a complex interpolation function (`intValueComplex` or
- *  `intColorComplex`) which is not designed to handle a single-node list. This function
- *  crashes when it attempts to access `node.next.time`, as `node.next` is null,
- *  resulting in the observed TypeError.
- *
- *  PREVIOUS VULNERABILITY:
- *  The original `buildSparkEmitterConfig` function was vulnerable because it unconditionally
- *  used the modern `{ list: [...] }` format for all time-variant properties. If a user set
- *  the start and end values for scale or color to be the same, it would trigger this bug.
- *
- *  SOLUTION:
- *  The `buildSparkEmitterConfig` function was refactored to mirror the more robust implementation
- *  of `buildParticleEmitterConfig`. The solution has two parts:
- *
- *  1.  It now checks if the start and end values for a property (e.g., scale, color) are
- *      identical. If they are, it uses the appropriate `Static` behavior (e.g., `scaleStatic`),
- *      which completely bypasses the buggy `PropertyList` logic.
- *
- *  2.  If the values differ, it uses the dynamic behavior but provides the configuration in the
- *      legacy `{start, end}` format. The library correctly handles this format without triggering
- *      the bug.
- *
- *  This approach makes our code resilient to the underlying library issue, ensuring stability
- *  regardless of user-defined particle settings.
- *
- ***************************************************************************************/
+	*
+	*                              PARTICLE SYSTEM BUG REPORT
+	*
+	*  ROOT CAUSE:
+	*  A bug was identified within the external `particle-emitter.min.js` library in the
+	*  `PropertyNode.createList()` method. This method has an optimization that fails when
+	*  it is provided a property list with exactly two entries that have identical values
+	*  (e.g., `list: [{value: 1, time: 0}, {value: 1, time: 1}]`).
+	*
+	*  BUG BEHAVIOR:
+	*  Instead of creating a two-node linked list, the optimization creates a single-node list.
+	*  The system then incorrectly selects a complex interpolation function (`intValueComplex` or
+	*  `intColorComplex`) which is not designed to handle a single-node list. This function
+	*  crashes when it attempts to access `node.next.time`, as `node.next` is null,
+	*  resulting in the observed TypeError.
+	*
+	*  PREVIOUS VULNERABILITY:
+	*  The original `buildSparkEmitterConfig` function was vulnerable because it unconditionally
+	*  used the modern `{ list: [...] }` format for all time-variant properties. If a user set
+	*  the start and end values for scale or color to be the same, it would trigger this bug.
+	*
+	*  SOLUTION:
+	*  The `buildSparkEmitterConfig` function was refactored to mirror the more robust implementation
+	*  of `buildParticleEmitterConfig`. The solution has two parts:
+	*
+	*  1.  It now checks if the start and end values for a property (e.g., scale, color) are
+	*      identical. If they are, it uses the appropriate `Static` behavior (e.g., `scaleStatic`),
+	*      which completely bypasses the buggy `PropertyList` logic.
+	*
+	*  2.  If the values differ, it uses the dynamic behavior but provides the configuration in the
+	*      legacy `{start, end}` format. The library correctly handles this format without triggering
+	*      the bug.
+	*
+	*  This approach makes our code resilient to the underlying library issue, ensuring stability
+	*  regardless of user-defined particle settings.
+	*
+	***************************************************************************************/
 
 /*
 
@@ -10989,210 +10986,210 @@ const PARTICLE_EFFECT_DEFINITIONS = {
 
 class ParticleEffectController {
 	constructor(definition, parentContainer) {
-	  this.definition = definition;
-	  this.parentContainer = parentContainer; // This is the main container from ParticleManager
-	  this.emitters = new Map();
-	  this.pendingTargets = new Map();
-	  this.config = {};
-	  this.rgbSplitFilter = null;
-	  this.bloomFilter = null;
-	  this.cloudSuppressorFilter = null;
-  
-	  // Defer biofilm-specific resource creation
-	  this.displacementFilter = null;
-	  this.displacementSprite = null;
-	  this.biofilmMaskFilter = null;
-	  this.particleOutputTexture = null;
-  
-	  this.particleOnlyContainer = null;
-  
-	  // Special handling for effects with filters that need to operate on blended particles
-	  if (definition.configPath === "glint") {
-		this.rgbSplitFilter = new ParticleRgbSplitFilter();
-	  }
-  
-	  if (definition.configPath === "fire.particles") {
-		const BloomFilterConstructor =
-		  PIXI.filters.AdvancedBloomFilter ||
-		  (PIXI.filters.filters && PIXI.filters.filters.AdvancedBloomFilter);
-		if (BloomFilterConstructor) {
-		  this.bloomFilter = new BloomFilterConstructor();
+		this.definition = definition;
+		this.parentContainer = parentContainer; // This is the main container from ParticleManager
+		this.emitters = new Map();
+		this.pendingTargets = new Map();
+		this.config = {};
+		this.rgbSplitFilter = null;
+		this.bloomFilter = null;
+		this.cloudSuppressorFilter = null;
+
+		// Defer biofilm-specific resource creation
+		this.displacementFilter = null;
+		this.displacementSprite = null;
+		this.biofilmMaskFilter = null;
+		this.particleOutputTexture = null;
+
+		this.particleOnlyContainer = null;
+
+		// Special handling for effects with filters that need to operate on blended particles
+		if (definition.configPath === "glint") {
+			this.rgbSplitFilter = new ParticleRgbSplitFilter();
 		}
-		// For fire, we need a wrapper so blending happens before bloom.
-		this.particleOnlyContainer = new PIXI.Container();
-		this.parentContainer.addChild(this.particleOnlyContainer);
-	  }
-  
-	  // Create the suppressor filter for the specified particle effects.
-	  if (
-		definition.configPath === "glint" ||
-		definition.configPath === "metallicGlints" ||
-		definition.configPath === "water.glintParticles"
-	  ) {
-		this.cloudSuppressorFilter = new CloudSuppressorFilter();
-	  }
+
+		if (definition.configPath === "fire.particles") {
+			const BloomFilterConstructor =
+				PIXI.filters.AdvancedBloomFilter ||
+				(PIXI.filters.filters && PIXI.filters.filters.AdvancedBloomFilter);
+			if (BloomFilterConstructor) {
+				this.bloomFilter = new BloomFilterConstructor();
+			}
+			// For fire, we need a wrapper so blending happens before bloom.
+			this.particleOnlyContainer = new PIXI.Container();
+			this.parentContainer.addChild(this.particleOnlyContainer);
+		}
+
+		// Create the suppressor filter for the specified particle effects.
+		if (
+			definition.configPath === "glint" ||
+			definition.configPath === "metallicGlints" ||
+			definition.configPath === "water.glintParticles"
+		) {
+			this.cloudSuppressorFilter = new CloudSuppressorFilter();
+		}
 	}
-  
+
 	/**
-	 * Initializes biofilm-specific PIXI resources on demand.
-	 * This ensures resources are created only when the canvas is fully ready.
-	 * @private
-	 */
+		* Initializes biofilm-specific PIXI resources on demand.
+		* This ensures resources are created only when the canvas is fully ready.
+		* @private
+		*/
 	_initializeBiofilmResources() {
-	  // This is a one-time initialization. If resources exist, do nothing.
-	  if (this.particleOutputTexture) return;
-  
-	  const screen = CoordinateManager.getScreenDimensions();
-	  this.particleOutputTexture = PIXI.RenderTexture.create({
-		width: screen.width,
-		height: screen.height,
-	  });
-  
-	  this.displacementSprite = new PIXI.Sprite();
-	  this.displacementFilter = new PIXI.DisplacementFilter(
-		this.displacementSprite
-	  );
-	  this.biofilmMaskFilter = new BiofilmMaskFilter();
-	  this.parentContainer.filterArea = canvas.app.screen; // Crucial for filters on containers
+		// This is a one-time initialization. If resources exist, do nothing.
+		if (this.particleOutputTexture) return;
+
+		const screen = CoordinateManager.getScreenDimensions();
+		this.particleOutputTexture = PIXI.RenderTexture.create({
+			width: screen.width,
+			height: screen.height,
+		});
+
+		this.displacementSprite = new PIXI.Sprite();
+		this.displacementFilter = new PIXI.DisplacementFilter(
+			this.displacementSprite
+		);
+		this.biofilmMaskFilter = new BiofilmMaskFilter();
+		this.parentContainer.filterArea = canvas.app.screen; // Crucial for filters on containers
 	}
-  
-	  static getSettingsHTML(effectKey) {
-		  const definition = PARTICLE_EFFECT_DEFINITIONS[effectKey];
-		  if (!definition) return "";
-  
-		  const path = definition.configPath;
-		  let content = `<p class="description-text">${definition.description}</p>`;
-		  content += DebuggerUIBuilder._createSelectHTML(
-			  `${path}.blendMode`,
-			  "Blend Mode",
-			  BLEND_MODE_OPTIONS
-		  );
-  
-		  // Special case for Fire Bloom
-		  if (effectKey === "fire") {
-			  content += `
+
+	static getSettingsHTML(effectKey) {
+		const definition = PARTICLE_EFFECT_DEFINITIONS[effectKey];
+		if (!definition) return "";
+
+		const path = definition.configPath;
+		let content = `<p class="description-text">${definition.description}</p>`;
+		content += DebuggerUIBuilder._createSelectHTML(
+			`${path}.blendMode`,
+			"Blend Mode",
+			BLEND_MODE_OPTIONS
+		);
+
+		// Special case for Fire Bloom
+		if (effectKey === "fire") {
+			content += `
 								  <details id="details-fire-bloom">
 									  <summary><span class="accordion-toggle"></span>
 										  <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-				  "fire.bloom.enabled",
-				  "Bloom Effect",
-				  true
-			  )}</div>
+				"fire.bloom.enabled",
+				"Bloom Effect",
+				true
+			)}</div>
 									  </summary>
 									  <div style="padding-left: 15px;">
 										  <div class="warning-box" style="background-color: #554422; border-color: #ffaa66;"><strong style="color: #ffddaa;">PERFORMANCE WARNING:</strong> This can be demanding. Lowering 'Quality' can improve performance.</div>
 										  <p class="description-text">Adds a soft glow to the fire particles.</p>
 										  ${DebuggerUIBuilder._createSliderHTML(
-				  "fire.bloom.threshold",
-				  "Threshold",
-				  0,
-				  1,
-				  0.01
-			  )}
+				"fire.bloom.threshold",
+				"Threshold",
+				0,
+				1,
+				0.01
+			)}
 										  ${DebuggerUIBuilder._createSliderHTML(
-				  "fire.bloom.brightness",
-				  "Brightness",
-				  0,
-				  5,
-				  0.05
-			  )}
+				"fire.bloom.brightness",
+				"Brightness",
+				0,
+				5,
+				0.05
+			)}
 										  ${DebuggerUIBuilder._createSliderHTML(
-				  "fire.bloom.bloomScale",
-				  "Scale",
-				  0.1,
-				  5,
-				  0.1,
-				  "The size of the bloom effect."
-			  )}
+				"fire.bloom.bloomScale",
+				"Scale",
+				0.1,
+				5,
+				0.1,
+				"The size of the bloom effect."
+			)}
 										  ${DebuggerUIBuilder._createSliderHTML(
-				  "fire.bloom.blur",
-				  "Blur Amount",
-				  0,
-				  20,
-				  0.5
-			  )}
+				"fire.bloom.blur",
+				"Blur Amount",
+				0,
+				20,
+				0.5
+			)}
 										  ${DebuggerUIBuilder._createSliderHTML(
-				  "fire.bloom.quality",
-				  "Quality",
-				  1,
-				  15,
-				  1,
-				  "Number of blur samples. Higher is smoother but much slower."
-			  )}
+				"fire.bloom.quality",
+				"Quality",
+				1,
+				15,
+				1,
+				"Number of blur samples. Higher is smoother but much slower."
+			)}
 									  </div>
 								  </details>
 							  `;
-		  }
-  
-		  if (effectKey === "sparks") {
-			  const sparksPath = "sparks";
-			  let sparksContent = `
+		}
+
+		if (effectKey === "sparks") {
+			const sparksPath = "sparks";
+			let sparksContent = `
 							  <p class="description-text">${definition.description
-				  }</p>
+				}</p>
 							  <details>
 								  <summary><span class="accordion-toggle"></span><strong>Spawning & Density</strong></summary>
 								  <div style="padding-left: 15px;">
 									  ${DebuggerUIBuilder._createTextureInputHTML(
-					  definition.triggerTexture,
-					  `Effect Mask (_${definition.triggerTexture
-						  .charAt(0)
-						  .toUpperCase() +
-					  definition.triggerTexture.slice(1)
-					  })`
-				  )}
+					definition.triggerTexture,
+					`Effect Mask (_${definition.triggerTexture
+						.charAt(0)
+						.toUpperCase() +
+					definition.triggerTexture.slice(1)
+					})`
+				)}
 									  ${DebuggerUIBuilder._createSliderHTML(
-					  `${sparksPath}.maskInfluence`,
-					  "Particle Density",
-					  0.01,
-					  5,
-					  0.01
-				  )}
+					`${sparksPath}.maskInfluence`,
+					"Particle Density",
+					0.01,
+					5,
+					0.01
+				)}
 									  ${DebuggerUIBuilder._createSliderHTML(
-					  `${sparksPath}.frequency`,
-					  "Spawn Rate (s)",
-					  0.01,
-					  2,
-					  0.01
-				  )}
+					`${sparksPath}.frequency`,
+					"Spawn Rate (s)",
+					0.01,
+					2,
+					0.01
+				)}
 									  ${DebuggerUIBuilder._createSliderHTML(
-					  `${sparksPath}.maskThreshold`,
-					  "Mask Threshold",
-					  0,
-					  1,
-					  0.01,
-					  "Luminance from the _Sparks map required to spawn sparks."
-				  )}
+					`${sparksPath}.maskThreshold`,
+					"Mask Threshold",
+					0,
+					1,
+					0.01,
+					"Luminance from the _Sparks map required to spawn sparks."
+				)}
 								  </div>
 							  </details>
 							  <details>
 								  <summary><span class="accordion-toggle"></span><strong>Particle Appearance</strong></summary>
 								  <div style="padding-left: 15px;">
 									  ${DebuggerUIBuilder._createSelectHTML(
-					  `${sparksPath}.blendMode`,
-					  "Blend Mode",
-					  BLEND_MODE_OPTIONS
-				  )}
+					`${sparksPath}.blendMode`,
+					"Blend Mode",
+					BLEND_MODE_OPTIONS
+				)}
 									  ${DebuggerUIBuilder._createTextInputHTML(
-					  `${sparksPath}.particleTexture`,
-					  "Particle Texture"
-				  )}
+					`${sparksPath}.particleTexture`,
+					"Particle Texture"
+				)}
 									  <details>
 										  <summary><span class="accordion-toggle"></span><strong>Lifetime</strong></summary>
 										  <div style="padding-left: 15px;">
 											  ${DebuggerUIBuilder._createSliderHTML(
-					  `${sparksPath}.lifetime.min`,
-					  "Min Lifetime (s)",
-					  0.5,
-					  5,
-					  0.1
-				  )}
+					`${sparksPath}.lifetime.min`,
+					"Min Lifetime (s)",
+					0.5,
+					5,
+					0.1
+				)}
 											  ${DebuggerUIBuilder._createSliderHTML(
-					  `${sparksPath}.lifetime.max`,
-					  "Max Lifetime (s)",
-					  0.5,
-					  5,
-					  0.1
-				  )}
+					`${sparksPath}.lifetime.max`,
+					"Max Lifetime (s)",
+					0.5,
+					5,
+					0.1
+				)}
 										  </div>
 									  </details>
 									  
@@ -11203,33 +11200,33 @@ class ParticleEffectController {
 										  <summary><span class="accordion-toggle"></span><strong>Scale / Size</strong></summary>
 										  <div style="padding-left: 15px;">
 											  ${DebuggerUIBuilder._createSliderHTML(
-					  `${sparksPath}.scale.sizeMultiplier`,
-					  "Global Size",
-					  0.1,
-					  2,
-					  0.05
-				  )}
+					`${sparksPath}.scale.sizeMultiplier`,
+					"Global Size",
+					0.1,
+					2,
+					0.05
+				)}
 											  ${DebuggerUIBuilder._createSliderHTML(
-					  `${sparksPath}.scale.start`,
-					  "Start Scale",
-					  0.1,
-					  2,
-					  0.05
-				  )}
+					`${sparksPath}.scale.start`,
+					"Start Scale",
+					0.1,
+					2,
+					0.05
+				)}
 											  ${DebuggerUIBuilder._createSliderHTML(
-					  `${sparksPath}.scale.end`,
-					  "End Scale",
-					  0,
-					  2,
-					  0.05
-				  )}
+					`${sparksPath}.scale.end`,
+					"End Scale",
+					0,
+					2,
+					0.05
+				)}
 											  ${DebuggerUIBuilder._createSliderHTML(
-					  `${sparksPath}.scale.minMult`,
-					  "Random Size Min",
-					  0.1,
-					  1,
-					  0.01
-				  )}
+					`${sparksPath}.scale.minMult`,
+					"Random Size Min",
+					0.1,
+					1,
+					0.01
+				)}
 										  </div>
 									  </details>
 								  </div>
@@ -11241,26 +11238,26 @@ class ParticleEffectController {
 										  <summary><span class="accordion-toggle"></span><strong>Speed Along Path</strong></summary>
 										  <div style="padding-left:15px;">
 											  ${DebuggerUIBuilder._createSliderHTML(
-					  `${sparksPath}.path.speed.start`,
-					  "Start Speed",
-					  10,
-					  200,
-					  1
-				  )}
+					`${sparksPath}.path.speed.start`,
+					"Start Speed",
+					10,
+					200,
+					1
+				)}
 											  ${DebuggerUIBuilder._createSliderHTML(
-					  `${sparksPath}.path.speed.end`,
-					  "End Speed",
-					  10,
-					  200,
-					  1
-				  )}
+					`${sparksPath}.path.speed.end`,
+					"End Speed",
+					10,
+					200,
+					1
+				)}
 											  ${DebuggerUIBuilder._createSliderHTML(
-					  `${sparksPath}.path.speed.minMult`,
-					  "Random Speed Min",
-					  0.1,
-					  1,
-					  0.01
-				  )}
+					`${sparksPath}.path.speed.minMult`,
+					"Random Speed Min",
+					0.1,
+					1,
+					0.01
+				)}
 										  </div>
 									  </details>
 									  <details>
@@ -11268,132 +11265,132 @@ class ParticleEffectController {
 										  <div style="padding-left:15px;">
 											  <p class="description-text">Controls the random sine wave path for each spark.</p>
 											  ${DebuggerUIBuilder._createSliderHTML(
-					  `${sparksPath}.path.amplitude.min`,
-					  "Min Wave Width",
-					  0,
-					  100,
-					  1
-				  )}
+					`${sparksPath}.path.amplitude.min`,
+					"Min Wave Width",
+					0,
+					100,
+					1
+				)}
 											  ${DebuggerUIBuilder._createSliderHTML(
-					  `${sparksPath}.path.amplitude.max`,
-					  "Max Wave Width",
-					  0,
-					  100,
-					  1
-				  )}
+					`${sparksPath}.path.amplitude.max`,
+					"Max Wave Width",
+					0,
+					100,
+					1
+				)}
 											  ${DebuggerUIBuilder._createSliderHTML(
-					  `${sparksPath}.path.frequency.min`,
-					  "Min Wave Freq",
-					  10,
-					  200,
-					  1
-				  )}
+					`${sparksPath}.path.frequency.min`,
+					"Min Wave Freq",
+					10,
+					200,
+					1
+				)}
 											  ${DebuggerUIBuilder._createSliderHTML(
-					  `${sparksPath}.path.frequency.max`,
-					  "Max Wave Freq",
-					  10,
-					  200,
-					  1
-				  )}
+					`${sparksPath}.path.frequency.max`,
+					"Max Wave Freq",
+					10,
+					200,
+					1
+				)}
 											  ${DebuggerUIBuilder._createSliderHTML(
-					  `${sparksPath}.path.damping`,
-					  "Damping",
-					  0,
-					  1,
-					  0.05,
-					  "How quickly the path straightens out over the spark\\s life."
-				  )}
+					`${sparksPath}.path.damping`,
+					"Damping",
+					0,
+					1,
+					0.05,
+					"How quickly the path straightens out over the spark\\s life."
+				)}
 											  ${DebuggerUIBuilder._createSliderHTML(
-					  `${sparksPath}.path.angle.min`,
-					  "Min Start Angle",
-					  -90,
-					  90,
-					  1
-				  )}
+					`${sparksPath}.path.angle.min`,
+					"Min Start Angle",
+					-90,
+					90,
+					1
+				)}
 											  ${DebuggerUIBuilder._createSliderHTML(
-					  `${sparksPath}.path.angle.max`,
-					  "Max Start Angle",
-					  -90,
-					  90,
-					  1
-				  )}
+					`${sparksPath}.path.angle.max`,
+					"Max Start Angle",
+					-90,
+					90,
+					1
+				)}
 										  </div>
 									  </details>
 									  <details>
 										  <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-					  `${sparksPath}.path.motionBlur.enabled`,
-					  "Motion Blur",
-					  true
-				  )}</div></summary>
+					`${sparksPath}.path.motionBlur.enabled`,
+					"Motion Blur",
+					true
+				)}</div></summary>
 										  <div style="padding-left:15px;">
 											  <p class="description-text">Stretches particles based on their speed to simulate motion blur.</p>
 											  ${DebuggerUIBuilder._createSliderHTML(
-					  `${sparksPath}.path.motionBlur.strength`,
-					  "Strength",
-					  0,
-					  1,
-					  0.01,
-					  "Multiplier for how much speed affects particle length."
-				  )}
+					`${sparksPath}.path.motionBlur.strength`,
+					"Strength",
+					0,
+					1,
+					0.01,
+					"Multiplier for how much speed affects particle length."
+				)}
 											  ${DebuggerUIBuilder._createSliderHTML(
-					  `${sparksPath}.path.motionBlur.maxLength`,
-					  "Max Length",
-					  0,
-					  10,
-					  0.1,
-					  "The maximum amount to stretch the particle scale."
-				  )}
+					`${sparksPath}.path.motionBlur.maxLength`,
+					"Max Length",
+					0,
+					10,
+					0.1,
+					"The maximum amount to stretch the particle scale."
+				)}
 										  </div>
 									  </details>
 								  </div>
 							  </details>
 						  `;
-			  const headerExtra = `<button type="button" class="create-effect-from-ui" data-action="create-particle-effect-area" data-effect-key="${effectKey}" title="Create new area for this particle effect"><i class="fas fa-plus-square"></i></button>`;
-			  return DebuggerUIBuilder._createAccordionHTML(
-				  effectKey,
-				  definition.title,
-				  sparksContent,
-				  headerExtra
-			  );
-		  }
-  
-		  // Common particle sections
-		  content += `
+			const headerExtra = `<button type="button" class="create-effect-from-ui" data-action="create-particle-effect-area" data-effect-key="${effectKey}" title="Create new area for this particle effect"><i class="fas fa-plus-square"></i></button>`;
+			return DebuggerUIBuilder._createAccordionHTML(
+				effectKey,
+				definition.title,
+				sparksContent,
+				headerExtra
+			);
+		}
+
+		// Common particle sections
+		content += `
 							  <details>
 								  <summary><span class="accordion-toggle"></span><strong>Spawning & Density</strong></summary>
 								  <div style="padding-left: 15px;">
 									  ${DebuggerUIBuilder._createTextureInputHTML(
-			  definition.triggerTexture,
-			  `Effect Mask (_${definition.triggerTexture
-				  .charAt(0)
-				  .toUpperCase() +
-			  definition.triggerTexture.slice(1)
-			  })`
-		  )}
+			definition.triggerTexture,
+			`Effect Mask (_${definition.triggerTexture
+				.charAt(0)
+				.toUpperCase() +
+			definition.triggerTexture.slice(1)
+			})`
+		)}
 									  ${DebuggerUIBuilder._createSliderHTML(
-			  `${path}.maskInfluence`,
-			  "Particle Density",
-			  0.01,
-			  5,
-			  0.01,
-			  "Controls the maximum number of particles."
-		  )}
+			`${path}.maskInfluence`,
+			"Particle Density",
+			0.01,
+			5,
+			0.01,
+			"Controls the maximum number of particles."
+		)}
 									  ${DebuggerUIBuilder._createSliderHTML(
-			  `${path}.frequency`,
-			  "Spawn Rate (s)",
-			  0.001,
-			  1,
-			  0.001,
-			  "Time in seconds between particle spawns. Lower is faster."
-		  )}
+			`${path}.frequency`,
+			"Spawn Rate (s)",
+			0.001,
+			1,
+			0.001,
+			"Time in seconds between particle spawns. Lower is faster."
+		)}
 									  ${DebuggerUIBuilder._createSliderHTML(
-			  `${path}.maskThreshold`,
-			  "Mask Threshold",
-			  0,
-			  1,
-			  0.01,
-			  "Luminance from the mask required to spawn particles."
-		  )}
+			`${path}.maskThreshold`,
+			"Mask Threshold",
+			0,
+			1,
+			0.01,
+			"Luminance from the mask required to spawn particles."
+		)}
 							
 								  </div>
 							  </details>
@@ -11401,91 +11398,91 @@ class ParticleEffectController {
 								  <summary><span class="accordion-toggle"></span><strong>Particle Appearance</strong></summary>
 								  <div style="padding-left: 15px;">
 									  ${DebuggerUIBuilder._createTextInputHTML(
-			  `${path}.particleTexture`,
-			  "Particle Texture",
-			  "Path to the particle image."
-		  )}
+			`${path}.particleTexture`,
+			"Particle Texture",
+			"Path to the particle image."
+		)}
 									  <details>
 										  <summary><span class="accordion-toggle"></span><strong>Lifetime</strong></summary>
 										  <div style="padding-left: 15px;">
 											  ${DebuggerUIBuilder._createSliderHTML(
-			  `${path}.lifetime.min`,
-			  "Min Lifetime (s)",
-			  0.1,
-			  20,
-			  0.1
-		  )}
+			`${path}.lifetime.min`,
+			"Min Lifetime (s)",
+			0.1,
+			20,
+			0.1
+		)}
 											  ${DebuggerUIBuilder._createSliderHTML(
-			  `${path}.lifetime.max`,
-			  "Max Lifetime (s)",
-			  0.1,
-			  20,
-			  0.1
-		  )}
+			`${path}.lifetime.max`,
+			"Max Lifetime (s)",
+			0.1,
+			20,
+			0.1
+		)}
 										  </div>
 									  </details>
 									  
 									  ${DebuggerUIBuilder._createGradientEditorHTML(`${path}.colorAlphaGradient`, "Color & Alpha Over Life")}
-									  ${DebuggerUIBuilder._createGradientEditorHTML(`${path}.emissiveGradient`, "Emissive (Brightness) Over Life")}
+									  ${DebuggerUIBuilder._createGradientEditorHTML(`${path}.emissiveGradient`, "Emissive (Brightness) Over Life", 'brightness')}
 									  
 									  <details>
 										  <summary><span class="accordion-toggle"></span><strong>Scale / Size</strong></summary>
 										  <div style="padding-left: 15px;">
 											  ${DebuggerUIBuilder._createSliderHTML(
-			  `${path}.scale.sizeMultiplier`,
-			  "Global Size",
-			  0.1,
-			  50,
-			  1,
-			  "A global multiplier for particle size."
-		  )}
+			`${path}.scale.sizeMultiplier`,
+			"Global Size",
+			0.1,
+			50,
+			1,
+			"A global multiplier for particle size."
+		)}
 											  ${DebuggerUIBuilder._createSliderHTML(
-			  `${path}.scale.start`,
-			  "Start Scale Mult",
-			  0,
-			  2,
-			  0.01,
-			  "Particle size at birth (multiplied by Global Size)."
-		  )}
+			`${path}.scale.start`,
+			"Start Scale Mult",
+			0,
+			2,
+			0.01,
+			"Particle size at birth (multiplied by Global Size)."
+		)}
 											  ${DebuggerUIBuilder._createSliderHTML(
-			  `${path}.scale.end`,
-			  "End Scale Mult",
-			  0,
-			  2,
-			  0.01,
-			  "Particle size at death (multiplied by Global Size)."
-		  )}
+			`${path}.scale.end`,
+			"End Scale Mult",
+			0,
+			2,
+			0.01,
+			"Particle size at death (multiplied by Global Size)."
+		)}
 											  ${DebuggerUIBuilder._createSliderHTML(
-			  `${path}.scale.minMult`,
-			  "Random Size Min",
-			  0.1,
-			  1,
-			  0.01,
-			  "Minimum random scale multiplier for each particle (from this value to 1.0)."
-		  )}
+			`${path}.scale.minMult`,
+			"Random Size Min",
+			0.1,
+			1,
+			0.01,
+			"Minimum random scale multiplier for each particle (from this value to 1.0)."
+		)}
 										  </div>
 									  </details>
 									  ${effectKey === "glint"
-				  ? `
+				? `
 									  <details>
 										  <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-					  `${path}.rgbSplit.enabled`,
-					  "RGB Split Effect",
-					  true
-				  )}</div></summary>
+					`${path}.rgbSplit.enabled`,
+					"RGB Split Effect",
+					true
+				)}</div></summary>
 										  <div style="padding-left: 15px;">
 											  <p class="description-text">Applies a chromatic aberration effect to the particles.</p>
 											  ${DebuggerUIBuilder._createSliderHTML(
-					  `${path}.rgbSplit.amount`,
-					  "Amount",
-					  0,
-					  10,
-					  0.1
-				  )}
+					`${path}.rgbSplit.amount`,
+					"Amount",
+					0,
+					10,
+					0.1
+				)}
 										  </div>
 									  </details>`
-				  : ""
-			  }
+				: ""
+			}
 								  </div>
 							  </details>
 							  <details>
@@ -11495,207 +11492,207 @@ class ParticleEffectController {
 										  <summary><span class="accordion-toggle"></span><strong>Speed</strong></summary>
 										  <div style="padding-left: 15px;">
 											  ${DebuggerUIBuilder._createSliderHTML(
-				  `${path}.speed.start`,
-				  "Start Speed",
-				  -50,
-				  50,
-				  1
-			  )}
+				`${path}.speed.start`,
+				"Start Speed",
+				-50,
+				50,
+				1
+			)}
 											  ${DebuggerUIBuilder._createSliderHTML(
-				  `${path}.speed.end`,
-				  "End Speed",
-				  -50,
-				  50,
-				  1
-			  )}
+				`${path}.speed.end`,
+				"End Speed",
+				-50,
+				50,
+				1
+			)}
 											  ${DebuggerUIBuilder._createSliderHTML(
-				  `${path}.speed.minMult`,
-				  "Random Speed Min",
-				  0.1,
-				  1,
-				  0.01,
-				  "Minimum random speed multiplier for each particle (from this value to 1.0)."
-			  )}
+				`${path}.speed.minMult`,
+				"Random Speed Min",
+				0.1,
+				1,
+				0.01,
+				"Minimum random speed multiplier for each particle (from this value to 1.0)."
+			)}
 										  </div>
 									  </details>
 									  <details>
 										  <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-				  `${path}.rotation.enabled`,
-				  "Tumbling / Rotation",
-				  true
-			  )}</div></summary>
+				`${path}.rotation.enabled`,
+				"Tumbling / Rotation",
+				true
+			)}</div></summary>
 										  <div style="padding-left: 15px;">
 											  ${DebuggerUIBuilder._createSliderHTML(
-				  `${path}.rotation.minSpeed`,
-				  "Min Rot. Speed",
-				  -180,
-				  180,
-				  1,
-				  "Degrees per second."
-			  )}
+				`${path}.rotation.minSpeed`,
+				"Min Rot. Speed",
+				-180,
+				180,
+				1,
+				"Degrees per second."
+			)}
 											  ${DebuggerUIBuilder._createSliderHTML(
-				  `${path}.rotation.maxSpeed`,
-				  "Max Rot. Speed",
-				  -180,
-				  180,
-				  1,
-				  "Degrees per second."
-			  )}
+				`${path}.rotation.maxSpeed`,
+				"Max Rot. Speed",
+				-180,
+				180,
+				1,
+				"Degrees per second."
+			)}
 											  ${DebuggerUIBuilder._createSliderHTML(
-				  `${path}.rotation.accel`,
-				  "Rot. Accel.",
-				  -90,
-				  90,
-				  1,
-				  "Degrees per second squared."
-			  )}
+				`${path}.rotation.accel`,
+				"Rot. Accel.",
+				-90,
+				90,
+				1,
+				"Degrees per second squared."
+			)}
 										  </div>
 									  </details>
 								  </div>
 							  </details>
 						  `;
-  
-		  // Special case for Fire Wind
-		  if (effectKey === "fire") {
-			  content += `
+
+		// Special case for Fire Wind
+		if (effectKey === "fire") {
+			content += `
 								  <details id="details-fire-wind">
 									  <summary><span class="accordion-toggle"></span>
 										  <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-				  `${path}.wind.enabled`,
-				  "Complex Wind",
-				  true
-			  )}</div>
+				`${path}.wind.enabled`,
+				"Complex Wind",
+				true
+			)}</div>
 									  </summary>
 									  <div style="padding-left: 15px;">
 										  <p class="description-text">Applies a dynamic wind force to all fire particles.</p>
 										  ${DebuggerUIBuilder._createSliderHTML(
-				  `${path}.wind.force`,
-				  "Wind Force",
-				  0,
-				  500,
-				  5,
-				  "How strongly the wind pushes the particles."
-			  )}
+				`${path}.wind.force`,
+				"Wind Force",
+				0,
+				500,
+				5,
+				"How strongly the wind pushes the particles."
+			)}
 										  ${DebuggerUIBuilder._createSliderHTML(
-				  `${path}.wind.baseSpeed`,
-				  "Base Speed",
-				  0,
-				  200,
-				  1,
-				  "The normal speed of the wind."
-			  )}
+				`${path}.wind.baseSpeed`,
+				"Base Speed",
+				0,
+				200,
+				1,
+				"The normal speed of the wind."
+			)}
 										  ${DebuggerUIBuilder._createSliderHTML(
-				  `${path}.wind.gustSpeed`,
-				  "Gust Speed",
-				  0,
-				  500,
-				  5,
-				  "The peak speed during a gust."
-			  )}
+				`${path}.wind.gustSpeed`,
+				"Gust Speed",
+				0,
+				500,
+				5,
+				"The peak speed during a gust."
+			)}
 										  <details>
 											  <summary><span class="accordion-toggle"></span><strong>Gust Timing</strong></summary>
 											  <div style="padding-left: 15px;">
 												  ${DebuggerUIBuilder._createSliderHTML(
-				  `${path}.wind.gustFrequencyMin`,
-				  "Min Time Between Gusts (s)",
-				  0.1,
-				  20,
-				  0.1
-			  )}
+				`${path}.wind.gustFrequencyMin`,
+				"Min Time Between Gusts (s)",
+				0.1,
+				20,
+				0.1
+			)}
 												  ${DebuggerUIBuilder._createSliderHTML(
-				  `${path}.wind.gustFrequencyMax`,
-				  "Max Time Between Gusts (s)",
-				  0.1,
-				  20,
-				  0.1
-			  )}
+				`${path}.wind.gustFrequencyMax`,
+				"Max Time Between Gusts (s)",
+				0.1,
+				20,
+				0.1
+			)}
 												  ${DebuggerUIBuilder._createSliderHTML(
-				  `${path}.wind.gustDurationMin`,
-				  "Min Gust Duration (s)",
-				  0.1,
-				  5,
-				  0.1
-			  )}
+				`${path}.wind.gustDurationMin`,
+				"Min Gust Duration (s)",
+				0.1,
+				5,
+				0.1
+			)}
 												  ${DebuggerUIBuilder._createSliderHTML(
-				  `${path}.wind.gustDurationMax`,
-				  "Max Gust Duration (s)",
-				  0.1,
-				  5,
-				  0.1
-			  )}
+				`${path}.wind.gustDurationMax`,
+				"Max Gust Duration (s)",
+				0.1,
+				5,
+				0.1
+			)}
 											  </div>
 										  </details>
 										  <details>
 											  <summary><span class="accordion-toggle"></span><strong>Angle Change</strong></summary>
 											  <div style="padding-left: 15px;">
 												  ${DebuggerUIBuilder._createSliderHTML(
-				  `${path}.wind.angleChangeFrequencyMin`,
-				  "Min Time Between Changes (s)",
-				  0.1,
-				  30,
-				  0.1
-			  )}
+				`${path}.wind.angleChangeFrequencyMin`,
+				"Min Time Between Changes (s)",
+				0.1,
+				30,
+				0.1
+			)}
 												  ${DebuggerUIBuilder._createSliderHTML(
-				  `${path}.wind.angleChangeFrequencyMax`,
-				  "Max Time Between Changes (s)",
-				  0.1,
-				  30,
-				  0.1
-			  )}
+				`${path}.wind.angleChangeFrequencyMax`,
+				"Max Time Between Changes (s)",
+				0.1,
+				30,
+				0.1
+			)}
 												  ${DebuggerUIBuilder._createSliderHTML(
-				  `${path}.wind.angleChangeRange`,
-				  "Max Angle Change ( )",
-				  0,
-				  90,
-				  1,
-				  "Max degrees the angle can shift each time."
-			  )}
+				`${path}.wind.angleChangeRange`,
+				"Max Angle Change ( )",
+				0,
+				90,
+				1,
+				"Max degrees the angle can shift each time."
+			)}
 											  </div>
 										  </details>
 									  </div>
 								  </details>
 							  `;
-		  }
-  
-		  const mainAccordionPath =
-			  effectKey === "fire" ? "fire.particles.enabled" : `${path}.enabled`;
-		  const mainAccordionId =
-			  effectKey === "fire" ? "details-fire-particles" : `details-${effectKey}`;
-  
-		  const headerExtra = `<button type="button" class="create-effect-from-ui" data-action="create-particle-effect-area" data-effect-key="${effectKey}" title="Create new area for this particle effect"><i class="fas fa-plus-square"></i></button>`;
-  
-		  return DebuggerUIBuilder._createAccordionHTML(
-			  effectKey,
-			  definition.title,
-			  content,
-			  headerExtra
-		  )
-			  .replace(`details-${effectKey}`, mainAccordionId)
-			  .replace(`${path}.enabled`, mainAccordionPath);
-	  }
-  
+		}
+
+		const mainAccordionPath =
+			effectKey === "fire" ? "fire.particles.enabled" : `${path}.enabled`;
+		const mainAccordionId =
+			effectKey === "fire" ? "details-fire-particles" : `details-${effectKey}`;
+
+		const headerExtra = `<button type="button" class="create-effect-from-ui" data-action="create-particle-effect-area" data-effect-key="${effectKey}" title="Create new area for this particle effect"><i class="fas fa-plus-square"></i></button>`;
+
+		return DebuggerUIBuilder._createAccordionHTML(
+			effectKey,
+			definition.title,
+			content,
+			headerExtra
+		)
+			.replace(`details-${effectKey}`, mainAccordionId)
+			.replace(`${path}.enabled`, mainAccordionPath);
+	}
+
 	// NOTE: IMPORTANT. AT SOME POINT THIS NEEDS TO BE MOVED TO THE CORRECT PLACE. DON'T FORGET.
 	static getSmellyFliesSettingsHTML() {
-	  const effectKey = "smellyFlies";
-	  const headerExtra = `<button type="button" class="create-effect-from-ui" data-action="create-particle-effect-area" data-effect-key="${effectKey}" title="Create new area for this particle effect"><i class="fas fa-plus-square"></i></button>`;
-	  const content = `
+		const effectKey = "smellyFlies";
+		const headerExtra = `<button type="button" class="create-effect-from-ui" data-action="create-particle-effect-area" data-effect-key="${effectKey}" title="Create new area for this particle effect"><i class="fas fa-plus-square"></i></button>`;
+		const content = `
 			<p class="description-text">Simulates a swarm of flies that fly around, land, and walk on surfaces defined by a Map Point Area group.</p>
 			${DebuggerUIBuilder._createSelectHTML(
-		`${effectKey}.blendMode`,
-		"Blend Mode",
-		BLEND_MODE_OPTIONS
-	  )}
+			`${effectKey}.blendMode`,
+			"Blend Mode",
+			BLEND_MODE_OPTIONS
+		)}
 			${DebuggerUIBuilder._createTextInputHTML(
-		`${effectKey}.particleTexture`,
-		"Particle Texture"
-	  )}
+			`${effectKey}.particleTexture`,
+			"Particle Texture"
+		)}
 			${DebuggerUIBuilder._createSliderHTML(
-		`${effectKey}.maxParticles`,
-		"Max Particles",
-		1,
-		500,
-		1
-	  )}
+			`${effectKey}.maxParticles`,
+			"Max Particles",
+			1,
+			500,
+			1
+		)}
 	  
 			<details id="details-smellyFlies-flying">
 			  <summary><span class="accordion-toggle"></span><strong>Flying Behavior</strong></summary>
@@ -11704,86 +11701,86 @@ class ParticleEffectController {
 					  <summary><span class="accordion-toggle"></span><strong>Takeoff & Landing</strong></summary>
 					  <div style="padding-left: 15px;">
 						  ${DebuggerUIBuilder._createSliderHTML(
-		`${effectKey}.flying.takeoffDuration`,
-		"Takeoff Duration (s)",
-		0.1,
-		2.0,
-		0.1
-	  )}
+			`${effectKey}.flying.takeoffDuration`,
+			"Takeoff Duration (s)",
+			0.1,
+			2.0,
+			0.1
+		)}
 						  ${DebuggerUIBuilder._createSliderHTML(
-		`${effectKey}.flying.takeoffSpeedMin`,
-		"Min Takeoff Speed",
-		10,
-		500,
-		5
-	  )}
+			`${effectKey}.flying.takeoffSpeedMin`,
+			"Min Takeoff Speed",
+			10,
+			500,
+			5
+		)}
 						  ${DebuggerUIBuilder._createSliderHTML(
-		`${effectKey}.flying.takeoffSpeedMax`,
-		"Max Takeoff Speed",
-		10,
-		500,
-		5
-	  )}
+			`${effectKey}.flying.takeoffSpeedMax`,
+			"Max Takeoff Speed",
+			10,
+			500,
+			5
+		)}
 						  <hr style="border-color: #555; margin: 6px 0;">
 						  ${DebuggerUIBuilder._createSliderHTML(
-		`${effectKey}.flying.landChance`,
-		"Land Chance (%/sec)",
-		0,
-		1.0,
-		0.01,
-		"Chance per second for a fly to land if over a valid area."
-	  )}
+			`${effectKey}.flying.landChance`,
+			"Land Chance (%/sec)",
+			0,
+			1.0,
+			0.01,
+			"Chance per second for a fly to land if over a valid area."
+		)}
 						  ${DebuggerUIBuilder._createSliderHTML(
-		`${effectKey}.flying.landingDuration`,
-		"Landing Duration (s)",
-		0.1,
-		2.0,
-		0.1
-	  )}
+			`${effectKey}.flying.landingDuration`,
+			"Landing Duration (s)",
+			0.1,
+			2.0,
+			0.1
+		)}
 					  </div>
 				  </details>
 				  <details id="details-smellyFlies-physics">
 					  <summary><span class="accordion-toggle"></span><strong>Flight Physics</strong></summary>
 					  <div style="padding-left: 15px;">
 						   ${DebuggerUIBuilder._createSliderHTML(
-		`${effectKey}.flying.noiseStrength`,
-		"Erratic Force",
-		0,
-		2000,
-		50,
-		"How strongly random forces push the fly. Higher = more erratic."
-	  )}
+			`${effectKey}.flying.noiseStrength`,
+			"Erratic Force",
+			0,
+			2000,
+			50,
+			"How strongly random forces push the fly. Higher = more erratic."
+		)}
 						   ${DebuggerUIBuilder._createSliderHTML(
-		`${effectKey}.flying.noiseFrequency`,
-		"Erratic Frequency",
-		1,
-		50,
-		0.5,
-		"How quickly the random force changes. Higher = more jittery."
-	  )}
+			`${effectKey}.flying.noiseFrequency`,
+			"Erratic Frequency",
+			1,
+			50,
+			0.5,
+			"How quickly the random force changes. Higher = more jittery."
+		)}
 						   ${DebuggerUIBuilder._createSliderHTML(
-		`${effectKey}.flying.tetherStrength`,
-		"Tether Strength",
-		0,
-		10,
-		0.1,
-		"How strongly the fly is pulled back to its spawn area."
-	  )}
+			`${effectKey}.flying.tetherStrength`,
+			"Tether Strength",
+			0,
+			10,
+			0.1,
+			"How strongly the fly is pulled back to its spawn area."
+		)}
 						   ${DebuggerUIBuilder._createSliderHTML(
-		`${effectKey}.flying.maxSpeed`,
-		"Max Speed (px/s)",
-		50,
-		1000,
-		10
-	  )}
+			`${effectKey}.flying.maxSpeed`,
+			"Max Speed (px/s)",
+			50,
+			1000,
+			10
+		)}
 						   ${DebuggerUIBuilder._createSliderHTML(
-		`${effectKey}.flying.drag`,
-		"Air Drag",
-		0,
-		1,
-		0.01,
-		"Friction/resistance. Higher values cause slower, less 'drifty' movement."
-	  )}
+			`${effectKey}.flying.drag`,
+			"Air Drag",
+			0,
+			1,
+			0.01,
+			"Friction/resistance. Higher values cause slower, less 'drifty' movement."
+		)}
 					  </div>
 				  </details>
 			  </div>
@@ -11793,75 +11790,75 @@ class ParticleEffectController {
 			  <summary><span class="accordion-toggle"></span><strong>Walking Behavior</strong></summary>
 			  <div style="padding-left: 15px;">
 				  ${DebuggerUIBuilder._createSliderHTML(
-		`${effectKey}.walking.walkSpeed`,
-		"Walk Speed (px/s)",
-		5,
-		100,
-		1
-	  )}
+			`${effectKey}.walking.walkSpeed`,
+			"Walk Speed (px/s)",
+			5,
+			100,
+			1
+		)}
 				  ${DebuggerUIBuilder._createSliderHTML(
-		`${effectKey}.walking.takeoffChance`,
-		"Takeoff Chance (%/sec)",
-		0,
-		1.0,
-		0.01,
-		"Chance per second for a walking fly to take off."
-	  )}
+			`${effectKey}.walking.takeoffChance`,
+			"Takeoff Chance (%/sec)",
+			0,
+			1.0,
+			0.01,
+			"Chance per second for a walking fly to take off."
+		)}
 				  <details>
 					  <summary><span class="accordion-toggle"></span><strong>Idle Timing</strong></summary>
 					  <div style="padding-left: 15px;">
 						   ${DebuggerUIBuilder._createSliderHTML(
-		`${effectKey}.walking.minIdleTime`,
-		"Min Idle Time (s)",
-		0.1,
-		5,
-		0.1
-	  )}
+			`${effectKey}.walking.minIdleTime`,
+			"Min Idle Time (s)",
+			0.1,
+			5,
+			0.1
+		)}
 						   ${DebuggerUIBuilder._createSliderHTML(
-		`${effectKey}.walking.maxIdleTime`,
-		"Max Idle Time (s)",
-		0.1,
-		5,
-		0.1
-	  )}
+			`${effectKey}.walking.maxIdleTime`,
+			"Max Idle Time (s)",
+			0.1,
+			5,
+			0.1
+		)}
 					  </div>
 				  </details>
 				  <details>
 					  <summary><span class="accordion-toggle"></span><strong>Rotation Timing</strong></summary>
 					  <div style="padding-left: 15px;">
 						  ${DebuggerUIBuilder._createSliderHTML(
-		`${effectKey}.walking.minRotateTime`,
-		"Min Rotate Time (s)",
-		0.1,
-		2,
-		0.1
-	  )}
+			`${effectKey}.walking.minRotateTime`,
+			"Min Rotate Time (s)",
+			0.1,
+			2,
+			0.1
+		)}
 						  ${DebuggerUIBuilder._createSliderHTML(
-		`${effectKey}.walking.maxRotateTime`,
-		"Max Rotate Time (s)",
-		0.1,
-		2,
-		0.1
-	  )}
+			`${effectKey}.walking.maxRotateTime`,
+			"Max Rotate Time (s)",
+			0.1,
+			2,
+			0.1
+		)}
 					  </div>
 				  </details>
 				  <details>
 					  <summary><span class="accordion-toggle"></span><strong>Move Distance</strong></summary>
 					  <div style="padding-left: 15px;">
 						  ${DebuggerUIBuilder._createSliderHTML(
-		`${effectKey}.walking.minMoveDistance`,
-		"Min Move Distance (px)",
-		1,
-		200,
-		1
-	  )}
+			`${effectKey}.walking.minMoveDistance`,
+			"Min Move Distance (px)",
+			1,
+			200,
+			1
+		)}
 						  ${DebuggerUIBuilder._createSliderHTML(
-		`${effectKey}.walking.maxMoveDistance`,
-		"Max Move Distance (px)",
-		1,
-		200,
-		1
-	  )}
+			`${effectKey}.walking.maxMoveDistance`,
+			"Max Move Distance (px)",
+			1,
+			200,
+			1
+		)}
 					  </div>
 				  </details>
 			  </div>
@@ -11869,506 +11866,506 @@ class ParticleEffectController {
 			
 			<details id="details-smellyFlies-motionBlur">
 			  <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-		`${effectKey}.motionBlur.enabled`,
-		"Motion Blur",
-		true
-	  )}</div></summary>
+			`${effectKey}.motionBlur.enabled`,
+			"Motion Blur",
+			true
+		)}</div></summary>
 			  <div style="padding-left: 15px;">
 				  <p class="description-text">Stretches particles based on their speed to simulate motion blur.</p>
 				  ${DebuggerUIBuilder._createSliderHTML(
-		`${effectKey}.motionBlur.strength`,
-		"Strength",
-		0,
-		1,
-		0.01,
-		"Multiplier for how much speed affects particle length."
-	  )}
+			`${effectKey}.motionBlur.strength`,
+			"Strength",
+			0,
+			1,
+			0.01,
+			"Multiplier for how much speed affects particle length."
+		)}
 				  ${DebuggerUIBuilder._createSliderHTML(
-		`${effectKey}.motionBlur.maxLength`,
-		"Max Length",
-		1,
-		10,
-		0.1,
-		"The maximum amount to stretch the particle scale."
-	  )}
+			`${effectKey}.motionBlur.maxLength`,
+			"Max Length",
+			1,
+			10,
+			0.1,
+			"The maximum amount to stretch the particle scale."
+		)}
 			  </div>
 			</details>
 		  `;
-	  return DebuggerUIBuilder._createAccordionHTML(
-		effectKey,
-		"Smelly Flies",
-		content,
-		headerExtra
-	  );
+		return DebuggerUIBuilder._createAccordionHTML(
+			effectKey,
+			"Smelly Flies",
+			content,
+			headerExtra
+		);
 	}
-  
+
 	updateTargets(targets, fullConfig) {
-	  this.destroyAllEmitters();
-  
-	  this.config = foundry.utils.getProperty(
-		fullConfig,
-		this.definition.configPath
-	  );
-	  if (!fullConfig.enabled || !this.config?.enabled) {
-		return;
-	  }
-  
-	  // --- 1. Process File-Based Texture Targets ---
-	  let targetsToProcess = [];
-	  const spawnOn = this.definition.spawnOn;
-	  if (spawnOn === "tiles") {
-		targetsToProcess = [...targets.tiles.values()];
-	  } else if (spawnOn === "background") {
-		if (targets.background) {
-		  targetsToProcess = [targets.background];
-		}
-	  } else {
-		targetsToProcess = [targets.background, ...targets.tiles.values()].filter(
-		  Boolean
+		this.destroyAllEmitters();
+
+		this.config = foundry.utils.getProperty(
+			fullConfig,
+			this.definition.configPath
 		);
-	  }
-  
-	  for (const target of targetsToProcess) {
-		const targetId = target.tile ? target.tile.id : "background";
-		if (target[this.definition.triggerTexture]) {
-		  this.pendingTargets.set(targetId, target);
+		if (!fullConfig.enabled || !this.config?.enabled) {
+			return;
 		}
-	  }
-  
-	  // --- 2. Process Geometry-Based Mask Targets ---
-	  const effectKey = this.definition.triggerTexture;
-	  const groups = MapPointsManager.getGroups();
-  
-	  for (const group of Object.values(groups)) {
-		if (
-		  group.isEffectSource &&
-		  group.effectTarget === effectKey &&
-		  group.points.length > 0 &&
-		  !group.isBroken
-		) {
-		  console.log(
-			`Map Shine | Found active geometry group '${group.label}' for effect '${effectKey}'.`
-		  );
-		  // Create a "virtual target" that contains the group data itself.
-		  const virtualTarget = {
-			isGeometry: true,
-			group: group,
-		  };
-		  const targetId = `geometry-${group.id}`;
-		  this.pendingTargets.set(targetId, virtualTarget);
-		}
-	  }
-	}
-  
-	async _createEmitterForTarget(targetData, targetId) {
-	  if (targetData.isGeometry) {
-		// Geometry-based targets are handled separately and correctly.
-		return await this._createEmitterForGeometry(targetData.group, targetId);
-	  }
-  
-	  const localTargetData = { ...targetData };
-	  const maskKey = this.definition.triggerTexture;
-	  let spawnMaskSource = localTargetData[maskKey];
-  
-	  // Handle the composite mask for dust.
-	  if (this.definition.configPath === "dust" && localTargetData.dust && localTargetData.structural) {
-		// Generate a composite texture. This will be an object, not a path.
-		spawnMaskSource = await CompositeMaskGenerator.generate(
-		  localTargetData.dust,
-		  localTargetData.structural,
-		  localTargetData.rect
-		);
-	  }
-  
-	  if (!spawnMaskSource) return true;
-  
-	  const particleTexPath = this.config.particleTexture ?? "modules/map-shine/assets/particle.webp";
-	  if (!particleTexPath || typeof particleTexPath !== "string") return true;
-  
-	  try {
-		// Asynchronously load both the particle texture and the spawn mask texture.
-		const [particleTexture, spawnMaskTexture] = await Promise.all([
-		  foundry.canvas.loadTexture(particleTexPath),
-		  spawnMaskSource instanceof PIXI.Texture
-			? Promise.resolve(spawnMaskSource)
-			: foundry.canvas.loadTexture(spawnMaskSource)
-		]);
-  
-		localTargetData[maskKey] = spawnMaskTexture;
-  
-		const emitterConfig = this.definition.buildEmitterConfig(this.config, localTargetData);
-  
-		if (emitterConfig.maxParticles === 0) {
-		  if (spawnMaskSource instanceof PIXI.Texture) spawnMaskSource.destroy(true);
-		  return true;
-		}
-  
-		const textureBehavior = emitterConfig.behaviors.find(b => b.type === "textureSingle");
-		if (textureBehavior) textureBehavior.config.texture = particleTexture;
-  
-		const emitterParent = this.particleOnlyContainer || this.parentContainer;
-		const emitter = new PIXI.particles.Emitter(emitterParent, emitterConfig);
-  
-		if (spawnMaskSource instanceof PIXI.Texture) {
-		  emitter._customMaskTexture = spawnMaskSource;
-		}
-  
-		emitter.autoUpdate = false;
-		this.emitters.set(targetId, { emitter });
-		return true;
-  
-	  } catch (err) {
-		console.error(`Map Shine | Failed to load textures for particle effect:`, err);
-		if (spawnMaskSource instanceof PIXI.Texture) spawnMaskSource.destroy(true);
-		return false;
-	  }
-	}
-  
-	async _createEmitterForGeometry(group, targetId) {
-	  // If the manager isn't ready, defer creation by returning false.
-	  if (!game.mapShine.geometryMaskManager) {
-		return false;
-	  }
-  
-	  const particleTexPath =
-		this.config.particleTexture ?? "modules/map-shine/assets/particle.webp";
-	  if (!particleTexPath || typeof particleTexPath !== "string") return true; // Nothing to do, so count as "success".
-  
-	  try {
-		const texture = await foundry.canvas.loadTexture(particleTexPath);
-		const currentFullConfig = game.mapShine.profileManager.activeConfig;
-		const currentEffectConfig = foundry.utils.getProperty(
-		  currentFullConfig,
-		  this.definition.configPath
-		);
-  
-		if (
-		  !this.parentContainer ||
-		  !currentFullConfig.enabled ||
-		  !currentEffectConfig?.enabled
-		)
-		  return true; // Effect is disabled, count as "success" to remove from pending.
-		if (this.emitters.has(targetId)) return true; // Already created, count as "success".
-  
-		let emitterConfig;
-  
-		if (this.definition.configPath === "smellyFlies") {
-		  emitterConfig = this.definition.buildEmitterConfig(
-			currentEffectConfig,
-			{ rect: { x: 0, y: 0, width: 1, height: 1 } },
-			null,
-			group
-		  );
+
+		// --- 1. Process File-Based Texture Targets ---
+		let targetsToProcess = [];
+		const spawnOn = this.definition.spawnOn;
+		if (spawnOn === "tiles") {
+			targetsToProcess = [...targets.tiles.values()];
+		} else if (spawnOn === "background") {
+			if (targets.background) {
+				targetsToProcess = [targets.background];
+			}
 		} else {
-		  const maskTexture = game.mapShine.geometryMaskManager.getMask(
-			group.effectTarget
-		  );
-		  if (!maskTexture) {
-			// The manager exists, but the mask might not be ready yet. Defer.
-			return false;
-		  }
-		  const virtualTargetData = {
-			[group.effectTarget]: maskTexture,
-			rect: {
-			  x: 0,
-			  y: 0,
-			  width: canvas.app.screen.width,
-			  height: canvas.app.screen.height,
-			},
-		  };
-		  emitterConfig = this.definition.buildEmitterConfig(
-			currentEffectConfig,
-			virtualTargetData,
-			group.effectTarget,
-			group
-		  );
-		}
-  
-		if (emitterConfig.maxParticles === 0) return true;
-  
-		const textureBehavior = emitterConfig.behaviors.find(
-		  (b) => b.type === "textureSingle"
-		);
-		if (textureBehavior) textureBehavior.config.texture = texture;
-  
-		const emitterParent = this.particleOnlyContainer || this.parentContainer;
-		const emitter = new PIXI.particles.Emitter(emitterParent, emitterConfig);
-		emitter.autoUpdate = false;
-  
-		this.emitters.set(targetId, { emitter });
-		return true; // Success!
-	  } catch (err) {
-		console.error(
-		  `Map Shine | Failed to load particle texture for geometry emitter: "${particleTexPath}"`,
-		  err
-		);
-		return true; // Don't retry a failed texture load.
-	  }
-	}
-  
-	getOutputTexture() {
-	  return this.particleOutputTexture;
-	}
-  
-	async update(deltaTime) {
-	  if (this.definition.configPath === "biofilm") {
-		this._initializeBiofilmResources();
-	  }
-	  if (!this.pendingTargets || !this.emitters) return;
-  
-	  if (this.pendingTargets.size > 0) {
-		// Process one pending target per frame to spread the load.
-		const [targetId, targetData] = this.pendingTargets.entries().next().value;
-		const success = await this._createEmitterForTarget(targetData, targetId);
-		// If successful (or if it failed in a non-recoverable way), remove it from the queue.
-		// If it failed because a dependency wasn't ready (returned false), it will be retried on the next frame.
-		if (success) {
-		  this.pendingTargets.delete(targetId);
-		}
-	  }
-  
-	  if (this.displacementFilter) {
-		const resourceManager = game.mapShine.resourceManager;
-		const waterConfig = game.mapShine.profileManager.activeConfig.water;
-  
-		if (resourceManager && waterConfig?.wave?.enabled) {
-		  const displacementMap =
-			resourceManager.getWaterDisplacementMap(deltaTime);
-		  if (displacementMap) {
-			this.displacementSprite.texture = displacementMap;
-			const scale =
-			  waterConfig.wave.intensity *
-			  Math.max(canvas.app.screen.width, canvas.app.screen.height);
-			this.displacementFilter.scale.x = scale;
-			this.displacementFilter.scale.y = scale;
-		  }
-		}
-	  }
-  
-	  if (this.biofilmMaskFilter) {
-		const resourceManager = game.mapShine.resourceManager;
-		if (resourceManager) {
-		  this.biofilmMaskFilter.uniforms.uOutdoorsMask =
-			resourceManager.getOutdoorsMask() || PIXI.Texture.WHITE;
-		  this.biofilmMaskFilter.uniforms.uWaterMask =
-			resourceManager.getWaterMask() || PIXI.Texture.WHITE;
-		}
-	  }
-  
-	  // Update the cloud suppressor filter uniform with the latest cloud texture.
-	  if (this.cloudSuppressorFilter && this.cloudSuppressorFilter.enabled) {
-		const resourceManager = game.mapShine.resourceManager;
-		if (resourceManager) {
-		  this.cloudSuppressorFilter.uniforms.uCloudTexture =
-			resourceManager.getRawCloudTexture(deltaTime) || PIXI.Texture.WHITE;
-		}
-	  }
-  
-	  // Periodically update the spawn points for metallic glints
-	  if (this.definition.configPath === "metallicGlints") {
-		for (const { emitter } of this.emitters.values()) {
-		  if (!emitter || !emitter.behaviors) continue;
-  
-		  const spawnBehavior = emitter.behaviors.find(
-			(b) => b.type === "spawnShape"
-		  );
-		  if (spawnBehavior?.shape?.update) {
-			spawnBehavior.shape.update();
-		  }
-		}
-	  }
-  
-	  for (const { emitter } of this.emitters.values()) {
-		emitter.update(deltaTime);
-	  }
-  
-	  // If this controller is for biofilm, render its output to the dedicated texture.
-	  if (
-		this.definition.configPath === "biofilm" &&
-		this.particleOutputTexture
-	  ) {
-		canvas.app.renderer.render(this.parentContainer, {
-		  renderTexture: this.particleOutputTexture,
-		  clear: true,
-		});
-	  }
-	}
-  
-	updateFromConfig(fullConfig) {
-	  // Ensure this.config is updated with the latest settings at the start of this method.
-	  this.config = foundry.utils.getProperty(
-		fullConfig,
-		this.definition.configPath
-	  );
-  
-	  // Force initialization of special resources before configuration is applied.
-	  if (this.definition.configPath === "biofilm") {
-		this._initializeBiofilmResources();
-	  }
-  
-	  const controllerConfig = this.config;
-	  const particleSystemConfig = fullConfig.particleSystems;
-	  
-	  // Determine visibility based on the global toggle, particle systems toggle, and this effect's specific toggle.
-	  // The fire effect also depends on the parent `fire.enabled` flag.
-	  let isVisible = fullConfig.enabled && particleSystemConfig.enabled && controllerConfig?.enabled;
-	  if (this.definition.configPath === "fire.particles") {
-		  const fireConfig = foundry.utils.getProperty(fullConfig, "fire");
-		  isVisible = isVisible && fireConfig?.enabled;
-	  }
-	  this.parentContainer.visible = isVisible;
-  
-  
-	  if (this.particleOnlyContainer) {
-		this.particleOnlyContainer.blendMode =
-		  this.config.blendMode ?? PIXI.BLEND_MODES.NORMAL;
-		this.parentContainer.blendMode =
-		  this.config.blendMode ?? PIXI.BLEND_MODES.NORMAL;
-	  } else {
-		this.parentContainer.blendMode =
-		  this.config?.blendMode ?? PIXI.BLEND_MODES.NORMAL;
-	  }
-  
-	  this.parentContainer.alpha = 1.0;
-  
-	  if (this.rgbSplitFilter) {
-		const rgbConfig = this.config?.rgbSplit;
-		const shouldUseRgb = this.parentContainer.visible && rgbConfig?.enabled;
-		if (shouldUseRgb) {
-		  this.rgbSplitFilter.enabled = true;
-		  this.rgbSplitFilter.uniforms.uAmount = rgbConfig.amount;
-		  const screen = canvas?.app?.screen;
-		  if (screen) {
-			this.rgbSplitFilter.uniforms.uTexelSize = [
-			  1 / screen.width,
-			  1 / screen.height,
-			];
-		  }
-		  if (!this.parentContainer.filters?.includes(this.rgbSplitFilter)) {
-			this.parentContainer.filters = [
-			  ...(this.parentContainer.filters || []),
-			  this.rgbSplitFilter,
-			];
-		  }
-		} else {
-		  if (this.parentContainer.filters?.includes(this.rgbSplitFilter)) {
-			this.parentContainer.filters = this.parentContainer.filters.filter(
-			  (f) => f !== this.rgbSplitFilter
+			targetsToProcess = [targets.background, ...targets.tiles.values()].filter(
+				Boolean
 			);
-		  }
 		}
-	  }
-  
-	  const allFilters = this.parentContainer.filters
-		? [...this.parentContainer.filters]
-		: [];
-  
-	  const manageFilter = (filter, shouldBeActive) => {
-		const isPresent = allFilters.includes(filter);
-		if (shouldBeActive && !isPresent) {
-		  allFilters.push(filter);
-		} else if (!shouldBeActive && isPresent) {
-		  const index = allFilters.indexOf(filter);
-		  if (index > -1) {
-			allFilters.splice(index, 1);
-		  }
+
+		for (const target of targetsToProcess) {
+			const targetId = target.tile ? target.tile.id : "background";
+			if (target[this.definition.triggerTexture]) {
+				this.pendingTargets.set(targetId, target);
+			}
 		}
-	  };
-  
-	  if (this.displacementFilter) {
-		const waterConfig = fullConfig.water;
-		const shouldUseDisplacement =
-		  this.parentContainer.visible && waterConfig?.wave?.enabled;
-		manageFilter(this.displacementFilter, shouldUseDisplacement);
-	  }
-  
-	  if (this.biofilmMaskFilter) {
-		const shouldUseMask = this.parentContainer.visible;
-		manageFilter(this.biofilmMaskFilter, shouldUseMask);
-	  }
-  
-	  // Manage the cloud suppressor filter.
-	  if (this.cloudSuppressorFilter) {
-		const shouldUseSuppressor = this.parentContainer.visible;
-		this.cloudSuppressorFilter.enabled = shouldUseSuppressor;
-  
-		if (shouldUseSuppressor) {
-		  // Feed the shading settings from the main cloud shadows config into the suppressor filter.
-		  const cloudShadingConfig = fullConfig.cloudShadows.shading;
-		  const u = this.cloudSuppressorFilter.uniforms;
-		  u.u_shading_threshold = cloudShadingConfig.threshold;
-		  u.u_shading_softness = cloudShadingConfig.softness;
-		  u.u_shading_brightness = cloudShadingConfig.brightness;
-		  u.u_shading_contrast = cloudShadingConfig.contrast;
-		  u.u_shading_gamma = cloudShadingConfig.gamma;
+
+		// --- 2. Process Geometry-Based Mask Targets ---
+		const effectKey = this.definition.triggerTexture;
+		const groups = MapPointsManager.getGroups();
+
+		for (const group of Object.values(groups)) {
+			if (
+				group.isEffectSource &&
+				group.effectTarget === effectKey &&
+				group.points.length > 0 &&
+				!group.isBroken
+			) {
+				console.log(
+					`Map Shine | Found active geometry group '${group.label}' for effect '${effectKey}'.`
+				);
+				// Create a "virtual target" that contains the group data itself.
+				const virtualTarget = {
+					isGeometry: true,
+					group: group,
+				};
+				const targetId = `geometry-${group.id}`;
+				this.pendingTargets.set(targetId, virtualTarget);
+			}
 		}
-		manageFilter(this.cloudSuppressorFilter, shouldUseSuppressor);
-	  }
-  
-	  if (this.bloomFilter) {
-		const fireConfig = foundry.utils.getProperty(fullConfig, "fire");
-		const bloomConfig = fireConfig?.bloom;
-		const shouldUseBloom =
-		  this.parentContainer.visible && bloomConfig?.enabled;
-  
-		if (shouldUseBloom) {
-		  this.bloomFilter.enabled = true;
-		  foundry.utils.mergeObject(this.bloomFilter, bloomConfig);
-		  if (canvas?.app?.screen) {
-			this.parentContainer.filterArea = canvas.app.screen;
-		  }
+	}
+
+	async _createEmitterForTarget(targetData, targetId) {
+		if (targetData.isGeometry) {
+			// Geometry-based targets are handled separately and correctly.
+			return await this._createEmitterForGeometry(targetData.group, targetId);
+		}
+
+		const localTargetData = { ...targetData };
+		const maskKey = this.definition.triggerTexture;
+		let spawnMaskSource = localTargetData[maskKey];
+
+		// Handle the composite mask for dust.
+		if (this.definition.configPath === "dust" && localTargetData.dust && localTargetData.structural) {
+			// Generate a composite texture. This will be an object, not a path.
+			spawnMaskSource = await CompositeMaskGenerator.generate(
+				localTargetData.dust,
+				localTargetData.structural,
+				localTargetData.rect
+			);
+		}
+
+		if (!spawnMaskSource) return true;
+
+		const particleTexPath = this.config.particleTexture ?? "modules/map-shine/assets/particle.webp";
+		if (!particleTexPath || typeof particleTexPath !== "string") return true;
+
+		try {
+			// Asynchronously load both the particle texture and the spawn mask texture.
+			const [particleTexture, spawnMaskTexture] = await Promise.all([
+				foundry.canvas.loadTexture(particleTexPath),
+				spawnMaskSource instanceof PIXI.Texture
+					? Promise.resolve(spawnMaskSource)
+					: foundry.canvas.loadTexture(spawnMaskSource)
+			]);
+
+			localTargetData[maskKey] = spawnMaskTexture;
+
+			const emitterConfig = this.definition.buildEmitterConfig(this.config, localTargetData);
+
+			if (emitterConfig.maxParticles === 0) {
+				if (spawnMaskSource instanceof PIXI.Texture) spawnMaskSource.destroy(true);
+				return true;
+			}
+
+			const textureBehavior = emitterConfig.behaviors.find(b => b.type === "textureSingle");
+			if (textureBehavior) textureBehavior.config.texture = particleTexture;
+
+			const emitterParent = this.particleOnlyContainer || this.parentContainer;
+			const emitter = new PIXI.particles.Emitter(emitterParent, emitterConfig);
+
+			if (spawnMaskSource instanceof PIXI.Texture) {
+				emitter._customMaskTexture = spawnMaskSource;
+			}
+
+			emitter.autoUpdate = false;
+			this.emitters.set(targetId, { emitter });
+			return true;
+
+		} catch (err) {
+			console.error(`Map Shine | Failed to load textures for particle effect:`, err);
+			if (spawnMaskSource instanceof PIXI.Texture) spawnMaskSource.destroy(true);
+			return false;
+		}
+	}
+
+	async _createEmitterForGeometry(group, targetId) {
+		// If the manager isn't ready, defer creation by returning false.
+		if (!game.mapShine.geometryMaskManager) {
+			return false;
+		}
+
+		const particleTexPath =
+			this.config.particleTexture ?? "modules/map-shine/assets/particle.webp";
+		if (!particleTexPath || typeof particleTexPath !== "string") return true; // Nothing to do, so count as "success".
+
+		try {
+			const texture = await foundry.canvas.loadTexture(particleTexPath);
+			const currentFullConfig = game.mapShine.profileManager.activeConfig;
+			const currentEffectConfig = foundry.utils.getProperty(
+				currentFullConfig,
+				this.definition.configPath
+			);
+
+			if (
+				!this.parentContainer ||
+				!currentFullConfig.enabled ||
+				!currentEffectConfig?.enabled
+			)
+				return true; // Effect is disabled, count as "success" to remove from pending.
+			if (this.emitters.has(targetId)) return true; // Already created, count as "success".
+
+			let emitterConfig;
+
+			if (this.definition.configPath === "smellyFlies") {
+				emitterConfig = this.definition.buildEmitterConfig(
+					currentEffectConfig,
+					{ rect: { x: 0, y: 0, width: 1, height: 1 } },
+					null,
+					group
+				);
+			} else {
+				const maskTexture = game.mapShine.geometryMaskManager.getMask(
+					group.effectTarget
+				);
+				if (!maskTexture) {
+					// The manager exists, but the mask might not be ready yet. Defer.
+					return false;
+				}
+				const virtualTargetData = {
+					[group.effectTarget]: maskTexture,
+					rect: {
+						x: 0,
+						y: 0,
+						width: canvas.app.screen.width,
+						height: canvas.app.screen.height,
+					},
+				};
+				emitterConfig = this.definition.buildEmitterConfig(
+					currentEffectConfig,
+					virtualTargetData,
+					group.effectTarget,
+					group
+				);
+			}
+
+			if (emitterConfig.maxParticles === 0) return true;
+
+			const textureBehavior = emitterConfig.behaviors.find(
+				(b) => b.type === "textureSingle"
+			);
+			if (textureBehavior) textureBehavior.config.texture = texture;
+
+			const emitterParent = this.particleOnlyContainer || this.parentContainer;
+			const emitter = new PIXI.particles.Emitter(emitterParent, emitterConfig);
+			emitter.autoUpdate = false;
+
+			this.emitters.set(targetId, { emitter });
+			return true; // Success!
+		} catch (err) {
+			console.error(
+				`Map Shine | Failed to load particle texture for geometry emitter: "${particleTexPath}"`,
+				err
+			);
+			return true; // Don't retry a failed texture load.
+		}
+	}
+
+	getOutputTexture() {
+		return this.particleOutputTexture;
+	}
+
+	async update(deltaTime) {
+		if (this.definition.configPath === "biofilm") {
+			this._initializeBiofilmResources();
+		}
+		if (!this.pendingTargets || !this.emitters) return;
+
+		if (this.pendingTargets.size > 0) {
+			// Process one pending target per frame to spread the load.
+			const [targetId, targetData] = this.pendingTargets.entries().next().value;
+			const success = await this._createEmitterForTarget(targetData, targetId);
+			// If successful (or if it failed in a non-recoverable way), remove it from the queue.
+			// If it failed because a dependency wasn't ready (returned false), it will be retried on the next frame.
+			if (success) {
+				this.pendingTargets.delete(targetId);
+			}
+		}
+
+		if (this.displacementFilter) {
+			const resourceManager = game.mapShine.resourceManager;
+			const waterConfig = game.mapShine.profileManager.activeConfig.water;
+
+			if (resourceManager && waterConfig?.wave?.enabled) {
+				const displacementMap =
+					resourceManager.getWaterDisplacementMap(deltaTime);
+				if (displacementMap) {
+					this.displacementSprite.texture = displacementMap;
+					const scale =
+						waterConfig.wave.intensity *
+						Math.max(canvas.app.screen.width, canvas.app.screen.height);
+					this.displacementFilter.scale.x = scale;
+					this.displacementFilter.scale.y = scale;
+				}
+			}
+		}
+
+		if (this.biofilmMaskFilter) {
+			const resourceManager = game.mapShine.resourceManager;
+			if (resourceManager) {
+				this.biofilmMaskFilter.uniforms.uOutdoorsMask =
+					resourceManager.getOutdoorsMask() || PIXI.Texture.WHITE;
+				this.biofilmMaskFilter.uniforms.uWaterMask =
+					resourceManager.getWaterMask() || PIXI.Texture.WHITE;
+			}
+		}
+
+		// Update the cloud suppressor filter uniform with the latest cloud texture.
+		if (this.cloudSuppressorFilter && this.cloudSuppressorFilter.enabled) {
+			const resourceManager = game.mapShine.resourceManager;
+			if (resourceManager) {
+				this.cloudSuppressorFilter.uniforms.uCloudTexture =
+					resourceManager.getRawCloudTexture(deltaTime) || PIXI.Texture.WHITE;
+			}
+		}
+
+		// Periodically update the spawn points for metallic glints
+		if (this.definition.configPath === "metallicGlints") {
+			for (const { emitter } of this.emitters.values()) {
+				if (!emitter || !emitter.behaviors) continue;
+
+				const spawnBehavior = emitter.behaviors.find(
+					(b) => b.type === "spawnShape"
+				);
+				if (spawnBehavior?.shape?.update) {
+					spawnBehavior.shape.update();
+				}
+			}
+		}
+
+		for (const { emitter } of this.emitters.values()) {
+			emitter.update(deltaTime);
+		}
+
+		// If this controller is for biofilm, render its output to the dedicated texture.
+		if (
+			this.definition.configPath === "biofilm" &&
+			this.particleOutputTexture
+		) {
+			canvas.app.renderer.render(this.parentContainer, {
+				renderTexture: this.particleOutputTexture,
+				clear: true,
+			});
+		}
+	}
+
+	updateFromConfig(fullConfig) {
+		// Ensure this.config is updated with the latest settings at the start of this method.
+		this.config = foundry.utils.getProperty(
+			fullConfig,
+			this.definition.configPath
+		);
+
+		// Force initialization of special resources before configuration is applied.
+		if (this.definition.configPath === "biofilm") {
+			this._initializeBiofilmResources();
+		}
+
+		const controllerConfig = this.config;
+		const particleSystemConfig = fullConfig.particleSystems;
+
+		// Determine visibility based on the global toggle, particle systems toggle, and this effect's specific toggle.
+		// The fire effect also depends on the parent `fire.enabled` flag.
+		let isVisible = fullConfig.enabled && particleSystemConfig.enabled && controllerConfig?.enabled;
+		if (this.definition.configPath === "fire.particles") {
+			const fireConfig = foundry.utils.getProperty(fullConfig, "fire");
+			isVisible = isVisible && fireConfig?.enabled;
+		}
+		this.parentContainer.visible = isVisible;
+
+
+		if (this.particleOnlyContainer) {
+			this.particleOnlyContainer.blendMode =
+				this.config.blendMode ?? PIXI.BLEND_MODES.NORMAL;
+			this.parentContainer.blendMode =
+				this.config.blendMode ?? PIXI.BLEND_MODES.NORMAL;
 		} else {
-		  // When bloom is disabled, also disable the filter to prevent it from running.
-		  this.bloomFilter.enabled = false;
-		  this.parentContainer.filterArea = null;
+			this.parentContainer.blendMode =
+				this.config?.blendMode ?? PIXI.BLEND_MODES.NORMAL;
 		}
-		manageFilter(this.bloomFilter, shouldUseBloom);
-	  }
-	  this.parentContainer.filters = allFilters.length > 0 ? allFilters : null;
+
+		this.parentContainer.alpha = 1.0;
+
+		if (this.rgbSplitFilter) {
+			const rgbConfig = this.config?.rgbSplit;
+			const shouldUseRgb = this.parentContainer.visible && rgbConfig?.enabled;
+			if (shouldUseRgb) {
+				this.rgbSplitFilter.enabled = true;
+				this.rgbSplitFilter.uniforms.uAmount = rgbConfig.amount;
+				const screen = canvas?.app?.screen;
+				if (screen) {
+					this.rgbSplitFilter.uniforms.uTexelSize = [
+						1 / screen.width,
+						1 / screen.height,
+					];
+				}
+				if (!this.parentContainer.filters?.includes(this.rgbSplitFilter)) {
+					this.parentContainer.filters = [
+						...(this.parentContainer.filters || []),
+						this.rgbSplitFilter,
+					];
+				}
+			} else {
+				if (this.parentContainer.filters?.includes(this.rgbSplitFilter)) {
+					this.parentContainer.filters = this.parentContainer.filters.filter(
+						(f) => f !== this.rgbSplitFilter
+					);
+				}
+			}
+		}
+
+		const allFilters = this.parentContainer.filters
+			? [...this.parentContainer.filters]
+			: [];
+
+		const manageFilter = (filter, shouldBeActive) => {
+			const isPresent = allFilters.includes(filter);
+			if (shouldBeActive && !isPresent) {
+				allFilters.push(filter);
+			} else if (!shouldBeActive && isPresent) {
+				const index = allFilters.indexOf(filter);
+				if (index > -1) {
+					allFilters.splice(index, 1);
+				}
+			}
+		};
+
+		if (this.displacementFilter) {
+			const waterConfig = fullConfig.water;
+			const shouldUseDisplacement =
+				this.parentContainer.visible && waterConfig?.wave?.enabled;
+			manageFilter(this.displacementFilter, shouldUseDisplacement);
+		}
+
+		if (this.biofilmMaskFilter) {
+			const shouldUseMask = this.parentContainer.visible;
+			manageFilter(this.biofilmMaskFilter, shouldUseMask);
+		}
+
+		// Manage the cloud suppressor filter.
+		if (this.cloudSuppressorFilter) {
+			const shouldUseSuppressor = this.parentContainer.visible;
+			this.cloudSuppressorFilter.enabled = shouldUseSuppressor;
+
+			if (shouldUseSuppressor) {
+				// Feed the shading settings from the main cloud shadows config into the suppressor filter.
+				const cloudShadingConfig = fullConfig.cloudShadows.shading;
+				const u = this.cloudSuppressorFilter.uniforms;
+				u.u_shading_threshold = cloudShadingConfig.threshold;
+				u.u_shading_softness = cloudShadingConfig.softness;
+				u.u_shading_brightness = cloudShadingConfig.brightness;
+				u.u_shading_contrast = cloudShadingConfig.contrast;
+				u.u_shading_gamma = cloudShadingConfig.gamma;
+			}
+			manageFilter(this.cloudSuppressorFilter, shouldUseSuppressor);
+		}
+
+		if (this.bloomFilter) {
+			const fireConfig = foundry.utils.getProperty(fullConfig, "fire");
+			const bloomConfig = fireConfig?.bloom;
+			const shouldUseBloom =
+				this.parentContainer.visible && bloomConfig?.enabled;
+
+			if (shouldUseBloom) {
+				this.bloomFilter.enabled = true;
+				foundry.utils.mergeObject(this.bloomFilter, bloomConfig);
+				if (canvas?.app?.screen) {
+					this.parentContainer.filterArea = canvas.app.screen;
+				}
+			} else {
+				// When bloom is disabled, also disable the filter to prevent it from running.
+				this.bloomFilter.enabled = false;
+				this.parentContainer.filterArea = null;
+			}
+			manageFilter(this.bloomFilter, shouldUseBloom);
+		}
+		this.parentContainer.filters = allFilters.length > 0 ? allFilters : null;
 	}
-  
+
 	destroyAllEmitters() {
-	  if (!this.emitters) this.emitters = new Map();
-	  if (!this.pendingTargets) this.pendingTargets = new Map();
-  
-	  for (const { emitter } of this.emitters.values()) {
-		if (emitter._customMaskTexture) {
-		  emitter._customMaskTexture.destroy(true);
-		  emitter._customMaskTexture = null;
+		if (!this.emitters) this.emitters = new Map();
+		if (!this.pendingTargets) this.pendingTargets = new Map();
+
+		for (const { emitter } of this.emitters.values()) {
+			if (emitter._customMaskTexture) {
+				emitter._customMaskTexture.destroy(true);
+				emitter._customMaskTexture = null;
+			}
+			emitter.destroy();
 		}
-		emitter.destroy();
-	  }
-	  this.emitters.clear();
-	  this.pendingTargets.clear();
+		this.emitters.clear();
+		this.pendingTargets.clear();
 	}
-  
+
 	destroy() {
-	  this.destroyAllEmitters();
-	  this.rgbSplitFilter?.destroy();
-	  this.bloomFilter?.destroy();
-	  this.displacementFilter?.destroy();
-	  this.displacementSprite?.destroy();
-	  this.biofilmMaskFilter?.destroy();
-	  this.particleOutputTexture?.destroy(true);
-  
-	  this.rgbSplitFilter = null;
-	  this.bloomFilter = null;
-	  this.displacementFilter = null;
-	  this.displacementSprite = null;
-	  this.biofilmMaskFilter = null;
-	  this.particleOutputTexture = null;
-  
-	  this.particleOnlyContainer?.destroy({
-		children: true,
-	  });
-	  this.particleOnlyContainer = null;
-  
-	  if (this.parentContainer) {
-		this.parentContainer.filters = null;
-		this.parentContainer = null;
-	  }
+		this.destroyAllEmitters();
+		this.rgbSplitFilter?.destroy();
+		this.bloomFilter?.destroy();
+		this.displacementFilter?.destroy();
+		this.displacementSprite?.destroy();
+		this.biofilmMaskFilter?.destroy();
+		this.particleOutputTexture?.destroy(true);
+
+		this.rgbSplitFilter = null;
+		this.bloomFilter = null;
+		this.displacementFilter = null;
+		this.displacementSprite = null;
+		this.biofilmMaskFilter = null;
+		this.particleOutputTexture = null;
+
+		this.particleOnlyContainer?.destroy({
+			children: true,
+		});
+		this.particleOnlyContainer = null;
+
+		if (this.parentContainer) {
+			this.parentContainer.filters = null;
+			this.parentContainer = null;
+		}
 	}
-  }
+}
 
 const buildParticleEmitterConfig = (
 	effectConfig,
@@ -12439,29 +12436,29 @@ const buildParticleEmitterConfig = (
 	];
 
 	if (config.colorAlphaGradient && config.colorAlphaGradient.length > 0) {
-        const { isColorStatic, staticColor, colorList, isAlphaStatic, staticAlpha, alphaList } = _generateBehaviorListsFromGradient(config.colorAlphaGradient);
+		const { isColorStatic, staticColor, colorList, isAlphaStatic, staticAlpha, alphaList } = _generateBehaviorListsFromGradient(config.colorAlphaGradient);
 
-        // If the effect is driven by the specular map (i.e., metallicGlints),
-        // source the particle color from the spawn point on the map itself.
-        if (maskKey === 'specular') {
-            behaviors.push({ type: 'colorFromSpawn', config: {} });
-        }
-        // For all other effects, use the standard gradient-based coloring.
-        else {
-            if (isColorStatic) {
-                behaviors.push({ type: "colorStatic", config: { color: staticColor } });
-            } else {
-                behaviors.push({ type: "color", config: { color: colorList } });
-            }
-        }
+		// If the effect is driven by the specular map (i.e., metallicGlints),
+		// source the particle color from the spawn point on the map itself.
+		if (maskKey === 'specular') {
+			behaviors.push({ type: 'colorFromSpawn', config: {} });
+		}
+		// For all other effects, use the standard gradient-based coloring.
+		else {
+			if (isColorStatic) {
+				behaviors.push({ type: "colorStatic", config: { color: staticColor } });
+			} else {
+				behaviors.push({ type: "color", config: { color: colorList } });
+			}
+		}
 
-        // Alpha is handled by the gradient for all effects.
-        if (isAlphaStatic) {
-            behaviors.push({ type: "alphaStatic", config: { alpha: staticAlpha } });
-        } else {
-            behaviors.push({ type: "alpha", config: { alpha: alphaList } });
-        }
-    }
+		// Alpha is handled by the gradient for all effects.
+		if (isAlphaStatic) {
+			behaviors.push({ type: "alphaStatic", config: { alpha: staticAlpha } });
+		} else {
+			behaviors.push({ type: "alpha", config: { alpha: alphaList } });
+		}
+	}
 
 	const scaleConfig = config.scale ?? {};
 	const startScale =
@@ -12491,15 +12488,15 @@ const buildParticleEmitterConfig = (
 
 	const lifetimeConfig = config.lifetime ?? {};
 
-    // Add the new lighting behavior
-    if (config.emissiveGradient) {
-        behaviors.push({
-            type: 'mapShineLighting',
-            config: {
-                emissive: _generateEmissiveListFromGradient(config.emissiveGradient)
-            }
-        });
-    }
+	// Add the new lighting behavior
+	if (config.emissiveGradient) {
+		behaviors.push({
+			type: 'mapShineLighting',
+			config: {
+				emissive: _generateEmissiveListFromGradient(config.emissiveGradient)
+			}
+		});
+	}
 
 
 	const emitterConfig = {
@@ -12643,31 +12640,31 @@ const buildSparkEmitterConfig = (effectConfig, targetData, maskKey) => {
 		spawnBehavior,
 	];
 
-    // Add the new lighting behavior
-    if (config.emissiveGradient) {
-        behaviors.push({
-            type: 'mapShineLighting',
-            config: {
-                emissive: _generateEmissiveListFromGradient(config.emissiveGradient)
-            }
-        });
-    }
+	// Add the new lighting behavior
+	if (config.emissiveGradient) {
+		behaviors.push({
+			type: 'mapShineLighting',
+			config: {
+				emissive: _generateEmissiveListFromGradient(config.emissiveGradient)
+			}
+		});
+	}
 
-    if (config.colorAlphaGradient && config.colorAlphaGradient.length > 0) {
-        const { isColorStatic, staticColor, colorList, isAlphaStatic, staticAlpha, alphaList } = _generateBehaviorListsFromGradient(config.colorAlphaGradient);
+	if (config.colorAlphaGradient && config.colorAlphaGradient.length > 0) {
+		const { isColorStatic, staticColor, colorList, isAlphaStatic, staticAlpha, alphaList } = _generateBehaviorListsFromGradient(config.colorAlphaGradient);
 
-        if (isColorStatic) {
-            behaviors.push({ type: "colorStatic", config: { color: staticColor } });
-        } else {
-            behaviors.push({ type: "color", config: { color: colorList } });
-        }
+		if (isColorStatic) {
+			behaviors.push({ type: "colorStatic", config: { color: staticColor } });
+		} else {
+			behaviors.push({ type: "color", config: { color: colorList } });
+		}
 
-        if (isAlphaStatic) {
-            behaviors.push({ type: "alphaStatic", config: { alpha: staticAlpha } });
-        } else {
-            behaviors.push({ type: "alpha", config: { alpha: alphaList } });
-        }
-    }
+		if (isAlphaStatic) {
+			behaviors.push({ type: "alphaStatic", config: { alpha: staticAlpha } });
+		} else {
+			behaviors.push({ type: "alpha", config: { alpha: alphaList } });
+		}
+	}
 
 	const scaleConfig = config.scale ?? {};
 	const pathConfig = config.path ?? {};
@@ -12926,205 +12923,205 @@ class FireWindManager {
 }
 
 class TextureMaskShape {
-  static type = "textureMask";
+	static type = "textureMask";
 
-  constructor(config) {
-    this.width = config.width;
-    this.height = config.height;
-    this.offsetX = config.x || 0;
-    this.offsetY = config.y || 0;
-    this.threshold = config.threshold ?? 128;
-    this.spawnMode = config.spawnMode || "threshold";
-    this.upperThreshold = config.upperThreshold ?? 255;
-    this.validPoints = [];
-    this.texture = null;
-    this.pointCompilationDensity = 4;
-    this.isDynamicScreenMask = config.isDynamicScreenMask ?? false;
+	constructor(config) {
+		this.width = config.width;
+		this.height = config.height;
+		this.offsetX = config.x || 0;
+		this.offsetY = config.y || 0;
+		this.threshold = config.threshold ?? 128;
+		this.spawnMode = config.spawnMode || "threshold";
+		this.upperThreshold = config.upperThreshold ?? 255;
+		this.validPoints = [];
+		this.texture = null;
+		this.pointCompilationDensity = 4;
+		this.isDynamicScreenMask = config.isDynamicScreenMask ?? false;
 
-    // New state properties
-    this.isCompiled = false;
-    this.isCompiling = false;
-    this._compilationPromise = null;
+		// New state properties
+		this.isCompiled = false;
+		this.isCompiling = false;
+		this._compilationPromise = null;
 
-    const textureSource = config.texture;
+		const textureSource = config.texture;
 
-    if (!textureSource) {
-      console.error("TextureMaskShape | No texture source provided in config.");
-      this.texture = PIXI.Texture.EMPTY;
-      this.isCompiled = true; // Mark as compiled since there's nothing to do
-      return;
-    }
+		if (!textureSource) {
+			console.error("TextureMaskShape | No texture source provided in config.");
+			this.texture = PIXI.Texture.EMPTY;
+			this.isCompiled = true; // Mark as compiled since there's nothing to do
+			return;
+		}
 
-    // This part remains synchronous as texture loading is already async
-    // and handled by the controller.
-    if (textureSource instanceof PIXI.Texture) {
-      this.texture = textureSource;
-    } else if (typeof textureSource === "string") {
-      // The actual texture loading is now handled before this class is even instantiated.
-      // We expect a PIXI.Texture object. For safety, we'll log an error.
-      console.error(
-        "TextureMaskShape | Constructor received a path string instead of a PIXI.Texture. This is deprecated."
-      );
-      this.texture = PIXI.Texture.EMPTY;
-      this.isCompiled = true;
-    } else {
-      console.warn(
-        "TextureMaskShape | Unknown texture source type provided:",
-        textureSource
-      );
-      this.texture = PIXI.Texture.EMPTY;
-      this.isCompiled = true;
-    }
+		// This part remains synchronous as texture loading is already async
+		// and handled by the controller.
+		if (textureSource instanceof PIXI.Texture) {
+			this.texture = textureSource;
+		} else if (typeof textureSource === "string") {
+			// The actual texture loading is now handled before this class is even instantiated.
+			// We expect a PIXI.Texture object. For safety, we'll log an error.
+			console.error(
+				"TextureMaskShape | Constructor received a path string instead of a PIXI.Texture. This is deprecated."
+			);
+			this.texture = PIXI.Texture.EMPTY;
+			this.isCompiled = true;
+		} else {
+			console.warn(
+				"TextureMaskShape | Unknown texture source type provided:",
+				textureSource
+			);
+			this.texture = PIXI.Texture.EMPTY;
+			this.isCompiled = true;
+		}
 
-    // Automatically start the asynchronous point compilation process upon creation.
-    this.compilePoints();
-  }
+		// Automatically start the asynchronous point compilation process upon creation.
+		this.compilePoints();
+	}
 
-  /**
-   * Asynchronously compiles the list of valid spawn points from the texture mask.
-   * This is now the main performance-intensive method.
-   * @returns {Promise<void>} A promise that resolves when compilation is complete.
-   */
-  compilePoints() {
-    if (this.isCompiled || this.isCompiling) {
-      return this._compilationPromise || Promise.resolve();
-    }
+	/**
+		* Asynchronously compiles the list of valid spawn points from the texture mask.
+		* This is now the main performance-intensive method.
+		* @returns {Promise<void>} A promise that resolves when compilation is complete.
+		*/
+	compilePoints() {
+		if (this.isCompiled || this.isCompiling) {
+			return this._compilationPromise || Promise.resolve();
+		}
 
-    this.isCompiling = true;
-    this._compilationPromise = new Promise(async (resolve, reject) => {
-      // Yield to the event loop to prevent blocking on the first frame
-      await new Promise((r) => setTimeout(r, 0));
+		this.isCompiling = true;
+		this._compilationPromise = new Promise(async (resolve, reject) => {
+			// Yield to the event loop to prevent blocking on the first frame
+			await new Promise((r) => setTimeout(r, 0));
 
-      const renderer = canvas.app?.renderer;
-      if (
-        !renderer ||
-        !this.texture?.valid ||
-        this.texture.width === 0 ||
-        this.texture.height === 0
-      ) {
-        this.isCompiled = true;
-        this.isCompiling = false;
-        resolve();
-        return;
-      }
+			const renderer = canvas.app?.renderer;
+			if (
+				!renderer ||
+				!this.texture?.valid ||
+				this.texture.width === 0 ||
+				this.texture.height === 0
+			) {
+				this.isCompiled = true;
+				this.isCompiling = false;
+				resolve();
+				return;
+			}
 
-      this.validPoints.length = 0;
-      const texture = this.texture;
-      const step = Math.max(1, Math.floor(this.pointCompilationDensity));
+			this.validPoints.length = 0;
+			const texture = this.texture;
+			const step = Math.max(1, Math.floor(this.pointCompilationDensity));
 
-      try {
-        const renderTexture = PIXI.RenderTexture.create({
-          width: texture.width,
-          height: texture.height,
-        });
-        const sprite = new PIXI.Sprite(texture);
-        renderer.render(sprite, {
-          renderTexture: renderTexture,
-          clear: true,
-        });
-        const pixelData = renderer.extract.pixels(renderTexture);
-        sprite.destroy();
-        renderTexture.destroy(true); // Clean up the temporary texture
+			try {
+				const renderTexture = PIXI.RenderTexture.create({
+					width: texture.width,
+					height: texture.height,
+				});
+				const sprite = new PIXI.Sprite(texture);
+				renderer.render(sprite, {
+					renderTexture: renderTexture,
+					clear: true,
+				});
+				const pixelData = renderer.extract.pixels(renderTexture);
+				sprite.destroy();
+				renderTexture.destroy(true); // Clean up the temporary texture
 
-        if (this.isDynamicScreenMask) {
-          for (let y = 0; y < texture.height; y += step) {
-            for (let x = 0; x < texture.width; x += step) {
-              const index = (y * texture.width + x) * 4;
-              const pixelValue = pixelData[index];
-              let shouldSpawn = false;
-              if (this.spawnMode === "range") {
-                if (
-                  pixelValue >= this.threshold &&
-                  pixelValue <= this.upperThreshold
-                ) {
-                  shouldSpawn = true;
-                }
-              } else {
-                if (pixelValue >= this.threshold) {
-                  shouldSpawn = true;
-                }
-              }
-              if (shouldSpawn) {
-                const cameraOffset = CoordinateManager.getCameraOffset();
-                const canvasScale = CoordinateManager.getCanvasScale();
-                const worldPoint = new PIXI.Point(
-                  cameraOffset.x + x / canvasScale,
-                  cameraOffset.y + y / canvasScale
-                );
-                this.validPoints.push({
-                  point: worldPoint,
-                  color: [
-                    pixelData[index],
-                    pixelData[index + 1],
-                    pixelData[index + 2],
-                  ],
-                });
-              }
-            }
-          }
-        } else {
-          for (let y = 0; y < texture.height; y += step) {
-            for (let x = 0; x < texture.width; x += step) {
-              const index = (y * texture.width + x) * 4;
-              const pixelValue = pixelData[index];
-              let shouldSpawn = false;
-              if (this.spawnMode === "range") {
-                if (
-                  pixelValue >= this.threshold &&
-                  pixelValue <= this.upperThreshold
-                ) {
-                  shouldSpawn = true;
-                }
-              } else {
-                if (pixelValue >= this.threshold) {
-                  shouldSpawn = true;
-                }
-              }
-              if (shouldSpawn) {
-                const relativeX = (x / texture.width) * this.width;
-                const relativeY = (y / texture.height) * this.height;
-                const worldX = this.offsetX + relativeX;
-                const worldY = this.offsetY + relativeY;
-                this.validPoints.push({
-                  point: new PIXI.Point(worldX, worldY),
-                  color: [
-                    pixelData[index],
-                    pixelData[index + 1],
-                    pixelData[index + 2],
-                  ],
-                });
-              }
-            }
-          }
-        }
-        this.isCompiled = true;
-        this.isCompiling = false;
-        resolve();
-      } catch (e) {
-        console.error("TextureMaskShape | Error during point compilation:", e);
-        this.isCompiled = true;
-        this.isCompiling = false;
-        reject(e);
-      }
-    });
-    return this._compilationPromise;
-  }
+				if (this.isDynamicScreenMask) {
+					for (let y = 0; y < texture.height; y += step) {
+						for (let x = 0; x < texture.width; x += step) {
+							const index = (y * texture.width + x) * 4;
+							const pixelValue = pixelData[index];
+							let shouldSpawn = false;
+							if (this.spawnMode === "range") {
+								if (
+									pixelValue >= this.threshold &&
+									pixelValue <= this.upperThreshold
+								) {
+									shouldSpawn = true;
+								}
+							} else {
+								if (pixelValue >= this.threshold) {
+									shouldSpawn = true;
+								}
+							}
+							if (shouldSpawn) {
+								const cameraOffset = CoordinateManager.getCameraOffset();
+								const canvasScale = CoordinateManager.getCanvasScale();
+								const worldPoint = new PIXI.Point(
+									cameraOffset.x + x / canvasScale,
+									cameraOffset.y + y / canvasScale
+								);
+								this.validPoints.push({
+									point: worldPoint,
+									color: [
+										pixelData[index],
+										pixelData[index + 1],
+										pixelData[index + 2],
+									],
+								});
+							}
+						}
+					}
+				} else {
+					for (let y = 0; y < texture.height; y += step) {
+						for (let x = 0; x < texture.width; x += step) {
+							const index = (y * texture.width + x) * 4;
+							const pixelValue = pixelData[index];
+							let shouldSpawn = false;
+							if (this.spawnMode === "range") {
+								if (
+									pixelValue >= this.threshold &&
+									pixelValue <= this.upperThreshold
+								) {
+									shouldSpawn = true;
+								}
+							} else {
+								if (pixelValue >= this.threshold) {
+									shouldSpawn = true;
+								}
+							}
+							if (shouldSpawn) {
+								const relativeX = (x / texture.width) * this.width;
+								const relativeY = (y / texture.height) * this.height;
+								const worldX = this.offsetX + relativeX;
+								const worldY = this.offsetY + relativeY;
+								this.validPoints.push({
+									point: new PIXI.Point(worldX, worldY),
+									color: [
+										pixelData[index],
+										pixelData[index + 1],
+										pixelData[index + 2],
+									],
+								});
+							}
+						}
+					}
+				}
+				this.isCompiled = true;
+				this.isCompiling = false;
+				resolve();
+			} catch (e) {
+				console.error("TextureMaskShape | Error during point compilation:", e);
+				this.isCompiled = true;
+				this.isCompiling = false;
+				reject(e);
+			}
+		});
+		return this._compilationPromise;
+	}
 
-  getRandPos(particle) {
-    if (!this.isCompiled || this.validPoints.length === 0) {
-      return;
-    }
-    const data =
-      this.validPoints[Math.floor(Math.random() * this.validPoints.length)];
-    particle.position.copyFrom(data.point);
-    particle.spawnColor = data.color;
-  }
+	getRandPos(particle) {
+		if (!this.isCompiled || this.validPoints.length === 0) {
+			return;
+		}
+		const data =
+			this.validPoints[Math.floor(Math.random() * this.validPoints.length)];
+		particle.position.copyFrom(data.point);
+		particle.spawnColor = data.color;
+	}
 }
 
 /**
- * A particle spawn shape that uses raw geometry data (points, lines, areas)
- * to determine spawn locations mathematically, avoiding any dependency on rendering.
- */
+	* A particle spawn shape that uses raw geometry data (points, lines, areas)
+	* to determine spawn locations mathematically, avoiding any dependency on rendering.
+	*/
 class GeometryMaskShape {
 	static type = "geometryMask";
 
@@ -13182,10 +13179,10 @@ class GeometryMaskShape {
 	}
 
 	/**
-	 * Checks if a point is inside a polygon using the ray-casting algorithm.
-	 * @param {PIXI.Point} point The point to check.
-	 * @returns {boolean} True if the point is inside, false otherwise.
-	 */
+		* Checks if a point is inside a polygon using the ray-casting algorithm.
+		* @param {PIXI.Point} point The point to check.
+		* @returns {boolean} True if the point is inside, false otherwise.
+		*/
 
 	_isPointInPolygon(point) {
 		let isInside = false;
@@ -13206,9 +13203,9 @@ class GeometryMaskShape {
 	}
 
 	/**
-	 * Called by the particle emitter to get a random position for a new particle.
-	 * @param {PIXI.particles.Particle} particle - The particle to position.
-	 */
+		* Called by the particle emitter to get a random position for a new particle.
+		* @param {PIXI.particles.Particle} particle - The particle to position.
+		*/
 	getRandPos(particle) {
 		if (!this._points || this._points.length === 0) return;
 
@@ -13343,9 +13340,9 @@ class ParticleLayer extends CanvasLayer {
 	}
 
 	/**
-	 * Handler for when map point geometry is changed. This triggers a full refresh
-	 * of all particle emitters to ensure they use the latest mask data.
-	 */
+		* Handler for when map point geometry is changed. This triggers a full refresh
+		* of all particle emitters to ensure they use the latest mask data.
+		*/
 	_onMapPointsUpdated() {
 		console.log(
 			"Map Shine | ParticleLayer detected map point update. Refreshing particle targets."
@@ -13629,59 +13626,59 @@ class SparkPathBehavior {
 }
 
 class MapShineLightingBehavior {
-    static type = "mapShineLighting";
+	static type = "mapShineLighting";
 
-    constructor(config) {
-        this.order = PIXI.particles.behaviors.BehaviorOrder.Late + 1; // Run after color and alpha
-        this.config = config;
-        this._emissive = null;
-        this._isStatic = false;
+	constructor(config) {
+		this.order = PIXI.particles.behaviors.BehaviorOrder.Late + 1; // Run after color and alpha
+		this.config = config;
+		this._emissive = null;
+		this._isStatic = false;
 
-        if (config.emissive && config.emissive.list) {
-            if (config.emissive.list.length === 1) {
-                this._isStatic = true;
-                this._emissive = config.emissive.list[0].value;
-            } else if (config.emissive.list.length > 1) {
-                this._emissive = new PIXI.particles.PropertyList(false);
-                this._emissive.reset(PIXI.particles.PropertyNode.createList(config.emissive));
-            }
-        }
-    }
+		if (config.emissive && config.emissive.list) {
+			if (config.emissive.list.length === 1) {
+				this._isStatic = true;
+				this._emissive = config.emissive.list[0].value;
+			} else if (config.emissive.list.length > 1) {
+				this._emissive = new PIXI.particles.PropertyList(false);
+				this._emissive.reset(PIXI.particles.PropertyNode.createList(config.emissive));
+			}
+		}
+	}
 
-    initParticles(first) {
-        // No per-particle init needed
-    }
+	initParticles(first) {
+		// No per-particle init needed
+	}
 
 	updateParticle(particle, deltaSec) {
-        // This behavior runs *after* the standard Alpha behavior, so particle.alpha
-        // has already been set for this frame according to its lifetime gradient.
-        if (particle.alpha === undefined || this._emissive === null) return;
+		// This behavior runs *after* the standard Alpha behavior, so particle.alpha
+		// has already been set for this frame according to its lifetime gradient.
+		if (particle.alpha === undefined || this._emissive === null) return;
 
-        // Get the particle's "emissive strength" for the current frame (0.0 to 1.0).
-        const emissiveValue = this._isStatic 
-            ? this._emissive 
-            : this._emissive.interpolate(particle.agePercent);
+		// Get the particle's "emissive strength" for the current frame (0.0 to 1.0).
+		const emissiveValue = this._isStatic
+			? this._emissive
+			: this._emissive.interpolate(particle.agePercent);
 
-        // Get scene darkness level (0.0 is bright, 1.0 is pitch black).
-        const darkness = canvas.scene?.environment.darknessLevel ?? 0;
-        const lightLevel = 1.0 - darkness;
+		// Get scene darkness level (0.0 is bright, 1.0 is pitch black).
+		const darkness = canvas.scene?.environment.darknessLevel ?? 0;
+		const lightLevel = 1.0 - darkness;
 
-        // Store the alpha that the particle *would* have based on its lifetime fade.
-        const baseAlpha = particle.alpha;
+		// Store the alpha that the particle *would* have based on its lifetime fade.
+		const baseAlpha = particle.alpha;
 
-        // Step 1: Calculate the particle's alpha after being affected by scene darkness.
-        const darkenedAlpha = baseAlpha * lightLevel;
+		// Step 1: Calculate the particle's alpha after being affected by scene darkness.
+		const darkenedAlpha = baseAlpha * lightLevel;
 
-        // Step 2: Calculate the emissive boost. The boost is the particle's emissive
-        // strength, also scaled by its base lifetime alpha. This ensures a particle
-        // that is fading out also has its glow fade out.
-        const emissiveBoost = baseAlpha * emissiveValue;
+		// Step 2: Calculate the emissive boost. The boost is the particle's emissive
+		// strength, also scaled by its base lifetime alpha. This ensures a particle
+		// that is fading out also has its glow fade out.
+		const emissiveBoost = baseAlpha * emissiveValue;
 
-        // Step 3: The final alpha is the darkened alpha plus the emissive boost.
-        // For non-emissive particles (emissiveValue=0), this is just the darkenedAlpha.
-        // For emissive particles, this adds their glow back on top of the darkened base.
-        particle.alpha = darkenedAlpha + emissiveBoost;
-    }
+		// Step 3: The final alpha is the darkened alpha plus the emissive boost.
+		// For non-emissive particles (emissiveValue=0), this is just the darkenedAlpha.
+		// For emissive particles, this adds their glow back on top of the darkened base.
+		particle.alpha = darkenedAlpha + emissiveBoost;
+	}
 }
 
 class FireWindBehavior {
@@ -13716,10 +13713,10 @@ class FireWindBehavior {
 }
 
 /**
- * A custom particle behavior that sets a particle's tint based on color data
- * attached to it during the spawn process.
- * This allows particles to inherit color from their spawn location on a texture.
- */
+	* A custom particle behavior that sets a particle's tint based on color data
+	* attached to it during the spawn process.
+	* This allows particles to inherit color from their spawn location on a texture.
+	*/
 class ColorFromSpawnBehavior {
 	static type = "colorFromSpawn";
 
@@ -13927,10 +13924,10 @@ class SmellyFliesBehavior {
 	})();
 
 	/**
-	 * Sets up all parameters required for a fly to begin its take-off animation.
-	 * @param {PIXI.particles.Particle} fly The particle to prepare.
-	 * @param {object} cfg The particle's configuration object.
-	 */
+		* Sets up all parameters required for a fly to begin its take-off animation.
+		* @param {PIXI.particles.Particle} fly The particle to prepare.
+		* @param {object} cfg The particle's configuration object.
+		*/
 	_prepareForTakeOff(fly, cfg) {
 		const flyConfig = this.config.flying;
 		cfg.state = "taking_off";
@@ -14643,10 +14640,10 @@ class FilmGrainFilter extends PIXI.Filter {
 	}
 
 	/**
-	 * Updates the time uniform for animated grain.
-	 * This is now called by the central ScreenEffectsManager.
-	 * @param {number} deltaTimeInSeconds - The time elapsed since the last frame.
-	 */
+		* Updates the time uniform for animated grain.
+		* This is now called by the central ScreenEffectsManager.
+		* @param {number} deltaTimeInSeconds - The time elapsed since the last frame.
+		*/
 	update(deltaTimeInSeconds) {
 		const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
 		// A small multiplier is added to make the animation visible without requiring a large u_time value
@@ -15064,10 +15061,10 @@ class ColorCorrectionFilter extends PIXI.Filter {
 
 class LutUtils {
 	/**
-	 * Generates a 1D LUT texture (256x1) from a set of Bézier curve definitions.
-	 * @param {object} curvesConfig - The configuration object for the curves.
-	 * @returns {PIXI.Texture} The generated LUT texture.
-	 */
+		* Generates a 1D LUT texture (256x1) from a set of Bézier curve definitions.
+		* @param {object} curvesConfig - The configuration object for the curves.
+		* @returns {PIXI.Texture} The generated LUT texture.
+		*/
 	static generateCurveLut(curvesConfig) {
 		const lutSize = 256;
 		const redLUT = this._generateChannelLut(curvesConfig.red.points, lutSize);
@@ -15097,13 +15094,13 @@ class LutUtils {
 	}
 
 	/**
-	 * Generates a lookup table for a single color channel from Bézier control points.
-	 * This uses a pre-computation and interpolation method to solve the curve efficiently.
-	 * @param {Array<object>} points - An array of 4 normalized {x, y} control points.
-	 * @param {number} size - The size of the LUT to generate (e.g., 256).
-	 * @returns {Float32Array} The generated LUT.
-	 * @private
-	 */
+		* Generates a lookup table for a single color channel from Bézier control points.
+		* This uses a pre-computation and interpolation method to solve the curve efficiently.
+		* @param {Array<object>} points - An array of 4 normalized {x, y} control points.
+		* @param {number} size - The size of the LUT to generate (e.g., 256).
+		* @returns {Float32Array} The generated LUT.
+		* @private
+		*/
 	static _generateChannelLut(points, size) {
 		const p0 = points[0];
 		const p1 = points[1];
@@ -15154,15 +15151,15 @@ class LutUtils {
 	}
 
 	/**
-	 * Calculates a coordinate on a 1D cubic Bézier curve.
-	 * @param {number} t - The interpolation parameter [0, 1].
-	 * @param {number} p0 - Start point coordinate.
-	 * @param {number} p1 - First control point coordinate.
-	 * @param {number} p2 - Second control point coordinate.
-	 * @param {number} p3 - End point coordinate.
-	 * @returns {number} The coordinate value at t.
-	 * @private
-	 */
+		* Calculates a coordinate on a 1D cubic Bézier curve.
+		* @param {number} t - The interpolation parameter [0, 1].
+		* @param {number} p0 - Start point coordinate.
+		* @param {number} p1 - First control point coordinate.
+		* @param {number} p2 - Second control point coordinate.
+		* @param {number} p3 - End point coordinate.
+		* @returns {number} The coordinate value at t.
+		* @private
+		*/
 	static _getBezierCoordinate(t, p0, p1, p2, p3) {
 		const c = 1.0 - t;
 		const t2 = t * t;
@@ -17671,8 +17668,8 @@ class MaskedEffectLayer extends CanvasLayer {
 	}
 
 	/**
-	 * @override
-	 */
+		* @override
+		*/
 	async _tearDown(options) {
 		if (this._destroyed) return;
 		this._destroyed = true;
@@ -17699,9 +17696,9 @@ class MaskedEffectLayer extends CanvasLayer {
 	}
 
 	/**
-	 * Base animation loop. Handles re-rendering the mask when needed.
-	 * Subclasses should call `super._onAnimate(deltaTime)` at the start of their own loop.
-	 */
+		* Base animation loop. Handles re-rendering the mask when needed.
+		* Subclasses should call `super._onAnimate(deltaTime)` at the start of their own loop.
+		*/
 	_onAnimate(deltaTime) {
 		if (this._destroyed) return;
 
@@ -17712,15 +17709,15 @@ class MaskedEffectLayer extends CanvasLayer {
 	}
 
 	/**
-	 * Handles pan events, flagging that the mask needs to be redrawn.
-	 */
+		* Handles pan events, flagging that the mask needs to be redrawn.
+		*/
 	_onPan() {
 		this._needsMaskUpdate = true;
 	}
 
 	/**
-	 * Handles resize events, resizing the mask texture and flagging a redraw.
-	 */
+		* Handles resize events, resizing the mask texture and flagging a redraw.
+		*/
 	_onResize() {
 		const renderer = canvas.app.renderer;
 		this.combinedMaskTexture?.resize(
@@ -17731,8 +17728,8 @@ class MaskedEffectLayer extends CanvasLayer {
 	}
 
 	/**
-	 * Renders the maskContainer to the combinedMaskTexture.
-	 */
+		* Renders the maskContainer to the combinedMaskTexture.
+		*/
 	renderMask() {
 		if (!this.maskContainer || !this.combinedMaskTexture) return;
 		const renderer = canvas.app.renderer;
@@ -17757,9 +17754,9 @@ class MaskedEffectLayer extends CanvasLayer {
 	}
 
 	/**
-	 * @override
-	 * Updates the sprites in the mask container based on discovered effect targets.
-	 */
+		* @override
+		* Updates the sprites in the mask container based on discovered effect targets.
+		*/
 	async updateEffectTargets(targets) {
 		if (!this.maskContainer) return;
 
@@ -17799,8 +17796,8 @@ class MaskedEffectLayer extends CanvasLayer {
 	}
 
 	/**
-	 * Helper to update a sprite's texture and transform.
-	 */
+		* Helper to update a sprite's texture and transform.
+		*/
 	async _updateSpriteTransform(sprite, texturePath, rect) {
 		if (!sprite || sprite.destroyed) return;
 
@@ -18236,8 +18233,8 @@ class MapPointsLayer extends CanvasLayer {
 	}
 
 	/**
-	 * @override
-	 */
+		* @override
+		*/
 	async _draw(options) {
 		this.mapPointsContainer = this.addChild(new PIXI.Container());
 		this.eventMode = "none";
@@ -18250,8 +18247,8 @@ class MapPointsLayer extends CanvasLayer {
 	}
 
 	/**
-	 * @override
-	 */
+		* @override
+		*/
 	async _tearDown(options) {
 		Hooks.off("mapShine:mapPointsUpdated", this._boundDrawMapPoints);
 		this.mapPointsContainer?.destroy({
@@ -18265,9 +18262,9 @@ class MapPointsLayer extends CanvasLayer {
 	}
 
 	/**
-	 * Public method to find which point is under the cursor.
-	 * The Interaction Manager will use this.
-	 */
+		* Public method to find which point is under the cursor.
+		* The Interaction Manager will use this.
+		*/
 	_getPointAt(position) {
 		const groups = MapPointsManager.getGroups();
 		const hitRadius = this.POINT_HIT_AREA / canvas.stage.scale.x;
@@ -18287,9 +18284,9 @@ class MapPointsLayer extends CanvasLayer {
 	}
 
 	/**
-	 * Renders all points, lines, and areas from the stored data.
-	 * Also handles hover effects based on the public _hoveredPoint property.
-	 */
+		* Renders all points, lines, and areas from the stored data.
+		* Also handles hover effects based on the public _hoveredPoint property.
+		*/
 	_drawMapPoints() {
 		if (!this.mapPointsContainer) return;
 		this.mapPointsContainer.removeChildren().forEach((c) =>
@@ -18424,12 +18421,12 @@ class MapPointsEditor extends FormApplication {
 	}
 
 	/**
-	 * @override
-	 * The form element is the root of this application's template. We override the
-	 * default `form` property to ensure it correctly references our root element.
-	 * The base `FormApplication` constructor attempts to set this property to `null`,
-	 * so we must provide both a getter and a setter.
-	 */
+		* @override
+		* The form element is the root of this application's template. We override the
+		* default `form` property to ensure it correctly references our root element.
+		* The base `FormApplication` constructor attempts to set this property to `null`,
+		* so we must provide both a getter and a setter.
+		*/
 	get form() {
 		// The `element` is a jQuery object; `[0]` gets the raw DOM element.
 		return this.element?.find("form")?.[0];
@@ -18480,9 +18477,9 @@ class MapPointsEditor extends FormApplication {
 	}
 
 	/**
-	 * @override
-	 * This method is responsible for building and returning the HTML content of the application.
-	 */
+		* @override
+		* This method is responsible for building and returning the HTML content of the application.
+		*/
 	async _renderInner(data) {
 		const html = this._buildHTML(data);
 		// We are building the HTML content programmatically, so we do not call super._renderInner,
@@ -18492,10 +18489,10 @@ class MapPointsEditor extends FormApplication {
 	}
 
 	/**
-	 * Generates the complete inner HTML for the form.
-	 * @param {object} data - The data from the getData method.
-	 * @returns {string} The HTML string for the form.
-	 */
+		* Generates the complete inner HTML for the form.
+		* @param {object} data - The data from the getData method.
+		* @returns {string} The HTML string for the form.
+		*/
 	_buildHTML(data) {
 		const groups = Object.values(data.groups);
 		const selectedGroup = this._selectedGroupId
@@ -20487,8 +20484,8 @@ class CloudShadowsLayer extends MaskedEffectLayer {
 	}
 
 	/**
-	 * Overrides the base class method to change the mask's clear color.
-	 */
+		* Overrides the base class method to change the mask's clear color.
+		*/
 	renderMask() {
 		if (!this.maskContainer || !this.combinedMaskTexture) return;
 		const renderer = canvas.app.renderer;
@@ -23947,46 +23944,8 @@ class WaterFXLayer extends MaskedEffectLayer {
 			)}
                                             </div>
                                         </details>
-                                        <details>
-                                            <summary><span class="accordion-toggle"></span><strong>Color Over Life</strong></summary>
-                                            <div style="padding-left: 15px;">
-                                                <p class="description-text">Sets particle color at birth and death. If colors are the same, a static color is used.</p>
-                                                ${DebuggerUIBuilder._createColorPickerHTML(
-				"water.glintParticles.color.start",
-				"Start Color"
-			)}
-                                                ${DebuggerUIBuilder._createColorPickerHTML(
-				"water.glintParticles.color.end",
-				"End Color"
-			)}
-                                            </div>
-                                        </details>
-                                        <details>
-                                            <summary><span class="accordion-toggle"></span><strong>Alpha / Opacity</strong></summary>
-                                            <div style="padding-left: 15px;">
-                                                ${DebuggerUIBuilder._createSliderHTML(
-				"water.glintParticles.alpha.max",
-				"Max Alpha",
-				0,
-				1,
-				0.01
-			)}
-                                                ${DebuggerUIBuilder._createSliderHTML(
-				"water.glintParticles.alpha.fadeIn",
-				"FadeIn Time (%)",
-				0,
-				0.5,
-				0.01
-			)}
-                                                ${DebuggerUIBuilder._createSliderHTML(
-				"water.glintParticles.alpha.fadeOut",
-				"FadeOut Time (%)",
-				0,
-				0.5,
-				0.01
-			)}
-                                            </div>
-                                        </details>
+                                        ${DebuggerUIBuilder._createGradientEditorHTML('water.glintParticles.colorAlphaGradient', "Color & Alpha Over Life")}
+                                        ${DebuggerUIBuilder._createGradientEditorHTML('water.glintParticles.emissiveGradient', "Emissive (Brightness) Over Life")}
                                         <details>
                                             <summary><span class="accordion-toggle"></span><strong>Scale / Size</strong></summary>
                                             <div style="padding-left: 15px;">
@@ -24792,9 +24751,9 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
 	}
 
 	/**
-	 * Performs a full teardown and setup of the entire layer, including its base class components.
-	 * This is used to recover the effect after a scene appearance transition by mimicking a fresh load.
-	 */
+		* Performs a full teardown and setup of the entire layer, including its base class components.
+		* This is used to recover the effect after a scene appearance transition by mimicking a fresh load.
+		*/
 	async rebuildEffect() {
 		console.log(
 			"BuildingShadowsLayer | Rebuilding effect by cycling through full layer teardown and draw."
@@ -26498,7 +26457,9 @@ class DebuggerUIBuilder {
 		return `<style>
 /* --- Gradient Editor --- */
 .gradient-editor-wrapper { padding: 5px; background: rgba(0,0,0,0.2); border-radius: 3px; margin-top: 5px; }
-.gradient-editor-wrapper .control-row { margin-bottom: 8px; }
+.gradient-editor-wrapper .control-row { margin-bottom: 8px; justify-content: space-between; }
+.reset-gradient-btn { padding: 2px 6px; font-size: 10px; background: #4a4a4a; border: 1px solid #777; color: #ddd; flex-shrink: 0; }
+.reset-gradient-btn:hover { background: #803030; color: #fff; border-color: #c06060; }
 .gradient-bar-container { position: relative; width: 100%; height: 25px; cursor: crosshair; }
 .gradient-bar-bg {
     width: 100%; height: 100%; border-radius: 4px; border: 1px solid #777;
@@ -27085,12 +27046,32 @@ border-color: #6fdd73;
                 `;
 	}
 
-	static _createGradientEditorHTML(path, label) {
+	static _createGradientEditorHTML(path, label, type = 'color') {
 		const id = this._createSafeId(path);
+		let valueControlHTML;
+
+		if (type === 'brightness') {
+			valueControlHTML = `
+                <div class="control-row control-row-slider">
+                    <label for="${id}-brightness-slider">Brightness</label>
+                    <input type="range" id="${id}-brightness-slider" min="0" max="1" step="0.01" value="1">
+                    <span class="value-span" id="${id}-brightness-value">1.00</span>
+                </div>
+            `;
+		} else { // type === 'color'
+			valueControlHTML = `
+                <div class="control-row">
+                    <label for="${id}-color-picker">Color</label>
+                    <input type="color" id="${id}-color-picker" value="#ffffff">
+                </div>
+            `;
+		}
+
 		return `
-            <div class="gradient-editor-wrapper" id="${id}" data-path="${path}">
+            <div class="gradient-editor-wrapper" id="${id}" data-path="${path}" data-editor-type="${type}">
                 <div class="control-row">
                     <label>${label}</label>
+                    <button type="button" class="reset-gradient-btn" data-action="reset-gradient" title="Reset to Start/End points">Reset</button>
                 </div>
                 <div class="gradient-bar-container">
                     <div class="gradient-bar-bg">
@@ -27104,10 +27085,7 @@ border-color: #6fdd73;
                         <input type="range" id="${id}-alpha-slider" min="0" max="1" step="0.01" value="1">
                         <span class="value-span" id="${id}-alpha-value">1.00</span>
                     </div>
-                     <div class="control-row">
-                        <label for="${id}-color-picker">Color</label>
-                        <input type="color" id="${id}-color-picker" value="#ffffff">
-                    </div>
+                    ${valueControlHTML}
                 </div>
             </div>
         `;
@@ -27547,83 +27525,83 @@ border-color: #6fdd73;
 }
 
 /**
- * Generates separate color and alpha lists for the particle emitter from a single gradient array.
- * @param {Array<object>} gradient - An array of stop objects, each with {time, color, alpha}.
- * @returns {{colorList: object, alphaList: object}} An object containing the config lists for the behaviors.
- */
+	* Generates separate color and alpha lists for the particle emitter from a single gradient array.
+	* @param {Array<object>} gradient - An array of stop objects, each with {time, color, alpha}.
+	* @returns {{colorList: object, alphaList: object}} An object containing the config lists for the behaviors.
+	*/
 function _generateBehaviorListsFromGradient(gradient) {
-    if (!gradient || gradient.length === 0) {
-        return { isColorStatic: true, staticColor: "#ffffff", isAlphaStatic: true, staticAlpha: 1.0 };
-    }
+	if (!gradient || gradient.length === 0) {
+		return { isColorStatic: true, staticColor: "#ffffff", isAlphaStatic: true, staticAlpha: 1.0 };
+	}
 
-    const sortedGradient = [...gradient].sort((a, b) => a.time - b.time);
+	const sortedGradient = [...gradient].sort((a, b) => a.time - b.time);
 
-    const firstColor = sortedGradient[0].color;
-    const allColorsSame = sortedGradient.every(stop => stop.color === firstColor);
+	const firstColor = sortedGradient[0].color;
+	const allColorsSame = sortedGradient.every(stop => stop.color === firstColor);
 
-    const firstAlpha = sortedGradient[0].alpha;
-    const allAlphasSame = sortedGradient.every(stop => Math.abs(stop.alpha - firstAlpha) < 0.001);
+	const firstAlpha = sortedGradient[0].alpha;
+	const allAlphasSame = sortedGradient.every(stop => Math.abs(stop.alpha - firstAlpha) < 0.001);
 
-    const result = {
-        isColorStatic: allColorsSame,
-        isAlphaStatic: allAlphasSame,
-    };
+	const result = {
+		isColorStatic: allColorsSame,
+		isAlphaStatic: allAlphasSame,
+	};
 
-    if (allColorsSame) {
-        result.staticColor = firstColor;
-    } else {
-        result.colorList = { list: sortedGradient.map(s => ({ value: s.color, time: s.time })) };
-    }
+	if (allColorsSame) {
+		result.staticColor = firstColor;
+	} else {
+		result.colorList = { list: sortedGradient.map(s => ({ value: s.color, time: s.time })) };
+	}
 
-    if (allAlphasSame) {
-        result.staticAlpha = firstAlpha;
-    } else {
-        result.alphaList = { list: sortedGradient.map(s => ({ value: s.alpha, time: s.time })) };
-    }
+	if (allAlphasSame) {
+		result.staticAlpha = firstAlpha;
+	} else {
+		result.alphaList = { list: sortedGradient.map(s => ({ value: s.alpha, time: s.time })) };
+	}
 
-    return result;
+	return result;
 }
 
 /**
- * Generates a brightness list for a particle behavior from a gradient array.
- * @param {Array<object>} gradient - An array of stop objects, each with {time, color, alpha}.
- * @returns {object} A config list for a value-based behavior.
- */
+	* Generates a brightness list for a particle behavior from a gradient array.
+	* @param {Array<object>} gradient - An array of stop objects, each with {time, color, alpha}.
+	* @returns {object} A config list for a value-based behavior.
+	*/
 function _generateEmissiveListFromGradient(gradient) {
-    if (!gradient || gradient.length < 1) {
-        // Fallback to a single node list representing no emission.
-        return { list: [{ value: 0, time: 0 }] };
-    }
+	if (!gradient || gradient.length < 1) {
+		// Fallback to a single node list representing no emission.
+		return { list: [{ value: 0, time: 0 }] };
+	}
 
-    const sortedGradient = [...gradient].sort((a, b) => a.time - b.time);
-    const valueList = { list: [] };
-    const lum_weights = { r: 0.299, g: 0.587, b: 0.114 };
+	const sortedGradient = [...gradient].sort((a, b) => a.time - b.time);
+	const valueList = { list: [] };
+	const lum_weights = { r: 0.299, g: 0.587, b: 0.114 };
 
-    for (const stop of sortedGradient) {
-        const rgb = hexToRgbArray(stop.color); // returns [r,g,b] in 0-1 range
-        const luminance = rgb[0] * lum_weights.r + rgb[1] * lum_weights.g + rgb[2] * lum_weights.b;
-        // The emissive strength is the color's brightness multiplied by its alpha.
-        const emissiveValue = luminance * stop.alpha;
-        valueList.list.push({
-            value: emissiveValue,
-            time: stop.time
-        });
-    }
+	for (const stop of sortedGradient) {
+		const rgb = hexToRgbArray(stop.color); // returns [r,g,b] in 0-1 range
+		const luminance = rgb[0] * lum_weights.r + rgb[1] * lum_weights.g + rgb[2] * lum_weights.b;
+		// The emissive strength is the color's brightness multiplied by its alpha.
+		const emissiveValue = luminance * stop.alpha;
+		valueList.list.push({
+			value: emissiveValue,
+			time: stop.time
+		});
+	}
 
-    // WORKAROUND for particle library bug with static lists.
-    // If all luminance values in the list are effectively the same,
-    // return a list with only a single node. The interpolator will
-    // treat this as a static value, avoiding the bug.
-    if (valueList.list.length > 1) {
-        const firstValue = valueList.list[0].value;
-        const allSame = valueList.list.every(item => Math.abs(item.value - firstValue) < 0.001);
-        if (allSame) {
-            // Ensure the single node has a time of 0 for correctness.
-            return { list: [{ value: firstValue, time: 0 }] };
-        }
-    }
+	// WORKAROUND for particle library bug with static lists.
+	// If all luminance values in the list are effectively the same,
+	// return a list with only a single node. The interpolator will
+	// treat this as a static value, avoiding the bug.
+	if (valueList.list.length > 1) {
+		const firstValue = valueList.list[0].value;
+		const allSame = valueList.list.every(item => Math.abs(item.value - firstValue) < 0.001);
+		if (allSame) {
+			// Ensure the single node has a time of 0 for correctness.
+			return { list: [{ value: firstValue, time: 0 }] };
+		}
+	}
 
-    return valueList;
+	return valueList;
 }
 
 class DebuggerEventHandler {
@@ -27637,14 +27615,14 @@ class DebuggerEventHandler {
 		this._onTimeChangedBound = this._onTimeChanged.bind(this);
 		this.uiClock = null;
 
-        // --- NEW: State for Gradient Editor ---
-        this.activeGradientEditor = {
-            path: null,
-            stopIndex: null,
-            isDragging: false
-        };
-        // Bindings are now moved to initialize
-        // --- End New State ---
+		// --- NEW: State for Gradient Editor ---
+		this.activeGradientEditor = {
+			path: null,
+			stopIndex: null,
+			isDragging: false
+		};
+		// Bindings are now moved to initialize
+		// --- End New State ---
 
 		// Store bound listeners for reliable add/remove
 		this._onDebuggerClockDragBound = this._onDebuggerClockDrag.bind(this);
@@ -27687,12 +27665,12 @@ class DebuggerEventHandler {
 			100
 		);
 
-        // Bind all gradient-related methods here for consistency.
-        this._boundGradientMouseMove = this._onGradientMouseMove.bind(this);
-        this._boundGradientMouseUp = this._onGradientMouseUp.bind(this);
-        this._boundGradientBarDoubleClick = this._onGradientBarDoubleClick.bind(this);
-        this._boundGradientStopMouseDown = this._onGradientStopMouseDown.bind(this);
-        this._boundGradientStopContextMenu = this._onGradientStopContextMenu.bind(this);
+		// Bind all gradient-related methods here for consistency.
+		this._boundGradientMouseMove = this._onGradientMouseMove.bind(this);
+		this._boundGradientMouseUp = this._onGradientMouseUp.bind(this);
+		this._boundGradientBarDoubleClick = this._onGradientBarDoubleClick.bind(this);
+		this._boundGradientStopMouseDown = this._onGradientStopMouseDown.bind(this);
+		this._boundGradientStopContextMenu = this._onGradientStopContextMenu.bind(this);
 
 		this.addEventListeners();
 		this._makeDraggable();
@@ -27711,12 +27689,33 @@ class DebuggerEventHandler {
 		nameInput.value = ""; // Clear the input after saving
 	}
 
+	async _onResetGradientClick(button) {
+		const wrapper = button.closest('.gradient-editor-wrapper');
+		if (!wrapper) return;
+
+		const path = wrapper.dataset.path;
+		const gradientData = foundry.utils.deepClone(this._getPathValue(this.config, path));
+
+		if (!gradientData || gradientData.length <= 2) {
+			return; // Nothing to reset
+		}
+
+		const startPoint = gradientData[0];
+		const endPoint = gradientData[gradientData.length - 1];
+		startPoint.time = 0;
+		endPoint.time = 1;
+		const newGradient = [startPoint, endPoint];
+
+		// Use the central update function to save and refresh everything
+		await this._performSystemUpdate(path, newGradient);
+	}
+
 	/**
-	 * The core logic for saving a change and refreshing all visual systems.
-	 * This is the expensive operation we want to rate-limit.
-	 * @param {string} path - The object path to the setting (e.g., "baseShine.intensity").
-	 * @param {*} value - The new value for the setting.
-	 */
+		* The core logic for saving a change and refreshing all visual systems.
+		* This is the expensive operation we want to rate-limit.
+		* @param {string} path - The object path to the setting (e.g., "baseShine.intensity").
+		* @param {*} value - The new value for the setting.
+		*/
 	async _performSystemUpdate(path, value) {
 		const isGameSetting =
 			path.startsWith("universal.") || path.startsWith("loading-screen-");
@@ -27819,15 +27818,15 @@ class DebuggerEventHandler {
 
 	_initializeGradientEditors() {
 		this.element.querySelectorAll(".gradient-editor-wrapper").forEach(wrapper => {
-				const path = wrapper.dataset.path;
-				const gradientData = this._getPathValue(this.config, path);
-				if (gradientData) {
-						this._renderGradientEditor(wrapper, path, gradientData);
-				}
+			const path = wrapper.dataset.path;
+			const gradientData = this._getPathValue(this.config, path);
+			if (gradientData) {
+				this._renderGradientEditor(wrapper, path, gradientData);
+			}
 		});
-}
+	}
 
-_renderGradientEditor(wrapper, path, gradientData) {
+	_renderGradientEditor(wrapper, path, gradientData) {
 		if (!wrapper || !gradientData) return;
 
 		// Sort stops by time just in case
@@ -27837,45 +27836,56 @@ _renderGradientEditor(wrapper, path, gradientData) {
 		const stopsContainer = wrapper.querySelector('.gradient-stops-container');
 		const controlsContainer = wrapper.querySelector('.gradient-editor-controls');
 
-		// Create CSS gradient string
-		const gradientCss = `linear-gradient(to right, ${gradientData.map(stop => `rgba(${hexToRgbArray(stop.color).map(c => c * 255).join(',')}, ${stop.alpha})`).join(', ')})`;
+		// Create CSS gradient string, now with position information for each stop.
+		const gradientCss = `linear-gradient(to right, ${gradientData.map(stop => `rgba(${hexToRgbArray(stop.color).map(c => c * 255).join(',')}, ${stop.alpha}) ${stop.time * 100}%`).join(', ')})`;
 		previewBar.style.background = gradientCss;
 
 		// Re-create stops
 		stopsContainer.innerHTML = '';
 		gradientData.forEach((stop, index) => {
-				const stopEl = document.createElement('div');
-				stopEl.className = 'gradient-stop';
-				stopEl.dataset.index = index;
-				stopEl.style.left = `${stop.time * 100}%`;
-				stopEl.style.backgroundColor = stop.color;
-				if (index === 0 || index === gradientData.length - 1) {
-						stopEl.classList.add('endpoint');
-				}
-				if (this.activeGradientEditor.path === path && this.activeGradientEditor.stopIndex === index) {
-						stopEl.classList.add('active');
-				}
-				stopsContainer.appendChild(stopEl);
+			const stopEl = document.createElement('div');
+			stopEl.className = 'gradient-stop';
+			stopEl.dataset.index = index;
+			stopEl.style.left = `${stop.time * 100}%`;
+			stopEl.style.backgroundColor = stop.color;
+			if (index === 0 || index === gradientData.length - 1) {
+				stopEl.classList.add('endpoint');
+			}
+			if (this.activeGradientEditor.path === path && this.activeGradientEditor.stopIndex === index) {
+				stopEl.classList.add('active');
+			}
+			stopsContainer.appendChild(stopEl);
 		});
-		
+
 		// Update controls if a stop is active
 		const activeIndex = this.activeGradientEditor.stopIndex;
 		if (this.activeGradientEditor.path === path && activeIndex !== null && gradientData[activeIndex]) {
-				controlsContainer.classList.add('visible');
-				const activeStop = gradientData[activeIndex];
-				
-				const alphaSlider = wrapper.querySelector(`#${DebuggerUIBuilder._createSafeId(path)}-alpha-slider`);
-				const alphaValue = wrapper.querySelector(`#${DebuggerUIBuilder._createSafeId(path)}-alpha-value`);
-				const colorPicker = wrapper.querySelector(`#${DebuggerUIBuilder._createSafeId(path)}-color-picker`);
+			controlsContainer.classList.add('visible');
+			const activeStop = gradientData[activeIndex];
+			const editorType = wrapper.dataset.editorType || 'color';
 
-				alphaSlider.value = activeStop.alpha;
-				alphaValue.textContent = activeStop.alpha.toFixed(2);
+			const alphaSlider = wrapper.querySelector(`#${DebuggerUIBuilder._createSafeId(path)}-alpha-slider`);
+			const alphaValue = wrapper.querySelector(`#${DebuggerUIBuilder._createSafeId(path)}-alpha-value`);
+
+			alphaSlider.value = activeStop.alpha;
+			alphaValue.textContent = activeStop.alpha.toFixed(2);
+
+			if (editorType === 'brightness') {
+				const brightnessSlider = wrapper.querySelector(`#${DebuggerUIBuilder._createSafeId(path)}-brightness-slider`);
+				const brightnessValue = wrapper.querySelector(`#${DebuggerUIBuilder._createSafeId(path)}-brightness-value`);
+				const rgb = hexToRgbArray(activeStop.color);
+				const luminance = (rgb[0] * 0.299 + rgb[1] * 0.587 + rgb[2] * 0.114);
+				brightnessSlider.value = luminance;
+				brightnessValue.textContent = luminance.toFixed(2);
+			} else { // 'color'
+				const colorPicker = wrapper.querySelector(`#${DebuggerUIBuilder._createSafeId(path)}-color-picker`);
 				colorPicker.value = activeStop.color;
+			}
 
 		} else {
-				controlsContainer.classList.remove('visible');
+			controlsContainer.classList.remove('visible');
 		}
-}
+	}
 
 	rebindDynamicControls() {
 		this._populateDiagnosticDropdown();
@@ -27886,7 +27896,7 @@ _renderGradientEditor(wrapper, path, gradientData) {
 		this._updateFavoritesList();
 		this._initializeCurveEditor();
 		this.updatePlacementStatus();
-        this._initializeGradientEditors();
+		this._initializeGradientEditors();
 
 		// Instantiate the clock in the bottom bar
 		if (this.uiClock) {
@@ -27931,10 +27941,10 @@ _renderGradientEditor(wrapper, path, gradientData) {
 			this._handleDelegatedClick.bind(this)
 		);
 
-        // Gradient Editor Listeners
-        this.element.addEventListener("dblclick", this._boundGradientBarDoubleClick);
-        this.element.addEventListener("mousedown", this._boundGradientStopMouseDown);
-        this.element.addEventListener("contextmenu", this._boundGradientStopContextMenu);
+		// Gradient Editor Listeners
+		this.element.addEventListener("dblclick", this._boundGradientBarDoubleClick);
+		this.element.addEventListener("mousedown", this._boundGradientStopMouseDown);
+		this.element.addEventListener("contextmenu", this._boundGradientStopContextMenu);
 
 		// Listeners for the clock drag (window-level, managed separately)
 		const clockContainer = this.element.querySelector(
@@ -27951,9 +27961,9 @@ _renderGradientEditor(wrapper, path, gradientData) {
 		Hooks.on("mapShine:timeChanged", this._onTimeChangedBound);
 	}
 
-    _onTimeChanged(time) {
-        this.updateAllControls(time);
-    }
+	_onTimeChanged(time) {
+		this.updateAllControls(time);
+	}
 
 	async _onNewCleanProfileClick() {
 		const name = await Dialog.prompt({
@@ -28035,148 +28045,148 @@ _renderGradientEditor(wrapper, path, gradientData) {
 	}
 
 	_onGradientMouseMove(event) {
-        if (!this.activeGradientEditor.isDragging) return;
+		if (!this.activeGradientEditor.isDragging) return;
 
-        const { path, stopIndex } = this.activeGradientEditor;
-        if (path === null || stopIndex === null) return;
-        
-        const gradientData = this._getPathValue(this.config, path);
-        if (!gradientData) return;
+		const { path, stopIndex } = this.activeGradientEditor;
+		if (path === null || stopIndex === null) return;
 
-        // Cannot move start or end stops horizontally
-        if (stopIndex === 0 || stopIndex === gradientData.length - 1) return;
+		const gradientData = this._getPathValue(this.config, path);
+		if (!gradientData) return;
 
-        const wrapper = this.element.querySelector(`.gradient-editor-wrapper[data-path="${path}"]`);
-        if (!wrapper) return;
+		// Cannot move start or end stops horizontally
+		if (stopIndex === 0 || stopIndex === gradientData.length - 1) return;
 
-        const bar = wrapper.querySelector('.gradient-bar-container');
-        const rect = bar.getBoundingClientRect();
+		const wrapper = this.element.querySelector(`.gradient-editor-wrapper[data-path="${path}"]`);
+		if (!wrapper) return;
 
-        const x = event.clientX - rect.left;
-        let time = x / rect.width;
-        
-        // Clamp time between neighbors
-        const prevTime = gradientData[stopIndex - 1].time;
-        const nextTime = gradientData[stopIndex + 1].time;
-        time = Math.max(prevTime + 0.001, Math.min(nextTime - 0.001, time));
+		const bar = wrapper.querySelector('.gradient-bar-container');
+		const rect = bar.getBoundingClientRect();
 
-        gradientData[stopIndex].time = time;
-        
-        this._renderGradientEditor(wrapper, path, gradientData);
-        this.throttledSystemUpdate(path, gradientData);
-    }
+		const x = event.clientX - rect.left;
+		let time = x / rect.width;
 
-    _onGradientMouseUp(event) {
-        if (!this.activeGradientEditor.isDragging) return;
+		// Clamp time between neighbors
+		const prevTime = gradientData[stopIndex - 1].time;
+		const nextTime = gradientData[stopIndex + 1].time;
+		time = Math.max(prevTime + 0.001, Math.min(nextTime - 0.001, time));
 
-        const { path } = this.activeGradientEditor;
-        const gradientData = this._getPathValue(this.config, path);
+		gradientData[stopIndex].time = time;
 
-        // A final update to persist the change.
-        this.profileManager.recordUserChange(path, gradientData);
-        this.profileManager.updateAllSystemsFromConfig();
-        
-        // Reset dragging state
-        this.activeGradientEditor.isDragging = false;
-        // The active stop remains selected, which is good UX.
+		this._renderGradientEditor(wrapper, path, gradientData);
+		this.throttledSystemUpdate(path, gradientData);
+	}
 
-        window.removeEventListener("mousemove", this._boundGradientMouseMove);
-        // The mouseup is {once: true}, but removing it is safer
-        window.removeEventListener("mouseup", this._boundGradientMouseUp);
-    }
+	_onGradientMouseUp(event) {
+		if (!this.activeGradientEditor.isDragging) return;
 
-    _onGradientBarDoubleClick(event) {
-        const bar = event.target.closest('.gradient-bar-container');
-        if (!bar) return;
+		const { path } = this.activeGradientEditor;
+		const gradientData = this._getPathValue(this.config, path);
 
-        const wrapper = bar.closest('.gradient-editor-wrapper');
-        const path = wrapper.dataset.path;
-        const gradientData = this._getPathValue(this.config, path);
-        if (!gradientData) return;
+		// A final update to persist the change.
+		this.profileManager.recordUserChange(path, gradientData);
+		this.profileManager.updateAllSystemsFromConfig();
 
-        const rect = bar.getBoundingClientRect();
-        const time = (event.clientX - rect.left) / rect.width;
+		// Reset dragging state
+		this.activeGradientEditor.isDragging = false;
+		// The active stop remains selected, which is good UX.
 
-        let insertIndex = 1;
-        for (let i = 0; i < gradientData.length - 1; i++) {
-            if (time > gradientData[i].time && time < gradientData[i+1].time) {
-                insertIndex = i + 1;
-                break;
-            }
-        }
+		window.removeEventListener("mousemove", this._boundGradientMouseMove);
+		// The mouseup is {once: true}, but removing it is safer
+		window.removeEventListener("mouseup", this._boundGradientMouseUp);
+	}
 
-        const prev = gradientData[insertIndex - 1];
-        const next = gradientData[insertIndex];
-        const blend = (time - prev.time) / (next.time - prev.time);
+	_onGradientBarDoubleClick(event) {
+		const bar = event.target.closest('.gradient-bar-container');
+		if (!bar) return;
 
-        const lerp = (a, b, t) => a * (1-t) + b * t;
-        const newAlpha = lerp(prev.alpha, next.alpha, blend);
-        
-        const startColor = hexToRgbArray(prev.color);
-        const endColor = hexToRgbArray(next.color);
-        const newColorRgb = [
-            lerp(startColor[0], endColor[0], blend),
-            lerp(startColor[1], endColor[1], blend),
-            lerp(startColor[2], endColor[2], blend),
-        ];
-        const newColorHex = new PIXI.Color(newColorRgb).toHex();
+		const wrapper = bar.closest('.gradient-editor-wrapper');
+		const path = wrapper.dataset.path;
+		const gradientData = this._getPathValue(this.config, path);
+		if (!gradientData) return;
 
-        const newStop = { time, color: newColorHex, alpha: newAlpha };
-        gradientData.splice(insertIndex, 0, newStop);
-        
-        this.activeGradientEditor.path = path;
-        this.activeGradientEditor.stopIndex = insertIndex;
+		const rect = bar.getBoundingClientRect();
+		const time = (event.clientX - rect.left) / rect.width;
 
-        this.profileManager.recordUserChange(path, gradientData);
-        this.profileManager.updateAllSystemsFromConfig();
-        this._renderGradientEditor(wrapper, path, gradientData);
-    }
-    
-    _onGradientStopMouseDown(event) {
-        const stop = event.target.closest('.gradient-stop');
-        if (!stop) return;
+		let insertIndex = 1;
+		for (let i = 0; i < gradientData.length - 1; i++) {
+			if (time > gradientData[i].time && time < gradientData[i + 1].time) {
+				insertIndex = i + 1;
+				break;
+			}
+		}
 
-        const wrapper = stop.closest('.gradient-editor-wrapper');
-        const path = wrapper.dataset.path;
-        const index = parseInt(stop.dataset.index, 10);
+		const prev = gradientData[insertIndex - 1];
+		const next = gradientData[insertIndex];
+		const blend = (time - prev.time) / (next.time - prev.time);
 
-        this.activeGradientEditor.path = path;
-        this.activeGradientEditor.stopIndex = index;
-        
-        this._renderGradientEditor(wrapper, path, this._getPathValue(this.config, path));
+		const lerp = (a, b, t) => a * (1 - t) + b * t;
+		const newAlpha = lerp(prev.alpha, next.alpha, blend);
 
-        this.activeGradientEditor.isDragging = true;
-        window.addEventListener("mousemove", this._boundGradientMouseMove);
-        window.addEventListener("mouseup", this._boundGradientMouseUp, { once: true });
-    }
+		const startColor = hexToRgbArray(prev.color);
+		const endColor = hexToRgbArray(next.color);
+		const newColorRgb = [
+			lerp(startColor[0], endColor[0], blend),
+			lerp(startColor[1], endColor[1], blend),
+			lerp(startColor[2], endColor[2], blend),
+		];
+		const newColorHex = new PIXI.Color(newColorRgb).toHex();
 
-    _onGradientStopContextMenu(event) {
-        const stop = event.target.closest('.gradient-stop');
-        if (!stop) return;
-        event.preventDefault();
+		const newStop = { time, color: newColorHex, alpha: newAlpha };
+		gradientData.splice(insertIndex, 0, newStop);
 
-        const wrapper = stop.closest('.gradient-editor-wrapper');
-        const path = wrapper.dataset.path;
-        const index = parseInt(stop.dataset.index, 10);
-        
-        const gradientData = this._getPathValue(this.config, path);
-        if (!gradientData || gradientData.length <= 2) {
-            ui.notifications.warn("Cannot remove the start or end stops of a gradient.");
-            return;
-        }
+		this.activeGradientEditor.path = path;
+		this.activeGradientEditor.stopIndex = insertIndex;
 
-        // Cannot remove first or last stop
-        if (index > 0 && index < gradientData.length - 1) {
-            gradientData.splice(index, 1);
-            
-            this.activeGradientEditor.path = null;
-            this.activeGradientEditor.stopIndex = null;
-            
-            this.profileManager.recordUserChange(path, gradientData);
-            this.profileManager.updateAllSystemsFromConfig();
-            this._renderGradientEditor(wrapper, path, gradientData);
-        }
-    }
+		this.profileManager.recordUserChange(path, gradientData);
+		this.profileManager.updateAllSystemsFromConfig();
+		this._renderGradientEditor(wrapper, path, gradientData);
+	}
+
+	_onGradientStopMouseDown(event) {
+		const stop = event.target.closest('.gradient-stop');
+		if (!stop) return;
+
+		const wrapper = stop.closest('.gradient-editor-wrapper');
+		const path = wrapper.dataset.path;
+		const index = parseInt(stop.dataset.index, 10);
+
+		this.activeGradientEditor.path = path;
+		this.activeGradientEditor.stopIndex = index;
+
+		this._renderGradientEditor(wrapper, path, this._getPathValue(this.config, path));
+
+		this.activeGradientEditor.isDragging = true;
+		window.addEventListener("mousemove", this._boundGradientMouseMove);
+		window.addEventListener("mouseup", this._boundGradientMouseUp, { once: true });
+	}
+
+	_onGradientStopContextMenu(event) {
+		const stop = event.target.closest('.gradient-stop');
+		if (!stop) return;
+		event.preventDefault();
+
+		const wrapper = stop.closest('.gradient-editor-wrapper');
+		const path = wrapper.dataset.path;
+		const index = parseInt(stop.dataset.index, 10);
+
+		const gradientData = this._getPathValue(this.config, path);
+		if (!gradientData || gradientData.length <= 2) {
+			ui.notifications.warn("Cannot remove the start or end stops of a gradient.");
+			return;
+		}
+
+		// Cannot remove first or last stop
+		if (index > 0 && index < gradientData.length - 1) {
+			gradientData.splice(index, 1);
+
+			this.activeGradientEditor.path = null;
+			this.activeGradientEditor.stopIndex = null;
+
+			this.profileManager.recordUserChange(path, gradientData);
+			this.profileManager.updateAllSystemsFromConfig();
+			this._renderGradientEditor(wrapper, path, gradientData);
+		}
+	}
 
 	// A single, robust click handler for all data-actions
 	async _handleDelegatedClick(e) {
@@ -28189,6 +28199,11 @@ _renderGradientEditor(wrapper, path, gradientData) {
 
 		if (action === "add-list-item" || action === "remove-list-item") {
 			this._handleListManagerClick(e);
+			return;
+		}
+
+		if (action === "reset-gradient") {
+			this._onResetGradientClick(target);
 			return;
 		}
 
@@ -28429,7 +28444,7 @@ _renderGradientEditor(wrapper, path, gradientData) {
 
 		this.element.querySelectorAll("[data-path]").forEach((el) => {
 			if (el.closest(".list-manager-container")) return;
-            if (el.closest(".gradient-editor-wrapper")) return; // Don't auto-update gradient controls
+			if (el.closest(".gradient-editor-wrapper")) return; // Don't auto-update gradient controls
 			const path = el.dataset.path;
 
 			const isGameSetting =
@@ -28475,7 +28490,7 @@ _renderGradientEditor(wrapper, path, gradientData) {
 		this._updateBackgroundOverlayVisibility();
 		this._updateLutControlVisibility();
 		this._updateCurveEditorView();
-        this._initializeGradientEditors();
+		this._initializeGradientEditors();
 
 		// Ensure font selectors are styled correctly on load/update.
 		this.element
@@ -28956,34 +28971,40 @@ _renderGradientEditor(wrapper, path, gradientData) {
 
 	async _handleGenericInput(e) {
 		const target = e.target;
-        
-        if (target.closest(".gradient-editor-wrapper")) {
-            const wrapper = target.closest(".gradient-editor-wrapper");
-            const path = wrapper.dataset.path;
-            const { stopIndex } = this.activeGradientEditor;
-        
-            if (path === null || stopIndex === null) return;
-            
-            // It's safer to get a fresh reference to the data
-            const gradientData = this._getPathValue(this.config, path);
-            if (!gradientData || !gradientData[stopIndex]) return;
-        
-            if (target.id.endsWith('-alpha-slider')) {
-                gradientData[stopIndex].alpha = parseFloat(target.value);
-            } else if (target.id.endsWith('-color-picker')) {
-                gradientData[stopIndex].color = target.value;
-            }
-        
-            this._renderGradientEditor(wrapper, path, gradientData);
-        
-            if (e.type === 'input') {
-                this.throttledSystemUpdate(path, gradientData);
-            } else { // 'change' event
-                this._performSystemUpdate(path, gradientData);
-            }
-        
-            return;
-        }
+
+		if (target.closest(".gradient-editor-wrapper")) {
+			const wrapper = target.closest(".gradient-editor-wrapper");
+			const path = wrapper.dataset.path;
+			const { stopIndex } = this.activeGradientEditor;
+			const editorType = wrapper.dataset.editorType || 'color';
+
+			if (path === null || stopIndex === null) return;
+
+			// It's safer to get a fresh reference to the data
+			const gradientData = this._getPathValue(this.config, path);
+			if (!gradientData || !gradientData[stopIndex]) return;
+
+			if (target.id.endsWith('-alpha-slider')) {
+				gradientData[stopIndex].alpha = parseFloat(target.value);
+			} else if (editorType === 'brightness' && target.id.endsWith('-brightness-slider')) {
+				const brightness = parseFloat(target.value);
+				const intVal = Math.round(brightness * 255);
+				const hexVal = intVal.toString(16).padStart(2, '0');
+				gradientData[stopIndex].color = `#${hexVal}${hexVal}${hexVal}`;
+			} else if (editorType === 'color' && target.id.endsWith('-color-picker')) {
+				gradientData[stopIndex].color = target.value;
+			}
+
+			this._renderGradientEditor(wrapper, path, gradientData);
+
+			if (e.type === 'input') {
+				this.throttledSystemUpdate(path, gradientData);
+			} else { // 'change' event
+				this._performSystemUpdate(path, gradientData);
+			}
+
+			return;
+		}
 
 		// First, handle the special case of list managers
 		if (target.closest(".list-manager-container")) {
@@ -29679,8 +29700,8 @@ _renderGradientEditor(wrapper, path, gradientData) {
 		// Clean up window listeners just in case a drag was interrupted
 		window.removeEventListener("mousemove", this._onDebuggerClockDragBound);
 		window.removeEventListener("mouseup", this._onDebuggerClockDragEndBound);
-        window.removeEventListener("mousemove", this._boundGradientMouseMove);
-        window.removeEventListener("mouseup", this._boundGradientMouseUp);
+		window.removeEventListener("mousemove", this._boundGradientMouseMove);
+		window.removeEventListener("mouseup", this._boundGradientMouseUp);
 	}
 }
 
@@ -29698,9 +29719,9 @@ class MaterialEditorDebugger {
 	}
 
 	/**
-	 * Re-renders the dynamic parts of the UI, such as the main controls and profile sections.
-	 * This is crucial for updating the UI when the scene profile structure changes.
-	 */
+		* Re-renders the dynamic parts of the UI, such as the main controls and profile sections.
+		* This is crucial for updating the UI when the scene profile structure changes.
+		*/
 	render() {
 		if (!this.element || !this.eventHandler || !this.uiBuilder) return;
 
