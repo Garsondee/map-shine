@@ -1,0 +1,517 @@
+import { MODULE_ID, ProfileDataManager, MODULE_DEFAULTS, ConfigBuilder, ParticleLayer, SmellyFliesLayer, ScreenEffectsManager } from "../module.js";
+
+/**
+ * Central management system for visual effect profiles and configuration.
+ *
+ * The ProfileManager is the core orchestrator for all Map Shine visual effects,
+ * handling profile storage, loading, merging, and application across different
+ * scopes (scene, world, user overrides). It manages the complex hierarchy of
+ * configuration sources and ensures consistent effect application.
+ *
+ * Configuration Hierarchy (highest to lowest priority):
+ * 1. User overrides (client-side temporary changes)
+ * 2. Scene-specific profiles (stored on scene documents)
+ * 3. World default profiles (world-level settings)
+ * 4. Module defaults (fallback configuration)
+ *
+ * Key responsibilities:
+ * - Profile data persistence and retrieval
+ * - Configuration merging and validation
+ * - Real-time effect system updates
+ * - User interface integration
+ * - Scene transition handling
+ * - Permission and access control
+ *
+ * @class ProfileManager
+ * @since 1.0.0
+ * @example
+ * // Initialize for current scene
+ * profileManager.initializeForScene();
+ *
+ * // Apply a profile
+ * await profileManager.applyProfile(profileId);
+ *
+ * // Update all visual systems
+ * profileManager.updateAllSystemsFromConfig();
+ */
+export class ProfileManager {
+  constructor() {
+    this.moduleId = MODULE_ID;
+    this.ui = null;
+    this.dataManager = new ProfileDataManager(this.moduleId);
+
+    // Live state
+    this.activeConfig = foundry.utils.deepClone(MODULE_DEFAULTS);
+    this.activeSceneId = null;
+    this.status = {
+      sceneHasProfiles: false,
+      isDirty: false,
+      error: null,
+      profileSource: "none",
+    };
+
+    // Raw data stores
+    this._sceneProfiles = [];
+    this._activeProfileId = null;
+    this._userOverrides = {};
+    this._worldProfiles = {};
+    this._worldDefaultProfileName = "";
+  }
+
+  reset() {
+    this.activeConfig = foundry.utils.deepClone(MODULE_DEFAULTS);
+    this.activeSceneId = null;
+    this._sceneProfiles = [];
+    this._activeProfileId = null;
+    this._userOverrides = {};
+    this.status = {
+      sceneHasProfiles: false,
+      isDirty: false,
+      error: null,
+      profileSource: "none",
+    };
+  }
+
+  get isGm() {
+    return game.user?.isGM;
+  }
+
+  initializeForScene() {
+    this.activeSceneId = canvas.scene?.id;
+    if (!this.activeSceneId) {
+      console.error("MapShine | ProfileManager: No active scene.");
+      return;
+    }
+
+    // 1. Load all raw data
+    const worldData = this.dataManager.loadWorldData();
+    this._worldProfiles = worldData.profiles;
+    this._worldDefaultProfileName = worldData.defaultProfileName;
+
+    const sceneData = this.dataManager.loadSceneData();
+    this._sceneProfiles = sceneData.profiles;
+    this._activeProfileId = sceneData.activeProfileId;
+
+    const rawUserOverrides = this.dataManager.loadUserOverrides(
+      this.activeSceneId
+    );
+
+    // 2. Build the effective configuration
+    const result = ConfigBuilder.buildEffectiveConfig({
+      sceneProfiles: this._sceneProfiles,
+      activeProfileId: this._activeProfileId,
+      worldProfiles: this._worldProfiles,
+      worldDefaultProfileName: this._worldDefaultProfileName,
+      rawUserOverrides: rawUserOverrides,
+    });
+
+    // 3. Update the manager's state with the result
+    this.activeConfig = result.activeConfig;
+    this._userOverrides = result.userOverrides;
+    this._activeProfileId = result.activeProfileId;
+    this.status = result.status;
+
+    console.log(
+      `Map Shine | Live configuration built. Source: ${this.status.profileSource}.`
+    );
+  }
+
+  // =========================================================================
+  // SECTION: Scene Profile Management (GM Actions)
+  // =========================================================================
+  async createInitialSceneProfiles() {
+    if (!this.isGm || this.status.sceneHasProfiles) return;
+
+    const { baseConfig } = ConfigBuilder.buildEffectiveConfig({
+      sceneProfiles: [],
+      activeProfileId: null,
+      worldProfiles: this._worldProfiles,
+      worldDefaultProfileName: this._worldDefaultProfileName,
+      rawUserOverrides: {},
+    });
+
+    const newProfile = {
+      id: foundry.utils.randomID(),
+      name: "Default Look",
+      config: baseConfig,
+    };
+
+    await this.dataManager.saveSceneData({
+      profiles: [newProfile],
+      activeProfileId: newProfile.id,
+    });
+    ui.notifications.info("Scene-specific appearances created.");
+  }
+
+  async createSceneProfile(name) {
+    if (!this.isGm) return;
+    if (!name || !name.trim()) {
+      ui.notifications.warn("Please provide a name for the new profile.");
+      return;
+    }
+
+    const configToSave = this.getCurrentConfig({
+      excludeClientOverrides: true,
+    });
+    const newProfile = {
+      id: foundry.utils.randomID(),
+      name: name.trim(),
+      config: configToSave,
+    };
+
+    await this.dataManager.saveSceneData({
+      profiles: [...this._sceneProfiles, newProfile],
+    });
+    ui.notifications.info(`Scene appearance "${name.trim()}" created.`);
+  }
+
+  async createCleanSceneProfile(name) {
+    if (!this.isGm) return;
+    if (!name || !name.trim()) {
+      ui.notifications.warn("Please provide a name for the new profile.");
+      return;
+    }
+
+    const newProfile = {
+      id: foundry.utils.randomID(),
+      name: name.trim(),
+      config: foundry.utils.deepClone(MODULE_DEFAULTS),
+    };
+
+    const newProfiles = [...this._sceneProfiles, newProfile];
+    const updates = { profiles: newProfiles };
+    if (!this._activeProfileId && newProfiles.length === 1) {
+      updates.activeProfileId = newProfile.id;
+    }
+
+    await this.dataManager.saveSceneData(updates);
+    ui.notifications.info(`Clean scene appearance "${name.trim()}" created.`);
+  }
+
+  async updateActiveSceneProfile() {
+    if (!this.isGm || !this.status.sceneHasProfiles || !this._activeProfileId)
+      return;
+
+    const configToSave = this.getCurrentConfig({
+      excludeClientOverrides: true,
+    });
+    const profileIndex = this._sceneProfiles.findIndex(
+      (p) => p.id === this._activeProfileId
+    );
+    if (profileIndex === -1) {
+      ui.notifications.error("Could not find the active profile to update.");
+      return;
+    }
+
+    const profileName = this._sceneProfiles[profileIndex].name;
+    const updatedProfiles = foundry.utils.deepClone(this._sceneProfiles);
+    updatedProfiles[profileIndex].config = configToSave;
+
+    await this.dataManager.saveSceneData({ profiles: updatedProfiles });
+    await this.dataManager.clearUserOverrides(this.activeSceneId);
+    ui.notifications.info(`Saved changes to appearance: "${profileName}"`);
+  }
+
+  async renameSceneProfile(profileId, newName) {
+    if (!this.isGm || !newName?.trim()) return;
+    const profileIndex = this._sceneProfiles.findIndex(
+      (p) => p.id === profileId
+    );
+    if (profileIndex === -1) return;
+
+    const updatedProfiles = foundry.utils.deepClone(this._sceneProfiles);
+    updatedProfiles[profileIndex].name = newName.trim();
+
+    await this.dataManager.saveSceneData({ profiles: updatedProfiles });
+    ui.notifications.info(`Renamed appearance to "${newName.trim()}".`);
+  }
+
+  async deleteSceneProfile(profileId) {
+    if (!this.isGm) return;
+    if (this._sceneProfiles.length <= 1) {
+      ui.notifications.warn("Cannot delete the last scene appearance.");
+      return;
+    }
+
+    const updatedProfiles = this._sceneProfiles.filter(
+      (p) => p.id !== profileId
+    );
+    const updates = { profiles: updatedProfiles };
+    if (this._activeProfileId === profileId) {
+      updates.activeProfileId = updatedProfiles[0]?.id || null;
+    }
+
+    await this.dataManager.saveSceneData(updates);
+    ui.notifications.info(`Deleted scene appearance.`);
+  }
+
+  async activateSceneProfile(profileId) {
+    if (!this.isGm || profileId === this._activeProfileId) return;
+
+    const endProfile = this._sceneProfiles.find((p) => p.id === profileId);
+    if (!endProfile) return;
+
+    const startConfig = this.getCurrentConfig({
+      excludeClientOverrides: true,
+    });
+    const endConfig = ConfigBuilder._reconcile(
+      foundry.utils.deepClone(MODULE_DEFAULTS),
+      foundry.utils.deepClone(endProfile.config)
+    );
+    const duration = this.activeConfig.sceneAppearance.transitionDuration ?? 5000;
+
+    const transitionPromise = game.mapShine.transitionManager.transition(
+      startConfig,
+      endConfig,
+      duration
+    );
+    await this.dataManager.saveSceneData({ activeProfileId: profileId });
+    await transitionPromise;
+    await this.dataManager.clearUserOverrides(this.activeSceneId);
+
+    this.initializeForScene();
+    await this.updateAllSystemsFromConfig();
+    if (this.ui) this.ui.render();
+  }
+
+  async handleRemoteProfileChange() {
+    const { activeProfileId: newActiveId, profiles: sceneProfiles } = this.dataManager.loadSceneData();
+    if (this._activeProfileId === newActiveId) return;
+
+    const startConfig = this.activeConfig;
+    const endProfile = sceneProfiles.find((p) => p.id === newActiveId);
+    if (!endProfile) return;
+
+    const endConfigResult = ConfigBuilder.buildEffectiveConfig({
+      sceneProfiles: sceneProfiles,
+      activeProfileId: newActiveId,
+      worldProfiles: this._worldProfiles,
+      worldDefaultProfileName: this._worldDefaultProfileName,
+      rawUserOverrides: this._userOverrides, // Client's own overrides
+    });
+    const endConfig = endConfigResult.activeConfig;
+    const duration = endConfig.sceneAppearance.transitionDuration ?? 5000;
+
+    await game.mapShine.transitionManager.transition(
+      startConfig,
+      endConfig,
+      duration
+    );
+    this.initializeForScene();
+    await this.updateAllSystemsFromConfig();
+    if (this.ui) this.ui.render();
+  }
+
+  // =========================================================================
+  // SECTION: Previewing & World Profiles
+  // =========================================================================
+  async previewProfile(profileId) {
+    const profile = this._sceneProfiles.find((p) => p.id === profileId);
+    if (profile?.config) {
+      const configToPreview = ConfigBuilder.buildEffectiveConfig(
+        {
+          sceneProfiles: this._sceneProfiles,
+          activeProfileId: profileId,
+          worldProfiles: this._worldProfiles,
+          worldDefaultProfileName: this._worldDefaultProfileName,
+          rawUserOverrides: {}, // Previews ignore user overrides
+        },
+        { excludeClientOverrides: false }
+      ).activeConfig;
+      await game.mapShine.transitionManager.preview(configToPreview);
+    }
+  }
+
+  async endPreview() {
+    await game.mapShine.transitionManager.endPreview();
+  }
+
+  async importWorldProfile(worldProfileName) {
+    if (!this.isGm) return;
+    const profileData = this._worldProfiles[worldProfileName];
+    if (!profileData?.config) {
+      ui.notifications.warn("Could not find world profile to import.");
+      return;
+    }
+
+    const newProfile = {
+      id: foundry.utils.randomID(),
+      name: worldProfileName,
+      config: ConfigBuilder._reconcile(
+        foundry.utils.deepClone(MODULE_DEFAULTS),
+        foundry.utils.deepClone(profileData.config)
+      ),
+    };
+
+    await this.dataManager.saveSceneData({
+      profiles: [...this._sceneProfiles, newProfile],
+    });
+    ui.notifications.info(
+      `Imported "${worldProfileName}" as a new scene appearance.`
+    );
+  }
+
+  async saveAsWorldProfile(name, uiState) {
+    if (!this.isGm || !name) return false;
+    if (this._worldProfiles[name]) {
+      const overwrite = await new Promise((resolve) => {
+        const dialog = new globalThis.Dialog({
+          title: "Profile Exists",
+          content: `<p>A world profile named "<strong>${name}</strong>" already exists. Overwrite it?</p>`,
+          buttons: {
+            yes: {
+              icon: '<i class="fas fa-check"></i>',
+              label: "Overwrite",
+              callback: () => resolve(true)
+            },
+            no: {
+              icon: '<i class="fas fa-times"></i>',
+              label: "Cancel",
+              callback: () => resolve(false)
+            }
+          },
+          default: "no",
+          close: () => resolve(false)
+        });
+        dialog.render(true);
+      });
+      if (!overwrite) return false;
+    }
+    const newWorldProfiles = foundry.utils.deepClone(this._worldProfiles);
+    newWorldProfiles[name] = {
+      config: this.getCurrentConfig({ excludeClientOverrides: true }),
+      ui: uiState,
+    };
+    await this.dataManager.saveWorldData(newWorldProfiles);
+    this._worldProfiles = newWorldProfiles;
+    ui.notifications.info(`World Profile "${name}" saved!`);
+    return true;
+  }
+
+  async applyWorldProfileAsOverrides(name) {
+    const profileData = this._worldProfiles[name];
+    if (!profileData?.config) return;
+
+    const configToApply = ConfigBuilder._reconcile(
+      foundry.utils.deepClone(MODULE_DEFAULTS),
+      foundry.utils.deepClone(profileData.config)
+    );
+    await this.dataManager.saveUserOverrides(this.activeSceneId, configToApply);
+    this.initializeForScene();
+    await this.updateAllSystemsFromConfig();
+    if (this.ui) this.ui.render();
+    ui.notifications.info(`Applied "${name}" as temporary changes.`);
+  }
+
+  async deleteWorldProfile(name) {
+    if (!this.isGm || !name) return false;
+    const newWorldProfiles = foundry.utils.deepClone(this._worldProfiles);
+    delete newWorldProfiles[name];
+    let newDefault = this._worldDefaultProfileName;
+    if (newDefault === name) {
+      newDefault = "";
+      this._worldDefaultProfileName = "";
+      await this.dataManager.saveWorldData(undefined, newDefault);
+    }
+    await this.dataManager.saveWorldData(newWorldProfiles);
+    this._worldProfiles = newWorldProfiles;
+    ui.notifications.info(`World Profile "${name}" deleted.`);
+    return true;
+  }
+
+  async setWorldDefaultProfile(name) {
+    if (!this.isGm) return;
+    await this.dataManager.saveWorldData(undefined, name);
+    this._worldDefaultProfileName = name;
+    ui.notifications.info(`"${name}" is now the World Default Profile.`);
+  }
+
+  // =========================================================================
+  // SECTION: User Overrides & State Management
+  // =========================================================================
+  async recordUserChange(path, value) {
+    foundry.utils.setProperty(this._userOverrides, path, value);
+    await this.dataManager.saveUserOverrides(
+      this.activeSceneId,
+      this._userOverrides
+    );
+    this.initializeForScene();
+  }
+
+  async revertToSceneDefault() {
+    await this.dataManager.clearUserOverrides(this.activeSceneId);
+    this.initializeForScene();
+    await this.updateAllSystemsFromConfig();
+    if (this.ui) this.ui.render();
+    ui.notifications.info("Reverted to saved profile state.");
+  }
+
+  // =========================================================================
+  // SECTION: Getters & Utilities
+  // =========================================================================
+  getSceneProfiles() {
+    return this._sceneProfiles;
+  }
+
+  getActiveProfileId() {
+    return this._activeProfileId;
+  }
+
+  getWorldProfiles() {
+    return this._worldProfiles;
+  }
+
+  getWorldDefaultProfileName() {
+    return this._worldDefaultProfileName;
+  }
+
+  getCurrentConfig(options = {}) {
+    const buildData = {
+      sceneProfiles: this._sceneProfiles,
+      activeProfileId: this._activeProfileId,
+      worldProfiles: this._worldProfiles,
+      worldDefaultProfileName: this._worldDefaultProfileName,
+      rawUserOverrides: this._userOverrides,
+    };
+    const { activeConfig } = ConfigBuilder.buildEffectiveConfig(
+      buildData,
+      options
+    );
+    return activeConfig;
+  }
+
+  async updateAllSystemsFromConfig(options = {}) {
+    if (!canvas?.ready) return;
+    const config = this.activeConfig;
+    game.mapShine.timeControl.timeFactor =
+      config.timeControl.globalTime / 100.0;
+
+    // Update the wind manager with the latest configuration.
+    if (game.mapShine.fireWindManager) {
+      game.mapShine.fireWindManager.updateFromConfig(
+        config.fire.particles.wind
+      );
+    }
+
+    for (const layer of canvas.layers) {
+      if (options.skipParticles &&
+        (layer instanceof ParticleLayer || layer instanceof SmellyFliesLayer)) {
+        continue;
+      }
+      if (typeof layer.updateFromConfig === "function") {
+        try {
+          await layer.updateFromConfig(config, options);
+        } catch (e) {
+          console.error(
+            `MapShine | Error updating layer ${layer.constructor.name}`,
+            e
+          );
+        }
+      }
+    }
+    ScreenEffectsManager.updateAllFiltersFromConfig(config);
+    if (game.mapShine.effectTargetManager) {
+      game.mapShine.effectTargetManager.applyTileOpacities();
+    }
+  }
+}
