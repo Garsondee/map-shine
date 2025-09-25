@@ -1,3 +1,6 @@
+// TODO: THE TIME OF DAY COLOUR GRADE FILTER ISN'T WORKING
+
+
 /******************************************************************************
 	*
 	*                            MAP SHINE
@@ -22,6 +25,8 @@
 // ---------------------------------------------------------------------------------
 
 const MODULE_ID = "map-shine";
+
+
 
 const UNIVERSAL_EFFECT_DEFAULTS = {
 	sceneTransition: {
@@ -1534,27 +1539,27 @@ const MODULE_DEFAULTS = {
 			"layerBlendMode": 1
 		},
 		"animation": {
-			"globalIntensity": 2
+			"globalIntensity": 1.2
 		},
 		"pattern": {
 			"stripes": {
 				"enabled": true,
-				"speed": -0.001,
-				"angle": 38,
-				"scale": 1.5,
+				"speed": 0,
+				"angle": 140,
+				"scale": 1,
 				"parallax": 1,
 				"width": 1,
-				"softness": 0.5,
+				"softness": 0.26,
 				"randomWidth": 0.49,
 				"randomIntensity": 1
 			}
 		},
 		"colorCorrection": {
 			"enabled": true,
-			"saturation": 1.5,
-			"brightness": 0.53,
+			"saturation": 1.25,
+			"brightness": 0.74,
 			"contrast": 3.25,
-			"gamma": 1,
+			"gamma": 0.85,
 			"tint": {
 				"color": "#FFFFFF",
 				"amount": 0
@@ -1569,7 +1574,7 @@ const MODULE_DEFAULTS = {
 	"cloudShadows": {
 		"enabled": true,
 		"blendMode": 0,
-		"shadowIntensity": 0.3,
+		"shadowIntensity": 0.25,
 		"maskBlur": 0,
 		"shadowInteraction": {
 			"enabled": false,
@@ -1579,18 +1584,18 @@ const MODULE_DEFAULTS = {
 		},
 		"wind": {
 			"angle": 45,
-			"speed": 0.0012
+			"speed": 0.05
 		},
 		"noise": {
-			"scale": 0.07,
+			"scale": 0.06,
 			"octaves": 7,
-			"persistence": 0.15,
-			"lacunarity": 3.1
+			"persistence": 0.5,
+			"lacunarity": 1.9
 		},
 		"shading": {
 			"threshold": 1,
 			"softness": 0.71,
-			"brightness": 0.38,
+			"brightness": 0.14,
 			"contrast": 5,
 			"gamma": 1.6
 		}
@@ -1633,17 +1638,17 @@ const MODULE_DEFAULTS = {
 	},
 	"canopy": {
 		"enabled": true,
-		"shadowIntensity": 0.41,
+		"shadowIntensity": 0.3,
 		"tint": "#050805",
 		"distortion": {
 			"enabled": true,
-			"strength": 0.0079,
-			"speed": 0.07,
-			"scale": 1.4,
-			"evolution": 0.34,
+			"strength": 0.004,
+			"speed": 0.005,
+			"scale": 0.01,
+			"evolution": 0.01,
 			"threshold": 0,
-			"brightness": 0,
-			"contrast": 0.45,
+			"brightness": -0.37,
+			"contrast": 1,
 			"softness": 1
 		},
 		"postScale": 1
@@ -1651,7 +1656,7 @@ const MODULE_DEFAULTS = {
 	"structuralShadows": {
 		"enabled": true,
 		"intensity": 0.55,
-		"blendMode": 2,
+		"blendMode": 9,
 		"colorCorrection": {
 			"enabled": true,
 			"saturation": 1,
@@ -1665,8 +1670,8 @@ const MODULE_DEFAULTS = {
 		},
 		"cloudOcclusion": {
 			"enabled": true,
-			"intensity": 0.88,
-			"threshold": 0.94,
+			"intensity": 0.8,
+			"threshold": 0.75,
 			"softness": 1
 		}
 	},
@@ -1675,7 +1680,7 @@ const MODULE_DEFAULTS = {
 		"intensity": 1,
 		"angle": 218,
 		"threshold": 0.1,
-		"softness": 1,
+		"softness": 0.5,
 		"distortionStrength": 1.9,
 		"distortionNoise": {
 			"enabled": true,
@@ -1689,7 +1694,7 @@ const MODULE_DEFAULTS = {
 		}
 	},
 	"ambient": {
-		"enabled": true,
+		"enabled": false,
 		"texturePath": "",
 		"blendMode": 1,
 		"intensity": 1,
@@ -1715,7 +1720,7 @@ const MODULE_DEFAULTS = {
 		}
 	},
 	"groundGlow": {
-		"enabled": false,
+		"enabled": true,
 		"texturePath": "",
 		"blendMode": 1,
 		"intensity": 1.05,
@@ -1732,36 +1737,36 @@ const MODULE_DEFAULTS = {
 	"heatDistortion": {
 		"enabled": true,
 		"texturePath": "",
-		"intensity": 0.0015,
+		"intensity": 0.0005,
 		"noise": {
 			"primary": {
-				"speed": 0.002,
+				"speed": 97,
 				"scale": 0.5,
-				"octaves": 3,
+				"octaves": 2,
 				"lacunarity": 2.2,
 				"persistence": 0.45
 			},
 			"secondary": {
-				"speed": 0.08,
-				"scale": 3,
-				"octaves": 7,
+				"speed": 79,
+				"scale": 3.5,
+				"octaves": 3,
 				"lacunarity": 3.8,
 				"persistence": 0.3
 			},
 			"rising": {
-				"speed": 0.02,
+				"speed": 0.077,
 				"intensity": 0.4
 			}
 		}
 	},
 	"advancedBloom": {
-		"enabled": false,
+		"enabled": true,
 		"blendMode": 1,
-		"threshold": 0.85,
-		"bloomScale": 1.5,
-		"brightness": 1.2,
-		"blur": 8,
-		"quality": 5
+		"threshold": 0.21,
+		"bloomScale": 2,
+		"brightness": 2,
+		"blur": 3.5,
+		"quality": 4
 	},
 	"sceneAppearance": {
 		"transitionDuration": 3500
@@ -1770,23 +1775,23 @@ const MODULE_DEFAULTS = {
 		"enabled": true,
 		"colorCorrection": {
 			"enabled": true,
-			"saturation": 1,
+			"saturation": 0.9,
 			"brightness": 0,
-			"contrast": 1,
+			"contrast": 1.05,
 			"invert": false,
 			"tint": {
 				"color": "#FFFFFF",
 				"amount": 0
 			},
-			"exposure": 0.8,
-			"gamma": 0.9,
+			"exposure": 0.05,
+			"gamma": 1.05,
 			"levels": {
 				"inBlack": 0,
 				"inWhite": 1
 			},
 			"whiteBalance": {
-				"temperature": 0,
-				"tint": 0
+				"temperature": 0.24,
+				"tint": -0.17
 			},
 			"selective": {
 				"enabled": false,
@@ -1893,18 +1898,18 @@ const MODULE_DEFAULTS = {
 			}
 		},
 		"vignette": {
-			"enabled": false,
+			"enabled": true,
 			"amount": 0.24,
 			"softness": 0.36
 		},
 		"lensDistortion": {
-			"enabled": false,
+			"enabled": true,
 			"amount": 0.015,
 			"centerX": 0.5,
 			"centerY": 0.5
 		},
 		"chromaticAberration": {
-			"enabled": false,
+			"enabled": true,
 			"amount": 0.001,
 			"centerX": 0.5,
 			"centerY": 0.5
@@ -1971,14 +1976,38 @@ const MODULE_DEFAULTS = {
 			"max": 12
 		},
 		"colorAlphaGradient": [
-			{ "time": 0, "color": "#ffbc40", "alpha": 0.0 },
-			{ "time": 0.1, "color": "#ffc242", "alpha": 0.69 },
-			{ "time": 0.97, "color": "#fff955", "alpha": 0.69 },
-			{ "time": 1, "color": "#fffb55", "alpha": 0.0 }
+			{
+				"time": 0,
+				"color": "#ffbc40",
+				"alpha": 0
+			},
+			{
+				"time": 0.1,
+				"color": "#ffc242",
+				"alpha": 0.69
+			},
+			{
+				"time": 0.97,
+				"color": "#fff955",
+				"alpha": 0.69
+			},
+			{
+				"time": 1,
+				"color": "#fffb55",
+				"alpha": 0
+			}
 		],
 		"emissiveGradient": [
-			{ "time": 0, "color": "#ffbc40", "alpha": 1.0 },
-			{ "time": 1, "color": "#fffb55", "alpha": 1.0 }
+			{
+				"time": 0,
+				"color": "#ffbc40",
+				"alpha": 1
+			},
+			{
+				"time": 1,
+				"color": "#fffb55",
+				"alpha": 1
+			}
 		],
 		"scale": {
 			"sizeMultiplier": 0.6,
@@ -2011,13 +2040,33 @@ const MODULE_DEFAULTS = {
 			"max": 2.9
 		},
 		"colorAlphaGradient": [
-			{ "time": 0, "color": "#FFFFFF", "alpha": 0.0 },
-			{ "time": 0.055, "color": "#FFFFFF", "alpha": 0.95 },
-			{ "time": 1, "color": "#FFFFFF", "alpha": 0.0 }
+			{
+				"time": 0,
+				"color": "#FFFFFF",
+				"alpha": 0
+			},
+			{
+				"time": 0.055,
+				"color": "#FFFFFF",
+				"alpha": 0.95
+			},
+			{
+				"time": 1,
+				"color": "#FFFFFF",
+				"alpha": 0
+			}
 		],
 		"emissiveGradient": [
-			{ "time": 0, "color": "#000000", "alpha": 1.0 },
-			{ "time": 1, "color": "#000000", "alpha": 1.0 }
+			{
+				"time": 0,
+				"color": "#000000",
+				"alpha": 1
+			},
+			{
+				"time": 1,
+				"color": "#000000",
+				"alpha": 1
+			}
 		],
 		"scale": {
 			"sizeMultiplier": 9,
@@ -2044,147 +2093,187 @@ const MODULE_DEFAULTS = {
 	"metallicGlints": {
 		"enabled": true,
 		"blendMode": 1,
-		"maskThreshold": 0.9,
-		"maskInfluence": 5,
+		"maskThreshold": 0.93,
+		"maskInfluence": 3.92,
 		"particleTexture": "modules/map-shine/assets/glint.webp",
-		"frequency": 0.032,
+		"frequency": 0.031,
 		"lifetime": {
 			"min": 0.4,
-			"max": 1.2
+			"max": 1.5
 		},
 		"colorAlphaGradient": [
-			{ "time": 0, "color": "#FFFFFF", "alpha": 0.0 },
-			{ "time": 0.1, "color": "#FFFFFF", "alpha": 0.75 },
-			{ "time": 1, "color": "#FFFFFF", "alpha": 0.0 }
+			{
+				"time": 0,
+				"color": "#FFFFFF",
+				"alpha": 0
+			},
+			{
+				"time": 0.1,
+				"color": "#FFFFFF",
+				"alpha": 0.75
+			},
+			{
+				"time": 1,
+				"color": "#FFFFFF",
+				"alpha": 0
+			}
 		],
 		"emissiveGradient": [
-			{ "time": 0, "color": "#000000", "alpha": 1.0 },
-			{ "time": 1, "color": "#000000", "alpha": 1.0 }
+			{
+				"time": 0,
+				"color": "#000000",
+				"alpha": 1
+			},
+			{
+				"time": 1,
+				"color": "#000000",
+				"alpha": 1
+			}
 		],
 		"scale": {
-			"sizeMultiplier": 4,
-			"start": 1,
-			"end": 0.1,
+			"sizeMultiplier": 4.1,
+			"start": 0.52,
+			"end": 1.8,
 			"minMult": 0.7
 		},
 		"speed": {
 			"start": 0,
 			"end": 0,
-			"minMult": 0.5
+			"minMult": 0.1
 		},
 		"rotation": {
-			"enabled": false,
-			"minSpeed": 0,
-			"maxSpeed": 0,
+			"enabled": true,
+			"minSpeed": -39,
+			"maxSpeed": 44,
 			"accel": 0
 		}
 	},
 	"biofilm": {
 		"enabled": true,
-		"blendMode": 1,
-		"maskThreshold": 0.05,
+		"blendMode": 0,
+		"maskThreshold": 0.2,
 		"maskUpperThreshold": 0.6,
-		"maskInfluence": 4.13,
-		"particleTexture": "modules/map-shine/assets/foam.webp",
-		"frequency": 0.011,
+		"maskInfluence": 5,
+		"particleTexture": "modules/map-shine/assets/particle.webp",
+		"frequency": 0.097,
 		"lifetime": {
-			"min": 0.8,
-			"max": 1.7
+			"min": 4,
+			"max": 12
 		},
 		"colorAlphaGradient": [
-			{ "time": 0, "color": "#d1d1d1", "alpha": 0.0 },
-			{ "time": 0.04, "color": "#c9c9c8", "alpha": 0.92 },
-			{ "time": 1, "color": "#232e1f", "alpha": 0.0 }
+			{
+				"time": 0,
+				"color": "#d1d1d1",
+				"alpha": 0
+			},
+			{
+				"time": 0.04,
+				"color": "#c9c9c8",
+				"alpha": 0.92
+			},
+			{
+				"time": 1,
+				"color": "#232e1f",
+				"alpha": 0
+			}
 		],
 		"emissiveGradient": [
-			{ "time": 0, "color": "#000000", "alpha": 1.0 },
-			{ "time": 1, "color": "#000000", "alpha": 1.0 }
+			{
+				"time": 0,
+				"color": "#000000",
+				"alpha": 1
+			},
+			{
+				"time": 1,
+				"color": "#000000",
+				"alpha": 1
+			}
 		],
 		"scale": {
-			"sizeMultiplier": 2.1,
-			"start": 0.06,
-			"end": 0.79,
-			"minMult": 1
+			"sizeMultiplier": 0.6,
+			"start": 0.9,
+			"end": 1.09,
+			"minMult": 0.3
 		},
 		"speed": {
-			"start": 21,
-			"end": -29,
-			"minMult": 0.86
+			"start": 3,
+			"end": 6,
+			"minMult": 0.5
 		},
 		"rotation": {
-			"enabled": true,
-			"minSpeed": -33,
-			"maxSpeed": 36,
+			"enabled": false,
+			"minSpeed": 0,
+			"maxSpeed": 20,
 			"accel": 0
 		}
 	},
 	"water": {
 		"enabled": true,
 		"flow": {
-			"enabled": true,
-			"angle": 43,
-			"speed": 50
+			"enabled": false,
+			"angle": 45,
+			"speed": 5
 		},
 		"wave": {
 			"enabled": true,
-			"speed": 1.5,
-			"scale": 0.5,
-			"intensity": 0.0026,
+			"speed": 0.5,
+			"scale": 4.2,
+			"intensity": 0.0025,
 			"biofilmDistortion": {
 				"enabled": true,
 				"intensity": 0.005
 			}
 		},
 		"murkiness": {
-			"enabled": true,
+			"enabled": false,
 			"color": "#1a2c22",
 			"wavyNoise": {
-				"strength": 0.67,
-				"scale": 0.06,
-				"speed": 0.23
+				"strength": 0.8,
+				"scale": 2,
+				"speed": 0.005
 			},
 			"sandyNoise": {
-				"strength": 0.39,
-				"scale": 27.5,
-				"speed": 2
+				"strength": 0.3,
+				"scale": 15,
+				"speed": 0.02
 			}
 		},
 		"surface": {
 			"enabled": true,
-			"foamColor": "#ffffff",
-			"foamIntensity": 0.5,
-			"foamCoverage": 0.23,
-			"foamSharpness": 0.12,
-			"fbmScale": 0.1278,
-			"fbmSpeed": 0.1,
-			"fbmEvolution": 0.11,
-			"fbmOctaves": 7,
-			"fbmLacunarity": 2.25,
-			"fbmPersistence": 0.65,
+			"foamColor": "#33adff",
+			"foamIntensity": 0,
+			"foamCoverage": 0,
+			"foamSharpness": 0.13,
+			"fbmScale": 15.196,
+			"fbmSpeed": 0.01,
+			"fbmEvolution": 0.03,
+			"fbmOctaves": 5,
+			"fbmLacunarity": 4,
+			"fbmPersistence": 0.1,
 			"sheenEnabled": true,
-			"sheenIntensity": 0.558,
+			"sheenIntensity": 0.448,
 			"sheenColor": "#FFFFFF",
-			"sheenScale": 6.2,
-			"sheenSpeed": 25,
+			"sheenScale": 0.5,
+			"sheenSpeed": 0.002,
 			"sheenStretch": 1,
-			"sheenSharpness": 1.1
+			"sheenSharpness": 0.8
 		},
 		"caustics": {
 			"enabled": true,
-			"intensity": 0.008,
-			"scale": 0.3,
-			"speed": 3.6,
-			"color": "#b3fff0",
-			"lineSharpness": 1,
-			"bloomIntensity": 0.37,
+			"intensity": 0.033,
+			"scale": 1,
+			"speed": 0.14,
+			"color": "#87CEFA",
+			"lineSharpness": 5,
+			"bloomIntensity": 1,
 			"lineDistortion": 0.1,
 			"lineDistortionScale": 5,
 			"intersectionBoost": 20,
-			"roughnessScale": 0.7,
-			"roughnessIntensity": 1,
+			"roughnessScale": 4.2,
+			"roughnessIntensity": 0.83,
 			"cloudOcclusion": {
 				"enabled": true,
-				"intensity": 0.93
+				"intensity": 1
 			}
 		},
 		"shoreline": {
@@ -2213,24 +2302,44 @@ const MODULE_DEFAULTS = {
 			"enabled": true,
 			"blendMode": 9,
 			"maskThreshold": 0.17,
-			"maskInfluence": 5,
+			"maskInfluence": 1.95,
 			"particleTexture": "modules/map-shine/assets/glint.webp",
-			"frequency": 0.089,
+			"frequency": 0.99,
 			"lifetime": {
-				"min": 0.2,
-				"max": 1.4
+				"min": 0.8,
+				"max": 0.8
 			},
 			"colorAlphaGradient": [
-				{ "time": 0, "color": "#FFFFFF", "alpha": 0.0 },
-				{ "time": 0.1, "color": "#FFFFFF", "alpha": 0.8 },
-				{ "time": 1, "color": "#FFFFFF", "alpha": 0.0 }
+				{
+					"time": 0,
+					"color": "#FFFFFF",
+					"alpha": 0
+				},
+				{
+					"time": 0.1,
+					"color": "#FFFFFF",
+					"alpha": 0.8
+				},
+				{
+					"time": 1,
+					"color": "#FFFFFF",
+					"alpha": 0
+				}
 			],
 			"emissiveGradient": [
-				{ "time": 0, "color": "#000000", "alpha": 1.0 },
-				{ "time": 1, "color": "#000000", "alpha": 1.0 }
+				{
+					"time": 0,
+					"color": "#000000",
+					"alpha": 1
+				},
+				{
+					"time": 1,
+					"color": "#000000",
+					"alpha": 1
+				}
 			],
 			"scale": {
-				"sizeMultiplier": 0.7,
+				"sizeMultiplier": 1.9,
 				"start": 0.76,
 				"end": 0.82,
 				"minMult": 0.95
@@ -2242,61 +2351,61 @@ const MODULE_DEFAULTS = {
 			},
 			"rotation": {
 				"enabled": true,
-				"minSpeed": -20,
-				"maxSpeed": 11,
-				"accel": -1
+				"minSpeed": 116,
+				"maxSpeed": 123,
+				"accel": 52
 			}
 		}
 	},
 	"foam": {
 		"enabled": true,
-		"blendMode": 0,
-		"smallBlur": 1,
-		"largeBlur": 37,
-		"intensity": 1.55,
-		"threshold": 0.01,
-		"softness": 0.79,
-		"color": "#edf1eb",
+		"blendMode": 1,
+		"smallBlur": 2,
+		"largeBlur": 10,
+		"intensity": 1.5,
+		"threshold": 0.2,
+		"softness": 0.1,
+		"color": "#FFFFFF",
 		"noise": {
-			"scale": 23,
-			"speed": 0.5,
-			"evolution": 0.5,
-			"octaves": 3,
-			"lacunarity": 1.9,
-			"persistence": 0.2
+			"scale": 15,
+			"speed": 0.02,
+			"evolution": 0.05,
+			"octaves": 4,
+			"lacunarity": 2.2,
+			"persistence": 0.45
 		},
 		"breakupNoise": {
 			"enabled": true,
-			"scale": 0.7,
-			"evolution": 0.1,
-			"octaves": 2,
-			"lacunarity": 3.75,
-			"persistence": 0.1,
-			"brightness": 0.04,
-			"contrast": 0.1
+			"scale": 2.5,
+			"evolution": 0.01,
+			"octaves": 5,
+			"lacunarity": 2.8,
+			"persistence": 0.35,
+			"brightness": 0.4,
+			"contrast": 1.2
 		},
 		"blurTurbulence": {
-			"strength": 3,
-			"scale": 4.3,
-			"speed": 0.05
+			"strength": 8,
+			"scale": 0.5,
+			"speed": 0.01
 		},
 		"crestFoam": {
-			"enabled": true,
-			"intensity": 0.35,
-			"frequency": 4,
-			"speed": 0.2,
-			"angle": 16,
-			"sharpness": 39,
-			"perturbStrength": 100,
-			"perturbScale": 0.01,
-			"perturbSpeed": 0.074,
-			"perturbOctaves": 1,
+			"enabled": false,
+			"intensity": 1.8,
+			"frequency": 35,
+			"speed": 0.03,
+			"angle": 15,
+			"sharpness": 12,
+			"perturbStrength": 35,
+			"perturbScale": 0.04,
+			"perturbSpeed": 0.01,
+			"perturbOctaves": 4,
 			"crestBreakup": {
-				"scale": 0.24,
-				"speed": 0.174,
-				"octaves": 1,
-				"brightness": 0.06,
-				"contrast": 3.9
+				"scale": 0.35,
+				"speed": 0.08,
+				"octaves": 3,
+				"brightness": 0.45,
+				"contrast": 1.8
 			}
 		}
 	},
@@ -2314,27 +2423,67 @@ const MODULE_DEFAULTS = {
 			"enabled": true,
 			"blendMode": 1,
 			"maskThreshold": 0.06,
-			"maskInfluence": 0.08,
+			"maskInfluence": 1.01,
 			"particleTexture": "modules/map-shine/assets/flame.webp",
-			"frequency": 0.001,
+			"frequency": 0.033,
 			"lifetime": {
 				"min": 0.1,
-				"max": 1.4
+				"max": 3.4
 			},
 			"colorAlphaGradient": [
-				{ "time": 0, "color": "#FFDD88", "alpha": 0.0 },
-				{ "time": 0.01, "color": "#fedb86", "alpha": 0.1 },
-				{ "time": 1, "color": "#ea7500", "alpha": 0.0 }
+				{
+					"time": 0,
+					"color": "#FFDD88",
+					"alpha": 0
+				},
+				{
+					"time": 0.13768124787703803,
+					"color": "#ffd782",
+					"alpha": 0.47
+				},
+				{
+					"time": 0.2655800067782381,
+					"color": "#ff731e",
+					"alpha": 0.12
+				},
+				{
+					"time": 0.671140900715665,
+					"color": "#000000",
+					"alpha": 0.26
+				},
+				{
+					"time": 0.840843686122106,
+					"color": "#000000",
+					"alpha": 0.13
+				},
+				{
+					"time": 1,
+					"color": "#000000",
+					"alpha": 0
+				}
 			],
 			"emissiveGradient": [
-				{ "time": 0, "color": "#FFDD88", "alpha": 1.0 },
-				{ "time": 1, "color": "#ea7500", "alpha": 1.0 }
+				{
+					"time": 0,
+					"color": "#ffffff",
+					"alpha": 0
+				},
+				{
+					"time": 0.18435862667639175,
+					"color": "#ffffff",
+					"alpha": 0.4
+				},
+				{
+					"time": 1,
+					"color": "#000000",
+					"alpha": 0
+				}
 			],
 			"scale": {
-				"sizeMultiplier": 0.4,
-				"start": 0.32,
-				"end": 1.24,
-				"minMult": 0.95
+				"sizeMultiplier": 1.1,
+				"start": 0.05,
+				"end": 0.9,
+				"minMult": 1
 			},
 			"speed": {
 				"start": 1,
@@ -2345,13 +2494,13 @@ const MODULE_DEFAULTS = {
 				"enabled": true,
 				"minSpeed": -180,
 				"maxSpeed": 180,
-				"accel": 4
+				"accel": 75
 			},
 			"wind": {
 				"enabled": false,
-				"force": 0,
-				"baseSpeed": 0,
-				"gustSpeed": 0,
+				"force": 75,
+				"baseSpeed": 41,
+				"gustSpeed": 145,
 				"gustFrequencyMin": 3,
 				"gustFrequencyMax": 8,
 				"gustDurationMin": 0.2,
@@ -2374,14 +2523,38 @@ const MODULE_DEFAULTS = {
 			"max": 3
 		},
 		"colorAlphaGradient": [
-			{ "time": 0, "color": "#ffbc40", "alpha": 0.0 },
-			{ "time": 0.1, "color": "#ffc242", "alpha": 0.69 },
-			{ "time": 0.97, "color": "#fff955", "alpha": 0.69 },
-			{ "time": 1, "color": "#fffb55", "alpha": 0.0 }
+			{
+				"time": 0,
+				"color": "#ffbc40",
+				"alpha": 0
+			},
+			{
+				"time": 0.1,
+				"color": "#ffc242",
+				"alpha": 0.69
+			},
+			{
+				"time": 0.97,
+				"color": "#fff955",
+				"alpha": 0.69
+			},
+			{
+				"time": 1,
+				"color": "#fffb55",
+				"alpha": 0
+			}
 		],
 		"emissiveGradient": [
-			{ "time": 0, "color": "#000000", "alpha": 1.0 },
-			{ "time": 1, "color": "#000000", "alpha": 1.0 }
+			{
+				"time": 0,
+				"color": "#000000",
+				"alpha": 1
+			},
+			{
+				"time": 1,
+				"color": "#000000",
+				"alpha": 1
+			}
 		],
 		"scale": {
 			"sizeMultiplier": 1.55,
@@ -2391,9 +2564,9 @@ const MODULE_DEFAULTS = {
 		},
 		"path": {
 			"speed": {
-				"start": 32,
-				"end": 10,
-				"minMult": 0.6
+				"start": 114,
+				"end": 27,
+				"minMult": 0.99
 			},
 			"amplitude": {
 				"min": 10,
@@ -2420,7 +2593,7 @@ const MODULE_DEFAULTS = {
 		}
 	},
 	"lightning": {
-		"enabled": false,
+		"enabled": true,
 		"offPeriodMin": 1,
 		"offPeriodMax": 1761,
 		"strikeDuration": 50,
@@ -2490,7 +2663,7 @@ const MODULE_DEFAULTS = {
 		}
 	},
 	"smellyFlies": {
-		"enabled": false,
+		"enabled": true,
 		"blendMode": 0,
 		"particleTexture": "modules/map-shine/assets/fly.webp",
 		"maxParticles": 10,
@@ -2526,20 +2699,21 @@ const MODULE_DEFAULTS = {
 	},
 	"particleSystems": {
 		"enabled": true,
-		"globalDensityMultiplier": 0.6,
-		"globalParticleLimit": 500
+		"globalDensityMultiplier": 0.65,
+		"globalParticleLimit": 1000
 	},
 	"buildingShadows": {
 		"enabled": true,
-		"intensity": 0.21,
-		"maxOffset": 99,
-		"maxBlur": 14,
-		"sunAngle": 0
+		"intensity": 0.42,
+		"maxOffset": 190,
+		"maxBlur": 5,
+		"sunAngle": 3
 	},
 	"timeOfDay": {
 		"enabled": true,
+		"syncToSceneDarkness": true,
 		"intensity": 0.2,
-		"currentTime": 12.20015142058729,
+		"currentTime": 6.100495717251661,
 		"keyframes": {
 			"midnight": {
 				"time": 0,
@@ -2595,28 +2769,28 @@ const MODULE_DEFAULTS = {
 	},
 	"diagnostic": {
 		"enabled": false,
-		"showMasks": false,
+		"showMasks": true,
 		"pixelInspector": false,
-		"displaySuffix": "scene_brightness_mask"
+		"displaySuffix": "specular"
 	},
 	"overheadEffect": {
 		"enabled": true,
 		"blurMinZoom": 0,
-		"blurMidZoom": 7.5,
-		"blurMaxZoom": 37,
+		"blurMidZoom": 1.5,
+		"blurMaxZoom": 18,
 		"opacityMinZoom": 1,
-		"opacityMidZoom": 0.24,
-		"opacityMaxZoom": 0.07,
+		"opacityMidZoom": 0.5,
+		"opacityMaxZoom": 0.08,
 		"zoomPointMin": 0.2,
-		"zoomPointMid": 1.75,
-		"zoomPointMax": 2.8,
+		"zoomPointMid": 0.65,
+		"zoomPointMax": 1.5,
 		"recolor": {
 			"enabled": false,
 			"intensity": 2,
 			"tint": "#80DEEA",
 			"cloudShadowDarken": {
 				"enabled": true,
-				"intensity": 0.3
+				"intensity": 0.25
 			}
 		},
 		"hoverFadeDuration": 500,
@@ -2626,8 +2800,16 @@ const MODULE_DEFAULTS = {
 		}
 	},
 	"ambientLayerZIndex": 250
-};
+}
 
+// Establish the global namespace for Map Shine to satisfy type checkers.
+game.mapShine = game.mapShine || {};
+
+/**
+ * Converts a hex color string to a normalized RGB array [r, g, b].
+ * @param {string} hex - The hex color string (e.g., "#FF5733").
+ * @returns {number[]} A three-element array with RGB values from 0.0 to 1.0.
+ */
 const hexToRgbArray = (hex) => {
 	const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
 	return result
@@ -2639,6 +2821,11 @@ const hexToRgbArray = (hex) => {
 		: [1, 1, 1];
 };
 
+/**
+ * Converts a hex color string to a number.
+ * @param {string} hex - The hex color string (e.g., "#FF5733").
+ * @returns {number} The color as a number (e.g., 0xFF5733).
+ */
 const hexToNumber = (hex) => {
 	if (typeof hex !== "string" || !hex.startsWith("#")) {
 		return 0xffffff; // Default to white on error
@@ -2648,35 +2835,53 @@ const hexToNumber = (hex) => {
 	return isNaN(parsed) ? 0xffffff : parsed;
 };
 
+/**
+ * A simple GSAP `to` replacement using requestAnimationFrame.
+ * @param {object} target The object whose properties you want to animate.
+ * @param {object} config The animation configuration.
+ * @returns {{kill: function}} An object with a kill method to stop the animation.
+ */
 class NativeAnimation {
 	/**
-		* A map to store active animations, allowing them to be cancelled.
-		* The key can be any unique identifier (e.g., a PIXI object, a string).
-		*/
+	 * A map to store active animations, allowing them to be cancelled.
+	 * The key can be any unique identifier (e.g., a PIXI object, a string).
+	 */
 	static activeAnimations = new Map();
 
 	/**
-		* A collection of common easing functions.
-		* @type {Object.<string, function(number): number>}
-		*/
+	 * A collection of common easing functions, which can be nested.
+	 * Allows for dot-notation access like "power2.inOut".
+	 * @type {*}
+	 */
 	static easing = {
+		/** @param {number} t */
 		linear: (t) => t,
 		power2: {
+			/** @param {number} t */
 			in: (t) => t * t,
+			/** @param {number} t */
 			out: (t) => 1 - (1 - t) * (1 - t),
+			/** @param {number} t */
 			inOut: (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2),
 		},
 		power1: {
+			/** @param {number} t */
 			inOut: (t) => (t < 0.5 ? t : 1 - t), // Simple linear ramp up/down
 		},
 	};
 
 	/**
-		* A simple GSAP `to` replacement using requestAnimationFrame.
-		* @param {object} target The object whose properties you want to animate.
-		* @param {object} config The animation configuration.
-		* @returns {{kill: function}} An object with a kill method to stop the animation.
-		*/
+	 * A simple GSAP `to` replacement using requestAnimationFrame.
+	 * The config object contains the duration and callbacks, plus any properties on the target object to animate.
+	 * @param {object} target The object whose properties you want to animate.
+	 * @param {object} config The animation configuration.
+	 * @param {number} config.duration Animation duration in seconds.
+	 * @param {function} [config.onUpdate] Callback on each animation frame.
+	 * @param {function} [config.onComplete] Callback on animation completion.
+	 * @param {(string|function)} [config.ease] Easing function or name (e.g., "power2.inOut").
+	 * @param {*} [config.key] A unique key for this animation, defaults to the target object.
+	 * @returns {{kill: function}} An object with a kill method to stop the animation.
+	 */
 	static to(target, config) {
 		const { duration, onUpdate, onComplete, ease, ...properties } = config;
 		const key = config.key || target; // Use a provided key or the target object itself
@@ -2893,6 +3098,23 @@ class MapShineInitialiser {
 					"timeOfDay.currentTime",
 					time
 				);
+
+				// If the user is a GM, and the setting is enabled, update the scene darkness.
+				if (game.user.isGM) {
+					const todConfig =
+						game.mapShine.profileManager.activeConfig.timeOfDay;
+					if (todConfig.syncToSceneDarkness) {
+						// Calculate darkness level based on a cosine curve for a natural day/night cycle.
+						// Midnight (0/24) = 1, Midday (12) = 0.
+						const darkness = 0.5 * (Math.cos((Math.PI * time) / 12) + 1);
+						if (canvas.scene) {
+							// Clamp the value to prevent any floating point errors going outside the 0-1 range.
+							const clampedDarkness = Math.max(0, Math.min(1, darkness));
+							await canvas.scene.update({ darkness: clampedDarkness });
+						}
+					}
+				}
+
 				// Trigger the expensive update for all visual systems.
 				await game.mapShine.profileManager.updateAllSystemsFromConfig();
 				// Notify other components (like the clock UI itself) that the time has officially changed.
@@ -3041,7 +3263,10 @@ class MapShineInitialiser {
 			game.mapShine.activeEditor = editor;
 			if (isAdvancedMode) {
 				game.mapShine.debugger = editor;
-				editor.initialize(game.mapShine.profileManager);
+				// This type guard ensures the checker knows `editor` is a MaterialEditorDebugger.
+				if (editor instanceof MaterialEditorDebugger) {
+					editor.initialize(game.mapShine.profileManager);
+				}
 			} else {
 				game.mapShine.debugger = null;
 				editor.render(true);
@@ -5566,67 +5791,6 @@ class SceneChangeManager {
 		document.body.appendChild(this.transitionOverlay);
 	}
 
-	_populateOverlayContent(config, sceneName) {
-		const {
-			logoPath,
-			heading,
-			subheading,
-			staticDescription,
-			showSceneName,
-			backgroundOverlayEnabled,
-			backgroundOverlayOpacity,
-		} = config;
-
-		const setContent = (selector, text, display = "block") => {
-			const el = this.transitionOverlay.querySelector(selector);
-			if (el) {
-				if (text && String(text).trim()) {
-					el.innerText = text;
-					el.style.display = display;
-				} else {
-					el.style.display = "none";
-				}
-			}
-		};
-
-		const setSource = (selector, src) => {
-			const el = this.transitionOverlay.querySelector(selector);
-			if (el) {
-				if (src) {
-					el.src = src;
-					el.style.display = "block";
-				} else {
-					el.style.display = "none";
-				}
-			}
-		};
-
-		setSource(".transition-logo", logoPath);
-		setContent(".transition-heading", heading);
-		setContent(".transition-subheading", subheading);
-		setContent(".transition-description", staticDescription);
-		setContent(".transition-scenename", showSceneName ? sceneName : "");
-
-		// The hint element is now managed by the _cycleHints method.
-		const hintEl = this.transitionOverlay.querySelector(".transition-hint");
-		if (hintEl) {
-			hintEl.style.display = "none"; // Hide initially, cycle will manage it
-		}
-
-		const bgOverlay = this.transitionOverlay.querySelector(
-			".background-overlay"
-		);
-		if (bgOverlay) {
-			if (backgroundOverlayEnabled) {
-				const maxOpacity = backgroundOverlayOpacity;
-				const minOpacity = maxOpacity * 0.4;
-				bgOverlay.style.background = `linear-gradient(to bottom, rgba(0,0,0,${maxOpacity}) 0%, rgba(0,0,0,${minOpacity}) 35%, rgba(0,0,0,${minOpacity}) 65%, rgba(0,0,0,${maxOpacity}) 100%)`;
-				bgOverlay.style.display = "block";
-			} else {
-				bgOverlay.style.display = "none";
-			}
-		}
-	}
 
 	_destroyOverlay() {
 		this._stopHintCycle(); // Stop the hint animation when the overlay is removed.
@@ -7199,6 +7363,7 @@ class OverheadEffectLayer extends CanvasLayer {
 
 	async _draw(options) {
 		this._destroyed = false;
+		/** @type {PIXI.EventMode} */
 		this.eventMode = "auto";
 
 		const screen = CoordinateManager.getScreenDimensions();
@@ -9305,7 +9470,7 @@ class NoiseTextureManager {
 
 	updateFromConfig(config) {
 		const nConfig = foundry.utils.getProperty(config, this.configPath);
-		if (!nConfig) {
+		if (!nConfig || typeof nConfig !== 'object') {
 			if (this.filter) this.filter.enabled = false;
 			return;
 		}
@@ -9326,13 +9491,13 @@ class NoiseTextureManager {
 		};
 
 		const u = this.filter.uniforms;
-		u.u_speed = (nConfig.speed ?? 0.0) * (factors.speed ?? 1.0);
-		u.u_scale = nConfig.scale;
-		u.u_threshold = nConfig.threshold;
-		u.u_brightness = nConfig.brightness;
-		u.u_contrast = nConfig.contrast;
-		u.u_softness = nConfig.softness;
-		u.u_evolution = (nConfig.evolution ?? 0.0) * (factors.evolution ?? 1.0);
+		u.u_speed = (nConfig['speed'] ?? 0.0) * (factors.speed ?? 1.0);
+		u.u_scale = nConfig['scale'] ?? 1.0;
+		u.u_threshold = nConfig['threshold'] ?? 0.5;
+		u.u_brightness = nConfig['brightness'] ?? 1.0;
+		u.u_contrast = nConfig['contrast'] ?? 1.0;
+		u.u_softness = nConfig['softness'] ?? 0.0;
+		u.u_evolution = (nConfig['evolution'] ?? 0.0) * (factors.evolution ?? 1.0);
 
 		this.requestUpdate();
 	}
@@ -9347,8 +9512,8 @@ class NoiseTextureManager {
 		);
 		const isAnimated =
 			nConfig &&
-			(nConfig.speed * timeFactor !== 0 ||
-				nConfig.evolution * timeFactor !== 0);
+			((nConfig['speed'] ?? 0) * timeFactor !== 0 ||
+				(nConfig['evolution'] ?? 0) * timeFactor !== 0);
 
 		if (!this._needsUpdate && !isAnimated) return;
 
@@ -13022,12 +13187,28 @@ class TextureMaskShape {
 	}
 
 	/**
+	 * Forces the shape to discard its current spawn points and re-calculate them.
+	 * This is crucial for dynamic masks that change with camera movement.
+	 */
+	forceRecompile() {
+		// Don't start a new compilation if one is already running to prevent redundant work.
+		if (this.isCompiling) return;
+
+		// Reset the state to allow compilePoints to run again.
+		this.isCompiled = false;
+		this.isCompiling = false;
+		this._compilationPromise = null;
+		this.compilePoints();
+	}
+
+
+	/**
 		* Asynchronously compiles the list of valid spawn points from the texture mask.
 		* This is now the main performance-intensive method.
 		* @returns {Promise<void>} A promise that resolves when compilation is complete.
 		*/
 	compilePoints() {
-		if (this.isCompiled || this.isCompiling) {
+		if (this.isCompiling || (this.isCompiled && this._compilationPromise)) {
 			return this._compilationPromise || Promise.resolve();
 		}
 
@@ -13343,6 +13524,7 @@ class ParticleLayer extends CanvasLayer {
 		this._initialized = false; // Flag to ensure one-time setup
 		this._uiUpdateCounter = 0; // Frame counter for UI throttling
 		this._uiUpdateFrequency = 15; // Update UI every 15 frames (approx. 4 times per second)
+		this._onPanBoundForParticles = null; // To hold the bound pan listener
 	}
 
 	async _draw(options) {
@@ -13360,6 +13542,22 @@ class ParticleLayer extends CanvasLayer {
 		// Bind and register the listener for map point updates.
 		this._onMapPointsUpdatedBound = this._onMapPointsUpdated.bind(this);
 		Hooks.on("mapShine:mapPointsUpdated", this._onMapPointsUpdatedBound);
+
+		// This new hook will listen for camera pans to trigger a recompilation
+		// of particle spawn points for dynamic screen-space masks.
+		this._onPanBoundForParticles = () => {
+			if (!game.mapShine.particleManager) return;
+			for (const controller of game.mapShine.particleManager.controllers.values()) {
+				for (const { emitter } of controller.emitters.values()) {
+					if (!emitter.behaviors) continue;
+					const spawnBehavior = emitter.behaviors.find(b => b.type === 'spawnShape');
+					if (spawnBehavior?.shape instanceof TextureMaskShape && spawnBehavior.shape.isDynamicScreenMask) {
+						spawnBehavior.shape.forceRecompile();
+					}
+				}
+			}
+		};
+		Hooks.on("canvasPan", this._onPanBoundForParticles);
 	}
 
 	async _tearDown(options) {
@@ -13370,9 +13568,14 @@ class ParticleLayer extends CanvasLayer {
 			canvas.app.ticker.remove(this._onAnimateBound);
 		}
 
-		// Unregister the listener for map point updates to prevent memory leaks.
+		// Unregister the map point listener to prevent memory leaks.
 		if (this._onMapPointsUpdatedBound) {
 			Hooks.off("mapShine:mapPointsUpdated", this._onMapPointsUpdatedBound);
+		}
+
+		// Unregister the new pan listener.
+		if (this._onPanBoundForParticles) {
+			Hooks.off("canvasPan", this._onPanBoundForParticles);
 		}
 
 		if (game.mapShine.particleManager) {
@@ -14610,6 +14813,10 @@ class NoisePatternFilter extends PIXI.Filter {
 	}
 }
 
+/**
+ * @extends {PIXI.Filter}
+ * @property {object} uniforms - The uniforms of the filter.
+ */
 class FilmGrainFilter extends PIXI.Filter {
 	constructor(options = {}) {
 		const fragmentSrc = `
@@ -15828,14 +16035,14 @@ class ScreenEffectsManager {
 		];
 
 		const BloomFilterConstructor =
-			PIXI.filters.AdvancedBloomFilter ||
-			(PIXI.filters.filters && PIXI.filters.filters.AdvancedBloomFilter);
+			PIXI.filters?.AdvancedBloomFilter ||
+			(globalThis.filters && globalThis.filters.AdvancedBloomFilter);
 		if (BloomFilterConstructor)
 			managedFilterClasses.push(BloomFilterConstructor);
 
 		const TiltShiftFilterConstructor =
-			PIXI.filters.TiltShiftFilter ||
-			(PIXI.filters.filters && PIXI.filters.filters.TiltShiftFilter);
+			PIXI.filters?.TiltShiftFilter ||
+			(globalThis.filters && globalThis.filters.TiltShiftFilter);
 		if (TiltShiftFilterConstructor)
 			managedFilterClasses.push(TiltShiftFilterConstructor);
 
@@ -15923,8 +16130,8 @@ class ScreenEffectsManager {
 
 		try {
 			const TiltShiftFilterConstructor =
-				PIXI.filters.TiltShiftFilter ||
-				(PIXI.filters.filters && PIXI.filters.filters.TiltShiftFilter);
+				PIXI.filters?.TiltShiftFilter ||
+				(globalThis.filters && globalThis.filters.TiltShiftFilter);
 			if (TiltShiftFilterConstructor) {
 				const tiltShiftFilter = new TiltShiftFilterConstructor();
 				this.addFilter("tiltShift", tiltShiftFilter);
@@ -15937,8 +16144,8 @@ class ScreenEffectsManager {
 
 		try {
 			const BloomFilterConstructor =
-				PIXI.filters.AdvancedBloomFilter ||
-				(PIXI.filters.filters && PIXI.filters.filters.AdvancedBloomFilter);
+				PIXI.filters?.AdvancedBloomFilter ||
+				(globalThis.filters && globalThis.filters.AdvancedBloomFilter);
 			if (BloomFilterConstructor) {
 				const bloomFilter = new BloomFilterConstructor();
 				this._filters.set("advancedBloom", bloomFilter);
@@ -16038,11 +16245,9 @@ class ScreenEffectsManager {
 				u.uTexelSize = [1 / screen.width, 1 / screen.height];
 			}
 		}
-
 		const tiltShiftFilter = this.getFilter("tiltShift");
 		const TiltShiftFilterConstructor =
-			PIXI.filters.TiltShiftFilter ||
-			(PIXI.filters.filters && PIXI.filters.filters.TiltShiftFilter);
+			PIXI.filters?.TiltShiftFilter;
 		if (
 			tiltShiftFilter &&
 			TiltShiftFilterConstructor &&
@@ -17798,7 +18003,6 @@ class MaskedEffectLayer extends CanvasLayer {
 	}
 
 	/**
-		* @override
 		* Updates the sprites in the mask container based on discovered effect targets.
 		*/
 	async updateEffectTargets(targets) {
@@ -20123,7 +20327,7 @@ class CloudShadowsFilter extends PIXI.Filter {
                             
                             shadowAmount = clamp(shadowAmount, 0.0, 1.0);
                             
-                            gl_FragColor = vec4(vec3(1.0 - shadowAmount), 1.0);
+														gl_FragColor = vec4(vec3(0.0), shadowAmount * u_shadowIntensity);
                         }
                     `;
 
@@ -20577,9 +20781,9 @@ class CloudShadowsLayer extends MaskedEffectLayer {
 		u.u_shading_contrast = s.contrast;
 		u.u_shading_gamma = s.gamma;
 
-		this.blendMode = PIXI.BLEND_MODES.NORMAL;
+		this.blendMode = PIXI.BLEND_MODES.OVERLAY;
 		if (this.effectSprite) {
-			this.effectSprite.blendMode = PIXI.BLEND_MODES.MULTIPLY;
+			this.effectSprite.blendMode = PIXI.BLEND_MODES.OVERLAY;
 		}
 	}
 
@@ -25721,6 +25925,12 @@ class TimeOfDayLayer extends MaskedEffectLayer {
 
 		const content = `
             <p class="description-text">Applies a color grade to outdoor areas of the map based on the time of day set by the Day/Night Clock.</p>
+            ${DebuggerUIBuilder._createCheckboxHTML(
+			"timeOfDay.syncToSceneDarkness",
+			"Sync to Scene Darkness",
+			false,
+			"When enabled, the Day/Night clock will control Foundry's global scene darkness level. (GM only)"
+		)}
             ${DebuggerUIBuilder._createSliderHTML(
 			"timeOfDay.intensity",
 			"Overall Intensity",

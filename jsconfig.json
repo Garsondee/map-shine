@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "allowJs": true,
+    "checkJs": true,
+
+    // These settings will stop the implicit 'any' errors inside your module.js
+    "noImplicitAny": false
+  },
+  "include": [
+    "scripts/**/*.js",
+    "eslint.config.js", // This line is crucial for fixing the config file errors
+    "foundry-vtt-globals.d.ts"
+  ],
+  "exclude": ["node_modules", "dist"]
+}

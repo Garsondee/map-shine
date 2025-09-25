@@ -1,4 +1,5 @@
 {
+  "$schema": "https://json.schemastore.org/package.json",
   "name": "map-shine",
   "version": "1.0.0",
   "description": "A module to make the map shine.",
@@ -13,6 +14,14 @@
     "@pixi/particle-emitter": "^5.0.8"
   },
   "devDependencies": {
-    "esbuild": "^0.20.0"
+    "@eslint/js": "^9.36.0",
+    "@league-of-foundry-developers/foundry-vtt-types": "^13.346.0-beta.20250924172319",
+    "@types/pixi.js": "^4.8.9",
+    "esbuild": "^0.20.0",
+    "eslint": "^9.36.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^16.4.0",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.44.1"
   }
 }
