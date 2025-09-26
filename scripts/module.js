@@ -21,8 +21,10 @@
  * @requires foundry ^13+
  * @requires pixi.js ^7.4.3
  * 
+ * @todo IMPORTANT - Metallic shine seems to break in Big Bank. Does Metallic Shine depend upon a texture which if not present would cause it to fail, even when we should in theory be able to ignore the lack of this file? Investigate and solve.
  * @todo Fix the time of day color grade filter functionality.
  * @todo No hints can be seen during loading and scene transitions.
+ * @todo Add a _Caustic map to just allow for rendering of the caustic effect and nothing else.
  */
 
 import { ProfileManager } from "./managers/ProfileManager.js";
@@ -18572,7 +18574,11 @@ class MetallicShineFilter extends PIXI.Filter {
               }
               
               if (outdoorsMaskValue < 0.5) {
-                  float structuralMaskValue = texture2D(uStructuralMask, vScreenCoord).r;
+                  vec4 structuralTex = texture2D(uStructuralMask, vScreenCoord);
+                  // If the structural mask texture is effectively empty (alpha is ~0), it means no _Structural map was found.
+                  // In this case, we should treat it as if it were fully white (a value of 1.0) to let the shine pass through.
+                  // Otherwise, we use its red channel value to modulate the shine as intended.
+                  float structuralMaskValue = (structuralTex.a < 0.01) ? 1.0 : structuralTex.r;
                   finalAlpha *= structuralMaskValue;
               }
               
