@@ -6589,14 +6589,16 @@ class LoadingScreen {
 		this.element.innerHTML = `
                         <div class="loading-background-overlay"></div>
                         <div class="loading-content">
-                            <img src="modules/map-shine/assets/fvtt.png" class="loading-logo slide-from-above" alt="Foundry VTT Logo">
-                            <h2 class="loading-subhead slide-from-above">${subheading}</h2>
-                            <h1 class="loading-title slide-from-above">${game.world.title}</h1>
-                            <div class="loading-bar-container slide-from-below">
-                                <div class="loading-bar-fill"></div>
+                            <div class="loading-text-box">
+                                <img src="modules/map-shine/assets/fvtt.png" class="loading-logo slide-from-above" alt="Foundry VTT Logo">
+                                <h2 class="loading-subhead slide-from-above">${subheading}</h2>
+                                <h1 class="loading-title slide-from-above">${game.world.title}</h1>
+                                <div class="loading-bar-container slide-from-below">
+                                    <div class="loading-bar-fill"></div>
+                                </div>
+                                <div id="loading-status-text" class="loading-status slide-from-below"></div>
+                                <p id="loading-hint-text" class="loading-hint"></p>
                             </div>
-                            <div id="loading-status-text" class="loading-status slide-from-below"></div>
-                            <p id="loading-hint-text" class="loading-hint"></p>
                         </div>
                         <style>
                             #map-shine-loading-screen { 
@@ -6610,23 +6612,35 @@ class LoadingScreen {
                             }
                             .loading-background-overlay {
                                 ${backgroundStyle}
-                                position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+                                position: absolute; top: 0; left: 0; width: 90%; height: 90%; 
                                 z-index: 1; /* Behind content */
                             }
                             .loading-content { text-align: center; position: relative; z-index: 2; }
+                            .loading-text-box {
+                                background: rgba(0, 0, 0, 0.45);
+                                backdrop-filter: blur(12px);
+                                -webkit-backdrop-filter: blur(12px);
+                                border-radius: 12px;
+                                padding: 3.5rem 4.5rem;
+                                border: 1px solid rgba(255, 255, 255, 0.1);
+                                box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+                                max-width: 650px;
+                                -webkit-mask-image: radial-gradient(ellipse at center, black 25%, transparent 75%);
+                                mask-image: radial-gradient(ellipse at center, black 25%, transparent 75%);
+                            }
                             .loading-logo { width: 150px; height: auto; margin: 0 auto 10px auto; display: block; filter: drop-shadow(0 0 10px rgba(0,0,0,0.6)); }
-                            .loading-subhead { font-family: "${subheadingFont}", sans-serif; font-size: 24px; font-weight: normal; color: #bbb; margin: 0 0 10px 0; text-shadow: 0 2px 5px rgba(0,0,0,0.7); }
+                            .loading-subhead { font-family: "${subheadingFont}", sans-serif; font-size: 24px; font-weight: normal; color: #f0f0f0; margin: 0 0 10px 0; text-shadow: 0 2px 5px rgba(0,0,0,0.7); }
                             .loading-title { font-family: "${headingFont}", sans-serif; font-size: 72px; margin: 0 0 30px 0; text-shadow: 0 2px 5px rgba(0,0,0,0.7); color: #fff; }
-                            .loading-bar-container { width: 400px; height: 20px; border: 2px solid rgba(255, 255, 255, 0.5); margin: 0 auto; background-color: rgba(0,0,0,0.5); border-radius: 5px; overflow: hidden; }
+                            .loading-bar-container { max-width: 400px; height: 20px; border: 2px solid rgba(255, 255, 255, 0.5); margin: 0 auto; background-color: rgba(0,0,0,0.5); border-radius: 5px; overflow: hidden; }
                             .loading-bar-fill { width: 0%; height: 100%; background-color: rgba(255, 255, 255, 0.9); transform-origin: left; transition: width 0.2s ease-out; box-shadow: 0 0 10px rgba(255, 255, 255, 0.5); }
-                            .loading-status { margin-top: 15px; font-size: 16px; color: #ddd; height: 20px; line-height: 20px; opacity: 0; transition: opacity ${this.statusFadeDuration / 1000
+                            .loading-status { margin-top: 15px; font-size: 16px; color: #f5f5f5; height: 20px; line-height: 20px; opacity: 0; transition: opacity ${this.statusFadeDuration / 1000
 			}s ease-in-out; text-shadow: 0 2px 5px rgba(0,0,0,0.7); }
                             
                             .loading-hint {
                                 font-family: "${hintFont}", sans-serif;
                                 margin-top: 25px;
                                 font-size: 16px;
-                                color: #aaa;
+                                color: #e8e8e8;
                                 font-style: italic;
                                 max-width: 50ch;
                                 margin-left: auto;
