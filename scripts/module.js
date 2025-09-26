@@ -1,3 +1,4 @@
+
 /**
  * @fileoverview Map Shine - Advanced Visual Effects Module for Foundry VTT
  * 
@@ -2483,6 +2484,17 @@ export const MODULE_DEFAULTS = {
 			"brightness": 0.4,
 			"contrast": 1.2
 		},
+		"suppressionNoise": {
+			"enabled": true,
+			"scale": 2.5,
+			"speed": 0.005,
+			"evolution": 0.01,
+			"octaves": 4,
+			"lacunarity": 2,
+			"persistence": 0.5,
+			"brightness": 0.5,
+			"contrast": 1
+		},
 		"blurTurbulence": {
 			"strength": 8,
 			"scale": 0.5,
@@ -3373,12 +3385,15 @@ class MapShineInitialiser {
 						console.log(
 							"MapShine | New effect targets discovered. Updating scene flag."
 						);
+						// Update the local state immediately to resolve the race condition for the GM.
+						this.targets = discoveredTargets;
 						await canvas.scene.setFlag(
 							MODULE_ID,
 							FLAG_NAME,
 							serializableTargets
 						);
-						return; // The updateScene hook will trigger the rest of the refresh on all clients.
+						// The early return is removed. The rest of the function will now execute for the GM,
+						// ensuring the loading process can continue without waiting for the updateScene hook.
 					}
 				} else {
 					const flagData = canvas.scene.getFlag(MODULE_ID, FLAG_NAME);
@@ -11641,22 +11656,29 @@ const buildParticleEmitterConfig = (
 	};
 
 	const speedConfig = config.speed ?? {};
-	if (maskKey === "fire" && config.wind?.enabled) {
-		behaviors.push({
-			type: "moveAcceleration",
-			// @ts-ignore
-			config: { accel: { x: 0, y: 0 } },
-		});
-		behaviors.push({
-			type: "fireWind",
-			config: config.wind,
-		});
-		emitterConfig.rotation = -90; // Point upwards
-		emitterConfig.speed = {
-			min: speedConfig.start ?? 1,
-			max: speedConfig.end ?? 2,
-		};
+
+	// --- REFACTORED MOVEMENT LOGIC ---
+	if (maskKey === 'fire') {
+		// Fire particles have special movement logic for rising.
+		if (config.wind?.enabled) {
+			// With wind, all movement is handled by the custom FireWindBehavior.
+			// This behavior includes buoyancy and applies wind forces directly to velocity.
+			// We do NOT add moveAcceleration or set emitterConfig.speed, as that would
+			// create conflicts with our custom physics simulation.
+			behaviors.push({
+				type: "fireWind",
+				config: config.wind,
+			});
+		} else {
+			// Without wind, fire still needs to rise. Use a simple initial upward velocity.
+			emitterConfig.rotation = -90; // Point upwards
+			emitterConfig.speed = {
+				min: speedConfig.start ?? 1,
+				max: speedConfig.end ?? 2,
+			};
+		}
 	} else {
+		// All other particle types use the standard moveSpeed behavior.
 		const startSpeed = speedConfig.start ?? 5;
 		const endSpeed = speedConfig.end ?? 15;
 		if (startSpeed === endSpeed) {
@@ -11682,6 +11704,7 @@ const buildParticleEmitterConfig = (
 			});
 		}
 	}
+	// --- END REFACTORED MOVEMENT LOGIC ---
 
 	const rotConfig = config.rotation ?? {};
 	if (rotConfig.enabled) {
@@ -12883,32 +12906,51 @@ class FireWindBehavior {
 		// @ts-ignore
 		this.order = PIXI.particles.behaviors.BehaviorOrder.Normal;
 		this.config = config;
+		// The fire's natural upward buoyancy is now part of this self-contained behavior.
+		this.buoyancy = { x: 0, y: -50 };
 	}
 
-	// @ts-ignore
-	// @ts-ignore
+	/**
+	 * Initializes particles for this behavior.
+	 * This is required by the emitter library.
+	 * @param {PIXI.particles.Particle} first The first particle in the batch.
+	 */
 	initParticles(first) {
-		// No initial setup needed per particle for this behavior.
+		let p = first;
+		while (p) {
+			// Each particle gets its own velocity vector, initialized to zero.
+			p.velocity = new PIXI.Point(0, 0);
+			p = p.next;
+		}
 	}
 
-	// @ts-ignore
-	// @ts-ignore
+	/**
+	 * Updates a single particle by applying buoyancy and wind forces.
+	 * @param {PIXI.particles.Particle} particle The particle to update.
+	 * @param {number} deltaSec The time elapsed in seconds.
+	 */
 	updateParticle(particle, deltaSec) {
 		const windManager = game.mapShine?.fireWindManager;
-		if (!windManager || !this.config.enabled) return;
+		// Do nothing if the particle is invalid or the necessary systems aren't ready.
+		if (!particle.velocity || !windManager || !this.config.enabled) return;
 
-		// Get the current wind vector from the manager
+		// 1. Get the current wind force from the manager.
 		const windAngleRad = windManager.angle * (Math.PI / 180.0);
 		const windForce = windManager.speed * this.config.force;
+		const windAccelX = Math.cos(windAngleRad) * windForce;
+		const windAccelY = Math.sin(windAngleRad) * windForce;
 
-		// Calculate the acceleration to apply to the particle for this frame
-		const accelX = Math.cos(windAngleRad) * windForce;
-		const accelY = Math.sin(windAngleRad) * windForce;
+		// 2. Calculate the total acceleration for this frame (buoyancy + wind).
+		const totalAccelX = this.buoyancy.x + windAccelX;
+		const totalAccelY = this.buoyancy.y + windAccelY;
 
-		// The built-in 'move' behavior will use these acceleration values
-		// to update the particle's velocity.
-		particle.ax += accelX;
-		particle.ay += accelY;
+		// 3. Update the particle's velocity based on the total acceleration.
+		particle.velocity.x += totalAccelX * deltaSec;
+		particle.velocity.y += totalAccelY * deltaSec;
+
+		// 4. Update the particle's screen position based on its new velocity.
+		particle.position.x += particle.velocity.x * deltaSec;
+		particle.position.y += particle.velocity.y * deltaSec;
 	}
 }
 
@@ -16059,6 +16101,17 @@ class FoamFilter extends PIXI.Filter {
             uniform float uBreakupNoisePersistence;
             uniform float uBreakupNoiseBrightness;
             uniform float uBreakupNoiseContrast;
+
+            // Foam Suppression Noise
+            uniform bool uSuppressionNoiseEnabled;
+            uniform float uSuppressionNoiseScale;
+            uniform float uSuppressionNoiseSpeed;
+            uniform float uSuppressionNoiseEvolution;
+            uniform int uSuppressionNoiseOctaves;
+            uniform float uSuppressionNoiseLacunarity;
+            uniform float uSuppressionNoisePersistence;
+            uniform float uSuppressionNoiseBrightness;
+            uniform float uSuppressionNoiseContrast;
             
             // Crest Foam (Wave Shape)
             uniform bool uCrestFoamEnabled;
@@ -16211,6 +16264,15 @@ class FoamFilter extends PIXI.Filter {
                     foamMask *= breakupNoise;
                 }
 
+                if (uSuppressionNoiseEnabled) {
+                    vec2 worldCoord = u_camera_offset + (vScreenCoord * u_view_size);
+                    vec3 suppressionCoord = vec3(worldCoord * uSuppressionNoiseScale, u_time * uSuppressionNoiseEvolution);
+                    suppressionCoord.x += u_time * uSuppressionNoiseSpeed;
+                    float suppressionNoise = fbm_snoise(suppressionCoord, uSuppressionNoiseOctaves, uSuppressionNoiseLacunarity, uSuppressionNoisePersistence);
+                    suppressionNoise = (suppressionNoise - 0.5 + uSuppressionNoiseBrightness) * uSuppressionNoiseContrast + 0.5;
+                    foamMask *= clamp(suppressionNoise, 0.0, 1.0);
+                }
+
                 if (foamMask < 0.01 && !uCrestFoamEnabled) {
                     discard;
                 }
@@ -16293,6 +16355,16 @@ class FoamFilter extends PIXI.Filter {
 			// @ts-ignore
 			uBreakupNoiseBrightness: (options.breakupNoise?.brightness ?? 0.4) - 0.5,
 			uBreakupNoiseContrast: options.breakupNoise?.contrast ?? 1.2,
+			uSuppressionNoiseEnabled: options.suppressionNoise?.enabled ?? true,
+			uSuppressionNoiseScale: options.suppressionNoise?.scale ?? 2.5,
+			uSuppressionNoiseSpeed: options.suppressionNoise?.speed ?? 0.005,
+			uSuppressionNoiseEvolution: options.suppressionNoise?.evolution ?? 0.01,
+			uSuppressionNoiseOctaves: options.suppressionNoise?.octaves ?? 4,
+			uSuppressionNoiseLacunarity: options.suppressionNoise?.lacunarity ?? 2.0,
+			uSuppressionNoisePersistence: options.suppressionNoise?.persistence ?? 0.5,
+			// @ts-ignore
+			uSuppressionNoiseBrightness: (options.suppressionNoise?.brightness ?? 0.5) - 0.5,
+			uSuppressionNoiseContrast: options.suppressionNoise?.contrast ?? 1.0,
 			// Crest Foam (Wave Shape)
 			uCrestFoamEnabled: options.crestFoam?.enabled ?? true,
 			uCrestFoamIntensity: options.crestFoam?.intensity ?? 1.8,
@@ -16524,6 +16596,72 @@ class FoamLayer extends CanvasLayer {
 		)}
           </div>
       </details>
+      <details id="details-foam-suppressionNoise">
+          <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+			"foam.suppressionNoise.enabled",
+			"Foam Suppression",
+			true
+		)}</div></summary>
+          <div style="padding-left: 15px;">
+              <p class="description-text">Uses a large, slow noise pattern to mask out the foam, preventing it from appearing everywhere at once.</p>
+              ${DebuggerUIBuilder._createSliderHTML(
+			"foam.suppressionNoise.scale",
+			"Scale",
+			0.001,
+			1,
+			0.001
+		)}
+              ${DebuggerUIBuilder._createSliderHTML(
+			"foam.suppressionNoise.speed",
+			"Speed",
+			0,
+			0.05,
+			0.001
+		)}
+              ${DebuggerUIBuilder._createSliderHTML(
+			"foam.suppressionNoise.evolution",
+			"Evolution",
+			0,
+			0.1,
+			0.001
+		)}
+              ${DebuggerUIBuilder._createSliderHTML(
+			"foam.suppressionNoise.octaves",
+			"Complexity (Octaves)",
+			1,
+			8,
+			1
+		)}
+              ${DebuggerUIBuilder._createSliderHTML(
+			"foam.suppressionNoise.lacunarity",
+			"Detail Scale",
+			1.5,
+			4,
+			0.05
+		)}
+              ${DebuggerUIBuilder._createSliderHTML(
+			"foam.suppressionNoise.persistence",
+			"Roughness",
+			0.1,
+			1,
+			0.05
+		)}
+              ${DebuggerUIBuilder._createSliderHTML(
+			"foam.suppressionNoise.brightness",
+			"Coverage",
+			0,
+			1,
+			0.01
+		)}
+              ${DebuggerUIBuilder._createSliderHTML(
+			"foam.suppressionNoise.contrast",
+			"Sharpness",
+			0.1,
+			5,
+			0.05
+		)}
+          </div>
+      </details>
       <details id="details-foam-crestFoam">
           <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
 			"foam.crestFoam.enabled",
@@ -16751,6 +16889,17 @@ class FoamLayer extends CanvasLayer {
 			u.uBreakupNoisePersistence = bn.persistence;
 			u.uBreakupNoiseBrightness = bn.brightness - 0.5;
 			u.uBreakupNoiseContrast = bn.contrast;
+
+			const sn = fConfig.suppressionNoise;
+			u.uSuppressionNoiseEnabled = sn.enabled;
+			u.uSuppressionNoiseScale = sn.scale;
+			u.uSuppressionNoiseSpeed = sn.speed;
+			u.uSuppressionNoiseEvolution = sn.evolution;
+			u.uSuppressionNoiseOctaves = sn.octaves;
+			u.uSuppressionNoiseLacunarity = sn.lacunarity;
+			u.uSuppressionNoisePersistence = sn.persistence;
+			u.uSuppressionNoiseBrightness = sn.brightness - 0.5;
+			u.uSuppressionNoiseContrast = sn.contrast;
 
 			const cf = fConfig.crestFoam;
 			u.uCrestFoamEnabled = cf.enabled;
