@@ -21,10 +21,8 @@
  * @requires foundry ^13+
  * @requires pixi.js ^7.4.3
  * 
- * @todo IMPORTANT - Metallic shine seems to break in Big Bank. Does Metallic Shine depend upon a texture which if not present would cause it to fail, even when we should in theory be able to ignore the lack of this file? Investigate and solve.
- * @todo Fix the time of day color grade filter functionality.
- * @todo No hints can be seen during loading and scene transitions.
  * @todo Add a _Caustic map to just allow for rendering of the caustic effect and nothing else.
+ * @todo Glow in the dark is broken.
  */
 
 import { ProfileManager } from "./managers/ProfileManager.js";
@@ -1772,7 +1770,7 @@ export const MODULE_DEFAULTS = {
 			"enabled": true,
 			"intensity": 0.8,
 			"threshold": 0.75,
-			"softness": 1
+			"softness": 0.1
 		}
 	},
 	"prism": {
@@ -2350,13 +2348,14 @@ export const MODULE_DEFAULTS = {
 			"fbmOctaves": 5,
 			"fbmLacunarity": 4,
 			"fbmPersistence": 0.1,
-			"sheenEnabled": true,
-			"sheenIntensity": 0.448,
-			"sheenColor": "#FFFFFF",
-			"sheenScale": 0.5,
-			"sheenSpeed": 0.002,
-			"sheenStretch": 1,
-			"sheenSharpness": 0.8
+			"specularity": {
+				"enabled": true,
+				"color": "#FFFFFF",
+				"intensity": 0.75,
+				"shininess": 256,
+				"lightAngle": 45,
+				"lightElevation": 60
+			}
 		},
 		"caustics": {
 			"enabled": true,
@@ -4399,6 +4398,7 @@ class HooksManager {
 
 		// This hook ensures settings that should be textareas are rendered as such.
 		// @ts-ignore
+		// @ts-ignore
 		Hooks.on("renderSettingsConfig", (app, html, data) => {
 			const settingsToConvert = [
 				`${MODULE_ID}.universal.sceneTransition.randomHints`,
@@ -6223,6 +6223,7 @@ class OverheadEffectLayer extends CanvasLayer {
 	}
 
 	// @ts-ignore
+	// @ts-ignore
 	async _draw(options) {
 		// @ts-ignore
 		this._destroyed = false;
@@ -6516,7 +6517,6 @@ class LoadingScreen {
 		this._hintInterval = null;
 		this._shuffledHints = [];
 		this._currentHintIndex = 0;
-		this._hintAnimation = null;
 	}
 
 	show() {
@@ -6596,7 +6596,7 @@ class LoadingScreen {
                                 <div class="loading-bar-fill"></div>
                             </div>
                             <div id="loading-status-text" class="loading-status slide-from-below"></div>
-                            <p id="loading-hint-text" class="loading-hint slide-from-below"></p>
+                            <p id="loading-hint-text" class="loading-hint"></p>
                         </div>
                         <style>
                             #map-shine-loading-screen { 
@@ -6621,8 +6621,9 @@ class LoadingScreen {
                             .loading-bar-fill { width: 0%; height: 100%; background-color: rgba(255, 255, 255, 0.9); transform-origin: left; transition: width 0.2s ease-out; box-shadow: 0 0 10px rgba(255, 255, 255, 0.5); }
                             .loading-status { margin-top: 15px; font-size: 16px; color: #ddd; height: 20px; line-height: 20px; opacity: 0; transition: opacity ${this.statusFadeDuration / 1000
 			}s ease-in-out; text-shadow: 0 2px 5px rgba(0,0,0,0.7); }
+                            
                             .loading-hint {
-                            font-family: "${hintFont}", sans-serif;
+                                font-family: "${hintFont}", sans-serif;
                                 margin-top: 25px;
                                 font-size: 16px;
                                 color: #aaa;
@@ -6630,12 +6631,18 @@ class LoadingScreen {
                                 max-width: 50ch;
                                 margin-left: auto;
                                 margin-right: auto;
-                                min-height: 3em; /* Reserve space to prevent layout shifts */
-                                opacity: 0; /* Initially hidden */
+                                min-height: 3em;
                                 text-shadow: 0 2px 5px rgba(0,0,0,0.7);
+                                opacity: 0;
+                                transform: translateY(20px);
+                                transition: opacity 1s ease-in-out, transform 1s ease-in-out;
+                            }
+                            .loading-hint.visible {
+                                opacity: 1;
+                                transform: translateY(0);
                             }
                             
-                            /* Slide-in animations */
+                            /* Slide-in animations for other elements */
                             .slide-from-above {
                                 transform: translateY(-50px);
                                 opacity: 0;
@@ -6649,25 +6656,11 @@ class LoadingScreen {
                             }
                             
                             @keyframes slideInFromAbove {
-                                0% {
-                                    transform: translateY(-50px);
-                                    opacity: 0;
-                                }
-                                100% {
-                                    transform: translateY(0);
-                                    opacity: 1;
-                                }
+                                to { transform: translateY(0); opacity: 1; }
                             }
                             
                             @keyframes slideInFromBelow {
-                                0% {
-                                    transform: translateY(50px);
-                                    opacity: 0;
-                                }
-                                100% {
-                                    transform: translateY(0);
-                                    opacity: 1;
-                                }
+                                to { transform: translateY(0); opacity: 1; }
                             }
                             
                             /* Staggered animation delays */
@@ -6676,7 +6669,6 @@ class LoadingScreen {
                             .loading-title { animation-delay: 0.3s; }
                             .loading-bar-container { animation-delay: 0.4s; }
                             .loading-status { animation-delay: 0.5s; }
-                            .loading-hint { animation-delay: 0.6s; }
                         </style>
                     `;
 
@@ -6703,27 +6695,50 @@ class LoadingScreen {
 	}
 
 	/**
-		* Manages the hint cycling animation.
+		* Manages the hint cycling animation using CSS transitions.
 		* @private
 		*/
 	_cycleHints() {
-		if (!this.element) return;
+		console.log("[MapShine LoadingScreen] _cycleHints called");
+		if (!this.element) {
+			console.warn("[MapShine LoadingScreen] No element found, cannot cycle hints");
+			return;
+		}
 
-		const hintElement = this.element.querySelector(".loading-hint");
+		const hintElement = this.element.querySelector("#loading-hint-text");
+		console.log("[MapShine LoadingScreen] Hint element found:", hintElement);
+
+		const rawHints = game.settings.get(MODULE_ID, "universal.sceneTransition.randomHints");
+		console.log("[MapShine LoadingScreen] Raw hints from settings:", rawHints);
+
 		const config = {
 			useRandomHint: game.settings.get(
 				MODULE_ID,
 				"universal.sceneTransition.useRandomHint"
 			),
-			randomHints: (
-				game.settings.get(MODULE_ID, "universal.sceneTransition.randomHints") ||
-				""
-			)
+			randomHints: (rawHints || "")
 				.split(/\r?\n/)
 				.filter((h) => h.trim() !== ""),
 		};
 
-		if (!hintElement || !config.useRandomHint || !config.randomHints.length) {
+		// If no hints are configured, fall back to defaults
+		if (config.randomHints.length === 0) {
+			console.log("[MapShine LoadingScreen] No hints found in settings, using defaults");
+			config.randomHints = UNIVERSAL_EFFECT_DEFAULTS.sceneTransition.randomHints;
+		}
+
+		console.log("[MapShine LoadingScreen] Hint config:", {
+			useRandomHint: config.useRandomHint,
+			hintCount: config.randomHints.length,
+			firstHint: config.randomHints[0]
+		});
+
+		if (!hintElement || !config.useRandomHint || config.randomHints.length === 0) {
+			console.warn("[MapShine LoadingScreen] Hint cycling aborted:", {
+				hintElement: !!hintElement,
+				useRandomHint: config.useRandomHint,
+				hintCount: config.randomHints.length
+			});
 			return;
 		}
 
@@ -6738,86 +6753,52 @@ class LoadingScreen {
 		}
 
 		this._currentHintIndex = 0;
+		// @ts-ignore
+		hintElement.innerText = this._shuffledHints[0];
+		console.log("[MapShine LoadingScreen] First hint displayed:", this._shuffledHints[0]);
 
-		if (this._shuffledHints.length <= 1) {
-			if (this._shuffledHints.length === 1) {
-				// @ts-ignore
-				hintElement.innerText = this._shuffledHints[0];
-				hintElement.animate([{ opacity: 0 }, { opacity: 1 }], {
-					duration: 1000,
-					fill: "forwards",
-				});
-			}
-			return;
-		}
+		// Use requestAnimationFrame to ensure the element is in the DOM before triggering the transition.
+		requestAnimationFrame(() => {
+			if (!this.element) return;
+			// A small additional delay ensures other CSS animations have begun.
+			setTimeout(() => {
+				if (this.element) {
+					hintElement.classList.add("visible");
+				}
+			}, 50);
+		});
 
-		const HINT_FADE_DURATION = 1000;
+		if (this._shuffledHints.length <= 1) return;
+
+		const HINT_TRANSITION_DURATION = 1000; // Must match CSS transition duration
 		const HINT_PAUSE_DURATION = 5000;
 
 		const showNextHint = () => {
-			if (!this.element || !hintElement || this._hintInterval === null) {
-				this._stopHintCycle();
-				return;
-			}
+			if (!this.element) return;
 
-			this._hintAnimation = hintElement.animate(
-				[{ opacity: 1 }, { opacity: 0 }],
-				{
-					duration: HINT_FADE_DURATION,
-					easing: "ease-in",
-				}
-			);
+			hintElement.classList.remove("visible");
 
-			this._hintAnimation.finished
-				.then(() => {
-					if (!this.element) return; // Guard against element being removed during animation
-					this._currentHintIndex =
-						(this._currentHintIndex + 1) % this._shuffledHints.length;
-					// @ts-ignore
-					hintElement.innerText = this._shuffledHints[this._currentHintIndex];
-
-					hintElement.animate([{ opacity: 0 }, { opacity: 1 }], {
-						duration: HINT_FADE_DURATION,
-						easing: "ease-out",
-						fill: "forwards",
-					});
-
-					this._hintInterval = setTimeout(showNextHint, HINT_PAUSE_DURATION);
-				})
-				.catch(() => { }); // Catch the expected cancellation error
+			setTimeout(() => {
+				if (!this.element) return;
+				this._currentHintIndex = (this._currentHintIndex + 1) % this._shuffledHints.length;
+				// @ts-ignore
+				hintElement.innerText = this._shuffledHints[this._currentHintIndex];
+				hintElement.classList.add("visible");
+			}, HINT_TRANSITION_DURATION);
 		};
 
-		// @ts-ignore
-		hintElement.innerText = this._shuffledHints[this._currentHintIndex];
-		const initialAnimation = hintElement.animate(
-			[{ opacity: 0 }, { opacity: 1 }],
-			{ duration: 1000, fill: "forwards" }
-		);
-		initialAnimation.finished.then(() => {
-			if (!this.element) return;
-			this._hintInterval = setTimeout(showNextHint, HINT_PAUSE_DURATION);
-		});
+		this._hintInterval = setInterval(showNextHint, HINT_PAUSE_DURATION + HINT_TRANSITION_DURATION);
 	}
 
 	/**
-		* Clears the hint cycling interval/timeline.
+		* Clears the hint cycling interval.
 		* @private
 		*/
 	_stopHintCycle() {
 		if (this._hintInterval) {
-			clearTimeout(this._hintInterval);
+			clearInterval(this._hintInterval);
 			this._hintInterval = null;
 		}
-		if (this._hintAnimation) {
-			try {
-				this._hintAnimation.cancel();
-			} catch (e) {
-				// This is an expected DOMException when cancelling an animation, so we can ignore it.
-			}
-			this._hintAnimation = null;
-		}
-		this._shuffledHints = [];
-		this._currentHintIndex = 0;
 	}
 
 	setProgress(progress, message) {
@@ -6832,7 +6813,6 @@ class LoadingScreen {
 			// @ts-ignore
 			this.statusTextElement.innerText !== message
 		) {
-			// Fade out, change text, then fade in for a smooth transition.
 			// @ts-ignore
 			this.statusTextElement.style.opacity = "0";
 			setTimeout(() => {
@@ -6850,7 +6830,6 @@ class LoadingScreen {
 		if (this.statusTextElement) {
 			// @ts-ignore
 			this.statusTextElement.innerText = message;
-			// Ensure text is visible, in case a fade-out from setProgress was in progress.
 			// @ts-ignore
 			if (this.statusTextElement.style.opacity !== "1") {
 				// @ts-ignore
@@ -6863,14 +6842,12 @@ class LoadingScreen {
 		this._stopHintCycle();
 		if (!this.element) return;
 
-		// Ensure we wait for the minimum display time before starting the fade out.
 		const elapsed = Date.now() - this.startTime;
 		const remainingTime = Math.max(0, this.minDisplayTime - elapsed);
 		await new Promise((resolve) => setTimeout(resolve, remainingTime));
 
 		if (this.element) {
 			this.element.style.opacity = "0";
-			// Wait for the fade-out transition to complete before removing the element.
 			await new Promise((resolve) =>
 				setTimeout(resolve, this.fadeOutDuration + 50)
 			);
@@ -6881,7 +6858,6 @@ class LoadingScreen {
 		this.fillElement = null;
 		this.statusTextElement = null;
 
-		// Restore foundry loading screen in case it's needed later (e.g. returning to setup)
 		const foundryLoading = document.getElementById("loading");
 		if (foundryLoading) {
 			foundryLoading.style.display = "";
@@ -8136,6 +8112,7 @@ class TextureAutoLoader {
 		structural: "_Structural",
 		prism: "_Prism",
 		water: "_Water",
+		caustics: "_Caustics",
 		shoreline: "_Shoreline",
 	};
 
@@ -10033,6 +10010,7 @@ const PARTICLE_EFFECT_DEFINITIONS = {
 			"Simulates a swarm of flies orbiting a central point, occasionally landing and walking around. Requires a Point or Area group from Map Points. The first point of the group defines the center of the swarm, and the area defines where they can walk.",
 		configPath: "smellyFlies",
 		triggerTexture: "smellyFlies", // This is a dummy key for the UI, effect is geometry-based
+		// @ts-ignore
 		// @ts-ignore
 		buildEmitterConfig: (effectConfig, targetData, maskKey, group) =>
 			buildSmellyFliesEmitterConfig(effectConfig, targetData, group),
@@ -11992,6 +11970,7 @@ class FireWindManager {
 
 	updateFromConfig(config) {
 		// @ts-ignore
+		// @ts-ignore
 		const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
 		// This now correctly applies the timeFactor to the base config values each time it's called.
 		// The time delta passed to update() is also scaled, so we no longer double-apply the time scaling.
@@ -12462,6 +12441,7 @@ export class ParticleLayer extends CanvasLayer {
 	}
 
 	// @ts-ignore
+	// @ts-ignore
 	async _draw(options) {
 		this._destroyed = false;
 		this._initialized = false; // Reset flag for new scene
@@ -12536,6 +12516,7 @@ export class ParticleLayer extends CanvasLayer {
 		}
 	}
 
+	// @ts-ignore
 	// @ts-ignore
 	_onAnimate(deltaTime) {
 		if (this._destroyed || !game.mapShine.particleManager) return;
@@ -12616,6 +12597,7 @@ class LightningLayer extends CanvasLayer {
 	}
 
 	// @ts-ignore
+	// @ts-ignore
 	async _draw(options) {
 		this._destroyed = false;
 		this.eventMode = "none";
@@ -12640,6 +12622,7 @@ class LightningLayer extends CanvasLayer {
 		return super._tearDown(options);
 	}
 
+	// @ts-ignore
 	// @ts-ignore
 	async updateFromConfig(config) {
 		// The LightningManager listens for config changes via hooks and its own ticker,
@@ -12840,10 +12823,12 @@ class MapShineLightingBehavior {
 	}
 
 	// @ts-ignore
+	// @ts-ignore
 	initParticles(first) {
 		// No per-particle init needed
 	}
 
+	// @ts-ignore
 	// @ts-ignore
 	updateParticle(particle, deltaSec) {
 		// This behavior runs *after* the standard Alpha behavior, so particle.alpha
@@ -12887,10 +12872,12 @@ class FireWindBehavior {
 	}
 
 	// @ts-ignore
+	// @ts-ignore
 	initParticles(first) {
 		// No initial setup needed per particle for this behavior.
 	}
 
+	// @ts-ignore
 	// @ts-ignore
 	updateParticle(particle, deltaSec) {
 		const windManager = game.mapShine?.fireWindManager;
@@ -12919,6 +12906,7 @@ class FireWindBehavior {
 class ColorFromSpawnBehavior {
 	static type = "colorFromSpawn";
 
+	// @ts-ignore
 	// @ts-ignore
 	constructor(config) {
 		// @ts-ignore
@@ -13130,6 +13118,7 @@ class SmellyFliesBehavior {
 		* @param {PIXI.particles.Particle} fly The particle to prepare.
 		* @param {object} cfg The particle's configuration object.
 		*/
+	// @ts-ignore
 	// @ts-ignore
 	_prepareForTakeOff(fly, cfg) {
 		const flyConfig = this.config.flying;
@@ -13587,6 +13576,7 @@ export class SmellyFliesLayer extends CanvasLayer {
 	}
 
 	// @ts-ignore
+	// @ts-ignore
 	async _draw(options) {
 		this._destroyed = false;
 		this._initialized = false;
@@ -13632,6 +13622,7 @@ export class SmellyFliesLayer extends CanvasLayer {
 		}
 	}
 
+	// @ts-ignore
 	// @ts-ignore
 	_onAnimate(deltaTime) {
 		if (this._destroyed || !this.controller) return;
@@ -14049,6 +14040,7 @@ class HeatDistortionNoiseFilter extends PIXI.Filter {
 	}
 }
 
+// @ts-ignore
 // @ts-ignore
 class LightingMaskFilter extends PIXI.Filter {
 	constructor(options = {}) {
@@ -16655,6 +16647,7 @@ class FoamLayer extends CanvasLayer {
 	}
 
 	// @ts-ignore
+	// @ts-ignore
 	async _draw(options) {
 		this._destroyed = false;
 		this.time = 0;
@@ -16805,6 +16798,7 @@ class BackgroundEffectTileLayer extends CanvasLayer {
 	}
 
 	// @ts-ignore
+	// @ts-ignore
 	async _draw(options) {
 		// @ts-ignore
 		this._destroyed = false;
@@ -16842,6 +16836,7 @@ class BackgroundEffectTileLayer extends CanvasLayer {
 		return super._tearDown(options);
 	}
 
+	// @ts-ignore
 	// @ts-ignore
 	_onAnimate(deltaTime) {
 		if (this._destroyed || !this.visible || this.backgroundSprites.size === 0) {
@@ -16948,6 +16943,7 @@ class MaskedEffectLayer extends CanvasLayer {
 	}
 
 	// @ts-ignore
+	// @ts-ignore
 	async _draw(options) {
 		this._destroyed = false;
 		this._needsMaskUpdate = true;
@@ -17008,6 +17004,7 @@ class MaskedEffectLayer extends CanvasLayer {
 		* Base animation loop. Handles re-rendering the mask when needed.
 		* Subclasses should call `super._onAnimate(deltaTime)` at the start of their own loop.
 		*/
+	// @ts-ignore
 	// @ts-ignore
 	_onAnimate(deltaTime) {
 		if (this._destroyed) return;
@@ -17152,6 +17149,7 @@ class DiagnosticLayer extends CanvasLayer {
 		this.tempRenderTexture = null; // To hold transient render textures for inspection
 	}
 
+	// @ts-ignore
 	// @ts-ignore
 	async _draw(options) {
 		this._destroyed = false;
@@ -17551,6 +17549,7 @@ class MapPointsLayer extends CanvasLayer {
 		* @override
 		*/
 	// @ts-ignore
+	// @ts-ignore
 	async _draw(options) {
 		this.mapPointsContainer = this.addChild(new PIXI.Container());
 		this.eventMode = "none";
@@ -17756,6 +17755,7 @@ class MapPointsEditor extends FormApplication {
 	}
 
 	// @ts-ignore
+	// @ts-ignore
 	set form(value) {
 		// This setter intentionally does nothing. The base class's constructor
 		// will attempt to set `this.form = null`, which would throw an error if this
@@ -17778,6 +17778,7 @@ class MapPointsEditor extends FormApplication {
 		});
 	}
 
+	// @ts-ignore
 	// @ts-ignore
 	async getData(options) {
 		const allGroups = MapPointsManager.getGroups();
@@ -18258,6 +18259,7 @@ class MapPointsEditor extends FormApplication {
 	}
 
 	// @ts-ignore
+	// @ts-ignore
 	async _updateObject(event, formData) {
 		// This form doesn't have a single "submit" action, so this method can be left empty.
 	}
@@ -18542,10 +18544,10 @@ class MetallicShineFilter extends PIXI.Filter {
 
               float stripeIntensity = texture2D(uStripePattern, vScreenCoord).r;
               float finalAlpha = specularMask * stripeIntensity;
-              
+
               if (uCloudOcclusionEnabled) {
                   float cloudValue = texture2D(uCloudOcclusionMask, vScreenCoord).r;
-                  finalAlpha *= mix(1.0, cloudValue, uCloudOcclusionIntensity);
+                  finalAlpha *= (1.0 - cloudValue * uCloudOcclusionIntensity);
               }
 
               float outdoorsMaskValue = texture2D(uOutdoorsMask, vScreenCoord).r;
@@ -18989,6 +18991,7 @@ class MetallicShineLayer extends CanvasLayer {
 	}
 
 	// @ts-ignore
+	// @ts-ignore
 	async _draw(options) {
 		// @ts-ignore
 		this._destroyed = false;
@@ -19074,8 +19077,10 @@ class MetallicShineLayer extends CanvasLayer {
 		});
 
 		const resourceManager = game.mapShine.resourceManager;
+		// Correct fallback for cloud texture is BLACK (no clouds = no occlusion).
 		const cloudTexture =
-			resourceManager.getCloudShadowTexture(deltaTime) || PIXI.Texture.WHITE;
+			// @ts-ignore
+			resourceManager.getRawCloudTexture(deltaTime) || PIXI.Texture.BLACK;
 		const structuralMask =
 			resourceManager.getStructuralMask() || PIXI.Texture.WHITE;
 		const outdoorsMask =
@@ -19461,7 +19466,7 @@ class CloudShadowsFilter extends PIXI.Filter {
                             
                             shadowAmount = clamp(shadowAmount, 0.0, 1.0);
                             
-														gl_FragColor = vec4(vec3(0.0), shadowAmount * u_shadowIntensity);
+														gl_FragColor = vec4(vec3(0.0), shadowAmount);
                         }
                     `;
 
@@ -20132,6 +20137,7 @@ class CanopyLayer extends MaskedEffectLayer {
 
 class CanopyFilter extends PIXI.Filter {
 	// @ts-ignore
+	// @ts-ignore
 	constructor(options = {}) {
 		const vertexSrc = `
         attribute vec2 aVertexPosition;
@@ -20252,9 +20258,7 @@ class StructuralFilter extends PIXI.Filter {
         // Cloud Occlusion
         uniform bool uCloudOcclusionEnabled;
         uniform float uCloudOcclusionIntensity;
-        uniform float uCloudOcclusionThreshold;
-        uniform float uCloudOcclusionSoftness;
-
+        
         const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
 
         vec3 blendOverlay(vec3 base, vec3 blend) {
@@ -20297,16 +20301,8 @@ class StructuralFilter extends PIXI.Filter {
 
             if (uCloudOcclusionEnabled) {
                 float cloudValue = texture2D(uCloudOcclusionMask, vScreenCoord).r; // 0 is clear, 1 is cloud
-                float structuralLuminance = dot(structuralColor, lum_weights);
-
-                // Create a mask based on the luminance threshold to only affect the brightest parts.
-                float highlightMask = smoothstep(uCloudOcclusionThreshold, uCloudOcclusionThreshold + uCloudOcclusionSoftness, structuralLuminance);
-                
-                if (highlightMask > 0.0) {
-                    float darkeningFactor = 1.0 - (cloudValue * uCloudOcclusionIntensity);
-                    // Mix the original color with the darkened color based on the mask strength for a smooth falloff.
-                    structuralColor = mix(structuralColor, structuralColor * darkeningFactor, highlightMask);
-                }
+                float darkeningFactor = 1.0 - (cloudValue * uCloudOcclusionIntensity);
+                structuralColor *= darkeningFactor;
             }
 
             if (uCcEnabled) {
@@ -20373,10 +20369,6 @@ class StructuralFilter extends PIXI.Filter {
 			uCloudOcclusionEnabled: true,
 			// @ts-ignore
 			uCloudOcclusionIntensity: 0.8,
-			// @ts-ignore
-			uCloudOcclusionThreshold: 0.75,
-			// @ts-ignore
-			uCloudOcclusionSoftness: 0.1,
 		});
 	}
 }
@@ -20531,9 +20523,11 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
 
 		const u = this.filter.uniforms;
 		u.uStructuralMask = this.getMaskTexture();
-		u.uOutdoorsMask = resourceManager.getOutdoorsMask();
+		u.uOutdoorsMask = resourceManager.getOutdoorsMask() || PIXI.Texture.WHITE;
 		// Use raw cloud texture so clouds can appear "indoors"
-		u.uCloudOcclusionMask = resourceManager.getRawCloudTexture(deltaTime);
+		// Fallback to a black texture (no clouds) if cloud shadows are inactive.
+		// @ts-ignore
+		u.uCloudOcclusionMask = resourceManager.getRawCloudTexture(deltaTime) || PIXI.Texture.BLACK;
 
 		// Pass the normalized scene rectangle from the CoordinateManager to the filter.
 		u.uSceneRectNorm = CoordinateManager.getSceneRectNormalizedArray();
@@ -20579,6 +20573,7 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
 	// It will now return a neutral texture (white), effectively disabling structural
 	// shadows from affecting other effects like metallic sheen. We can revisit this
 	// if a more complex interaction is needed in the future.
+	// @ts-ignore
 	// @ts-ignore
 	renderEffectNow(deltaTime) { }
 
@@ -21290,6 +21285,7 @@ class GroundGlowLayer extends CanvasLayer {
 	}
 
 	// @ts-ignore
+	// @ts-ignore
 	async _draw(options) {
 		console.log(
 			"GroundGlowLayer | Drawing layer with improved dependency handling."
@@ -21633,6 +21629,7 @@ class HeatDistortionLayer extends CanvasLayer {
 		);
 	}
 
+	// @ts-ignore
 	// @ts-ignore
 	async _draw(options) {
 		this.visible = false;
@@ -22145,6 +22142,7 @@ class WaterEffectsFilter extends PIXI.Filter {
                         uniform sampler2D u_shorelineMask;
                         uniform sampler2D u_blurredWaterMask;
                         uniform sampler2D u_cloudShadows;
+                        uniform sampler2D u_outdoorsMask;
             
                         // Uniforms for toggles and parameters
                         uniform bool u_useShorelineMask;
@@ -22157,7 +22155,7 @@ class WaterEffectsFilter extends PIXI.Filter {
                         uniform bool u_wave_enabled;
                         uniform float u_wave_intensity;
             
-                        // Surface (Open Water Foam & Sheen)
+                        // Surface (Open Water Foam & Specularity)
                         uniform bool u_surface_enabled;
                         uniform vec3 u_openWaterFoamColor;
                         uniform float u_openWaterFoamIntensity;
@@ -22170,17 +22168,17 @@ class WaterEffectsFilter extends PIXI.Filter {
                         uniform float u_openWaterFbmLacunarity;
                         uniform float u_openWaterFbmPersistence;
                         
-                        // Sheen (Now calculated directly in this shader)
-                        uniform bool u_sheenEnabled;
-                        uniform vec3 u_sheenColor;
-                        uniform float u_sheenIntensity;
-                        uniform float u_sheenScale;
-                        uniform float u_sheenSpeed;
-                        uniform float u_sheenStretch;
-                        uniform float u_sheenSharpness;
+                        // Specularity
+                        uniform bool u_specularity_enabled;
+                        uniform vec3 u_specularity_color;
+                        uniform float u_specularity_intensity;
+                        uniform float u_specularity_shininess;
+                        uniform vec3 u_specularity_light_direction;
             
                         // Caustics
                         uniform bool u_caustics_enabled;
+                        uniform sampler2D u_causticsMask;
+                        uniform bool u_hasCausticsMask;
                         uniform vec3 u_causticsColor;
                         uniform float u_causticsIntensity;
                         uniform float u_causticsScale;
@@ -22299,8 +22297,10 @@ class WaterEffectsFilter extends PIXI.Filter {
                             }
 
                             float waterMaskValue = texture2D(u_waterMask, vTextureCoord).r;
+                            float causticsMaskValue = u_hasCausticsMask ? texture2D(u_causticsMask, vTextureCoord).r : 0.0;
+                            float combinedWaterAndCausticsMask = max(waterMaskValue, causticsMaskValue);
 
-                            if (waterMaskValue < 0.01) {
+                            if (combinedWaterAndCausticsMask < 0.01) {
                                 gl_FragColor = texture2D(uSampler, vTextureCoord);
                                 return;
                             }
@@ -22327,11 +22327,9 @@ class WaterEffectsFilter extends PIXI.Filter {
                                 }
                             }
                             
-                            // Convert world-space swirl offset to UV-space and combine with wave offset.
                             vec2 swirl_uv_offset = swirl_world_offset / u_view_size;
                             vec2 total_uv_offset = wave_uv_offset + swirl_uv_offset;
 
-                            // Create consistently distorted coordinates for both scene sampling (UV space) and procedural patterns (world space).
                             vec2 final_distorted_uv = vTextureCoord + total_uv_offset;
                             vec2 final_distorted_world_coord = flowed_world_coord + (total_uv_offset * u_view_size);
                             // --- END UNIFIED DISTORTION ---
@@ -22362,8 +22360,9 @@ class WaterEffectsFilter extends PIXI.Filter {
                                     float occlusionFactor = 1.0 - (cloudValue * u_causticsCloudOcclusionIntensity);
                                     caustics *= occlusionFactor;
                                 }
-
-                                finalColor += caustics * waterMaskValue;
+                                
+                                float causticsArea = max(waterMaskValue, causticsMaskValue);
+                                finalColor += caustics * causticsArea;
                             }
             
                             if (u_surface_enabled) {
@@ -22374,16 +22373,20 @@ class WaterEffectsFilter extends PIXI.Filter {
                                 float openWaterFoamAmount = smoothstep(1.0 - u_openWaterFoamCoverage, 1.0 - u_openWaterFoamCoverage + u_openWaterFoamSharpness, foamNoise);
                                 vec3 openWaterFoamResult = u_openWaterFoamColor * openWaterFoamAmount * u_openWaterFoamIntensity;
                                 
-                                vec3 sheenResult = vec3(0.0);
-                                if (u_sheenEnabled) {
-                                    vec2 sheenUV = final_distorted_world_coord * u_sheenScale * 0.01;
-                                    sheenUV.x *= u_sheenStretch;
-                                    sheenUV.y += u_time * u_sheenSpeed;
-                                    float sheenNoise = snoise(vec3(sheenUV, u_time * 0.01));
-                                    sheenNoise = pow(smoothstep(0.8, 1.0, sheenNoise), u_sheenSharpness);
-                                    sheenResult = u_sheenColor * sheenNoise * u_sheenIntensity;
+                                vec3 specularityResult = vec3(0.0);
+                                if (u_specularity_enabled) {
+                                    vec2 normal_xy = texture2D(u_displacementMap, final_distorted_uv).rg * 2.0 - 1.0;
+                                    vec3 normal = normalize(vec3(normal_xy, sqrt(1.0 - clamp(dot(normal_xy, normal_xy), 0.0, 1.0))));
+                                    vec3 viewDir = vec3(0.0, 0.0, 1.0);
+                                    vec3 lightDir = normalize(u_specularity_light_direction);
+                                    vec3 halfwayDir = normalize(lightDir + viewDir);
+                                    float specAngle = max(dot(normal, halfwayDir), 0.0);
+                                    float specularity = pow(specAngle, u_specularity_shininess);
+                                    float outdoorsMaskValue = texture2D(u_outdoorsMask, vTextureCoord).r;
+                                    specularityResult = u_specularity_color * specularity * u_specularity_intensity * outdoorsMaskValue;
                                 }
-                                finalColor += (openWaterFoamResult + sheenResult) * waterMaskValue;
+
+                                finalColor += (openWaterFoamResult + specularityResult) * waterMaskValue;
                             }
             
                             if (u_shoreline_enabled) {
@@ -22423,9 +22426,12 @@ class WaterEffectsFilter extends PIXI.Filter {
 			...options,
 			u_displacementMap: options.u_displacementMap ?? PIXI.Texture.EMPTY,
 			u_waterMask: options.u_waterMask ?? PIXI.Texture.EMPTY,
+			u_causticsMask: options.u_causticsMask ?? PIXI.Texture.EMPTY,
+			u_hasCausticsMask: options.u_hasCausticsMask ?? false,
 			u_shorelineMask: options.u_shorelineMask ?? PIXI.Texture.EMPTY,
 			u_blurredWaterMask: options.u_blurredWaterMask ?? PIXI.Texture.EMPTY,
 			u_cloudShadows: options.u_cloudShadows ?? PIXI.Texture.EMPTY,
+			u_outdoorsMask: options.u_outdoorsMask ?? PIXI.Texture.WHITE,
 			// @ts-ignore
 			uSceneRectNorm: [0, 0, 1, 1],
 			// @ts-ignore
@@ -22515,7 +22521,11 @@ class WaterFXLayer extends MaskedEffectLayer {
 		this.shorelineMaskContainer = null;
 		this.shorelineMaskTexture = null;
 		this.shorelineMaskSprites = new Map();
+		this.causticsMaskContainer = null;
+		this.combinedCausticsMaskTexture = null;
+		this.causticsMaskSprites = new Map();
 		this._needsShorelineMaskUpdate = true;
+		this._needsCausticsMaskUpdate = true;
 		this.time = 0;
 	}
 
@@ -22747,54 +22757,15 @@ class WaterFXLayer extends MaskedEffectLayer {
                                         </details>
                                     </div>
                                 </details>
-                                <details id="details-water-sheen">
-                                    <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-				"water.surface.sheenEnabled",
-				"Surface Sheen",
-				true
-			)}</div></summary>
+                                <details id="details-water-specularity">
+                                    <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML("water.surface.specularity.enabled", "Specular Highlights", true)}</div></summary>
                                     <div style="padding-left: 15px;">
-                                        ${DebuggerUIBuilder._createColorPickerHTML(
-				"water.surface.sheenColor",
-				"Color"
-			)}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-				"water.surface.sheenIntensity",
-				"Intensity",
-				0,
-				1,
-				0.001
-			)}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-				"water.surface.sheenScale",
-				"Scale",
-				0.1,
-				10,
-				0.1
-			)}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-				"water.surface.sheenSpeed",
-				"Speed",
-				0,
-				25,
-				0.1
-			)}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-				"water.surface.sheenStretch",
-				"Stretch",
-				1,
-				10,
-				0.1,
-				"Stretches the sheen horizontally for a more reflective look."
-			)}
-                                        ${DebuggerUIBuilder._createSliderHTML(
-				"water.surface.sheenSharpness",
-				"Sharpness",
-				0.5,
-				5,
-				0.1,
-				"Hardness of the sheen highlights."
-			)}
+                                        <p class="description-text">Simulates physically-based light reflections (shine) off the water surface.</p>
+                                        ${DebuggerUIBuilder._createColorPickerHTML("water.surface.specularity.color", "Color")}
+                                        ${DebuggerUIBuilder._createSliderHTML("water.surface.specularity.intensity", "Intensity", 0, 5, 0.01)}
+                                        ${DebuggerUIBuilder._createSliderHTML("water.surface.specularity.shininess", "Shininess", 2, 1024, 2, "Controls the size and sharpness of the highlights. Higher values are smaller and sharper.")}
+                                        ${DebuggerUIBuilder._createSliderHTML("water.surface.specularity.lightAngle", "Light Angle", 0, 360, 1, "The direction the light is coming from, in degrees.")}
+                                        ${DebuggerUIBuilder._createSliderHTML("water.surface.specularity.lightElevation", "Light Elevation", 0, 90, 1, "The height of the light source in the sky. 90 is directly overhead.")}
                                     </div>
                                 </details>
                             </div>
@@ -23228,6 +23199,7 @@ class WaterFXLayer extends MaskedEffectLayer {
 		await super._draw(options);
 		this.time = 0;
 		this._needsShorelineMaskUpdate = true;
+		this._needsCausticsMaskUpdate = true;
 		const renderer = canvas.app.renderer;
 
 		// --- Main Water Filter ---
@@ -23279,7 +23251,14 @@ class WaterFXLayer extends MaskedEffectLayer {
 			height: renderer.screen.height,
 		});
 
-		this.updateFromConfig(game.mapShine.profileManager.activeConfig);
+		this.causticsMaskContainer = new PIXI.Container();
+		// @ts-ignore
+		this.combinedCausticsMaskTexture = PIXI.RenderTexture.create({
+			width: renderer.screen.width,
+			height: renderer.screen.height,
+		});
+
+		await this.updateFromConfig(game.mapShine.profileManager.activeConfig);
 	}
 
 	_updateWaterFilterUniforms(filter, wConfig) {
@@ -23320,13 +23299,28 @@ class WaterFXLayer extends MaskedEffectLayer {
 		u.u_openWaterFbmOctaves = srfConfig.fbmOctaves;
 		u.u_openWaterFbmLacunarity = srfConfig.fbmLacunarity;
 		u.u_openWaterFbmPersistence = srfConfig.fbmPersistence;
-		u.u_sheenEnabled = srfConfig.sheenEnabled;
-		u.u_sheenColor = hexToRgbArray(srfConfig.sheenColor);
-		u.u_sheenIntensity = srfConfig.sheenIntensity;
-		u.u_sheenScale = srfConfig.sheenScale;
-		u.u_sheenSpeed = (srfConfig.sheenSpeed ?? 0.2) * 0.01;
-		u.u_sheenStretch = srfConfig.sheenStretch;
-		u.u_sheenSharpness = srfConfig.sheenSharpness;
+
+		// Specularity
+		if (srfConfig.specularity) {
+			u.u_specularity_enabled = srfConfig.specularity.enabled;
+			u.u_specularity_color = hexToRgbArray(srfConfig.specularity.color);
+			u.u_specularity_intensity = srfConfig.specularity.intensity;
+			u.u_specularity_shininess = srfConfig.specularity.shininess;
+
+			// Convert angle and elevation to a 3D direction vector
+			const angle = srfConfig.specularity.lightAngle * (Math.PI / 180.0); // to radians
+			const elevation = srfConfig.specularity.lightElevation * (Math.PI / 180.0); // to radians
+
+			const x = Math.cos(angle) * Math.cos(elevation);
+			const y = Math.sin(angle) * Math.cos(elevation);
+			const z = Math.sin(elevation);
+
+			u.u_specularity_light_direction = [x, y, z];
+		} else {
+			u.u_specularity_enabled = false;
+		}
+
+
 		const cConfig = wConfig.caustics;
 		u.u_caustics_enabled = cConfig.enabled;
 		u.u_causticsColor = hexToRgbArray(cConfig.color);
@@ -23426,6 +23420,16 @@ class WaterFXLayer extends MaskedEffectLayer {
 			});
 			this._needsShorelineMaskUpdate = false;
 		}
+
+		if (this._needsCausticsMaskUpdate) {
+			renderer.render(this.causticsMaskContainer, {
+				renderTexture: this.combinedCausticsMaskTexture,
+				transform: canvas.stage.transform.worldTransform,
+				clear: true,
+			});
+			this._needsCausticsMaskUpdate = false;
+		}
+
 		this.blurSourceSprite.texture = this.getMaskTexture();
 		renderer.render(this.blurSourceSprite, {
 			renderTexture: this.blurredWaterMaskTexture,
@@ -23433,6 +23437,7 @@ class WaterFXLayer extends MaskedEffectLayer {
 		});
 
 		const useShorelineMask = this.shorelineMaskSprites.size > 0;
+		const useCausticsMask = this.causticsMaskSprites.size > 0;
 
 		const u = waterEffectsFilter.uniforms;
 		const wConfig = game.mapShine.profileManager.activeConfig.water;
@@ -23472,11 +23477,17 @@ class WaterFXLayer extends MaskedEffectLayer {
 		u.u_shorelineMask = this.shorelineMaskTexture;
 		u.u_blurredWaterMask = this.blurredWaterMaskTexture;
 		u.u_useShorelineMask = useShorelineMask;
+		u.u_causticsMask = this.combinedCausticsMaskTexture;
+		u.u_hasCausticsMask = useCausticsMask;
 		u.u_camera_offset = [topLeft.x, topLeft.y];
 		u.u_view_size = viewSize;
+
+		// Set the _Outdoors mask texture for specular highlight modulation
+		if (resourceManager) {
+			u.u_outdoorsMask = resourceManager.getOutdoorsMask() ?? PIXI.Texture.WHITE;
+		}
 	}
 
-	// @ts-ignore
 	async updateFromConfig(config) {
 		const wConfig = config.water;
 		this.visible = config.enabled && wConfig.enabled;
@@ -23502,27 +23513,10 @@ class WaterFXLayer extends MaskedEffectLayer {
 		this._updateWaterFilterUniforms(this.waterEffectsFilter, wConfig);
 	}
 
-	// @ts-ignore
-	async updateFromConfig(config) {
-		const wConfig = config.water;
-		this.visible = config.enabled && wConfig.enabled;
-
-		if (this.displacementFilter) {
-			// Apply scaling factor
-			this.displacementFilter.uniforms.u_speed =
-				(wConfig.wave.speed ?? 1.48) * 0.4;
-			this.displacementFilter.uniforms.u_scale = wConfig.wave.scale;
-		}
-		if (this.blurFilter) {
-			this.blurFilter.blur = wConfig.shoreline.detectionBlur;
-		}
-
-		this._updateWaterFilterUniforms(this.waterEffectsFilter, wConfig);
-	}
-
 	_onPan() {
 		super._onPan();
 		this._needsShorelineMaskUpdate = true;
+		this._needsCausticsMaskUpdate = true;
 	}
 
 	_onResize() {
@@ -23540,6 +23534,10 @@ class WaterFXLayer extends MaskedEffectLayer {
 			renderer.screen.width,
 			renderer.screen.height
 		);
+		this.combinedCausticsMaskTexture?.resize(
+			renderer.screen.width,
+			renderer.screen.height
+		);
 
 		if (this.displacementSprite) {
 			this.displacementSprite.width = renderer.screen.width;
@@ -23547,13 +23545,15 @@ class WaterFXLayer extends MaskedEffectLayer {
 		}
 
 		this._needsShorelineMaskUpdate = true;
+		this._needsCausticsMaskUpdate = true;
 	}
 
 	async updateEffectTargets(targets) {
 		await super.updateEffectTargets(targets);
-		if (!this.shorelineMaskContainer) return;
+		if (!this.shorelineMaskContainer || !this.causticsMaskContainer) return;
 
 		const validShorelineIds = new Set();
+		const validCausticIds = new Set();
 		const allTargets = new Map([
 			["background", targets.background],
 			...targets.tiles.entries(),
@@ -23574,6 +23574,21 @@ class WaterFXLayer extends MaskedEffectLayer {
 					targetData.rect
 				);
 			}
+
+			if (targetData?.caustics) {
+				validCausticIds.add(id);
+				let sprite = this.causticsMaskSprites.get(id);
+				if (!sprite) {
+					sprite = new PIXI.Sprite(PIXI.Texture.EMPTY);
+					this.causticsMaskSprites.set(id, sprite);
+					this.causticsMaskContainer.addChild(sprite);
+				}
+				await this._updateSpriteTransform(
+					sprite,
+					targetData.caustics,
+					targetData.rect
+				);
+			}
 		}
 
 		for (const [id, sprite] of this.shorelineMaskSprites.entries()) {
@@ -23582,7 +23597,16 @@ class WaterFXLayer extends MaskedEffectLayer {
 				this.shorelineMaskSprites.delete(id);
 			}
 		}
+
+		for (const [id, sprite] of this.causticsMaskSprites.entries()) {
+			if (!validCausticIds.has(id)) {
+				sprite.destroy();
+				this.causticsMaskSprites.delete(id);
+			}
+		}
+
 		this._needsShorelineMaskUpdate = true;
+		this._needsCausticsMaskUpdate = true;
 	}
 
 	async _tearDown(options) {
@@ -23610,6 +23634,14 @@ class WaterFXLayer extends MaskedEffectLayer {
 		this.shorelineMaskTexture?.destroy(true);
 		this.shorelineMaskSprites.clear();
 
+		this.causticsMaskContainer?.destroy({
+			children: true,
+			texture: true,
+			baseTexture: true,
+		});
+		this.combinedCausticsMaskTexture?.destroy(true);
+		this.causticsMaskSprites.clear();
+
 		this.displacementFilter = null;
 		this.displacementSprite = null;
 		this.displacementTexture = null;
@@ -23618,6 +23650,8 @@ class WaterFXLayer extends MaskedEffectLayer {
 		this.blurredWaterMaskTexture = null;
 		this.shorelineMaskContainer = null;
 		this.shorelineMaskTexture = null;
+		this.causticsMaskContainer = null;
+		this.combinedCausticsMaskTexture = null;
 
 		await super._tearDown(options);
 	}
@@ -23790,6 +23824,7 @@ class WaveDisplacementFilter extends PIXI.Filter {
 // --- 5.12. Building Shadows ---
 
 class BuildingShadowsFilter extends PIXI.Filter {
+	// @ts-ignore
 	// @ts-ignore
 	constructor(options = {}) {
 		const vertexSrc = `
@@ -24116,6 +24151,7 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
 }
 
 class OverheadRecolorFilter extends PIXI.Filter {
+	// @ts-ignore
 	// @ts-ignore
 	constructor(options = {}) {
 		const vertexSrc = `
@@ -24572,6 +24608,7 @@ class MapShineClock {
 	}
 
 	// @ts-ignore
+	// @ts-ignore
 	_onDragEnd(event) {
 		this._isDragging = false;
 		$(window).off("mousemove.daynightclock", this._onDragBound);
@@ -24598,6 +24635,7 @@ class DayNightClock extends Application {
 		});
 	}
 
+	// @ts-ignore
 	// @ts-ignore
 	async _renderInner(data) {
 		// The application just needs to provide a container for the component.
@@ -25336,6 +25374,7 @@ class CurveEditor {
 			circle.setAttribute("cursor", "grab");
 			this.svg.appendChild(circle);
 
+			// @ts-ignore
 			// @ts-ignore
 			circle.addEventListener("mousedown", (e) => {
 				this.activePoint = i;
@@ -26410,11 +26449,13 @@ border-color: #6fdd73;
 		}
 		return `<div class="control-row">${labelHtml}${checkbox}</div>`;
 	}
+
 	static _createSliderHTML(path, label, min, max, step, title = "") {
 		const id = this._createSafeId(path);
 		const titleAttr = title ? `title="${title}"` : "";
-		return `<div class="control-row control-row-slider"><label for="${id}" ${titleAttr}>${label}</label><input type="range" name="${path}" id="${id}" data-path="${path}" min="${min}" max="${max}" step="${step}"><span id="${id}-value" class="value-span">0.0</span></div>`;
+		return `<div class="control-row control-row-slider"><label for="${id}" ${titleAttr}>${label}</label><input type="range" name="${path}" id="${id}" data-path="${path}" min="${min}" max="${max}" step="${step}"><input type="number" id="${id}-value" class="value-span" data-slider-id="${id}" min="${min}" max="${max}" step="${step}"></div>`;
 	}
+
 	static _createColorPickerHTML(path, label) {
 		const id = this._createSafeId(path);
 		return `<div class="control-row"><label for="${id}">${label}</label><div class="widget-group" style="flex-grow: 1;"><input type="color" name="${path}" id="${id}" data-path="${path}"></div></div>`;
@@ -26957,6 +26998,7 @@ class DebuggerEventHandler {
 			}[effectKey];
 
 			// @ts-ignore
+			// @ts-ignore
 			for (const [key, setting] of allSettings.entries()) {
 				if (key.startsWith(MODULE_ID)) {
 					const settingKey = key.replace(`${MODULE_ID}.`, "");
@@ -27445,6 +27487,7 @@ class DebuggerEventHandler {
 	}
 
 	// @ts-ignore
+	// @ts-ignore
 	_onGradientMouseUp(event) {
 		if (!this.activeGradientEditor.isDragging) return;
 
@@ -27631,6 +27674,7 @@ class DebuggerEventHandler {
 						if (effectKey === "loadingScreen") {
 							for (const key in defaultsToUse) {
 								// @ts-ignore
+								// @ts-ignore
 								const path = `universal.sceneTransition.${key}`;
 								const settingKey = `universal.sceneTransition.${key}`;
 								const defaultValue = defaultsToUse[key];
@@ -27784,6 +27828,7 @@ class DebuggerEventHandler {
 		this._updateDebuggerTime(newTime);
 	}
 
+	// @ts-ignore
 	// @ts-ignore
 	_onDebuggerClockDragEnd(event) {
 		this._isDebuggerClockDragging = false;
@@ -27962,6 +28007,7 @@ class DebuggerEventHandler {
 	}
 
 	async _onPreviewClick(event) {
+		// @ts-ignore
 		// @ts-ignore
 		const btn = event.currentTarget;
 		const transitionManager = game.mapShine.transitionManager;
@@ -28398,6 +28444,44 @@ class DebuggerEventHandler {
 	}
 
 	async _handleGenericInput(e) {
+		// New logic for number inputs linked to sliders
+		if (e.target.type === 'number' && e.target.dataset.sliderId) {
+			const sliderId = e.target.dataset.sliderId;
+			const slider = this.element.querySelector(`#${sliderId}`);
+			if (slider) {
+				let value = Number(e.target.value);
+
+				// Clamp value to min/max of slider to prevent invalid input
+				const min = Number(slider.min);
+				const max = Number(slider.max);
+				const step = Number(slider.step);
+
+				if (value < min) value = min;
+				if (value > max) value = max;
+
+				// Also snap to the nearest step on the 'change' event (e.g., blur or enter)
+				if (e.type === 'change') {
+					value = Math.round(value / step) * step;
+				}
+
+				// Only update the input field's text if the clamped/snapped value is different
+				// This prevents the cursor from jumping while typing. We reformat on 'change'.
+				if (Number(e.target.value) !== value && e.type === 'change') {
+					const stepString = slider.step;
+					const decimals = stepString.includes(".")
+						? stepString.split(".")[1].length
+						: 0;
+					e.target.value = value.toFixed(decimals);
+				}
+
+				slider.value = value;
+				// Dispatch the same event type on the slider to trigger its existing handling logic
+				const eventType = e.type === 'input' ? 'input' : 'change';
+				slider.dispatchEvent(new Event(eventType, { bubbles: true }));
+			}
+			return; // We've handled this, don't process further.
+		}
+
 		const target = e.target;
 
 		if (target.closest(".gradient-editor-wrapper")) {
@@ -28661,14 +28745,14 @@ class DebuggerEventHandler {
 		const valueEl = this.element.querySelector(`#${elementId}-value`);
 		if (valueEl) {
 			if (typeof value === "string") {
-				valueEl.textContent = value;
+				valueEl.value = value;
 				return;
 			}
 			const stepString = String(step);
 			const decimals = stepString.includes(".")
 				? stepString.split(".")[1].length
 				: 0;
-			valueEl.textContent = Number(value).toFixed(decimals);
+			valueEl.value = Number(value).toFixed(decimals);
 		}
 	}
 
@@ -29210,6 +29294,7 @@ class MaterialEditorDebugger {
 		this._updateSceneHookId = Hooks.on(
 			"updateScene",
 			// @ts-ignore
+			// @ts-ignore
 			(scene, data, options) => {
 				const flagPath = `flags.${MODULE_ID}`;
 				if (
@@ -29358,6 +29443,7 @@ class SimpleUIPanel extends Application {
 	async render(force, options) {
 		await super.render(force, options);
 		// @ts-ignore
+		// @ts-ignore
 		this.element.find('input[type="range"]').each((i, el) => {
 			// @ts-ignore
 			this._updateSliderValue(el.id, el.value, el.step);
@@ -29365,6 +29451,7 @@ class SimpleUIPanel extends Application {
 		return this;
 	}
 
+	// @ts-ignore
 	// @ts-ignore
 	async _renderInner(data) {
 		const html = this._buildHTML();
@@ -29556,6 +29643,7 @@ class SimpleUIPanel extends Application {
 globalThis.DebuggerUIBuilder = DebuggerUIBuilder;
 
 // @ts-ignore
+// @ts-ignore
 class MapShineGuideContent {
 	static async getHTML() {
 		// @ts-ignore
@@ -29617,6 +29705,7 @@ Hooks.on("getSceneControlButtons", (controls) => {
 			icon: "fas fa-clock",
 			toggle: true,
 			active: !!game.mapShine?.dayNightClock,
+			// @ts-ignore
 			// @ts-ignore
 			onClick: (toggled) => {
 				game.mapShine?.showDayNightClock();
@@ -29719,6 +29808,7 @@ Hooks.on("canvasDraw", (canvas) => {
 	}
 });
 
+// @ts-ignore
 // @ts-ignore
 Hooks.on("renderSceneControls", (app, html, data) => {
 	if (!game.user.isGM) return;

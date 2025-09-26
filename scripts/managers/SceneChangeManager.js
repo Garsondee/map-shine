@@ -252,23 +252,63 @@ class SceneChangeManager {
 	 * @private
 	 */
 	_cycleHints() {
-		if (!this.transitionOverlay) return;
+		console.log("[MapShine SceneChangeManager] _cycleHints called");
+		if (!this.transitionOverlay) {
+			console.warn("[MapShine SceneChangeManager] No transition overlay found, cannot cycle hints");
+			return;
+		}
 
 		const hintElement = this.transitionOverlay.querySelector(".loading-hint");
+		console.log("[MapShine SceneChangeManager] Hint element found:", hintElement);
+		
+		const rawHints = game.settings.get(MODULE_ID, "universal.sceneTransition.randomHints");
+		console.log("[MapShine SceneChangeManager] Raw hints from settings:", rawHints);
+		
 		const config = {
 			useRandomHint: game.settings.get(
 				MODULE_ID,
 				"universal.sceneTransition.useRandomHint"
 			),
-			randomHints: (
-				game.settings.get(MODULE_ID, "universal.sceneTransition.randomHints") ||
-				""
-			)
+			randomHints: (rawHints || "")
 				.split(/\r?\n/)
 				.filter((h) => h.trim() !== ""),
 		};
+		
+		// If no hints are configured, fall back to defaults
+		if (config.randomHints.length === 0) {
+			console.log("[MapShine SceneChangeManager] No hints found in settings, using defaults");
+			// Use hardcoded defaults since we can't import in a non-async function
+			config.randomHints = [
+				"Press 'C' to quickly open your character sheet.",
+				"Hold the Shift key while using the arrow keys to rotate tokens.",
+				"You can assign a keyboard shortcut to toggle a token's visibility, saving you right-clicks.",
+				"To manage a group of player characters more easily, place them all in a \"Party\" folder and drag the folder onto the canvas to create a single party token.",
+				"Double-click the right mouse button to quickly end a measurement template.",
+				"You can lock the position of tokens and tiles to prevent them from being accidentally moved.",
+				"Use the search bar in the sidebars to quickly find actors, items, and journal entries.",
+				"The 'Tab' key can be used to target the next token on the canvas.",
+				"Remember that many actions have consequences in the game world.",
+				"Running away is a valid and often wise alternative to a character's death.",
+				"You can pop out character sheets and journal entries into their own windows.",
+				"The \"Ping\" tool (left-click and hold) can be used to draw your players' attention to a specific location.",
+				"Don't forget that your action can be used for more than just attacking; consider options like Dash, Dodge, and Help.",
+				"If you're unsure about a rule, it's often best to make a quick ruling and look it up later to keep the game moving.",
+				"Communication is key; keep your fellow players and the Game Master informed of your character's intentions."
+			];
+		}
+
+		console.log("[MapShine SceneChangeManager] Hint config:", {
+			useRandomHint: config.useRandomHint,
+			hintCount: config.randomHints.length,
+			firstHint: config.randomHints[0]
+		});
 
 		if (!hintElement || !config.useRandomHint || !config.randomHints.length) {
+			console.warn("[MapShine SceneChangeManager] Hint cycling aborted:", {
+				hintElement: !!hintElement,
+				useRandomHint: config.useRandomHint,
+				hintCount: config.randomHints.length
+			});
 			return;
 		}
 
@@ -288,6 +328,7 @@ class SceneChangeManager {
 			if (this._shuffledHints.length === 1) {
 				// @ts-ignore
 				hintElement.innerText = this._shuffledHints[0];
+				console.log("[MapShine SceneChangeManager] Single hint displayed:", this._shuffledHints[0]);
 				hintElement.animate([{ opacity: 0 }, { opacity: 1 }], {
 					duration: 1000,
 					fill: "forwards",
@@ -334,6 +375,7 @@ class SceneChangeManager {
 
 		// @ts-ignore
 		hintElement.innerText = this._shuffledHints[this._currentHintIndex];
+		console.log("[MapShine SceneChangeManager] First hint displayed:", this._shuffledHints[this._currentHintIndex]);
 		const initialAnimation = hintElement.animate(
 			[{ opacity: 0 }, { opacity: 1 }],
 			{ duration: 1000, fill: "forwards" }
