@@ -17,11 +17,12 @@
  * - Real-time shader-based visual enhancements
  * 
  * @author Mythica Machina
- * @version 1.0.0
- * @requires foundry ^11.0.0
- * @requires pixi.js ^7.0.0
+ * @version 1.0.45
+ * @requires foundry ^13+
+ * @requires pixi.js ^7.4.3
  * 
- * @todo Fix the time of day color grade filter functionality
+ * @todo Fix the time of day color grade filter functionality.
+ * @todo No hints can be seen during loading and scene transitions.
  */
 
 import { ProfileManager } from "./managers/ProfileManager.js";
@@ -68,9 +69,21 @@ const UNIVERSAL_EFFECT_DEFAULTS = {
 		showSceneName: true,
 		useRandomHint: true,
 		randomHints: [
-			"Loading Screen Hint 1",
-			"Loading Screen Hint 2",
-			"Loading Screen Hint 3",
+			"Press 'C' to quickly open your character sheet.",
+			"Hold the Shift key while using the arrow keys to rotate tokens.",
+			"You can assign a keyboard shortcut to toggle a token's visibility, saving you right-clicks.",
+			"To manage a group of player characters more easily, place them all in a \"Party\" folder and drag the folder onto the canvas to create a single party token.",
+			"Double-click the right mouse button to quickly end a measurement template.",
+			"You can lock the position of tokens and tiles to prevent them from being accidentally moved.",
+			"Use the search bar in the sidebars to quickly find actors, items, and journal entries.",
+			"The 'Tab' key can be used to target the next token on the canvas.",
+			"Remember that many actions have consequences in the game world.",
+			"Running away is a valid and often wise alternative to a character's death.",
+			"You can pop out character sheets and journal entries into their own windows.",
+			"The \"Ping\" tool (left-click and hold) can be used to draw your players' attention to a specific location.",
+			"Don't forget that your action can be used for more than just attacking; consider options like Dash, Dodge, and Help.",
+			"If you're unsure about a rule, it's often best to make a quick ruling and look it up later to keep the game moving.",
+			"Communication is key; keep your fellow players and the Game Master informed of your character's intentions."
 		],
 	},
 	pauseEffect: {
@@ -4174,144 +4187,208 @@ class HooksManager {
 				MODULE_ID,
 				"Scene.prototype.view",
 				async function (wrapped, ...args) {
-					const sceneManager = game.mapShine.sceneChangeManager;
+					console.log("[MapShine Transition] Scene.prototype.view wrapper called");
+					try {
+						console.log("STEP 1");
+						console.log("STEP 2");
+						console.log("STEP 3");
+						console.log("STEP 4");
+						console.log("STEP 5");
 
-					// Construct the transition config from individual game settings
-					const transitionConfig = {
-						enabled: game.settings.get(
-							MODULE_ID,
-							"universal.sceneTransition.enabled"
-						),
-						fadeOutDuration: game.settings.get(
-							MODULE_ID,
-							"universal.sceneTransition.fadeOutDuration"
-						),
-						fadeInDuration: game.settings.get(
-							MODULE_ID,
-							"universal.sceneTransition.fadeInDuration"
-						),
-						logoPath: game.settings.get(
-							MODULE_ID,
-							"universal.sceneTransition.logoPath"
-						),
-						heading: game.settings.get(
-							MODULE_ID,
-							"universal.sceneTransition.heading"
-						),
-						subheading: game.settings.get(
-							MODULE_ID,
-							"universal.sceneTransition.subheading"
-						),
-						staticDescription: game.settings.get(
-							MODULE_ID,
-							"universal.sceneTransition.staticDescription"
-						),
-						showSceneName: game.settings.get(
-							MODULE_ID,
-							"universal.sceneTransition.showSceneName"
-						),
-						useRandomHint: game.settings.get(
-							MODULE_ID,
-							"universal.sceneTransition.useRandomHint"
-						),
-						randomHints: (
-							game.settings.get(
-								MODULE_ID,
-								"universal.sceneTransition.randomHints"
-							) || ""
-						)
-							.split(/\r?\n/)
-							.filter((h) => h.trim() !== ""),
-						// --- MODIFIED SECTION ---
-						// Point to the consolidated loading screen settings.
-						staticBackgroundImage: game.settings.get(
-							MODULE_ID,
-							"loading-screen-static-background"
-						),
-						useRandomBackgroundImage: game.settings.get(
-							MODULE_ID,
-							"loading-screen-use-random-background"
-						),
-						backgroundImages: (
-							game.settings.get(
-								MODULE_ID,
-								"loading-screen-random-backgrounds"
-							) || ""
-						)
-							.split(/\r?\n/)
-							.filter((h) => h.trim() !== ""),
-						backgroundOverlayEnabled: game.settings.get(
-							MODULE_ID,
-							"loading-screen-background-overlay-enabled"
-						),
-						backgroundOverlayOpacity: game.settings.get(
-							MODULE_ID,
-							"loading-screen-background-overlay-opacity"
-						),
-						// --- END MODIFIED SECTION ---
-					};
+						// Add a stack trace to see where this is being called from
+						console.log(`[MapShine Transition] Call stack:`, new Error().stack);
 
-					const sceneToView = this;
-					const currentScene = canvas.scene;
+						const sceneManager = game.mapShine?.sceneChangeManager;
 
-					if (
-						!transitionConfig.enabled ||
-						!currentScene ||
-						sceneToView.id === currentScene.id
-					) {
+						if (!sceneManager) {
+							console.warn(`[MapShine Transition] No sceneChangeManager found, skipping transition`);
+							return wrapped(...args);
+						}
+
+						console.log(`[MapShine Transition] SceneManager found, constructing transition config`);
+
+						// Construct the transition config from individual game settings
+						let transitionConfig;
+						try {
+							transitionConfig = {
+								enabled: game.settings.get(
+									MODULE_ID,
+									"universal.sceneTransition.enabled"
+								),
+								fadeOutDuration: game.settings.get(
+									MODULE_ID,
+									"universal.sceneTransition.fadeOutDuration"
+								),
+								fadeInDuration: game.settings.get(
+									MODULE_ID,
+									"universal.sceneTransition.fadeInDuration"
+								),
+								logoPath: game.settings.get(
+									MODULE_ID,
+									"universal.sceneTransition.logoPath"
+								),
+								heading: game.settings.get(
+									MODULE_ID,
+									"universal.sceneTransition.heading"
+								),
+								subheading: game.settings.get(
+									MODULE_ID,
+									"universal.sceneTransition.subheading"
+								),
+								staticDescription: game.settings.get(
+									MODULE_ID,
+									"universal.sceneTransition.staticDescription"
+								),
+								showSceneName: game.settings.get(
+									MODULE_ID,
+									"universal.sceneTransition.showSceneName"
+								),
+								useRandomHint: game.settings.get(
+									MODULE_ID,
+									"universal.sceneTransition.useRandomHint"
+								),
+								randomHints: (
+									game.settings.get(
+										MODULE_ID,
+										"universal.sceneTransition.randomHints"
+									) || ""
+								)
+									.split(/\r?\n/)
+									.filter((h) => h.trim() !== ""),
+								// --- MODIFIED SECTION ---
+								// Point to the consolidated loading screen settings.
+								staticBackgroundImage: game.settings.get(
+									MODULE_ID,
+									"loading-screen-static-background"
+								),
+								useRandomBackgroundImage: game.settings.get(
+									MODULE_ID,
+									"loading-screen-use-random-background"
+								),
+								backgroundImages: (
+									game.settings.get(
+										MODULE_ID,
+										"loading-screen-random-backgrounds"
+									) || ""
+								)
+									.split(/\r?\n/)
+									.filter((h) => h.trim() !== ""),
+								backgroundOverlayEnabled: game.settings.get(
+									MODULE_ID,
+									"loading-screen-background-overlay-enabled"
+								),
+								backgroundOverlayOpacity: game.settings.get(
+									MODULE_ID,
+									"loading-screen-background-overlay-opacity"
+								),
+								// --- END MODIFIED SECTION ---
+							};
+							console.log(`[MapShine Transition] Transition config created successfully`);
+						} catch (configError) {
+							console.error(`[MapShine Transition] Error creating transition config:`, configError);
+							return wrapped(...args);
+						}
+
+						const sceneToView = this;
+						const currentScene = canvas.scene;
+
+						console.log(`[MapShine Transition] Transition config:`, transitionConfig);
+						console.log(`[MapShine Transition] Current scene:`, currentScene?.name, currentScene?.id);
+						console.log(`[MapShine Transition] Target scene:`, sceneToView?.name, sceneToView?.id);
+
+						if (
+							!transitionConfig.enabled ||
+							!currentScene ||
+							sceneToView.id === currentScene.id
+						) {
+							console.log(`[MapShine Transition] Skipping transition - enabled: ${transitionConfig.enabled}, currentScene: ${!!currentScene}, sameScene: ${sceneToView.id === currentScene?.id}`);
+							return wrapped(...args);
+						}
+
+						console.log(
+							`%c[MapShine Transition] Beginning transition to '${sceneToView.name}'.`,
+							"font-weight: bold; color: #40a0fa;"
+						);
+						await game.scenes.preload(sceneToView.id);
+
+						try {
+							console.log(`[MapShine Transition] About to create overlay`);
+							sceneManager._createOverlay();
+							console.log(`[MapShine Transition] Overlay created successfully`);
+							console.log(`[MapShine Transition] Overlay element:`, sceneManager.transitionOverlay);
+							console.log(`[MapShine Transition] Starting fadeOut`);
+							// Fade out using the universal settings, pass the scene object for navigation name access
+							await sceneManager.fadeOut(transitionConfig, sceneToView);
+							console.log(`[MapShine Transition] FadeOut completed`);
+						} catch (error) {
+							console.error(`[MapShine Transition] Error during overlay creation or fadeOut:`, error);
+							console.error(`[MapShine Transition] Error stack:`, error.stack);
+							// Continue with transition even if overlay fails
+						}
+
+						let resolveSetup;
+						game.mapShine.setupCompletionPromise = new Promise((resolve) => {
+							resolveSetup = resolve;
+						});
+						game.mapShine.resolveSetupCompletion = resolveSetup;
+
+						// This triggers the scene change, canvas teardown, and canvas ready hooks.
+						const result = await wrapped(...args);
+
+						const timeoutDuration = game.settings.get(MODULE_ID, "scene-transition-timeout");
+						const timeoutPromise = new Promise((resolve) =>
+							setTimeout(() => {
+								console.warn(
+									`[MapShine Transition] Timed out waiting for systems ready signal after ${timeoutDuration}ms. Fading in anyway.`
+								);
+								resolve();
+							}, timeoutDuration)
+						);
+
+						await Promise.race([
+							game.mapShine.setupCompletionPromise,
+							timeoutPromise,
+						]);
+						game.mapShine.setupCompletionPromise = null;
+						game.mapShine.resolveSetupCompletion = null;
+
+						// The config is universal, so we use the same one for fade-in.
+						await new Promise((resolve) => setTimeout(resolve, 2000));
+
+						try {
+							console.log(`[MapShine Transition] Starting fadeIn`);
+							await sceneManager.fadeIn(transitionConfig);
+							console.log(`[MapShine Transition] FadeIn completed`);
+							sceneManager._destroyOverlay();
+						} catch (error) {
+							console.error(`[MapShine Transition] Error during fadeIn:`, error);
+							// Clean up overlay even if fadeIn fails
+							sceneManager._destroyOverlay();
+						}
+
+						console.log(
+							`%c[MapShine Transition] Transition finished.`,
+							"font-weight: bold; color: #40a0fa;"
+						);
+						return result;
+					} catch (error) {
+						console.error(`[MapShine Transition] CRITICAL ERROR in Scene.prototype.view wrapper:`, error);
+						console.error(`[MapShine Transition] Error stack:`, error.stack);
+						console.error(`[MapShine Transition] Falling back to original scene.view`);
 						return wrapped(...args);
+					} finally {
+						console.log(`[MapShine Transition] Wrapper execution completed (try/catch/finally)`);
 					}
-
-					console.log(
-						`%c[MapShine Transition] Beginning transition to '${sceneToView.name}'.`,
-						"font-weight: bold; color: #40a0fa;"
-					);
-					await game.scenes.preload(sceneToView.id);
-					sceneManager._createOverlay();
-					// Fade out using the universal settings.
-					await sceneManager.fadeOut(transitionConfig, sceneToView.name);
-
-					let resolveSetup;
-					game.mapShine.setupCompletionPromise = new Promise((resolve) => {
-						resolveSetup = resolve;
-					});
-					game.mapShine.resolveSetupCompletion = resolveSetup;
-
-					// This triggers the scene change, canvas teardown, and canvas ready hooks.
-					const result = await wrapped(...args);
-
-					const timeoutDuration = game.settings.get(MODULE_ID, "scene-transition-timeout");
-					const timeoutPromise = new Promise((resolve) =>
-						setTimeout(() => {
-							console.warn(
-								`[MapShine Transition] Timed out waiting for systems ready signal after ${timeoutDuration}ms. Fading in anyway.`
-							);
-							resolve();
-						}, timeoutDuration)
-					);
-
-					await Promise.race([
-						game.mapShine.setupCompletionPromise,
-						timeoutPromise,
-					]);
-					game.mapShine.setupCompletionPromise = null;
-					game.mapShine.resolveSetupCompletion = null;
-
-					// The config is universal, so we use the same one for fade-in.
-					await new Promise((resolve) => setTimeout(resolve, 2000));
-					await sceneManager.fadeIn(transitionConfig);
-					sceneManager._destroyOverlay();
-					console.log(
-						`%c[MapShine Transition] Transition finished.`,
-						"font-weight: bold; color: #40a0fa;"
-					);
-					return result;
 				},
 				"WRAPPER"
 			);
 			console.log(
 				"Map Shine | Successfully registered Scene.prototype.view wrapper for transitions."
 			);
+
+			// Verify the wrapper was actually registered
+			console.log("Map Shine | Checking if Scene.prototype.view is wrapped:", typeof Scene.prototype.view);
+			console.log("Map Shine | libWrapper registration completed successfully");
 		} else {
 			console.warn(
 				"Map Shine | libWrapper is not active. Elegant scene transitions will be disabled."
@@ -6457,7 +6534,7 @@ class LoadingScreen {
 
 		this.element = document.createElement("div");
 		this.element.id = "map-shine-loading-screen";
-		this.element.style.opacity = "0";
+		this.element.style.opacity = "1"; // Start from black immediately
 
 		// Background Image Logic
 		const useRandom = game.settings.get(
@@ -6510,14 +6587,14 @@ class LoadingScreen {
 		this.element.innerHTML = `
                         <div class="loading-background-overlay"></div>
                         <div class="loading-content">
-                            <img src="modules/map-shine/assets/fvtt.png" class="loading-logo" alt="Foundry VTT Logo">
-                            <h2 class="loading-subhead">${subheading}</h2>
-                            <h1 class="loading-title">${game.world.title}</h1>
-                            <div class="loading-bar-container">
+                            <img src="modules/map-shine/assets/fvtt.png" class="loading-logo slide-from-above" alt="Foundry VTT Logo">
+                            <h2 class="loading-subhead slide-from-above">${subheading}</h2>
+                            <h1 class="loading-title slide-from-above">${game.world.title}</h1>
+                            <div class="loading-bar-container slide-from-below">
                                 <div class="loading-bar-fill"></div>
                             </div>
-                            <div id="loading-status-text" class="loading-status"></div>
-                            <p id="loading-hint-text" class="loading-hint"></p>
+                            <div id="loading-status-text" class="loading-status slide-from-below"></div>
+                            <p id="loading-hint-text" class="loading-hint slide-from-below"></p>
                         </div>
                         <style>
                             #map-shine-loading-screen { 
@@ -6555,6 +6632,49 @@ class LoadingScreen {
                                 opacity: 0; /* Initially hidden */
                                 text-shadow: 0 2px 5px rgba(0,0,0,0.7);
                             }
+                            
+                            /* Slide-in animations */
+                            .slide-from-above {
+                                transform: translateY(-50px);
+                                opacity: 0;
+                                animation: slideInFromAbove 0.8s ease-out forwards;
+                            }
+                            
+                            .slide-from-below {
+                                transform: translateY(50px);
+                                opacity: 0;
+                                animation: slideInFromBelow 0.8s ease-out forwards;
+                            }
+                            
+                            @keyframes slideInFromAbove {
+                                0% {
+                                    transform: translateY(-50px);
+                                    opacity: 0;
+                                }
+                                100% {
+                                    transform: translateY(0);
+                                    opacity: 1;
+                                }
+                            }
+                            
+                            @keyframes slideInFromBelow {
+                                0% {
+                                    transform: translateY(50px);
+                                    opacity: 0;
+                                }
+                                100% {
+                                    transform: translateY(0);
+                                    opacity: 1;
+                                }
+                            }
+                            
+                            /* Staggered animation delays */
+                            .loading-logo { animation-delay: 0.1s; }
+                            .loading-subhead { animation-delay: 0.2s; }
+                            .loading-title { animation-delay: 0.3s; }
+                            .loading-bar-container { animation-delay: 0.4s; }
+                            .loading-status { animation-delay: 0.5s; }
+                            .loading-hint { animation-delay: 0.6s; }
                         </style>
                     `;
 
@@ -6567,9 +6687,8 @@ class LoadingScreen {
 		// @ts-ignore
 		this.statusTextElement.style.opacity = "1";
 
-		// Force a reflow before applying the final opacity to ensure the transition plays.
+		// Force a reflow to ensure animations start properly
 		void this.element.offsetHeight;
-		this.element.style.opacity = "1";
 
 		// Hide the default Foundry VTT loading element
 		const foundryLoading = document.getElementById("loading");
@@ -11120,7 +11239,8 @@ class ParticleEffectController {
 			if (resourceManager && waterConfig?.wave?.enabled) {
 				const displacementMap =
 					resourceManager.getWaterDisplacementMap(deltaTime);
-				if (displacementMap) {
+				// Add null checks to prevent errors during scene transitions
+				if (displacementMap && displacementMap.baseTexture && displacementMap.baseTexture.valid && this.displacementSprite) {
 					this.displacementSprite.texture = displacementMap;
 					const scale =
 						waterConfig.wave.intensity *
@@ -15352,6 +15472,10 @@ export class ScreenEffectsManager {
 
 		// Existing bloom sprite logic
 		if (!this._bloomSprite) return;
+
+		// Add null checks to prevent errors during scene transitions
+		if (!this._bloomSprite.transform || !this._bloomSprite.position) return;
+
 		const bloomFilter = this.getFilter("advancedBloom");
 		if (bloomFilter && bloomFilter.enabled) {
 			const resourceManager = game.mapShine.resourceManager;
@@ -15367,9 +15491,12 @@ export class ScreenEffectsManager {
 				const cameraOffset = CoordinateManager.getCameraOffset();
 				const viewSize = CoordinateManager.getViewSize();
 
-				this._bloomSprite.position.copyFrom(cameraOffset);
-				this._bloomSprite.width = viewSize.width;
-				this._bloomSprite.height = viewSize.height;
+				// Additional safety check before accessing position
+				if (cameraOffset && viewSize && this._bloomSprite.position) {
+					this._bloomSprite.position.copyFrom(cameraOffset);
+					this._bloomSprite.width = viewSize.width;
+					this._bloomSprite.height = viewSize.height;
+				}
 			}
 		}
 	}
@@ -19650,7 +19777,8 @@ class CloudShadowsLayer extends MaskedEffectLayer {
 		const cloudTexture = resourceManager.getCloudShadowTexture(deltaTime);
 
 		// Update the sprite that is actually drawn to the screen with the definitive texture for this frame.
-		if (this.effectSprite) {
+		// Add null checks to prevent errors during scene transitions when objects might be destroyed
+		if (this.effectSprite && cloudTexture && cloudTexture.baseTexture && cloudTexture.baseTexture.valid) {
 			this.effectSprite.texture = cloudTexture;
 		}
 	}
@@ -19750,6 +19878,11 @@ class CloudShadowsLayer extends MaskedEffectLayer {
 
 	_updateSpriteAndUniformPositions() {
 		if (!this.cloudFilter || !this.effectSprite) return;
+
+		// Add additional checks to prevent errors during scene transitions
+		if (!canvas.stage || !canvas.app || !canvas.app.screen) return;
+		if (!this.effectSprite.texture || !this.effectSprite.texture.orig) return;
+
 		const stage = canvas.stage,
 			screen = canvas.app.screen;
 		// @ts-ignore
@@ -19769,9 +19902,11 @@ class CloudShadowsLayer extends MaskedEffectLayer {
 		this.effectSprite.width = screen.width / stage.scale.x;
 		this.effectSprite.height = screen.height / stage.scale.y;
 
-		this._patternGeneratorSprite.position.set(0, 0);
-		this._patternGeneratorSprite.width = screen.width;
-		this._patternGeneratorSprite.height = screen.height;
+		if (this._patternGeneratorSprite) {
+			this._patternGeneratorSprite.position.set(0, 0);
+			this._patternGeneratorSprite.width = screen.width;
+			this._patternGeneratorSprite.height = screen.height;
+		}
 	}
 
 	async updateFromConfig(config) {
@@ -27158,6 +27293,11 @@ class DebuggerEventHandler {
 			this._handleDelegatedClick.bind(this)
 		);
 
+		// Debug: Add a general click listener to see if ANY clicks are detected
+		this.element.addEventListener("click", (e) => {
+			console.log("MapShine | General click detected on:", e.target);
+		});
+
 		// Gradient Editor Listeners
 		this.element.addEventListener("dblclick", this._boundGradientBarDoubleClick);
 		this.element.addEventListener("mousedown", this._boundGradientStopMouseDown);
@@ -27425,8 +27565,10 @@ class DebuggerEventHandler {
 		if (!target) return;
 
 		const action = target.dataset.action;
+		console.log("MapShine | Delegated click detected, action:", action);
 
 		if (action === "add-list-item" || action === "remove-list-item") {
+			console.log("MapShine | Routing to list manager handler");
 			this._handleListManagerClick(e);
 			return;
 		}
@@ -27718,10 +27860,12 @@ class DebuggerEventHandler {
 			}
 		});
 
+		console.log("MapShine | Updating list managers...");
 		this.element
 			.querySelectorAll(".list-manager-container")
 			.forEach((container) => {
 				const path = container.dataset.path;
+				console.log("MapShine | Found list manager for path:", path);
 				this._renderListManagerItems(path);
 			});
 
@@ -28131,27 +28275,48 @@ class DebuggerEventHandler {
 	}
 
 	async _handleListManagerClick(event) {
+		console.log("MapShine | List manager click detected", event);
 		const button = event.target.closest("button[data-action]");
+		if (!button) {
+			console.error("MapShine | No button found with data-action");
+			return;
+		}
+
 		const action = button.dataset.action;
+		console.log("MapShine | Action:", action);
+
 		const container = button.closest(".list-manager-container");
-		if (!container) return;
+		if (!container) {
+			console.error("MapShine | No list-manager-container found");
+			return;
+		}
 
 		const path = container.dataset.path;
-		if (!path) return;
+		if (!path) {
+			console.error("MapShine | No path found on container");
+			return;
+		}
+
+		console.log("MapShine | Path:", path);
 
 		const currentString = game.settings.get(MODULE_ID, path) || "";
 		let list = currentString ? currentString.split(/\r?\n/) : [];
 
+		console.log("MapShine | Current list:", list);
+
 		if (action === "add-list-item") {
 			list.push(""); // Add a new empty item to be filled
+			console.log("MapShine | Added empty item, new list:", list);
 		} else if (action === "remove-list-item") {
 			const index = parseInt(button.dataset.index, 10);
 			if (!isNaN(index)) {
 				list.splice(index, 1);
+				console.log("MapShine | Removed item at index", index, "new list:", list);
 			}
 		}
 
 		await game.settings.set(MODULE_ID, path, list.join("\n"));
+		console.log("MapShine | Settings updated, re-rendering list");
 		this._renderListManagerItems(path); // Re-render the list in the UI
 	}
 
@@ -28184,11 +28349,24 @@ class DebuggerEventHandler {
 		const itemType = container.dataset.itemType;
 		if (!listContainer) return;
 
-		const valueString = game.settings.get(MODULE_ID, path) || "";
+		let valueString = game.settings.get(MODULE_ID, path);
+
+		// If no value is set or it's empty, fall back to the registered default
+		if (!valueString || valueString.trim() === "") {
+			// @ts-ignore
+			const setting = game.settings.settings.get(`${MODULE_ID}.${path}`);
+			if (setting && setting.default) {
+				valueString = setting.default;
+				console.log(`MapShine | Using default value for ${path}:`, valueString);
+			}
+		}
+
 		let items = valueString ? valueString.split(/\r?\n/) : [];
 		if (items.length === 1 && items[0] === "") {
 			items.length = 0;
 		}
+
+		console.log(`MapShine | Rendering ${items.length} items for ${path}:`, items);
 
 		listContainer.innerHTML = items
 			.map((item, index) => {
