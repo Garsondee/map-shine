@@ -161,82 +161,210 @@ class SceneChangeManager {
 				<p id="loading-hint-text" class="loading-hint slide-from-below"></p>
 			</div>
 			<style>
+				/* Modern MapShine Scene Transition */
+				:root {
+					--ms-primary: #3b82f6;
+					--ms-success: #10b981;
+					--ms-bg-dark: #0f172a;
+					--ms-bg-slate: #1e293b;
+					--ms-glass: rgba(30, 41, 59, 0.9);
+					--ms-text-light: #f8fafc;
+					--ms-text-muted: #94a3b8;
+					--ms-glow-blue: rgba(59, 130, 246, 0.3);
+				}
+
 				#map-shine-scene-transition { 
 					position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
-					background-color: rgba(0, 0, 0, 1); 
+					background: linear-gradient(135deg, var(--ms-bg-dark) 0%, var(--ms-bg-slate) 50%, var(--ms-bg-dark) 100%); 
 					z-index: 999999; display: flex; 
 					justify-content: center; align-items: center; 
-					color: white; font-family: ${subheadingFont}, Lexend, sans-serif; 
-					transition: opacity 1.5s ease-in-out; 
+					color: var(--ms-text-light); font-family: ${subheadingFont}, 'Inter', system-ui, sans-serif; 
+					transition: opacity 1.5s cubic-bezier(0.4, 0, 0.2, 1); 
+					overflow: hidden;
+				}
+
+				#map-shine-scene-transition::before {
+					content: '';
+					position: absolute;
+					inset: 0;
+					background: 
+						radial-gradient(circle at 30% 20%, var(--ms-glow-blue) 0%, transparent 50%),
+						radial-gradient(circle at 70% 80%, rgba(16, 185, 129, 0.1) 0%, transparent 50%);
+					pointer-events: none;
 				}
 				.loading-background-overlay {
 					${backgroundStyle}
 					position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
 					z-index: 1; /* Behind content */
 				}
-				.loading-content { text-align: center; position: relative; z-index: 2; }
-				.loading-logo { width: 150px; height: auto; margin: 0 auto 10px auto; display: block; filter: drop-shadow(0 0 10px rgba(0,0,0,0.6)); }
-				.loading-subhead { font-family: "${subheadingFont}", sans-serif; font-size: 24px; font-weight: normal; color: #bbb; margin: 0 0 10px 0; text-shadow: 0 2px 5px rgba(0,0,0,0.7); }
-				.loading-title { font-family: "${headingFont}", sans-serif; font-size: 72px; margin: 0 0 30px 0; text-shadow: 0 2px 5px rgba(0,0,0,0.7); color: #fff; }
-				.loading-bar-container { width: 400px; height: 20px; border: 2px solid rgba(255, 255, 255, 0.5); margin: 0 auto; background-color: rgba(0,0,0,0.5); border-radius: 5px; overflow: hidden; }
-				.loading-bar-fill { width: 0%; height: 100%; background-color: rgba(255, 255, 255, 0.9); transform-origin: left; transition: width 0.2s ease-out; box-shadow: 0 0 10px rgba(255, 255, 255, 0.5); }
-				.loading-status { margin-top: 15px; font-size: 16px; color: #ddd; height: 20px; line-height: 20px; opacity: 1; transition: opacity 0.2s ease-in-out; text-shadow: 0 2px 5px rgba(0,0,0,0.7); }
+				.loading-content { 
+					text-align: center; 
+					position: relative; 
+					z-index: 2; 
+					background: var(--ms-glass);
+					backdrop-filter: blur(20px);
+					-webkit-backdrop-filter: blur(20px);
+					border-radius: 1.5rem;
+					padding: 4rem 5rem;
+					border: 1px solid rgba(148, 163, 184, 0.15);
+					box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px rgba(59, 130, 246, 0.15);
+					max-width: 700px;
+				}
+
+				.loading-content::before {
+					content: '';
+					position: absolute;
+					top: 0;
+					left: 0;
+					right: 0;
+					height: 1px;
+					background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.2) 50%, transparent 100%);
+				}
+
+				.loading-logo { 
+					width: 160px; 
+					height: auto; 
+					margin: 0 auto 1.25rem auto; 
+					display: block; 
+					filter: drop-shadow(0 0 20px var(--ms-glow-blue)) drop-shadow(0 4px 12px rgba(0,0,0,0.4)); 
+					transition: transform 0.3s ease;
+				}
+
+				.loading-subhead { 
+					font-family: "${subheadingFont}", sans-serif; 
+					font-size: 1.5rem; 
+					font-weight: 400; 
+					color: #cbd5e1; 
+					margin: 0 0 0.75rem 0; 
+					text-shadow: 0 2px 8px rgba(0,0,0,0.5); 
+					letter-spacing: 0.025em;
+				}
+
+				.loading-title { 
+					font-family: "${headingFont}", sans-serif; 
+					font-size: 4.5rem; 
+					font-weight: 700; 
+					margin: 0 0 2rem 0; 
+					background: linear-gradient(135deg, var(--ms-text-light) 0%, var(--ms-primary) 100%);
+					-webkit-background-clip: text;
+					-webkit-text-fill-color: transparent;
+					background-clip: text;
+					text-shadow: 0 4px 12px rgba(0,0,0,0.3); 
+					letter-spacing: -0.025em;
+					line-height: 1.1;
+				}
+				.loading-bar-container { 
+					width: 450px; 
+					height: 0.75rem; 
+					margin: 0 auto; 
+					background: rgba(15, 23, 42, 0.8); 
+					border-radius: 9999px; 
+					overflow: hidden; 
+					position: relative;
+					box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+				}
+
+				.loading-bar-fill { 
+					width: 0%; 
+					height: 100%; 
+					background: linear-gradient(135deg, var(--ms-primary) 0%, var(--ms-success) 100%);
+					transform-origin: left; 
+					transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
+					box-shadow: 0 0 20px var(--ms-glow-blue);
+					border-radius: 9999px;
+					position: relative;
+				}
+
+				.loading-bar-fill::after {
+					content: '';
+					position: absolute;
+					inset: 0;
+					background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%);
+					border-radius: inherit;
+				}
+
+				.loading-status { 
+					margin-top: 1.5rem; 
+					font-size: 1rem; 
+					color: #cbd5e1; 
+					height: 1.25rem; 
+					line-height: 1.25rem; 
+					opacity: 1; 
+					transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+					text-shadow: 0 2px 8px rgba(0,0,0,0.5); 
+					font-weight: 500;
+					letter-spacing: 0.025em;
+				}
 				.loading-hint {
-					font-family: "${hintFont}", sans-serif;
-					margin-top: 25px;
-					font-size: 16px;
-					color: #aaa;
+					font-family: "${hintFont}", serif;
+					margin-top: 2rem;
+					font-size: 1rem;
+					color: var(--ms-text-muted);
 					font-style: italic;
-					max-width: 50ch;
+					max-width: 55ch;
 					margin-left: auto;
 					margin-right: auto;
-					min-height: 3em; /* Reserve space to prevent layout shifts */
-					opacity: 0; /* Initially hidden */
-					text-shadow: 0 2px 5px rgba(0,0,0,0.7);
+					min-height: 3rem;
+					opacity: 0;
+					text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+					line-height: 1.6;
+					font-weight: 400;
 				}
 				
-				/* Slide-in animations */
+				/* Modern slide animations */
 				.slide-from-above {
-					transform: translateY(-50px);
+					transform: translateY(-3rem);
 					opacity: 0;
-					animation: slideInFromAbove 0.8s ease-out forwards;
+					animation: slideInFromAbove 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 				}
 				
 				.slide-from-below {
-					transform: translateY(50px);
+					transform: translateY(3rem);
 					opacity: 0;
-					animation: slideInFromBelow 0.8s ease-out forwards;
+					animation: slideInFromBelow 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 				}
 				
 				@keyframes slideInFromAbove {
-					0% {
-						transform: translateY(-50px);
-						opacity: 0;
-					}
-					100% {
+					to {
 						transform: translateY(0);
 						opacity: 1;
 					}
 				}
 				
 				@keyframes slideInFromBelow {
-					0% {
-						transform: translateY(50px);
-						opacity: 0;
-					}
-					100% {
+					to {
 						transform: translateY(0);
 						opacity: 1;
 					}
 				}
 				
-				/* Staggered animation delays */
+				/* Elegant staggered delays */
 				.loading-logo { animation-delay: 0.1s; }
 				.loading-subhead { animation-delay: 0.2s; }
-				.loading-title { animation-delay: 0.3s; }
-				.loading-bar-container { animation-delay: 0.4s; }
-				.loading-status { animation-delay: 0.5s; }
-				.loading-hint { animation-delay: 0.6s; }
+				.loading-title { animation-delay: 0.35s; }
+				.loading-bar-container { animation-delay: 0.5s; }
+				.loading-status { animation-delay: 0.65s; }
+				.loading-hint { animation-delay: 0.8s; }
+
+				/* Responsive design */
+				@media (max-width: 768px) {
+					.loading-content { 
+						padding: 2.5rem 2rem; 
+						margin: 1rem; 
+					}
+					
+					.loading-title { 
+						font-size: 3rem; 
+					}
+					
+					.loading-logo { 
+						width: 120px; 
+					}
+					
+					.loading-bar-container { 
+						width: 300px; 
+					}
+				}
 			</style>
 		`;
 
