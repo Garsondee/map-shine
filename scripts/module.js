@@ -1,4 +1,3 @@
-
 /**
  * @fileoverview Map Shine - Advanced Visual Effects Module for Foundry VTT
  *
@@ -17,15 +16,15 @@
  * - Particle systems and atmospheric effects
  * - Real-time shader-based visual enhancements
  *
- * @author Mythica Machina
+ * @author Mythica Machina - Ingram Blakelock
  * @version 1.0.45
  * @requires foundry ^13+
  * @requires pixi.js ^7.4.3
  *
- * 
+ *
  * @todo HIGH Priority - Underwater Caustics cloud occlusion is broken.
- * 
- * 
+ *
+ *
  * @todo Glow in the dark is broken.
  */
 
@@ -36,6 +35,143 @@ import { TokenManager } from "./managers/TokenManager.js";
 import { hexToRgbArray, lerp } from "./utils/ColorUtils.js";
 import { SceneChangeManager } from "./managers/SceneChangeManager.js";
 import { AmbientLayer } from "./layers/AmbientLayer.js";
+
+
+
+
+    
+/***************************************************************************************
+ *
+ *                              UNIFIED LIGHT MASKING SYSTEM
+ *
+ *  PURPOSE & BREAKTHROUGH:
+ *  This system represents the definitive method for creating a high-quality, performant,
+ *  and screen-space mask of all active light sources on the canvas. Its primary
+ *  innovation is a two-phase, GPU-accelerated process that correctly handles wall
+ *  occlusion and provides artist-controlled, band-free gradients for soft edges.
+ *
+ *  This technique is the new standard for any effect within the module that needs to
+ *  be occluded or modulated by scene lighting (e.g., cloud shadows, underwater caustics).
+ *
+ *  CORE TECHNIQUE:
+ *  The system operates in two distinct phases, managed by the layer on the CPU but
+ *  executed entirely on the GPU for maximum performance.
+ *
+ *  1.  HARD MASK GENERATION:
+ *      First, we generate a binary (black and white) mask that perfectly represents the
+ *      final, wall-clipped shape of all lights combined. This is achieved by iterating
+ *      through all active `canvas.scene.lights` and drawing their final computed
+ *      polygons (`light.object.lightSource.shape.points`) into a single texture.
+ *      This gives us geometric accuracy.
+ *
+ *  2.  HIGH-QUALITY SOFTENING (KAWASE BLUR):
+ *      Second, we take the hard-edged mask from Phase 1 and apply a high-quality,
+ *      multi-pass Kawase blur to it. This transforms the sharp edges into a smooth,
+ *      artifact-free gradient. The result is stored in a final floating-point texture,
+ *      which is then passed to the main effect shader. This gives us visual fidelity.
+ *
+ *  PERFORMANCE OPTIMIZATION:
+ *  This entire process is computationally intensive. To ensure high performance, it is
+ *  NOT run on every animation frame. Instead, it is controlled by a `_needsLightMaskUpdate`
+ *  flag. This flag is set to `true` only when a relevant change occurs on the canvas
+ *  (e.g., a light is moved, a wall is updated, the canvas is panned). The animation loop
+ *  checks this flag each frame and only regenerates the mask when absolutely necessary.
+ *
+ ***************************************************************************************
+ *
+ *                  --- REPLICATION GUIDE FOR OTHER LAYERS ---
+ *
+ *  To apply this light occlusion system to another effect layer, follow these steps:
+ *
+ *  1.  LAYER PROPERTIES:
+ *      In your CanvasLayer's constructor, declare the following properties:
+ *
+ *      `this.lightPolygonMaskTexture`   // PIXI.RenderTexture for the hard mask.
+ *      `this.lightMaskGraphics`         // PIXI.Graphics to draw the light polygons.
+ *      `this.blurredLightMaskTexture`   // PIXI.RenderTexture for the final soft mask.
+ *      `this.intermediateBlurTexture`   // PIXI.RenderTexture for the first blur pass.
+ *      `this.kawaseBlurFilter1`         // PIXI.filters.KawaseBlurFilter for the first pass.
+ *      `this.kawaseBlurFilter2`         // PIXI.filters.KawaseBlurFilter for the second pass.
+ *      `this.blurSourceSprite`          // PIXI.Sprite used as a canvas for the blur filters.
+ *      `this._needsLightMaskUpdate`     // Boolean flag, initialized to `true`.
+ *
+ *  2.  INITIALIZATION (`_draw()` method):
+ *      Instantiate all the properties from Step 1. CRITICAL: For the highest quality
+ *      gradient without banding, create the `intermediateBlurTexture` and
+ *      `blurredLightMaskTexture` with a floating-point type:
+ *
+ *      const textureOptions = {
+ *          width: renderer.screen.width,
+ *          height: renderer.screen.height,
+ *          type: PIXI.TYPES.FLOAT, // Prevents color banding
+ *          scaleMode: PIXI.SCALE_MODES.LINEAR
+ *      };
+ *      this.intermediateBlurTexture = PIXI.RenderTexture.create(textureOptions);
+ *      this.blurredLightMaskTexture = PIXI.RenderTexture.create(textureOptions);
+ *
+ *  3.  DRAWING LOGIC (`_renderLightMask()` method):
+ *      Implement a method that performs the two-phase rendering:
+ *
+ *      a) Render the hard mask by looping through `canvas.scene.lights`. For each
+ *         visible and active light, draw `light.object.lightSource.shape.points`
+ *         using `this.lightMaskGraphics` and render the result to
+ *         `this.lightPolygonMaskTexture`.
+ *
+ *      b) Perform the two-pass blur:
+ *         // First pass
+ *         this.blurSourceSprite.texture = this.lightPolygonMaskTexture;
+ *         this.blurSourceSprite.filters = [this.kawaseBlurFilter1];
+ *         renderer.render(this.blurSourceSprite, { renderTex: this.intermediateBlurTexture });
+ *
+ *         // Second pass
+ *         this.blurSourceSprite.texture = this.intermediateBlurTexture;
+ *         this.blurSourceSprite.filters = [this.kawaseBlurFilter2];
+ *         renderer.render(this.blurSourceSprite, { renderTex: this.blurredLightMaskTexture });
+ *
+ *  4.  OPTIMIZATION HOOKS (`_draw()` method):
+ *      Define a flagging function `const flagUpdate = () => { this._needsLightMaskUpdate = true; };`
+ *      and register it with all relevant hooks to listen for changes:
+ *      `Hooks.on("canvasPan", flagUpdate);`
+ *      `Hooks.on("createLight", flagUpdate);`
+ *      `Hooks.on("updateLight", flagUpdate);`
+ *      `Hooks.on("deleteLight", flagUpdate);`
+ *      `Hooks.on("createWall", flagUpdate);`
+ *      `Hooks.on("updateWall", flagUpdate);`
+ *      `Hooks.on("deleteWall", flagUpdate);`
+ *
+ *  5.  ANIMATION LOOP (`_onAnimate()` method):
+ *      In your layer's main animation loop, check the flag before rendering the mask:
+ *
+ *      if (this._needsLightMaskUpdate) {
+ *          this._renderLightMask();
+ *          this._needsLightMaskUpdate = false;
+ *      }
+ *
+ *  6.  FILTER INTEGRATION:
+ *      Pass the final `this.blurredLightMaskTexture` as a uniform to your effect shader.
+ *      The shader can then sample this texture to get the light intensity at any pixel.
+ *      The value will be a smooth gradient from 0.0 (no light) to 1.0 (full light).
+ *
+ *      // GLSL Example:
+ *      uniform sampler2D uLightMask;
+ *      varying vec2 vScreenCoord;
+ *      // ...
+ *      float lightIntensity = texture2D(uLightMask, vScreenCoord).r;
+ *      // ...
+ *
+ *  7.  UI CONTROL:
+ *      Link a slider in the UI to control the `.blur` property of BOTH `kawaseBlurFilter1`
+ *      and `kawaseBlurFilter2`. This gives the user direct artistic control over the
+ *      softness of the gradient. Remember to set `this._needsLightMaskUpdate = true;`
+ *      when this value changes.
+ *
+ ***************************************************************************************/
+
+  
+
+
+
+
 
 // =================================================================================
 // SECTION 0: MODULE SETUP & CONFIGURATION
@@ -76,7 +212,7 @@ const UNIVERSAL_EFFECT_DEFAULTS = {
       "Press 'C' to quickly open your character sheet.",
       "Hold the Shift key while using the arrow keys to rotate tokens.",
       "You can assign a keyboard shortcut to toggle a token's visibility, saving you right-clicks.",
-      "To manage a group of player characters more easily, place them all in a \"Party\" folder and drag the folder onto the canvas to create a single party token.",
+      'To manage a group of player characters more easily, place them all in a "Party" folder and drag the folder onto the canvas to create a single party token.',
       "Double-click the right mouse button to quickly end a measurement template.",
       "You can lock the position of tokens and tiles to prevent them from being accidentally moved.",
       "Use the search bar in the sidebars to quickly find actors, items, and journal entries.",
@@ -84,10 +220,10 @@ const UNIVERSAL_EFFECT_DEFAULTS = {
       "Remember that many actions have consequences in the game world.",
       "Running away is a valid and often wise alternative to a character's death.",
       "You can pop out character sheets and journal entries into their own windows.",
-      "The \"Ping\" tool (left-click and hold) can be used to draw your players' attention to a specific location.",
+      'The "Ping" tool (left-click and hold) can be used to draw your players\' attention to a specific location.',
       "Don't forget that your action can be used for more than just attacking; consider options like Dash, Dodge, and Help.",
       "If you're unsure about a rule, it's often best to make a quick ruling and look it up later to keep the game moving.",
-      "Communication is key; keep your fellow players and the Game Master informed of your character's intentions."
+      "Communication is key; keep your fellow players and the Game Master informed of your character's intentions.",
     ],
   },
   pauseEffect: {
@@ -1626,1304 +1762,1303 @@ const COLOR_CORRECTION_PRESETS = {
 };
 
 export const MODULE_DEFAULTS = {
-  "timeControl": {
-    "globalTime": 100
+  timeControl: {
+    globalTime: 100,
   },
-  "enabled": true,
-  "debug": true,
-  "showTokenMask": false,
-  "showDustMaskDebug": false,
-  "showGlintMaskDebug": false,
-  "tileOpacity": 0,
-  "baseShine": {
-    "enabled": true,
-    "compositing": {
-      "layerBlendMode": 1
+  enabled: true,
+  debug: true,
+  showTokenMask: false,
+  showDustMaskDebug: false,
+  showGlintMaskDebug: false,
+  tileOpacity: 0,
+  baseShine: {
+    enabled: true,
+    compositing: {
+      layerBlendMode: 1,
     },
-    "animation": {
-      "globalIntensity": 1.2
+    animation: {
+      globalIntensity: 1.2,
     },
-    "pattern": {
-      "stripes": {
-        "enabled": true,
-        "speed": 0,
-        "angle": 140,
-        "scale": 1,
-        "parallax": 1,
-        "width": 1,
-        "softness": 0.26,
-        "randomWidth": 0.49,
-        "randomIntensity": 1
-      }
-    },
-    "colorCorrection": {
-      "enabled": true,
-      "saturation": 1.25,
-      "brightness": 0.74,
-      "contrast": 3.25,
-      "gamma": 0.85,
-      "tint": {
-        "color": "#FFFFFF",
-        "amount": 0
+    pattern: {
+      stripes: {
+        enabled: true,
+        speed: 0,
+        angle: 140,
+        scale: 1,
+        parallax: 1,
+        width: 1,
+        softness: 0.26,
+        randomWidth: 0.49,
+        randomIntensity: 1,
       },
-      "invert": false
     },
-    "cloudOcclusion": {
-      "enabled": true,
-      "intensity": 0.81
-    }
-  },
-  "cloudShadows": {
-    "enabled": true,
-    "blendMode": 0,
-    "shadowIntensity": 0.25,
-    "maskBlur": 0,
-    "shadowInteraction": {
-      "enabled": false,
-      "intensity": 1,
-      "luminanceThreshold": 0.97,
-      "softness": 0.01
-    },
-    "wind": {
-      "angle": 45,
-      "speed": 0.05,
-      "linkToFireWind": false,
-      "linkedWindForce": 0.001,
-      "linkedMaxSpeed": 0.005,
-      "linkedDrag": 0.5
-    },
-    "noise": {
-      "scale": 0.06,
-      "octaves": 7,
-      "persistence": 0.5,
-      "lacunarity": 1.9
-    },
-    "shading": {
-      "threshold": 1,
-      "softness": 0.71,
-      "brightness": 0.14,
-      "contrast": 5,
-      "gamma": 1.6
-    }
-  },
-  "iridescence": {
-    "enabled": true,
-    "texturePath": "",
-    "blendMode": 1,
-    "intensity": 0.9,
-    "speed": 0.01,
-    "scale": 0.7,
-    "parallax": 0,
-    "fbm": {
-      "octaves": 5,
-      "persistence": 0.33,
-      "lacunarity": 1.9,
-      "evolution": 0,
-      "brightness": 0.45,
-      "contrast": 0.8
-    },
-    "distortion": {
-      "enabled": true,
-      "strength": 5.26
-    },
-    "noise": {
-      "enabled": true,
-      "speed": 0.042,
-      "scale": 9.7,
-      "threshold": 0.47,
-      "brightness": 0.74,
-      "contrast": 2.45,
-      "softness": 0.5
-    },
-    "gradient": {
-      "name": "rainbow",
-      "hueShift": 0,
-      "brightness": 0.04,
-      "contrast": 0.5
-    }
-  },
-  "canopy": {
-    "enabled": true,
-    "shadowIntensity": 0.3,
-    "tint": "#050805",
-    "distortion": {
-      "enabled": true,
-      "strength": 0.004,
-      "speed": 0.005,
-      "scale": 0.01,
-      "evolution": 0.01,
-      "threshold": 0,
-      "brightness": -0.37,
-      "contrast": 1,
-      "softness": 1
-    },
-    "postScale": 1
-  },
-  "structuralShadows": {
-    "enabled": true,
-    "intensity": 0.55,
-    "blendMode": 9,
-    "colorCorrection": {
-      "enabled": true,
-      "saturation": 1,
-      "brightness": 0,
-      "contrast": 1,
-      "gamma": 1,
-      "tint": {
-        "color": "#FFFFFF",
-        "amount": 0
-      }
-    },
-    "cloudOcclusion": {
-      "enabled": true,
-      "intensity": 0.8,
-      "threshold": 0.75,
-      "softness": 0.1
-    }
-  },
-  "prism": {
-    "enabled": true,
-    "intensity": 1,
-    "angle": 218,
-    "threshold": 0.1,
-    "softness": 0.5,
-    "distortionStrength": 1.9,
-    "distortionNoise": {
-      "enabled": true,
-      "speed": 0,
-      "scale": 3.83,
-      "evolution": 0,
-      "threshold": 0,
-      "brightness": 0.11,
-      "contrast": 1.85,
-      "softness": 1
-    }
-  },
-  "ambient": {
-    "enabled": false,
-    "texturePath": "",
-    "blendMode": 1,
-    "intensity": 1,
-    "masking": {
-      "enabled": true,
-      "threshold": 0,
-      "softness": 0.25
-    },
-    "tokenMasking": {
-      "enabled": true,
-      "threshold": 0
-    },
-    "colorCorrection": {
-      "enabled": true,
-      "saturation": 1.2,
-      "brightness": 0,
-      "contrast": 1,
-      "gamma": 1,
-      "tint": {
-        "color": "#ff0209",
-        "amount": 0
-      }
-    }
-  },
-  "groundGlow": {
-    "enabled": true,
-    "texturePath": "",
-    "blendMode": 1,
-    "intensity": 1.05,
-    "luminanceThreshold": 0.25,
-    "brightness": 1.2,
-    "saturation": 1.2,
-    "softness": 1,
-    "invert": false,
-    "tokenMasking": {
-      "enabled": true,
-      "threshold": 0
-    }
-  },
-  "heatDistortion": {
-    "enabled": true,
-    "texturePath": "",
-    "intensity": 0.0005,
-    "noise": {
-      "primary": {
-        "speed": 97,
-        "scale": 0.5,
-        "octaves": 2,
-        "lacunarity": 2.2,
-        "persistence": 0.45
+    colorCorrection: {
+      enabled: true,
+      saturation: 1.25,
+      brightness: 0.74,
+      contrast: 3.25,
+      gamma: 0.85,
+      tint: {
+        color: "#FFFFFF",
+        amount: 0,
       },
-      "secondary": {
-        "speed": 79,
-        "scale": 3.5,
-        "octaves": 3,
-        "lacunarity": 3.8,
-        "persistence": 0.3
-      },
-      "rising": {
-        "speed": 0.077,
-        "intensity": 0.4
-      }
-    }
+      invert: false,
+    },
+    cloudOcclusion: {
+      enabled: true,
+      intensity: 0.81,
+    },
   },
-  "advancedBloom": {
-    "enabled": true,
-    "blendMode": 1,
-    "threshold": 0.21,
-    "bloomScale": 2,
-    "brightness": 2,
-    "blur": 3.5,
-    "quality": 4
+  cloudShadows: {
+    enabled: true,
+    blendMode: 0,
+    shadowIntensity: 0.25,
+    maskBlur: 0,
+    lightOcclusion: {
+      enabled: true,
+      intensity: 1.0,
+      falloff: 0.5,
+    },
+    wind: {
+      angle: 45,
+      speed: 0.05,
+      linkToFireWind: false,
+      linkedWindForce: 0.001,
+      linkedMaxSpeed: 0.005,
+      linkedDrag: 0.5,
+    },
+    noise: {
+      scale: 0.06,
+      octaves: 7,
+      persistence: 0.5,
+      lacunarity: 1.9,
+    },
+    shading: {
+      threshold: 1,
+      softness: 0.71,
+      brightness: 0.14,
+      contrast: 5,
+      gamma: 1.6,
+    },
   },
-  "sceneAppearance": {
-    "transitionDuration": 3500
+  iridescence: {
+    enabled: true,
+    texturePath: "",
+    blendMode: 1,
+    intensity: 0.9,
+    speed: 0.01,
+    scale: 0.7,
+    parallax: 0,
+    fbm: {
+      octaves: 5,
+      persistence: 0.33,
+      lacunarity: 1.9,
+      evolution: 0,
+      brightness: 0.45,
+      contrast: 0.8,
+    },
+    distortion: {
+      enabled: true,
+      strength: 5.26,
+    },
+    noise: {
+      enabled: true,
+      speed: 0.042,
+      scale: 9.7,
+      threshold: 0.47,
+      brightness: 0.74,
+      contrast: 2.45,
+      softness: 0.5,
+    },
+    gradient: {
+      name: "rainbow",
+      hueShift: 0,
+      brightness: 0.04,
+      contrast: 0.5,
+    },
   },
-  "postProcessing": {
-    "enabled": true,
-    "colorCorrection": {
-      "enabled": true,
-      "saturation": 0.9,
-      "brightness": 0,
-      "contrast": 1.05,
-      "invert": false,
-      "tint": {
-        "color": "#FFFFFF",
-        "amount": 0
+  canopy: {
+    enabled: true,
+    shadowIntensity: 0.3,
+    tint: "#050805",
+    distortion: {
+      enabled: true,
+      strength: 0.004,
+      speed: 0.005,
+      scale: 0.01,
+      evolution: 0.01,
+      threshold: 0,
+      brightness: -0.37,
+      contrast: 1,
+      softness: 1,
+    },
+    postScale: 1,
+  },
+  structuralShadows: {
+    enabled: true,
+    intensity: 0.55,
+    blendMode: 9,
+    colorCorrection: {
+      enabled: true,
+      saturation: 1,
+      brightness: 0,
+      contrast: 1,
+      gamma: 1,
+      tint: {
+        color: "#FFFFFF",
+        amount: 0,
       },
-      "exposure": 0.05,
-      "gamma": 1.05,
-      "levels": {
-        "inBlack": 0,
-        "inWhite": 1
+    },
+    cloudOcclusion: {
+      enabled: true,
+      intensity: 0.8,
+      threshold: 0.75,
+      softness: 0.1,
+    },
+  },
+  prism: {
+    enabled: true,
+    intensity: 1,
+    angle: 218,
+    threshold: 0.1,
+    softness: 0.5,
+    distortionStrength: 1.9,
+    distortionNoise: {
+      enabled: true,
+      speed: 0,
+      scale: 3.83,
+      evolution: 0,
+      threshold: 0,
+      brightness: 0.11,
+      contrast: 1.85,
+      softness: 1,
+    },
+  },
+  ambient: {
+    enabled: false,
+    texturePath: "",
+    blendMode: 1,
+    intensity: 1,
+    masking: {
+      enabled: true,
+      threshold: 0,
+      softness: 0.25,
+    },
+    tokenMasking: {
+      enabled: true,
+      threshold: 0,
+    },
+    colorCorrection: {
+      enabled: true,
+      saturation: 1.2,
+      brightness: 0,
+      contrast: 1,
+      gamma: 1,
+      tint: {
+        color: "#ff0209",
+        amount: 0,
       },
-      "whiteBalance": {
-        "temperature": 0.24,
-        "tint": -0.17
+    },
+  },
+  groundGlow: {
+    enabled: true,
+    texturePath: "",
+    blendMode: 1,
+    intensity: 1.05,
+    luminanceThreshold: 0.25,
+    brightness: 1.2,
+    saturation: 1.2,
+    softness: 1,
+    invert: false,
+    tokenMasking: {
+      enabled: true,
+      threshold: 0,
+    },
+  },
+  heatDistortion: {
+    enabled: true,
+    texturePath: "",
+    intensity: 0.0005,
+    noise: {
+      primary: {
+        speed: 97,
+        scale: 0.5,
+        octaves: 2,
+        lacunarity: 2.2,
+        persistence: 0.45,
       },
-      "selective": {
-        "enabled": false,
-        "color": "#fb0045",
-        "hueRange": 0.09,
-        "saturationRange": 0.5,
-        "luminanceRange": 0.5,
-        "targetLuminance": 0.04,
-        "softness": 0.1,
-        "invert": false,
-        "desaturation": 1,
-        "targetSaturation": 1,
-        "targetBrightness": 0
+      secondary: {
+        speed: 79,
+        scale: 3.5,
+        octaves: 3,
+        lacunarity: 3.8,
+        persistence: 0.3,
       },
-      "curves": {
-        "enabled": false,
-        "activeChannel": "rgb",
-        "rgb": {
-          "points": [
+      rising: {
+        speed: 0.077,
+        intensity: 0.4,
+      },
+    },
+  },
+  advancedBloom: {
+    enabled: true,
+    blendMode: 1,
+    threshold: 0.21,
+    bloomScale: 2,
+    brightness: 2,
+    blur: 3.5,
+    quality: 4,
+  },
+  sceneAppearance: {
+    transitionDuration: 3500,
+  },
+  postProcessing: {
+    enabled: true,
+    colorCorrection: {
+      enabled: true,
+      saturation: 0.9,
+      brightness: 0,
+      contrast: 1.05,
+      invert: false,
+      tint: {
+        color: "#FFFFFF",
+        amount: 0,
+      },
+      exposure: 0.05,
+      gamma: 1.05,
+      levels: {
+        inBlack: 0,
+        inWhite: 1,
+      },
+      whiteBalance: {
+        temperature: 0.24,
+        tint: -0.17,
+      },
+      selective: {
+        enabled: false,
+        color: "#fb0045",
+        hueRange: 0.09,
+        saturationRange: 0.5,
+        luminanceRange: 0.5,
+        targetLuminance: 0.04,
+        softness: 0.1,
+        invert: false,
+        desaturation: 1,
+        targetSaturation: 1,
+        targetBrightness: 0,
+      },
+      curves: {
+        enabled: false,
+        activeChannel: "rgb",
+        rgb: {
+          points: [
             {
-              "x": 0,
-              "y": 0
+              x: 0,
+              y: 0,
             },
             {
-              "x": 0.25,
-              "y": 0.25
+              x: 0.25,
+              y: 0.25,
             },
             {
-              "x": 0.75,
-              "y": 0.75
+              x: 0.75,
+              y: 0.75,
             },
             {
-              "x": 1,
-              "y": 1
-            }
-          ]
+              x: 1,
+              y: 1,
+            },
+          ],
         },
-        "red": {
-          "points": [
+        red: {
+          points: [
             {
-              "x": 0,
-              "y": 0
+              x: 0,
+              y: 0,
             },
             {
-              "x": 0.25,
-              "y": 0.25
+              x: 0.25,
+              y: 0.25,
             },
             {
-              "x": 0.75,
-              "y": 0.75
+              x: 0.75,
+              y: 0.75,
             },
             {
-              "x": 1,
-              "y": 1
-            }
-          ]
+              x: 1,
+              y: 1,
+            },
+          ],
         },
-        "green": {
-          "points": [
+        green: {
+          points: [
             {
-              "x": 0,
-              "y": 0
+              x: 0,
+              y: 0,
             },
             {
-              "x": 0.25,
-              "y": 0.25
+              x: 0.25,
+              y: 0.25,
             },
             {
-              "x": 0.75,
-              "y": 0.75
+              x: 0.75,
+              y: 0.75,
             },
             {
-              "x": 1,
-              "y": 1
-            }
-          ]
+              x: 1,
+              y: 1,
+            },
+          ],
         },
-        "blue": {
-          "points": [
+        blue: {
+          points: [
             {
-              "x": 0,
-              "y": 0
+              x: 0,
+              y: 0,
             },
             {
-              "x": 0.25,
-              "y": 0.25
+              x: 0.25,
+              y: 0.25,
             },
             {
-              "x": 0.75,
-              "y": 0.75
+              x: 0.75,
+              y: 0.75,
             },
             {
-              "x": 1,
-              "y": 1
-            }
-          ]
-        }
+              x: 1,
+              y: 1,
+            },
+          ],
+        },
       },
-      "dynamicExposure": {
-        "enabled": true,
-        "intensity": 1.5,
-        "duration": 8000,
-        "resetPeriod": 60000
-      }
-    },
-    "vignette": {
-      "enabled": true,
-      "amount": 0.24,
-      "softness": 0.36
-    },
-    "lensDistortion": {
-      "enabled": true,
-      "amount": 0.015,
-      "centerX": 0.5,
-      "centerY": 0.5
-    },
-    "chromaticAberration": {
-      "enabled": true,
-      "amount": 0.001,
-      "centerX": 0.5,
-      "centerY": 0.5
-    },
-    "tiltShift": {
-      "enabled": false,
-      "blur": 23,
-      "gradientBlur": 3610,
-      "startX": 0,
-      "startY": 0.5,
-      "endX": 1,
-      "endY": 0.5
-    },
-    "grain": {
-      "enabled": false,
-      "intensity": 0.1,
-      "size": 1.5,
-      "monochromatic": true,
-      "luminanceResponse": {
-        "shadows": 0.8,
-        "highlights": 0.2
-      }
-    },
-    "lut": {
-      "enabled": true,
-      "texturePath": "",
-      "intensity": 1,
-      "presetName": "custom",
-      "diagnosticMode": 0,
-      "diagnosticSlice": 1,
-      "domainMin": {
-        "r": 0,
-        "g": 0,
-        "b": 0
+      dynamicExposure: {
+        enabled: true,
+        intensity: 1.5,
+        duration: 8000,
+        resetPeriod: 60000,
       },
-      "domainMax": {
-        "r": 1,
-        "g": 1,
-        "b": 1
+    },
+    vignette: {
+      enabled: true,
+      amount: 0.24,
+      softness: 0.36,
+    },
+    lensDistortion: {
+      enabled: true,
+      amount: 0.015,
+      centerX: 0.5,
+      centerY: 0.5,
+    },
+    chromaticAberration: {
+      enabled: true,
+      amount: 0.001,
+      centerX: 0.5,
+      centerY: 0.5,
+    },
+    tiltShift: {
+      enabled: false,
+      blur: 23,
+      gradientBlur: 3610,
+      startX: 0,
+      startY: 0.5,
+      endX: 1,
+      endY: 0.5,
+    },
+    grain: {
+      enabled: false,
+      intensity: 0.1,
+      size: 1.5,
+      monochromatic: true,
+      luminanceResponse: {
+        shadows: 0.8,
+        highlights: 0.2,
       },
-      "preLutBlur": {
-        "enabled": false,
-        "amount": 0
+    },
+    lut: {
+      enabled: true,
+      texturePath: "",
+      intensity: 1,
+      presetName: "custom",
+      diagnosticMode: 0,
+      diagnosticSlice: 1,
+      domainMin: {
+        r: 0,
+        g: 0,
+        b: 0,
       },
-      "inputProcessing": {
-        "enabled": false,
-        "saturation": 1,
-        "brightness": 0,
-        "contrast": 1,
-        "gamma": 0.9,
-        "hue": 0
-      }
-    }
+      domainMax: {
+        r: 1,
+        g: 1,
+        b: 1,
+      },
+      preLutBlur: {
+        enabled: false,
+        amount: 0,
+      },
+      inputProcessing: {
+        enabled: false,
+        saturation: 1,
+        brightness: 0,
+        contrast: 1,
+        gamma: 0.9,
+        hue: 0,
+      },
+    },
   },
-  "dust": {
-    "enabled": true,
-    "blendMode": 0,
-    "maskThreshold": 0.39,
-    "maskInfluence": 5,
-    "particleTexture": "modules/map-shine/assets/particle.webp",
-    "frequency": 0.097,
-    "lifetime": {
-      "min": 4,
-      "max": 12
+  dust: {
+    enabled: true,
+    blendMode: 0,
+    maskThreshold: 0.39,
+    maskInfluence: 5,
+    particleTexture: "modules/map-shine/assets/particle.webp",
+    frequency: 0.097,
+    lifetime: {
+      min: 4,
+      max: 12,
     },
-    "colorAlphaGradient": [
+    colorAlphaGradient: [
       {
-        "time": 0,
-        "color": "#ffbc40",
-        "alpha": 0
+        time: 0,
+        color: "#ffbc40",
+        alpha: 0,
       },
       {
-        "time": 0.1,
-        "color": "#ffc242",
-        "alpha": 0.69
+        time: 0.1,
+        color: "#ffc242",
+        alpha: 0.69,
       },
       {
-        "time": 0.97,
-        "color": "#fff955",
-        "alpha": 0.69
+        time: 0.97,
+        color: "#fff955",
+        alpha: 0.69,
       },
       {
-        "time": 1,
-        "color": "#fffb55",
-        "alpha": 0
-      }
+        time: 1,
+        color: "#fffb55",
+        alpha: 0,
+      },
     ],
-    "emissiveGradient": [
+    emissiveGradient: [
       {
-        "time": 0,
-        "color": "#ffbc40",
-        "alpha": 1
+        time: 0,
+        color: "#ffbc40",
+        alpha: 1,
       },
       {
-        "time": 1,
-        "color": "#fffb55",
-        "alpha": 1
-      }
+        time: 1,
+        color: "#fffb55",
+        alpha: 1,
+      },
     ],
-    "scale": {
-      "sizeMultiplier": 0.6,
-      "start": 0.9,
-      "end": 1.09,
-      "minMult": 0.86
+    scale: {
+      sizeMultiplier: 0.6,
+      start: 0.9,
+      end: 1.09,
+      minMult: 0.86,
     },
-    "speed": {
-      "start": 3,
-      "end": 6,
-      "minMult": 0.5
+    speed: {
+      start: 3,
+      end: 6,
+      minMult: 0.5,
     },
-    "rotation": {
-      "enabled": false,
-      "minSpeed": 0,
-      "maxSpeed": 20,
-      "accel": 0
-    }
+    rotation: {
+      enabled: false,
+      minSpeed: 0,
+      maxSpeed: 20,
+      accel: 0,
+    },
   },
-  "glint": {
-    "enabled": true,
-    "darknessAffectsIntensity": true,
-    "blendMode": 0,
-    "maskThreshold": 0.9,
-    "maskInfluence": 0.09,
-    "particleTexture": "modules/map-shine/assets/glint.webp",
-    "frequency": 0.932,
-    "lifetime": {
-      "min": 0.8,
-      "max": 2.9
+  glint: {
+    enabled: true,
+    darknessAffectsIntensity: true,
+    blendMode: 0,
+    maskThreshold: 0.9,
+    maskInfluence: 0.09,
+    particleTexture: "modules/map-shine/assets/glint.webp",
+    frequency: 0.932,
+    lifetime: {
+      min: 0.8,
+      max: 2.9,
     },
-    "colorAlphaGradient": [
+    colorAlphaGradient: [
       {
-        "time": 0,
-        "color": "#FFFFFF",
-        "alpha": 0
+        time: 0,
+        color: "#FFFFFF",
+        alpha: 0,
       },
       {
-        "time": 0.055,
-        "color": "#FFFFFF",
-        "alpha": 0.95
+        time: 0.055,
+        color: "#FFFFFF",
+        alpha: 0.95,
       },
       {
-        "time": 1,
-        "color": "#FFFFFF",
-        "alpha": 0
-      }
+        time: 1,
+        color: "#FFFFFF",
+        alpha: 0,
+      },
     ],
-    "emissiveGradient": [
+    emissiveGradient: [
       {
-        "time": 0,
-        "color": "#000000",
-        "alpha": 1
+        time: 0,
+        color: "#000000",
+        alpha: 1,
       },
       {
-        "time": 1,
-        "color": "#000000",
-        "alpha": 1
-      }
+        time: 1,
+        color: "#000000",
+        alpha: 1,
+      },
     ],
-    "scale": {
-      "sizeMultiplier": 9,
-      "start": 1.5,
-      "end": 0.61,
-      "minMult": 0.9
+    scale: {
+      sizeMultiplier: 9,
+      start: 1.5,
+      end: 0.61,
+      minMult: 0.9,
     },
-    "speed": {
-      "start": 0,
-      "end": 0,
-      "minMult": 0.5
+    speed: {
+      start: 0,
+      end: 0,
+      minMult: 0.5,
     },
-    "rotation": {
-      "enabled": false,
-      "minSpeed": 0,
-      "maxSpeed": 20,
-      "accel": 0
+    rotation: {
+      enabled: false,
+      minSpeed: 0,
+      maxSpeed: 20,
+      accel: 0,
     },
-    "rgbSplit": {
-      "enabled": true,
-      "amount": 8.2
-    }
+    rgbSplit: {
+      enabled: true,
+      amount: 8.2,
+    },
   },
-  "metallicGlints": {
-    "enabled": true,
-    "blendMode": 1,
-    "maskThreshold": 0.93,
-    "maskInfluence": 3.92,
-    "particleTexture": "modules/map-shine/assets/glint.webp",
-    "frequency": 0.031,
-    "lifetime": {
-      "min": 0.4,
-      "max": 1.5
+  metallicGlints: {
+    enabled: true,
+    blendMode: 1,
+    maskThreshold: 0.93,
+    maskInfluence: 3.92,
+    particleTexture: "modules/map-shine/assets/glint.webp",
+    frequency: 0.031,
+    lifetime: {
+      min: 0.4,
+      max: 1.5,
     },
-    "colorAlphaGradient": [
+    colorAlphaGradient: [
       {
-        "time": 0,
-        "color": "#FFFFFF",
-        "alpha": 0
+        time: 0,
+        color: "#FFFFFF",
+        alpha: 0,
       },
       {
-        "time": 0.1,
-        "color": "#FFFFFF",
-        "alpha": 0.75
+        time: 0.1,
+        color: "#FFFFFF",
+        alpha: 0.75,
       },
       {
-        "time": 1,
-        "color": "#FFFFFF",
-        "alpha": 0
-      }
+        time: 1,
+        color: "#FFFFFF",
+        alpha: 0,
+      },
     ],
-    "emissiveGradient": [
+    emissiveGradient: [
       {
-        "time": 0,
-        "color": "#000000",
-        "alpha": 1
+        time: 0,
+        color: "#000000",
+        alpha: 1,
       },
       {
-        "time": 1,
-        "color": "#000000",
-        "alpha": 1
-      }
+        time: 1,
+        color: "#000000",
+        alpha: 1,
+      },
     ],
-    "scale": {
-      "sizeMultiplier": 4.1,
-      "start": 0.52,
-      "end": 1.8,
-      "minMult": 0.7
+    scale: {
+      sizeMultiplier: 4.1,
+      start: 0.52,
+      end: 1.8,
+      minMult: 0.7,
     },
-    "speed": {
-      "start": 0,
-      "end": 0,
-      "minMult": 0.1
+    speed: {
+      start: 0,
+      end: 0,
+      minMult: 0.1,
     },
-    "rotation": {
-      "enabled": true,
-      "minSpeed": -39,
-      "maxSpeed": 44,
-      "accel": 0
-    }
+    rotation: {
+      enabled: true,
+      minSpeed: -39,
+      maxSpeed: 44,
+      accel: 0,
+    },
   },
-  "biofilm": {
-    "enabled": true,
-    "blendMode": 0,
-    "maskThreshold": 0.2,
-    "maskUpperThreshold": 0.6,
-    "maskInfluence": 5,
-    "particleTexture": "modules/map-shine/assets/particle.webp",
-    "frequency": 0.097,
-    "lifetime": {
-      "min": 4,
-      "max": 12
+  biofilm: {
+    enabled: true,
+    blendMode: 0,
+    maskThreshold: 0.2,
+    maskUpperThreshold: 0.6,
+    maskInfluence: 5,
+    particleTexture: "modules/map-shine/assets/particle.webp",
+    frequency: 0.097,
+    lifetime: {
+      min: 4,
+      max: 12,
     },
-    "colorAlphaGradient": [
+    colorAlphaGradient: [
       {
-        "time": 0,
-        "color": "#d1d1d1",
-        "alpha": 0
+        time: 0,
+        color: "#d1d1d1",
+        alpha: 0,
       },
       {
-        "time": 0.04,
-        "color": "#c9c9c8",
-        "alpha": 0.92
+        time: 0.04,
+        color: "#c9c9c8",
+        alpha: 0.92,
       },
       {
-        "time": 1,
-        "color": "#232e1f",
-        "alpha": 0
-      }
+        time: 1,
+        color: "#232e1f",
+        alpha: 0,
+      },
     ],
-    "emissiveGradient": [
+    emissiveGradient: [
       {
-        "time": 0,
-        "color": "#000000",
-        "alpha": 1
+        time: 0,
+        color: "#000000",
+        alpha: 1,
       },
       {
-        "time": 1,
-        "color": "#000000",
-        "alpha": 1
-      }
+        time: 1,
+        color: "#000000",
+        alpha: 1,
+      },
     ],
-    "scale": {
-      "sizeMultiplier": 0.6,
-      "start": 0.9,
-      "end": 1.09,
-      "minMult": 0.3
+    scale: {
+      sizeMultiplier: 0.6,
+      start: 0.9,
+      end: 1.09,
+      minMult: 0.3,
     },
-    "speed": {
-      "start": 3,
-      "end": 6,
-      "minMult": 0.5
+    speed: {
+      start: 3,
+      end: 6,
+      minMult: 0.5,
     },
-    "rotation": {
-      "enabled": false,
-      "minSpeed": 0,
-      "maxSpeed": 20,
-      "accel": 0
-    }
+    rotation: {
+      enabled: false,
+      minSpeed: 0,
+      maxSpeed: 20,
+      accel: 0,
+    },
   },
-  "water": {
-    "enabled": true,
-    "flow": {
-      "enabled": false,
-      "angle": 45,
-      "speed": 5
+  water: {
+    enabled: true,
+    flow: {
+      enabled: false,
+      angle: 45,
+      speed: 5,
     },
-    "wave": {
-      "enabled": true,
-      "speed": 0.5,
-      "scale": 4.2,
-      "intensity": 0.0025,
-      "biofilmDistortion": {
-        "enabled": true,
-        "intensity": 0.005
-      }
-    },
-    "murkiness": {
-      "enabled": false,
-      "color": "#1a2c22",
-      "wavyNoise": {
-        "strength": 0.8,
-        "scale": 2,
-        "speed": 0.005
+    wave: {
+      enabled: true,
+      speed: 0.5,
+      scale: 4.2,
+      intensity: 0.0025,
+      biofilmDistortion: {
+        enabled: true,
+        intensity: 0.005,
       },
-      "sandyNoise": {
-        "strength": 0.3,
-        "scale": 15,
-        "speed": 0.02
-      }
     },
-    "surface": {
-      "enabled": true,
-      "foamColor": "#33adff",
-      "foamIntensity": 0,
-      "foamCoverage": 0,
-      "foamSharpness": 0.13,
-      "fbmScale": 15.196,
-      "fbmSpeed": 0.01,
-      "fbmEvolution": 0.03,
-      "fbmOctaves": 5,
-      "fbmLacunarity": 4,
-      "fbmPersistence": 0.1,
-      "specularity": {
-        "enabled": true,
-        "color": "#FFFFFF",
-        "intensity": 0.75,
-        "shininess": 256,
-        "lightAngle": 45,
-        "lightElevation": 60
-      }
-    },
-    "caustics": {
-      "enabled": true,
-      "intensity": 0.033,
-      "scale": 1,
-      "speed": 0.14,
-      "color": "#87CEFA",
-      "lineSharpness": 5,
-      "bloomIntensity": 1,
-      "lineDistortion": 0.1,
-      "lineDistortionScale": 5,
-      "intersectionBoost": 20,
-      "roughnessScale": 4.2,
-      "roughnessIntensity": 0.83,
-      "cloudOcclusion": {
-        "enabled": true,
-        "intensity": 1
-      }
-    },
-    "shoreline": {
-      "enabled": false,
-      "detectionBlur": 1,
-      "foamColor": "#FFFFFF",
-      "foamIntensity": 0.5,
-      "foamPattern": {
-        "scale": 1,
-        "speed": 0,
-        "evolution": 0.01,
-        "octaves": 4,
-        "lacunarity": 2.05,
-        "persistence": 0.15,
-        "brightness": 0.5,
-        "contrast": 1
+    murkiness: {
+      enabled: false,
+      color: "#1a2c22",
+      wavyNoise: {
+        strength: 0.8,
+        scale: 2,
+        speed: 0.005,
       },
-      "displacement": {
-        "enabled": false,
-        "scale": 0.4,
-        "speed": 0.011,
-        "strength": 0.0025
-      }
-    },
-    "glintParticles": {
-      "enabled": true,
-      "blendMode": 9,
-      "maskThreshold": 0.17,
-      "maskInfluence": 1.95,
-      "particleTexture": "modules/map-shine/assets/glint.webp",
-      "frequency": 0.99,
-      "lifetime": {
-        "min": 0.8,
-        "max": 0.8
+      sandyNoise: {
+        strength: 0.3,
+        scale: 15,
+        speed: 0.02,
       },
-      "colorAlphaGradient": [
+    },
+    surface: {
+      enabled: true,
+      foamColor: "#33adff",
+      foamIntensity: 0,
+      foamCoverage: 0,
+      foamSharpness: 0.13,
+      fbmScale: 15.196,
+      fbmSpeed: 0.01,
+      fbmEvolution: 0.03,
+      fbmOctaves: 5,
+      fbmLacunarity: 4,
+      fbmPersistence: 0.1,
+      specularity: {
+        enabled: true,
+        color: "#FFFFFF",
+        intensity: 0.75,
+        shininess: 256,
+        lightAngle: 45,
+        lightElevation: 60,
+      },
+    },
+    caustics: {
+      enabled: true,
+      intensity: 0.033,
+      scale: 1,
+      speed: 0.14,
+      color: "#87CEFA",
+      lineSharpness: 5,
+      bloomIntensity: 1,
+      lineDistortion: 0.1,
+      lineDistortionScale: 5,
+      intersectionBoost: 20,
+      roughnessScale: 4.2,
+      roughnessIntensity: 0.83,
+      cloudOcclusion: {
+        enabled: true,
+        intensity: 1,
+      },
+    },
+    shoreline: {
+      enabled: false,
+      detectionBlur: 1,
+      foamColor: "#FFFFFF",
+      foamIntensity: 0.5,
+      foamPattern: {
+        scale: 1,
+        speed: 0,
+        evolution: 0.01,
+        octaves: 4,
+        lacunarity: 2.05,
+        persistence: 0.15,
+        brightness: 0.5,
+        contrast: 1,
+      },
+      displacement: {
+        enabled: false,
+        scale: 0.4,
+        speed: 0.011,
+        strength: 0.0025,
+      },
+    },
+    glintParticles: {
+      enabled: true,
+      blendMode: 9,
+      maskThreshold: 0.17,
+      maskInfluence: 1.95,
+      particleTexture: "modules/map-shine/assets/glint.webp",
+      frequency: 0.99,
+      lifetime: {
+        min: 0.8,
+        max: 0.8,
+      },
+      colorAlphaGradient: [
         {
-          "time": 0,
-          "color": "#FFFFFF",
-          "alpha": 0
-        },
-        {
-          "time": 0.1,
-          "color": "#FFFFFF",
-          "alpha": 0.8
+          time: 0,
+          color: "#FFFFFF",
+          alpha: 0,
         },
         {
-          "time": 1,
-          "color": "#FFFFFF",
-          "alpha": 0
-        }
+          time: 0.1,
+          color: "#FFFFFF",
+          alpha: 0.8,
+        },
+        {
+          time: 1,
+          color: "#FFFFFF",
+          alpha: 0,
+        },
       ],
-      "emissiveGradient": [
+      emissiveGradient: [
         {
-          "time": 0,
-          "color": "#000000",
-          "alpha": 1
+          time: 0,
+          color: "#000000",
+          alpha: 1,
         },
         {
-          "time": 1,
-          "color": "#000000",
-          "alpha": 1
-        }
+          time: 1,
+          color: "#000000",
+          alpha: 1,
+        },
       ],
-      "scale": {
-        "sizeMultiplier": 1.9,
-        "start": 0.76,
-        "end": 0.82,
-        "minMult": 0.95
+      scale: {
+        sizeMultiplier: 1.9,
+        start: 0.76,
+        end: 0.82,
+        minMult: 0.95,
       },
-      "speed": {
-        "start": 5,
-        "end": 11,
-        "minMult": 0.47
+      speed: {
+        start: 5,
+        end: 11,
+        minMult: 0.47,
       },
-      "rotation": {
-        "enabled": true,
-        "minSpeed": 116,
-        "maxSpeed": 123,
-        "accel": 52
-      }
-    }
+      rotation: {
+        enabled: true,
+        minSpeed: 116,
+        maxSpeed: 123,
+        accel: 52,
+      },
+    },
   },
-  "foam": {
-    "enabled": true,
-    "blendMode": 1,
-    "smallBlur": 2,
-    "largeBlur": 10,
-    "intensity": 1.5,
-    "threshold": 0.2,
-    "softness": 0.1,
-    "color": "#FFFFFF",
-    "noise": {
-      "scale": 15,
-      "speed": 0.02,
-      "evolution": 0.05,
-      "octaves": 4,
-      "lacunarity": 2.2,
-      "persistence": 0.45
+  foam: {
+    enabled: true,
+    blendMode: 1,
+    smallBlur: 2,
+    largeBlur: 10,
+    intensity: 1.5,
+    threshold: 0.2,
+    softness: 0.1,
+    color: "#FFFFFF",
+    noise: {
+      scale: 15,
+      speed: 0.02,
+      evolution: 0.05,
+      octaves: 4,
+      lacunarity: 2.2,
+      persistence: 0.45,
     },
-    "breakupNoise": {
-      "enabled": true,
-      "scale": 2.5,
-      "evolution": 0.01,
-      "octaves": 5,
-      "lacunarity": 2.8,
-      "persistence": 0.35,
-      "brightness": 0.4,
-      "contrast": 1.2
+    breakupNoise: {
+      enabled: true,
+      scale: 2.5,
+      evolution: 0.01,
+      octaves: 5,
+      lacunarity: 2.8,
+      persistence: 0.35,
+      brightness: 0.4,
+      contrast: 1.2,
     },
-    "suppressionNoise": {
-      "enabled": true,
-      "scale": 2.5,
-      "speed": 0.005,
-      "evolution": 0.01,
-      "octaves": 4,
-      "lacunarity": 2,
-      "persistence": 0.5,
-      "brightness": 0.5,
-      "contrast": 1
+    suppressionNoise: {
+      enabled: true,
+      scale: 2.5,
+      speed: 0.005,
+      evolution: 0.01,
+      octaves: 4,
+      lacunarity: 2,
+      persistence: 0.5,
+      brightness: 0.5,
+      contrast: 1,
     },
-    "blurTurbulence": {
-      "strength": 8,
-      "scale": 0.5,
-      "speed": 0.01
+    blurTurbulence: {
+      strength: 8,
+      scale: 0.5,
+      speed: 0.01,
     },
-    "crestFoam": {
-      "enabled": false,
-      "intensity": 1.8,
-      "frequency": 35,
-      "speed": 0.03,
-      "angle": 15,
-      "sharpness": 12,
-      "perturbStrength": 35,
-      "perturbScale": 0.04,
-      "perturbSpeed": 0.01,
-      "perturbOctaves": 4,
-      "crestBreakup": {
-        "scale": 0.35,
-        "speed": 0.08,
-        "octaves": 3,
-        "brightness": 0.45,
-        "contrast": 1.8
-      }
-    }
-  },
-  "fire": {
-    "enabled": true,
-    "bloom": {
-      "enabled": true,
-      "threshold": 0.04,
-      "bloomScale": 5,
-      "brightness": 5,
-      "blur": 0,
-      "quality": 4
-    },
-    "particles": {
-      "enabled": true,
-      "blendMode": 1,
-      "maskThreshold": 0.06,
-      "maskInfluence": 1.01,
-      "particleTexture": "modules/map-shine/assets/flame.webp",
-      "frequency": 0.033,
-      "lifetime": {
-        "min": 0.1,
-        "max": 3.4
+    crestFoam: {
+      enabled: false,
+      intensity: 1.8,
+      frequency: 35,
+      speed: 0.03,
+      angle: 15,
+      sharpness: 12,
+      perturbStrength: 35,
+      perturbScale: 0.04,
+      perturbSpeed: 0.01,
+      perturbOctaves: 4,
+      crestBreakup: {
+        scale: 0.35,
+        speed: 0.08,
+        octaves: 3,
+        brightness: 0.45,
+        contrast: 1.8,
       },
-      "colorAlphaGradient": [
+    },
+  },
+  fire: {
+    enabled: true,
+    bloom: {
+      enabled: true,
+      threshold: 0.04,
+      bloomScale: 5,
+      brightness: 5,
+      blur: 0,
+      quality: 4,
+    },
+    particles: {
+      enabled: true,
+      blendMode: 1,
+      maskThreshold: 0.06,
+      maskInfluence: 1.01,
+      particleTexture: "modules/map-shine/assets/flame.webp",
+      frequency: 0.033,
+      lifetime: {
+        min: 0.1,
+        max: 3.4,
+      },
+      colorAlphaGradient: [
         {
-          "time": 0,
-          "color": "#FFDD88",
-          "alpha": 0
+          time: 0,
+          color: "#FFDD88",
+          alpha: 0,
         },
         {
-          "time": 0.13768124787703803,
-          "color": "#ffd782",
-          "alpha": 0.47
+          time: 0.13768124787703803,
+          color: "#ffd782",
+          alpha: 0.47,
         },
         {
-          "time": 0.2655800067782381,
-          "color": "#ff731e",
-          "alpha": 0.12
+          time: 0.2655800067782381,
+          color: "#ff731e",
+          alpha: 0.12,
         },
         {
-          "time": 0.671140900715665,
-          "color": "#000000",
-          "alpha": 0.26
+          time: 0.671140900715665,
+          color: "#000000",
+          alpha: 0.26,
         },
         {
-          "time": 0.840843686122106,
-          "color": "#000000",
-          "alpha": 0.13
+          time: 0.840843686122106,
+          color: "#000000",
+          alpha: 0.13,
         },
         {
-          "time": 1,
-          "color": "#000000",
-          "alpha": 0
-        }
+          time: 1,
+          color: "#000000",
+          alpha: 0,
+        },
       ],
-      "emissiveGradient": [
+      emissiveGradient: [
         {
-          "time": 0,
-          "color": "#ffffff",
-          "alpha": 0
+          time: 0,
+          color: "#ffffff",
+          alpha: 0,
         },
         {
-          "time": 0.18435862667639175,
-          "color": "#ffffff",
-          "alpha": 0.4
+          time: 0.18435862667639175,
+          color: "#ffffff",
+          alpha: 0.4,
         },
         {
-          "time": 1,
-          "color": "#000000",
-          "alpha": 0
-        }
+          time: 1,
+          color: "#000000",
+          alpha: 0,
+        },
       ],
-      "scale": {
-        "sizeMultiplier": 1.1,
-        "start": 0.05,
-        "end": 0.9,
-        "minMult": 1
+      scale: {
+        sizeMultiplier: 1.1,
+        start: 0.05,
+        end: 0.9,
+        minMult: 1,
       },
-      "speed": {
-        "start": 1,
-        "end": 2,
-        "minMult": 0.5
+      speed: {
+        start: 1,
+        end: 2,
+        minMult: 0.5,
       },
-      "rotation": {
-        "enabled": true,
-        "minSpeed": -180,
-        "maxSpeed": 180,
-        "accel": 75
+      rotation: {
+        enabled: true,
+        minSpeed: -180,
+        maxSpeed: 180,
+        accel: 75,
       },
-      "wind": {
-        "enabled": false,
-        "force": 75,
-        "baseSpeed": 41,
-        "gustSpeed": 145,
-        "gustFrequencyMin": 3,
-        "gustFrequencyMax": 8,
-        "gustDurationMin": 0.2,
-        "gustDurationMax": 0.8,
-        "angleChangeFrequencyMin": 5,
-        "angleChangeFrequencyMax": 15,
-        "angleChangeRange": 20
-      }
-    }
-  },
-  "sparks": {
-    "enabled": true,
-    "blendMode": 1,
-    "maskThreshold": 0.95,
-    "maskInfluence": 1.12,
-    "particleTexture": "modules/map-shine/assets/particle.webp",
-    "frequency": 0.08,
-    "lifetime": {
-      "min": 1.5,
-      "max": 3
+      wind: {
+        enabled: false,
+        force: 75,
+        baseSpeed: 41,
+        gustSpeed: 145,
+        gustFrequencyMin: 3,
+        gustFrequencyMax: 8,
+        gustDurationMin: 0.2,
+        gustDurationMax: 0.8,
+        angleChangeFrequencyMin: 5,
+        angleChangeFrequencyMax: 15,
+        angleChangeRange: 20,
+      },
     },
-    "colorAlphaGradient": [
+  },
+  sparks: {
+    enabled: true,
+    blendMode: 1,
+    maskThreshold: 0.95,
+    maskInfluence: 1.12,
+    particleTexture: "modules/map-shine/assets/particle.webp",
+    frequency: 0.08,
+    lifetime: {
+      min: 1.5,
+      max: 3,
+    },
+    colorAlphaGradient: [
       {
-        "time": 0,
-        "color": "#ffbc40",
-        "alpha": 0
+        time: 0,
+        color: "#ffbc40",
+        alpha: 0,
       },
       {
-        "time": 0.1,
-        "color": "#ffc242",
-        "alpha": 0.69
+        time: 0.1,
+        color: "#ffc242",
+        alpha: 0.69,
       },
       {
-        "time": 0.97,
-        "color": "#fff955",
-        "alpha": 0.69
+        time: 0.97,
+        color: "#fff955",
+        alpha: 0.69,
       },
       {
-        "time": 1,
-        "color": "#fffb55",
-        "alpha": 0
-      }
+        time: 1,
+        color: "#fffb55",
+        alpha: 0,
+      },
     ],
-    "emissiveGradient": [
+    emissiveGradient: [
       {
-        "time": 0,
-        "color": "#000000",
-        "alpha": 1
+        time: 0,
+        color: "#000000",
+        alpha: 1,
       },
       {
-        "time": 1,
-        "color": "#000000",
-        "alpha": 1
-      }
+        time: 1,
+        color: "#000000",
+        alpha: 1,
+      },
     ],
-    "scale": {
-      "sizeMultiplier": 1.55,
-      "start": 1,
-      "end": 0.1,
-      "minMult": 0.5
+    scale: {
+      sizeMultiplier: 1.55,
+      start: 1,
+      end: 0.1,
+      minMult: 0.5,
     },
-    "path": {
-      "speed": {
-        "start": 114,
-        "end": 27,
-        "minMult": 0.99
+    path: {
+      speed: {
+        start: 114,
+        end: 27,
+        minMult: 0.99,
       },
-      "amplitude": {
-        "min": 10,
-        "max": 100
+      amplitude: {
+        min: 10,
+        max: 100,
       },
-      "frequency": {
-        "min": 40,
-        "max": 189
+      frequency: {
+        min: 40,
+        max: 189,
       },
-      "offset": {
-        "min": 0,
-        "max": 6.28
+      offset: {
+        min: 0,
+        max: 6.28,
       },
-      "damping": 0.05,
-      "angle": {
-        "min": -90,
-        "max": 90
+      damping: 0.05,
+      angle: {
+        min: -90,
+        max: 90,
       },
-      "motionBlur": {
-        "enabled": true,
-        "strength": 0.15,
-        "maxLength": 2.4
-      }
-    }
+      motionBlur: {
+        enabled: true,
+        strength: 0.15,
+        maxLength: 2.4,
+      },
+    },
   },
-  "lightning": {
-    "enabled": true,
-    "offPeriodMin": 1,
-    "offPeriodMax": 1761,
-    "strikeDuration": 50,
-    "flickerInterval": 10,
-    "flickerIntensity": 0.2,
-    "fadeEasePower": 2,
-    "color": "#99DDFF",
-    "coreColor": "#FFFFFF",
-    "brightness": 3,
-    "sheathOpacity": 1,
-    "coreOpacity": 1,
-    "width": {
-      "start": 12,
-      "end": 2,
-      "variationEnabled": true,
-      "variationAmount": 0.5,
-      "variationScale": 0.1,
-      "variationSpeed": 0.1
+  lightning: {
+    enabled: true,
+    offPeriodMin: 1,
+    offPeriodMax: 1761,
+    strikeDuration: 50,
+    flickerInterval: 10,
+    flickerIntensity: 0.2,
+    fadeEasePower: 2,
+    color: "#99DDFF",
+    coreColor: "#FFFFFF",
+    brightness: 3,
+    sheathOpacity: 1,
+    coreOpacity: 1,
+    width: {
+      start: 12,
+      end: 2,
+      variationEnabled: true,
+      variationAmount: 0.5,
+      variationScale: 0.1,
+      variationSpeed: 0.1,
     },
-    "coreWidth": {
-      "start": 4,
-      "end": 0.5
+    coreWidth: {
+      start: 4,
+      end: 0.5,
     },
-    "path": {
-      "segments": 100,
-      "endPointRandomness": 15
+    path: {
+      segments: 100,
+      endPointRandomness: 15,
     },
-    "curve": {
-      "startAngleMin": -45,
-      "startAngleMax": 45,
-      "endAngleMin": 135,
-      "endAngleMax": 225,
-      "controlPointDistanceMin": 100,
-      "controlPointDistanceMax": 160
+    curve: {
+      startAngleMin: -45,
+      startAngleMax: 45,
+      endAngleMin: 135,
+      endAngleMax: 225,
+      controlPointDistanceMin: 100,
+      controlPointDistanceMax: 160,
     },
-    "fork": {
-      "maxDepth": 4,
-      "chance": 1,
-      "angleRange": 168,
-      "lengthFalloff": 0.7,
-      "widthFalloff": 0.86
+    fork: {
+      maxDepth: 4,
+      chance: 1,
+      angleRange: 168,
+      lengthFalloff: 0.7,
+      widthFalloff: 0.86,
     },
-    "displacement": {
-      "enabled": true,
-      "magnitude": 15,
-      "speed": 0.2,
-      "scale": 0.05
+    displacement: {
+      enabled: true,
+      magnitude: 15,
+      speed: 0.2,
+      scale: 0.05,
     },
-    "displacementFine": {
-      "enabled": true,
-      "magnitude": 5,
-      "speed": 0.1,
-      "scale": 0.005
+    displacementFine: {
+      enabled: true,
+      magnitude: 5,
+      speed: 0.1,
+      scale: 0.005,
     },
-    "bloom": {
-      "enabled": true,
-      "blendMode": 1,
-      "threshold": 0.5,
-      "bloomScale": 1,
-      "brightness": 2,
-      "blur": 8,
-      "quality": 4,
-      "rgbSplit": {
-        "enabled": true,
-        "amount": 0.5
-      }
-    }
-  },
-  "smellyFlies": {
-    "enabled": true,
-    "blendMode": 0,
-    "particleTexture": "modules/map-shine/assets/fly.webp",
-    "maxParticles": 10,
-    "flying": {
-      "takeoffDuration": 0.5,
-      "takeoffSpeedMin": 100,
-      "takeoffSpeedMax": 200,
-      "noiseStrength": 2000,
-      "noiseFrequency": 25,
-      "tetherStrength": 15.8,
-      "maxSpeed": 1000,
-      "drag": 0.8,
-      "landChance": 0.05,
-      "landingDuration": 1
-    },
-    "walking": {
-      "walkSpeed": 60,
-      "minIdleTime": 0.5,
-      "maxIdleTime": 2.5,
-      "minRotateTime": 0.2,
-      "maxRotateTime": 0.7,
-      "minMoveTime": 0.3,
-      "maxMoveTime": 5.3,
-      "minMoveDistance": 5,
-      "maxMoveDistance": 95,
-      "takeoffChance": 0.05
-    },
-    "motionBlur": {
-      "enabled": true,
-      "strength": 0.03,
-      "maxLength": 1.6
-    }
-  },
-  "particleSystems": {
-    "enabled": true,
-    "globalDensityMultiplier": 0.65,
-    "globalParticleLimit": 1000
-  },
-  "buildingShadows": {
-    "enabled": true,
-    "intensity": 0.42,
-    "maxOffset": 190,
-    "maxBlur": 5,
-    "sunAngle": 3
-  },
-  "timeOfDay": {
-    "enabled": true,
-    "syncToSceneDarkness": true,
-    "intensity": 0.2,
-    "currentTime": 6.100495717251661,
-    "keyframes": {
-      "midnight": {
-        "time": 0,
-        "temperature": -0.2,
-        "tint": -0.05,
-        "saturation": 0.8,
-        "brightness": 0,
-        "contrast": 1.1,
-        "exposure": -0.62,
-        "gamma": 1.1
+    bloom: {
+      enabled: true,
+      blendMode: 1,
+      threshold: 0.5,
+      bloomScale: 1,
+      brightness: 2,
+      blur: 8,
+      quality: 4,
+      rgbSplit: {
+        enabled: true,
+        amount: 0.5,
       },
-      "dawn": {
-        "time": 6,
-        "temperature": 0.3,
-        "tint": -0.09,
-        "saturation": 0.7,
-        "brightness": -0.02,
-        "contrast": 1.05,
-        "exposure": -0.31,
-        "gamma": 0.98
-      },
-      "midday": {
-        "time": 12,
-        "temperature": 0,
-        "tint": 0,
-        "saturation": 1,
-        "brightness": 0,
-        "contrast": 1,
-        "exposure": 0.21,
-        "gamma": 1
-      },
-      "dusk": {
-        "time": 18,
-        "temperature": 0.4,
-        "tint": -0.1,
-        "saturation": 0.74,
-        "brightness": -0.05,
-        "contrast": 1.1,
-        "exposure": -0.44,
-        "gamma": 1
-      },
-      "twilight": {
-        "time": 21,
-        "temperature": -0.44,
-        "tint": -0.42,
-        "saturation": 0.55,
-        "brightness": 0,
-        "contrast": 1,
-        "exposure": -0.55,
-        "gamma": 1
-      }
-    }
-  },
-  "diagnostic": {
-    "enabled": false,
-    "showMasks": true,
-    "pixelInspector": false,
-    "displaySuffix": "specular"
-  },
-  "overheadEffect": {
-    "enabled": true,
-    "blurMinZoom": 0,
-    "blurMidZoom": 1.5,
-    "blurMaxZoom": 18,
-    "opacityMinZoom": 1,
-    "opacityMidZoom": 0.5,
-    "opacityMaxZoom": 0.08,
-    "zoomPointMin": 0.2,
-    "zoomPointMid": 0.65,
-    "zoomPointMax": 1.5,
-    "recolor": {
-      "enabled": false,
-      "intensity": 2,
-      "tint": "#80DEEA",
-      "cloudShadowDarken": {
-        "enabled": true,
-        "intensity": 0.25
-      }
     },
-    "hoverFadeDuration": 500,
-    "tokenMasking": {
-      "enabled": true,
-      "blurAmount": 10
-    }
   },
-  "ambientLayerZIndex": 250,
-  "lightSourceIntegration": {
-    "enabled": true,
-    "intensity": 1.0,
-    "blendMode": 3
-  }
-}
+  smellyFlies: {
+    enabled: true,
+    blendMode: 0,
+    particleTexture: "modules/map-shine/assets/fly.webp",
+    maxParticles: 10,
+    flying: {
+      takeoffDuration: 0.5,
+      takeoffSpeedMin: 100,
+      takeoffSpeedMax: 200,
+      noiseStrength: 2000,
+      noiseFrequency: 25,
+      tetherStrength: 15.8,
+      maxSpeed: 1000,
+      drag: 0.8,
+      landChance: 0.05,
+      landingDuration: 1,
+    },
+    walking: {
+      walkSpeed: 60,
+      minIdleTime: 0.5,
+      maxIdleTime: 2.5,
+      minRotateTime: 0.2,
+      maxRotateTime: 0.7,
+      minMoveTime: 0.3,
+      maxMoveTime: 5.3,
+      minMoveDistance: 5,
+      maxMoveDistance: 95,
+      takeoffChance: 0.05,
+    },
+    motionBlur: {
+      enabled: true,
+      strength: 0.03,
+      maxLength: 1.6,
+    },
+  },
+  particleSystems: {
+    enabled: true,
+    globalDensityMultiplier: 0.65,
+    globalParticleLimit: 1000,
+  },
+  buildingShadows: {
+    enabled: true,
+    intensity: 0.42,
+    maxOffset: 190,
+    maxBlur: 5,
+    sunAngle: 3,
+  },
+  timeOfDay: {
+    enabled: true,
+    syncToSceneDarkness: true,
+    intensity: 0.2,
+    currentTime: 6.100495717251661,
+    keyframes: {
+      midnight: {
+        time: 0,
+        temperature: -0.2,
+        tint: -0.05,
+        saturation: 0.8,
+        brightness: 0,
+        contrast: 1.1,
+        exposure: -0.62,
+        gamma: 1.1,
+      },
+      dawn: {
+        time: 6,
+        temperature: 0.3,
+        tint: -0.09,
+        saturation: 0.7,
+        brightness: -0.02,
+        contrast: 1.05,
+        exposure: -0.31,
+        gamma: 0.98,
+      },
+      midday: {
+        time: 12,
+        temperature: 0,
+        tint: 0,
+        saturation: 1,
+        brightness: 0,
+        contrast: 1,
+        exposure: 0.21,
+        gamma: 1,
+      },
+      dusk: {
+        time: 18,
+        temperature: 0.4,
+        tint: -0.1,
+        saturation: 0.74,
+        brightness: -0.05,
+        contrast: 1.1,
+        exposure: -0.44,
+        gamma: 1,
+      },
+      twilight: {
+        time: 21,
+        temperature: -0.44,
+        tint: -0.42,
+        saturation: 0.55,
+        brightness: 0,
+        contrast: 1,
+        exposure: -0.55,
+        gamma: 1,
+      },
+    },
+  },
+  diagnostic: {
+    enabled: false,
+    showMasks: true,
+    pixelInspector: false,
+    displaySuffix: "specular",
+  },
+  overheadEffect: {
+    enabled: true,
+    blurMinZoom: 0,
+    blurMidZoom: 1.5,
+    blurMaxZoom: 18,
+    opacityMinZoom: 1,
+    opacityMidZoom: 0.5,
+    opacityMaxZoom: 0.08,
+    zoomPointMin: 0.2,
+    zoomPointMid: 0.65,
+    zoomPointMax: 1.5,
+    recolor: {
+      enabled: false,
+      intensity: 2,
+      tint: "#80DEEA",
+      cloudShadowDarken: {
+        enabled: true,
+        intensity: 0.25,
+      },
+    },
+    hoverFadeDuration: 500,
+    tokenMasking: {
+      enabled: true,
+      blurAmount: 10,
+    },
+  },
+  ambientLayerZIndex: 250,
+  lightSourceIntegration: {
+    enabled: true,
+    intensity: 1.0,
+    blendMode: 3,
+  },
+};
 
 // Establish the global namespace for Map Shine to satisfy type checkers.
 game.mapShine = game.mapShine || {};
@@ -3026,8 +3161,8 @@ class NativeAnimation {
       typeof ease === "string"
         ? foundry.utils.getProperty(this.easing, ease) || this.easing.linear
         : typeof ease === "function"
-          ? ease
-          : this.easing.linear;
+        ? ease
+        : this.easing.linear;
 
     let startTime = null;
     let animationFrameId = null;
@@ -3097,10 +3232,10 @@ class FontLoader {
   static STYLESHEET_ID = "map-shine-google-fonts";
 
   /**
-    * Loads one or more Google Fonts by injecting or updating a stylesheet link in the document head.
-    * This function is additive and idempotent.
-    * @param {string[]} fontFamilies - An array of font family names to load.
-    */
+   * Loads one or more Google Fonts by injecting or updating a stylesheet link in the document head.
+   * This function is additive and idempotent.
+   * @param {string[]} fontFamilies - An array of font family names to load.
+   */
   static load(fontFamilies) {
     const uniqueFontsToLoad = [...new Set(fontFamilies)].filter(Boolean);
     if (uniqueFontsToLoad.length === 0) return;
@@ -3119,7 +3254,7 @@ class FontLoader {
     const allFonts = new Set([...currentlyLoadedFonts, ...newFonts]);
 
     const fontQuery = Array.from(allFonts)
-      .map((font) => `family=${font.replace(/ /g, "+")}:wght@400;700`)
+      .map((font) => `family = ${font.replace(/ /g, "+")}:wght @400; 700`)
       .join("&");
 
     // @ts-ignore
@@ -3127,10 +3262,10 @@ class FontLoader {
   }
 
   /**
-    * Creates and appends the stylesheet link element if it doesn't exist.
-    * @returns {HTMLLinkElement} The link element.
-    * @private
-    */
+   * Creates and appends the stylesheet link element if it doesn't exist.
+   * @returns {HTMLLinkElement} The link element.
+   * @private
+   */
   static _createLink() {
     const link = document.createElement("link");
     link.id = this.STYLESHEET_ID;
@@ -3140,11 +3275,11 @@ class FontLoader {
   }
 
   /**
-    * Parses the href of the stylesheet link to determine which fonts are already being loaded.
-    * @param {HTMLLinkElement} link - The stylesheet link element.
-    * @returns {Set<string>} A set of font family names.
-    * @private
-    */
+   * Parses the href of the stylesheet link to determine which fonts are already being loaded.
+   * @param {HTMLLinkElement} link - The stylesheet link element.
+   * @returns {Set<string>} A set of font family names.
+   * @private
+   */
   static _getLoadedFonts(link) {
     const loaded = new Set();
     if (!link.href) return loaded;
@@ -3190,8 +3325,8 @@ class FontLoader {
  */
 class MapShineInitialiser {
   /**
-    * Main entry point for module initialization. Called once during the 'init' hook.
-    */
+   * Main entry point for module initialization. Called once during the 'init' hook.
+   */
   static initialize() {
     if (game.mapShine?.initialized) {
       console.log(
@@ -3219,8 +3354,8 @@ class MapShineInitialiser {
   }
 
   /**
-    * Creates the global `game.mapShine` object and initializes its core managers and state.
-    */
+   * Creates the global `game.mapShine` object and initializes its core managers and state.
+   */
   static _initializeGlobalNamespace() {
     game.mapShine = {
       initialized: true,
@@ -3330,8 +3465,7 @@ class MapShineInitialiser {
 
         // If the user is a GM, and the setting is enabled, update the scene darkness.
         if (game.user.isGM) {
-          const todConfig =
-            game.mapShine.profileManager.activeConfig.timeOfDay;
+          const todConfig = game.mapShine.profileManager.activeConfig.timeOfDay;
           if (todConfig.syncToSceneDarkness) {
             // Calculate darkness level based on a cosine curve for a natural day/night cycle.
             // Midnight (0/24) = 1, Midday (12) = 0.
@@ -3473,9 +3607,12 @@ class MapShineInitialiser {
       applyTileOpacities() {
         const config = game.mapShine.profileManager.activeConfig;
         for (const tile of canvas.tiles.placeables) {
-
-          if (!tile.mesh || tile.isManagedByOverheadLayer || tile.isManagedByBgLayer) continue;
-
+          if (
+            !tile.mesh ||
+            tile.isManagedByOverheadLayer ||
+            tile.isManagedByBgLayer
+          )
+            continue;
 
           const isTargetWithEffects =
             this.targets.tiles.has(tile.id) && config.enabled;
@@ -3562,8 +3699,8 @@ class MapShineInitialiser {
  */
 class SettingsManager {
   /**
-    * Registers all module settings with Foundry's settings system.
-    */
+   * Registers all module settings with Foundry's settings system.
+   */
   static registerSettings() {
     game.settings.register(MODULE_ID, "disable-loading-screen", {
       name: "Disable Loading Screen",
@@ -3987,8 +4124,8 @@ class SettingsManager {
   }
 
   /**
-    * A helper function to trigger a full refresh when a client setting changes.
-    */
+   * A helper function to trigger a full refresh when a client setting changes.
+   */
   static requestRefresh() {
     if (canvas?.ready && game.mapShine?.profileManager) {
       game.mapShine.profileManager.initializeForScene();
@@ -4019,8 +4156,8 @@ class SettingsManager {
  */
 class LayerManager {
   /**
-    * Registers all custom canvas layers with Foundry's configuration.
-    */
+   * Registers all custom canvas layers with Foundry's configuration.
+   */
   static registerLayers() {
     const ambientZIndex = game.settings.get(MODULE_ID, "ambientLayerZIndex");
 
@@ -4172,8 +4309,8 @@ class LayerManager {
  */
 class HooksManager {
   /**
-    * Registers libWrapper patches, hooks, and other event listeners.
-    */
+   * Registers libWrapper patches, hooks, and other event listeners.
+   */
   static registerIntegrationsAndHooks() {
     // --- Particle Library Integration ---
     console.log("Map Shine | Library Test: Verifying PIXI.particles global.");
@@ -4220,7 +4357,9 @@ class HooksManager {
         MODULE_ID,
         "Scene.prototype.view",
         async function (wrapped, ...args) {
-          console.log("[MapShine Transition] Scene.prototype.view wrapper called");
+          console.log(
+            "[MapShine Transition] Scene.prototype.view wrapper called"
+          );
           try {
             console.log("STEP 1");
             console.log("STEP 2");
@@ -4234,11 +4373,15 @@ class HooksManager {
             const sceneManager = game.mapShine?.sceneChangeManager;
 
             if (!sceneManager) {
-              console.warn(`[MapShine Transition] No sceneChangeManager found, skipping transition`);
+              console.warn(
+                `[MapShine Transition] No sceneChangeManager found, skipping transition`
+              );
               return wrapped(...args);
             }
 
-            console.log(`[MapShine Transition] SceneManager found, constructing transition config`);
+            console.log(
+              `[MapShine Transition] SceneManager found, constructing transition config`
+            );
 
             // Construct the transition config from individual game settings
             let transitionConfig;
@@ -4316,25 +4459,47 @@ class HooksManager {
                 ),
                 // --- END MODIFIED SECTION ---
               };
-              console.log(`[MapShine Transition] Transition config created successfully`);
+              console.log(
+                `[MapShine Transition] Transition config created successfully`
+              );
             } catch (configError) {
-              console.error(`[MapShine Transition] Error creating transition config:`, configError);
+              console.error(
+                `[MapShine Transition] Error creating transition config:`,
+                configError
+              );
               return wrapped(...args);
             }
 
             const sceneToView = this;
             const currentScene = canvas.scene;
 
-            console.log(`[MapShine Transition] Transition config:`, transitionConfig);
-            console.log(`[MapShine Transition] Current scene:`, currentScene?.name, currentScene?.id);
-            console.log(`[MapShine Transition] Target scene:`, sceneToView?.name, sceneToView?.id);
+            console.log(
+              `[MapShine Transition] Transition config:`,
+              transitionConfig
+            );
+            console.log(
+              `[MapShine Transition] Current scene:`,
+              currentScene?.name,
+              currentScene?.id
+            );
+            console.log(
+              `[MapShine Transition] Target scene:`,
+              sceneToView?.name,
+              sceneToView?.id
+            );
 
             if (
               !transitionConfig.enabled ||
               !currentScene ||
               sceneToView.id === currentScene.id
             ) {
-              console.log(`[MapShine Transition] Skipping transition - enabled: ${transitionConfig.enabled}, currentScene: ${!!currentScene}, sameScene: ${sceneToView.id === currentScene?.id}`);
+              console.log(
+                `[MapShine Transition] Skipping transition - enabled: ${
+                  transitionConfig.enabled
+                }, currentScene: ${!!currentScene}, sameScene: ${
+                  sceneToView.id === currentScene?.id
+                }`
+              );
               return wrapped(...args);
             }
 
@@ -4348,13 +4513,19 @@ class HooksManager {
               console.log(`[MapShine Transition] About to create overlay`);
               sceneManager._createOverlay();
               console.log(`[MapShine Transition] Overlay created successfully`);
-              console.log(`[MapShine Transition] Overlay element:`, sceneManager.transitionOverlay);
+              console.log(
+                `[MapShine Transition] Overlay element:`,
+                sceneManager.transitionOverlay
+              );
               console.log(`[MapShine Transition] Starting fadeOut`);
               // Fade out using the universal settings, pass the scene object for navigation name access
               await sceneManager.fadeOut(transitionConfig, sceneToView);
               console.log(`[MapShine Transition] FadeOut completed`);
             } catch (error) {
-              console.error(`[MapShine Transition] Error during overlay creation or fadeOut:`, error);
+              console.error(
+                `[MapShine Transition] Error during overlay creation or fadeOut:`,
+                error
+              );
               console.error(`[MapShine Transition] Error stack:`, error.stack);
               // Continue with transition even if overlay fails
             }
@@ -4368,7 +4539,10 @@ class HooksManager {
             // This triggers the scene change, canvas teardown, and canvas ready hooks.
             const result = await wrapped(...args);
 
-            const timeoutDuration = game.settings.get(MODULE_ID, "scene-transition-timeout");
+            const timeoutDuration = game.settings.get(
+              MODULE_ID,
+              "scene-transition-timeout"
+            );
             const timeoutPromise = new Promise((resolve) =>
               setTimeout(() => {
                 console.warn(
@@ -4394,7 +4568,10 @@ class HooksManager {
               console.log(`[MapShine Transition] FadeIn completed`);
               sceneManager._destroyOverlay();
             } catch (error) {
-              console.error(`[MapShine Transition] Error during fadeIn:`, error);
+              console.error(
+                `[MapShine Transition] Error during fadeIn:`,
+                error
+              );
               // Clean up overlay even if fadeIn fails
               sceneManager._destroyOverlay();
             }
@@ -4405,12 +4582,19 @@ class HooksManager {
             );
             return result;
           } catch (error) {
-            console.error(`[MapShine Transition] CRITICAL ERROR in Scene.prototype.view wrapper:`, error);
+            console.error(
+              `[MapShine Transition] CRITICAL ERROR in Scene.prototype.view wrapper:`,
+              error
+            );
             console.error(`[MapShine Transition] Error stack:`, error.stack);
-            console.error(`[MapShine Transition] Falling back to original scene.view`);
+            console.error(
+              `[MapShine Transition] Falling back to original scene.view`
+            );
             return wrapped(...args);
           } finally {
-            console.log(`[MapShine Transition] Wrapper execution completed (try/catch/finally)`);
+            console.log(
+              `[MapShine Transition] Wrapper execution completed (try/catch/finally)`
+            );
           }
         },
         "WRAPPER"
@@ -4420,7 +4604,10 @@ class HooksManager {
       );
 
       // Verify the wrapper was actually registered
-      console.log("Map Shine | Checking if Scene.prototype.view is wrapped:", typeof Scene.prototype.view);
+      console.log(
+        "Map Shine | Checking if Scene.prototype.view is wrapped:",
+        typeof Scene.prototype.view
+      );
       console.log("Map Shine | libWrapper registration completed successfully");
     } else {
       console.warn(
@@ -4558,8 +4745,6 @@ class HooksManager {
   }
 }
 
-
-
 // =================================================================================
 // SECTION 2: CORE SYSTEMS & MANAGERS
 // =================================================================================
@@ -4567,44 +4752,37 @@ class HooksManager {
 //              and the overall lifecycle of effects.
 // ---------------------------------------------------------------------------------
 
-
-
-
-
-
-
 /***************************************************************************************
-  *
-  *                             COORDINATE MANAGER
-  *
-  *  PURPOSE:
-  *  The CoordinateManager is a static utility class that serves as the single source of truth
-  *  for all coordinate system transformations within the Map Shine module. Its primary goal is
-  *  to solve the problem of mixing "World Space" (canvas coordinates) and "Screen Space"
-  *  (pixel coordinates) by providing a centralized, efficient, and consistent way to handle
-  *  the relationship between them.
-  *
-  *  ARCHITECTURE:
-  *  1.  Centralized Calculation: The `update()` method is called once per animation frame.
-  *      It calculates all necessary data about the current camera view, such as the world-space
-  *      position of the screen's top-left corner, the visible world dimensions, and the
-  *      current zoom level.
-  *
-  *  2.  Static Access: All properties and methods are static, meaning there is only one
-  *      instance of this data per frame. Any layer or filter can access it directly via
-  *      `CoordinateManager.propertyName` without needing an instance.
-  *
-  *  3.  Standardized Shader Uniforms: The `getShaderUniforms()` method provides a consistent
-  *      object that can be passed directly to any PIXI.Filter's uniform group. This ensures
-  *      all world-space shaders use the exact same transformation logic.
-  *
-  *  REQUIRED METHOD:
-  *  This class is the required method for all filters, textures, PIXI canvas layers, etc.,
-  *  to obtain coordinate and transformation data. Do not perform these calculations
-  *  manually within other components.
-  *
-  ***************************************************************************************/
-
+ *
+ *                             COORDINATE MANAGER
+ *
+ *  PURPOSE:
+ *  The CoordinateManager is a static utility class that serves as the single source of truth
+ *  for all coordinate system transformations within the Map Shine module. Its primary goal is
+ *  to solve the problem of mixing "World Space" (canvas coordinates) and "Screen Space"
+ *  (pixel coordinates) by providing a centralized, efficient, and consistent way to handle
+ *  the relationship between them.
+ *
+ *  ARCHITECTURE:
+ *  1.  Centralized Calculation: The `update()` method is called once per animation frame.
+ *      It calculates all necessary data about the current camera view, such as the world-space
+ *      position of the screen's top-left corner, the visible world dimensions, and the
+ *      current zoom level.
+ *
+ *  2.  Static Access: All properties and methods are static, meaning there is only one
+ *      instance of this data per frame. Any layer or filter can access it directly via
+ *      `CoordinateManager.propertyName` without needing an instance.
+ *
+ *  3.  Standardized Shader Uniforms: The `getShaderUniforms()` method provides a consistent
+ *      object that can be passed directly to any PIXI.Filter's uniform group. This ensures
+ *      all world-space shaders use the exact same transformation logic.
+ *
+ *  REQUIRED METHOD:
+ *  This class is the required method for all filters, textures, PIXI canvas layers, etc.,
+ *  to obtain coordinate and transformation data. Do not perform these calculations
+ *  manually within other components.
+ *
+ ***************************************************************************************/
 
 export class ProfileDataManager {
   constructor(moduleId) {
@@ -4612,9 +4790,9 @@ export class ProfileDataManager {
   }
 
   /**
-    * Loads world-level profiles and the world default setting.
-    * @returns {{profiles: object, defaultProfileName: string}}
-    */
+   * Loads world-level profiles and the world default setting.
+   * @returns {{profiles: object, defaultProfileName: string}}
+   */
   loadWorldData() {
     const profiles = game.settings.get(this.moduleId, PROFILES_SETTING) || {};
     const defaultProfileName =
@@ -4623,10 +4801,10 @@ export class ProfileDataManager {
   }
 
   /**
-    * Saves world-level profiles and the world default setting.
-    * @param {object} profiles - The entire world profiles object to save.
-    * @param {string} [defaultProfileName] - If provided, saves the new world default profile name.
-    */
+   * Saves world-level profiles and the world default setting.
+   * @param {object} profiles - The entire world profiles object to save.
+   * @param {string} [defaultProfileName] - If provided, saves the new world default profile name.
+   */
   async saveWorldData(profiles, defaultProfileName) {
     await game.settings.set(this.moduleId, PROFILES_SETTING, profiles);
     if (defaultProfileName !== undefined) {
@@ -4639,9 +4817,9 @@ export class ProfileDataManager {
   }
 
   /**
-    * Loads scene-specific profile data from flags.
-    * @returns {{profiles: Array<object>, activeProfileId: string|null}}
-    */
+   * Loads scene-specific profile data from flags.
+   * @returns {{profiles: Array<object>, activeProfileId: string|null}}
+   */
   loadSceneData() {
     if (!canvas.scene) return { profiles: [], activeProfileId: null };
     const profiles = canvas.scene.getFlag(this.moduleId, "profiles") || [];
@@ -4654,11 +4832,11 @@ export class ProfileDataManager {
   }
 
   /**
-    * Saves scene-specific profile data to flags.
-    * @param {object} saveData - The data to save.
-    * @param {Array<object>} [saveData.profiles] - The array of scene profiles.
-    * @param {string|null} [saveData.activeProfileId] - The ID of the active profile.
-    */
+   * Saves scene-specific profile data to flags.
+   * @param {object} saveData - The data to save.
+   * @param {Array<object>} [saveData.profiles] - The array of scene profiles.
+   * @param {string|null} [saveData.activeProfileId] - The ID of the active profile.
+   */
   async saveSceneData({ profiles, activeProfileId }) {
     if (!canvas.scene) return;
     const updates = {};
@@ -4675,10 +4853,10 @@ export class ProfileDataManager {
   }
 
   /**
-    * Loads user-specific temporary overrides for a given scene.
-    * @param {string} sceneId - The ID of the scene.
-    * @returns {object} The user overrides object for that scene.
-    */
+   * Loads user-specific temporary overrides for a given scene.
+   * @param {string} sceneId - The ID of the scene.
+   * @returns {object} The user overrides object for that scene.
+   */
   loadUserOverrides(sceneId) {
     if (!sceneId) return {};
     const allUserOverrides =
@@ -4687,10 +4865,10 @@ export class ProfileDataManager {
   }
 
   /**
-    * Saves user-specific temporary overrides for a given scene.
-    * @param {string} sceneId - The ID of the scene.
-    * @param {object} overrides - The user overrides object to save.
-    */
+   * Saves user-specific temporary overrides for a given scene.
+   * @param {string} sceneId - The ID of the scene.
+   * @param {object} overrides - The user overrides object to save.
+   */
   async saveUserOverrides(sceneId, overrides) {
     if (!sceneId) return;
     const allUserOverrides =
@@ -4704,9 +4882,9 @@ export class ProfileDataManager {
   }
 
   /**
-    * Clears user-specific temporary overrides for a given scene.
-    * @param {string} sceneId - The ID of the scene.
-    */
+   * Clears user-specific temporary overrides for a given scene.
+   * @param {string} sceneId - The ID of the scene.
+   */
   async clearUserOverrides(sceneId) {
     if (!sceneId) return;
     const allUserOverrides =
@@ -4722,11 +4900,11 @@ export class ProfileDataManager {
 
 export class ConfigBuilder {
   /**
-    * Removes properties from `settings` that do not exist in `template`.
-    * @param {object} template - The reference object with the correct structure.
-    * @param {object} settings - The object to clean.
-    * @returns {object} The cleaned settings object.
-    */
+   * Removes properties from `settings` that do not exist in `template`.
+   * @param {object} template - The reference object with the correct structure.
+   * @param {object} settings - The object to clean.
+   * @returns {object} The cleaned settings object.
+   */
   static _reconcile(template, settings) {
     for (const key in settings) {
       if (!(key in template)) {
@@ -4758,10 +4936,10 @@ export class ConfigBuilder {
   }
 
   /**
-    * A custom merge function that handles nested objects correctly.
-    * @param {object} target - The object to merge into.
-    * @param {object} source - The object to merge from.
-    */
+   * A custom merge function that handles nested objects correctly.
+   * @param {object} target - The object to merge into.
+   * @param {object} source - The object to merge from.
+   */
   static _customMerge(target, source) {
     for (const key of Object.keys(source)) {
       const sourceValue = source[key];
@@ -4786,11 +4964,11 @@ export class ConfigBuilder {
   }
 
   /**
-    * Builds the final, live configuration by layering all data sources.
-    * @param {object} data - An object containing all the raw data.
-    * @param {object} options - Options for the build process.
-    * @returns {object} An object containing the final config and status information.
-    */
+   * Builds the final, live configuration by layering all data sources.
+   * @param {object} data - An object containing all the raw data.
+   * @param {object} options - Options for the build process.
+   * @returns {object} An object containing the final config and status information.
+   */
   static buildEffectiveConfig(
     {
       sceneProfiles,
@@ -4869,38 +5047,38 @@ export class ConfigBuilder {
 }
 
 /***************************************************************************************
-  *
-  *                              RESOURCE MANAGER
-  *
-  *  PURPOSE:
-  *  The ResourceManager acts as a centralized hub for all shared rendering resources
-  *  (e.g., PIXI.RenderTextures) used by the various effects in Map Shine. Its mission
-  *  is to untangle the "web of dependencies" where individual layers and filters directly
-  *  pull data from each other, leading to timing issues, redundant work, and difficult
-  *  debugging.
-  *
-  *  ARCHITECTURE (THE FACADE & CACHING PATTERN):
-  *  1. Centralized Access: Instead of an effect layer knowing about `IlluminationManager`,
-  *     `CloudShadowsLayer`, etc., it will only ask the ResourceManager for what it needs
-  *     (e.g., `resourceManager.getIlluminationTexture()`).
-  *
-  *  2. Lazy Generation & Caching: The manager creates resources only when they are first
-  *     requested within a single animation frame. It then caches that resource and serves
-  *     the cached version to any other effect that asks for it in the same frame. The
-  *     cache is cleared at the start of the next frame. This guarantees that resources
-  *     are always up-to-date for the current frame and are only ever generated once.
-  *
-  *  3. Dependency Management: The manager will eventually understand the entire render
-  *     pipeline. If a resource depends on another (e.g., a corrected illumination texture
-  *     needs the base illumination and a shadow mask), the manager will ensure the
-  *     dependencies are generated first before creating the final product.
-  *
-  *  MIGRATION PLAN:
-  *  The migration to this new system is being done incrementally and with caution. Each
-  *  effect is being refactored one by one to source its dependencies from this manager
-  *  instead of its original source. This ensures stability throughout the transition.
-  *
-  ***************************************************************************************/
+ *
+ *                              RESOURCE MANAGER
+ *
+ *  PURPOSE:
+ *  The ResourceManager acts as a centralized hub for all shared rendering resources
+ *  (e.g., PIXI.RenderTextures) used by the various effects in Map Shine. Its mission
+ *  is to untangle the "web of dependencies" where individual layers and filters directly
+ *  pull data from each other, leading to timing issues, redundant work, and difficult
+ *  debugging.
+ *
+ *  ARCHITECTURE (THE FACADE & CACHING PATTERN):
+ *  1. Centralized Access: Instead of an effect layer knowing about `IlluminationManager`,
+ *     `CloudShadowsLayer`, etc., it will only ask the ResourceManager for what it needs
+ *     (e.g., `resourceManager.getIlluminationTexture()`).
+ *
+ *  2. Lazy Generation & Caching: The manager creates resources only when they are first
+ *     requested within a single animation frame. It then caches that resource and serves
+ *     the cached version to any other effect that asks for it in the same frame. The
+ *     cache is cleared at the start of the next frame. This guarantees that resources
+ *     are always up-to-date for the current frame and are only ever generated once.
+ *
+ *  3. Dependency Management: The manager will eventually understand the entire render
+ *     pipeline. If a resource depends on another (e.g., a corrected illumination texture
+ *     needs the base illumination and a shadow mask), the manager will ensure the
+ *     dependencies are generated first before creating the final product.
+ *
+ *  MIGRATION PLAN:
+ *  The migration to this new system is being done incrementally and with caution. Each
+ *  effect is being refactored one by one to source its dependencies from this manager
+ *  instead of its original source. This ensures stability throughout the transition.
+ *
+ ***************************************************************************************/
 class ResourceManager {
   constructor() {
     this._frameCache = {};
@@ -4992,7 +5170,7 @@ class ResourceManager {
     cloudLayer.renderEffectNow(deltaTime);
 
     // Now that it has been rendered, get the resulting texture.
-    const texture = cloudLayer.cloudShadowTexture;
+    const texture = cloudLayer.getRawCloudTexture();
 
     this._frameCache.cloudShadowTexture = texture;
     return texture;
@@ -5307,10 +5485,10 @@ class ResourceManager {
   }
 
   /**
-    * Retrieves the rendered texture of the biofilm particles.
-    * Caches the texture for the duration of the current frame.
-    * @returns {PIXI.RenderTexture|null} The biofilm particle texture.
-    */
+   * Retrieves the rendered texture of the biofilm particles.
+   * Caches the texture for the duration of the current frame.
+   * @returns {PIXI.RenderTexture|null} The biofilm particle texture.
+   */
   getBiofilmOutputTexture() {
     if (this._destroyed) return null;
     if (this._frameCache.biofilmOutputTexture) {
@@ -5356,7 +5534,7 @@ class AppearanceTransitionManager {
     this.activeTransition = null;
     this.status = "idle"; // "idle", "transitioning", "previewing"
     this.statusMessage = "Idle";
-    this._updateUICallback = () => { };
+    this._updateUICallback = () => {};
     this._configBeforePreview = null;
   }
 
@@ -6406,7 +6584,8 @@ class OverheadEffectLayer extends CanvasLayer {
           resourceManager.getRawCloudTexture(deltaTime) ?? PIXI.Texture.WHITE;
       }
       // Pass the scene darkness level to the filter
-      this.recolorFilter.uniforms.uDarkness = canvas.scene?.environment.darknessLevel ?? 0;
+      this.recolorFilter.uniforms.uDarkness =
+        canvas.scene?.environment.darknessLevel ?? 0;
     }
 
     const renderer = canvas.app.renderer;
@@ -6639,8 +6818,7 @@ class LoadingScreen {
 																z-index: 100000; display: flex;
 																justify-content: center; align-items: center;
 																color: white; font-family: ${subheadingFont}, Lexend, sans-serif;
-																transition: opacity ${this.fadeOutDuration / 1000
-      }s ease-in-out;
+																transition: opacity ${this.fadeOutDuration / 1000}s ease-in-out;
 														}
 														.loading-background-overlay {
 																${backgroundStyle}
@@ -6665,8 +6843,9 @@ class LoadingScreen {
 														.loading-title { font-family: "${headingFont}", sans-serif; font-size: 72px; margin: 0 0 30px 0; text-shadow: 0 2px 5px rgba(0,0,0,0.7); color: #fff; }
 														.loading-bar-container { max-width: 400px; height: 20px; border: 2px solid rgba(255, 255, 255, 0.5); margin: 0 auto; background-color: rgba(0,0,0,0.5); border-radius: 5px; overflow: hidden; }
 														.loading-bar-fill { width: 0%; height: 100%; background-color: rgba(255, 255, 255, 0.9); transform-origin: left; transition: width 0.2s ease-out; box-shadow: 0 0 10px rgba(255, 255, 255, 0.5); }
-														.loading-status { margin-top: 15px; font-size: 16px; color: #f5f5f5; height: 20px; line-height: 20px; opacity: 0; transition: opacity ${this.statusFadeDuration / 1000
-      }s ease-in-out; text-shadow: 0 2px 5px rgba(0,0,0,0.7); }
+														.loading-status { margin-top: 15px; font-size: 16px; color: #f5f5f5; height: 20px; line-height: 20px; opacity: 0; transition: opacity ${
+                              this.statusFadeDuration / 1000
+                            }s ease-in-out; text-shadow: 0 2px 5px rgba(0,0,0,0.7); }
 
 														.loading-hint {
 																font-family: "${hintFont}", sans-serif;
@@ -6741,20 +6920,25 @@ class LoadingScreen {
   }
 
   /**
-    * Manages the hint cycling animation using CSS transitions.
-    * @private
-    */
+   * Manages the hint cycling animation using CSS transitions.
+   * @private
+   */
   _cycleHints() {
     console.log("[MapShine LoadingScreen] _cycleHints called");
     if (!this.element) {
-      console.warn("[MapShine LoadingScreen] No element found, cannot cycle hints");
+      console.warn(
+        "[MapShine LoadingScreen] No element found, cannot cycle hints"
+      );
       return;
     }
 
     const hintElement = this.element.querySelector("#loading-hint-text");
     console.log("[MapShine LoadingScreen] Hint element found:", hintElement);
 
-    const rawHints = game.settings.get(MODULE_ID, "universal.sceneTransition.randomHints");
+    const rawHints = game.settings.get(
+      MODULE_ID,
+      "universal.sceneTransition.randomHints"
+    );
     console.log("[MapShine LoadingScreen] Raw hints from settings:", rawHints);
 
     const config = {
@@ -6769,21 +6953,28 @@ class LoadingScreen {
 
     // If no hints are configured, fall back to defaults
     if (config.randomHints.length === 0) {
-      console.log("[MapShine LoadingScreen] No hints found in settings, using defaults");
-      config.randomHints = UNIVERSAL_EFFECT_DEFAULTS.sceneTransition.randomHints;
+      console.log(
+        "[MapShine LoadingScreen] No hints found in settings, using defaults"
+      );
+      config.randomHints =
+        UNIVERSAL_EFFECT_DEFAULTS.sceneTransition.randomHints;
     }
 
     console.log("[MapShine LoadingScreen] Hint config:", {
       useRandomHint: config.useRandomHint,
       hintCount: config.randomHints.length,
-      firstHint: config.randomHints[0]
+      firstHint: config.randomHints[0],
     });
 
-    if (!hintElement || !config.useRandomHint || config.randomHints.length === 0) {
+    if (
+      !hintElement ||
+      !config.useRandomHint ||
+      config.randomHints.length === 0
+    ) {
       console.warn("[MapShine LoadingScreen] Hint cycling aborted:", {
         hintElement: !!hintElement,
         useRandomHint: config.useRandomHint,
-        hintCount: config.randomHints.length
+        hintCount: config.randomHints.length,
       });
       return;
     }
@@ -6801,7 +6992,10 @@ class LoadingScreen {
     this._currentHintIndex = 0;
     // @ts-ignore
     hintElement.innerText = this._shuffledHints[0];
-    console.log("[MapShine LoadingScreen] First hint displayed:", this._shuffledHints[0]);
+    console.log(
+      "[MapShine LoadingScreen] First hint displayed:",
+      this._shuffledHints[0]
+    );
 
     // Use requestAnimationFrame to ensure the element is in the DOM before triggering the transition.
     requestAnimationFrame(() => {
@@ -6826,20 +7020,24 @@ class LoadingScreen {
 
       setTimeout(() => {
         if (!this.element) return;
-        this._currentHintIndex = (this._currentHintIndex + 1) % this._shuffledHints.length;
+        this._currentHintIndex =
+          (this._currentHintIndex + 1) % this._shuffledHints.length;
         // @ts-ignore
         hintElement.innerText = this._shuffledHints[this._currentHintIndex];
         hintElement.classList.add("visible");
       }, HINT_TRANSITION_DURATION);
     };
 
-    this._hintInterval = setInterval(showNextHint, HINT_PAUSE_DURATION + HINT_TRANSITION_DURATION);
+    this._hintInterval = setInterval(
+      showNextHint,
+      HINT_PAUSE_DURATION + HINT_TRANSITION_DURATION
+    );
   }
 
   /**
-    * Clears the hint cycling interval.
-    * @private
-    */
+   * Clears the hint cycling interval.
+   * @private
+   */
   _stopHintCycle() {
     if (this._hintInterval) {
       clearInterval(this._hintInterval);
@@ -6917,7 +7115,9 @@ class MapShineLifecycle {
   static async beginPersistentDiscovery(canvas, maxAttempts = 5) {
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       if (!canvas?.scene || !canvas.mapShine?.isModuleActive) {
-        console.log("Map Shine | Discovery aborted, canvas is no longer active.");
+        console.log(
+          "Map Shine | Discovery aborted, canvas is no longer active."
+        );
         // If discovery is aborted, we must still resolve the setup promise to prevent a hang.
         await this.runMinimalSetup(canvas);
         return;
@@ -6925,7 +7125,9 @@ class MapShineLifecycle {
 
       // Wait between attempts, giving the scene more time to draw.
       // The delay is increased for subsequent attempts.
-      await new Promise((resolve) => setTimeout(resolve, attempt === 1 ? 250 : 500));
+      await new Promise((resolve) =>
+        setTimeout(resolve, attempt === 1 ? 250 : 500)
+      );
 
       if (game.mapShine.loadingManager) {
         const message =
@@ -6942,7 +7144,9 @@ class MapShineLifecycle {
       const targets = game.mapShine.effectTargetManager.targets;
       const hasBackgroundTarget =
         targets.background &&
-        Object.values(targets.background).some((v) => v && typeof v === "string");
+        Object.values(targets.background).some(
+          (v) => v && typeof v === "string"
+        );
       const hasTileTargets = Array.from(targets.tiles.values()).length > 0;
 
       if (hasBackgroundTarget || hasTileTargets) {
@@ -7379,9 +7583,9 @@ class MapPointsManager {
   static FLAG_NAME = "mapPointGroups";
 
   /**
-    * Retrieves all map point groups from the current scene.
-    * @returns {object} The object containing all point groups, or an empty object if none exist.
-    */
+   * Retrieves all map point groups from the current scene.
+   * @returns {object} The object containing all point groups, or an empty object if none exist.
+   */
   static getGroups() {
     if (!canvas.scene?.id) {
       // This is a genuine error state we should still check for.
@@ -7400,22 +7604,22 @@ class MapPointsManager {
   }
 
   /**
-    * Retrieves a single map point group by its ID.
-    * @param {string} groupId The ID of the group to retrieve.
-    * @returns {object|undefined} The group object, or undefined if not found.
-    */
+   * Retrieves a single map point group by its ID.
+   * @param {string} groupId The ID of the group to retrieve.
+   * @returns {object|undefined} The group object, or undefined if not found.
+   */
   static getGroup(groupId) {
     const groups = this.getGroups();
     return groups[groupId];
   }
 
   /**
-    * Creates a new, empty group for map points.
-    * @param {object} [options={}] Options for the new group.
-    * @param {string} [options.label="New Group"] A user-friendly label for the group.
-    * @param {string} [options.type="point"] The type of group ('point', 'line', 'area').
-    * @returns {Promise<string>} The ID of the newly created group.
-    */
+   * Creates a new, empty group for map points.
+   * @param {object} [options={}] Options for the new group.
+   * @param {string} [options.label="New Group"] A user-friendly label for the group.
+   * @param {string} [options.type="point"] The type of group ('point', 'line', 'area').
+   * @returns {Promise<string>} The ID of the newly created group.
+   */
   static async createGroup({ label = "New Group", type = "point" } = {}) {
     if (!game.user.isGM) {
       ui.notifications.warn(
@@ -7592,10 +7796,10 @@ class MapPointsManager {
   }
 
   /**
-    * Validates a group, primarily checking for self-intersections in polygons.
-    * @param {object} group The group object to validate.
-    * @returns {object} The group object with updated 'isBroken' and 'reason' fields.
-    */
+   * Validates a group, primarily checking for self-intersections in polygons.
+   * @param {object} group The group object to validate.
+   * @returns {object} The group object with updated 'isBroken' and 'reason' fields.
+   */
   static validate(group) {
     if (group.type !== "area" || group.points.length < 4) {
       group.isBroken = false;
@@ -7618,8 +7822,9 @@ class MapPointsManager {
 
         if (this._checkIntersection(p1, p2, p3, p4)) {
           group.isBroken = true;
-          group.reason = `Segment ${i + 1}-${i + 2} intersects segment ${j + 1
-            }-${j + 2}.`;
+          group.reason = `Segment ${i + 1}-${i + 2} intersects segment ${
+            j + 1
+          }-${j + 2}.`;
           return group;
         }
       }
@@ -7631,13 +7836,13 @@ class MapPointsManager {
   }
 
   /**
-    * Checks if two line segments intersect.
-    * @param {{x,y}} p1 - Start of line 1
-    * @param {{x,y}} p2 - End of line 1
-    * @param {{x,y}} p3 - Start of line 2
-    * @param {{x,y}} p4 - End of line 2
-    * @returns {boolean} True if they intersect, false otherwise.
-    */
+   * Checks if two line segments intersect.
+   * @param {{x,y}} p1 - Start of line 1
+   * @param {{x,y}} p2 - End of line 1
+   * @param {{x,y}} p3 - Start of line 2
+   * @param {{x,y}} p4 - End of line 2
+   * @returns {boolean} True if they intersect, false otherwise.
+   */
   static _checkIntersection(p1, p2, p3, p4) {
     const den = (p1.x - p2.x) * (p3.y - p4.y) - (p1.y - p2.y) * (p3.x - p4.x);
     if (den === 0) return false; // Parallel or collinear
@@ -7865,10 +8070,10 @@ class GeometryMaskManager {
   }
 
   /**
-    * Retrieves a generated mask for a specific effect.
-    * @param {string} effectKey The key of the effect (e.g., 'sparks').
-    * @returns {PIXI.RenderTexture | null} The mask texture, or null if not found.
-    */
+   * Retrieves a generated mask for a specific effect.
+   * @param {string} effectKey The key of the effect (e.g., 'sparks').
+   * @returns {PIXI.RenderTexture | null} The mask texture, or null if not found.
+   */
   getMask(effectKey) {
     return this.masks.get(effectKey)?.texture || null;
   }
@@ -7878,9 +8083,9 @@ class GeometryMaskManager {
 
 class PauseScreenManager {
   /**
-    * Registers the necessary hooks to manage the custom pause screen.
-    * This is the single entry point for this system.
-    */
+   * Registers the necessary hooks to manage the custom pause screen.
+   * This is the single entry point for this system.
+   */
   static initialize() {
     Hooks.on("pauseGame", (paused) => {
       // Only apply the custom screen if the pause effect is enabled in settings.
@@ -7914,10 +8119,10 @@ class PauseScreenManager {
   }
 
   /**
-    * Retrieves all necessary settings for the pause screen from the game settings.
-    * @returns {object} An object containing all the configured values.
-    * @private
-    */
+   * Retrieves all necessary settings for the pause screen from the game settings.
+   * @returns {object} An object containing all the configured values.
+   * @private
+   */
   static _getSettings() {
     const getSetting = (key) =>
       game.settings.get(MODULE_ID, `universal.pauseEffect.${key}`);
@@ -7949,9 +8154,9 @@ class PauseScreenManager {
   }
 
   /**
-    * Finds the #pause element, clears it, and injects our fully custom content and styles.
-    * @private
-    */
+   * Finds the #pause element, clears it, and injects our fully custom content and styles.
+   * @private
+   */
   static _applyCustomPauseScreen() {
     const MAX_ATTEMPTS = 120; // Try for ~2 seconds
     let attempts = 0;
@@ -7975,7 +8180,7 @@ class PauseScreenManager {
         if (settings.useRandomHint && settings.randomHints.length > 0) {
           const hint =
             settings.randomHints[
-            Math.floor(Math.random() * settings.randomHints.length)
+              Math.floor(Math.random() * settings.randomHints.length)
             ];
           hintHTML = `<p class="map-shine-pause-hint">${hint}</p>`;
         }
@@ -8048,9 +8253,11 @@ class PauseScreenManager {
 							left: -50vw; /* Extend beyond the wrapper to span the screen */
 							right: -50vw;
 							height: 3px;
-							background: linear-gradient(to right, transparent, ${settings.gradientColor1
-          }, ${settings.gradientColor2}, ${settings.gradientColor1
-          }, transparent);
+							background: linear-gradient(to right, transparent, ${
+                settings.gradientColor1
+              }, ${settings.gradientColor2}, ${
+          settings.gradientColor1
+        }, transparent);
 						}
 
 						.map-shine-pause-wrapper::before {
@@ -8065,22 +8272,25 @@ class PauseScreenManager {
 
 						.map-shine-pause-title {
 							font-family: "${settings.headingFont}", sans-serif;
-							font-size: 4em; margin: 0; letter-spacing: 5px; color: ${settings.headingColor
-          }; text-transform: uppercase;
+							font-size: 4em; margin: 0; letter-spacing: 5px; color: ${
+                settings.headingColor
+              }; text-transform: uppercase;
 							text-shadow: 0 0 10px #000;
 						}
 						.map-shine-pause-subtitle {
 							font-family: "${settings.subheadingFont}", sans-serif;
-							font-size: 1.5em; margin: 10px 0 20px 0; color: ${settings.subheadingColor
-          }; font-style: italic;
+							font-size: 1.5em; margin: 10px 0 20px 0; color: ${
+                settings.subheadingColor
+              }; font-style: italic;
 							text-shadow: 0 0 10px #000;
 						}
 						.map-shine-pause-logo {
 							width: 80px; height: 80px;
 							background-image: url('${settings.logoPath}');
 							background-size: contain; background-repeat: no-repeat; background-position: center;
-							margin: 0 auto; opacity: ${settings.logoOpacity
-          }; animation: pulseLogo 4s ease-in-out infinite;
+							margin: 0 auto; opacity: ${
+                settings.logoOpacity
+              }; animation: pulseLogo 4s ease-in-out infinite;
 						}
 						.map-shine-pause-hint {
 							font-family: "${settings.hintFont}", sans-serif;
@@ -8098,12 +8308,11 @@ class PauseScreenManager {
 							to { opacity: 1; transform: translateY(0); }
 						}
 						@keyframes pulseLogo {
-							0%, 100% { transform: scale(1); opacity: ${settings.logoOpacity
-          }; }
+							0%, 100% { transform: scale(1); opacity: ${settings.logoOpacity}; }
 							50% { transform: scale(1.1); opacity: ${Math.min(
-            1,
-            settings.logoOpacity + 0.2
-          )}; }
+                1,
+                settings.logoOpacity + 0.2
+              )}; }
 						}
 					</style>
 				`;
@@ -8126,10 +8335,10 @@ class PauseScreenManager {
   }
 
   /**
-    * Resets the #pause element by removing our custom class and content.
-    * This allows Foundry to repopulate it with its defaults if needed later.
-    * @private
-    */
+   * Resets the #pause element by removing our custom class and content.
+   * This allows Foundry to repopulate it with its defaults if needed later.
+   * @private
+   */
   static _revertCustomPauseScreen() {
     const pauseElement = document.getElementById("pause");
     if (pauseElement) {
@@ -8369,7 +8578,7 @@ class NoiseTextureManager {
 
   updateFromConfig(config) {
     const nConfig = foundry.utils.getProperty(config, this.configPath);
-    if (!nConfig || typeof nConfig !== 'object') {
+    if (!nConfig || typeof nConfig !== "object") {
       if (this.filter) this.filter.enabled = false;
       return;
     }
@@ -8390,13 +8599,13 @@ class NoiseTextureManager {
     };
 
     const u = this.filter.uniforms;
-    u.u_speed = (nConfig['speed'] ?? 0.0) * (factors.speed ?? 1.0);
-    u.u_scale = nConfig['scale'] ?? 1.0;
-    u.u_threshold = nConfig['threshold'] ?? 0.5;
-    u.u_brightness = nConfig['brightness'] ?? 1.0;
-    u.u_contrast = nConfig['contrast'] ?? 1.0;
-    u.u_softness = nConfig['softness'] ?? 0.0;
-    u.u_evolution = (nConfig['evolution'] ?? 0.0) * (factors.evolution ?? 1.0);
+    u.u_speed = (nConfig["speed"] ?? 0.0) * (factors.speed ?? 1.0);
+    u.u_scale = nConfig["scale"] ?? 1.0;
+    u.u_threshold = nConfig["threshold"] ?? 0.5;
+    u.u_brightness = nConfig["brightness"] ?? 1.0;
+    u.u_contrast = nConfig["contrast"] ?? 1.0;
+    u.u_softness = nConfig["softness"] ?? 0.0;
+    u.u_evolution = (nConfig["evolution"] ?? 0.0) * (factors.evolution ?? 1.0);
 
     this.requestUpdate();
   }
@@ -8411,8 +8620,8 @@ class NoiseTextureManager {
     );
     const isAnimated =
       nConfig &&
-      ((nConfig['speed'] ?? 0) * timeFactor !== 0 ||
-        (nConfig['evolution'] ?? 0) * timeFactor !== 0);
+      ((nConfig["speed"] ?? 0) * timeFactor !== 0 ||
+        (nConfig["evolution"] ?? 0) * timeFactor !== 0);
 
     if (!this._needsUpdate && !isAnimated) return;
 
@@ -8589,12 +8798,12 @@ class DynamicTokenMaskManager {
 
 class CompositeMaskGenerator {
   /**
-    * Creates a new texture by blending two source textures with a MULTIPLY effect.
-    * @param {string} baseTexturePath - The path to the first texture (e.g., _Dust).
-    * @param {string} overlayTexturePath - The path to the second texture (e.g., _Structural).
-    * @param {PIXI.Rectangle} rect - The world-space rectangle defining the target area.
-    * @returns {Promise<PIXI.RenderTexture|null>} A promise that resolves to the new composite texture, or null on failure.
-    */
+   * Creates a new texture by blending two source textures with a MULTIPLY effect.
+   * @param {string} baseTexturePath - The path to the first texture (e.g., _Dust).
+   * @param {string} overlayTexturePath - The path to the second texture (e.g., _Structural).
+   * @param {PIXI.Rectangle} rect - The world-space rectangle defining the target area.
+   * @returns {Promise<PIXI.RenderTexture|null>} A promise that resolves to the new composite texture, or null on failure.
+   */
   static async generate(baseTexturePath, overlayTexturePath, rect) {
     const renderer = canvas.app?.renderer;
     if (!renderer || !rect || !baseTexturePath || !overlayTexturePath)
@@ -8650,6 +8859,84 @@ class CompositeMaskGenerator {
       );
       return null;
     }
+  }
+}
+
+class LightGradientFilter extends PIXI.Filter {
+  constructor(options = {}) {
+    const vertexSrc = `
+            attribute vec2 aVertexPosition;
+            attribute vec2 aTextureCoord;
+            uniform mat3 projectionMatrix;
+            varying vec2 vTextureCoord;
+            varying vec2 vScreenCoord;
+
+            void main(void) {
+                gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
+                vTextureCoord = aTextureCoord;
+                vScreenCoord = gl_Position.xy * 0.5 + 0.5;
+            }
+        `;
+    const fragmentSrc = `
+            precision mediump float;
+            varying vec2 vScreenCoord;
+
+            uniform sampler2D uPolygonMask;
+            uniform vec2 uLightCenter;
+            uniform float uBrightRadius;
+            uniform float uDimRadius;
+            uniform float uAttenuation;
+
+            // World space uniforms
+            uniform vec2 u_camera_offset;
+            uniform vec2 u_view_size;
+
+            void main() {
+                // Check if we are inside the pre-clipped polygon shape
+                float polygonMask = texture2D(uPolygonMask, vScreenCoord).r;
+                if (polygonMask < 0.5) {
+                    discard;
+                }
+
+                vec2 worldPos = u_camera_offset + (vScreenCoord * u_view_size);
+                float dist = distance(worldPos, uLightCenter);
+                float totalRadius = uBrightRadius + uDimRadius;
+
+                if (dist > totalRadius) {
+                    gl_FragColor = vec4(0.0);
+                    return;
+                }
+                
+                // --- FoundryVTT Core Light Attenuation Formula ---
+                // Normalize distance and apply attenuation
+                float intensity = 1.0 - (dist / totalRadius);
+                intensity = pow(intensity, uAttenuation);
+                
+                // Remap intensity to account for the bright radius
+                float brightRatio = uBrightRadius / totalRadius;
+                intensity = smoothstep(0.0, brightRatio, intensity);
+                
+                // The calculated intensity is our final mask value
+                gl_FragColor = vec4(vec3(intensity), 1.0);
+            }
+        `;
+    super(vertexSrc, fragmentSrc, {
+      // @ts-ignore
+      uPolygonMask: PIXI.Texture.EMPTY,
+      // @ts-ignore
+      uLightCenter: [0, 0],
+      // @ts-ignore
+      uBrightRadius: 0.0,
+      // @ts-ignore
+      uDimRadius: 0.0,
+      // @ts-ignore
+      uAttenuation: 1.0,
+      // @ts-ignore
+      u_camera_offset: [0, 0],
+      // @ts-ignore
+      u_view_size: [1, 1],
+      ...options,
+    });
   }
 }
 
@@ -9251,155 +9538,155 @@ class LightningManager {
 												<div style="padding-left: 15px;">
 														<p class="description-text">Controls the timing and visual properties of each lightning strike.</p>
 														${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.offPeriodMin`,
-      "Min Off Time (ms)",
-      1,
-      3000,
-      1,
-      "The minimum random pause between strikes."
-    )}
+                              `${effectKey}.offPeriodMin`,
+                              "Min Off Time (ms)",
+                              1,
+                              3000,
+                              1,
+                              "The minimum random pause between strikes."
+                            )}
 														${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.offPeriodMax`,
-      "Max Off Time (ms)",
-      1,
-      3000,
-      1,
-      "The maximum random pause between strikes."
-    )}
+                              `${effectKey}.offPeriodMax`,
+                              "Max Off Time (ms)",
+                              1,
+                              3000,
+                              1,
+                              "The maximum random pause between strikes."
+                            )}
 														<hr style="border-color: #555; margin: 6px 0;">
 														${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.strikeDuration`,
-      "Strike Duration (ms)",
-      50,
-      5000,
-      50,
-      "How long a lightning bolt is visible before it fades out."
-    )}
+                              `${effectKey}.strikeDuration`,
+                              "Strike Duration (ms)",
+                              50,
+                              5000,
+                              50,
+                              "How long a lightning bolt is visible before it fades out."
+                            )}
 														${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.fadeEasePower`,
-      "Fade Ease Power",
-      1,
-      8,
-      0.5,
-      "Controls the curve of the fade-out. 1=Linear, 2=Quadratic, 3=Cubic, etc."
-    )}
+                              `${effectKey}.fadeEasePower`,
+                              "Fade Ease Power",
+                              1,
+                              8,
+                              0.5,
+                              "Controls the curve of the fade-out. 1=Linear, 2=Quadratic, 3=Cubic, etc."
+                            )}
 														<hr style="border-color: #555; margin: 6px 0;">
 														${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.flickerInterval`,
-      "Flicker Interval (ms)",
-      10,
-      500,
-      10,
-      "How often the bolt regenerates its path while visible."
-    )}
+                              `${effectKey}.flickerInterval`,
+                              "Flicker Interval (ms)",
+                              10,
+                              500,
+                              10,
+                              "How often the bolt regenerates its path while visible."
+                            )}
 														${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.flickerIntensity`,
-      "Flicker Intensity",
-      0,
-      1,
-      0.01,
-      "Random brightness flicker amount."
-    )}
+                              `${effectKey}.flickerIntensity`,
+                              "Flicker Intensity",
+                              0,
+                              1,
+                              0.01,
+                              "Random brightness flicker amount."
+                            )}
 												</div>
 										</details>
 										<details>
 												<summary><span class="accordion-toggle"></span><strong>Color, Intensity & Width</strong></summary>
 												<div style="padding-left: 15px;">
 														${DebuggerUIBuilder._createColorPickerHTML(
-      `${effectKey}.color`,
-      "Color (Outer Sheath)"
-    )}
+                              `${effectKey}.color`,
+                              "Color (Outer Sheath)"
+                            )}
 														${DebuggerUIBuilder._createColorPickerHTML(
-      `${effectKey}.coreColor`,
-      "Color (Inner Core)"
-    )}
+                              `${effectKey}.coreColor`,
+                              "Color (Inner Core)"
+                            )}
 														<hr style="border-color: #555; margin: 6px 0;">
 														${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.brightness`,
-      "Master Brightness/Alpha",
-      0,
-      3,
-      0.05,
-      "Overall brightness multiplier for the lightning. Acts as an alpha multiplier for the ADD blend mode."
-    )}
+                              `${effectKey}.brightness`,
+                              "Master Brightness/Alpha",
+                              0,
+                              3,
+                              0.05,
+                              "Overall brightness multiplier for the lightning. Acts as an alpha multiplier for the ADD blend mode."
+                            )}
 														${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.sheathOpacity`,
-      "Sheath Opacity",
-      0,
-      1,
-      0.01,
-      "Opacity of the outer glow."
-    )}
+                              `${effectKey}.sheathOpacity`,
+                              "Sheath Opacity",
+                              0,
+                              1,
+                              0.01,
+                              "Opacity of the outer glow."
+                            )}
 														${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.coreOpacity`,
-      "Core Opacity",
-      0,
-      1,
-      0.01,
-      "Opacity of the inner core."
-    )}
+                              `${effectKey}.coreOpacity`,
+                              "Core Opacity",
+                              0,
+                              1,
+                              0.01,
+                              "Opacity of the inner core."
+                            )}
 														<hr style="border-color: #555; margin: 6px 0;">
 														${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.width.start`,
-      "Width (Start)",
-      0,
-      30,
-      0.5
-    )}
+                              `${effectKey}.width.start`,
+                              "Width (Start)",
+                              0,
+                              30,
+                              0.5
+                            )}
 														${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.width.end`,
-      "Width (End)",
-      0,
-      30,
-      0.5,
-      "The target width for the thinnest tips of the bolt."
-    )}
+                              `${effectKey}.width.end`,
+                              "Width (End)",
+                              0,
+                              30,
+                              0.5,
+                              "The target width for the thinnest tips of the bolt."
+                            )}
 														${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.coreWidth.start`,
-      "Core Width (Start)",
-      0,
-      15,
-      0.25
-    )}
+                              `${effectKey}.coreWidth.start`,
+                              "Core Width (Start)",
+                              0,
+                              15,
+                              0.25
+                            )}
 														${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.coreWidth.end`,
-      "Core Width (End)",
-      0,
-      15,
-      0.25
-    )}
+                              `${effectKey}.coreWidth.end`,
+                              "Core Width (End)",
+                              0,
+                              15,
+                              0.25
+                            )}
 														<details id="details-lightning-width-variation">
 																<summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-      `${effectKey}.width.variationEnabled`,
-      "Width Variation",
-      true
-    )}</div></summary>
+                                  `${effectKey}.width.variationEnabled`,
+                                  "Width Variation",
+                                  true
+                                )}</div></summary>
 																<div style="padding-left: 15px;">
 																		<p class="description-text">Adds random, animated noise to the width of the lightning bolt.</p>
 																		${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.width.variationAmount`,
-      "Amount",
-      0,
-      2,
-      0.05,
-      "The maximum percentage of width variation. 0.5 = +/- 50%."
-    )}
+                                      `${effectKey}.width.variationAmount`,
+                                      "Amount",
+                                      0,
+                                      2,
+                                      0.05,
+                                      "The maximum percentage of width variation. 0.5 = +/- 50%."
+                                    )}
 																		${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.width.variationScale`,
-      "Scale",
-      0.001,
-      0.5,
-      0.001,
-      "The zoom level of the width noise. Larger values = smaller, finer variations."
-    )}
+                                      `${effectKey}.width.variationScale`,
+                                      "Scale",
+                                      0.001,
+                                      0.5,
+                                      0.001,
+                                      "The zoom level of the width noise. Larger values = smaller, finer variations."
+                                    )}
 																		${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.width.variationSpeed`,
-      "Speed",
-      0,
-      1,
-      0.01,
-      "The animation speed of the width noise."
-    )}
+                                      `${effectKey}.width.variationSpeed`,
+                                      "Speed",
+                                      0,
+                                      1,
+                                      0.01,
+                                      "The animation speed of the width noise."
+                                    )}
 																</div>
 														</details>
 												</div>
@@ -9409,21 +9696,21 @@ class LightningManager {
 												<div style="padding-left: 15px;">
 														<p class="description-text">Controls the main lightning bolt's shape.</p>
 														${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.path.segments`,
-      "Curve Segments",
-      20,
-      200,
-      5,
-      "Number of segments to render along the curve. More is smoother."
-    )}
+                              `${effectKey}.path.segments`,
+                              "Curve Segments",
+                              20,
+                              200,
+                              5,
+                              "Number of segments to render along the curve. More is smoother."
+                            )}
 														${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.path.endPointRandomness`,
-      "End Point Rand.",
-      0,
-      500,
-      5,
-      "Maximum random distance (in pixels) from the target end point."
-    )}
+                              `${effectKey}.path.endPointRandomness`,
+                              "End Point Rand.",
+                              0,
+                              500,
+                              5,
+                              "Maximum random distance (in pixels) from the target end point."
+                            )}
 												</div>
 										</details>
 										<details>
@@ -9431,99 +9718,99 @@ class LightningManager {
 												<div style="padding-left: 15px;">
 														<p class="description-text">Controls the shape of the Bezier curve the lightning follows.</p>
 														${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.curve.startAngleMin`,
-      "Start Angle Min",
-      -180,
-      180,
-      1,
-      "Minimum angle (degrees) for the curve handle at the start point."
-    )}
+                              `${effectKey}.curve.startAngleMin`,
+                              "Start Angle Min",
+                              -180,
+                              180,
+                              1,
+                              "Minimum angle (degrees) for the curve handle at the start point."
+                            )}
 														${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.curve.startAngleMax`,
-      "Start Angle Max",
-      -180,
-      180,
-      1,
-      "Maximum angle (degrees) for the curve handle at the start point."
-    )}
+                              `${effectKey}.curve.startAngleMax`,
+                              "Start Angle Max",
+                              -180,
+                              180,
+                              1,
+                              "Maximum angle (degrees) for the curve handle at the start point."
+                            )}
 														${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.curve.endAngleMin`,
-      "End Angle Min",
-      -180,
-      180,
-      1,
-      "Minimum angle (degrees) for the curve handle at the end point."
-    )}
+                              `${effectKey}.curve.endAngleMin`,
+                              "End Angle Min",
+                              -180,
+                              180,
+                              1,
+                              "Minimum angle (degrees) for the curve handle at the end point."
+                            )}
 														${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.curve.endAngleMax`,
-      "End Angle Max",
-      -180,
-      180,
-      1,
-      "Maximum angle (degrees) for the curve handle at the end point."
-    )}
+                              `${effectKey}.curve.endAngleMax`,
+                              "End Angle Max",
+                              -180,
+                              180,
+                              1,
+                              "Maximum angle (degrees) for the curve handle at the end point."
+                            )}
 														<hr style="border-color: #555; margin: 6px 0;">
 														${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.curve.controlPointDistanceMin`,
-      "Min Control Point Dist.",
-      0,
-      1000,
-      10,
-      "Minimum distance of the curve handles from their anchor points."
-    )}
+                              `${effectKey}.curve.controlPointDistanceMin`,
+                              "Min Control Point Dist.",
+                              0,
+                              1000,
+                              10,
+                              "Minimum distance of the curve handles from their anchor points."
+                            )}
 														${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.curve.controlPointDistanceMax`,
-      "Max Control Point Dist.",
-      0,
-      1000,
-      10,
-      "Maximum distance of the curve handles from their anchor points."
-    )}
+                              `${effectKey}.curve.controlPointDistanceMax`,
+                              "Max Control Point Dist.",
+                              0,
+                              1000,
+                              10,
+                              "Maximum distance of the curve handles from their anchor points."
+                            )}
 												</div>
 										</details>
 										<details>
 												<summary><span class="accordion-toggle"></span><strong>Forking / Branching</strong></summary>
 												<div style="padding-left: 15px;">
 														${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.fork.maxDepth`,
-      "Max Fork Depth",
-      0,
-      8,
-      1,
-      "Maximum number of recursive forks."
-    )}
+                              `${effectKey}.fork.maxDepth`,
+                              "Max Fork Depth",
+                              0,
+                              8,
+                              1,
+                              "Maximum number of recursive forks."
+                            )}
 														${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.fork.chance`,
-      "Forking Chance",
-      0,
-      1,
-      0.01,
-      "Probability (0 to 1) that a branch will split into smaller forks."
-    )}
+                              `${effectKey}.fork.chance`,
+                              "Forking Chance",
+                              0,
+                              1,
+                              0.01,
+                              "Probability (0 to 1) that a branch will split into smaller forks."
+                            )}
 														${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.fork.angleRange`,
-      "Fork Angle Range (deg)",
-      0,
-      180,
-      1,
-      "Maximum deviation in degrees from the parent branch direction."
-    )}
+                              `${effectKey}.fork.angleRange`,
+                              "Fork Angle Range (deg)",
+                              0,
+                              180,
+                              1,
+                              "Maximum deviation in degrees from the parent branch direction."
+                            )}
 														${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.fork.lengthFalloff`,
-      "Fork Length Falloff",
-      0.5,
-      1.0,
-      0.01,
-      "Each fork is this percentage of its parent's remaining length."
-    )}
+                              `${effectKey}.fork.lengthFalloff`,
+                              "Fork Length Falloff",
+                              0.5,
+                              1.0,
+                              0.01,
+                              "Each fork is this percentage of its parent's remaining length."
+                            )}
 														${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.fork.widthFalloff`,
-      "Fork Width Falloff",
-      0.5,
-      1.0,
-      0.01,
-      "Each fork starts at this percentage of its parent's width at the split point."
-    )}
+                              `${effectKey}.fork.widthFalloff`,
+                              "Fork Width Falloff",
+                              0.5,
+                              1.0,
+                              0.01,
+                              "Each fork starts at this percentage of its parent's width at the split point."
+                            )}
 												</div>
 										</details>
 										<details>
@@ -9532,141 +9819,141 @@ class LightningManager {
 														<p class="description-text">Animates the lightning path with noisy displacement for a more erratic look. Two layers of noise can be combined.</p>
 														<details id="details-lightning-displacement-main">
 																<summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-      `${effectKey}.displacement.enabled`,
-      "Main Displacement",
-      true
-    )}</div></summary>
+                                  `${effectKey}.displacement.enabled`,
+                                  "Main Displacement",
+                                  true
+                                )}</div></summary>
 																<div style="padding-left: 15px;">
 																		<p class="description-text">Standard displacement for high-frequency jitter and sharp turns.</p>
 																		${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.displacement.magnitude`,
-      "Magnitude",
-      0,
-      50,
-      1,
-      "Maximum displacement distance in pixels."
-    )}
+                                      `${effectKey}.displacement.magnitude`,
+                                      "Magnitude",
+                                      0,
+                                      50,
+                                      1,
+                                      "Maximum displacement distance in pixels."
+                                    )}
 																		${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.displacement.speed`,
-      "Speed",
-      0,
-      1,
-      0.01,
-      "How fast the noise pattern animates."
-    )}
+                                      `${effectKey}.displacement.speed`,
+                                      "Speed",
+                                      0,
+                                      1,
+                                      0.01,
+                                      "How fast the noise pattern animates."
+                                    )}
 																		${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.displacement.scale`,
-      "Scale",
-      0.01,
-      1,
-      0.01,
-      "Zoom level of the noise pattern. Larger values = smaller, finer waves."
-    )}
+                                      `${effectKey}.displacement.scale`,
+                                      "Scale",
+                                      0.01,
+                                      1,
+                                      0.01,
+                                      "Zoom level of the noise pattern. Larger values = smaller, finer waves."
+                                    )}
 																</div>
 														</details>
 														<details id="details-lightning-displacement-fine">
 																<summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-      `${effectKey}.displacementFine.enabled`,
-      "Large-Scale Displacement",
-      true
-    )}</div></summary>
+                                  `${effectKey}.displacementFine.enabled`,
+                                  "Large-Scale Displacement",
+                                  true
+                                )}</div></summary>
 																<div style="padding-left: 15px;">
 																		<p class="description-text">Low-frequency noise for large, slow bends along the bolt's path.</p>
 																		${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.displacementFine.magnitude`,
-      "Magnitude",
-      0,
-      50,
-      1,
-      "Maximum displacement distance in pixels."
-    )}
+                                      `${effectKey}.displacementFine.magnitude`,
+                                      "Magnitude",
+                                      0,
+                                      50,
+                                      1,
+                                      "Maximum displacement distance in pixels."
+                                    )}
 																		${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.displacementFine.speed`,
-      "Speed",
-      0,
-      1,
-      0.01,
-      "How fast the noise pattern animates."
-    )}
+                                      `${effectKey}.displacementFine.speed`,
+                                      "Speed",
+                                      0,
+                                      1,
+                                      0.01,
+                                      "How fast the noise pattern animates."
+                                    )}
 																		${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.displacementFine.scale`,
-      "Scale",
-      0,
-      0.01,
-      0.0001,
-      "Zoom level of the noise pattern. Smaller values = larger, broader waves."
-    )}
+                                      `${effectKey}.displacementFine.scale`,
+                                      "Scale",
+                                      0,
+                                      0.01,
+                                      0.0001,
+                                      "Zoom level of the noise pattern. Smaller values = larger, broader waves."
+                                    )}
 																</div>
 														</details>
 												</div>
 										</details>
 										<details>
 												<summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-      `${effectKey}.bloom.enabled`,
-      "Bloom Effect",
-      true
-    )}</div></summary>
+                          `${effectKey}.bloom.enabled`,
+                          "Bloom Effect",
+                          true
+                        )}</div></summary>
 												<div style="padding-left: 15px;">
 														 <div class="warning-box" style="background-color: #554422; border-color: #ffaa66;"><strong style="color: #ffddaa;">PERFORMANCE WARNING:</strong> This can be demanding. Lowering 'Quality' can improve performance.</div>
 														<p class="description-text">Adds a powerful bloom glow to the lightning. This is a dedicated bloom effect that is not shared with other effects.</p>
 														${DebuggerUIBuilder._createSelectHTML(
-      `${effectKey}.bloom.blendMode`,
-      "Blend Mode",
-      BLEND_MODE_OPTIONS
-    )}
+                              `${effectKey}.bloom.blendMode`,
+                              "Blend Mode",
+                              BLEND_MODE_OPTIONS
+                            )}
 														${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.bloom.threshold`,
-      "Threshold",
-      0,
-      1,
-      0.01,
-      "Only areas brighter than this will bloom."
-    )}
+                              `${effectKey}.bloom.threshold`,
+                              "Threshold",
+                              0,
+                              1,
+                              0.01,
+                              "Only areas brighter than this will bloom."
+                            )}
 														${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.bloom.brightness`,
-      "Brightness",
-      0,
-      1000,
-      1,
-      "The overall brightness and intensity of the bloom."
-    )}
+                              `${effectKey}.bloom.brightness`,
+                              "Brightness",
+                              0,
+                              1000,
+                              1,
+                              "The overall brightness and intensity of the bloom."
+                            )}
 														${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.bloom.bloomScale`,
-      "Scale",
-      0.1,
-      50,
-      0.1,
-      "The size of the bloom effect."
-    )}
+                              `${effectKey}.bloom.bloomScale`,
+                              "Scale",
+                              0.1,
+                              50,
+                              0.1,
+                              "The size of the bloom effect."
+                            )}
 														${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.bloom.blur`,
-      "Blur Amount",
-      0,
-      50,
-      0.5,
-      "How much the bloom is blurred."
-    )}
+                              `${effectKey}.bloom.blur`,
+                              "Blur Amount",
+                              0,
+                              50,
+                              0.5,
+                              "How much the bloom is blurred."
+                            )}
 														${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.bloom.quality`,
-      "Quality",
-      1,
-      15,
-      1,
-      "Number of blur samples. Higher is smoother but much slower."
-    )}
+                              `${effectKey}.bloom.quality`,
+                              "Quality",
+                              1,
+                              15,
+                              1,
+                              "Number of blur samples. Higher is smoother but much slower."
+                            )}
 														 <details id="details-lightning-bloom-rgbSplit"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-      `${effectKey}.bloom.rgbSplit.enabled`,
-      "RGB Split",
-      true
-    )}</div></summary>
+                               `${effectKey}.bloom.rgbSplit.enabled`,
+                               "RGB Split",
+                               true
+                             )}</div></summary>
 																<div>${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.bloom.rgbSplit.amount`,
-      "Amount",
-      0,
-      20,
-      0.1,
-      "Adds a chromatic aberration effect to the bloom."
-    )}</div>
+                                  `${effectKey}.bloom.rgbSplit.amount`,
+                                  "Amount",
+                                  0,
+                                  20,
+                                  0.1,
+                                  "Adds a chromatic aberration effect to the bloom."
+                                )}</div>
 														</details>
 												</div>
 										</details>
@@ -9958,43 +10245,43 @@ class LightningOcclusionFilter extends PIXI.Filter {
 // ---------------------------------------------------------------------------------
 
 /***************************************************************************************
-  *
-  *                              PARTICLE SYSTEM BUG REPORT
-  *
-  *  ROOT CAUSE:
-  *  A bug was identified within the external `particle-emitter.min.js` library in the
-  *  `PropertyNode.createList()` method. This method has an optimization that fails when
-  *  it is provided a property list with exactly two entries that have identical values
-  *  (e.g., `list: [{value: 1, time: 0}, {value: 1, time: 1}]`).
-  *
-  *  BUG BEHAVIOR:
-  *  Instead of creating a two-node linked list, the optimization creates a single-node list.
-  *  The system then incorrectly selects a complex interpolation function (`intValueComplex` or
-  *  `intColorComplex`) which is not designed to handle a single-node list. This function
-  *  crashes when it attempts to access `node.next.time`, as `node.next` is null,
-  *  resulting in the observed TypeError.
-  *
-  *  PREVIOUS VULNERABILITY:
-  *  The original `buildSparkEmitterConfig` function was vulnerable because it unconditionally
-  *  used the modern `{ list: [...] }` format for all time-variant properties. If a user set
-  *  the start and end values for scale or color to be the same, it would trigger this bug.
-  *
-  *  SOLUTION:
-  *  The `buildSparkEmitterConfig` function was refactored to mirror the more robust implementation
-  *  of `buildParticleEmitterConfig`. The solution has two parts:
-  *
-  *  1.  It now checks if the start and end values for a property (e.g., scale, color) are
-  *      identical. If they are, it uses the appropriate `Static` behavior (e.g., `scaleStatic`),
-  *      which completely bypasses the buggy `PropertyList` logic.
-  *
-  *  2.  If the values differ, it uses the dynamic behavior but provides the configuration in the
-  *      legacy `{start, end}` format. The library correctly handles this format without triggering
-  *      the bug.
-  *
-  *  This approach makes our code resilient to the underlying library issue, ensuring stability
-  *  regardless of user-defined particle settings.
-  *
-  ***************************************************************************************/
+ *
+ *                              PARTICLE SYSTEM BUG REPORT
+ *
+ *  ROOT CAUSE:
+ *  A bug was identified within the external `particle-emitter.min.js` library in the
+ *  `PropertyNode.createList()` method. This method has an optimization that fails when
+ *  it is provided a property list with exactly two entries that have identical values
+ *  (e.g., `list: [{value: 1, time: 0}, {value: 1, time: 1}]`).
+ *
+ *  BUG BEHAVIOR:
+ *  Instead of creating a two-node linked list, the optimization creates a single-node list.
+ *  The system then incorrectly selects a complex interpolation function (`intValueComplex` or
+ *  `intColorComplex`) which is not designed to handle a single-node list. This function
+ *  crashes when it attempts to access `node.next.time`, as `node.next` is null,
+ *  resulting in the observed TypeError.
+ *
+ *  PREVIOUS VULNERABILITY:
+ *  The original `buildSparkEmitterConfig` function was vulnerable because it unconditionally
+ *  used the modern `{ list: [...] }` format for all time-variant properties. If a user set
+ *  the start and end values for scale or color to be the same, it would trigger this bug.
+ *
+ *  SOLUTION:
+ *  The `buildSparkEmitterConfig` function was refactored to mirror the more robust implementation
+ *  of `buildParticleEmitterConfig`. The solution has two parts:
+ *
+ *  1.  It now checks if the start and end values for a property (e.g., scale, color) are
+ *      identical. If they are, it uses the appropriate `Static` behavior (e.g., `scaleStatic`),
+ *      which completely bypasses the buggy `PropertyList` logic.
+ *
+ *  2.  If the values differ, it uses the dynamic behavior but provides the configuration in the
+ *      legacy `{start, end}` format. The library correctly handles this format without triggering
+ *      the bug.
+ *
+ *  This approach makes our code resilient to the underlying library issue, ensuring stability
+ *  regardless of user-defined particle settings.
+ *
+ ***************************************************************************************/
 
 /*
 
@@ -10111,7 +10398,6 @@ const PARTICLE_EFFECT_DEFINITIONS = {
   },
 };
 
-
 class ParticleEffectController {
   constructor(definition, parentContainer) {
     this.definition = definition;
@@ -10161,10 +10447,10 @@ class ParticleEffectController {
   }
 
   /**
-    * Initializes biofilm-specific PIXI resources on demand.
-    * This ensures resources are created only when the canvas is fully ready.
-    * @private
-    */
+   * Initializes biofilm-specific PIXI resources on demand.
+   * This ensures resources are created only when the canvas is fully ready.
+   * @private
+   */
   _initializeBiofilmResources() {
     // This is a one-time initialization. If resources exist, do nothing.
     if (this.particleOutputTexture) return;
@@ -10203,51 +10489,51 @@ class ParticleEffectController {
 									<details id="details-fire-bloom">
 										<summary><span class="accordion-toggle"></span>
 											<div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-        "fire.bloom.enabled",
-        "Bloom Effect",
-        true
-      )}</div>
+                        "fire.bloom.enabled",
+                        "Bloom Effect",
+                        true
+                      )}</div>
 										</summary>
 										<div style="padding-left: 15px;">
 											<div class="warning-box" style="background-color: #554422; border-color: #ffaa66;"><strong style="color: #ffddaa;">PERFORMANCE WARNING:</strong> This can be demanding. Lowering 'Quality' can improve performance.</div>
 											<p class="description-text">Adds a soft glow to the fire particles.</p>
 											${DebuggerUIBuilder._createSliderHTML(
-        "fire.bloom.threshold",
-        "Threshold",
-        0,
-        1,
-        0.01
-      )}
+                        "fire.bloom.threshold",
+                        "Threshold",
+                        0,
+                        1,
+                        0.01
+                      )}
 											${DebuggerUIBuilder._createSliderHTML(
-        "fire.bloom.brightness",
-        "Brightness",
-        0,
-        5,
-        0.05
-      )}
+                        "fire.bloom.brightness",
+                        "Brightness",
+                        0,
+                        5,
+                        0.05
+                      )}
 											${DebuggerUIBuilder._createSliderHTML(
-        "fire.bloom.bloomScale",
-        "Scale",
-        0.1,
-        5,
-        0.1,
-        "The size of the bloom effect."
-      )}
+                        "fire.bloom.bloomScale",
+                        "Scale",
+                        0.1,
+                        5,
+                        0.1,
+                        "The size of the bloom effect."
+                      )}
 											${DebuggerUIBuilder._createSliderHTML(
-        "fire.bloom.blur",
-        "Blur Amount",
-        0,
-        20,
-        0.5
-      )}
+                        "fire.bloom.blur",
+                        "Blur Amount",
+                        0,
+                        20,
+                        0.5
+                      )}
 											${DebuggerUIBuilder._createSliderHTML(
-        "fire.bloom.quality",
-        "Quality",
-        1,
-        15,
-        1,
-        "Number of blur samples. Higher is smoother but much slower."
-      )}
+                        "fire.bloom.quality",
+                        "Quality",
+                        1,
+                        15,
+                        1,
+                        "Number of blur samples. Higher is smoother but much slower."
+                      )}
 										</div>
 									</details>
 								`;
@@ -10256,109 +10542,113 @@ class ParticleEffectController {
     if (effectKey === "sparks") {
       const sparksPath = "sparks";
       let sparksContent = `
-								<p class="description-text">${definition.description
-        }</p>
+								<p class="description-text">${definition.description}</p>
 								<details>
 									<summary><span class="accordion-toggle"></span><strong>Spawning & Density</strong></summary>
 									<div style="padding-left: 15px;">
 										${DebuggerUIBuilder._createTextureInputHTML(
-          definition.triggerTexture,
-          `Effect Mask (_${definition.triggerTexture
-            .charAt(0)
-            .toUpperCase() +
-          definition.triggerTexture.slice(1)
-          })`
-        )}
+                      definition.triggerTexture,
+                      `Effect Mask (_${
+                        definition.triggerTexture.charAt(0).toUpperCase() +
+                        definition.triggerTexture.slice(1)
+                      })`
+                    )}
 										${DebuggerUIBuilder._createSliderHTML(
-          `${sparksPath}.maskInfluence`,
-          "Particle Density",
-          0.01,
-          5,
-          0.01
-        )}
+                      `${sparksPath}.maskInfluence`,
+                      "Particle Density",
+                      0.01,
+                      5,
+                      0.01
+                    )}
 										${DebuggerUIBuilder._createSliderHTML(
-          `${sparksPath}.frequency`,
-          "Spawn Rate (s)",
-          0.01,
-          2,
-          0.01
-        )}
+                      `${sparksPath}.frequency`,
+                      "Spawn Rate (s)",
+                      0.01,
+                      2,
+                      0.01
+                    )}
 										${DebuggerUIBuilder._createSliderHTML(
-          `${sparksPath}.maskThreshold`,
-          "Mask Threshold",
-          0,
-          1,
-          0.01,
-          "Luminance from the _Sparks map required to spawn sparks."
-        )}
+                      `${sparksPath}.maskThreshold`,
+                      "Mask Threshold",
+                      0,
+                      1,
+                      0.01,
+                      "Luminance from the _Sparks map required to spawn sparks."
+                    )}
 									</div>
 								</details>
 								<details>
 									<summary><span class="accordion-toggle"></span><strong>Particle Appearance</strong></summary>
 									<div style="padding-left: 15px;">
 										${DebuggerUIBuilder._createSelectHTML(
-          `${sparksPath}.blendMode`,
-          "Blend Mode",
-          BLEND_MODE_OPTIONS
-        )}
+                      `${sparksPath}.blendMode`,
+                      "Blend Mode",
+                      BLEND_MODE_OPTIONS
+                    )}
 										${DebuggerUIBuilder._createTextInputHTML(
-          `${sparksPath}.particleTexture`,
-          "Particle Texture"
-        )}
+                      `${sparksPath}.particleTexture`,
+                      "Particle Texture"
+                    )}
 										<details>
 											<summary><span class="accordion-toggle"></span><strong>Lifetime</strong></summary>
 											<div style="padding-left: 15px;">
 												${DebuggerUIBuilder._createSliderHTML(
-          `${sparksPath}.lifetime.min`,
-          "Min Lifetime (s)",
-          0.5,
-          5,
-          0.1
-        )}
+                          `${sparksPath}.lifetime.min`,
+                          "Min Lifetime (s)",
+                          0.5,
+                          5,
+                          0.1
+                        )}
 												${DebuggerUIBuilder._createSliderHTML(
-          `${sparksPath}.lifetime.max`,
-          "Max Lifetime (s)",
-          0.5,
-          5,
-          0.1
-        )}
+                          `${sparksPath}.lifetime.max`,
+                          "Max Lifetime (s)",
+                          0.5,
+                          5,
+                          0.1
+                        )}
 											</div>
 										</details>
 
-										${DebuggerUIBuilder._createGradientEditorHTML(`${sparksPath}.colorAlphaGradient`, "Color & Alpha Over Life")}
-										${DebuggerUIBuilder._createGradientEditorHTML(`${sparksPath}.emissiveGradient`, "Emissive (Brightness) Over Life")}
+										${DebuggerUIBuilder._createGradientEditorHTML(
+                      `${sparksPath}.colorAlphaGradient`,
+                      "Color & Alpha Over Life"
+                    )}
+										${DebuggerUIBuilder._createGradientEditorHTML(
+                      `${sparksPath}.emissiveGradient`,
+                      "Emissive (Brightness) Over Life"
+                    )}
 
 										<details>
 											<summary><span class="accordion-toggle"></span><strong>Scale / Size</strong></summary>
 											<div style="padding-left: 15px;">
 												${DebuggerUIBuilder._createSliderHTML(
-          `${sparksPath}.scale.sizeMultiplier`,
-          "Global Size",
-          0.1,
-          2,
-          0.05
-        )}
+                          `${sparksPath}.scale.sizeMultiplier`,
+                          "Global Size",
+                          0.1,
+                          2,
+                          0.05
+                        )}
 												${DebuggerUIBuilder._createSliderHTML(
-          `${sparksPath}.scale.start`,
-          "Start Scale",
-          0.1,
-          2,
-          0.05
-        )}
+                          `${sparksPath}.scale.start`,
+                          "Start Scale",
+                          0.1,
+                          2,
+                          0.05
+                        )}
 												${DebuggerUIBuilder._createSliderHTML(
-          `${sparksPath}.scale.end`,
-          "End Scale",
-          0,
-          2,
-          0.05
-        )}
+                          `${sparksPath}.scale.end`,
+                          "End Scale",
+                          0,
+                          2,
+                          0.05
+                        )}
 												${DebuggerUIBuilder._createSliderHTML(
-          `${sparksPath}.scale.minMult`,
-          "Random Size Min",
-          0.1,
-          1,
-          0.01
-        )}
+                          `${sparksPath}.scale.minMult`,
+                          "Random Size Min",
+                          0.1,
+                          1,
+                          0.01
+                        )}
 											</div>
 										</details>
 									</div>
@@ -10370,26 +10660,26 @@ class ParticleEffectController {
 											<summary><span class="accordion-toggle"></span><strong>Speed Along Path</strong></summary>
 											<div style="padding-left:15px;">
 												${DebuggerUIBuilder._createSliderHTML(
-          `${sparksPath}.path.speed.start`,
-          "Start Speed",
-          10,
-          200,
-          1
-        )}
+                          `${sparksPath}.path.speed.start`,
+                          "Start Speed",
+                          10,
+                          200,
+                          1
+                        )}
 												${DebuggerUIBuilder._createSliderHTML(
-          `${sparksPath}.path.speed.end`,
-          "End Speed",
-          10,
-          200,
-          1
-        )}
+                          `${sparksPath}.path.speed.end`,
+                          "End Speed",
+                          10,
+                          200,
+                          1
+                        )}
 												${DebuggerUIBuilder._createSliderHTML(
-          `${sparksPath}.path.speed.minMult`,
-          "Random Speed Min",
-          0.1,
-          1,
-          0.01
-        )}
+                          `${sparksPath}.path.speed.minMult`,
+                          "Random Speed Min",
+                          0.1,
+                          1,
+                          0.01
+                        )}
 											</div>
 										</details>
 										<details>
@@ -10397,81 +10687,81 @@ class ParticleEffectController {
 											<div style="padding-left:15px;">
 												<p class="description-text">Controls the random sine wave path for each spark.</p>
 												${DebuggerUIBuilder._createSliderHTML(
-          `${sparksPath}.path.amplitude.min`,
-          "Min Wave Width",
-          0,
-          100,
-          1
-        )}
+                          `${sparksPath}.path.amplitude.min`,
+                          "Min Wave Width",
+                          0,
+                          100,
+                          1
+                        )}
 												${DebuggerUIBuilder._createSliderHTML(
-          `${sparksPath}.path.amplitude.max`,
-          "Max Wave Width",
-          0,
-          100,
-          1
-        )}
+                          `${sparksPath}.path.amplitude.max`,
+                          "Max Wave Width",
+                          0,
+                          100,
+                          1
+                        )}
 												${DebuggerUIBuilder._createSliderHTML(
-          `${sparksPath}.path.frequency.min`,
-          "Min Wave Freq",
-          10,
-          200,
-          1
-        )}
+                          `${sparksPath}.path.frequency.min`,
+                          "Min Wave Freq",
+                          10,
+                          200,
+                          1
+                        )}
 												${DebuggerUIBuilder._createSliderHTML(
-          `${sparksPath}.path.frequency.max`,
-          "Max Wave Freq",
-          10,
-          200,
-          1
-        )}
+                          `${sparksPath}.path.frequency.max`,
+                          "Max Wave Freq",
+                          10,
+                          200,
+                          1
+                        )}
 												${DebuggerUIBuilder._createSliderHTML(
-          `${sparksPath}.path.damping`,
-          "Damping",
-          0,
-          1,
-          0.05,
-          "How quickly the path straightens out over the spark\\s life."
-        )}
+                          `${sparksPath}.path.damping`,
+                          "Damping",
+                          0,
+                          1,
+                          0.05,
+                          "How quickly the path straightens out over the spark\\s life."
+                        )}
 												${DebuggerUIBuilder._createSliderHTML(
-          `${sparksPath}.path.angle.min`,
-          "Min Start Angle",
-          -90,
-          90,
-          1
-        )}
+                          `${sparksPath}.path.angle.min`,
+                          "Min Start Angle",
+                          -90,
+                          90,
+                          1
+                        )}
 												${DebuggerUIBuilder._createSliderHTML(
-          `${sparksPath}.path.angle.max`,
-          "Max Start Angle",
-          -90,
-          90,
-          1
-        )}
+                          `${sparksPath}.path.angle.max`,
+                          "Max Start Angle",
+                          -90,
+                          90,
+                          1
+                        )}
 											</div>
 										</details>
 										<details>
 											<summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-          `${sparksPath}.path.motionBlur.enabled`,
-          "Motion Blur",
-          true
-        )}</div></summary>
+                        `${sparksPath}.path.motionBlur.enabled`,
+                        "Motion Blur",
+                        true
+                      )}</div></summary>
 											<div style="padding-left:15px;">
 												<p class="description-text">Stretches particles based on their speed to simulate motion blur.</p>
 												${DebuggerUIBuilder._createSliderHTML(
-          `${sparksPath}.path.motionBlur.strength`,
-          "Strength",
-          0,
-          1,
-          0.01,
-          "Multiplier for how much speed affects particle length."
-        )}
+                          `${sparksPath}.path.motionBlur.strength`,
+                          "Strength",
+                          0,
+                          1,
+                          0.01,
+                          "Multiplier for how much speed affects particle length."
+                        )}
 												${DebuggerUIBuilder._createSliderHTML(
-          `${sparksPath}.path.motionBlur.maxLength`,
-          "Max Length",
-          0,
-          10,
-          0.1,
-          "The maximum amount to stretch the particle scale."
-        )}
+                          `${sparksPath}.path.motionBlur.maxLength`,
+                          "Max Length",
+                          0,
+                          10,
+                          0.1,
+                          "The maximum amount to stretch the particle scale."
+                        )}
 											</div>
 										</details>
 									</div>
@@ -10492,37 +10782,36 @@ class ParticleEffectController {
 									<summary><span class="accordion-toggle"></span><strong>Spawning & Density</strong></summary>
 									<div style="padding-left: 15px;">
 										${DebuggerUIBuilder._createTextureInputHTML(
-      definition.triggerTexture,
-      `Effect Mask (_${definition.triggerTexture
-        .charAt(0)
-        .toUpperCase() +
-      definition.triggerTexture.slice(1)
-      })`
-    )}
+                      definition.triggerTexture,
+                      `Effect Mask (_${
+                        definition.triggerTexture.charAt(0).toUpperCase() +
+                        definition.triggerTexture.slice(1)
+                      })`
+                    )}
 										${DebuggerUIBuilder._createSliderHTML(
-      `${path}.maskInfluence`,
-      "Particle Density",
-      0.01,
-      5,
-      0.01,
-      "Controls the maximum number of particles."
-    )}
+                      `${path}.maskInfluence`,
+                      "Particle Density",
+                      0.01,
+                      5,
+                      0.01,
+                      "Controls the maximum number of particles."
+                    )}
 										${DebuggerUIBuilder._createSliderHTML(
-      `${path}.frequency`,
-      "Spawn Rate (s)",
-      0.001,
-      1,
-      0.001,
-      "Time in seconds between particle spawns. Lower is faster."
-    )}
+                      `${path}.frequency`,
+                      "Spawn Rate (s)",
+                      0.001,
+                      1,
+                      0.001,
+                      "Time in seconds between particle spawns. Lower is faster."
+                    )}
 										${DebuggerUIBuilder._createSliderHTML(
-      `${path}.maskThreshold`,
-      "Mask Threshold",
-      0,
-      1,
-      0.01,
-      "Luminance from the mask required to spawn particles."
-    )}
+                      `${path}.maskThreshold`,
+                      "Mask Threshold",
+                      0,
+                      1,
+                      0.01,
+                      "Luminance from the mask required to spawn particles."
+                    )}
 
 									</div>
 								</details>
@@ -10530,91 +10819,99 @@ class ParticleEffectController {
 									<summary><span class="accordion-toggle"></span><strong>Particle Appearance</strong></summary>
 									<div style="padding-left: 15px;">
 										${DebuggerUIBuilder._createTextInputHTML(
-      `${path}.particleTexture`,
-      "Particle Texture",
-      "Path to the particle image."
-    )}
+                      `${path}.particleTexture`,
+                      "Particle Texture",
+                      "Path to the particle image."
+                    )}
 										<details>
 											<summary><span class="accordion-toggle"></span><strong>Lifetime</strong></summary>
 											<div style="padding-left: 15px;">
 												${DebuggerUIBuilder._createSliderHTML(
-      `${path}.lifetime.min`,
-      "Min Lifetime (s)",
-      0.1,
-      20,
-      0.1
-    )}
+                          `${path}.lifetime.min`,
+                          "Min Lifetime (s)",
+                          0.1,
+                          20,
+                          0.1
+                        )}
 												${DebuggerUIBuilder._createSliderHTML(
-      `${path}.lifetime.max`,
-      "Max Lifetime (s)",
-      0.1,
-      20,
-      0.1
-    )}
+                          `${path}.lifetime.max`,
+                          "Max Lifetime (s)",
+                          0.1,
+                          20,
+                          0.1
+                        )}
 											</div>
 										</details>
 
-										${DebuggerUIBuilder._createGradientEditorHTML(`${path}.colorAlphaGradient`, "Color & Alpha Over Life")}
-										${DebuggerUIBuilder._createGradientEditorHTML(`${path}.emissiveGradient`, "Emissive (Brightness) Over Life", 'brightness')}
+										${DebuggerUIBuilder._createGradientEditorHTML(
+                      `${path}.colorAlphaGradient`,
+                      "Color & Alpha Over Life"
+                    )}
+										${DebuggerUIBuilder._createGradientEditorHTML(
+                      `${path}.emissiveGradient`,
+                      "Emissive (Brightness) Over Life",
+                      "brightness"
+                    )}
 
 										<details>
 											<summary><span class="accordion-toggle"></span><strong>Scale / Size</strong></summary>
 											<div style="padding-left: 15px;">
 												${DebuggerUIBuilder._createSliderHTML(
-      `${path}.scale.sizeMultiplier`,
-      "Global Size",
-      0.1,
-      50,
-      1,
-      "A global multiplier for particle size."
-    )}
+                          `${path}.scale.sizeMultiplier`,
+                          "Global Size",
+                          0.1,
+                          50,
+                          1,
+                          "A global multiplier for particle size."
+                        )}
 												${DebuggerUIBuilder._createSliderHTML(
-      `${path}.scale.start`,
-      "Start Scale Mult",
-      0,
-      2,
-      0.01,
-      "Particle size at birth (multiplied by Global Size)."
-    )}
+                          `${path}.scale.start`,
+                          "Start Scale Mult",
+                          0,
+                          2,
+                          0.01,
+                          "Particle size at birth (multiplied by Global Size)."
+                        )}
 												${DebuggerUIBuilder._createSliderHTML(
-      `${path}.scale.end`,
-      "End Scale Mult",
-      0,
-      2,
-      0.01,
-      "Particle size at death (multiplied by Global Size)."
-    )}
+                          `${path}.scale.end`,
+                          "End Scale Mult",
+                          0,
+                          2,
+                          0.01,
+                          "Particle size at death (multiplied by Global Size)."
+                        )}
 												${DebuggerUIBuilder._createSliderHTML(
-      `${path}.scale.minMult`,
-      "Random Size Min",
-      0.1,
-      1,
-      0.01,
-      "Minimum random scale multiplier for each particle (from this value to 1.0)."
-    )}
+                          `${path}.scale.minMult`,
+                          "Random Size Min",
+                          0.1,
+                          1,
+                          0.01,
+                          "Minimum random scale multiplier for each particle (from this value to 1.0)."
+                        )}
 											</div>
 										</details>
-										${effectKey === "glint"
-        ? `
+										${
+                      effectKey === "glint"
+                        ? `
 										<details>
 											<summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-          `${path}.rgbSplit.enabled`,
-          "RGB Split Effect",
-          true
-        )}</div></summary>
+                        `${path}.rgbSplit.enabled`,
+                        "RGB Split Effect",
+                        true
+                      )}</div></summary>
 											<div style="padding-left: 15px;">
 												<p class="description-text">Applies a chromatic aberration effect to the particles.</p>
 												${DebuggerUIBuilder._createSliderHTML(
-          `${path}.rgbSplit.amount`,
-          "Amount",
-          0,
-          10,
-          0.1
-        )}
+                          `${path}.rgbSplit.amount`,
+                          "Amount",
+                          0,
+                          10,
+                          0.1
+                        )}
 											</div>
 										</details>`
-        : ""
-      }
+                        : ""
+                    }
 									</div>
 								</details>
 								<details>
@@ -10624,60 +10921,60 @@ class ParticleEffectController {
 											<summary><span class="accordion-toggle"></span><strong>Speed</strong></summary>
 											<div style="padding-left: 15px;">
 												${DebuggerUIBuilder._createSliderHTML(
-        `${path}.speed.start`,
-        "Start Speed",
-        -50,
-        50,
-        1
-      )}
+                          `${path}.speed.start`,
+                          "Start Speed",
+                          -50,
+                          50,
+                          1
+                        )}
 												${DebuggerUIBuilder._createSliderHTML(
-        `${path}.speed.end`,
-        "End Speed",
-        -50,
-        50,
-        1
-      )}
+                          `${path}.speed.end`,
+                          "End Speed",
+                          -50,
+                          50,
+                          1
+                        )}
 												${DebuggerUIBuilder._createSliderHTML(
-        `${path}.speed.minMult`,
-        "Random Speed Min",
-        0.1,
-        1,
-        0.01,
-        "Minimum random speed multiplier for each particle (from this value to 1.0)."
-      )}
+                          `${path}.speed.minMult`,
+                          "Random Speed Min",
+                          0.1,
+                          1,
+                          0.01,
+                          "Minimum random speed multiplier for each particle (from this value to 1.0)."
+                        )}
 											</div>
 										</details>
 										<details>
 											<summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-        `${path}.rotation.enabled`,
-        "Tumbling / Rotation",
-        true
-      )}</div></summary>
+                        `${path}.rotation.enabled`,
+                        "Tumbling / Rotation",
+                        true
+                      )}</div></summary>
 											<div style="padding-left: 15px;">
 												${DebuggerUIBuilder._createSliderHTML(
-        `${path}.rotation.minSpeed`,
-        "Min Rot. Speed",
-        -180,
-        180,
-        1,
-        "Degrees per second."
-      )}
+                          `${path}.rotation.minSpeed`,
+                          "Min Rot. Speed",
+                          -180,
+                          180,
+                          1,
+                          "Degrees per second."
+                        )}
 												${DebuggerUIBuilder._createSliderHTML(
-        `${path}.rotation.maxSpeed`,
-        "Max Rot. Speed",
-        -180,
-        180,
-        1,
-        "Degrees per second."
-      )}
+                          `${path}.rotation.maxSpeed`,
+                          "Max Rot. Speed",
+                          -180,
+                          180,
+                          1,
+                          "Degrees per second."
+                        )}
 												${DebuggerUIBuilder._createSliderHTML(
-        `${path}.rotation.accel`,
-        "Rot. Accel.",
-        -90,
-        90,
-        1,
-        "Degrees per second squared."
-      )}
+                          `${path}.rotation.accel`,
+                          "Rot. Accel.",
+                          -90,
+                          90,
+                          1,
+                          "Degrees per second squared."
+                        )}
 											</div>
 										</details>
 									</div>
@@ -10690,95 +10987,95 @@ class ParticleEffectController {
 									<details id="details-fire-wind">
 										<summary><span class="accordion-toggle"></span>
 											<div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-        `${path}.wind.enabled`,
-        "Complex Wind",
-        true
-      )}</div>
+                        `${path}.wind.enabled`,
+                        "Complex Wind",
+                        true
+                      )}</div>
 										</summary>
 										<div style="padding-left: 15px;">
 											<p class="description-text">Applies a dynamic wind force to all fire particles.</p>
 											${DebuggerUIBuilder._createSliderHTML(
-        `${path}.wind.force`,
-        "Wind Force",
-        0,
-        500,
-        5,
-        "How strongly the wind pushes the particles."
-      )}
+                        `${path}.wind.force`,
+                        "Wind Force",
+                        0,
+                        500,
+                        5,
+                        "How strongly the wind pushes the particles."
+                      )}
 											${DebuggerUIBuilder._createSliderHTML(
-        `${path}.wind.baseSpeed`,
-        "Base Speed",
-        0,
-        200,
-        1,
-        "The normal speed of the wind."
-      )}
+                        `${path}.wind.baseSpeed`,
+                        "Base Speed",
+                        0,
+                        200,
+                        1,
+                        "The normal speed of the wind."
+                      )}
 											${DebuggerUIBuilder._createSliderHTML(
-        `${path}.wind.gustSpeed`,
-        "Gust Speed",
-        0,
-        500,
-        5,
-        "The peak speed during a gust."
-      )}
+                        `${path}.wind.gustSpeed`,
+                        "Gust Speed",
+                        0,
+                        500,
+                        5,
+                        "The peak speed during a gust."
+                      )}
 											<details>
 												<summary><span class="accordion-toggle"></span><strong>Gust Timing</strong></summary>
 												<div style="padding-left: 15px;">
 													${DebuggerUIBuilder._createSliderHTML(
-        `${path}.wind.gustFrequencyMin`,
-        "Min Time Between Gusts (s)",
-        0.1,
-        20,
-        0.1
-      )}
+                            `${path}.wind.gustFrequencyMin`,
+                            "Min Time Between Gusts (s)",
+                            0.1,
+                            20,
+                            0.1
+                          )}
 													${DebuggerUIBuilder._createSliderHTML(
-        `${path}.wind.gustFrequencyMax`,
-        "Max Time Between Gusts (s)",
-        0.1,
-        20,
-        0.1
-      )}
+                            `${path}.wind.gustFrequencyMax`,
+                            "Max Time Between Gusts (s)",
+                            0.1,
+                            20,
+                            0.1
+                          )}
 													${DebuggerUIBuilder._createSliderHTML(
-        `${path}.wind.gustDurationMin`,
-        "Min Gust Duration (s)",
-        0.1,
-        5,
-        0.1
-      )}
+                            `${path}.wind.gustDurationMin`,
+                            "Min Gust Duration (s)",
+                            0.1,
+                            5,
+                            0.1
+                          )}
 													${DebuggerUIBuilder._createSliderHTML(
-        `${path}.wind.gustDurationMax`,
-        "Max Gust Duration (s)",
-        0.1,
-        5,
-        0.1
-      )}
+                            `${path}.wind.gustDurationMax`,
+                            "Max Gust Duration (s)",
+                            0.1,
+                            5,
+                            0.1
+                          )}
 												</div>
 											</details>
 											<details>
 												<summary><span class="accordion-toggle"></span><strong>Angle Change</strong></summary>
 												<div style="padding-left: 15px;">
 													${DebuggerUIBuilder._createSliderHTML(
-        `${path}.wind.angleChangeFrequencyMin`,
-        "Min Time Between Changes (s)",
-        0.1,
-        30,
-        0.1
-      )}
+                            `${path}.wind.angleChangeFrequencyMin`,
+                            "Min Time Between Changes (s)",
+                            0.1,
+                            30,
+                            0.1
+                          )}
 													${DebuggerUIBuilder._createSliderHTML(
-        `${path}.wind.angleChangeFrequencyMax`,
-        "Max Time Between Changes (s)",
-        0.1,
-        30,
-        0.1
-      )}
+                            `${path}.wind.angleChangeFrequencyMax`,
+                            "Max Time Between Changes (s)",
+                            0.1,
+                            30,
+                            0.1
+                          )}
 													${DebuggerUIBuilder._createSliderHTML(
-        `${path}.wind.angleChangeRange`,
-        "Max Angle Change ( )",
-        0,
-        90,
-        1,
-        "Max degrees the angle can shift each time."
-      )}
+                            `${path}.wind.angleChangeRange`,
+                            "Max Angle Change ( )",
+                            0,
+                            90,
+                            1,
+                            "Max degrees the angle can shift each time."
+                          )}
 												</div>
 											</details>
 										</div>
@@ -10810,21 +11107,21 @@ class ParticleEffectController {
     const content = `
 			<p class="description-text">Simulates a swarm of flies that fly around, land, and walk on surfaces defined by a Map Point Area group.</p>
 			${DebuggerUIBuilder._createSelectHTML(
-      `${effectKey}.blendMode`,
-      "Blend Mode",
-      BLEND_MODE_OPTIONS
-    )}
+        `${effectKey}.blendMode`,
+        "Blend Mode",
+        BLEND_MODE_OPTIONS
+      )}
 			${DebuggerUIBuilder._createTextInputHTML(
-      `${effectKey}.particleTexture`,
-      "Particle Texture"
-    )}
+        `${effectKey}.particleTexture`,
+        "Particle Texture"
+      )}
 			${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.maxParticles`,
-      "Max Particles",
-      1,
-      500,
-      1
-    )}
+        `${effectKey}.maxParticles`,
+        "Max Particles",
+        1,
+        500,
+        1
+      )}
 
 			<details id="details-smellyFlies-flying">
 				<summary><span class="accordion-toggle"></span><strong>Flying Behavior</strong></summary>
@@ -10833,86 +11130,86 @@ class ParticleEffectController {
 						<summary><span class="accordion-toggle"></span><strong>Takeoff & Landing</strong></summary>
 						<div style="padding-left: 15px;">
 							${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.flying.takeoffDuration`,
-      "Takeoff Duration (s)",
-      0.1,
-      2.0,
-      0.1
-    )}
+                `${effectKey}.flying.takeoffDuration`,
+                "Takeoff Duration (s)",
+                0.1,
+                2.0,
+                0.1
+              )}
 							${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.flying.takeoffSpeedMin`,
-      "Min Takeoff Speed",
-      10,
-      500,
-      5
-    )}
+                `${effectKey}.flying.takeoffSpeedMin`,
+                "Min Takeoff Speed",
+                10,
+                500,
+                5
+              )}
 							${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.flying.takeoffSpeedMax`,
-      "Max Takeoff Speed",
-      10,
-      500,
-      5
-    )}
+                `${effectKey}.flying.takeoffSpeedMax`,
+                "Max Takeoff Speed",
+                10,
+                500,
+                5
+              )}
 							<hr style="border-color: #555; margin: 6px 0;">
 							${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.flying.landChance`,
-      "Land Chance (%/sec)",
-      0,
-      1.0,
-      0.01,
-      "Chance per second for a fly to land if over a valid area."
-    )}
+                `${effectKey}.flying.landChance`,
+                "Land Chance (%/sec)",
+                0,
+                1.0,
+                0.01,
+                "Chance per second for a fly to land if over a valid area."
+              )}
 							${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.flying.landingDuration`,
-      "Landing Duration (s)",
-      0.1,
-      2.0,
-      0.1
-    )}
+                `${effectKey}.flying.landingDuration`,
+                "Landing Duration (s)",
+                0.1,
+                2.0,
+                0.1
+              )}
 						</div>
 					</details>
 					<details id="details-smellyFlies-physics">
 						<summary><span class="accordion-toggle"></span><strong>Flight Physics</strong></summary>
 						<div style="padding-left: 15px;">
 							 ${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.flying.noiseStrength`,
-      "Erratic Force",
-      0,
-      2000,
-      50,
-      "How strongly random forces push the fly. Higher = more erratic."
-    )}
+                 `${effectKey}.flying.noiseStrength`,
+                 "Erratic Force",
+                 0,
+                 2000,
+                 50,
+                 "How strongly random forces push the fly. Higher = more erratic."
+               )}
 							 ${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.flying.noiseFrequency`,
-      "Erratic Frequency",
-      1,
-      50,
-      0.5,
-      "How quickly the random force changes. Higher = more jittery."
-    )}
+                 `${effectKey}.flying.noiseFrequency`,
+                 "Erratic Frequency",
+                 1,
+                 50,
+                 0.5,
+                 "How quickly the random force changes. Higher = more jittery."
+               )}
 							 ${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.flying.tetherStrength`,
-      "Tether Strength",
-      0,
-      10,
-      0.1,
-      "How strongly the fly is pulled back to its spawn area."
-    )}
+                 `${effectKey}.flying.tetherStrength`,
+                 "Tether Strength",
+                 0,
+                 10,
+                 0.1,
+                 "How strongly the fly is pulled back to its spawn area."
+               )}
 							 ${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.flying.maxSpeed`,
-      "Max Speed (px/s)",
-      50,
-      1000,
-      10
-    )}
+                 `${effectKey}.flying.maxSpeed`,
+                 "Max Speed (px/s)",
+                 50,
+                 1000,
+                 10
+               )}
 							 ${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.flying.drag`,
-      "Air Drag",
-      0,
-      1,
-      0.01,
-      "Friction/resistance. Higher values cause slower, less 'drifty' movement."
-    )}
+                 `${effectKey}.flying.drag`,
+                 "Air Drag",
+                 0,
+                 1,
+                 0.01,
+                 "Friction/resistance. Higher values cause slower, less 'drifty' movement."
+               )}
 						</div>
 					</details>
 				</div>
@@ -10922,75 +11219,75 @@ class ParticleEffectController {
 				<summary><span class="accordion-toggle"></span><strong>Walking Behavior</strong></summary>
 				<div style="padding-left: 15px;">
 					${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.walking.walkSpeed`,
-      "Walk Speed (px/s)",
-      5,
-      100,
-      1
-    )}
+            `${effectKey}.walking.walkSpeed`,
+            "Walk Speed (px/s)",
+            5,
+            100,
+            1
+          )}
 					${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.walking.takeoffChance`,
-      "Takeoff Chance (%/sec)",
-      0,
-      1.0,
-      0.01,
-      "Chance per second for a walking fly to take off."
-    )}
+            `${effectKey}.walking.takeoffChance`,
+            "Takeoff Chance (%/sec)",
+            0,
+            1.0,
+            0.01,
+            "Chance per second for a walking fly to take off."
+          )}
 					<details>
 						<summary><span class="accordion-toggle"></span><strong>Idle Timing</strong></summary>
 						<div style="padding-left: 15px;">
 							 ${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.walking.minIdleTime`,
-      "Min Idle Time (s)",
-      0.1,
-      5,
-      0.1
-    )}
+                 `${effectKey}.walking.minIdleTime`,
+                 "Min Idle Time (s)",
+                 0.1,
+                 5,
+                 0.1
+               )}
 							 ${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.walking.maxIdleTime`,
-      "Max Idle Time (s)",
-      0.1,
-      5,
-      0.1
-    )}
+                 `${effectKey}.walking.maxIdleTime`,
+                 "Max Idle Time (s)",
+                 0.1,
+                 5,
+                 0.1
+               )}
 						</div>
 					</details>
 					<details>
 						<summary><span class="accordion-toggle"></span><strong>Rotation Timing</strong></summary>
 						<div style="padding-left: 15px;">
 							${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.walking.minRotateTime`,
-      "Min Rotate Time (s)",
-      0.1,
-      2,
-      0.1
-    )}
+                `${effectKey}.walking.minRotateTime`,
+                "Min Rotate Time (s)",
+                0.1,
+                2,
+                0.1
+              )}
 							${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.walking.maxRotateTime`,
-      "Max Rotate Time (s)",
-      0.1,
-      2,
-      0.1
-    )}
+                `${effectKey}.walking.maxRotateTime`,
+                "Max Rotate Time (s)",
+                0.1,
+                2,
+                0.1
+              )}
 						</div>
 					</details>
 					<details>
 						<summary><span class="accordion-toggle"></span><strong>Move Distance</strong></summary>
 						<div style="padding-left: 15px;">
 							${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.walking.minMoveDistance`,
-      "Min Move Distance (px)",
-      1,
-      200,
-      1
-    )}
+                `${effectKey}.walking.minMoveDistance`,
+                "Min Move Distance (px)",
+                1,
+                200,
+                1
+              )}
 							${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.walking.maxMoveDistance`,
-      "Max Move Distance (px)",
-      1,
-      200,
-      1
-    )}
+                `${effectKey}.walking.maxMoveDistance`,
+                "Max Move Distance (px)",
+                1,
+                200,
+                1
+              )}
 						</div>
 					</details>
 				</div>
@@ -10998,28 +11295,28 @@ class ParticleEffectController {
 
 			<details id="details-smellyFlies-motionBlur">
 				<summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-      `${effectKey}.motionBlur.enabled`,
-      "Motion Blur",
-      true
-    )}</div></summary>
+          `${effectKey}.motionBlur.enabled`,
+          "Motion Blur",
+          true
+        )}</div></summary>
 				<div style="padding-left: 15px;">
 					<p class="description-text">Stretches particles based on their speed to simulate motion blur.</p>
 					${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.motionBlur.strength`,
-      "Strength",
-      0,
-      1,
-      0.01,
-      "Multiplier for how much speed affects particle length."
-    )}
+            `${effectKey}.motionBlur.strength`,
+            "Strength",
+            0,
+            1,
+            0.01,
+            "Multiplier for how much speed affects particle length."
+          )}
 					${DebuggerUIBuilder._createSliderHTML(
-      `${effectKey}.motionBlur.maxLength`,
-      "Max Length",
-      1,
-      10,
-      0.1,
-      "The maximum amount to stretch the particle scale."
-    )}
+            `${effectKey}.motionBlur.maxLength`,
+            "Max Length",
+            1,
+            10,
+            0.1,
+            "The maximum amount to stretch the particle scale."
+          )}
 				</div>
 			</details>
 			`;
@@ -11100,7 +11397,11 @@ class ParticleEffectController {
     let spawnMaskSource = localTargetData[maskKey];
 
     // Handle the composite mask for dust.
-    if (this.definition.configPath === "dust" && localTargetData.dust && localTargetData.structural) {
+    if (
+      this.definition.configPath === "dust" &&
+      localTargetData.dust &&
+      localTargetData.structural
+    ) {
       // Generate a composite texture. This will be an object, not a path.
       spawnMaskSource = await CompositeMaskGenerator.generate(
         localTargetData.dust,
@@ -11111,7 +11412,8 @@ class ParticleEffectController {
 
     if (!spawnMaskSource) return true;
 
-    const particleTexPath = this.config.particleTexture ?? "modules/map-shine/assets/particle.webp";
+    const particleTexPath =
+      this.config.particleTexture ?? "modules/map-shine/assets/particle.webp";
     if (!particleTexPath || typeof particleTexPath !== "string") return true;
 
     try {
@@ -11120,19 +11422,25 @@ class ParticleEffectController {
         foundry.canvas.loadTexture(particleTexPath),
         spawnMaskSource instanceof PIXI.Texture
           ? Promise.resolve(spawnMaskSource)
-          : foundry.canvas.loadTexture(spawnMaskSource)
+          : foundry.canvas.loadTexture(spawnMaskSource),
       ]);
 
       localTargetData[maskKey] = spawnMaskTexture;
 
-      const emitterConfig = this.definition.buildEmitterConfig(this.config, localTargetData);
+      const emitterConfig = this.definition.buildEmitterConfig(
+        this.config,
+        localTargetData
+      );
 
       if (emitterConfig.maxParticles === 0) {
-        if (spawnMaskSource instanceof PIXI.Texture) spawnMaskSource.destroy(true);
+        if (spawnMaskSource instanceof PIXI.Texture)
+          spawnMaskSource.destroy(true);
         return true;
       }
 
-      const textureBehavior = emitterConfig.behaviors.find(b => b.type === "textureSingle");
+      const textureBehavior = emitterConfig.behaviors.find(
+        (b) => b.type === "textureSingle"
+      );
       if (textureBehavior) textureBehavior.config.texture = particleTexture;
 
       const emitterParent = this.particleOnlyContainer || this.parentContainer;
@@ -11146,10 +11454,13 @@ class ParticleEffectController {
       emitter.autoUpdate = false;
       this.emitters.set(targetId, { emitter });
       return true;
-
     } catch (err) {
-      console.error(`Map Shine | Failed to load textures for particle effect:`, err);
-      if (spawnMaskSource instanceof PIXI.Texture) spawnMaskSource.destroy(true);
+      console.error(
+        `Map Shine | Failed to load textures for particle effect:`,
+        err
+      );
+      if (spawnMaskSource instanceof PIXI.Texture)
+        spawnMaskSource.destroy(true);
       return false;
     }
   }
@@ -11266,7 +11577,12 @@ class ParticleEffectController {
         const displacementMap =
           resourceManager.getWaterDisplacementMap(deltaTime);
         // Add null checks to prevent errors during scene transitions
-        if (displacementMap && displacementMap.baseTexture && displacementMap.baseTexture.valid && this.displacementSprite) {
+        if (
+          displacementMap &&
+          displacementMap.baseTexture &&
+          displacementMap.baseTexture.valid &&
+          this.displacementSprite
+        ) {
           this.displacementSprite.texture = displacementMap;
           const scale =
             waterConfig.wave.intensity *
@@ -11343,14 +11659,16 @@ class ParticleEffectController {
 
     // Determine visibility based on the global toggle, particle systems toggle, and this effect's specific toggle.
     // The fire effect also depends on the parent `fire.enabled` flag.
-    let isVisible = fullConfig.enabled && particleSystemConfig.enabled && controllerConfig?.enabled;
+    let isVisible =
+      fullConfig.enabled &&
+      particleSystemConfig.enabled &&
+      controllerConfig?.enabled;
     if (this.definition.configPath === "fire.particles") {
       const fireConfig = foundry.utils.getProperty(fullConfig, "fire");
       // @ts-ignore
       isVisible = isVisible && fireConfig?.enabled;
     }
     this.parentContainer.visible = isVisible;
-
 
     if (this.particleOnlyContainer) {
       // @ts-ignore
@@ -11577,13 +11895,20 @@ const buildParticleEmitterConfig = (
 
   if (config.colorAlphaGradient && config.colorAlphaGradient.length > 0) {
     // @ts-ignore
-    const { isColorStatic, staticColor, colorList, isAlphaStatic, staticAlpha, alphaList } = _generateBehaviorListsFromGradient(config.colorAlphaGradient);
+    const {
+      isColorStatic,
+      staticColor,
+      colorList,
+      isAlphaStatic,
+      staticAlpha,
+      alphaList,
+    } = _generateBehaviorListsFromGradient(config.colorAlphaGradient);
 
     // If the effect is driven by the specular map (i.e., metallicGlints),
     // source the particle color from the spawn point on the map itself.
-    if (maskKey === 'specular') {
+    if (maskKey === "specular") {
       // @ts-ignore
-      behaviors.push({ type: 'colorFromSpawn', config: {} });
+      behaviors.push({ type: "colorFromSpawn", config: {} });
     }
     // For all other effects, use the standard gradient-based coloring.
     else {
@@ -11639,14 +11964,13 @@ const buildParticleEmitterConfig = (
   // Add the new lighting behavior
   if (config.emissiveGradient) {
     behaviors.push({
-      type: 'mapShineLighting',
+      type: "mapShineLighting",
       config: {
         // @ts-ignore
-        emissive: _generateEmissiveListFromGradient(config.emissiveGradient)
-      }
+        emissive: _generateEmissiveListFromGradient(config.emissiveGradient),
+      },
     });
   }
-
 
   const emitterConfig = {
     lifetime: {
@@ -11660,9 +11984,9 @@ const buildParticleEmitterConfig = (
     maxParticles: Math.max(
       1,
       2000 *
-      (config.maskInfluence ?? 1.0) *
-      globalMultiplier *
-      intensityMultiplier
+        (config.maskInfluence ?? 1.0) *
+        globalMultiplier *
+        intensityMultiplier
     ),
     pos: {
       x: isScreenSpaceMask ? 0 : rect.x,
@@ -11675,7 +11999,7 @@ const buildParticleEmitterConfig = (
   const speedConfig = config.speed ?? {};
 
   // --- REFACTORED MOVEMENT LOGIC ---
-  if (maskKey === 'fire') {
+  if (maskKey === "fire") {
     // Fire particles have special movement logic for rising.
     if (config.wind?.enabled) {
       // With wind, all movement is handled by the custom FireWindBehavior.
@@ -11805,17 +12129,24 @@ const buildSparkEmitterConfig = (effectConfig, targetData, maskKey) => {
   // Add the new lighting behavior
   if (config.emissiveGradient) {
     behaviors.push({
-      type: 'mapShineLighting',
+      type: "mapShineLighting",
       config: {
         // @ts-ignore
-        emissive: _generateEmissiveListFromGradient(config.emissiveGradient)
-      }
+        emissive: _generateEmissiveListFromGradient(config.emissiveGradient),
+      },
     });
   }
 
   if (config.colorAlphaGradient && config.colorAlphaGradient.length > 0) {
     // @ts-ignore
-    const { isColorStatic, staticColor, colorList, isAlphaStatic, staticAlpha, alphaList } = _generateBehaviorListsFromGradient(config.colorAlphaGradient);
+    const {
+      isColorStatic,
+      staticColor,
+      colorList,
+      isAlphaStatic,
+      staticAlpha,
+      alphaList,
+    } = _generateBehaviorListsFromGradient(config.colorAlphaGradient);
 
     if (isColorStatic) {
       // @ts-ignore
@@ -11923,8 +12254,6 @@ const buildSparkEmitterConfig = (effectConfig, targetData, maskKey) => {
     behaviors: behaviors,
   };
 };
-
-
 
 class ParticleManager {
   constructor() {
@@ -12173,12 +12502,11 @@ class TextureMaskShape {
     this.compilePoints();
   }
 
-
   /**
-    * Asynchronously compiles the list of valid spawn points from the texture mask.
-    * This is now the main performance-intensive method.
-    * @returns {Promise<void>} A promise that resolves when compilation is complete.
-    */
+   * Asynchronously compiles the list of valid spawn points from the texture mask.
+   * This is now the main performance-intensive method.
+   * @returns {Promise<void>} A promise that resolves when compilation is complete.
+   */
   compilePoints() {
     if (this.isCompiling || (this.isCompiled && this._compilationPromise)) {
       return this._compilationPromise || Promise.resolve();
@@ -12317,9 +12645,9 @@ class TextureMaskShape {
 }
 
 /**
-  * A particle spawn shape that uses raw geometry data (points, lines, areas)
-  * to determine spawn locations mathematically, avoiding any dependency on rendering.
-  */
+ * A particle spawn shape that uses raw geometry data (points, lines, areas)
+ * to determine spawn locations mathematically, avoiding any dependency on rendering.
+ */
 class GeometryMaskShape {
   static type = "geometryMask";
 
@@ -12377,10 +12705,10 @@ class GeometryMaskShape {
   }
 
   /**
-    * Checks if a point is inside a polygon using the ray-casting algorithm.
-    * @param {PIXI.Point} point The point to check.
-    * @returns {boolean} True if the point is inside, false otherwise.
-    */
+   * Checks if a point is inside a polygon using the ray-casting algorithm.
+   * @param {PIXI.Point} point The point to check.
+   * @returns {boolean} True if the point is inside, false otherwise.
+   */
 
   _isPointInPolygon(point) {
     let isInside = false;
@@ -12401,9 +12729,9 @@ class GeometryMaskShape {
   }
 
   /**
-    * Called by the particle emitter to get a random position for a new particle.
-    * @param {PIXI.particles.Particle} particle - The particle to position.
-    */
+   * Called by the particle emitter to get a random position for a new particle.
+   * @param {PIXI.particles.Particle} particle - The particle to position.
+   */
   getRandPos(particle) {
     if (!this._points || this._points.length === 0) return;
 
@@ -12528,8 +12856,13 @@ export class ParticleLayer extends CanvasLayer {
       for (const controller of game.mapShine.particleManager.controllers.values()) {
         for (const { emitter } of controller.emitters.values()) {
           if (!emitter.behaviors) continue;
-          const spawnBehavior = emitter.behaviors.find(b => b.type === 'spawnShape');
-          if (spawnBehavior?.shape instanceof TextureMaskShape && spawnBehavior.shape.isDynamicScreenMask) {
+          const spawnBehavior = emitter.behaviors.find(
+            (b) => b.type === "spawnShape"
+          );
+          if (
+            spawnBehavior?.shape instanceof TextureMaskShape &&
+            spawnBehavior.shape.isDynamicScreenMask
+          ) {
             spawnBehavior.shape.forceRecompile();
           }
         }
@@ -12566,9 +12899,9 @@ export class ParticleLayer extends CanvasLayer {
   }
 
   /**
-    * Handler for when map point geometry is changed. This triggers a full refresh
-    * of all particle emitters to ensure they use the latest mask data.
-    */
+   * Handler for when map point geometry is changed. This triggers a full refresh
+   * of all particle emitters to ensure they use the latest mask data.
+   */
   _onMapPointsUpdated() {
     console.log(
       "Map Shine | ParticleLayer detected map point update. Refreshing particle targets."
@@ -12879,7 +13212,9 @@ class MapShineLightingBehavior {
         // @ts-ignore
         this._emissive = new PIXI.particles.PropertyList(false);
         // @ts-ignore
-        this._emissive.reset(PIXI.particles.PropertyNode.createList(config.emissive));
+        this._emissive.reset(
+          PIXI.particles.PropertyNode.createList(config.emissive)
+        );
       }
     }
   }
@@ -12980,10 +13315,10 @@ class FireWindBehavior {
 }
 
 /**
-  * A custom particle behavior that sets a particle's tint based on color data
-  * attached to it during the spawn process.
-  * This allows particles to inherit color from their spawn location on a texture.
-  */
+ * A custom particle behavior that sets a particle's tint based on color data
+ * attached to it during the spawn process.
+ * This allows particles to inherit color from their spawn location on a texture.
+ */
 class ColorFromSpawnBehavior {
   static type = "colorFromSpawn";
 
@@ -13195,10 +13530,10 @@ class SmellyFliesBehavior {
   })();
 
   /**
-    * Sets up all parameters required for a fly to begin its take-off animation.
-    * @param {PIXI.particles.Particle} fly The particle to prepare.
-    * @param {object} cfg The particle's configuration object.
-    */
+   * Sets up all parameters required for a fly to begin its take-off animation.
+   * @param {PIXI.particles.Particle} fly The particle to prepare.
+   * @param {object} cfg The particle's configuration object.
+   */
   // @ts-ignore
   // @ts-ignore
   _prepareForTakeOff(fly, cfg) {
@@ -13435,7 +13770,7 @@ class SmellyFliesBehavior {
       cfg.stateTimer =
         this.config.walking.minIdleTime +
         Math.random() *
-        (this.config.walking.maxIdleTime - this.config.walking.minIdleTime);
+          (this.config.walking.maxIdleTime - this.config.walking.minIdleTime);
     }
   }
 
@@ -13460,7 +13795,7 @@ class SmellyFliesBehavior {
         const moveDistance =
           walkConfig.minMoveDistance +
           Math.random() *
-          (walkConfig.maxMoveDistance - walkConfig.minMoveDistance);
+            (walkConfig.maxMoveDistance - walkConfig.minMoveDistance);
 
         let targetPoint;
         let attempts = 0;
@@ -13738,7 +14073,6 @@ export class SmellyFliesLayer extends CanvasLayer {
   }
 }
 
-
 // =================================================================================
 // SECTION 4: GENERIC FILTERS
 // =================================================================================
@@ -13925,10 +14259,10 @@ class FilmGrainFilter extends PIXI.Filter {
   }
 
   /**
-    * Updates the time uniform for animated grain.
-    * This is now called by the central ScreenEffectsManager.
-    * @param {number} deltaTimeInSeconds - The time elapsed since the last frame.
-    */
+   * Updates the time uniform for animated grain.
+   * This is now called by the central ScreenEffectsManager.
+   * @param {number} deltaTimeInSeconds - The time elapsed since the last frame.
+   */
   update(deltaTimeInSeconds) {
     const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
     // A small multiplier is added to make the animation visible without requiring a large u_time value
@@ -14395,10 +14729,10 @@ class ColorCorrectionFilter extends PIXI.Filter {
 
 class LutUtils {
   /**
-    * Generates a 1D LUT texture (256x1) from a set of BÃ©zier curve definitions.
-    * @param {object} curvesConfig - The configuration object for the curves.
-    * @returns {PIXI.Texture} The generated LUT texture.
-    */
+   * Generates a 1D LUT texture (256x1) from a set of BÃ©zier curve definitions.
+   * @param {object} curvesConfig - The configuration object for the curves.
+   * @returns {PIXI.Texture} The generated LUT texture.
+   */
   static generateCurveLut(curvesConfig) {
     const lutSize = 256;
     const redLUT = this._generateChannelLut(curvesConfig.red.points, lutSize);
@@ -14430,13 +14764,13 @@ class LutUtils {
   }
 
   /**
-    * Generates a lookup table for a single color channel from BÃ©zier control points.
-    * This uses a pre-computation and interpolation method to solve the curve efficiently.
-    * @param {Array<object>} points - An array of 4 normalized {x, y} control points.
-    * @param {number} size - The size of the LUT to generate (e.g., 256).
-    * @returns {Float32Array} The generated LUT.
-    * @private
-    */
+   * Generates a lookup table for a single color channel from BÃ©zier control points.
+   * This uses a pre-computation and interpolation method to solve the curve efficiently.
+   * @param {Array<object>} points - An array of 4 normalized {x, y} control points.
+   * @param {number} size - The size of the LUT to generate (e.g., 256).
+   * @returns {Float32Array} The generated LUT.
+   * @private
+   */
   static _generateChannelLut(points, size) {
     const p0 = points[0];
     const p1 = points[1];
@@ -14487,15 +14821,15 @@ class LutUtils {
   }
 
   /**
-    * Calculates a coordinate on a 1D cubic BÃ©zier curve.
-    * @param {number} t - The interpolation parameter [0, 1].
-    * @param {number} p0 - Start point coordinate.
-    * @param {number} p1 - First control point coordinate.
-    * @param {number} p2 - Second control point coordinate.
-    * @param {number} p3 - End point coordinate.
-    * @returns {number} The coordinate value at t.
-    * @private
-    */
+   * Calculates a coordinate on a 1D cubic BÃ©zier curve.
+   * @param {number} t - The interpolation parameter [0, 1].
+   * @param {number} p0 - Start point coordinate.
+   * @param {number} p1 - First control point coordinate.
+   * @param {number} p2 - Second control point coordinate.
+   * @param {number} p3 - End point coordinate.
+   * @returns {number} The coordinate value at t.
+   * @private
+   */
   static _getBezierCoordinate(t, p0, p1, p2, p3) {
     const c = 1.0 - t;
     const t2 = t * t;
@@ -14518,81 +14852,81 @@ export class ScreenEffectsManager {
 												<details><summary><span class="accordion-toggle"></span><strong>Color Selection</strong></summary><div style="padding-left: 15px;">
 														<p class="description-text">Define the color range to target.</p>
 														${DebuggerUIBuilder._createColorPickerHTML(
-      pathPrefix + "color",
-      "Target Color"
-    )}
+                              pathPrefix + "color",
+                              "Target Color"
+                            )}
 														${DebuggerUIBuilder._createSliderHTML(
-      pathPrefix + "hueRange",
-      "Hue Range",
-      0,
-      0.5,
-      0.01
-    )}
+                              pathPrefix + "hueRange",
+                              "Hue Range",
+                              0,
+                              0.5,
+                              0.01
+                            )}
 														${DebuggerUIBuilder._createSliderHTML(
-      pathPrefix + "saturationRange",
-      "Saturation Range",
-      0,
-      0.5,
-      0.01
-    )}
+                              pathPrefix + "saturationRange",
+                              "Saturation Range",
+                              0,
+                              0.5,
+                              0.01
+                            )}
 														${DebuggerUIBuilder._createSliderHTML(
-      pathPrefix + "targetLuminance",
-      "Target Luminance",
-      0,
-      1,
-      0.01
-    )}
+                              pathPrefix + "targetLuminance",
+                              "Target Luminance",
+                              0,
+                              1,
+                              0.01
+                            )}
 														${DebuggerUIBuilder._createSliderHTML(
-      pathPrefix + "luminanceRange",
-      "Luminance Range",
-      0,
-      0.5,
-      0.01
-    )}
+                              pathPrefix + "luminanceRange",
+                              "Luminance Range",
+                              0,
+                              0.5,
+                              0.01
+                            )}
 														${DebuggerUIBuilder._createSliderHTML(
-      pathPrefix + "softness",
-      "Selection Softness",
-      0.01,
-      0.5,
-      0.01,
-      "How gradual the transition is at the edge of the selection."
-    )}
+                              pathPrefix + "softness",
+                              "Selection Softness",
+                              0.01,
+                              0.5,
+                              0.01,
+                              "How gradual the transition is at the edge of the selection."
+                            )}
 												</div></details>
 												<details><summary><span class="accordion-toggle"></span><strong>Adjustments</strong></summary><div style="padding-left: 15px;">
 														${DebuggerUIBuilder._createCheckboxHTML(
-      pathPrefix + "invert",
-      "Invert Selection",
-      false,
-      "If checked, the adjustments below will apply to the selected color instead of everything else."
-    )}
+                              pathPrefix + "invert",
+                              "Invert Selection",
+                              false,
+                              "If checked, the adjustments below will apply to the selected color instead of everything else."
+                            )}
 														<hr style="border-color: #555; margin: 6px 0;">
 														<p class="description-text" style="font-weight: bold;">Unselected Colors:</p>
 														${DebuggerUIBuilder._createSliderHTML(
-      pathPrefix + "desaturation",
-      "Desaturation Amount",
-      0,
-      1,
-      0.01,
-      "How much to desaturate colors outside the selected range."
-    )}
+                              pathPrefix + "desaturation",
+                              "Desaturation Amount",
+                              0,
+                              1,
+                              0.01,
+                              "How much to desaturate colors outside the selected range."
+                            )}
 														<hr style="border-color: #555; margin: 6px 0;">
 														<p class="description-text" style="font-weight: bold;">Selected Color:</p>
 														${DebuggerUIBuilder._createSliderHTML(
-      pathPrefix + "targetSaturation",
-      "Saturation Boost",
-      0,
-      5,
-      0.05,
-      "Multiplier for the saturation of the selected color."
-    )}
+                              pathPrefix + "targetSaturation",
+                              "Saturation Boost",
+                              0,
+                              5,
+                              0.05,
+                              "Multiplier for the saturation of the selected color."
+                            )}
 														${DebuggerUIBuilder._createSliderHTML(
-      pathPrefix + "targetBrightness",
-      "Brightness Boost",
-      -1,
-      1,
-      0.01,
-      "Adds or subtracts brightness from the selected color."
-    )}
+                              pathPrefix + "targetBrightness",
+                              "Brightness Boost",
+                              -1,
+                              1,
+                              0.01,
+                              "Adds or subtracts brightness from the selected color."
+                            )}
 												</div></details>
 										`;
 
@@ -14607,18 +14941,18 @@ export class ScreenEffectsManager {
 												</div>
 												<hr style="border-color:#444; margin: 6px 0;">
 												<details id="details-postProcessing-colorCorrection"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-      "postProcessing.colorCorrection.enabled",
-      "Color Correction",
-      true
-    )}</div></summary>
+                          "postProcessing.colorCorrection.enabled",
+                          "Color Correction",
+                          true
+                        )}</div></summary>
 														<div>
 																<details id="details-postProcessing-cc-presets"><summary><span class="accordion-toggle"></span><strong>Color Presets</strong></summary><div style="padding-left: 15px;">
 																		<p class="description-text">Apply professional color grading presets or save your own custom looks.</p>
 																		${DebuggerUIBuilder._createPresetSelectHTML(
-      "postProcessing.colorCorrection.activePreset",
-      "Preset",
-      COLOR_CORRECTION_PRESETS
-    )}
+                                      "postProcessing.colorCorrection.activePreset",
+                                      "Preset",
+                                      COLOR_CORRECTION_PRESETS
+                                    )}
 																		<div style="display: flex; gap: 5px; margin-top: 5px;">
 																				<button id="apply-color-preset-btn" title="Apply the selected preset to all color correction settings" style="flex: 1; height: 24px;">Apply Preset</button>
 																				<button id="save-color-favorite-btn" title="Save current color settings as a favorite" style="flex: 1; height: 24px;">Save as Favorite</button>
@@ -14631,140 +14965,138 @@ export class ScreenEffectsManager {
 																</div></details>
 																<details id="details-postProcessing-cc-basic"><summary><span class="accordion-toggle"></span><strong>Basic Adjustments</strong></summary><div style="padding-left: 15px;">
 																				${DebuggerUIBuilder._createSliderHTML(
-      "postProcessing.colorCorrection.saturation",
-      "Saturation",
-      0,
-      4,
-      0.05
-    )}
+                                          "postProcessing.colorCorrection.saturation",
+                                          "Saturation",
+                                          0,
+                                          4,
+                                          0.05
+                                        )}
 																				${DebuggerUIBuilder._createSliderHTML(
-      "postProcessing.colorCorrection.brightness",
-      "Brightness",
-      -1,
-      1,
-      0.01
-    )}
+                                          "postProcessing.colorCorrection.brightness",
+                                          "Brightness",
+                                          -1,
+                                          1,
+                                          0.01
+                                        )}
 																				${DebuggerUIBuilder._createSliderHTML(
-      "postProcessing.colorCorrection.contrast",
-      "Contrast",
-      0,
-      4,
-      0.05
-    )}
+                                          "postProcessing.colorCorrection.contrast",
+                                          "Contrast",
+                                          0,
+                                          4,
+                                          0.05
+                                        )}
 																				${DebuggerUIBuilder._createCheckboxHTML(
-      "postProcessing.colorCorrection.invert",
-      "Invert Colors"
-    )}
+                                          "postProcessing.colorCorrection.invert",
+                                          "Invert Colors"
+                                        )}
 																</div></details>
 																<details id="details-postProcessing-cc-advanced"><summary><span class="accordion-toggle"></span><strong>Advanced Adjustments</strong></summary><div style="padding-left: 15px;">
 																				${DebuggerUIBuilder._createSliderHTML(
-      "postProcessing.colorCorrection.exposure",
-      "Exposure",
-      -2,
-      2,
-      0.05,
-      "Multiplies scene brightness, simulating camera exposure."
-    )}
+                                          "postProcessing.colorCorrection.exposure",
+                                          "Exposure",
+                                          -2,
+                                          2,
+                                          0.05,
+                                          "Multiplies scene brightness, simulating camera exposure."
+                                        )}
 																				${DebuggerUIBuilder._createSliderHTML(
-      "postProcessing.colorCorrection.gamma",
-      "Gamma",
-      0.2,
-      2.5,
-      0.05,
-      "Adjusts mid-tones. < 1 lightens, > 1 darkens."
-    )}
+                                          "postProcessing.colorCorrection.gamma",
+                                          "Gamma",
+                                          0.2,
+                                          2.5,
+                                          0.05,
+                                          "Adjusts mid-tones. < 1 lightens, > 1 darkens."
+                                        )}
 																				${DebuggerUIBuilder._createSliderHTML(
-      "postProcessing.colorCorrection.levels.inBlack",
-      "Black Point",
-      0,
-      1,
-      0.01,
-      "Sets the darkest point of the image."
-    )}
+                                          "postProcessing.colorCorrection.levels.inBlack",
+                                          "Black Point",
+                                          0,
+                                          1,
+                                          0.01,
+                                          "Sets the darkest point of the image."
+                                        )}
 																				${DebuggerUIBuilder._createSliderHTML(
-      "postProcessing.colorCorrection.levels.inWhite",
-      "White Point",
-      0,
-      1,
-      0.01,
-      "Sets the brightest point of the image."
-    )}
+                                          "postProcessing.colorCorrection.levels.inWhite",
+                                          "White Point",
+                                          0,
+                                          1,
+                                          0.01,
+                                          "Sets the brightest point of the image."
+                                        )}
 																</div></details>
 																<details id="details-postProcessing-cc-whiteBalance"><summary><span class="accordion-toggle"></span><strong>White Balance</strong></summary><div style="padding-left: 15px;">
 																				<p class="description-text">Simulates camera white balance correction.</p>
 																				${DebuggerUIBuilder._createSliderHTML(
-      "postProcessing.colorCorrection.whiteBalance.temperature",
-      "Temperature",
-      -1,
-      1,
-      0.01,
-      "Negative values are cooler (blue), positive are warmer (orange)."
-    )}
+                                          "postProcessing.colorCorrection.whiteBalance.temperature",
+                                          "Temperature",
+                                          -1,
+                                          1,
+                                          0.01,
+                                          "Negative values are cooler (blue), positive are warmer (orange)."
+                                        )}
 																				${DebuggerUIBuilder._createSliderHTML(
-      "postProcessing.colorCorrection.whiteBalance.tint",
-      "Tint",
-      -1,
-      1,
-      0.01,
-      "Negative values shift toward magenta, positive toward green."
-    )}
+                                          "postProcessing.colorCorrection.whiteBalance.tint",
+                                          "Tint",
+                                          -1,
+                                          1,
+                                          0.01,
+                                          "Negative values shift toward magenta, positive toward green."
+                                        )}
 																</div></details>
 																<details id="details-postProcessing-cc-tint"><summary><span class="accordion-toggle"></span><strong>Global Tint</strong></summary><div style="padding-left: 15px;">
 																				<p class="description-text">Applies a color overlay to the entire scene.</p>
 																				${DebuggerUIBuilder._createColorPickerHTML(
-      "postProcessing.colorCorrection.tint.color",
-      "Tint Color"
-    )}
+                                          "postProcessing.colorCorrection.tint.color",
+                                          "Tint Color"
+                                        )}
 																				${DebuggerUIBuilder._createSliderHTML(
-      "postProcessing.colorCorrection.tint.amount",
-      "Tint Amount",
-      0,
-      1,
-      0.01
-    )}
+                                          "postProcessing.colorCorrection.tint.amount",
+                                          "Tint Amount",
+                                          0,
+                                          1,
+                                          0.01
+                                        )}
 																</div></details>
 																<details id="details-postProcessing-cc-mask"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-      "postProcessing.colorCorrection.mask.enabled",
-      "Luminance Mask",
-      true
-    )}</div></summary><div style="padding-left: 15px;">
+                                  "postProcessing.colorCorrection.mask.enabled",
+                                  "Luminance Mask",
+                                  true
+                                )}</div></summary><div style="padding-left: 15px;">
 																				<p class="description-text">Applies the color correction only to lit areas of the scene. Requires the Illumination Buffer module.</p>
 																				${DebuggerUIBuilder._createCheckboxHTML(
-      "postProcessing.colorCorrection.mask.invert",
-      "Invert Mask (Affect Dark Areas)"
-    )}
+                                          "postProcessing.colorCorrection.mask.invert",
+                                          "Invert Mask (Affect Dark Areas)"
+                                        )}
 																				${DebuggerUIBuilder._createSliderHTML(
-      "postProcessing.colorCorrection.mask.luminanceThreshold",
-      "Light Threshold",
-      0,
-      1,
-      0.01
-    )}
+                                          "postProcessing.colorCorrection.mask.luminanceThreshold",
+                                          "Light Threshold",
+                                          0,
+                                          1,
+                                          0.01
+                                        )}
 																				${DebuggerUIBuilder._createSliderHTML(
-      "postProcessing.colorCorrection.mask.softness",
-      "Edge Softness",
-      0.01,
-      1,
-      0.01
-    )}
+                                          "postProcessing.colorCorrection.mask.softness",
+                                          "Edge Softness",
+                                          0.01,
+                                          1,
+                                          0.01
+                                        )}
 																</div></details>
 																<details id="details-postProcessing-cc-selective"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-      "postProcessing.colorCorrection.selective.enabled",
-      "Selective Color",
-      true
-    )}</div></summary><div style="padding-left: 15px;">
-																		${buildSelectiveControls(
-      "postProcessing.colorCorrection.selective."
-    )}
+                                  "postProcessing.colorCorrection.selective.enabled",
+                                  "Selective Color",
+                                  true
+                                )}</div></summary><div style="padding-left: 15px;">
+																		${buildSelectiveControls("postProcessing.colorCorrection.selective.")}
 																</div></details>
 																		<details id="details-postProcessing-cc-curves">
 																		<summary>
 																				<span class="accordion-toggle"></span>
 																				<div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-      "postProcessing.colorCorrection.curves.enabled",
-      "Curves",
-      true
-    )}</div>
+                                          "postProcessing.colorCorrection.curves.enabled",
+                                          "Curves",
+                                          true
+                                        )}</div>
 																		</summary>
 																		<div style="padding-left: 15px; display: flex; flex-direction: column; align-items: center; padding-top: 5px;">
 																				<p class="description-text">Precise, non-linear control over tonal range, similar to Photoshop's Curves tool.</p>
@@ -14786,53 +15118,53 @@ export class ScreenEffectsManager {
 
 												<details id="details-advancedBloom">
 														<summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-      "advancedBloom.enabled",
-      "Advanced Bloom (Full Screen)",
-      true
-    )}</div></summary>
+                              "advancedBloom.enabled",
+                              "Advanced Bloom (Full Screen)",
+                              true
+                            )}</div></summary>
 														<div>
 																<div class="warning-box" style="background-color: #554422; border-color: #ffaa66;"><strong style="color: #ffddaa;">PERFORMANCE WARNING:</strong> This is a demanding effect. Lowering 'Quality' can significantly improve performance.</div>
 																<p class="description-text">Adds a powerful, high-quality bloom effect to the brightest parts of the entire scene.</p>
 																${DebuggerUIBuilder._createSliderHTML(
-      "advancedBloom.threshold",
-      "Threshold",
-      0,
-      1,
-      0.01,
-      "Only pixels brighter than this value will contribute to the bloom."
-    )}
+                                  "advancedBloom.threshold",
+                                  "Threshold",
+                                  0,
+                                  1,
+                                  0.01,
+                                  "Only pixels brighter than this value will contribute to the bloom."
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-      "advancedBloom.bloomScale",
-      "Scale",
-      0.1,
-      2,
-      0.05,
-      "The size and spread of the bloom glow."
-    )}
+                                  "advancedBloom.bloomScale",
+                                  "Scale",
+                                  0.1,
+                                  2,
+                                  0.05,
+                                  "The size and spread of the bloom glow."
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-      "advancedBloom.brightness",
-      "Brightness",
-      0.5,
-      2,
-      0.05,
-      "A brightness multiplier applied to the glowing areas."
-    )}
+                                  "advancedBloom.brightness",
+                                  "Brightness",
+                                  0.5,
+                                  2,
+                                  0.05,
+                                  "A brightness multiplier applied to the glowing areas."
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-      "advancedBloom.blur",
-      "Blur",
-      0,
-      20,
-      0.5,
-      "The amount of blur applied to the glow."
-    )}
+                                  "advancedBloom.blur",
+                                  "Blur",
+                                  0,
+                                  20,
+                                  0.5,
+                                  "The amount of blur applied to the glow."
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-      "advancedBloom.quality",
-      "Quality",
-      1,
-      15,
-      1,
-      "The number of blur passes. Higher is smoother but much more performance-intensive."
-    )}
+                                  "advancedBloom.quality",
+                                  "Quality",
+                                  1,
+                                  15,
+                                  1,
+                                  "The number of blur passes. Higher is smoother but much more performance-intensive."
+                                )}
 														</div>
 												</details>
 
@@ -14840,52 +15172,52 @@ export class ScreenEffectsManager {
 														<summary>
 																<span class="accordion-toggle"></span>
 																<div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-      "postProcessing.colorCorrection.dynamicExposure.enabled",
-      "Dynamic Exposure (Dazzle)",
-      true
-    )}</div>
+                                  "postProcessing.colorCorrection.dynamicExposure.enabled",
+                                  "Dynamic Exposure (Dazzle)",
+                                  true
+                                )}</div>
 														</summary>
 														<div style="padding-left: 15px;">
 																<p class="description-text">Creates a "dazzle" effect when a token moves from an area defined as indoors (dark parts of _Outdoors mask) to outdoors (light parts).</p>
 																${DebuggerUIBuilder._createSliderHTML(
-      "postProcessing.colorCorrection.dynamicExposure.intensity",
-      "Dazzle Intensity",
-      0,
-      5,
-      0.1,
-      "The peak exposure brightness when the effect triggers."
-    )}
+                                  "postProcessing.colorCorrection.dynamicExposure.intensity",
+                                  "Dazzle Intensity",
+                                  0,
+                                  5,
+                                  0.1,
+                                  "The peak exposure brightness when the effect triggers."
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-      "postProcessing.colorCorrection.dynamicExposure.duration",
-      "Dazzle Duration (ms)",
-      500,
-      20000,
-      100,
-      "How long it takes for the dazzle effect to fade back to normal."
-    )}
+                                  "postProcessing.colorCorrection.dynamicExposure.duration",
+                                  "Dazzle Duration (ms)",
+                                  500,
+                                  20000,
+                                  100,
+                                  "How long it takes for the dazzle effect to fade back to normal."
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-      "postProcessing.colorCorrection.dynamicExposure.resetPeriod",
-      "Reset Period (ms)",
-      1000,
-      120000,
-      1000,
-      "The cooldown time before the effect can be triggered again."
-    )}
+                                  "postProcessing.colorCorrection.dynamicExposure.resetPeriod",
+                                  "Reset Period (ms)",
+                                  1000,
+                                  120000,
+                                  1000,
+                                  "The cooldown time before the effect can be triggered again."
+                                )}
 														</div>
 												</details>
 
 												<details id="details-postProcessing-vignette"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-      "postProcessing.vignette.enabled",
-      "Vignette",
-      true
-    )}</div></summary>
+                          "postProcessing.vignette.enabled",
+                          "Vignette",
+                          true
+                        )}</div></summary>
 														<div>${DebuggerUIBuilder._createSliderHTML(
-      "postProcessing.vignette.amount",
-      "Amount",
-      0,
-      1,
-      0.01
-    )}${DebuggerUIBuilder._createSliderHTML(
+                              "postProcessing.vignette.amount",
+                              "Amount",
+                              0,
+                              1,
+                              0.01
+                            )}${DebuggerUIBuilder._createSliderHTML(
       "postProcessing.vignette.softness",
       "Softness",
       0.01,
@@ -14894,165 +15226,165 @@ export class ScreenEffectsManager {
     )}</div>
 												</details>
 												<details id="details-postProcessing-lensDistortion"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-      "postProcessing.lensDistortion.enabled",
-      "Lens Distortion",
-      true
-    )}</div></summary>
+                          "postProcessing.lensDistortion.enabled",
+                          "Lens Distortion",
+                          true
+                        )}</div></summary>
 														<div>
 																${DebuggerUIBuilder._createSliderHTML(
-      "postProcessing.lensDistortion.amount",
-      "Amount",
-      -0.2,
-      0.2,
-      0.001
-    )}
+                                  "postProcessing.lensDistortion.amount",
+                                  "Amount",
+                                  -0.2,
+                                  0.2,
+                                  0.001
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-      "postProcessing.lensDistortion.centerX",
-      "Center X",
-      0,
-      1,
-      0.01
-    )}
+                                  "postProcessing.lensDistortion.centerX",
+                                  "Center X",
+                                  0,
+                                  1,
+                                  0.01
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-      "postProcessing.lensDistortion.centerY",
-      "Center Y",
-      0,
-      1,
-      0.01
-    )}
+                                  "postProcessing.lensDistortion.centerY",
+                                  "Center Y",
+                                  0,
+                                  1,
+                                  0.01
+                                )}
 														</div>
 												</details>
 												<details id="details-postProcessing-chromaticAberration"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-      "postProcessing.chromaticAberration.enabled",
-      "Chromatic Aberration",
-      true
-    )}</div></summary>
+                          "postProcessing.chromaticAberration.enabled",
+                          "Chromatic Aberration",
+                          true
+                        )}</div></summary>
 														<div>
 																${DebuggerUIBuilder._createSliderHTML(
-      "postProcessing.chromaticAberration.amount",
-      "Amount",
-      -0.05,
-      0.05,
-      0.001
-    )}
+                                  "postProcessing.chromaticAberration.amount",
+                                  "Amount",
+                                  -0.05,
+                                  0.05,
+                                  0.001
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-      "postProcessing.chromaticAberration.centerX",
-      "Center X",
-      0,
-      1,
-      0.01
-    )}
+                                  "postProcessing.chromaticAberration.centerX",
+                                  "Center X",
+                                  0,
+                                  1,
+                                  0.01
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-      "postProcessing.chromaticAberration.centerY",
-      "Center Y",
-      0,
-      1,
-      0.01
-    )}
+                                  "postProcessing.chromaticAberration.centerY",
+                                  "Center Y",
+                                  0,
+                                  1,
+                                  0.01
+                                )}
 														</div>
 												</details>
 												<details id="details-postProcessing-grain"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-      "postProcessing.grain.enabled",
-      "Grain / Digital Noise",
-      true
-    )}</div></summary>
+                          "postProcessing.grain.enabled",
+                          "Grain / Digital Noise",
+                          true
+                        )}</div></summary>
 														<div>
 																<p class="description-text">Adds a procedural film grain or digital noise effect over the final image.</p>
 																${DebuggerUIBuilder._createSliderHTML(
-      "postProcessing.grain.intensity",
-      "Intensity",
-      0,
-      1,
-      0.01,
-      "Overall strength of the grain."
-    )}
+                                  "postProcessing.grain.intensity",
+                                  "Intensity",
+                                  0,
+                                  1,
+                                  0.01,
+                                  "Overall strength of the grain."
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-      "postProcessing.grain.size",
-      "Size",
-      0.1,
-      5,
-      0.05,
-      "Scale of the grain pattern. Smaller values = larger grain."
-    )}
+                                  "postProcessing.grain.size",
+                                  "Size",
+                                  0.1,
+                                  5,
+                                  0.05,
+                                  "Scale of the grain pattern. Smaller values = larger grain."
+                                )}
 																${DebuggerUIBuilder._createCheckboxHTML(
-      "postProcessing.grain.monochromatic",
-      "Monochromatic",
-      false,
-      "If checked, the grain will be black and white. If unchecked, it will be colored."
-    )}
+                                  "postProcessing.grain.monochromatic",
+                                  "Monochromatic",
+                                  false,
+                                  "If checked, the grain will be black and white. If unchecked, it will be colored."
+                                )}
 																<details>
 																		<summary><span class="accordion-toggle"></span><strong>Luminance Response</strong></summary>
 																		<div style="padding-left:15px;">
 																				<p class="description-text">Controls how much grain appears in dark vs. bright areas of the scene.</p>
 																				${DebuggerUIBuilder._createSliderHTML(
-      "postProcessing.grain.luminanceResponse.shadows",
-      "Shadows",
-      0,
-      1,
-      0.01,
-      "Grain intensity in the darkest parts of the image."
-    )}
+                                          "postProcessing.grain.luminanceResponse.shadows",
+                                          "Shadows",
+                                          0,
+                                          1,
+                                          0.01,
+                                          "Grain intensity in the darkest parts of the image."
+                                        )}
 																				${DebuggerUIBuilder._createSliderHTML(
-      "postProcessing.grain.luminanceResponse.highlights",
-      "Highlights",
-      0,
-      1,
-      0.01,
-      "Grain intensity in the brightest parts of the image."
-    )}
+                                          "postProcessing.grain.luminanceResponse.highlights",
+                                          "Highlights",
+                                          0,
+                                          1,
+                                          0.01,
+                                          "Grain intensity in the brightest parts of the image."
+                                        )}
 																		</div>
 																</details>
 														</div>
 												</details>
 												<details id="details-postProcessing-tiltShift"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-      "postProcessing.tiltShift.enabled",
-      "Tilt Shift",
-      true
-    )}</div></summary>
+                          "postProcessing.tiltShift.enabled",
+                          "Tilt Shift",
+                          true
+                        )}</div></summary>
 														<div>
 																<p class="description-text">Simulates a tilt-shift lens, blurring the top and bottom of the screen. Requires a library that may not be bundled with all Foundry versions.</p>
 																${DebuggerUIBuilder._createSliderHTML(
-      "postProcessing.tiltShift.blur",
-      "Blur",
-      0,
-      50,
-      1
-    )}
+                                  "postProcessing.tiltShift.blur",
+                                  "Blur",
+                                  0,
+                                  50,
+                                  1
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-      "postProcessing.tiltShift.gradientBlur",
-      "Gradient Size",
-      0,
-      5000,
-      10
-    )}
+                                  "postProcessing.tiltShift.gradientBlur",
+                                  "Gradient Size",
+                                  0,
+                                  5000,
+                                  10
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-      "postProcessing.tiltShift.startX",
-      "Start X",
-      0,
-      1,
-      0.01
-    )}
+                                  "postProcessing.tiltShift.startX",
+                                  "Start X",
+                                  0,
+                                  1,
+                                  0.01
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-      "postProcessing.tiltShift.startY",
-      "Start Y",
-      0,
-      1,
-      0.01
-    )}
+                                  "postProcessing.tiltShift.startY",
+                                  "Start Y",
+                                  0,
+                                  1,
+                                  0.01
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-      "postProcessing.tiltShift.endX",
-      "End X",
-      0,
-      1,
-      0.01
-    )}
+                                  "postProcessing.tiltShift.endX",
+                                  "End X",
+                                  0,
+                                  1,
+                                  0.01
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-      "postProcessing.tiltShift.endY",
-      "End Y",
-      0,
-      1,
-      0.01
-    )}
+                                  "postProcessing.tiltShift.endY",
+                                  "End Y",
+                                  0,
+                                  1,
+                                  0.01
+                                )}
 														</div>
 												</details>
 												<button id="output-config-btn" title="Log the current full config object to the console for copy/pasting." style="width: 100%; margin-top: 5px;">Log Full Config to Console</button>
@@ -16386,9 +16718,11 @@ class FoamFilter extends PIXI.Filter {
       uSuppressionNoiseEvolution: options.suppressionNoise?.evolution ?? 0.01,
       uSuppressionNoiseOctaves: options.suppressionNoise?.octaves ?? 4,
       uSuppressionNoiseLacunarity: options.suppressionNoise?.lacunarity ?? 2.0,
-      uSuppressionNoisePersistence: options.suppressionNoise?.persistence ?? 0.5,
+      uSuppressionNoisePersistence:
+        options.suppressionNoise?.persistence ?? 0.5,
       // @ts-ignore
-      uSuppressionNoiseBrightness: (options.suppressionNoise?.brightness ?? 0.5) - 0.5,
+      uSuppressionNoiseBrightness:
+        (options.suppressionNoise?.brightness ?? 0.5) - 0.5,
       uSuppressionNoiseContrast: options.suppressionNoise?.contrast ?? 1.0,
       // Crest Foam (Wave Shape)
       uCrestFoamEnabled: options.crestFoam?.enabled ?? true,
@@ -16430,54 +16764,54 @@ class FoamLayer extends CanvasLayer {
     const content = `
 			<p class="description-text">Renders a noisy foam effect along the edges of water bodies, especially on sharp coastlines. Requires a _Water mask.</p>
 			${DebuggerUIBuilder._createSelectHTML(
-      "foam.blendMode",
-      "Blend Mode",
-      BLEND_MODE_OPTIONS
-    )}
+        "foam.blendMode",
+        "Blend Mode",
+        BLEND_MODE_OPTIONS
+      )}
 			${DebuggerUIBuilder._createColorPickerHTML("foam.color", "Foam Color")}
 			${DebuggerUIBuilder._createSliderHTML(
-      "foam.intensity",
-      "Intensity",
-      0,
-      5,
-      0.05
-    )}
+        "foam.intensity",
+        "Intensity",
+        0,
+        5,
+        0.05
+      )}
 			<details>
 				<summary><span class="accordion-toggle"></span><strong>Edge Detection</strong></summary>
 				<div style="padding-left: 15px;">
 					<p class="description-text">Controls how the foam detects and clings to the shoreline.</p>
 					${DebuggerUIBuilder._createSliderHTML(
-      "foam.smallBlur",
-      "Small Blur",
-      1,
-      20,
-      0.5,
-      "The world-pixel radius of the inner blur. Should be smaller than the large blur."
-    )}
+            "foam.smallBlur",
+            "Small Blur",
+            1,
+            20,
+            0.5,
+            "The world-pixel radius of the inner blur. Should be smaller than the large blur."
+          )}
 					${DebuggerUIBuilder._createSliderHTML(
-      "foam.largeBlur",
-      "Large Blur",
-      2,
-      100,
-      1,
-      "The world-pixel radius of the outer blur. The difference between blurs creates the edge."
-    )}
+            "foam.largeBlur",
+            "Large Blur",
+            2,
+            100,
+            1,
+            "The world-pixel radius of the outer blur. The difference between blurs creates the edge."
+          )}
 					${DebuggerUIBuilder._createSliderHTML(
-      "foam.threshold",
-      "Threshold",
-      0.01,
-      1,
-      0.01,
-      "The minimum edge difference required to start showing foam."
-    )}
+            "foam.threshold",
+            "Threshold",
+            0.01,
+            1,
+            0.01,
+            "The minimum edge difference required to start showing foam."
+          )}
 					${DebuggerUIBuilder._createSliderHTML(
-      "foam.softness",
-      "Softness",
-      0.01,
-      1,
-      0.01,
-      "The softness of the transition at the edge threshold."
-    )}
+            "foam.softness",
+            "Softness",
+            0.01,
+            1,
+            0.01,
+            "The softness of the transition at the edge threshold."
+          )}
 				</div>
 			</details>
 			<details>
@@ -16485,291 +16819,285 @@ class FoamLayer extends CanvasLayer {
 				<div style="padding-left: 15px;">
 					<p class="description-text">Introduces noise into the blur calculation to create more organic, irregular foam shapes.</p>
 					${DebuggerUIBuilder._createSliderHTML(
-      "foam.blurTurbulence.strength",
-      "Strength",
-      0,
-      20,
-      0.5,
-      "How much the noise distorts the blur pattern."
-    )}
+            "foam.blurTurbulence.strength",
+            "Strength",
+            0,
+            20,
+            0.5,
+            "How much the noise distorts the blur pattern."
+          )}
 					${DebuggerUIBuilder._createSliderHTML(
-      "foam.blurTurbulence.scale",
-      "Scale",
-      0.1,
-      5,
-      0.05,
-      "The zoom level of the turbulence noise."
-    )}
+            "foam.blurTurbulence.scale",
+            "Scale",
+            0.1,
+            5,
+            0.05,
+            "The zoom level of the turbulence noise."
+          )}
 					${DebuggerUIBuilder._createSliderHTML(
-      "foam.blurTurbulence.speed",
-      "Speed",
-      0,
-      0.05,
-      0.001,
-      "The animation speed of the turbulence."
-    )}
+            "foam.blurTurbulence.speed",
+            "Speed",
+            0,
+            0.05,
+            0.001,
+            "The animation speed of the turbulence."
+          )}
 				</div>
 			</details>
 			<details>
 				<summary><span class="accordion-toggle"></span><strong>Foam Pattern Noise</strong></summary>
 				<div style="padding-left: 15px;">
 					<p class="description-text">Controls the procedural noise used to create the foam's visual texture.</p>
+					${DebuggerUIBuilder._createSliderHTML("foam.noise.scale", "Scale", 1, 50, 0.5)}
 					${DebuggerUIBuilder._createSliderHTML(
-      "foam.noise.scale",
-      "Scale",
-      1,
-      50,
-      0.5
-    )}
+            "foam.noise.speed",
+            "Speed",
+            0,
+            0.1,
+            0.001,
+            "Directional drift speed of the foam pattern."
+          )}
 					${DebuggerUIBuilder._createSliderHTML(
-      "foam.noise.speed",
-      "Speed",
-      0,
-      0.1,
-      0.001,
-      "Directional drift speed of the foam pattern."
-    )}
+            "foam.noise.evolution",
+            "Evolution",
+            0,
+            0.2,
+            0.001,
+            'Internal "boiling" speed of the foam pattern.'
+          )}
 					${DebuggerUIBuilder._createSliderHTML(
-      "foam.noise.evolution",
-      "Evolution",
-      0,
-      0.2,
-      0.001,
-      'Internal "boiling" speed of the foam pattern.'
-    )}
+            "foam.noise.octaves",
+            "Complexity (Octaves)",
+            1,
+            8,
+            1
+          )}
 					${DebuggerUIBuilder._createSliderHTML(
-      "foam.noise.octaves",
-      "Complexity (Octaves)",
-      1,
-      8,
-      1
-    )}
+            "foam.noise.lacunarity",
+            "Detail Scale",
+            1.5,
+            4,
+            0.05
+          )}
 					${DebuggerUIBuilder._createSliderHTML(
-      "foam.noise.lacunarity",
-      "Detail Scale",
-      1.5,
-      4,
-      0.05
-    )}
-					${DebuggerUIBuilder._createSliderHTML(
-      "foam.noise.persistence",
-      "Roughness",
-      0.1,
-      1,
-      0.05
-    )}
+            "foam.noise.persistence",
+            "Roughness",
+            0.1,
+            1,
+            0.05
+          )}
 				</div>
 			</details>
 			<details id="details-foam-breakupNoise">
 					<summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-      "foam.breakupNoise.enabled",
-      "Foam Breakup",
-      true
-    )}</div></summary>
+            "foam.breakupNoise.enabled",
+            "Foam Breakup",
+            true
+          )}</div></summary>
 					<div style="padding-left: 15px;">
 							<p class="description-text">Uses a second noise pattern to break up the foam, creating a more patchy appearance.</p>
 							${DebuggerUIBuilder._createSliderHTML(
-      "foam.breakupNoise.scale",
-      "Scale",
-      0.1,
-      20,
-      0.1
-    )}
+                "foam.breakupNoise.scale",
+                "Scale",
+                0.1,
+                20,
+                0.1
+              )}
 							${DebuggerUIBuilder._createSliderHTML(
-      "foam.breakupNoise.evolution",
-      "Evolution",
-      0,
-      0.1,
-      0.001
-    )}
+                "foam.breakupNoise.evolution",
+                "Evolution",
+                0,
+                0.1,
+                0.001
+              )}
 							${DebuggerUIBuilder._createSliderHTML(
-      "foam.breakupNoise.octaves",
-      "Complexity (Octaves)",
-      1,
-      8,
-      1
-    )}
+                "foam.breakupNoise.octaves",
+                "Complexity (Octaves)",
+                1,
+                8,
+                1
+              )}
 							${DebuggerUIBuilder._createSliderHTML(
-      "foam.breakupNoise.lacunarity",
-      "Detail Scale",
-      1.5,
-      4,
-      0.05
-    )}
+                "foam.breakupNoise.lacunarity",
+                "Detail Scale",
+                1.5,
+                4,
+                0.05
+              )}
 							${DebuggerUIBuilder._createSliderHTML(
-      "foam.breakupNoise.persistence",
-      "Roughness",
-      0.1,
-      1,
-      0.05
-    )}
+                "foam.breakupNoise.persistence",
+                "Roughness",
+                0.1,
+                1,
+                0.05
+              )}
 							${DebuggerUIBuilder._createSliderHTML(
-      "foam.breakupNoise.brightness",
-      "Coverage",
-      0,
-      1,
-      0.01,
-      "Controls the overall amount of foam that gets broken up. Higher = less foam."
-    )}
+                "foam.breakupNoise.brightness",
+                "Coverage",
+                0,
+                1,
+                0.01,
+                "Controls the overall amount of foam that gets broken up. Higher = less foam."
+              )}
 							${DebuggerUIBuilder._createSliderHTML(
-      "foam.breakupNoise.contrast",
-      "Sharpness",
-      0.1,
-      5,
-      0.05,
-      "Controls the sharpness of the broken-up edges."
-    )}
+                "foam.breakupNoise.contrast",
+                "Sharpness",
+                0.1,
+                5,
+                0.05,
+                "Controls the sharpness of the broken-up edges."
+              )}
 					</div>
 			</details>
 			<details id="details-foam-suppressionNoise">
 					<summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-      "foam.suppressionNoise.enabled",
-      "Foam Suppression",
-      true
-    )}</div></summary>
+            "foam.suppressionNoise.enabled",
+            "Foam Suppression",
+            true
+          )}</div></summary>
 					<div style="padding-left: 15px;">
 							<p class="description-text">Uses a large, slow noise pattern to mask out the foam, preventing it from appearing everywhere at once.</p>
 							${DebuggerUIBuilder._createSliderHTML(
-      "foam.suppressionNoise.scale",
-      "Scale",
-      0.001,
-      1,
-      0.001
-    )}
+                "foam.suppressionNoise.scale",
+                "Scale",
+                0.001,
+                1,
+                0.001
+              )}
 							${DebuggerUIBuilder._createSliderHTML(
-      "foam.suppressionNoise.speed",
-      "Speed",
-      0,
-      0.05,
-      0.001
-    )}
+                "foam.suppressionNoise.speed",
+                "Speed",
+                0,
+                0.05,
+                0.001
+              )}
 							${DebuggerUIBuilder._createSliderHTML(
-      "foam.suppressionNoise.evolution",
-      "Evolution",
-      0,
-      0.1,
-      0.001
-    )}
+                "foam.suppressionNoise.evolution",
+                "Evolution",
+                0,
+                0.1,
+                0.001
+              )}
 							${DebuggerUIBuilder._createSliderHTML(
-      "foam.suppressionNoise.octaves",
-      "Complexity (Octaves)",
-      1,
-      8,
-      1
-    )}
+                "foam.suppressionNoise.octaves",
+                "Complexity (Octaves)",
+                1,
+                8,
+                1
+              )}
 							${DebuggerUIBuilder._createSliderHTML(
-      "foam.suppressionNoise.lacunarity",
-      "Detail Scale",
-      1.5,
-      4,
-      0.05
-    )}
+                "foam.suppressionNoise.lacunarity",
+                "Detail Scale",
+                1.5,
+                4,
+                0.05
+              )}
 							${DebuggerUIBuilder._createSliderHTML(
-      "foam.suppressionNoise.persistence",
-      "Roughness",
-      0.1,
-      1,
-      0.05
-    )}
+                "foam.suppressionNoise.persistence",
+                "Roughness",
+                0.1,
+                1,
+                0.05
+              )}
 							${DebuggerUIBuilder._createSliderHTML(
-      "foam.suppressionNoise.brightness",
-      "Coverage",
-      0,
-      1,
-      0.01
-    )}
+                "foam.suppressionNoise.brightness",
+                "Coverage",
+                0,
+                1,
+                0.01
+              )}
 							${DebuggerUIBuilder._createSliderHTML(
-      "foam.suppressionNoise.contrast",
-      "Sharpness",
-      0.1,
-      5,
-      0.05
-    )}
+                "foam.suppressionNoise.contrast",
+                "Sharpness",
+                0.1,
+                5,
+                0.05
+              )}
 					</div>
 			</details>
 			<details id="details-foam-crestFoam">
 					<summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-      "foam.crestFoam.enabled",
-      "Wave Crest Foam",
-      true
-    )}</div></summary>
+            "foam.crestFoam.enabled",
+            "Wave Crest Foam",
+            true
+          )}</div></summary>
 					<div style="padding-left: 15px;">
 							<p class="description-text">Generates long, flowing wave crests using perturbed sine waves.</p>
 							${DebuggerUIBuilder._createSliderHTML(
-      "foam.crestFoam.intensity",
-      "Intensity",
-      0,
-      5,
-      0.05
-    )}
+                "foam.crestFoam.intensity",
+                "Intensity",
+                0,
+                5,
+                0.05
+              )}
 							${DebuggerUIBuilder._createSliderHTML(
-      "foam.crestFoam.frequency",
-      "Frequency",
-      1,
-      100,
-      1,
-      "How many wave crests appear. Higher is more waves."
-    )}
+                "foam.crestFoam.frequency",
+                "Frequency",
+                1,
+                100,
+                1,
+                "How many wave crests appear. Higher is more waves."
+              )}
 							${DebuggerUIBuilder._createSliderHTML(
-      "foam.crestFoam.speed",
-      "Speed",
-      0,
-      0.2,
-      0.001,
-      "The travel speed of the waves."
-    )}
+                "foam.crestFoam.speed",
+                "Speed",
+                0,
+                0.2,
+                0.001,
+                "The travel speed of the waves."
+              )}
 							 ${DebuggerUIBuilder._createSliderHTML(
-      "foam.crestFoam.angle",
-      "Angle",
-      0,
-      360,
-      1,
-      "The direction of the waves."
-    )}
+                 "foam.crestFoam.angle",
+                 "Angle",
+                 0,
+                 360,
+                 1,
+                 "The direction of the waves."
+               )}
 							${DebuggerUIBuilder._createSliderHTML(
-      "foam.crestFoam.sharpness",
-      "Sharpness",
-      1,
-      40,
-      1,
-      "How sharp and defined the crests are."
-    )}
+                "foam.crestFoam.sharpness",
+                "Sharpness",
+                1,
+                40,
+                1,
+                "How sharp and defined the crests are."
+              )}
 							<details>
 									<summary><span class="accordion-toggle"></span><strong>Perturbation (Wave Breakup)</strong></summary>
 									<div style="padding-left:15px;">
 											<p class="description-text">Controls the noise that makes the waves look organic and turbulent.</p>
 											${DebuggerUIBuilder._createSliderHTML(
-      "foam.crestFoam.perturbStrength",
-      "Strength",
-      0,
-      100,
-      1,
-      "How much the noise distorts the wave lines."
-    )}
+                        "foam.crestFoam.perturbStrength",
+                        "Strength",
+                        0,
+                        100,
+                        1,
+                        "How much the noise distorts the wave lines."
+                      )}
 											${DebuggerUIBuilder._createSliderHTML(
-      "foam.crestFoam.perturbScale",
-      "Scale",
-      0.01,
-      0.5,
-      0.001,
-      "The size of the turbulence patterns."
-    )}
+                        "foam.crestFoam.perturbScale",
+                        "Scale",
+                        0.01,
+                        0.5,
+                        0.001,
+                        "The size of the turbulence patterns."
+                      )}
 											${DebuggerUIBuilder._createSliderHTML(
-      "foam.crestFoam.perturbSpeed",
-      "Speed",
-      0,
-      0.1,
-      0.001,
-      "The animation speed of the turbulence."
-    )}
+                        "foam.crestFoam.perturbSpeed",
+                        "Speed",
+                        0,
+                        0.1,
+                        0.001,
+                        "The animation speed of the turbulence."
+                      )}
 											${DebuggerUIBuilder._createSliderHTML(
-      "foam.crestFoam.perturbOctaves",
-      "Complexity",
-      1,
-      8,
-      1,
-      "The level of detail in the turbulence."
-    )}
+                        "foam.crestFoam.perturbOctaves",
+                        "Complexity",
+                        1,
+                        8,
+                        1,
+                        "The level of detail in the turbulence."
+                      )}
 									</div>
 							</details>
 							<details>
@@ -16777,40 +17105,40 @@ class FoamLayer extends CanvasLayer {
 									<div style="padding-left:15px;">
 											<p class="description-text">Controls the fine-grained noise that breaks the wave crests into a dot-like pattern.</p>
 											${DebuggerUIBuilder._createSliderHTML(
-      "foam.crestFoam.crestBreakup.scale",
-      "Scale",
-      0.1,
-      2,
-      0.01
-    )}
+                        "foam.crestFoam.crestBreakup.scale",
+                        "Scale",
+                        0.1,
+                        2,
+                        0.01
+                      )}
 											${DebuggerUIBuilder._createSliderHTML(
-      "foam.crestFoam.crestBreakup.speed",
-      "Speed",
-      0,
-      0.2,
-      0.001
-    )}
+                        "foam.crestFoam.crestBreakup.speed",
+                        "Speed",
+                        0,
+                        0.2,
+                        0.001
+                      )}
 											${DebuggerUIBuilder._createSliderHTML(
-      "foam.crestFoam.crestBreakup.octaves",
-      "Complexity",
-      1,
-      8,
-      1
-    )}
+                        "foam.crestFoam.crestBreakup.octaves",
+                        "Complexity",
+                        1,
+                        8,
+                        1
+                      )}
 											${DebuggerUIBuilder._createSliderHTML(
-      "foam.crestFoam.crestBreakup.brightness",
-      "Coverage",
-      0,
-      1,
-      0.01
-    )}
+                        "foam.crestFoam.crestBreakup.brightness",
+                        "Coverage",
+                        0,
+                        1,
+                        0.01
+                      )}
 											${DebuggerUIBuilder._createSliderHTML(
-      "foam.crestFoam.crestBreakup.contrast",
-      "Sharpness",
-      0.1,
-      5,
-      0.05
-    )}
+                        "foam.crestFoam.crestBreakup.contrast",
+                        "Sharpness",
+                        0.1,
+                        5,
+                        0.05
+                      )}
 									</div>
 							</details>
 					</div>
@@ -17231,8 +17559,8 @@ class MaskedEffectLayer extends CanvasLayer {
   }
 
   /**
-    * @override
-    */
+   * @override
+   */
   async _tearDown(options) {
     if (this._destroyed) return;
     this._destroyed = true;
@@ -17259,9 +17587,9 @@ class MaskedEffectLayer extends CanvasLayer {
   }
 
   /**
-    * Base animation loop. Handles re-rendering the mask when needed.
-    * Subclasses should call `super._onAnimate(deltaTime)` at the start of their own loop.
-    */
+   * Base animation loop. Handles re-rendering the mask when needed.
+   * Subclasses should call `super._onAnimate(deltaTime)` at the start of their own loop.
+   */
   // @ts-ignore
   // @ts-ignore
   _onAnimate(deltaTime) {
@@ -17274,15 +17602,15 @@ class MaskedEffectLayer extends CanvasLayer {
   }
 
   /**
-    * Handles pan events, flagging that the mask needs to be redrawn.
-    */
+   * Handles pan events, flagging that the mask needs to be redrawn.
+   */
   _onPan() {
     this._needsMaskUpdate = true;
   }
 
   /**
-    * Handles resize events, resizing the mask texture and flagging a redraw.
-    */
+   * Handles resize events, resizing the mask texture and flagging a redraw.
+   */
   _onResize() {
     const renderer = canvas.app.renderer;
     this.combinedMaskTexture?.resize(
@@ -17293,8 +17621,8 @@ class MaskedEffectLayer extends CanvasLayer {
   }
 
   /**
-    * Renders the maskContainer to the combinedMaskTexture.
-    */
+   * Renders the maskContainer to the combinedMaskTexture.
+   */
   renderMask() {
     if (!this.maskContainer || !this.combinedMaskTexture) return;
     const renderer = canvas.app.renderer;
@@ -17319,8 +17647,8 @@ class MaskedEffectLayer extends CanvasLayer {
   }
 
   /**
-    * Updates the sprites in the mask container based on discovered effect targets.
-    */
+   * Updates the sprites in the mask container based on discovered effect targets.
+   */
   async updateEffectTargets(targets) {
     if (!this.maskContainer) return;
 
@@ -17360,8 +17688,8 @@ class MaskedEffectLayer extends CanvasLayer {
   }
 
   /**
-    * Helper to update a sprite's texture and transform.
-    */
+   * Helper to update a sprite's texture and transform.
+   */
   async _updateSpriteTransform(sprite, texturePath, rect) {
     if (!sprite || sprite.destroyed) return;
 
@@ -17545,9 +17873,7 @@ class DiagnosticLayer extends CanvasLayer {
 
       this.tooltip.innerHTML = `
 												<strong>Pixel Inspector</strong><br>
-												Screen X/Y: ${Math.round(clientX)}, ${Math.round(
-        clientY
-      )}<br>
+												Screen X/Y: ${Math.round(clientX)}, ${Math.round(clientY)}<br>
 												--------------------<br>
 												RGBA (0-255): ${r}, ${g}, ${b}, ${a}<br>
 												RGBA (Norm): ${r_norm}, ${g_norm}, ${b_norm}, ${a_norm}
@@ -17804,8 +18130,8 @@ class MapPointsLayer extends CanvasLayer {
   }
 
   /**
-    * @override
-    */
+   * @override
+   */
   // @ts-ignore
   // @ts-ignore
   async _draw(options) {
@@ -17821,8 +18147,8 @@ class MapPointsLayer extends CanvasLayer {
   }
 
   /**
-    * @override
-    */
+   * @override
+   */
   async _tearDown(options) {
     // @ts-ignore
     Hooks.off("mapShine:mapPointsUpdated", this._boundDrawMapPoints);
@@ -17837,9 +18163,9 @@ class MapPointsLayer extends CanvasLayer {
   }
 
   /**
-    * Public method to find which point is under the cursor.
-    * The Interaction Manager will use this.
-    */
+   * Public method to find which point is under the cursor.
+   * The Interaction Manager will use this.
+   */
   _getPointAt(position) {
     const groups = MapPointsManager.getGroups();
     const hitRadius = this.POINT_HIT_AREA / canvas.stage.scale.x;
@@ -17859,9 +18185,9 @@ class MapPointsLayer extends CanvasLayer {
   }
 
   /**
-    * Renders all points, lines, and areas from the stored data.
-    * Also handles hover effects based on the public _hoveredPoint property.
-    */
+   * Renders all points, lines, and areas from the stored data.
+   * Also handles hover effects based on the public _hoveredPoint property.
+   */
   _drawMapPoints() {
     if (!this.mapPointsContainer) return;
     this.mapPointsContainer.removeChildren().forEach((c) =>
@@ -17878,9 +18204,9 @@ class MapPointsLayer extends CanvasLayer {
 
     const groupsToDraw = this._liveDragGroup
       ? {
-        ...groups,
-        [this._liveDragGroup.id]: this._liveDragGroup,
-      }
+          ...groups,
+          [this._liveDragGroup.id]: this._liveDragGroup,
+        }
       : groups;
 
     for (const group of Object.values(groupsToDraw)) {
@@ -17948,8 +18274,9 @@ class MapPointsLayer extends CanvasLayer {
 
       // Draw labels (only for non-dragged groups)
       if (!isLiveDragGroup && group.points.length > 0) {
-        const textContent = `${group.label} (${group.type})\n${group.isBroken ? "BROKEN: " + group.reason : ""
-          }`;
+        const textContent = `${group.label} (${group.type})\n${
+          group.isBroken ? "BROKEN: " + group.reason : ""
+        }`;
         const label = new PIXI.Text(textContent, {
           fontFamily: "Arial",
           fontSize: 20 / canvas.stage.scale.x,
@@ -18000,12 +18327,12 @@ class MapPointsEditor extends FormApplication {
   }
 
   /**
-    * @override
-    * The form element is the root of this application's template. We override the
-    * default `form` property to ensure it correctly references our root element.
-    * The base `FormApplication` constructor attempts to set this property to `null`,
-    * so we must provide both a getter and a setter.
-    */
+   * @override
+   * The form element is the root of this application's template. We override the
+   * default `form` property to ensure it correctly references our root element.
+   * The base `FormApplication` constructor attempts to set this property to `null`,
+   * so we must provide both a getter and a setter.
+   */
   // @ts-ignore
   get form() {
     // The `element` is a jQuery object; `[0]` gets the raw DOM element.
@@ -18063,9 +18390,9 @@ class MapPointsEditor extends FormApplication {
   }
 
   /**
-    * @override
-    * This method is responsible for building and returning the HTML content of the application.
-    */
+   * @override
+   * This method is responsible for building and returning the HTML content of the application.
+   */
   async _renderInner(data) {
     const html = this._buildHTML(data);
     // We are building the HTML content programmatically, so we do not call super._renderInner,
@@ -18075,10 +18402,10 @@ class MapPointsEditor extends FormApplication {
   }
 
   /**
-    * Generates the complete inner HTML for the form.
-    * @param {object} data - The data from the getData method.
-    * @returns {string} The HTML string for the form.
-    */
+   * Generates the complete inner HTML for the form.
+   * @param {object} data - The data from the getData method.
+   * @returns {string} The HTML string for the form.
+   */
   _buildHTML(data) {
     const groups = Object.values(data.groups);
     const selectedGroup = this._selectedGroupId
@@ -18091,7 +18418,8 @@ class MapPointsEditor extends FormApplication {
       const effectOptions = Object.entries(EFFECT_SOURCE_OPTIONS)
         .map(
           ([key, name]) =>
-            `<option value="${key}" ${selectedGroup.effectTarget === key ? "selected" : ""
+            `<option value="${key}" ${
+              selectedGroup.effectTarget === key ? "selected" : ""
             }>${name}</option>`
         )
         .join("");
@@ -18110,40 +18438,41 @@ class MapPointsEditor extends FormApplication {
 
       detailsHTML = `
 														<div class="mp-details-header">
-																<h4>${Handlebars.escapeExpression(
-        selectedGroup.label
-      )}</h4>
+																<h4>${Handlebars.escapeExpression(selectedGroup.label)}</h4>
 																<button type="button" data-action="delete-group" class="delete-btn" title="Delete Group"><i class="fas fa-trash"></i> Delete Group</button>
 														</div>
 														<div class="mp-group-properties">
 																<div class="control-row">
 																		<label for="mp-group-label">Label</label>
 																		<input type="text" name="label" id="mp-group-label" value="${Handlebars.escapeExpression(
-        selectedGroup.label
-      )}">
+                                      selectedGroup.label
+                                    )}">
 																</div>
 																<div class="control-row">
 																		<label for="mp-group-type">Type</label>
 																		<select name="type" id="mp-group-type">
-																				<option value="point" ${selectedGroup.type === "point"
-          ? "selected"
-          : ""
-        }>Points</option>
-																				<option value="line" ${selectedGroup.type === "line"
-          ? "selected"
-          : ""
-        }>Line</option>
-																				<option value="area" ${selectedGroup.type === "area"
-          ? "selected"
-          : ""
-        }>Area</option>
+																				<option value="point" ${
+                                          selectedGroup.type === "point"
+                                            ? "selected"
+                                            : ""
+                                        }>Points</option>
+																				<option value="line" ${
+                                          selectedGroup.type === "line"
+                                            ? "selected"
+                                            : ""
+                                        }>Line</option>
+																				<option value="area" ${
+                                          selectedGroup.type === "area"
+                                            ? "selected"
+                                            : ""
+                                        }>Area</option>
 																		</select>
 																</div>
 														</div>
 														<ul class="mp-points-list">
 																${selectedGroup.points
-          .map(
-            (p, i) => `
+                                  .map(
+                                    (p, i) => `
 																		<li class="mp-point-item">
 																				<span>#${i + 1}</span>
 																				<span>X: ${Math.round(p.x)}</span>
@@ -18151,59 +18480,63 @@ class MapPointsEditor extends FormApplication {
 																				<button type="button" data-action="delete-point" data-point-index="${i}" title="Delete Point"><i class="fas fa-times"></i></button>
 																		</li>
 																`
-          )
-          .join("")}
+                                  )
+                                  .join("")}
 														</ul>
 														<div class="mp-effect-source-settings">
 																<h4><i class="fas fa-magic"></i> Effect Source</h4>
 																<div class="control-row">
 																		<label for="mp-isEffectSource" title="If checked, this group's geometry will be used to generate the selected effect.">Use as Effect Source</label>
-																		<input type="checkbox" name="isEffectSource" id="mp-isEffectSource" ${selectedGroup.isEffectSource
-          ? "checked"
-          : ""
-        }>
+																		<input type="checkbox" name="isEffectSource" id="mp-isEffectSource" ${
+                                      selectedGroup.isEffectSource
+                                        ? "checked"
+                                        : ""
+                                    }>
 																</div>
-																<div class="control-row" id="mp-effectTarget-wrapper" style="display: ${selectedGroup.isEffectSource ? "flex" : "none"
-        };">
+																<div class="control-row" id="mp-effectTarget-wrapper" style="display: ${
+                                  selectedGroup.isEffectSource ? "flex" : "none"
+                                };">
 																		<label for="mp-effectTarget">Target Effect</label>
 																		<select name="effectTarget" id="mp-effectTarget">
 																				${effectOptions}
 																		</select>
 																</div>
-																<div id="mp-emission-settings-wrapper" style="margin-top: 10px; display: ${selectedGroup.isEffectSource
-          ? "block"
-          : "none"
-        }; border-top: 1px solid #555; padding-top: 8px;">
+																<div id="mp-emission-settings-wrapper" style="margin-top: 10px; display: ${
+                                  selectedGroup.isEffectSource
+                                    ? "block"
+                                    : "none"
+                                }; border-top: 1px solid #555; padding-top: 8px;">
 																		<h5 class="mp-sub-header">Custom Emission</h5>
 																		<div class="control-row control-row-slider">
 																				<label for="mp-emission-intensity" title="A multiplier for particle density and spawn rate.">Intensity</label>
-																				<input type="range" name="emission.intensity" id="mp-emission-intensity" min="0.1" max="15" step="0.1" value="${emission.intensity
-        }">
-																				<span class="value-span">${emission.intensity.toFixed(
-          1
-        )}</span>
+																				<input type="range" name="emission.intensity" id="mp-emission-intensity" min="0.1" max="15" step="0.1" value="${
+                                          emission.intensity
+                                        }">
+																				<span class="value-span">${emission.intensity.toFixed(1)}</span>
 																		</div>
-																		<div id="mp-emission-falloff-wrapper" style="margin-top: 5px; display: ${selectedGroup.type === "point"
-          ? "none"
-          : "block"
-        };">
+																		<div id="mp-emission-falloff-wrapper" style="margin-top: 5px; display: ${
+                                      selectedGroup.type === "point"
+                                        ? "none"
+                                        : "block"
+                                    };">
 																				<div class="control-row">
 																						<label for="mp-emission-falloff-enabled" title="Concentrate particle spawns towards the center of lines and areas.">Emission Falloff</label>
-																						<input type="checkbox" name="emission.falloff.enabled" id="mp-emission-falloff-enabled" ${emission.falloff.enabled
-          ? "checked"
-          : ""
-        }>
+																						<input type="checkbox" name="emission.falloff.enabled" id="mp-emission-falloff-enabled" ${
+                                              emission.falloff.enabled
+                                                ? "checked"
+                                                : ""
+                                            }>
 																				</div>
-																				<div class="control-row control-row-slider" style="display: ${emission.falloff.enabled
-          ? "grid"
-          : "none"
-        };">
+																				<div class="control-row control-row-slider" style="display: ${
+                                          emission.falloff.enabled
+                                            ? "grid"
+                                            : "none"
+                                        };">
 																						<label for="mp-emission-falloff-strength" title="How strongly spawns are biased towards the center. 0=uniform, 1=max bias.">Strength</label>
-																						<input type="range" name="emission.falloff.strength" id="mp-emission-falloff-strength" min="0" max="0.99" step="0.01" value="${emission.falloff.strength
-        }">
-																						<span class="value-span">${emission.falloff.strength.toFixed(
-          2
-        )}</span>
+																						<input type="range" name="emission.falloff.strength" id="mp-emission-falloff-strength" min="0" max="0.99" step="0.01" value="${
+                                              emission.falloff.strength
+                                            }">
+																						<span class="value-span">${emission.falloff.strength.toFixed(2)}</span>
 																				</div>
 																		</div>
 																</div>
@@ -18320,27 +18653,24 @@ class MapPointsEditor extends FormApplication {
 																		<h3>Groups</h3>
 																		<ul class="mp-group-list">
 																				${groups
-        .map(
-          (g) => `
-																						<li class="mp-group-item ${g.id === this._selectedGroupId
-              ? "selected"
-              : ""
-            }" data-group-id="${g.id
-            }" data-action="select-group">
-																								<span class="mp-group-item-status ${g.isBroken
-              ? "broken"
-              : "valid"
-            }" title="${g.isBroken ? g.reason : "Valid"
-            }"></span>
-																								<span class="mp-group-item-label">${Handlebars.escapeExpression(
-              g.label
-            )}</span>
-																								<span class="mp-group-item-type">${g.type
-            }</span>
+                                          .map(
+                                            (g) => `
+																						<li class="mp-group-item ${
+                                              g.id === this._selectedGroupId
+                                                ? "selected"
+                                                : ""
+                                            }" data-group-id="${
+                                              g.id
+                                            }" data-action="select-group">
+																								<span class="mp-group-item-status ${g.isBroken ? "broken" : "valid"}" title="${
+                                              g.isBroken ? g.reason : "Valid"
+                                            }"></span>
+																								<span class="mp-group-item-label">${Handlebars.escapeExpression(g.label)}</span>
+																								<span class="mp-group-item-type">${g.type}</span>
 																						</li>
 																				`
-        )
-        .join("")}
+                                          )
+                                          .join("")}
 																		</ul>
 																		<div class="mp-create-group-form">
 																				<input type="text" name="newGroupName" placeholder="New Group Name">
@@ -18390,8 +18720,8 @@ class MapPointsEditor extends FormApplication {
       target.type === "checkbox"
         ? target.checked
         : target.type === "range"
-          ? parseFloat(target.value)
-          : target.value;
+        ? parseFloat(target.value)
+        : target.value;
 
     // --- Live UI Updates without a full re-render ---
     // These happen on 'input' and 'change'
@@ -18805,7 +19135,8 @@ class MetallicShineFilter extends PIXI.Filter {
 
 							if (uCloudOcclusionEnabled) {
 									float cloudValue = texture2D(uCloudOcclusionMask, vScreenCoord).r;
-									finalAlpha *= (1.0 - cloudValue * uCloudOcclusionIntensity);
+									float outdoorsValue = texture2D(uOutdoorsMask, vScreenCoord).r;
+									finalAlpha *= (1.0 - cloudValue * uCloudOcclusionIntensity * outdoorsValue);
 							}
 
 							float outdoorsMaskValue = texture2D(uOutdoorsMask, vScreenCoord).r;
@@ -19073,170 +19404,170 @@ class MetallicShineLayer extends CanvasLayer {
 			${checkboxHTML}
 			<hr style="border-color: #555; margin: 6px 0;">
 			${DebuggerUIBuilder._createTextureInputHTML(
-      "specular",
-      "Specular Map (_Specular)"
-    )}
+        "specular",
+        "Specular Map (_Specular)"
+      )}
 			<p class="description-text">Displays an animated stripe pattern, masked by the specular map.</p>
 
 			${DebuggerUIBuilder._createSelectHTML(
-      "baseShine.compositing.layerBlendMode",
-      "Blend Mode",
-      BLEND_MODE_OPTIONS
-    )}
+        "baseShine.compositing.layerBlendMode",
+        "Blend Mode",
+        BLEND_MODE_OPTIONS
+      )}
 
 			${DebuggerUIBuilder._createSliderHTML(
-      "baseShine.animation.globalIntensity",
-      "Global Intensity",
-      0,
-      4,
-      0.1,
-      "Controls the brightness of the final effect."
-    )}
+        "baseShine.animation.globalIntensity",
+        "Global Intensity",
+        0,
+        4,
+        0.1,
+        "Controls the brightness of the final effect."
+      )}
 
 			<details id="details-baseShine-pattern-stripes">
 					<summary><span class="accordion-toggle"></span><strong>Shine Stripes Pattern</strong></summary>
 					<div style="padding-left: 15px;">
 							<p class="description-text">Controls the animated stripes that create the shine effect.</p>
 							${DebuggerUIBuilder._createSliderHTML(
-      "baseShine.pattern.stripes.speed",
-      "Scroll Speed",
-      -0.2,
-      0.2,
-      0.001
-    )}
+                "baseShine.pattern.stripes.speed",
+                "Scroll Speed",
+                -0.2,
+                0.2,
+                0.001
+              )}
 							${DebuggerUIBuilder._createSliderHTML(
-      "baseShine.pattern.stripes.angle",
-      "Angle",
-      0,
-      180,
-      1
-    )}
+                "baseShine.pattern.stripes.angle",
+                "Angle",
+                0,
+                180,
+                1
+              )}
 							${DebuggerUIBuilder._createSliderHTML(
-      "baseShine.pattern.stripes.scale",
-      "Frequency / Scale",
-      1,
-      50,
-      0.5,
-      "The number of stripes. Higher values mean more, thinner stripes."
-    )}
+                "baseShine.pattern.stripes.scale",
+                "Frequency / Scale",
+                1,
+                50,
+                0.5,
+                "The number of stripes. Higher values mean more, thinner stripes."
+              )}
 							${DebuggerUIBuilder._createSliderHTML(
-      "baseShine.pattern.stripes.parallax",
-      "Parallax",
-      0,
-      1,
-      0.01
-    )}
+                "baseShine.pattern.stripes.parallax",
+                "Parallax",
+                0,
+                1,
+                0.01
+              )}
 							<hr style="border-color: #555; margin: 6px 0;">
 							<p class="description-text" style="font-weight: bold;">Stripe Appearance</p>
 							${DebuggerUIBuilder._createSliderHTML(
-      "baseShine.pattern.stripes.width",
-      "Width",
-      0.01,
-      1.0,
-      0.01,
-      "The base width of the bright part of each stripe."
-    )}
+                "baseShine.pattern.stripes.width",
+                "Width",
+                0.01,
+                1.0,
+                0.01,
+                "The base width of the bright part of each stripe."
+              )}
 							${DebuggerUIBuilder._createSliderHTML(
-      "baseShine.pattern.stripes.softness",
-      "Softness",
-      0.01,
-      0.5,
-      0.01,
-      "How soft or feathered the edges of the stripes are."
-    )}
+                "baseShine.pattern.stripes.softness",
+                "Softness",
+                0.01,
+                0.5,
+                0.01,
+                "How soft or feathered the edges of the stripes are."
+              )}
 							 <hr style="border-color: #555; margin: 6px 0;">
 							<p class="description-text" style="font-weight: bold;">Randomness</p>
 							${DebuggerUIBuilder._createSliderHTML(
-      "baseShine.pattern.stripes.randomWidth",
-      "Width Variation",
-      0,
-      0.49,
-      0.01,
-      "The amount of random variation in each stripe's width."
-    )}
+                "baseShine.pattern.stripes.randomWidth",
+                "Width Variation",
+                0,
+                0.49,
+                0.01,
+                "The amount of random variation in each stripe's width."
+              )}
 							${DebuggerUIBuilder._createSliderHTML(
-      "baseShine.pattern.stripes.randomIntensity",
-      "Intensity Variation",
-      0,
-      1.0,
-      0.01,
-      "The amount of random variation in each stripe's brightness."
-    )}
+                "baseShine.pattern.stripes.randomIntensity",
+                "Intensity Variation",
+                0,
+                1.0,
+                0.01,
+                "The amount of random variation in each stripe's brightness."
+              )}
 					</div>
 			</details>
 			<details id="details-baseShine-colorCorrection">
 					<summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-      "baseShine.colorCorrection.enabled",
-      "Color Correction",
-      true
-    )}</div></summary>
+            "baseShine.colorCorrection.enabled",
+            "Color Correction",
+            true
+          )}</div></summary>
 					<div style="padding-left: 15px;">
 							<p class="description-text">Adjusts the color of the final shine effect.</p>
 							${DebuggerUIBuilder._createSliderHTML(
-      "baseShine.colorCorrection.saturation",
-      "Saturation",
-      0,
-      4,
-      0.05
-    )}
+                "baseShine.colorCorrection.saturation",
+                "Saturation",
+                0,
+                4,
+                0.05
+              )}
 							${DebuggerUIBuilder._createSliderHTML(
-      "baseShine.colorCorrection.brightness",
-      "Brightness",
-      -1,
-      1,
-      0.01
-    )}
+                "baseShine.colorCorrection.brightness",
+                "Brightness",
+                -1,
+                1,
+                0.01
+              )}
 							${DebuggerUIBuilder._createSliderHTML(
-      "baseShine.colorCorrection.contrast",
-      "Contrast",
-      0,
-      4,
-      0.05
-    )}
+                "baseShine.colorCorrection.contrast",
+                "Contrast",
+                0,
+                4,
+                0.05
+              )}
 							${DebuggerUIBuilder._createSliderHTML(
-      "baseShine.colorCorrection.gamma",
-      "Gamma",
-      0.2,
-      2.5,
-      0.05
-    )}
+                "baseShine.colorCorrection.gamma",
+                "Gamma",
+                0.2,
+                2.5,
+                0.05
+              )}
 							${DebuggerUIBuilder._createCheckboxHTML(
-      "baseShine.colorCorrection.invert",
-      "Invert Colors"
-    )}
+                "baseShine.colorCorrection.invert",
+                "Invert Colors"
+              )}
 							<details id="details-baseShine-cc-tint"><summary><span class="accordion-toggle"></span><strong>Color Tint</strong></summary><div style="padding-left: 15px;">
 									${DebuggerUIBuilder._createColorPickerHTML(
-      "baseShine.colorCorrection.tint.color",
-      "Tint Color"
-    )}
+                    "baseShine.colorCorrection.tint.color",
+                    "Tint Color"
+                  )}
 									${DebuggerUIBuilder._createSliderHTML(
-      "baseShine.colorCorrection.tint.amount",
-      "Tint Amount",
-      0,
-      1,
-      0.01
-    )}
+                    "baseShine.colorCorrection.tint.amount",
+                    "Tint Amount",
+                    0,
+                    1,
+                    0.01
+                  )}
 							</div></details>
 					</div>
 			</details>
 			<details id="details-baseShine-cloudOcclusion">
 					<summary><span class="accordion-toggle"></span>
 							<div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-      "baseShine.cloudOcclusion.enabled",
-      "Cloud Occlusion",
-      true
-    )}</div>
+                "baseShine.cloudOcclusion.enabled",
+                "Cloud Occlusion",
+                true
+              )}</div>
 					</summary>
 					<div style="padding-left: 15px;">
 							<p class="description-text">Reduces shine intensity based on cloud cover, making metal less reflective under overcast skies. Requires the Cloud Shadows effect to be active.</p>
 							${DebuggerUIBuilder._createSliderHTML(
-      "baseShine.cloudOcclusion.intensity",
-      "Intensity",
-      0,
-      1,
-      0.01,
-      "How strongly the clouds block the shine. 1.0 means a full shadow completely removes the shine."
-    )}
+                "baseShine.cloudOcclusion.intensity",
+                "Intensity",
+                0,
+                1,
+                0.01,
+                "How strongly the clouds block the shine. 1.0 means a full shadow completely removes the shine."
+              )}
 					</div>
 			</details>
 	`;
@@ -19316,7 +19647,6 @@ class MetallicShineLayer extends CanvasLayer {
   renderEffectNow(deltaTime) {
     if (this._destroyed || !this.visible || !this.shineFilter) return;
 
-
     if (this._needsMaskUpdate) {
       this._renderSpecularCompositeTexture();
     }
@@ -19335,7 +19665,9 @@ class MetallicShineLayer extends CanvasLayer {
     });
 
     const resourceManager = game.mapShine.resourceManager;
-    // Correct fallback for cloud texture is BLACK (no clouds = no occlusion).
+    // Before:
+    // const cloudTexture = resourceManager.getCloudShadowTexture(deltaTime) || PIXI.Texture.BLACK;
+    // After:
     const cloudTexture =
       // @ts-ignore
       resourceManager.getRawCloudTexture(deltaTime) || PIXI.Texture.BLACK;
@@ -19356,12 +19688,18 @@ class MetallicShineLayer extends CanvasLayer {
     const buildingShadowsConfig = config.buildingShadows;
     const time = this.currentTime;
 
-    if (buildingShadowsConfig && buildingShadowsConfig.enabled && time >= 6 && time < 18) {
+    if (
+      buildingShadowsConfig &&
+      buildingShadowsConfig.enabled &&
+      time >= 6 &&
+      time < 18
+    ) {
       u.uBuildingShadowsEnabled = true;
 
       const sunPos = (time - 12) / 6.0;
       const offsetMagnitude = buildingShadowsConfig.maxOffset * sunPos;
-      const sunAngleRad = (buildingShadowsConfig.sunAngle ?? 45) * (Math.PI / 180.0);
+      const sunAngleRad =
+        (buildingShadowsConfig.sunAngle ?? 45) * (Math.PI / 180.0);
 
       u.uBuildingShadowOffset = [
         Math.cos(sunAngleRad) * offsetMagnitude,
@@ -19369,7 +19707,8 @@ class MetallicShineLayer extends CanvasLayer {
       ];
 
       const effectiveDaylight = 1.0 - Math.abs(time - 12) / 6.0;
-      const blurPixels = buildingShadowsConfig.maxBlur * (1.0 - effectiveDaylight);
+      const blurPixels =
+        buildingShadowsConfig.maxBlur * (1.0 - effectiveDaylight);
       u.uBuildingShadowBlur = Math.max(0.1, blurPixels);
 
       u.uBuildingShadowIntensity = buildingShadowsConfig.intensity;
@@ -19381,7 +19720,6 @@ class MetallicShineLayer extends CanvasLayer {
       u.uBuildingCanvasScale = [canvasScale, canvasScale];
 
       u.uSceneRectNorm = CoordinateManager.getSceneRectNormalizedArray();
-
     } else {
       u.uBuildingShadowsEnabled = false;
     }
@@ -19400,8 +19738,6 @@ class MetallicShineLayer extends CanvasLayer {
       clear: true,
     });
   }
-
-
 
   _renderSpecularCompositeTexture() {
     if (!this.sourceContainer || !this.specularCompositeTexture) return;
@@ -19602,169 +19938,143 @@ class CloudShadowsFilter extends PIXI.Filter {
   // @ts-ignore
   constructor(options = {}) {
     const vertexSrc = `
-												attribute vec2 aVertexPosition;
-												attribute vec2 aTextureCoord;
-												uniform mat3 projectionMatrix;
-												varying vec2 vTextureCoord;
-												varying vec2 vScreenCoord;
+		attribute vec2 aVertexPosition;
+		attribute vec2 aTextureCoord;
+		uniform mat3 projectionMatrix;
+		varying vec2 vTextureCoord;
+		varying vec2 vScreenCoord;
 
-												void main(void) {
-														gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
-														vTextureCoord = aTextureCoord;
-														vScreenCoord = gl_Position.xy * 0.5 + 0.5;
-												}
-										`;
+		void main(void) {
+				gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
+				vTextureCoord = aTextureCoord;
+				vScreenCoord = gl_Position.xy * 0.5 + 0.5;
+		}
+`;
 
     const fragmentSrc = `
-												precision mediump float;
-												varying vec2 vTextureCoord;
-												varying vec2 vScreenCoord;
+		precision mediump float;
+		varying vec2 vTextureCoord;
+		varying vec2 vScreenCoord;
 
-												uniform sampler2D uOutdoorsMask;
+		uniform sampler2D uSampler;
+		uniform sampler2D uOutdoorsMask;
+		uniform sampler2D uLightPolygonMask; // Now receives the pre-blurred mask
 
-												uniform float u_time;
-												uniform vec2 u_camera_offset;
-												uniform vec2 u_view_size;
-												uniform vec2 u_windDirection;
-												uniform vec4 uSceneRectNorm;
+		// World & Camera
+		uniform float u_time;
+		uniform vec2 u_camera_offset;
+		uniform vec2 u_view_size;
+		uniform vec2 u_windDirection;
+		uniform vec4 uSceneRectNorm;
 
-												uniform float u_noise_scale;
-												uniform int u_noise_octaves;
-												uniform float u_noise_persistence;
-												uniform float u_noise_lacunarity;
+		// Noise & Shading
+		uniform float u_noise_scale;
+		uniform int u_noise_octaves;
+		uniform float u_noise_persistence;
+		uniform float u_noise_lacunarity;
+		uniform float u_shading_threshold;
+		uniform float u_shading_softness;
+		uniform float u_shading_brightness;
+		uniform float u_shading_contrast;
+		uniform float u_shading_gamma;
+		uniform float u_shadowIntensity;
+		uniform bool u_outputRawCloud;
 
-												uniform float u_shading_threshold;
-												uniform float u_shading_softness;
-												uniform float u_shading_brightness;
-												uniform float u_shading_contrast;
-												uniform float u_shading_gamma;
-												uniform float u_shadowIntensity;
+		// Light Occlusion
+		uniform bool u_occlusionEnabled;
+		uniform float u_occlusionIntensity;
 
-												uniform bool u_outputHighlightMask;
-												uniform bool u_outputRawCloud;
+		float random(vec2 st) { return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123); }
+		float noise(vec2 st) {
+				vec2 i = floor(st); vec2 f = fract(st);
+				float a = random(i); float b = random(i + vec2(1.0, 0.0));
+				float c = random(i + vec2(0.0, 1.0)); float d = random(i + vec2(1.0, 1.0));
+				vec2 u = f * f * (3.0 - 2.0 * f);
+				return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.y * u.x;
+		}
+		float fbm(vec2 st) {
+				float value = 0.0; float amplitude = 0.5;
+				for (int i = 0; i < 10; i++) {
+						if (i >= u_noise_octaves) break;
+						value += amplitude * noise(st);
+						st *= u_noise_lacunarity;
+						amplitude *= u_noise_persistence;
+				}
+				return value;
+		}
+		float applyShadingControls(float value) {
+				value += u_shading_brightness;
+				value = (value - 0.5) * u_shading_contrast + 0.5;
+				value = smoothstep(u_shading_threshold, u_shading_threshold + u_shading_softness, value);
+				if (u_shading_gamma > 0.0) { value = pow(value, u_shading_gamma); }
+				return clamp(value, 0.0, 1.0);
+		}
 
-												const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
+		void main() {
+				vec2 sceneMin = uSceneRectNorm.xy;
+				vec2 sceneMax = uSceneRectNorm.xy + uSceneRectNorm.zw;
+				if (vScreenCoord.x < sceneMin.x || vScreenCoord.x > sceneMax.x || vScreenCoord.y < sceneMin.y || vScreenCoord.y > sceneMax.y) {
+						if (u_outputRawCloud) { gl_FragColor = vec4(0.0); }
+						else { gl_FragColor = texture2D(uSampler, vTextureCoord); }
+						return;
+				}
 
-												float random(vec2 st) {
-														return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
-												}
+				float maskValue = texture2D(uOutdoorsMask, vScreenCoord).r;
+				float shadedCloudValue = 0.0;
+				if (maskValue > 0.01 || u_outputRawCloud) {
+						vec2 world_coord = u_camera_offset + (vScreenCoord * u_view_size);
+						vec2 noise_uv = world_coord / 100.0 * u_noise_scale;
+						noise_uv += u_time * u_windDirection;
+						float rawCloudValue = fbm(noise_uv);
+						shadedCloudValue = applyShadingControls(rawCloudValue);
+				}
 
-												float noise(vec2 st) {
-														vec2 i = floor(st);
-														vec2 f = fract(st);
-														float a = random(i);
-														float b = random(i + vec2(1.0, 0.0));
-														float c = random(i + vec2(0.0, 1.0));
-														float d = random(i + vec2(1.0, 1.0));
-														vec2 u = f * f * (3.0 - 2.0 * f);
-														return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.y * u.x;
-												}
+				if (u_outputRawCloud) {
+						gl_FragColor = vec4(vec3(shadedCloudValue), 1.0);
+						return;
+				}
 
-												float fbm(vec2 st) {
-														float value = 0.0;
-														float amplitude = 0.5;
-														for (int i = 0; i < 10; i++) {
-																if (i >= u_noise_octaves) break;
-																value += amplitude * noise(st);
-																st *= u_noise_lacunarity;
-																amplitude *= u_noise_persistence;
-														}
-														return value;
-												}
+				vec4 originalColor = texture2D(uSampler, vTextureCoord);
+				if (maskValue < 0.01) {
+						gl_FragColor = originalColor;
+						return;
+				}
 
-												float applyShadingControls(float value) {
-														value += u_shading_brightness;
-														value = (value - 0.5) * u_shading_contrast + 0.5;
-														value = smoothstep(u_shading_threshold, u_shading_threshold + u_shading_softness, value);
-														if (u_shading_gamma > 0.0) {
-																value = pow(value, u_shading_gamma);
-														}
-														return clamp(value, 0.0, 1.0);
-												}
+				float shadowAmount = shadedCloudValue * maskValue * u_shadowIntensity;
 
-												void main() {
-														vec2 sceneMin = uSceneRectNorm.xy;
-														vec2 sceneMax = uSceneRectNorm.xy + uSceneRectNorm.zw;
-														if (vScreenCoord.x < sceneMin.x || vScreenCoord.x > sceneMax.x || vScreenCoord.y < sceneMin.y || vScreenCoord.y > sceneMax.y) {
-																if (u_outputHighlightMask || u_outputRawCloud) {
-																		gl_FragColor = vec4(0.0);
-																} else {
-																		gl_FragColor = vec4(1.0);
-																}
-																return;
-														}
+				if (u_occlusionEnabled) {
+					// The light mask is now pre-blurred, so its value is already a gradient from 0.0 to 1.0.
+					float lightMaskValue = texture2D(uLightPolygonMask, vScreenCoord).r;
+					shadowAmount *= (1.0 - lightMaskValue * u_occlusionIntensity);
+				}
 
-														float maskValue = texture2D(uOutdoorsMask, vScreenCoord).r;
-
-														float shadedCloudValue = 0.0;
-														// Generate cloud noise regardless of being indoors, if we might need the raw cloud output.
-														if (maskValue > 0.01 || u_outputRawCloud) {
-																// This is the corrected calculation. It uses the world coordinates derived
-																// from the screen coordinates to sample the noise pattern, ensuring the
-																// pattern moves correctly with the map.
-																vec2 world_coord = u_camera_offset + (vScreenCoord * u_view_size);
-																vec2 noise_uv = world_coord / 100.0 * u_noise_scale;
-																noise_uv += u_time * u_windDirection;
-																float rawCloudValue = fbm(noise_uv);
-																shadedCloudValue = applyShadingControls(rawCloudValue);
-														}
-
-														if (u_outputRawCloud) {
-																gl_FragColor = vec4(vec3(shadedCloudValue), 1.0);
-																return;
-														}
-
-														if (u_outputHighlightMask) {
-																float lightAmount = 1.0 - shadedCloudValue;
-																gl_FragColor = vec4(vec3(lightAmount * maskValue), 1.0);
-																return;
-														}
-
-														float shadowAmount = shadedCloudValue * maskValue * u_shadowIntensity;
-
-														shadowAmount = clamp(shadowAmount, 0.0, 1.0);
-
-														gl_FragColor = vec4(vec3(0.0), shadowAmount);
-												}
-										`;
+				shadowAmount = clamp(shadowAmount, 0.0, 1.0);
+				vec3 finalColor = originalColor.rgb * (1.0 - shadowAmount);
+				gl_FragColor = vec4(finalColor, originalColor.a);
+		}
+`;
 
     super(vertexSrc, fragmentSrc, {
-      // @ts-ignore
       uOutdoorsMask: PIXI.Texture.EMPTY,
-      // @ts-ignore
+      uLightPolygonMask: PIXI.Texture.EMPTY,
       u_time: 0.0,
-      // @ts-ignore
       u_camera_offset: [0, 0],
-      // @ts-ignore
       u_view_size: [0, 0],
-      // @ts-ignore
       uSceneRectNorm: [0, 0, 1, 1],
-      // @ts-ignore
       u_windDirection: [0.01, 0.01],
-      // @ts-ignore
       u_noise_scale: 0.1,
-      // @ts-ignore
       u_noise_octaves: 5,
-      // @ts-ignore
       u_noise_persistence: 0.5,
-      // @ts-ignore
       u_noise_lacunarity: 2.5,
-      // @ts-ignore
       u_shading_threshold: 1.0,
-      // @ts-ignore
       u_shading_softness: 0.2,
-      // @ts-ignore
       u_shading_brightness: 0.51,
-      // @ts-ignore
       u_shading_contrast: 1.0,
-      // @ts-ignore
       u_shading_gamma: 1.0,
-      // @ts-ignore
       u_shadowIntensity: 0.5,
-      // @ts-ignore
-      u_outputHighlightMask: false,
-      // @ts-ignore
       u_outputRawCloud: false,
+      u_occlusionEnabled: true,
+      u_occlusionIntensity: 1.0,
     });
   }
 }
@@ -19776,17 +20086,23 @@ class CloudShadowsLayer extends MaskedEffectLayer {
     });
 
     this.cloudFilter = null;
-    this.blurredMaskTexture = null;
-    this.maskBlurFilter = null;
+
+    // --- NEW: Properties for two-pass, high-precision blur ---
+    this.kawaseBlurFilter1 = null;
+    this.kawaseBlurFilter2 = null;
+    this.intermediateBlurTexture = null; // For the first blur pass
+    this.blurredLightMaskTexture = null; // The final result of the second pass
     this.blurSourceSprite = null;
+    this._needsLightMaskUpdate = true;
+    // --- End New Properties ---
 
     this._patternGeneratorSprite = null;
-    this.cloudShadowTexture = null;
-    this.cloudHighlightMaskTexture = null;
     this.rawCloudTexture = null;
-    this.effectSprite = null;
 
     this._cloudVelocity = { x: 0, y: 0 };
+
+    this.lightPolygonMaskTexture = null;
+    this.lightMaskGraphics = null;
   }
 
   static getSettingsHTML() {
@@ -19804,72 +20120,72 @@ class CloudShadowsLayer extends MaskedEffectLayer {
                         ${checkboxHTML}
                         <hr style="border-color: #555; margin: 6px 0;">
                         ${DebuggerUIBuilder._createTextureInputHTML(
-      "outdoors",
-      "Outdoor Mask (_Outdoors)"
-    )}
+                          "outdoors",
+                          "Outdoor Mask (_Outdoors)"
+                        )}
                         <p class="description-text">Simulates moving cloud shadows within the masked areas.</p>
                         ${DebuggerUIBuilder._createSliderHTML(
-      "cloudShadows.shadowIntensity",
-      "Global Intensity",
-      0,
-      2,
-      0.05
-    )}
+                          "cloudShadows.shadowIntensity",
+                          "Global Intensity",
+                          0,
+                          2,
+                          0.05
+                        )}
                         ${DebuggerUIBuilder._createSliderHTML(
-      "cloudShadows.maskBlur",
-      "Mask Blur",
-      0,
-      50,
-      1
-    )}
+                          "cloudShadows.maskBlur",
+                          "Mask Blur",
+                          0,
+                          50,
+                          1
+                        )}
                         <details><summary><span class="accordion-toggle"></span><strong>Wind</strong></summary>
                             <div style="padding-left: 15px;">
                                 ${DebuggerUIBuilder._createSliderHTML(
-      "cloudShadows.wind.angle",
-      "Angle",
-      0,
-      360,
-      1
-    )}
+                                  "cloudShadows.wind.angle",
+                                  "Angle",
+                                  0,
+                                  360,
+                                  1
+                                )}
                                 ${DebuggerUIBuilder._createSliderHTML(
-      "cloudShadows.wind.speed",
-      "Speed",
-      0,
-      0.01,
-      0.0001
-    )}
+                                  "cloudShadows.wind.speed",
+                                  "Speed",
+                                  0,
+                                  0.01,
+                                  0.0001
+                                )}
 								<details id="details-cloudShadows-wind-link" style="margin-top: 5px;">
 									<summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-      "cloudShadows.wind.linkToFireWind",
-      "Link to Complex Wind",
-      true
-    )}</div></summary>
+                    "cloudShadows.wind.linkToFireWind",
+                    "Link to Complex Wind",
+                    true
+                  )}</div></summary>
 									<div style="padding-left: 15px;">
 										<p class="description-text">Overrides the simple wind settings above and uses the wind simulation from the Fire effect.</p>
 										${DebuggerUIBuilder._createSliderHTML(
-      "cloudShadows.wind.linkedWindForce",
-      "Wind Force",
-      0,
-      0.005,
-      0.0001,
-      "How strongly the wind accelerates the clouds."
-    )}
+                      "cloudShadows.wind.linkedWindForce",
+                      "Wind Force",
+                      0,
+                      0.005,
+                      0.0001,
+                      "How strongly the wind accelerates the clouds."
+                    )}
 										${DebuggerUIBuilder._createSliderHTML(
-      "cloudShadows.wind.linkedMaxSpeed",
-      "Max Speed",
-      0,
-      0.02,
-      0.0005,
-      "The maximum speed (terminal velocity) of the clouds."
-    )}
+                      "cloudShadows.wind.linkedMaxSpeed",
+                      "Max Speed",
+                      0,
+                      0.02,
+                      0.0005,
+                      "The maximum speed (terminal velocity) of the clouds."
+                    )}
 										${DebuggerUIBuilder._createSliderHTML(
-      "cloudShadows.wind.linkedDrag",
-      "Drag (Lower = More Inertia)",
-      0,
-      1,
-      0.01,
-      "How much the clouds resist movement. Lower values mean they are heavier and drift for longer."
-    )}
+                      "cloudShadows.wind.linkedDrag",
+                      "Drag (Lower = More Inertia)",
+                      0,
+                      1,
+                      0.01,
+                      "How much the clouds resist movement. Lower values mean they are heavier and drift for longer."
+                    )}
 									</div>
 								</details>
                             </div>
@@ -19877,112 +20193,104 @@ class CloudShadowsLayer extends MaskedEffectLayer {
                         <details><summary><span class="accordion-toggle"></span><strong>Noise Pattern</strong></summary>
                             <div style="padding-left: 15px;">
                                 ${DebuggerUIBuilder._createSliderHTML(
-      "cloudShadows.noise.scale",
-      "Scale",
-      0.01,
-      10,
-      0.01
-    )}
+                                  "cloudShadows.noise.scale",
+                                  "Scale",
+                                  0.01,
+                                  10,
+                                  0.01
+                                )}
                                 ${DebuggerUIBuilder._createSliderHTML(
-      "cloudShadows.noise.octaves",
-      "Detail Octaves",
-      1,
-      8,
-      1,
-      "Adds more layers of detail to the noise. Higher is more complex."
-    )}
+                                  "cloudShadows.noise.octaves",
+                                  "Detail Octaves",
+                                  1,
+                                  8,
+                                  1,
+                                  "Adds more layers of detail to the noise. Higher is more complex."
+                                )}
                                 ${DebuggerUIBuilder._createSliderHTML(
-      "cloudShadows.noise.persistence",
-      "Roughness",
-      0.1,
-      1,
-      0.05,
-      "How much each successive octave contributes. Lower values give a softer look."
-    )}
+                                  "cloudShadows.noise.persistence",
+                                  "Roughness",
+                                  0.1,
+                                  1,
+                                  0.05,
+                                  "How much each successive octave contributes. Lower values give a softer look."
+                                )}
                                 ${DebuggerUIBuilder._createSliderHTML(
-      "cloudShadows.noise.lacunarity",
-      "Detail Frequency",
-      1.5,
-      4,
-      0.1,
-      "How much detail is added with each octave. Higher values create finer, more complex noise."
-    )}
+                                  "cloudShadows.noise.lacunarity",
+                                  "Detail Frequency",
+                                  1.5,
+                                  4,
+                                  0.1,
+                                  "How much detail is added with each octave. Higher values create finer, more complex noise."
+                                )}
                             </div>
                         </details>
                         <details><summary><span class="accordion-toggle"></span><strong>Shading & Appearance</strong></summary>
                             <div style="padding-left: 15px;">
                                 ${DebuggerUIBuilder._createSliderHTML(
-      "cloudShadows.shading.threshold",
-      "Threshold",
-      0,
-      1,
-      0.01
-    )}
+                                  "cloudShadows.shading.threshold",
+                                  "Threshold",
+                                  0,
+                                  1,
+                                  0.01
+                                )}
                                 ${DebuggerUIBuilder._createSliderHTML(
-      "cloudShadows.shading.softness",
-      "Softness",
-      0.01,
-      1,
-      0.01
-    )}
+                                  "cloudShadows.shading.softness",
+                                  "Softness",
+                                  0.01,
+                                  1,
+                                  0.01
+                                )}
                                 ${DebuggerUIBuilder._createSliderHTML(
-      "cloudShadows.shading.brightness",
-      "Brightness",
-      -1,
-      1,
-      0.01
-    )}
+                                  "cloudShadows.shading.brightness",
+                                  "Brightness",
+                                  -1,
+                                  1,
+                                  0.01
+                                )}
                                 ${DebuggerUIBuilder._createSliderHTML(
-      "cloudShadows.shading.contrast",
-      "Contrast",
-      0.1,
-      5,
-      0.05
-    )}
+                                  "cloudShadows.shading.contrast",
+                                  "Contrast",
+                                  0.1,
+                                  5,
+                                  0.05
+                                )}
                                 ${DebuggerUIBuilder._createSliderHTML(
-      "cloudShadows.shading.gamma",
-      "Gamma",
-      0.1,
-      5,
-      0.05,
-      "Adjusts the mid-tones of the shadows. < 1 lightens, > 1 darkens."
-    )}
+                                  "cloudShadows.shading.gamma",
+                                  "Gamma",
+                                  0.1,
+                                  5,
+                                  0.05,
+                                  "Adjusts the mid-tones of the shadows. < 1 lightens, > 1 darkens."
+                                )}
                             </div>
                         </details>
-                        <details id="details-cloudShadows-shadowInteraction">
+                        <details id="details-cloudShadows-lightOcclusion">
                             <summary><span class="accordion-toggle"></span>
                                 <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-      "cloudShadows.shadowInteraction.enabled",
-      "Illumination Masking",
-      true
-    )}</div>
+                                  "cloudShadows.lightOcclusion.enabled",
+                                  "Light Occlusion",
+                                  true
+                                )}</div>
                             </summary>
                             <div style="padding-left: 15px;">
-                                <p class="description-text">Reduces shadow intensity in lit areas of the scene. Requires the Illumination Buffer module.</p>
+                                <p class="description-text">Allows light sources to cut through the cloud shadows, with artist-controlled falloff.</p>
                                 ${DebuggerUIBuilder._createSliderHTML(
-      "cloudShadows.shadowInteraction.intensity",
-      "Reduction Amount",
-      0,
-      1,
-      0.01,
-      "How much to reduce shadow opacity in fully lit areas."
-    )}
+                                  "cloudShadows.lightOcclusion.intensity",
+                                  "Intensity",
+                                  0,
+                                  1,
+                                  0.01,
+                                  "How much light cuts through. 1.0 is a full cutout, 0.5 dims shadows by 50%."
+                                )}
                                 ${DebuggerUIBuilder._createSliderHTML(
-      "cloudShadows.shadowInteraction.luminanceThreshold",
-      "Light Threshold",
-      0,
-      1,
-      0.01,
-      "The scene brightness level above which shadows will start to fade."
-    )}
-                                ${DebuggerUIBuilder._createSliderHTML(
-      "cloudShadows.shadowInteraction.softness",
-      "Edge Softness",
-      0.01,
-      1,
-      0.01,
-      "How gradual the fade transition is."
-    )}
+                                  "cloudShadows.lightOcclusion.falloff",
+                                  "Edge Softness (Blur)",
+                                  0,
+                                  250,
+                                  1,
+                                  "The pixel radius of the blur used to soften light edges. Higher is softer."
+                                )}
                             </div>
                         </details>
                     `;
@@ -19994,23 +20302,67 @@ class CloudShadowsLayer extends MaskedEffectLayer {
     );
   }
 
-  getHighlightMaskTexture() {
-    return this.cloudHighlightMaskTexture;
-  }
-
   getRawCloudTexture() {
     return this.rawCloudTexture;
   }
 
-  async _draw(options) {
-    await super._draw(options); // Sets up the outdoors mask
-
+  _renderLightMask() {
+    if (!this.lightMaskGraphics || !this.lightPolygonMaskTexture) return;
     const renderer = canvas.app.renderer;
 
+    // Phase 1: Render the hard-edged polygon mask
+    const graphics = this.lightMaskGraphics;
+    graphics.clear();
+    graphics.beginFill(0xffffff);
+    for (const light of canvas.scene.lights) {
+      if (
+        !light.object?.visible ||
+        !light.object.lightSource?.active ||
+        light.object.lightSource.shape?.points.length < 6
+      ) {
+        continue;
+      }
+      graphics.drawPolygon(light.object.lightSource.shape.points);
+    }
+    graphics.endFill();
+    renderer.render(graphics, {
+      renderTexture: this.lightPolygonMaskTexture,
+      clear: true,
+      transform: canvas.stage.transform.worldTransform,
+    });
+
+    // Phase 2: Perform two-pass Kawase blur for a high-quality soft edge
+    if (this.kawaseBlurFilter1 && this.kawaseBlurFilter2) {
+      // First pass
+      this.blurSourceSprite.texture = this.lightPolygonMaskTexture;
+      this.blurSourceSprite.filters = [this.kawaseBlurFilter1];
+      renderer.render(this.blurSourceSprite, {
+        renderTexture: this.intermediateBlurTexture,
+        clear: true,
+      });
+
+      // Second pass
+      this.blurSourceSprite.texture = this.intermediateBlurTexture;
+      this.blurSourceSprite.filters = [this.kawaseBlurFilter2];
+      renderer.render(this.blurSourceSprite, {
+        renderTexture: this.blurredLightMaskTexture,
+        clear: true,
+      });
+    }
+  }
+
+  async _draw(options) {
+    await super._draw(options);
+    const renderer = canvas.app.renderer;
     this._cloudVelocity = { x: 0, y: 0 };
+    this._needsLightMaskUpdate = true;
 
     try {
       this.cloudFilter = new CloudShadowsFilter();
+      canvas.primary.filters = [
+        ...(canvas.primary.filters || []),
+        this.cloudFilter,
+      ];
       systemStatus.update("shaders", "cloudShadows", {
         state: "ok",
         message: "Compiled successfully.",
@@ -20024,145 +20376,104 @@ class CloudShadowsLayer extends MaskedEffectLayer {
       return;
     }
 
-    // @ts-ignore
-    this.maskBlurFilter = new PIXI.BlurFilter();
-    // @ts-ignore
-    this.blurredMaskTexture = PIXI.RenderTexture.create({
+    // Setup for high-quality light mask blurring
+    this.kawaseBlurFilter1 = new PIXI.filters.KawaseBlurFilter(10, 3, true);
+    this.kawaseBlurFilter2 = new PIXI.filters.KawaseBlurFilter(10, 3, true);
+
+    const textureOptions = {
       width: renderer.screen.width,
       height: renderer.screen.height,
-    });
-    this.blurSourceSprite = new PIXI.Sprite(this.combinedMaskTexture);
-    // Explicitly size the sprite to match the screen.
-    this.blurSourceSprite.width = renderer.screen.width;
-    this.blurSourceSprite.height = renderer.screen.height;
-    this.blurSourceSprite.filters = [this.maskBlurFilter];
+      type: PIXI.TYPES.FLOAT, // Use high-precision floating point texture to prevent banding
+      scaleMode: PIXI.SCALE_MODES.LINEAR,
+    };
 
+    this.intermediateBlurTexture = PIXI.RenderTexture.create(textureOptions);
+    this.blurredLightMaskTexture = PIXI.RenderTexture.create(textureOptions);
+
+    this.blurSourceSprite = new PIXI.Sprite();
+
+    // Standard cloud pattern setup
     this._patternGeneratorSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
     this._patternGeneratorSprite.width = renderer.screen.width;
     this._patternGeneratorSprite.height = renderer.screen.height;
     this._patternGeneratorSprite.filters = [this.cloudFilter];
-
-    // @ts-ignore
-    this.cloudShadowTexture = PIXI.RenderTexture.create({
-      width: renderer.screen.width,
-      height: renderer.screen.height,
-    });
-    // @ts-ignore
-    this.cloudHighlightMaskTexture = PIXI.RenderTexture.create({
-      width: renderer.screen.width,
-      height: renderer.screen.height,
-    });
-    // @ts-ignore
     this.rawCloudTexture = PIXI.RenderTexture.create({
       width: renderer.screen.width,
       height: renderer.screen.height,
     });
 
-    this.effectSprite = new PIXI.Sprite(this.cloudShadowTexture);
-    this.addChild(this.effectSprite);
+    // Light Occlusion (hard-edge mask)
+    this.lightMaskGraphics = new PIXI.Graphics();
+    this.lightPolygonMaskTexture = PIXI.RenderTexture.create({
+      width: renderer.screen.width,
+      height: renderer.screen.height,
+    });
+
+    // Add hooks to trigger mask updates
+    const flagUpdate = () => {
+      this._needsLightMaskUpdate = true;
+    };
+    Hooks.on("canvasPan", flagUpdate);
+    Hooks.on("createLight", flagUpdate);
+    Hooks.on("updateLight", flagUpdate);
+    Hooks.on("deleteLight", flagUpdate);
+    Hooks.on("createWall", flagUpdate);
+    Hooks.on("updateWall", flagUpdate);
+    Hooks.on("deleteWall", flagUpdate);
 
     this.updateFromConfig(game.mapShine.profileManager.activeConfig);
   }
 
   _onPan() {
     super._onPan();
-    this._updateSpriteAndUniformPositions();
+    this._updateUniformPositions();
   }
 
   _onAnimate(deltaTime) {
     super._onAnimate(deltaTime);
-
-    // The resource manager might not be initialized on the very first few frames.
-    const resourceManager = game.mapShine.resourceManager;
-    if (!resourceManager) return;
-
-    // This layer now sources its own texture from the ResourceManager.
-    // This ensures that if it is the first layer to run in a frame, it triggers the
-    // render, and if another layer (like StructuralShadows) runs first, this layer
-    // will get the already-generated texture from the cache. This keeps all
-    // visual representations of the clouds perfectly in sync for the current frame.
-    const cloudTexture = resourceManager.getCloudShadowTexture(deltaTime);
-
-    // Update the sprite that is actually drawn to the screen with the definitive texture for this frame.
-    // Add null checks to prevent errors during scene transitions when objects might be destroyed
-    if (this.effectSprite && cloudTexture && cloudTexture.baseTexture && cloudTexture.baseTexture.valid) {
-      this.effectSprite.texture = cloudTexture;
+    if (this._destroyed || !this.visible || !this.cloudFilter) {
+      if (this.cloudFilter) this.cloudFilter.enabled = false;
+      return;
     }
-  }
-
-  renderEffectNow(deltaTime = canvas.app.ticker.deltaTime) {
-    if (this._destroyed || !this.visible || !this.cloudFilter) return;
-
     const hasActiveMasks =
       this.maskSprites.size > 0 &&
       Array.from(this.maskSprites.values()).some((s) => s.texture.valid);
-    if (!hasActiveMasks) {
-      this.effectSprite.visible = false;
-      return;
+    this.cloudFilter.enabled = this.visible && hasActiveMasks;
+    if (!this.cloudFilter.enabled) return;
+    this.renderEffectNow(deltaTime);
+  }
+
+  renderEffectNow(deltaTime = canvas.app.ticker.deltaTime) {
+    if (this._destroyed || !this.cloudFilter) return;
+
+    if (this._needsLightMaskUpdate) {
+      this._renderLightMask();
+      this._needsLightMaskUpdate = false;
     }
 
-    this.effectSprite.visible = true;
-    if (!this.effectSprite.filterArea) {
-      this.effectSprite.filterArea = canvas.app.screen;
-    }
-
-    // DIAGNOSTIC CHANGE: The entire block responsible for blurring the mask is bypassed.
-    // We will now always use the original, un-blurred mask.
-    /*
-    if (this._needsMaskUpdate && this.maskBlurFilter?.enabled) {
-      this.blurSourceSprite.texture = this.combinedMaskTexture;
-      // Temporarily assign the filter.
-      this.blurSourceSprite.filters = [this.maskBlurFilter];
-
-      // Bind the render texture and manually clear it to opaque black.
-      canvas.app.renderer.renderTexture.bind(this.blurredMaskTexture);
-      canvas.app.renderer.renderTexture.clear([0.0, 0.0, 0.0, 1.0]);
-
-      canvas.app.renderer.render(this.blurSourceSprite, {
-        renderTexture: this.blurredMaskTexture,
-        // Set clear to false as we have already manually cleared.
-        clear: false,
-        // Render with a neutral transform, ignoring the camera.
-        transform: new PIXI.Matrix(),
-      });
-      // Immediately remove the filter.
-      this.blurSourceSprite.filters = null;
-    }
-    */
-
-    // DIAGNOSTIC CHANGE: Force the use of the non-blurred mask.
-    const finalMask = this.getMaskTexture();
     const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
     const u = this.cloudFilter.uniforms;
 
+    const mainOutdoorsMask = this.getMaskTexture(); // Note: We no longer use the blurred version of the outdoors mask itself.
+
     const csConfig = game.mapShine.profileManager.activeConfig.cloudShadows;
     const windConfig = csConfig.wind;
-    const deltaInSeconds = (deltaTime / 1000);
-
-    // --- NEW WIND PHYSICS LOGIC ---
+    const deltaInSeconds = deltaTime / 1000;
     if (
       windConfig.linkToFireWind &&
       game.mapShine.fireWindManager?.config?.enabled
     ) {
       const windManager = game.mapShine.fireWindManager;
-
-      // 1. Calculate wind force vector
       const windAngleRad = windManager.angle * (Math.PI / 180);
       const windForceMagnitude =
         windManager.speed * (windConfig.linkedWindForce ?? 0.001);
       const accelX = Math.cos(windAngleRad) * windForceMagnitude;
       const accelY = Math.sin(windAngleRad) * windForceMagnitude;
-
-      // 2. Apply acceleration to velocity (framerate independent)
       this._cloudVelocity.x += accelX * deltaInSeconds;
       this._cloudVelocity.y += accelY * deltaInSeconds;
-
-      // 3. Apply drag (framerate independent)
       const dragFactor = 1.0 - (windConfig.linkedDrag ?? 0.5) * deltaInSeconds;
       this._cloudVelocity.x *= dragFactor;
       this._cloudVelocity.y *= dragFactor;
-
-      // 4. Clamp to max speed
       const maxSpeed = windConfig.linkedMaxSpeed ?? 0.005;
       const currentSpeedSq =
         this._cloudVelocity.x ** 2 + this._cloudVelocity.y ** 2;
@@ -20172,98 +20483,40 @@ class CloudShadowsLayer extends MaskedEffectLayer {
         this._cloudVelocity.x *= scale;
         this._cloudVelocity.y *= scale;
       }
-
       u.u_windDirection = [this._cloudVelocity.x, this._cloudVelocity.y];
     } else {
-      // Fallback to simple, static wind and reset velocity for next time
       const simpleAngleRad = (windConfig.angle ?? 45.0) * (Math.PI / 180.0);
       const simpleSpeed = windConfig.speed ?? 0.01;
       this._cloudVelocity.x = Math.cos(simpleAngleRad) * simpleSpeed;
       this._cloudVelocity.y = Math.sin(simpleAngleRad) * simpleSpeed;
-
       u.u_windDirection = [this._cloudVelocity.x, this._cloudVelocity.y];
     }
-    // --- END NEW WIND PHYSICS LOGIC ---
 
-    const rect = canvas.scene.dimensions.sceneRect;
-    const screen = canvas.app.renderer.screen;
-    if (rect && screen.width > 0 && screen.height > 0) {
-      // @ts-ignore
-      const topLeftScreen = canvas.stage.toGlobal({
-        x: rect.x,
-        y: rect.y,
-      });
-      const sceneWidthPixels = rect.width * canvas.stage.scale.x;
-      const sceneHeightPixels = rect.height * canvas.stage.scale.y;
-      u.uSceneRectNorm = [
-        topLeftScreen.x / screen.width,
-        topLeftScreen.y / screen.height,
-        sceneWidthPixels / screen.width,
-        sceneHeightPixels / screen.height,
-      ];
-    } else {
-      u.uSceneRectNorm = [0, 0, 1, 1];
-    }
+    // The final light mask is always the result of the blur process now.
+    const finalLightMask = this.blurredLightMaskTexture;
 
-    u.uOutdoorsMask = finalMask;
+    u.uOutdoorsMask = mainOutdoorsMask;
+    u.uLightPolygonMask = finalLightMask;
     u.u_time += deltaTime * timeFactor;
-    this._updateSpriteAndUniformPositions();
+    this._updateUniformPositions();
 
-    u.u_outputHighlightMask = true;
-    u.u_outputRawCloud = false;
-    canvas.app.renderer.render(this._patternGeneratorSprite, {
-      renderTexture: this.cloudHighlightMaskTexture,
-      clear: true,
-    });
-
-    u.u_outputHighlightMask = false;
-    u.u_outputRawCloud = false;
-    canvas.app.renderer.render(this._patternGeneratorSprite, {
-      renderTexture: this.cloudShadowTexture,
-      clear: true,
-    });
-
-    // Render the raw, unmasked cloud FBM for other effects to use.
-    u.u_outputHighlightMask = false;
     u.u_outputRawCloud = true;
     canvas.app.renderer.render(this._patternGeneratorSprite, {
       renderTexture: this.rawCloudTexture,
       clear: true,
     });
-    u.u_outputRawCloud = false; // Reset the uniform
+    u.u_outputRawCloud = false;
   }
 
-  _updateSpriteAndUniformPositions() {
-    if (!this.cloudFilter || !this.effectSprite) return;
+  _updateUniformPositions() {
+    if (!this.cloudFilter) return;
 
-    // Add additional checks to prevent errors during scene transitions
-    if (!canvas.stage || !canvas.app || !canvas.app.screen) return;
-    if (!this.effectSprite.texture || !this.effectSprite.texture.orig) return;
-
-    const stage = canvas.stage,
-      screen = canvas.app.screen;
-    // @ts-ignore
-    const topLeft = stage.toLocal({
-      x: 0,
-      y: 0,
-    });
-
-    this.cloudFilter.uniforms.u_camera_offset = [topLeft.x, topLeft.y];
-    this.cloudFilter.uniforms.u_view_size = [
-      screen.width / stage.scale.x,
-      screen.height / stage.scale.y,
-    ];
-
-    // @ts-ignore
-    this.effectSprite.position.copyFrom(topLeft);
-    this.effectSprite.width = screen.width / stage.scale.x;
-    this.effectSprite.height = screen.height / stage.scale.y;
-
-    if (this._patternGeneratorSprite) {
-      this._patternGeneratorSprite.position.set(0, 0);
-      this._patternGeneratorSprite.width = screen.width;
-      this._patternGeneratorSprite.height = screen.height;
-    }
+    Object.assign(
+      this.cloudFilter.uniforms,
+      CoordinateManager.getShaderUniforms()
+    );
+    this.cloudFilter.uniforms.uSceneRectNorm =
+      CoordinateManager.getSceneRectNormalizedArray();
   }
 
   async updateFromConfig(config) {
@@ -20271,107 +20524,110 @@ class CloudShadowsLayer extends MaskedEffectLayer {
     this.visible = config.enabled && csConfig.enabled;
     if (!this.cloudFilter) return;
 
-    if (this.maskBlurFilter) {
-      this.maskBlurFilter.blur = csConfig.maskBlur ?? 0.0;
-      this.maskBlurFilter.enabled = this.maskBlurFilter.blur > 0;
-      if (this.maskBlurFilter.enabled) this._needsMaskUpdate = true;
+    if (this.kawaseBlurFilter1 && this.kawaseBlurFilter2) {
+      const blurAmount = csConfig.lightOcclusion.falloff ?? 0.0;
+      this.kawaseBlurFilter1.blur = blurAmount;
+      this.kawaseBlurFilter2.blur = blurAmount;
+      this._needsLightMaskUpdate = true;
     }
 
     const u = this.cloudFilter.uniforms;
     u.u_shadowIntensity = csConfig.shadowIntensity;
 
-    // The complex wind direction is now calculated live in renderEffectNow.
-    // We only need to set the simple wind values here for the fallback case.
-    const windConfig = csConfig.wind;
+    const s = csConfig.shading;
+    const occ = csConfig.lightOcclusion;
 
     u.u_noise_scale = csConfig.noise.scale;
     u.u_noise_octaves = csConfig.noise.octaves;
     u.u_noise_persistence = csConfig.noise.persistence;
     u.u_noise_lacunarity = csConfig.noise.lacunarity;
 
-    const s = csConfig.shading;
     u.u_shading_threshold = s.threshold;
     u.u_shading_softness = s.softness;
     u.u_shading_brightness = s.brightness;
     u.u_shading_contrast = s.contrast;
     u.u_shading_gamma = s.gamma;
 
-    this.blendMode = PIXI.BLEND_MODES.MULTIPLY;
-    if (this.effectSprite) {
-      this.effectSprite.blendMode = PIXI.BLEND_MODES.MULTIPLY;
-    }
-  }
-
-  /**
-    * Overrides the base class method to change the mask's clear color.
-    */
-  renderMask() {
-    if (!this.maskContainer || !this.combinedMaskTexture) return;
-    const renderer = canvas.app.renderer;
-
-    renderer.renderTexture.bind(this.combinedMaskTexture);
-
-    // Clear the texture to solid black. This sets the default state to
-    // "indoors" (value 0.0), so clouds only appear where an _Outdoors
-    // mask explicitly paints the area white.
-    renderer.renderTexture.clear([0.0, 0.0, 0.0, 1.0]);
-
-    renderer.render(this.maskContainer, {
-      renderTexture: this.combinedMaskTexture,
-      transform: canvas.stage.transform.worldTransform,
-      clear: false,
-    });
-
-    renderer.renderTexture.bind(null);
+    u.u_occlusionEnabled = occ.enabled;
+    u.u_occlusionIntensity = occ.intensity;
   }
 
   _onResize() {
-    super._onResize(); // Handles the main outdoors mask texture
+    super._onResize();
     const renderer = canvas.app.renderer;
 
-    this.blurredMaskTexture?.resize(
+    this.intermediateBlurTexture?.resize(
       renderer.screen.width,
       renderer.screen.height
     );
-    // Ensure the sprite is resized along with the texture.
+    this.blurredLightMaskTexture?.resize(
+      renderer.screen.width,
+      renderer.screen.height
+    );
+
     if (this.blurSourceSprite) {
       this.blurSourceSprite.width = renderer.screen.width;
       this.blurSourceSprite.height = renderer.screen.height;
     }
-    this.cloudShadowTexture?.resize(
-      renderer.screen.width,
-      renderer.screen.height
-    );
-    this.cloudHighlightMaskTexture?.resize(
-      renderer.screen.width,
-      renderer.screen.height
-    );
-    this.rawCloudTexture?.resize(renderer.screen.width, renderer.screen.height);
 
-    if (this.effectSprite) this._updateSpriteAndUniformPositions();
+    this.rawCloudTexture?.resize(renderer.screen.width, renderer.screen.height);
+    if (this._patternGeneratorSprite) {
+      this._patternGeneratorSprite.width = renderer.screen.width;
+      this._patternGeneratorSprite.height = renderer.screen.height;
+    }
+
+    this.lightPolygonMaskTexture?.resize(
+      renderer.screen.width,
+      renderer.screen.height
+    );
+    this._needsLightMaskUpdate = true;
   }
 
   async _tearDown(options) {
-    // @ts-ignore
-    this.cloudFilter?.destroy();
-    this._patternGeneratorSprite?.destroy();
-    this.cloudShadowTexture?.destroy(true);
-    this.cloudHighlightMaskTexture?.destroy(true);
-    this.rawCloudTexture?.destroy(true);
-    this.effectSprite?.destroy();
-    this.maskBlurFilter?.destroy();
-    this.blurSourceSprite?.destroy();
-    this.blurredMaskTexture?.destroy(true);
+    if (this.cloudFilter) {
+      canvas.primary.filters = (canvas.primary.filters || []).filter(
+        (f) => f !== this.cloudFilter
+      );
+      this.cloudFilter.destroy();
+      this.cloudFilter = null;
+    }
 
-    this.cloudFilter = null;
-    this.effectSprite = null;
-    this.maskBlurFilter = null;
-    this.blurSourceSprite = null;
-    this.blurredMaskTexture = null;
+    // Cleanup new blur properties
+    this.kawaseBlurFilter1?.destroy();
+    this.kawaseBlurFilter2?.destroy();
+    this.blurSourceSprite?.destroy();
+    this.intermediateBlurTexture?.destroy(true);
+    this.blurredLightMaskTexture?.destroy(true);
+
+    this._patternGeneratorSprite?.destroy();
+    this.rawCloudTexture?.destroy(true);
+
+    this.lightPolygonMaskTexture?.destroy(true);
+    this.lightMaskGraphics?.destroy();
+    this.lightPolygonMaskTexture = null;
+    this.lightMaskGraphics = null;
+
     this._patternGeneratorSprite = null;
-    this.cloudShadowTexture = null;
-    this.cloudHighlightMaskTexture = null;
     this.rawCloudTexture = null;
+
+    // Nullify new properties
+    this.kawaseBlurFilter1 = null;
+    this.kawaseBlurFilter2 = null;
+    this.blurSourceSprite = null;
+    this.intermediateBlurTexture = null;
+    this.blurredLightMaskTexture = null;
+
+    // Remove hooks
+    const flagUpdate = () => {
+      this._needsLightMaskUpdate = true;
+    };
+    Hooks.off("canvasPan", flagUpdate);
+    Hooks.off("createLight", flagUpdate);
+    Hooks.off("updateLight", flagUpdate);
+    Hooks.off("deleteLight", flagUpdate);
+    Hooks.off("createWall", flagUpdate);
+    Hooks.off("updateWall", flagUpdate);
+    Hooks.off("deleteWall", flagUpdate);
 
     await super._tearDown(options);
   }
@@ -20391,16 +20647,13 @@ class CanopyLayer extends MaskedEffectLayer {
     const content = `
 				<p class="description-text">A black and white texture where black areas are shadows and white areas are light. This effect simulates a leafy canopy overhead.</p>
 				${DebuggerUIBuilder._createSliderHTML(
-      "canopy.shadowIntensity",
-      "Shadow Intensity",
-      0,
-      1,
-      0.01
-    )}
-				${DebuggerUIBuilder._createColorPickerHTML(
-      "canopy.tint",
-      "Shadow Tint"
-    )}
+          "canopy.shadowIntensity",
+          "Shadow Intensity",
+          0,
+          1,
+          0.01
+        )}
+				${DebuggerUIBuilder._createColorPickerHTML("canopy.tint", "Shadow Tint")}
 		`;
     return DebuggerUIBuilder._createAccordionHTML(
       effectKey,
@@ -20728,65 +20981,65 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
     const content = `
 				<p class="description-text">Adds light and shadow from structural elements (e.g., windows) to indoor areas. Uses _Structural and _Outdoors masks.</p>
 				${DebuggerUIBuilder._createSelectHTML(
-      "structuralShadows.blendMode",
-      "Blend Mode",
-      BLEND_MODE_OPTIONS
-    )}
+          "structuralShadows.blendMode",
+          "Blend Mode",
+          BLEND_MODE_OPTIONS
+        )}
 				${DebuggerUIBuilder._createSliderHTML(
-      "structuralShadows.intensity",
-      "Intensity",
-      0,
-      2,
-      0.05
-    )}
+          "structuralShadows.intensity",
+          "Intensity",
+          0,
+          2,
+          0.05
+        )}
 				<details id="details-structuralShadows-colorCorrection">
 						<summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-      "structuralShadows.colorCorrection.enabled",
-      "Color Correction",
-      true
-    )}</div></summary>
+              "structuralShadows.colorCorrection.enabled",
+              "Color Correction",
+              true
+            )}</div></summary>
 						<div style="padding-left: 15px;">
 								<p class="description-text">Adjusts the color of the structural light/shadow before blending.</p>
 								${DebuggerUIBuilder._createSliderHTML(
-      "structuralShadows.colorCorrection.saturation",
-      "Saturation",
-      0,
-      4,
-      0.05
-    )}
+                  "structuralShadows.colorCorrection.saturation",
+                  "Saturation",
+                  0,
+                  4,
+                  0.05
+                )}
 								${DebuggerUIBuilder._createSliderHTML(
-      "structuralShadows.colorCorrection.brightness",
-      "Brightness",
-      -1,
-      1,
-      0.01
-    )}
+                  "structuralShadows.colorCorrection.brightness",
+                  "Brightness",
+                  -1,
+                  1,
+                  0.01
+                )}
 								${DebuggerUIBuilder._createSliderHTML(
-      "structuralShadows.colorCorrection.contrast",
-      "Contrast",
-      0,
-      4,
-      0.05
-    )}
+                  "structuralShadows.colorCorrection.contrast",
+                  "Contrast",
+                  0,
+                  4,
+                  0.05
+                )}
 								${DebuggerUIBuilder._createSliderHTML(
-      "structuralShadows.colorCorrection.gamma",
-      "Gamma",
-      0.2,
-      2.5,
-      0.05
-    )}
+                  "structuralShadows.colorCorrection.gamma",
+                  "Gamma",
+                  0.2,
+                  2.5,
+                  0.05
+                )}
 								<details id="details-structuralShadows-cc-tint"><summary><span class="accordion-toggle"></span><strong>Color Tint</strong></summary><div style="padding-left: 15px;">
 										${DebuggerUIBuilder._createColorPickerHTML(
-      "structuralShadows.colorCorrection.tint.color",
-      "Tint Color"
-    )}
+                      "structuralShadows.colorCorrection.tint.color",
+                      "Tint Color"
+                    )}
 										${DebuggerUIBuilder._createSliderHTML(
-      "structuralShadows.colorCorrection.tint.amount",
-      "Tint Amount",
-      0,
-      1,
-      0.01
-    )}
+                      "structuralShadows.colorCorrection.tint.amount",
+                      "Tint Amount",
+                      0,
+                      1,
+                      0.01
+                    )}
 								</div></details>
 						</div>
 				</details>
@@ -20799,28 +21052,28 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
 														<div style="padding-left: 15px;">
 																<p class="description-text">Allows clouds to darken the light cast by the structural effect.</p>
 																${DebuggerUIBuilder._createSliderHTML(
-      "structuralShadows.cloudOcclusion.intensity",
-      "Intensity",
-      0,
-      1,
-      0.01
-    )}
+                                  "structuralShadows.cloudOcclusion.intensity",
+                                  "Intensity",
+                                  0,
+                                  1,
+                                  0.01
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-      "structuralShadows.cloudOcclusion.threshold",
-      "Highlight Threshold",
-      0,
-      1,
-      0.01,
-      "The brightness level above which clouds will cast shadows on the structural light."
-    )}
+                                  "structuralShadows.cloudOcclusion.threshold",
+                                  "Highlight Threshold",
+                                  0,
+                                  1,
+                                  0.01,
+                                  "The brightness level above which clouds will cast shadows on the structural light."
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-      "structuralShadows.cloudOcclusion.softness",
-      "Threshold Softness",
-      0.01,
-      1,
-      0.01,
-      "The softness of the transition at the highlight threshold."
-    )}
+                                  "structuralShadows.cloudOcclusion.softness",
+                                  "Threshold Softness",
+                                  0.01,
+                                  1,
+                                  0.01,
+                                  "The softness of the transition at the highlight threshold."
+                                )}
 														</div>
 												</details>
 
@@ -20869,7 +21122,8 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
     // Use raw cloud texture so clouds can appear "indoors"
     // Fallback to a black texture (no clouds) if cloud shadows are inactive.
     // @ts-ignore
-    u.uCloudOcclusionMask = resourceManager.getRawCloudTexture(deltaTime) || PIXI.Texture.BLACK;
+    u.uCloudOcclusionMask =
+      resourceManager.getRawCloudTexture(deltaTime) || PIXI.Texture.BLACK;
 
     // Pass the normalized scene rectangle from the CoordinateManager to the filter.
     u.uSceneRectNorm = CoordinateManager.getSceneRectNormalizedArray();
@@ -20917,7 +21171,7 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
   // if a more complex interaction is needed in the future.
   // @ts-ignore
   // @ts-ignore
-  renderEffectNow(deltaTime) { }
+  renderEffectNow(deltaTime) {}
 
   getStructuralShadowTexture(deltaTime) {
     if (this._destroyed) return null;
@@ -21184,187 +21438,184 @@ class IridescenceLayer extends MaskedEffectLayer {
     const content = `
 												${checkboxHTML}
 												<hr style="border-color: #555; margin: 6px 0;">
-												${DebuggerUIBuilder._createTextureInputHTML(
-      "iridescence",
-      "Iridescence Mask"
-    )}
+												${DebuggerUIBuilder._createTextureInputHTML("iridescence", "Iridescence Mask")}
 												<p class="description-text">Creates a colorful, oil-slick-like effect within the masked areas.</p>
 												${DebuggerUIBuilder._createSliderHTML(
-      "iridescence.intensity",
-      "Intensity",
-      0,
-      2,
-      0.05
-    )}
+                          "iridescence.intensity",
+                          "Intensity",
+                          0,
+                          2,
+                          0.05
+                        )}
 												${DebuggerUIBuilder._createSliderHTML(
-      "iridescence.speed",
-      "Anim Speed",
-      0,
-      0.2,
-      0.001,
-      "Directional drift speed of the pattern."
-    )}
+                          "iridescence.speed",
+                          "Anim Speed",
+                          0,
+                          0.2,
+                          0.001,
+                          "Directional drift speed of the pattern."
+                        )}
 												${DebuggerUIBuilder._createSliderHTML(
-      "iridescence.scale",
-      "Pattern Scale",
-      0.1,
-      20,
-      0.1
-    )}
+                          "iridescence.scale",
+                          "Pattern Scale",
+                          0.1,
+                          20,
+                          0.1
+                        )}
 												${DebuggerUIBuilder._createSliderHTML(
-      "iridescence.parallax",
-      "Parallax",
-      0,
-      1,
-      0.01,
-      "0 = Sticks to Map, 1 = Sticks to Screen"
-    )}
+                          "iridescence.parallax",
+                          "Parallax",
+                          0,
+                          1,
+                          0.01,
+                          "0 = Sticks to Map, 1 = Sticks to Screen"
+                        )}
 												<details id="details-iridescence-fbm"><summary><span class="accordion-toggle"></span><strong>FBM Pattern</strong></summary>
 														<div>
 																<p class="description-text">Controls the procedural noise used to generate the base pattern.</p>
 																${DebuggerUIBuilder._createSliderHTML(
-      "iridescence.fbm.evolution",
-      "Evolution",
-      0,
-      1,
-      0.001,
-      'Internal "boiling" speed of the pattern.'
-    )}
+                                  "iridescence.fbm.evolution",
+                                  "Evolution",
+                                  0,
+                                  1,
+                                  0.001,
+                                  'Internal "boiling" speed of the pattern.'
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-      "iridescence.fbm.octaves",
-      "Complexity (Octaves)",
-      1,
-      IridescenceFilter.MAX_OCTAVES,
-      1,
-      "Layers of noise. More is more detailed but slower."
-    )}
+                                  "iridescence.fbm.octaves",
+                                  "Complexity (Octaves)",
+                                  1,
+                                  IridescenceFilter.MAX_OCTAVES,
+                                  1,
+                                  "Layers of noise. More is more detailed but slower."
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-      "iridescence.fbm.persistence",
-      "Roughness",
-      0.1,
-      1,
-      0.01,
-      "Influence of smaller details. Lower is smoother."
-    )}
+                                  "iridescence.fbm.persistence",
+                                  "Roughness",
+                                  0.1,
+                                  1,
+                                  0.01,
+                                  "Influence of smaller details. Lower is smoother."
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-      "iridescence.fbm.lacunarity",
-      "Detail Scale",
-      1.5,
-      4,
-      0.05,
-      "Frequency of smaller details. Higher is finer."
-    )}
+                                  "iridescence.fbm.lacunarity",
+                                  "Detail Scale",
+                                  1.5,
+                                  4,
+                                  0.05,
+                                  "Frequency of smaller details. Higher is finer."
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-      "iridescence.fbm.brightness",
-      "Noise Brightness",
-      0,
-      1,
-      0.01,
-      "Adjusts the brightness of the noise before color mapping."
-    )}
+                                  "iridescence.fbm.brightness",
+                                  "Noise Brightness",
+                                  0,
+                                  1,
+                                  0.01,
+                                  "Adjusts the brightness of the noise before color mapping."
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-      "iridescence.fbm.contrast",
-      "Noise Contrast",
-      0,
-      5,
-      0.05,
-      "Adjusts the contrast of the noise before color mapping."
-    )}
+                                  "iridescence.fbm.contrast",
+                                  "Noise Contrast",
+                                  0,
+                                  5,
+                                  0.05,
+                                  "Adjusts the contrast of the noise before color mapping."
+                                )}
 														</div>
 												</details>
 												<details id="details-iridescence-gradient"><summary><span class="accordion-toggle"></span><strong>Gradient Controls</strong></summary>
 														<div>
 																${DebuggerUIBuilder._createGradientSelectHTML(
-      "iridescence.gradient.name",
-      "Gradient Preset"
-    )}
+                                  "iridescence.gradient.name",
+                                  "Gradient Preset"
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-      "iridescence.gradient.hueShift",
-      "Hue Shift",
-      0,
-      1,
-      0.01,
-      "Rotates the colors of the gradient."
-    )}
+                                  "iridescence.gradient.hueShift",
+                                  "Hue Shift",
+                                  0,
+                                  1,
+                                  0.01,
+                                  "Rotates the colors of the gradient."
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-      "iridescence.gradient.brightness",
-      "Brightness",
-      -1,
-      1,
-      0.01,
-      "Final brightness adjustment applied to the colored result."
-    )}
+                                  "iridescence.gradient.brightness",
+                                  "Brightness",
+                                  -1,
+                                  1,
+                                  0.01,
+                                  "Final brightness adjustment applied to the colored result."
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-      "iridescence.gradient.contrast",
-      "Contrast",
-      0,
-      4,
-      0.05,
-      "Final contrast adjustment applied to the colored result."
-    )}
+                                  "iridescence.gradient.contrast",
+                                  "Contrast",
+                                  0,
+                                  4,
+                                  0.05,
+                                  "Final contrast adjustment applied to the colored result."
+                                )}
 														</div>
 												</details>
 												<details id="details-iridescence-distortion"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-      "iridescence.distortion.enabled",
-      "Churn/Distortion Effect",
-      true
-    )}</div></summary>
+                          "iridescence.distortion.enabled",
+                          "Churn/Distortion Effect",
+                          true
+                        )}</div></summary>
 														<div>
 																<p class="description-text">Uses a second, underlying noise pattern to warp the main iridescence effect.</p>
 																${DebuggerUIBuilder._createSliderHTML(
-      "iridescence.distortion.strength",
-      "Distortion Strength",
-      0,
-      20,
-      0.1
-    )}
+                                  "iridescence.distortion.strength",
+                                  "Distortion Strength",
+                                  0,
+                                  20,
+                                  0.1
+                                )}
 																<details id="details-iridescence-distortion-noise"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-      "iridescence.noise.enabled",
-      "Distortion Noise",
-      true
-    )}</div></summary>
+                                  "iridescence.noise.enabled",
+                                  "Distortion Noise",
+                                  true
+                                )}</div></summary>
 																		<div>
 																				${DebuggerUIBuilder._createSliderHTML(
-      "iridescence.noise.speed",
-      -0.5,
-      0.5,
-      0.001
-    )}
+                                          "iridescence.noise.speed",
+                                          -0.5,
+                                          0.5,
+                                          0.001
+                                        )}
 																				${DebuggerUIBuilder._createSliderHTML(
-      "iridescence.noise.scale",
-      "Scale",
-      0.1,
-      10,
-      0.1
-    )}
+                                          "iridescence.noise.scale",
+                                          "Scale",
+                                          0.1,
+                                          10,
+                                          0.1
+                                        )}
 																				${DebuggerUIBuilder._createSliderHTML(
-      "iridescence.noise.threshold",
-      "Threshold",
-      0,
-      1,
-      0.01
-    )}
+                                          "iridescence.noise.threshold",
+                                          "Threshold",
+                                          0,
+                                          1,
+                                          0.01
+                                        )}
 																				${DebuggerUIBuilder._createSliderHTML(
-      "iridescence.noise.brightness",
-      "Brightness",
-      -1,
-      1,
-      0.01
-    )}
+                                          "iridescence.noise.brightness",
+                                          "Brightness",
+                                          -1,
+                                          1,
+                                          0.01
+                                        )}
 																				${DebuggerUIBuilder._createSliderHTML(
-      "iridescence.noise.contrast",
-      "Contrast",
-      0,
-      5,
-      0.05
-    )}
+                                          "iridescence.noise.contrast",
+                                          "Contrast",
+                                          0,
+                                          5,
+                                          0.05
+                                        )}
 																				${DebuggerUIBuilder._createSliderHTML(
-      "iridescence.noise.softness",
-      "Softness",
-      0.01,
-      1,
-      0.01
-    )}
+                                          "iridescence.noise.softness",
+                                          "Softness",
+                                          0.01,
+                                          1,
+                                          0.01
+                                        )}
 																		</div>
 																</details>
 														</div>
@@ -21551,77 +21802,74 @@ class GroundGlowLayer extends CanvasLayer {
       "groundGlow",
       "Glow in the Dark",
       `
-												${DebuggerUIBuilder._createTextureInputHTML(
-        "groundGlow",
-        "Glow Texture"
-      )}
+												${DebuggerUIBuilder._createTextureInputHTML("groundGlow", "Glow Texture")}
 												<p class="description-text">Makes a texture appear to glow only in unlit areas of the scene. Requires scene lighting.</p>
 												${DebuggerUIBuilder._createSliderHTML(
-        "groundGlow.intensity",
-        "Intensity",
-        0,
-        5,
-        0.05
-      )}
+                          "groundGlow.intensity",
+                          "Intensity",
+                          0,
+                          5,
+                          0.05
+                        )}
 
 												<details id="details-groundGlow-tokenMasking">
 														<summary>
 																<span class="accordion-toggle"></span>
 																<div class="summary-control">
 																		${DebuggerUIBuilder._createCheckboxHTML(
-        "groundGlow.tokenMasking.enabled",
-        "Token Masking",
-        true
-      )}
+                                      "groundGlow.tokenMasking.enabled",
+                                      "Token Masking",
+                                      true
+                                    )}
 																</div>
 														</summary>
 														<div style="padding-left: 15px;">
 																<p class="description-text">Hides the effect behind tokens. This layer is already in a high-level group, so it should work by default.</p>
 																${DebuggerUIBuilder._createSliderHTML(
-        "groundGlow.tokenMasking.threshold",
-        "Mask Threshold",
-        0,
-        1,
-        0.01
-      )}
+                                  "groundGlow.tokenMasking.threshold",
+                                  "Mask Threshold",
+                                  0,
+                                  1,
+                                  0.01
+                                )}
 														</div>
 												</details>
 
 												${DebuggerUIBuilder._createSliderHTML(
-        "groundGlow.luminanceThreshold",
-        "Light Threshold",
-        0,
-        1,
-        0.01,
-        "The scene brightness level above which the glow will fade out."
-      )}
+                          "groundGlow.luminanceThreshold",
+                          "Light Threshold",
+                          0,
+                          1,
+                          0.01,
+                          "The scene brightness level above which the glow will fade out."
+                        )}
 												${DebuggerUIBuilder._createSliderHTML(
-        "groundGlow.softness",
-        "Edge Softness",
-        0.01,
-        1,
-        0.01
-      )}
+                          "groundGlow.softness",
+                          "Edge Softness",
+                          0.01,
+                          1,
+                          0.01
+                        )}
 												${DebuggerUIBuilder._createCheckboxHTML(
-        "groundGlow.invert",
-        "Invert (Glow in Light)",
-        false,
-        "Makes the effect appear in lit areas instead of dark ones."
-      )}
+                          "groundGlow.invert",
+                          "Invert (Glow in Light)",
+                          false,
+                          "Makes the effect appear in lit areas instead of dark ones."
+                        )}
 												${DebuggerUIBuilder._createSliderHTML(
-        "groundGlow.brightness",
-        "Brightness",
-        0,
-        5,
-        0.05
-      )}
+                          "groundGlow.brightness",
+                          "Brightness",
+                          0,
+                          5,
+                          0.05
+                        )}
 												${DebuggerUIBuilder._createSliderHTML(
-        "groundGlow.saturation",
-        "Saturation",
-        0,
-        5,
-        0.05
-      )}
+                          "groundGlow.saturation",
+                          "Saturation",
+                          0,
+                          5,
+                          0.05
+                        )}
 										`
     );
   }
@@ -21665,7 +21913,7 @@ class GroundGlowLayer extends CanvasLayer {
       this.container =
       this.lightingMask =
       this.colorFilter =
-      null;
+        null;
     return super._tearDown(options);
   }
 
@@ -21845,18 +22093,15 @@ class HeatDistortionLayer extends CanvasLayer {
     const content = `
 												${checkboxHTML}
 												<hr style="border-color: #555; margin: 6px 0;">
-												${DebuggerUIBuilder._createTextureInputHTML(
-      "heat",
-      "Intensity Mask (_Heat)"
-    )}
+												${DebuggerUIBuilder._createTextureInputHTML("heat", "Intensity Mask (_Heat)")}
 												<p class="description-text">Simulates rising heat waves, distorting the scene behind the masked areas.</p>
 												${DebuggerUIBuilder._createSliderHTML(
-      "heatDistortion.intensity",
-      "Intensity",
-      0,
-      0.05,
-      0.0005
-    )}
+                          "heatDistortion.intensity",
+                          "Intensity",
+                          0,
+                          0.05,
+                          0.0005
+                        )}
 												<details id="details-heatDistortion-noise">
 														<summary><span class="accordion-toggle"></span><strong>Noise Pattern</strong></summary>
 														<div style="padding-left: 15px;">
@@ -21864,100 +22109,100 @@ class HeatDistortionLayer extends CanvasLayer {
 																		<summary><span class="accordion-toggle"></span><strong>Primary Waves (Large)</strong></summary>
 																		<div style="padding-left: 15px;">
 																				${DebuggerUIBuilder._createSliderHTML(
-      "heatDistortion.noise.primary.speed",
-      "Speed",
-      0,
-      100,
-      0.5
-    )}
+                                          "heatDistortion.noise.primary.speed",
+                                          "Speed",
+                                          0,
+                                          100,
+                                          0.5
+                                        )}
 																				${DebuggerUIBuilder._createSliderHTML(
-      "heatDistortion.noise.primary.scale",
-      "Scale",
-      0.1,
-      10,
-      0.1
-    )}
+                                          "heatDistortion.noise.primary.scale",
+                                          "Scale",
+                                          0.1,
+                                          10,
+                                          0.1
+                                        )}
 																				${DebuggerUIBuilder._createSliderHTML(
-      "heatDistortion.noise.primary.octaves",
-      "Complexity",
-      1,
-      8,
-      1
-    )}
+                                          "heatDistortion.noise.primary.octaves",
+                                          "Complexity",
+                                          1,
+                                          8,
+                                          1
+                                        )}
 																				${DebuggerUIBuilder._createSliderHTML(
-      "heatDistortion.noise.primary.lacunarity",
-      "Detail Freq",
-      1.5,
-      4,
-      0.05
-    )}
+                                          "heatDistortion.noise.primary.lacunarity",
+                                          "Detail Freq",
+                                          1.5,
+                                          4,
+                                          0.05
+                                        )}
 																				${DebuggerUIBuilder._createSliderHTML(
-      "heatDistortion.noise.primary.persistence",
-      "Roughness",
-      0.1,
-      1,
-      0.05
-    )}
+                                          "heatDistortion.noise.primary.persistence",
+                                          "Roughness",
+                                          0.1,
+                                          1,
+                                          0.05
+                                        )}
 																		</div>
 																</details>
 																<details id="details-heatDistortion-noise-secondary">
 																		<summary><span class="accordion-toggle"></span><strong>Secondary Waves (Fine Detail)</strong></summary>
 																		<div style="padding-left: 15px;">
 																				${DebuggerUIBuilder._createSliderHTML(
-      "heatDistortion.noise.secondary.speed",
-      "Speed",
-      0,
-      100,
-      0.5
-    )}
+                                          "heatDistortion.noise.secondary.speed",
+                                          "Speed",
+                                          0,
+                                          100,
+                                          0.5
+                                        )}
 																				${DebuggerUIBuilder._createSliderHTML(
-      "heatDistortion.noise.secondary.scale",
-      "Scale",
-      1,
-      20,
-      0.5
-    )}
+                                          "heatDistortion.noise.secondary.scale",
+                                          "Scale",
+                                          1,
+                                          20,
+                                          0.5
+                                        )}
 																				${DebuggerUIBuilder._createSliderHTML(
-      "heatDistortion.noise.secondary.octaves",
-      "Complexity",
-      1,
-      8,
-      1
-    )}
+                                          "heatDistortion.noise.secondary.octaves",
+                                          "Complexity",
+                                          1,
+                                          8,
+                                          1
+                                        )}
 																				${DebuggerUIBuilder._createSliderHTML(
-      "heatDistortion.noise.secondary.lacunarity",
-      "Detail Freq",
-      1.5,
-      4,
-      0.05
-    )}
+                                          "heatDistortion.noise.secondary.lacunarity",
+                                          "Detail Freq",
+                                          1.5,
+                                          4,
+                                          0.05
+                                        )}
 																				${DebuggerUIBuilder._createSliderHTML(
-      "heatDistortion.noise.secondary.persistence",
-      "Roughness",
-      0.1,
-      1,
-      0.05
-    )}
+                                          "heatDistortion.noise.secondary.persistence",
+                                          "Roughness",
+                                          0.1,
+                                          1,
+                                          0.05
+                                        )}
 																		</div>
 																</details>
 																<details id="details-heatDistortion-noise-rising">
 																		<summary><span class="accordion-toggle"></span><strong>Rising Motion</strong></summary>
 																		<div style="padding-left: 15px;">
 																				${DebuggerUIBuilder._createSliderHTML(
-      "heatDistortion.noise.rising.speed",
-      "Speed",
-      0,
-      0.1,
-      0.001
-    )}
+                                          "heatDistortion.noise.rising.speed",
+                                          "Speed",
+                                          0,
+                                          0.1,
+                                          0.001
+                                        )}
 																				${DebuggerUIBuilder._createSliderHTML(
-      "heatDistortion.noise.rising.intensity",
-      "Intensity",
-      0,
-      2,
-      0.05,
-      'The strength of the vertical "rising" motion.'
-    )}
+                                          "heatDistortion.noise.rising.intensity",
+                                          "Intensity",
+                                          0,
+                                          2,
+                                          0.05,
+                                          'The strength of the vertical "rising" motion.'
+                                        )}
 																		</div>
 																</details>
 														</div>
@@ -22247,109 +22492,106 @@ class PrismLayer extends MaskedEffectLayer {
     const content = `
 												${checkboxHTML}
 												<hr style="border-color: #555; margin: 6px 0;">
-												${DebuggerUIBuilder._createTextureInputHTML(
-      "prism",
-      "Effect Mask (_Prism)"
-    )}
+												${DebuggerUIBuilder._createTextureInputHTML("prism", "Effect Mask (_Prism)")}
 												<p class="description-text">Splits the light from the brightest parts of the scene into a prismatic, chromatic aberration effect.</p>
 												${DebuggerUIBuilder._createSliderHTML(
-      "prism.intensity",
-      "Intensity",
-      0,
-      50,
-      0.5,
-      "The distance in pixels the color channels are split."
-    )}
+                          "prism.intensity",
+                          "Intensity",
+                          0,
+                          50,
+                          0.5,
+                          "The distance in pixels the color channels are split."
+                        )}
 												${DebuggerUIBuilder._createSliderHTML(
-      "prism.angle",
-      "Angle",
-      0,
-      360,
-      1,
-      "The direction of the color split."
-    )}
+                          "prism.angle",
+                          "Angle",
+                          0,
+                          360,
+                          1,
+                          "The direction of the color split."
+                        )}
 												${DebuggerUIBuilder._createSliderHTML(
-      "prism.threshold",
-      "Luminance Threshold",
-      0,
-      1,
-      0.01,
-      "The effect will only apply to pixels brighter than this value."
-    )}
+                          "prism.threshold",
+                          "Luminance Threshold",
+                          0,
+                          1,
+                          0.01,
+                          "The effect will only apply to pixels brighter than this value."
+                        )}
 												${DebuggerUIBuilder._createSliderHTML(
-      "prism.softness",
-      "Threshold Softness",
-      0.01,
-      1,
-      0.01,
-      "The softness of the transition at the luminance threshold."
-    )}
+                          "prism.softness",
+                          "Threshold Softness",
+                          0.01,
+                          1,
+                          0.01,
+                          "The softness of the transition at the luminance threshold."
+                        )}
 
 												<details id="details-prism-distortionNoise"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-      "prism.distortionNoise.enabled",
-      "Distortion",
-      true
-    )}</div></summary>
+                          "prism.distortionNoise.enabled",
+                          "Distortion",
+                          true
+                        )}</div></summary>
 														<div style="padding-left: 15px;">
 																<p class="description-text">Uses a noise pattern to warp and animate the prism effect.</p>
 																${DebuggerUIBuilder._createSliderHTML(
-      "prism.distortionStrength",
-      "Distortion Strength",
-      0,
-      10,
-      0.1
-    )}
+                                  "prism.distortionStrength",
+                                  "Distortion Strength",
+                                  0,
+                                  10,
+                                  0.1
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-      "prism.distortionNoise.speed",
-      "Speed",
-      -0.5,
-      0.5,
-      0.005
-    )}
+                                  "prism.distortionNoise.speed",
+                                  "Speed",
+                                  -0.5,
+                                  0.5,
+                                  0.005
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-      "prism.distortionNoise.scale",
-      "Scale",
-      0.01,
-      10,
-      0.01
-    )}
+                                  "prism.distortionNoise.scale",
+                                  "Scale",
+                                  0.01,
+                                  10,
+                                  0.01
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-      "prism.distortionNoise.evolution",
-      "Evolution",
-      0,
-      1,
-      0.01
-    )}
+                                  "prism.distortionNoise.evolution",
+                                  "Evolution",
+                                  0,
+                                  1,
+                                  0.01
+                                )}
 																<details id="details-prism-distortionNoise-adv"><summary><span class="accordion-toggle"></span><strong>Advanced Noise Controls</strong></summary>
 																		<div style="padding-left: 15px;">
 																				${DebuggerUIBuilder._createSliderHTML(
-      "prism.distortionNoise.threshold",
-      "Threshold",
-      0,
-      1,
-      0.01
-    )}
+                                          "prism.distortionNoise.threshold",
+                                          "Threshold",
+                                          0,
+                                          1,
+                                          0.01
+                                        )}
 																				${DebuggerUIBuilder._createSliderHTML(
-      "prism.distortionNoise.brightness",
-      "Brightness",
-      -1,
-      1,
-      0.01
-    )}
+                                          "prism.distortionNoise.brightness",
+                                          "Brightness",
+                                          -1,
+                                          1,
+                                          0.01
+                                        )}
 																				${DebuggerUIBuilder._createSliderHTML(
-      "prism.distortionNoise.contrast",
-      "Contrast",
-      0,
-      5,
-      0.05
-    )}
+                                          "prism.distortionNoise.contrast",
+                                          "Contrast",
+                                          0,
+                                          5,
+                                          0.05
+                                        )}
 																				${DebuggerUIBuilder._createSliderHTML(
-      "prism.distortionNoise.softness",
-      "Softness",
-      0.01,
-      1,
-      0.01
-    )}
+                                          "prism.distortionNoise.softness",
+                                          "Softness",
+                                          0.01,
+                                          1,
+                                          0.01
+                                        )}
 																		</div>
 																</details>
 														</div>
@@ -22876,101 +23118,98 @@ class WaterFXLayer extends MaskedEffectLayer {
       "water",
       "Water Effects",
       `
-												${DebuggerUIBuilder._createTextureInputHTML(
-        "water",
-        "Water Mask (_Water)"
-      )}
+												${DebuggerUIBuilder._createTextureInputHTML("water", "Water Mask (_Water)")}
 												<p class="description-text">A multi-layered effect for water surfaces, foam, and underwater caustics. Requires a _Water.webp mask.</p>
 
 												<details id="details-water-flow">
 														<summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-        "water.flow.enabled",
-        "Water Flow",
-        true
-      )}</div></summary>
+                              "water.flow.enabled",
+                              "Water Flow",
+                              true
+                            )}</div></summary>
 														<div style="padding-left: 15px;">
 																<p class="description-text">Applies a directional current to all animated water effects.</p>
 																${DebuggerUIBuilder._createSliderHTML(
-        "water.flow.angle",
-        "Angle",
-        0,
-        360,
-        1,
-        "The direction of the water flow in degrees."
-      )}
+                                  "water.flow.angle",
+                                  "Angle",
+                                  0,
+                                  360,
+                                  1,
+                                  "The direction of the water flow in degrees."
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-        "water.flow.speed",
-        "Speed",
-        0,
-        50,
-        0.5,
-        "The speed of the current."
-      )}
+                                  "water.flow.speed",
+                                  "Speed",
+                                  0,
+                                  50,
+                                  0.5,
+                                  "The speed of the current."
+                                )}
 														</div>
 												</details>
 
 												<details id="details-water-murkiness">
 														<summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-        "water.murkiness.enabled",
-        "Murkiness & Occlusion",
-        true
-      )}</div></summary>
+                              "water.murkiness.enabled",
+                              "Murkiness & Occlusion",
+                              true
+                            )}</div></summary>
 														<div style="padding-left: 15px;">
 																<p class="description-text">Makes the water opaque, hiding what is underneath. Occlusion is stronger in deeper water.</p>
 																${DebuggerUIBuilder._createColorPickerHTML(
-        "water.murkiness.color",
-        "Murky Color"
-      )}
+                                  "water.murkiness.color",
+                                  "Murky Color"
+                                )}
 																<details id="details-water-murkiness-wavy">
 																		<summary><span class="accordion-toggle"></span><strong>Large Wavy Occlusion</strong></summary>
 																		<div style="padding-left: 15px;">
 																				${DebuggerUIBuilder._createSliderHTML(
-        "water.murkiness.wavyNoise.strength",
-        "Strength",
-        0,
-        1,
-        0.01
-      )}
+                                          "water.murkiness.wavyNoise.strength",
+                                          "Strength",
+                                          0,
+                                          1,
+                                          0.01
+                                        )}
 																				${DebuggerUIBuilder._createSliderHTML(
-        "water.murkiness.wavyNoise.scale",
-        "Scale",
-        0.01,
-        5,
-        0.01
-      )}
+                                          "water.murkiness.wavyNoise.scale",
+                                          "Scale",
+                                          0.01,
+                                          5,
+                                          0.01
+                                        )}
 																				${DebuggerUIBuilder._createSliderHTML(
-        "water.murkiness.wavyNoise.speed",
-        "Speed",
-        0,
-        5,
-        0.01
-      )}
+                                          "water.murkiness.wavyNoise.speed",
+                                          "Speed",
+                                          0,
+                                          5,
+                                          0.01
+                                        )}
 																		</div>
 																</details>
 																<details id="details-water-murkiness-sandy">
 																		<summary><span class="accordion-toggle"></span><strong>Fine Sandy Occlusion</strong></summary>
 																		<div style="padding-left: 15px;">
 																				${DebuggerUIBuilder._createSliderHTML(
-        "water.murkiness.sandyNoise.strength",
-        "Strength",
-        0,
-        1,
-        0.01
-      )}
+                                          "water.murkiness.sandyNoise.strength",
+                                          "Strength",
+                                          0,
+                                          1,
+                                          0.01
+                                        )}
 																				${DebuggerUIBuilder._createSliderHTML(
-        "water.murkiness.sandyNoise.scale",
-        "Scale",
-        1,
-        50,
-        0.5
-      )}
+                                          "water.murkiness.sandyNoise.scale",
+                                          "Scale",
+                                          1,
+                                          50,
+                                          0.5
+                                        )}
 																				${DebuggerUIBuilder._createSliderHTML(
-        "water.murkiness.sandyNoise.speed",
-        "Speed",
-        0,
-        25,
-        0.5
-      )}
+                                          "water.murkiness.sandyNoise.speed",
+                                          "Speed",
+                                          0,
+                                          25,
+                                          0.5
+                                        )}
 																		</div>
 																</details>
 														</div>
@@ -22978,378 +23217,409 @@ class WaterFXLayer extends MaskedEffectLayer {
 
 												<details id="details-water-wave">
 														<summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-        "water.wave.enabled",
-        "Wave Distortion",
-        true
-      )}</div></summary>
+                              "water.wave.enabled",
+                              "Wave Distortion",
+                              true
+                            )}</div></summary>
 														<div style="padding-left: 15px;">
 																<p class="description-text">Controls the underlying ripple/wobble of the water surface. This distortion affects the scene viewed through the water, as well as the foam and sheen on the surface.</p>
 																${DebuggerUIBuilder._createSliderHTML(
-        "water.wave.speed",
-        "Speed",
-        0,
-        25,
-        0.5,
-        "The animation speed of the wave noise pattern."
-      )}
+                                  "water.wave.speed",
+                                  "Speed",
+                                  0,
+                                  25,
+                                  0.5,
+                                  "The animation speed of the wave noise pattern."
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-        "water.wave.scale",
-        "Scale",
-        0.1,
-        40,
-        0.1,
-        "The zoom level of the wave noise. Larger values create smaller, more frequent ripples."
-      )}
+                                  "water.wave.scale",
+                                  "Scale",
+                                  0.1,
+                                  40,
+                                  0.1,
+                                  "The zoom level of the wave noise. Larger values create smaller, more frequent ripples."
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-        "water.wave.intensity",
-        "Intensity",
-        0,
-        0.05,
-        0.0001,
-        "The strength of the distortion. Higher values push the pixels further."
-      )}
+                                  "water.wave.intensity",
+                                  "Intensity",
+                                  0,
+                                  0.05,
+                                  0.0001,
+                                  "The strength of the distortion. Higher values push the pixels further."
+                                )}
 														</div>
 												</details>
 												<details id="details-water-surface">
 														<summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-        "water.surface.enabled",
-        "Open Water Surface",
-        true
-      )}</div></summary>
+                              "water.surface.enabled",
+                              "Open Water Surface",
+                              true
+                            )}</div></summary>
 														<div style="padding-left: 15px;">
 																<details id="details-water-foam">
 																		<summary><span class="accordion-toggle"></span><strong>Foam</strong></summary>
 																		<div style="padding-left: 15px;">
-																				${DebuggerUIBuilder._createColorPickerHTML(
-        "water.surface.foamColor",
-        "Color"
-      )}
+																				${DebuggerUIBuilder._createColorPickerHTML("water.surface.foamColor", "Color")}
 																				${DebuggerUIBuilder._createSliderHTML(
-        "water.surface.foamIntensity",
-        "Base Intensity",
-        0,
-        2,
-        0.05
-      )}
+                                          "water.surface.foamIntensity",
+                                          "Base Intensity",
+                                          0,
+                                          2,
+                                          0.05
+                                        )}
 																				${DebuggerUIBuilder._createSliderHTML(
-        "water.surface.foamCoverage",
-        "Coverage",
-        0,
-        1,
-        0.01,
-        "Amount of water surface covered by foam."
-      )}
+                                          "water.surface.foamCoverage",
+                                          "Coverage",
+                                          0,
+                                          1,
+                                          0.01,
+                                          "Amount of water surface covered by foam."
+                                        )}
 																				${DebuggerUIBuilder._createSliderHTML(
-        "water.surface.foamSharpness",
-        "Edge Sharpness",
-        0.01,
-        1,
-        0.01,
-        "Hardness of the foam edges."
-      )}
+                                          "water.surface.foamSharpness",
+                                          "Edge Sharpness",
+                                          0.01,
+                                          1,
+                                          0.01,
+                                          "Hardness of the foam edges."
+                                        )}
 																				<details id="details-water-foam-fbm">
 																						<summary><span class="accordion-toggle"></span><strong>FBM Pattern</strong></summary>
 																						<div style="padding-left: 15px;">
 																								<p class="description-text">Controls the procedural noise used for the foam pattern.</p>
 																								${DebuggerUIBuilder._createSliderHTML(
-        "water.surface.fbmScale",
-        "Scale",
-        0.001,
-        50,
-        0.001
-      )}
+                                                  "water.surface.fbmScale",
+                                                  "Scale",
+                                                  0.001,
+                                                  50,
+                                                  0.001
+                                                )}
 																								${DebuggerUIBuilder._createSliderHTML(
-        "water.surface.fbmSpeed",
-        "Speed",
-        0,
-        25,
-        0.5,
-        "Directional drift speed of the foam."
-      )}
+                                                  "water.surface.fbmSpeed",
+                                                  "Speed",
+                                                  0,
+                                                  25,
+                                                  0.5,
+                                                  "Directional drift speed of the foam."
+                                                )}
 																								${DebuggerUIBuilder._createSliderHTML(
-        "water.surface.fbmEvolution",
-        "Evolution",
-        0,
-        25,
-        0.5,
-        'Internal "boiling" speed of the foam.'
-      )}
+                                                  "water.surface.fbmEvolution",
+                                                  "Evolution",
+                                                  0,
+                                                  25,
+                                                  0.5,
+                                                  'Internal "boiling" speed of the foam.'
+                                                )}
 																								${DebuggerUIBuilder._createSliderHTML(
-        "water.surface.fbmOctaves",
-        "Complexity (Octaves)",
-        1,
-        8,
-        1
-      )}
+                                                  "water.surface.fbmOctaves",
+                                                  "Complexity (Octaves)",
+                                                  1,
+                                                  8,
+                                                  1
+                                                )}
 																								${DebuggerUIBuilder._createSliderHTML(
-        "water.surface.fbmLacunarity",
-        "Detail Scale",
-        1.5,
-        4,
-        0.05
-      )}
+                                                  "water.surface.fbmLacunarity",
+                                                  "Detail Scale",
+                                                  1.5,
+                                                  4,
+                                                  0.05
+                                                )}
 																								${DebuggerUIBuilder._createSliderHTML(
-        "water.surface.fbmPersistence",
-        "Roughness",
-        0.1,
-        1,
-        0.05
-      )}
+                                                  "water.surface.fbmPersistence",
+                                                  "Roughness",
+                                                  0.1,
+                                                  1,
+                                                  0.05
+                                                )}
 																						</div>
 																				</details>
 																		</div>
 																</details>
 																<details id="details-water-specularity">
-																		<summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML("water.surface.specularity.enabled", "Specular Highlights", true)}</div></summary>
+																		<summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                                      "water.surface.specularity.enabled",
+                                      "Specular Highlights",
+                                      true
+                                    )}</div></summary>
 																		<div style="padding-left: 15px;">
 																				<p class="description-text">Simulates physically-based light reflections (shine) off the water surface.</p>
-																				${DebuggerUIBuilder._createColorPickerHTML("water.surface.specularity.color", "Color")}
-																				${DebuggerUIBuilder._createSliderHTML("water.surface.specularity.intensity", "Intensity", 0, 5, 0.01)}
-																				${DebuggerUIBuilder._createSliderHTML("water.surface.specularity.shininess", "Shininess", 2, 1024, 2, "Controls the size and sharpness of the highlights. Higher values are smaller and sharper.")}
-																				${DebuggerUIBuilder._createSliderHTML("water.surface.specularity.lightAngle", "Light Angle", 0, 360, 1, "The direction the light is coming from, in degrees.")}
-																				${DebuggerUIBuilder._createSliderHTML("water.surface.specularity.lightElevation", "Light Elevation", 0, 90, 1, "The height of the light source in the sky. 90 is directly overhead.")}
+																				${DebuggerUIBuilder._createColorPickerHTML(
+                                          "water.surface.specularity.color",
+                                          "Color"
+                                        )}
+																				${DebuggerUIBuilder._createSliderHTML(
+                                          "water.surface.specularity.intensity",
+                                          "Intensity",
+                                          0,
+                                          5,
+                                          0.01
+                                        )}
+																				${DebuggerUIBuilder._createSliderHTML(
+                                          "water.surface.specularity.shininess",
+                                          "Shininess",
+                                          2,
+                                          1024,
+                                          2,
+                                          "Controls the size and sharpness of the highlights. Higher values are smaller and sharper."
+                                        )}
+																				${DebuggerUIBuilder._createSliderHTML(
+                                          "water.surface.specularity.lightAngle",
+                                          "Light Angle",
+                                          0,
+                                          360,
+                                          1,
+                                          "The direction the light is coming from, in degrees."
+                                        )}
+																				${DebuggerUIBuilder._createSliderHTML(
+                                          "water.surface.specularity.lightElevation",
+                                          "Light Elevation",
+                                          0,
+                                          90,
+                                          1,
+                                          "The height of the light source in the sky. 90 is directly overhead."
+                                        )}
 																		</div>
 																</details>
 														</div>
 												</details>
 												<details id="details-water-caustics">
 														<summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-        "water.caustics.enabled",
-        "Underwater Caustics",
-        true
-      )}</div></summary>
+                              "water.caustics.enabled",
+                              "Underwater Caustics",
+                              true
+                            )}</div></summary>
 														<div style="padding-left: 15px;">
 																${DebuggerUIBuilder._createSliderHTML(
-        "water.caustics.intensity",
-        "Intensity",
-        0,
-        1,
-        0.001
-      )}
+                                  "water.caustics.intensity",
+                                  "Intensity",
+                                  0,
+                                  1,
+                                  0.001
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-        "water.caustics.scale",
-        "Scale",
-        0.1,
-        10,
-        0.1
-      )}
+                                  "water.caustics.scale",
+                                  "Scale",
+                                  0.1,
+                                  10,
+                                  0.1
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-        "water.caustics.speed",
-        "Speed",
-        0,
-        15,
-        0.1
-      )}
+                                  "water.caustics.speed",
+                                  "Speed",
+                                  0,
+                                  15,
+                                  0.1
+                                )}
 																${DebuggerUIBuilder._createColorPickerHTML(
-        "water.caustics.color",
-        "Caustic Color"
-      )}
+                                  "water.caustics.color",
+                                  "Caustic Color"
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-        "water.caustics.lineSharpness",
-        "Line Sharpness",
-        1,
-        40,
-        1,
-        "Exponent for sharpening the caustic lines."
-      )}
+                                  "water.caustics.lineSharpness",
+                                  "Line Sharpness",
+                                  1,
+                                  40,
+                                  1,
+                                  "Exponent for sharpening the caustic lines."
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-        "water.caustics.bloomIntensity",
-        "Bloom Intensity",
-        0,
-        1,
-        0.01,
-        "Brightness of the soft underlying glow."
-      )}
+                                  "water.caustics.bloomIntensity",
+                                  "Bloom Intensity",
+                                  0,
+                                  1,
+                                  0.01,
+                                  "Brightness of the soft underlying glow."
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-        "water.caustics.lineDistortion",
-        "Line Distortion",
-        0,
-        2,
-        0.01,
-        "How much the lines are broken up and warped."
-      )}
+                                  "water.caustics.lineDistortion",
+                                  "Line Distortion",
+                                  0,
+                                  2,
+                                  0.01,
+                                  "How much the lines are broken up and warped."
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-        "water.caustics.lineDistortionScale",
-        "Distortion Scale",
-        0.1,
-        10,
-        0.1,
-        "The scale of the line distortion noise."
-      )}
+                                  "water.caustics.lineDistortionScale",
+                                  "Distortion Scale",
+                                  0.1,
+                                  10,
+                                  0.1,
+                                  "The scale of the line distortion noise."
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-        "water.caustics.intersectionBoost",
-        "Intersection Boost",
-        1,
-        20,
-        0.1,
-        "Multiplies the brightness of intersecting lines."
-      )}
+                                  "water.caustics.intersectionBoost",
+                                  "Intersection Boost",
+                                  1,
+                                  20,
+                                  0.1,
+                                  "Multiplies the brightness of intersecting lines."
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-        "water.caustics.roughnessScale",
-        "Roughness Scale",
-        0.1,
-        20,
-        0.1,
-        "Scale of the noise that breaks up the lines."
-      )}
+                                  "water.caustics.roughnessScale",
+                                  "Roughness Scale",
+                                  0.1,
+                                  20,
+                                  0.1,
+                                  "Scale of the noise that breaks up the lines."
+                                )}
 																${DebuggerUIBuilder._createSliderHTML(
-        "water.caustics.roughnessIntensity",
-        "Roughness Intensity",
-        0,
-        1,
-        0.01,
-        "How strongly the noise affects line brightness."
-      )}
+                                  "water.caustics.roughnessIntensity",
+                                  "Roughness Intensity",
+                                  0,
+                                  1,
+                                  0.01,
+                                  "How strongly the noise affects line brightness."
+                                )}
 																<details id="details-water-caustics-cloudOcclusion" style="margin-top: 5px;">
 																		<summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-        "water.caustics.cloudOcclusion.enabled",
-        "Cloud Occlusion",
-        true
-      )}</div></summary>
+                                      "water.caustics.cloudOcclusion.enabled",
+                                      "Cloud Occlusion",
+                                      true
+                                    )}</div></summary>
 																		<div style="padding-left: 15px;">
 																				<p class="description-text">Uses the Cloud Shadows texture to darken the caustics, simulating them being obscured by clouds.</p>
 																				${DebuggerUIBuilder._createSliderHTML(
-        "water.caustics.cloudOcclusion.intensity",
-        "Intensity",
-        0,
-        1,
-        0.01
-      )}
+                                          "water.caustics.cloudOcclusion.intensity",
+                                          "Intensity",
+                                          0,
+                                          1,
+                                          0.01
+                                        )}
 																		</div>
 																</details>
 														</div>
 												</details>
 												<details id="details-water-shoreline">
 														<summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-        "water.shoreline.enabled",
-        "Shoreline Foam",
-        true
-      )}</div></summary>
+                              "water.shoreline.enabled",
+                              "Shoreline Foam",
+                              true
+                            )}</div></summary>
 														<div style="padding-left: 15px;">
 																${DebuggerUIBuilder._createTextureInputHTML(
-        "shoreline",
-        "Shoreline Override (_Shoreline)"
-      )}
+                                  "shoreline",
+                                  "Shoreline Override (_Shoreline)"
+                                )}
 																<p class="description-text">Controls foam near land. Best results with a soft-edged, grayscale _Shoreline map.</p>
 
 																<details><summary><span class="accordion-toggle"></span><strong>Foam Appearance</strong></summary><div style="padding-left:15px;">
 																		${DebuggerUIBuilder._createColorPickerHTML(
-        "water.shoreline.foamColor",
-        "Foam Color"
-      )}
+                                      "water.shoreline.foamColor",
+                                      "Foam Color"
+                                    )}
 																		${DebuggerUIBuilder._createSliderHTML(
-        "water.shoreline.foamIntensity",
-        "Intensity",
-        0,
-        5,
-        0.1
-      )}
+                                      "water.shoreline.foamIntensity",
+                                      "Intensity",
+                                      0,
+                                      5,
+                                      0.1
+                                    )}
 																		${DebuggerUIBuilder._createSliderHTML(
-        "water.shoreline.detectionBlur",
-        "Auto-Detection Blur",
-        1,
-        32,
-        1,
-        "Thickness of the shoreline when auto-detected (no _Shoreline file)."
-      )}
+                                      "water.shoreline.detectionBlur",
+                                      "Auto-Detection Blur",
+                                      1,
+                                      32,
+                                      1,
+                                      "Thickness of the shoreline when auto-detected (no _Shoreline file)."
+                                    )}
 																</div></details>
 
 																<details id="details-water-shoreline-displacement">
 																		<summary><span class="accordion-toggle"></span>
 																				<div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-        "water.shoreline.displacement.enabled",
-        "Displacement Swirl",
-        true
-      )}</div>
+                                          "water.shoreline.displacement.enabled",
+                                          "Displacement Swirl",
+                                          true
+                                        )}</div>
 																		</summary>
 																		<div style="padding-left:15px;">
 																				<p class="description-text">Adds a swirling distortion to the shoreline foam pattern, simulating churning water.</p>
 																				${DebuggerUIBuilder._createSliderHTML(
-        "water.shoreline.displacement.scale",
-        "Swirl Scale",
-        0.1,
-        10,
-        0.1,
-        "The size of the swirling patterns."
-      )}
+                                          "water.shoreline.displacement.scale",
+                                          "Swirl Scale",
+                                          0.1,
+                                          10,
+                                          0.1,
+                                          "The size of the swirling patterns."
+                                        )}
 																				${DebuggerUIBuilder._createSliderHTML(
-        "water.shoreline.displacement.speed",
-        "Swirl Speed",
-        0,
-        15,
-        0.1,
-        "How fast the swirls animate."
-      )}
+                                          "water.shoreline.displacement.speed",
+                                          "Swirl Speed",
+                                          0,
+                                          15,
+                                          0.1,
+                                          "How fast the swirls animate."
+                                        )}
 																				${DebuggerUIBuilder._createSliderHTML(
-        "water.shoreline.displacement.strength",
-        "Swirl Strength",
-        0,
-        0.05,
-        0.0005,
-        "How much the foam pattern is distorted by the swirl."
-      )}
+                                          "water.shoreline.displacement.strength",
+                                          "Swirl Strength",
+                                          0,
+                                          0.05,
+                                          0.0005,
+                                          "How much the foam pattern is distorted by the swirl."
+                                        )}
 																		</div>
 																</details>
 
 																<details><summary><span class="accordion-toggle"></span><strong>Foam Pattern (FBM)</strong></summary><div style="padding-left:15px;">
 																		${DebuggerUIBuilder._createSliderHTML(
-        "water.shoreline.foamPattern.scale",
-        "Scale",
-        1,
-        50,
-        0.5
-      )}
+                                      "water.shoreline.foamPattern.scale",
+                                      "Scale",
+                                      1,
+                                      50,
+                                      0.5
+                                    )}
 																		${DebuggerUIBuilder._createSliderHTML(
-        "water.shoreline.foamPattern.speed",
-        "Speed",
-        0,
-        25,
-        0.1,
-        "Directional drift speed of the foam."
-      )}
+                                      "water.shoreline.foamPattern.speed",
+                                      "Speed",
+                                      0,
+                                      25,
+                                      0.1,
+                                      "Directional drift speed of the foam."
+                                    )}
 																		${DebuggerUIBuilder._createSliderHTML(
-        "water.shoreline.foamPattern.evolution",
-        "Evolution",
-        0,
-        25,
-        0.5,
-        'Internal "boiling" speed of the foam.'
-      )}
+                                      "water.shoreline.foamPattern.evolution",
+                                      "Evolution",
+                                      0,
+                                      25,
+                                      0.5,
+                                      'Internal "boiling" speed of the foam.'
+                                    )}
 																		${DebuggerUIBuilder._createSliderHTML(
-        "water.shoreline.foamPattern.octaves",
-        "Complexity (Octaves)",
-        1,
-        8,
-        1
-      )}
+                                      "water.shoreline.foamPattern.octaves",
+                                      "Complexity (Octaves)",
+                                      1,
+                                      8,
+                                      1
+                                    )}
 																		${DebuggerUIBuilder._createSliderHTML(
-        "water.shoreline.foamPattern.lacunarity",
-        "Detail Scale",
-        1.5,
-        4,
-        0.05
-      )}
+                                      "water.shoreline.foamPattern.lacunarity",
+                                      "Detail Scale",
+                                      1.5,
+                                      4,
+                                      0.05
+                                    )}
 																		${DebuggerUIBuilder._createSliderHTML(
-        "water.shoreline.foamPattern.persistence",
-        "Roughness",
-        0.1,
-        1,
-        0.05
-      )}
+                                      "water.shoreline.foamPattern.persistence",
+                                      "Roughness",
+                                      0.1,
+                                      1,
+                                      0.05
+                                    )}
 																		${DebuggerUIBuilder._createSliderHTML(
-        "water.shoreline.foamPattern.brightness",
-        "Brightness",
-        0,
-        1,
-        0.01
-      )}
+                                      "water.shoreline.foamPattern.brightness",
+                                      "Brightness",
+                                      0,
+                                      1,
+                                      0.01
+                                    )}
 																		${DebuggerUIBuilder._createSliderHTML(
-        "water.shoreline.foamPattern.contrast",
-        "Contrast",
-        0,
-        5,
-        0.05
-      )}
+                                      "water.shoreline.foamPattern.contrast",
+                                      "Contrast",
+                                      0,
+                                      5,
+                                      0.05
+                                    )}
 																</div></details>
 
 														</div>
@@ -23357,111 +23627,117 @@ class WaterFXLayer extends MaskedEffectLayer {
 												<details id="details-water-glint-particles">
 														<summary><span class="accordion-toggle"></span>
 																<div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-        "water.glintParticles.enabled",
-        "Water Glints / Spray",
-        true
-      )}</div>
+                                  "water.glintParticles.enabled",
+                                  "Water Glints / Spray",
+                                  true
+                                )}</div>
 														</summary>
 														<div style="padding-left:15px;">
 																<p class="description-text">General-purpose particles spawned across the entire water surface.</p>
 																${DebuggerUIBuilder._createSelectHTML(
-        "water.glintParticles.blendMode",
-        "Blend Mode",
-        BLEND_MODE_OPTIONS
-      )}
+                                  "water.glintParticles.blendMode",
+                                  "Blend Mode",
+                                  BLEND_MODE_OPTIONS
+                                )}
 																<details>
 																		<summary><span class="accordion-toggle"></span><strong>Spawning & Density</strong></summary>
 																		<div style="padding-left: 15px;">
 																				${DebuggerUIBuilder._createSliderHTML(
-        "water.glintParticles.maskInfluence",
-        "Particle Density",
-        0.01,
-        5,
-        0.01,
-        "Controls the maximum number of particles."
-      )}
+                                          "water.glintParticles.maskInfluence",
+                                          "Particle Density",
+                                          0.01,
+                                          5,
+                                          0.01,
+                                          "Controls the maximum number of particles."
+                                        )}
 																				${DebuggerUIBuilder._createSliderHTML(
-        "water.glintParticles.frequency",
-        "Spawn Rate (s)",
-        0.001,
-        1,
-        0.001,
-        "Time in seconds between particle spawns. Lower is faster."
-      )}
+                                          "water.glintParticles.frequency",
+                                          "Spawn Rate (s)",
+                                          0.001,
+                                          1,
+                                          0.001,
+                                          "Time in seconds between particle spawns. Lower is faster."
+                                        )}
 																				${DebuggerUIBuilder._createSliderHTML(
-        "water.glintParticles.maskThreshold",
-        "Spawn Threshold",
-        0,
-        1,
-        0.01,
-        "Water mask brightness required to spawn particles."
-      )}
+                                          "water.glintParticles.maskThreshold",
+                                          "Spawn Threshold",
+                                          0,
+                                          1,
+                                          0.01,
+                                          "Water mask brightness required to spawn particles."
+                                        )}
 																		</div>
 																</details>
 																<details>
 																		<summary><span class="accordion-toggle"></span><strong>Particle Appearance</strong></summary>
 																		<div style="padding-left: 15px;">
 																				${DebuggerUIBuilder._createTextInputHTML(
-        "water.glintParticles.particleTexture",
-        "Particle Texture",
-        "Path to the particle image."
-      )}
+                                          "water.glintParticles.particleTexture",
+                                          "Particle Texture",
+                                          "Path to the particle image."
+                                        )}
 																				<details>
 																						<summary><span class="accordion-toggle"></span><strong>Lifetime</strong></summary>
 																						<div style="padding-left: 15px;">
 																								${DebuggerUIBuilder._createSliderHTML(
-        "water.glintParticles.lifetime.min",
-        "Min Lifetime (s)",
-        0.1,
-        20,
-        0.1
-      )}
+                                                  "water.glintParticles.lifetime.min",
+                                                  "Min Lifetime (s)",
+                                                  0.1,
+                                                  20,
+                                                  0.1
+                                                )}
 																								${DebuggerUIBuilder._createSliderHTML(
-        "water.glintParticles.lifetime.max",
-        "Max Lifetime (s)",
-        0.1,
-        20,
-        0.1
-      )}
+                                                  "water.glintParticles.lifetime.max",
+                                                  "Max Lifetime (s)",
+                                                  0.1,
+                                                  20,
+                                                  0.1
+                                                )}
 																						</div>
 																				</details>
-																				${DebuggerUIBuilder._createGradientEditorHTML('water.glintParticles.colorAlphaGradient', "Color & Alpha Over Life")}
-																				${DebuggerUIBuilder._createGradientEditorHTML('water.glintParticles.emissiveGradient', "Emissive (Brightness) Over Life")}
+																				${DebuggerUIBuilder._createGradientEditorHTML(
+                                          "water.glintParticles.colorAlphaGradient",
+                                          "Color & Alpha Over Life"
+                                        )}
+																				${DebuggerUIBuilder._createGradientEditorHTML(
+                                          "water.glintParticles.emissiveGradient",
+                                          "Emissive (Brightness) Over Life"
+                                        )}
 																				<details>
 																						<summary><span class="accordion-toggle"></span><strong>Scale / Size</strong></summary>
 																						<div style="padding-left: 15px;">
 																								${DebuggerUIBuilder._createSliderHTML(
-        "water.glintParticles.scale.sizeMultiplier",
-        "Global Size",
-        0.1,
-        10,
-        0.1,
-        "A global multiplier for particle size."
-      )}
+                                                  "water.glintParticles.scale.sizeMultiplier",
+                                                  "Global Size",
+                                                  0.1,
+                                                  10,
+                                                  0.1,
+                                                  "A global multiplier for particle size."
+                                                )}
 																								${DebuggerUIBuilder._createSliderHTML(
-        "water.glintParticles.scale.start",
-        "Start Scale Mult",
-        0,
-        2,
-        0.01,
-        "Particle size at birth (multiplied by Global Size)."
-      )}
+                                                  "water.glintParticles.scale.start",
+                                                  "Start Scale Mult",
+                                                  0,
+                                                  2,
+                                                  0.01,
+                                                  "Particle size at birth (multiplied by Global Size)."
+                                                )}
 																								${DebuggerUIBuilder._createSliderHTML(
-        "water.glintParticles.scale.end",
-        "End Scale Mult",
-        0,
-        2,
-        0.01,
-        "Particle size at death (multiplied by Global Size)."
-      )}
+                                                  "water.glintParticles.scale.end",
+                                                  "End Scale Mult",
+                                                  0,
+                                                  2,
+                                                  0.01,
+                                                  "Particle size at death (multiplied by Global Size)."
+                                                )}
 																								${DebuggerUIBuilder._createSliderHTML(
-        "water.glintParticles.scale.minMult",
-        "Random Size Min",
-        0.1,
-        1,
-        0.01,
-        "Minimum random scale multiplier for each particle (from this value to 1.0)."
-      )}
+                                                  "water.glintParticles.scale.minMult",
+                                                  "Random Size Min",
+                                                  0.1,
+                                                  1,
+                                                  0.01,
+                                                  "Minimum random scale multiplier for each particle (from this value to 1.0)."
+                                                )}
 																						</div>
 																				</details>
 																		</div>
@@ -23473,60 +23749,60 @@ class WaterFXLayer extends MaskedEffectLayer {
 																						<summary><span class="accordion-toggle"></span><strong>Speed</strong></summary>
 																						<div style="padding-left: 15px;">
 																								${DebuggerUIBuilder._createSliderHTML(
-        "water.glintParticles.speed.start",
-        "Start Speed",
-        -50,
-        50,
-        1
-      )}
+                                                  "water.glintParticles.speed.start",
+                                                  "Start Speed",
+                                                  -50,
+                                                  50,
+                                                  1
+                                                )}
 																								${DebuggerUIBuilder._createSliderHTML(
-        "water.glintParticles.speed.end",
-        "End Speed",
-        -50,
-        50,
-        1
-      )}
+                                                  "water.glintParticles.speed.end",
+                                                  "End Speed",
+                                                  -50,
+                                                  50,
+                                                  1
+                                                )}
 																								${DebuggerUIBuilder._createSliderHTML(
-        "water.glintParticles.speed.minMult",
-        "Random Speed Min",
-        0.1,
-        1,
-        0.01,
-        "Minimum random speed multiplier for each particle (from this value to 1.0)."
-      )}
+                                                  "water.glintParticles.speed.minMult",
+                                                  "Random Speed Min",
+                                                  0.1,
+                                                  1,
+                                                  0.01,
+                                                  "Minimum random speed multiplier for each particle (from this value to 1.0)."
+                                                )}
 																						</div>
 																				</details>
 																				<details>
 																						<summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-        "water.glintParticles.rotation.enabled",
-        "Tumbling / Rotation",
-        true
-      )}</div></summary>
+                                              "water.glintParticles.rotation.enabled",
+                                              "Tumbling / Rotation",
+                                              true
+                                            )}</div></summary>
 																						<div style="padding-left: 15px;">
 																								${DebuggerUIBuilder._createSliderHTML(
-        "water.glintParticles.rotation.minSpeed",
-        "Min Rot. Speed",
-        -180,
-        180,
-        1,
-        "Degrees per second."
-      )}
+                                                  "water.glintParticles.rotation.minSpeed",
+                                                  "Min Rot. Speed",
+                                                  -180,
+                                                  180,
+                                                  1,
+                                                  "Degrees per second."
+                                                )}
 																								${DebuggerUIBuilder._createSliderHTML(
-        "water.glintParticles.rotation.maxSpeed",
-        "Max Rot. Speed",
-        -180,
-        180,
-        1,
-        "Degrees per second."
-      )}
+                                                  "water.glintParticles.rotation.maxSpeed",
+                                                  "Max Rot. Speed",
+                                                  -180,
+                                                  180,
+                                                  1,
+                                                  "Degrees per second."
+                                                )}
 																								${DebuggerUIBuilder._createSliderHTML(
-        "water.glintParticles.rotation.accel",
-        "Rot. Accel.",
-        -90,
-        90,
-        1,
-        "Degrees per second squared."
-      )}
+                                                  "water.glintParticles.rotation.accel",
+                                                  "Rot. Accel.",
+                                                  -90,
+                                                  90,
+                                                  1,
+                                                  "Degrees per second squared."
+                                                )}
 																						</div>
 																				</details>
 																		</div>
@@ -23651,7 +23927,8 @@ class WaterFXLayer extends MaskedEffectLayer {
 
       // Convert angle and elevation to a 3D direction vector
       const angle = srfConfig.specularity.lightAngle * (Math.PI / 180.0); // to radians
-      const elevation = srfConfig.specularity.lightElevation * (Math.PI / 180.0); // to radians
+      const elevation =
+        srfConfig.specularity.lightElevation * (Math.PI / 180.0); // to radians
 
       const x = Math.cos(angle) * Math.cos(elevation);
       const y = Math.sin(angle) * Math.cos(elevation);
@@ -23661,7 +23938,6 @@ class WaterFXLayer extends MaskedEffectLayer {
     } else {
       u.u_specularity_enabled = false;
     }
-
 
     const cConfig = wConfig.caustics;
     u.u_caustics_enabled = cConfig.enabled;
@@ -23826,7 +24102,8 @@ class WaterFXLayer extends MaskedEffectLayer {
 
     // Set the _Outdoors mask texture for specular highlight modulation
     if (resourceManager) {
-      u.u_outdoorsMask = resourceManager.getOutdoorsMask() ?? PIXI.Texture.WHITE;
+      u.u_outdoorsMask =
+        resourceManager.getOutdoorsMask() ?? PIXI.Texture.WHITE;
     }
   }
 
@@ -24280,36 +24557,36 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
     const content = `
 						<p class="description-text">Simulates building shadows based on sun position. Uses the _Outdoors map as both the shadow source and the mask.</p>
 						${DebuggerUIBuilder._createSliderHTML(
-      "buildingShadows.intensity",
-      "Shadow Intensity",
-      0,
-      1,
-      0.01
-    )}
+              "buildingShadows.intensity",
+              "Shadow Intensity",
+              0,
+              1,
+              0.01
+            )}
 						${DebuggerUIBuilder._createSliderHTML(
-      "buildingShadows.maxOffset",
-      "Max Offset (px)",
-      0,
-      2000,
-      1,
-      "The maximum distance the shadow will be offset at dawn/dusk."
-    )}
+              "buildingShadows.maxOffset",
+              "Max Offset (px)",
+              0,
+              2000,
+              1,
+              "The maximum distance the shadow will be offset at dawn/dusk."
+            )}
 						${DebuggerUIBuilder._createSliderHTML(
-      "buildingShadows.sunAngle",
-      "Sun Angle",
-      0,
-      360,
-      1,
-      "The direction from which the sun is shining, in degrees. 0 is from the East (right), 90 is from the South (bottom)."
-    )}
+              "buildingShadows.sunAngle",
+              "Sun Angle",
+              0,
+              360,
+              1,
+              "The direction from which the sun is shining, in degrees. 0 is from the East (right), 90 is from the South (bottom)."
+            )}
 						${DebuggerUIBuilder._createSliderHTML(
-      "buildingShadows.maxBlur",
-      "Max Blur (px)",
-      0,
-      50,
-      1,
-      "The maximum blur applied to the shadow at dawn/dusk."
-    )}
+              "buildingShadows.maxBlur",
+              "Max Blur (px)",
+              0,
+              50,
+              1,
+              "The maximum blur applied to the shadow at dawn/dusk."
+            )}
 				`;
     return DebuggerUIBuilder._createAccordionHTML(
       effectKey,
@@ -24320,9 +24597,9 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
   }
 
   /**
-    * Performs a full teardown and setup of the entire layer, including its base class components.
-    * This is used to recover the effect after a scene appearance transition by mimicking a fresh load.
-    */
+   * Performs a full teardown and setup of the entire layer, including its base class components.
+   * This is used to recover the effect after a scene appearance transition by mimicking a fresh load.
+   */
   async rebuildEffect() {
     console.log(
       "BuildingShadowsLayer | Rebuilding effect by cycling through full layer teardown and draw."
@@ -24763,8 +25040,8 @@ class MapShineClock {
                 <div class="clock-controls">
                     <button data-action="adjust-time" data-amount="-0.25" title="Subtract 15 Minutes">-</button>
                     <input type="text" class="time-display-input" value="${MapShineClock._formatTime(
-      this.currentTime
-    )}">
+                      this.currentTime
+                    )}">
                     <button data-action="adjust-time" data-amount="0.25" title="Add 15 Minutes">+</button>
                 </div>
                 ${disclaimerHTML}
@@ -25225,64 +25502,64 @@ class TimeOfDayLayer extends MaskedEffectLayer {
 								<summary><span class="accordion-toggle"></span><strong>${label} Settings</strong></summary>
 								<div style="padding-left: 15px;">
 										${DebuggerUIBuilder._createSliderHTML(
-      `timeOfDay.keyframes.${keyframeName}.time`,
-      "Time (Hour)",
-      0,
-      23.99,
-      0.01,
-      "The 24-hour time when this color grade is at its peak."
-    )}
+                      `timeOfDay.keyframes.${keyframeName}.time`,
+                      "Time (Hour)",
+                      0,
+                      23.99,
+                      0.01,
+                      "The 24-hour time when this color grade is at its peak."
+                    )}
 										${DebuggerUIBuilder._createSliderHTML(
-      `timeOfDay.keyframes.${keyframeName}.temperature`,
-      "Temperature",
-      -1,
-      1,
-      0.01,
-      "Adjusts color balance between cool (blue) and warm (orange)."
-    )}
+                      `timeOfDay.keyframes.${keyframeName}.temperature`,
+                      "Temperature",
+                      -1,
+                      1,
+                      0.01,
+                      "Adjusts color balance between cool (blue) and warm (orange)."
+                    )}
 										${DebuggerUIBuilder._createSliderHTML(
-      `timeOfDay.keyframes.${keyframeName}.tint`,
-      "Tint",
-      -1,
-      1,
-      0.01,
-      "Adjusts color balance between magenta and green."
-    )}
+                      `timeOfDay.keyframes.${keyframeName}.tint`,
+                      "Tint",
+                      -1,
+                      1,
+                      0.01,
+                      "Adjusts color balance between magenta and green."
+                    )}
 										${DebuggerUIBuilder._createSliderHTML(
-      `timeOfDay.keyframes.${keyframeName}.saturation`,
-      "Saturation",
-      0,
-      2,
-      0.01
-    )}
+                      `timeOfDay.keyframes.${keyframeName}.saturation`,
+                      "Saturation",
+                      0,
+                      2,
+                      0.01
+                    )}
 										${DebuggerUIBuilder._createSliderHTML(
-      `timeOfDay.keyframes.${keyframeName}.brightness`,
-      "Brightness",
-      -1,
-      1,
-      0.01
-    )}
+                      `timeOfDay.keyframes.${keyframeName}.brightness`,
+                      "Brightness",
+                      -1,
+                      1,
+                      0.01
+                    )}
 										${DebuggerUIBuilder._createSliderHTML(
-      `timeOfDay.keyframes.${keyframeName}.contrast`,
-      "Contrast",
-      0,
-      3,
-      0.01
-    )}
+                      `timeOfDay.keyframes.${keyframeName}.contrast`,
+                      "Contrast",
+                      0,
+                      3,
+                      0.01
+                    )}
 										${DebuggerUIBuilder._createSliderHTML(
-      `timeOfDay.keyframes.${keyframeName}.exposure`,
-      "Exposure",
-      -2,
-      2,
-      0.01
-    )}
+                      `timeOfDay.keyframes.${keyframeName}.exposure`,
+                      "Exposure",
+                      -2,
+                      2,
+                      0.01
+                    )}
 										${DebuggerUIBuilder._createSliderHTML(
-      `timeOfDay.keyframes.${keyframeName}.gamma`,
-      "Gamma",
-      0.2,
-      2.5,
-      0.01
-    )}
+                      `timeOfDay.keyframes.${keyframeName}.gamma`,
+                      "Gamma",
+                      0.2,
+                      2.5,
+                      0.01
+                    )}
 								</div>
 						</details>
 				`;
@@ -25290,18 +25567,18 @@ class TimeOfDayLayer extends MaskedEffectLayer {
     const content = `
 						<p class="description-text">Applies a color grade to outdoor areas of the map based on the time of day set by the Day/Night Clock.</p>
 						${DebuggerUIBuilder._createCheckboxHTML(
-      "timeOfDay.syncToSceneDarkness",
-      "Sync to Scene Darkness",
-      false,
-      "When enabled, the Day/Night clock will control Foundry's global scene darkness level. (GM only)"
-    )}
+              "timeOfDay.syncToSceneDarkness",
+              "Sync to Scene Darkness",
+              false,
+              "When enabled, the Day/Night clock will control Foundry's global scene darkness level. (GM only)"
+            )}
 						${DebuggerUIBuilder._createSliderHTML(
-      "timeOfDay.intensity",
-      "Overall Intensity",
-      0,
-      2,
-      0.05
-    )}
+              "timeOfDay.intensity",
+              "Overall Intensity",
+              0,
+              2,
+              0.05
+            )}
 						<details id="details-timeOfDay-keyframes">
 								<summary><span class="accordion-toggle"></span><strong>Time Keyframes</strong></summary>
 								<div style="padding-left: 15px;">
@@ -25664,7 +25941,7 @@ class CurveEditor {
     this.container = container;
     this.width = options.width || 256;
     this.height = options.height || 256;
-    this.onChange = options.onChange || (() => { });
+    this.onChange = options.onChange || (() => {});
 
     // Use a standard "Y-up" coordinate system internally, where y=0 is the bottom.
     this.points = [
@@ -25859,14 +26136,15 @@ class CurveEditor {
 
     const p = this.points;
     // The path data must also be flipped for rendering in the y-down SVG canvas.
-    const pathData = `M ${p[0].x},${this.height - p[0].y} C ${p[1].x},${this.height - p[1].y
-      } ${p[2].x},${this.height - p[2].y} ${p[3].x},${this.height - p[3].y}`;
+    const pathData = `M ${p[0].x},${this.height - p[0].y} C ${p[1].x},${
+      this.height - p[1].y
+    } ${p[2].x},${this.height - p[2].y} ${p[3].x},${this.height - p[3].y}`;
     this.path.setAttribute("d", pathData);
   }
 }
 
 class DebuggerUIBuilder {
-  constructor() { }
+  constructor() {}
 
   buildRootElement() {
     // Load only the fonts currently in use by the module's settings.
@@ -25933,12 +26211,12 @@ class DebuggerUIBuilder {
           <div class="control-row">
             <label for="font-preview-selector">Preview Font</label>
             ${DebuggerUIBuilder._createSelectHTML(
-      "fontManager.previewFont",
-      "",
-      FONT_CHOICES,
-      "Select a font to preview it below.",
-      "font-selector-dropdown"
-    )}
+              "fontManager.previewFont",
+              "",
+              FONT_CHOICES,
+              "Select a font to preview it below.",
+              "font-selector-dropdown"
+            )}
           </div>
           <div id="font-preview-text" style="font-size: 24px; margin-top: 10px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 3px; text-align: center; font-family: 'Signika';">
             The quick brown fox jumps over the lazy dog.
@@ -25950,33 +26228,33 @@ class DebuggerUIBuilder {
         <summary><span class="accordion-toggle"></span><strong>Style Assignments</strong></summary>
         <div style="padding-left: 15px;">
           ${DebuggerUIBuilder._createSelectHTML(
-      "universal.fontManager.styles.heading1.fontFamily",
-      "Heading 1",
-      FONT_CHOICES,
-      "Font for primary headings (e.g., Pause Screen title).",
-      "font-selector-dropdown"
-    )}
+            "universal.fontManager.styles.heading1.fontFamily",
+            "Heading 1",
+            FONT_CHOICES,
+            "Font for primary headings (e.g., Pause Screen title).",
+            "font-selector-dropdown"
+          )}
           ${DebuggerUIBuilder._createSelectHTML(
-      "universal.fontManager.styles.heading2.fontFamily",
-      "Heading 2",
-      FONT_CHOICES,
-      "Font for secondary headings (e.g., Pause Screen subtitle).",
-      "font-selector-dropdown"
-    )}
+            "universal.fontManager.styles.heading2.fontFamily",
+            "Heading 2",
+            FONT_CHOICES,
+            "Font for secondary headings (e.g., Pause Screen subtitle).",
+            "font-selector-dropdown"
+          )}
           ${DebuggerUIBuilder._createSelectHTML(
-      "universal.fontManager.styles.body.fontFamily",
-      "Body Text",
-      FONT_CHOICES,
-      "Font for general body or description text.",
-      "font-selector-dropdown"
-    )}
+            "universal.fontManager.styles.body.fontFamily",
+            "Body Text",
+            FONT_CHOICES,
+            "Font for general body or description text.",
+            "font-selector-dropdown"
+          )}
           ${DebuggerUIBuilder._createSelectHTML(
-      "universal.fontManager.styles.hint.fontFamily",
-      "Hint Text",
-      FONT_CHOICES,
-      "Font for hint text on loading and pause screens.",
-      "font-selector-dropdown"
-    )}
+            "universal.fontManager.styles.hint.fontFamily",
+            "Hint Text",
+            FONT_CHOICES,
+            "Font for hint text on loading and pause screens.",
+            "font-selector-dropdown"
+          )}
         </div>
       </details>
     `;
@@ -25996,36 +26274,36 @@ class DebuggerUIBuilder {
         <div style="padding-left: 15px;">
           <p class="description-text">Settings for the background image and overlay for both the initial loading screen and scene transitions.</p>
           ${DebuggerUIBuilder._createTextInputWithPickerHTML(
-      "loading-screen-static-background",
-      "Static Background"
-    )}
+            "loading-screen-static-background",
+            "Static Background"
+          )}
           ${DebuggerUIBuilder._createCheckboxHTML(
-      "loading-screen-use-random-background",
-      "Use Random Background"
-    )}
+            "loading-screen-use-random-background",
+            "Use Random Background"
+          )}
           <div id="loading-screen-random-backgrounds-wrapper">
              ${DebuggerUIBuilder._createListManagerHTML(
-      "loading-screen-random-backgrounds",
-      "Background Image",
-      "image"
-    )}
+               "loading-screen-random-backgrounds",
+               "Background Image",
+               "image"
+             )}
           </div>
           <details id="details-initial-loading-bgOverlay">
             <summary><span class="accordion-toggle"></span>
                 <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-      "loading-screen-background-overlay-enabled",
-      "Enable Background Overlay",
-      true
-    )}</div>
+                  "loading-screen-background-overlay-enabled",
+                  "Enable Background Overlay",
+                  true
+                )}</div>
             </summary>
             <div style="padding-left: 15px;">
                  ${DebuggerUIBuilder._createSliderHTML(
-      "loading-screen-background-overlay-opacity",
-      "Overlay Opacity",
-      0,
-      1,
-      0.05
-    )}
+                   "loading-screen-background-overlay-opacity",
+                   "Overlay Opacity",
+                   0,
+                   1,
+                   0.05
+                 )}
             </div>
           </details>
         </div>
@@ -26036,55 +26314,55 @@ class DebuggerUIBuilder {
         <div style="padding-left: 15px;">
           <p class="description-text">Settings for the text, logo, and timing of the animated transition between scenes.</p>
           ${DebuggerUIBuilder._createCheckboxHTML(
-      "universal.sceneTransition.enabled",
-      "Enable Scene Transitions"
-    )}
+            "universal.sceneTransition.enabled",
+            "Enable Scene Transitions"
+          )}
           ${DebuggerUIBuilder._createSliderHTML(
-      "universal.sceneTransition.fadeOutDuration",
-      "Fade Out (ms)",
-      0,
-      10000,
-      100
-    )}
+            "universal.sceneTransition.fadeOutDuration",
+            "Fade Out (ms)",
+            0,
+            10000,
+            100
+          )}
           ${DebuggerUIBuilder._createSliderHTML(
-      "universal.sceneTransition.fadeInDuration",
-      "Fade In (ms)",
-      0,
-      10000,
-      100
-    )}
+            "universal.sceneTransition.fadeInDuration",
+            "Fade In (ms)",
+            0,
+            10000,
+            100
+          )}
           <hr style="border-color: #555; margin: 6px 0;">
           ${DebuggerUIBuilder._createTextInputWithPickerHTML(
-      "universal.sceneTransition.logoPath",
-      "Logo Path"
-    )}
+            "universal.sceneTransition.logoPath",
+            "Logo Path"
+          )}
           ${DebuggerUIBuilder._createTextInputHTML(
-      "universal.sceneTransition.heading",
-      "Heading"
-    )}
+            "universal.sceneTransition.heading",
+            "Heading"
+          )}
           ${DebuggerUIBuilder._createTextInputHTML(
-      "universal.sceneTransition.subheading",
-      "Subheading"
-    )}
+            "universal.sceneTransition.subheading",
+            "Subheading"
+          )}
           ${DebuggerUIBuilder._createTextInputHTML(
-      "universal.sceneTransition.staticDescription",
-      "Description"
-    )}
+            "universal.sceneTransition.staticDescription",
+            "Description"
+          )}
           ${DebuggerUIBuilder._createCheckboxHTML(
-      "universal.sceneTransition.showSceneName",
-      "Show Scene Name"
-    )}
+            "universal.sceneTransition.showSceneName",
+            "Show Scene Name"
+          )}
           <hr style="border-color: #555; margin: 6px 0;">
           ${DebuggerUIBuilder._createCheckboxHTML(
-      "universal.sceneTransition.useRandomHint",
-      "Use Random Hint"
-    )}
+            "universal.sceneTransition.useRandomHint",
+            "Use Random Hint"
+          )}
           <div id="sceneTransition-randomHints-wrapper">
              ${DebuggerUIBuilder._createListManagerHTML(
-      "universal.sceneTransition.randomHints",
-      "Hint",
-      "text"
-    )}
+               "universal.sceneTransition.randomHints",
+               "Hint",
+               "text"
+             )}
           </div>
         </div>
       </details>
@@ -26104,11 +26382,11 @@ class DebuggerUIBuilder {
                             <span class="accordion-toggle"></span>
                             <div class="summary-control">
                                 ${DebuggerUIBuilder._createCheckboxHTML(
-      "particleSystems.enabled",
-      "<strong>Enable All Particles</strong>",
-      true,
-      "Master toggle for all particle effects."
-    )}
+                                  "particleSystems.enabled",
+                                  "<strong>Enable All Particles</strong>",
+                                  true,
+                                  "Master toggle for all particle effects."
+                                )}
                             </div>
                         </summary>
                         <div style="padding-top: 5px;">
@@ -26121,21 +26399,21 @@ class DebuggerUIBuilder {
                                 </div>
                             </div>
                             ${DebuggerUIBuilder._createSliderHTML(
-      "particleSystems.globalDensityMultiplier",
-      "Global Density",
-      0.1,
-      2.0,
-      0.05,
-      "A multiplier for the spawn rate/density of ALL particle effects."
-    )}
+                              "particleSystems.globalDensityMultiplier",
+                              "Global Density",
+                              0.1,
+                              2.0,
+                              0.05,
+                              "A multiplier for the spawn rate/density of ALL particle effects."
+                            )}
                             ${DebuggerUIBuilder._createSliderHTML(
-      "particleSystems.globalParticleLimit",
-      "Global Particle Limit",
-      500,
-      30000,
-      100,
-      "A hard cap on the total number of particles allowed on screen at once to prevent performance issues."
-    )}
+                              "particleSystems.globalParticleLimit",
+                              "Global Particle Limit",
+                              500,
+                              30000,
+                              100,
+                              "A hard cap on the total number of particles allowed on screen at once to prevent performance issues."
+                            )}
                         </div>
                     </details>
                 `;
@@ -26527,17 +26805,21 @@ border-color: #6fdd73;
                         <div class="profile-select-wrapper">
                             <select id="scene-profile-select"></select>
                             <div class="profile-management-buttons">
-                                <button data-action="rename-scene-profile" title="Rename Selected Profile" ${!isGm ? "disabled" : ""
-        }><i class="fas fa-edit"></i></button>
-                                <button data-action="delete-scene-profile" title="Delete Selected Profile" ${!isGm ? "disabled" : ""
-        }><i class="fas fa-trash"></i></button>
+                                <button data-action="rename-scene-profile" title="Rename Selected Profile" ${
+                                  !isGm ? "disabled" : ""
+                                }><i class="fas fa-edit"></i></button>
+                                <button data-action="delete-scene-profile" title="Delete Selected Profile" ${
+                                  !isGm ? "disabled" : ""
+                                }><i class="fas fa-trash"></i></button>
                             </div>
                         </div>
                         <div class="new-profile-controls">
-                           <input type="text" id="new-scene-profile-name" placeholder="New Appearance Name..." ${!isGm ? "disabled" : ""
-        }>
-                           <button data-action="save-scene-profile" id="save-scene-profile-btn" title="Save the current settings as a new scene appearance profile. (GM Only)" ${!isGm ? "disabled" : ""
-        }><i class="fas fa-save"></i> Save As New</button>
+                           <input type="text" id="new-scene-profile-name" placeholder="New Appearance Name..." ${
+                             !isGm ? "disabled" : ""
+                           }>
+                           <button data-action="save-scene-profile" id="save-scene-profile-btn" title="Save the current settings as a new scene appearance profile. (GM Only)" ${
+                             !isGm ? "disabled" : ""
+                           }><i class="fas fa-save"></i> Save As New</button>
                         </div>
                     </div>
                     <div class="main-controls-col">
@@ -26548,8 +26830,9 @@ border-color: #6fdd73;
                         </div>
                         <div class="main-controls-buttons">
                            <button data-action="preview-profile" id="preview-profile-btn"><i class="fas fa-eye"></i> Preview</button>
-                           <button data-action="activate-profile" id="activate-profile-btn" class="activate-btn" ${!isGm ? "disabled" : ""
-        }><i class="fas fa-broadcast-tower"></i> Activate for All</button>
+                           <button data-action="activate-profile" id="activate-profile-btn" class="activate-btn" ${
+                             !isGm ? "disabled" : ""
+                           }><i class="fas fa-broadcast-tower"></i> Activate for All</button>
                         </div>
                          <div class="transition-status-wrapper">
                             <span id="transition-status-light" class="fx-status-light grey"></span>
@@ -26565,12 +26848,14 @@ border-color: #6fdd73;
                    <button data-action="revert-changes" id="revert-changes-btn" title="Discard all of your temporary changes and revert to the last saved state for the active profile.">
                        <i class="fas fa-undo"></i> Revert Changes
                    </button>
-                   <button data-action="new-clean-profile" id="new-clean-profile-btn" title="Create a new appearance profile based on the module's default settings. (GM Only)" ${!isGm ? "disabled" : ""
-        }>
+                   <button data-action="new-clean-profile" id="new-clean-profile-btn" title="Create a new appearance profile based on the module's default settings. (GM Only)" ${
+                     !isGm ? "disabled" : ""
+                   }>
                        <i class="fas fa-plus-square"></i> New Clean Profile
                    </button>
-                   <button data-action="copy-settings" id="copy-active-settings-btn" title="Copy the current active settings to the clipboard, which can then be used to create a new hard-coded profile. (GM Only)" ${!isGm ? "disabled" : ""
-        }>
+                   <button data-action="copy-settings" id="copy-active-settings-btn" title="Copy the current active settings to the clipboard, which can then be used to create a new hard-coded profile. (GM Only)" ${
+                     !isGm ? "disabled" : ""
+                   }>
                        <i class="fas fa-clipboard"></i> DEBUG: Copy Settings to Clipboard
                    </button>
                 </div>
@@ -26579,10 +26864,12 @@ border-color: #6fdd73;
       contentHTML = `
                 <div class="main-controls-init">
                     <p>This scene is using the world default profile. Create scene-specific profiles to enable advanced visual controls.</p>
-                    <button data-action="create-scene-profiles" ${!isGm ? "disabled" : ""
-        }><i class="fas fa-unlock-alt"></i> Create First Profile</button>
-                    <button data-action="new-clean-profile" style="margin-top: 5px;" ${!isGm ? "disabled" : ""
-        }><i class="fas fa-plus-square"></i> Create First (Clean)</button>
+                    <button data-action="create-scene-profiles" ${
+                      !isGm ? "disabled" : ""
+                    }><i class="fas fa-unlock-alt"></i> Create First Profile</button>
+                    <button data-action="new-clean-profile" style="margin-top: 5px;" ${
+                      !isGm ? "disabled" : ""
+                    }><i class="fas fa-plus-square"></i> Create First (Clean)</button>
                 </div>
                 <hr style="border-color: #555; margin: 10px 0;">
                 <div class="main-controls-buttons" style="display: grid; grid-template-columns: 1fr; gap: 8px;">
@@ -26660,36 +26947,36 @@ border-color: #6fdd73;
                             <span class="accordion-toggle"></span>
                             <div class="summary-control">
                                 ${DebuggerUIBuilder._createCheckboxHTML(
-      "diagnostic.enabled",
-      "<strong>Diagnostic Mode</strong>",
-      true
-    )}
+                                  "diagnostic.enabled",
+                                  "<strong>Diagnostic Mode</strong>",
+                                  true
+                                )}
                             </div>
                         </summary>
                         <div style="padding-top: 5px;">
                             <p class="description-text">A tool for developers and artists to inspect effect maps and pixel values.</p>
                             ${DebuggerUIBuilder._createCheckboxHTML(
-      "diagnostic.showMasks",
-      "Show Discovered Masks & Outlines"
-    )}
+                              "diagnostic.showMasks",
+                              "Show Discovered Masks & Outlines"
+                            )}
                             ${DebuggerUIBuilder._createSelectHTML(
-      "diagnostic.displaySuffix",
-      "Display Texture",
-      suffixOptions,
-      "Select which mask or generated texture to display."
-    )}
+                              "diagnostic.displaySuffix",
+                              "Display Texture",
+                              suffixOptions,
+                              "Select which mask or generated texture to display."
+                            )}
                             ${DebuggerUIBuilder._createCheckboxHTML(
-      "diagnostic.pixelInspector",
-      "Enable Pixel Inspector Tooltip"
-    )}
+                              "diagnostic.pixelInspector",
+                              "Enable Pixel Inspector Tooltip"
+                            )}
                             ${DebuggerUIBuilder._createCheckboxHTML(
-      "diagnostic.showIlluminationPreview",
-      "Show Illumination Preview"
-    )}
+                              "diagnostic.showIlluminationPreview",
+                              "Show Illumination Preview"
+                            )}
                             ${DebuggerUIBuilder._createCheckboxHTML(
-      "showTokenMask",
-      "Show Token Mask"
-    )}
+                              "showTokenMask",
+                              "Show Token Mask"
+                            )}
                         </div>
                     </details>
                 `;
@@ -26735,11 +27022,11 @@ border-color: #6fdd73;
                 `;
   }
 
-  static _createGradientEditorHTML(path, label, type = 'color') {
+  static _createGradientEditorHTML(path, label, type = "color") {
     const id = this._createSafeId(path);
     let valueControlHTML;
 
-    if (type === 'brightness') {
+    if (type === "brightness") {
       valueControlHTML = `
                 <div class="control-row control-row-slider">
                     <label for="${id}-brightness-slider">Brightness</label>
@@ -26747,7 +27034,8 @@ border-color: #6fdd73;
                     <span class="value-span" id="${id}-brightness-value">1.00</span>
                 </div>
             `;
-    } else { // type === 'color'
+    } else {
+      // type === 'color'
       valueControlHTML = `
                 <div class="control-row">
                     <label for="${id}-color-picker">Color</label>
@@ -26788,7 +27076,11 @@ border-color: #6fdd73;
     let path = `${id}.enabled`;
 
     // Special cases for accordions tied to game settings, not a single profile path.
-    if (id === "loadingScreen" || id === "fontManager" || id === "pauseEffectOverlay") {
+    if (
+      id === "loadingScreen" ||
+      id === "fontManager" ||
+      id === "pauseEffectOverlay"
+    ) {
       path = "loadingScreen.accordion"; // Dummy path
       const labelHtml = `<span class="summary-label">${title}</span>`;
       const resetButtonHtml = `<button type="button" class="reset-accordion-btn" data-action="reset-accordion" data-effect-key="${id}" title="Reset this section to defaults">R</button>`;
@@ -26969,18 +27261,18 @@ border-color: #6fdd73;
     const content = `
             <p class="description-text">Uses Foundry's core lighting system as an "anti-shadow" layer. Light sources placed on the map will brighten/erase custom Map Shine shadows.</p>
             ${DebuggerUIBuilder._createSelectHTML(
-      "lightSourceIntegration.blendMode",
-      "Blend Mode",
-      BLEND_MODE_OPTIONS
-    )}
+              "lightSourceIntegration.blendMode",
+              "Blend Mode",
+              BLEND_MODE_OPTIONS
+            )}
             ${DebuggerUIBuilder._createSliderHTML(
-      "lightSourceIntegration.intensity",
-      "Intensity",
-      0,
-      2,
-      0.05,
-      "The strength of the brightening effect. Higher values are more intense."
-    )}
+              "lightSourceIntegration.intensity",
+              "Intensity",
+              0,
+              2,
+              0.05,
+              "The strength of the brightening effect. Higher values are more intense."
+            )}
         `;
     return DebuggerUIBuilder._createAccordionHTML(
       effectKey,
@@ -27033,29 +27325,29 @@ border-color: #6fdd73;
             <div style="padding-left: 15px;">
                 <p class="description-text">Define the zoom levels used for interpolation.</p>
                 ${DebuggerUIBuilder._createSliderHTML(
-        "overheadEffect.zoomPointMin",
-        "Min Zoom Point",
-        0.1,
-        5,
-        0.05,
-        "The zoom level for the 'Min' settings below."
-      )}
+                  "overheadEffect.zoomPointMin",
+                  "Min Zoom Point",
+                  0.1,
+                  5,
+                  0.05,
+                  "The zoom level for the 'Min' settings below."
+                )}
                 ${DebuggerUIBuilder._createSliderHTML(
-        "overheadEffect.zoomPointMid",
-        "Mid Zoom Point",
-        0.1,
-        5,
-        0.05,
-        "The zoom level for the 'Mid' settings below."
-      )}
+                  "overheadEffect.zoomPointMid",
+                  "Mid Zoom Point",
+                  0.1,
+                  5,
+                  0.05,
+                  "The zoom level for the 'Mid' settings below."
+                )}
                 ${DebuggerUIBuilder._createSliderHTML(
-        "overheadEffect.zoomPointMax",
-        "Max Zoom Point",
-        0.1,
-        5,
-        0.05,
-        "The zoom level for the 'Max' settings below."
-      )}
+                  "overheadEffect.zoomPointMax",
+                  "Max Zoom Point",
+                  0.1,
+                  5,
+                  0.05,
+                  "The zoom level for the 'Max' settings below."
+                )}
             </div>
         </details>
         <details>
@@ -27063,26 +27355,26 @@ border-color: #6fdd73;
             <div style="padding-left: 15px;">
                 <p class="description-text">Define the world-space blur amount at the configured zoom points.</p>
                 ${DebuggerUIBuilder._createSliderHTML(
-        "overheadEffect.blurMinZoom",
-        "Blur (Min Zoom)",
-        0,
-        50,
-        0.5
-      )}
+                  "overheadEffect.blurMinZoom",
+                  "Blur (Min Zoom)",
+                  0,
+                  50,
+                  0.5
+                )}
                 ${DebuggerUIBuilder._createSliderHTML(
-        "overheadEffect.blurMidZoom",
-        "Blur (Mid Zoom)",
-        0,
-        50,
-        0.5
-      )}
+                  "overheadEffect.blurMidZoom",
+                  "Blur (Mid Zoom)",
+                  0,
+                  50,
+                  0.5
+                )}
                 ${DebuggerUIBuilder._createSliderHTML(
-        "overheadEffect.blurMaxZoom",
-        "Blur (Max Zoom)",
-        0,
-        50,
-        0.5
-      )}
+                  "overheadEffect.blurMaxZoom",
+                  "Blur (Max Zoom)",
+                  0,
+                  50,
+                  0.5
+                )}
             </div>
         </details>
         <details>
@@ -27090,75 +27382,75 @@ border-color: #6fdd73;
             <div style="padding-left: 15px;">
                 <p class="description-text">Define the layer opacity at the configured zoom points.</p>
                 ${DebuggerUIBuilder._createSliderHTML(
-        "overheadEffect.opacityMinZoom",
-        "Opacity (Min Zoom)",
-        0,
-        1,
-        0.01
-      )}
+                  "overheadEffect.opacityMinZoom",
+                  "Opacity (Min Zoom)",
+                  0,
+                  1,
+                  0.01
+                )}
                 ${DebuggerUIBuilder._createSliderHTML(
-        "overheadEffect.opacityMidZoom",
-        "Opacity (Mid Zoom)",
-        0,
-        1,
-        0.01
-      )}
+                  "overheadEffect.opacityMidZoom",
+                  "Opacity (Mid Zoom)",
+                  0,
+                  1,
+                  0.01
+                )}
                 ${DebuggerUIBuilder._createSliderHTML(
-        "overheadEffect.opacityMaxZoom",
-        "Opacity (Max Zoom)",
-        0,
-        1,
-        0.01
-      )}
+                  "overheadEffect.opacityMaxZoom",
+                  "Opacity (Max Zoom)",
+                  0,
+                  1,
+                  0.01
+                )}
             </div>
         </details>
         ${DebuggerUIBuilder._createSliderHTML(
-        "overheadEffect.hoverFadeDuration",
-        "Hover Fade Duration (ms)",
-        0,
-        2000,
-        50,
-        "How long it takes for the overhead tile to fade in/out on hover."
-      )}
+          "overheadEffect.hoverFadeDuration",
+          "Hover Fade Duration (ms)",
+          0,
+          2000,
+          50,
+          "How long it takes for the overhead tile to fade in/out on hover."
+        )}
         <details id="details-overheadEffect-recolor">
             <summary><span class="accordion-toggle"></span><strong>Recoloration</strong></summary>
             <div style="padding-left: 15px;">
                 <details id="details-overheadEffect-recolor-tint">
                     <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-        "overheadEffect.recolor.enabled",
-        "Tint with Structural Mask",
-        true
-      )}</div></summary>
+                      "overheadEffect.recolor.enabled",
+                      "Tint with Structural Mask",
+                      true
+                    )}</div></summary>
                     <div style="padding-left: 15px;">
                         <p class="description-text">Applies a color tint to overhead tiles based on the _Structural mask.</p>
                         ${DebuggerUIBuilder._createColorPickerHTML(
-        "overheadEffect.recolor.tint",
-        "Tint Color"
-      )}
+                          "overheadEffect.recolor.tint",
+                          "Tint Color"
+                        )}
                         ${DebuggerUIBuilder._createSliderHTML(
-        "overheadEffect.recolor.intensity",
-        "Intensity",
-        0,
-        1,
-        0.01
-      )}
+                          "overheadEffect.recolor.intensity",
+                          "Intensity",
+                          0,
+                          1,
+                          0.01
+                        )}
                     </div>
                 </details>
                 <details id="details-overheadEffect-recolor-cloudShadowDarken">
                     <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-        "overheadEffect.recolor.cloudShadowDarken.enabled",
-        "Darken with Cloud Shadows",
-        true
-      )}</div></summary>
+                      "overheadEffect.recolor.cloudShadowDarken.enabled",
+                      "Darken with Cloud Shadows",
+                      true
+                    )}</div></summary>
                     <div style="padding-left: 15px;">
                         <p class="description-text">Darkens overhead tiles using the cloud shadow pattern. Requires Cloud Shadows effect to be active.</p>
                         ${DebuggerUIBuilder._createSliderHTML(
-        "overheadEffect.recolor.cloudShadowDarken.intensity",
-        "Intensity",
-        0,
-        1,
-        0.01
-      )}
+                          "overheadEffect.recolor.cloudShadowDarken.intensity",
+                          "Intensity",
+                          0,
+                          1,
+                          0.01
+                        )}
                     </div>
                 </details>
             </div>
@@ -27175,14 +27467,14 @@ border-color: #6fdd73;
         <summary><span class="accordion-toggle"></span><strong>Content &amp; Text</strong></summary>
         <div style="padding-left: 15px;">
           ${DebuggerUIBuilder._createTextInputHTML(
-      "universal.pauseEffect.heading",
-      "Heading"
-    )}
+            "universal.pauseEffect.heading",
+            "Heading"
+          )}
           <hr style="border-color: #555; margin: 6px 0;">
           ${DebuggerUIBuilder._createTextInputHTML(
-      "universal.pauseEffect.subheading",
-      "Subheading"
-    )}
+            "universal.pauseEffect.subheading",
+            "Subheading"
+          )}
         </div>
       </details>
       
@@ -27190,42 +27482,42 @@ border-color: #6fdd73;
         <summary><span class="accordion-toggle"></span><strong>Styling &amp; Colors</strong></summary>
         <div style="padding-left: 15px;">
           ${DebuggerUIBuilder._createTextInputWithPickerHTML(
-      "universal.pauseEffect.logoPath",
-      "Logo Path"
-    )}
+            "universal.pauseEffect.logoPath",
+            "Logo Path"
+          )}
           ${DebuggerUIBuilder._createSliderHTML(
-      "universal.pauseEffect.logoOpacity",
-      "Logo Opacity",
-      0,
-      1,
-      0.05
-    )}
+            "universal.pauseEffect.logoOpacity",
+            "Logo Opacity",
+            0,
+            1,
+            0.05
+          )}
           <hr style="border-color: #555; margin: 6px 0;">
           ${DebuggerUIBuilder._createTextInputHTML(
-      "universal.pauseEffect.backgroundColor",
-      "Background"
-    )}
+            "universal.pauseEffect.backgroundColor",
+            "Background"
+          )}
           ${DebuggerUIBuilder._createColorPickerHTML(
-      "universal.pauseEffect.gradientColor1",
-      "Gradient Color 1"
-    )}
+            "universal.pauseEffect.gradientColor1",
+            "Gradient Color 1"
+          )}
           ${DebuggerUIBuilder._createTextInputHTML(
-      "universal.pauseEffect.gradientColor2",
-      "Gradient Color 2"
-    )}
+            "universal.pauseEffect.gradientColor2",
+            "Gradient Color 2"
+          )}
           <hr style="border-color: #555; margin: 6px 0;">
           ${DebuggerUIBuilder._createColorPickerHTML(
-      "universal.pauseEffect.headingColor",
-      "Heading Color"
-    )}
+            "universal.pauseEffect.headingColor",
+            "Heading Color"
+          )}
           ${DebuggerUIBuilder._createColorPickerHTML(
-      "universal.pauseEffect.subheadingColor",
-      "Subheading Color"
-    )}
+            "universal.pauseEffect.subheadingColor",
+            "Subheading Color"
+          )}
           ${DebuggerUIBuilder._createColorPickerHTML(
-      "universal.pauseEffect.hintColor",
-      "Hint Color"
-    )}
+            "universal.pauseEffect.hintColor",
+            "Hint Color"
+          )}
         </div>
       </details>
       
@@ -27233,15 +27525,15 @@ border-color: #6fdd73;
         <summary><span class="accordion-toggle"></span><strong>Random Hints</strong></summary>
         <div style="padding-left: 15px;">
           ${DebuggerUIBuilder._createCheckboxHTML(
-      "universal.pauseEffect.useRandomHint",
-      "Show Random Hint"
-    )}
+            "universal.pauseEffect.useRandomHint",
+            "Show Random Hint"
+          )}
           <div id="pauseEffect-randomHints-wrapper">
              ${DebuggerUIBuilder._createListManagerHTML(
-      "universal.pauseEffect.randomHints",
-      "Hint",
-      "text"
-    )}
+               "universal.pauseEffect.randomHints",
+               "Hint",
+               "text"
+             )}
           </div>
         </div>
       </details>
@@ -27255,23 +27547,32 @@ border-color: #6fdd73;
 }
 
 /**
-  * Generates separate color and alpha lists for the particle emitter from a single gradient array.
-  * @param {Array<object>} gradient - An array of stop objects, each with {time, color, alpha}.
-  * @returns {{colorList: object, alphaList: object}} An object containing the config lists for the behaviors.
-  */
+ * Generates separate color and alpha lists for the particle emitter from a single gradient array.
+ * @param {Array<object>} gradient - An array of stop objects, each with {time, color, alpha}.
+ * @returns {{colorList: object, alphaList: object}} An object containing the config lists for the behaviors.
+ */
 function _generateBehaviorListsFromGradient(gradient) {
   if (!gradient || gradient.length === 0) {
     // @ts-ignore
-    return { isColorStatic: true, staticColor: "#ffffff", isAlphaStatic: true, staticAlpha: 1.0 };
+    return {
+      isColorStatic: true,
+      staticColor: "#ffffff",
+      isAlphaStatic: true,
+      staticAlpha: 1.0,
+    };
   }
 
   const sortedGradient = [...gradient].sort((a, b) => a.time - b.time);
 
   const firstColor = sortedGradient[0].color;
-  const allColorsSame = sortedGradient.every(stop => stop.color === firstColor);
+  const allColorsSame = sortedGradient.every(
+    (stop) => stop.color === firstColor
+  );
 
   const firstAlpha = sortedGradient[0].alpha;
-  const allAlphasSame = sortedGradient.every(stop => Math.abs(stop.alpha - firstAlpha) < 0.001);
+  const allAlphasSame = sortedGradient.every(
+    (stop) => Math.abs(stop.alpha - firstAlpha) < 0.001
+  );
 
   const result = {
     isColorStatic: allColorsSame,
@@ -27281,13 +27582,17 @@ function _generateBehaviorListsFromGradient(gradient) {
   if (allColorsSame) {
     result.staticColor = firstColor;
   } else {
-    result.colorList = { list: sortedGradient.map(s => ({ value: s.color, time: s.time })) };
+    result.colorList = {
+      list: sortedGradient.map((s) => ({ value: s.color, time: s.time })),
+    };
   }
 
   if (allAlphasSame) {
     result.staticAlpha = firstAlpha;
   } else {
-    result.alphaList = { list: sortedGradient.map(s => ({ value: s.alpha, time: s.time })) };
+    result.alphaList = {
+      list: sortedGradient.map((s) => ({ value: s.alpha, time: s.time })),
+    };
   }
 
   // @ts-ignore
@@ -27295,10 +27600,10 @@ function _generateBehaviorListsFromGradient(gradient) {
 }
 
 /**
-  * Generates a brightness list for a particle behavior from a gradient array.
-  * @param {Array<object>} gradient - An array of stop objects, each with {time, color, alpha}.
-  * @returns {object} A config list for a value-based behavior.
-  */
+ * Generates a brightness list for a particle behavior from a gradient array.
+ * @param {Array<object>} gradient - An array of stop objects, each with {time, color, alpha}.
+ * @returns {object} A config list for a value-based behavior.
+ */
 function _generateEmissiveListFromGradient(gradient) {
   if (!gradient || gradient.length < 1) {
     // Fallback to a single node list representing no emission.
@@ -27311,12 +27616,13 @@ function _generateEmissiveListFromGradient(gradient) {
 
   for (const stop of sortedGradient) {
     const rgb = hexToRgbArray(stop.color); // returns [r,g,b] in 0-1 range
-    const luminance = rgb[0] * lum_weights.r + rgb[1] * lum_weights.g + rgb[2] * lum_weights.b;
+    const luminance =
+      rgb[0] * lum_weights.r + rgb[1] * lum_weights.g + rgb[2] * lum_weights.b;
     // The emissive strength is the color's brightness multiplied by its alpha.
     const emissiveValue = luminance * stop.alpha;
     valueList.list.push({
       value: emissiveValue,
-      time: stop.time
+      time: stop.time,
     });
   }
 
@@ -27326,7 +27632,9 @@ function _generateEmissiveListFromGradient(gradient) {
   // treat this as a static value, avoiding the bug.
   if (valueList.list.length > 1) {
     const firstValue = valueList.list[0].value;
-    const allSame = valueList.list.every(item => Math.abs(item.value - firstValue) < 0.001);
+    const allSame = valueList.list.every(
+      (item) => Math.abs(item.value - firstValue) < 0.001
+    );
     if (allSame) {
       // Ensure the single node has a time of 0 for correctness.
       return { list: [{ value: firstValue, time: 0 }] };
@@ -27351,7 +27659,7 @@ class DebuggerEventHandler {
     this.activeGradientEditor = {
       path: null,
       stopIndex: null,
-      isDragging: false
+      isDragging: false,
     };
     // Bindings are now moved to initialize
     // --- End New State ---
@@ -27372,14 +27680,14 @@ class DebuggerEventHandler {
       const transform = canvas.stage.transform;
       // @ts-ignore
       const current = transform.scale.x.toFixed(2);
-      const min = (
-        // @ts-ignore
-        typeof transform.minScale === "number" ? transform.minScale : 0.1
-      ).toFixed(2);
-      const max = (
-        // @ts-ignore
-        typeof transform.maxScale === "number" ? transform.maxScale : 3.0
-      ).toFixed(2);
+      const min = // @ts-ignore
+        (
+          typeof transform.minScale === "number" ? transform.minScale : 0.1
+        ).toFixed(2);
+      const max = // @ts-ignore
+        (
+          typeof transform.maxScale === "number" ? transform.maxScale : 3.0
+        ).toFixed(2);
 
       const config = this.profileManager.activeConfig.overheadEffect;
       const pointMin = (config.zoomPointMin || 0).toFixed(2);
@@ -27403,9 +27711,11 @@ class DebuggerEventHandler {
     // Bind all gradient-related methods here for consistency.
     this._boundGradientMouseMove = this._onGradientMouseMove.bind(this);
     this._boundGradientMouseUp = this._onGradientMouseUp.bind(this);
-    this._boundGradientBarDoubleClick = this._onGradientBarDoubleClick.bind(this);
+    this._boundGradientBarDoubleClick =
+      this._onGradientBarDoubleClick.bind(this);
     this._boundGradientStopMouseDown = this._onGradientStopMouseDown.bind(this);
-    this._boundGradientStopContextMenu = this._onGradientStopContextMenu.bind(this);
+    this._boundGradientStopContextMenu =
+      this._onGradientStopContextMenu.bind(this);
 
     this.addEventListeners();
     this._makeDraggable();
@@ -27414,15 +27724,19 @@ class DebuggerEventHandler {
 
   async _onCopyAccordion(effectKey) {
     let settingsToCopy;
-    const isGameSettingAccordion = ['loadingScreen', 'fontManager', 'pauseEffectOverlay'].includes(effectKey);
+    const isGameSettingAccordion = [
+      "loadingScreen",
+      "fontManager",
+      "pauseEffectOverlay",
+    ].includes(effectKey);
 
     if (isGameSettingAccordion) {
       settingsToCopy = {};
       const allSettings = game.settings.settings;
       const prefixes = {
-        loadingScreen: ['loading-screen-', 'universal.sceneTransition.'],
-        fontManager: ['universal.fontManager.'],
-        pauseEffectOverlay: ['universal.pauseEffect.']
+        loadingScreen: ["loading-screen-", "universal.sceneTransition."],
+        fontManager: ["universal.fontManager."],
+        pauseEffectOverlay: ["universal.pauseEffect."],
       }[effectKey];
 
       // @ts-ignore
@@ -27430,15 +27744,21 @@ class DebuggerEventHandler {
       for (const [key, setting] of allSettings.entries()) {
         if (key.startsWith(MODULE_ID)) {
           const settingKey = key.replace(`${MODULE_ID}.`, "");
-          if (prefixes.some(p => settingKey.startsWith(p))) {
-            settingsToCopy[settingKey] = game.settings.get(MODULE_ID, settingKey);
+          if (prefixes.some((p) => settingKey.startsWith(p))) {
+            settingsToCopy[settingKey] = game.settings.get(
+              MODULE_ID,
+              settingKey
+            );
           }
         }
       }
     } else {
-      settingsToCopy = foundry.utils.getProperty(this.profileManager.getCurrentConfig({
-        excludeClientOverrides: true
-      }), effectKey);
+      settingsToCopy = foundry.utils.getProperty(
+        this.profileManager.getCurrentConfig({
+          excludeClientOverrides: true,
+        }),
+        effectKey
+      );
     }
 
     if (settingsToCopy === undefined) {
@@ -27447,17 +27767,21 @@ class DebuggerEventHandler {
     }
 
     const clipboardData = {
-      type: 'map-shine-accordion',
+      type: "map-shine-accordion",
       key: effectKey,
-      data: settingsToCopy
+      data: settingsToCopy,
     };
 
     try {
-      await navigator.clipboard.writeText(JSON.stringify(clipboardData, null, 2));
+      await navigator.clipboard.writeText(
+        JSON.stringify(clipboardData, null, 2)
+      );
       ui.notifications.info(`"${effectKey}" settings copied to clipboard.`);
     } catch (err) {
       console.error("Map Shine | Failed to copy settings:", err);
-      ui.notifications.error("Could not copy settings. See console for details.");
+      ui.notifications.error(
+        "Could not copy settings. See console for details."
+      );
     }
   }
 
@@ -27471,13 +27795,22 @@ class DebuggerEventHandler {
 
       const clipboardData = JSON.parse(clipboardText);
 
-      if (clipboardData.type !== 'map-shine-accordion' || clipboardData.key !== effectKey) {
-        ui.notifications.error(`Clipboard data is not for "${effectKey}" settings.`);
+      if (
+        clipboardData.type !== "map-shine-accordion" ||
+        clipboardData.key !== effectKey
+      ) {
+        ui.notifications.error(
+          `Clipboard data is not for "${effectKey}" settings.`
+        );
         return;
       }
 
       const settingsToPaste = clipboardData.data;
-      const isGameSettingAccordion = ['loadingScreen', 'fontManager', 'pauseEffectOverlay'].includes(effectKey);
+      const isGameSettingAccordion = [
+        "loadingScreen",
+        "fontManager",
+        "pauseEffectOverlay",
+      ].includes(effectKey);
 
       if (isGameSettingAccordion) {
         for (const key in settingsToPaste) {
@@ -27488,7 +27821,6 @@ class DebuggerEventHandler {
         }
         await this.profileManager.initializeForScene();
         await this.profileManager.updateAllSystemsFromConfig();
-
       } else {
         await this.profileManager.recordUserChange(effectKey, settingsToPaste);
         await this.profileManager.updateAllSystemsFromConfig();
@@ -27496,10 +27828,11 @@ class DebuggerEventHandler {
 
       this.updateAllControls();
       ui.notifications.info(`Pasted settings for "${effectKey}".`);
-
     } catch (err) {
       console.error("Map Shine | Failed to paste settings:", err);
-      ui.notifications.error("Could not paste settings. See console for details.");
+      ui.notifications.error(
+        "Could not paste settings. See console for details."
+      );
     }
   }
 
@@ -27516,11 +27849,13 @@ class DebuggerEventHandler {
   }
 
   async _onResetGradientClick(button) {
-    const wrapper = button.closest('.gradient-editor-wrapper');
+    const wrapper = button.closest(".gradient-editor-wrapper");
     if (!wrapper) return;
 
     const path = wrapper.dataset.path;
-    const gradientData = foundry.utils.deepClone(this._getPathValue(this.config, path));
+    const gradientData = foundry.utils.deepClone(
+      this._getPathValue(this.config, path)
+    );
 
     // @ts-ignore
     if (!gradientData || gradientData.length <= 2) {
@@ -27539,11 +27874,11 @@ class DebuggerEventHandler {
   }
 
   /**
-    * The core logic for saving a change and refreshing all visual systems.
-    * This is the expensive operation we want to rate-limit.
-    * @param {string} path - The object path to the setting (e.g., "baseShine.intensity").
-    * @param {*} value - The new value for the setting.
-    */
+   * The core logic for saving a change and refreshing all visual systems.
+   * This is the expensive operation we want to rate-limit.
+   * @param {string} path - The object path to the setting (e.g., "baseShine.intensity").
+   * @param {*} value - The new value for the setting.
+   */
   async _performSystemUpdate(path, value) {
     const isGameSetting =
       path.startsWith("universal.") || path.startsWith("loading-screen-");
@@ -27599,23 +27934,26 @@ class DebuggerEventHandler {
 
   async _createParticleEffectArea(effectKey) {
     // 1. Ensure map points editor is open.
-    if (!game.mapShine.mapPointsEditor || game.mapShine.mapPointsEditor.closing) {
+    if (
+      !game.mapShine.mapPointsEditor ||
+      game.mapShine.mapPointsEditor.closing
+    ) {
       const editor = new MapPointsEditor();
       game.mapShine.mapPointsEditor = editor;
       editor.render(true);
       // Wait a moment for the editor to render and initialize
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     } else {
       game.mapShine.mapPointsEditor.bringToTop();
     }
 
     // 2. Create a new group.
     // Use the comprehensive EFFECT_SOURCE_OPTIONS for names
-    const effectName = EFFECT_SOURCE_OPTIONS[effectKey] || 'New Effect';
+    const effectName = EFFECT_SOURCE_OPTIONS[effectKey] || "New Effect";
 
-    let groupType = 'area'; // Default for most particle effects
-    if (effectKey === 'lightning') {
-      groupType = 'line';
+    let groupType = "area"; // Default for most particle effects
+    if (effectKey === "lightning") {
+      groupType = "line";
     }
 
     const newGroupId = await MapPointsManager.createGroup({
@@ -27631,7 +27969,7 @@ class DebuggerEventHandler {
     // 3. Configure the new group for the effect.
     await MapPointsManager.updateGroupProperties(newGroupId, {
       isEffectSource: true,
-      effectTarget: effectKey
+      effectTarget: effectKey,
     });
     // The MapPointsEditor hook will automatically select the new group when it re-renders.
 
@@ -27641,17 +27979,21 @@ class DebuggerEventHandler {
       manager.activate();
     }
 
-    ui.notifications.info(`Ready to draw the new ${groupType} for "${effectName}". Click on the map to add points.`);
+    ui.notifications.info(
+      `Ready to draw the new ${groupType} for "${effectName}". Click on the map to add points.`
+    );
   }
 
   _initializeGradientEditors() {
-    this.element.querySelectorAll(".gradient-editor-wrapper").forEach(wrapper => {
-      const path = wrapper.dataset.path;
-      const gradientData = this._getPathValue(this.config, path);
-      if (gradientData) {
-        this._renderGradientEditor(wrapper, path, gradientData);
-      }
-    });
+    this.element
+      .querySelectorAll(".gradient-editor-wrapper")
+      .forEach((wrapper) => {
+        const path = wrapper.dataset.path;
+        const gradientData = this._getPathValue(this.config, path);
+        if (gradientData) {
+          this._renderGradientEditor(wrapper, path, gradientData);
+        }
+      });
   }
 
   _renderGradientEditor(wrapper, path, gradientData) {
@@ -27660,58 +28002,84 @@ class DebuggerEventHandler {
     // Sort stops by time just in case
     gradientData.sort((a, b) => a.time - b.time);
 
-    const previewBar = wrapper.querySelector('.gradient-bar-preview');
-    const stopsContainer = wrapper.querySelector('.gradient-stops-container');
-    const controlsContainer = wrapper.querySelector('.gradient-editor-controls');
+    const previewBar = wrapper.querySelector(".gradient-bar-preview");
+    const stopsContainer = wrapper.querySelector(".gradient-stops-container");
+    const controlsContainer = wrapper.querySelector(
+      ".gradient-editor-controls"
+    );
 
     // Create CSS gradient string, now with position information for each stop.
-    const gradientCss = `linear-gradient(to right, ${gradientData.map(stop => `rgba(${hexToRgbArray(stop.color).map(c => c * 255).join(',')}, ${stop.alpha}) ${stop.time * 100}%`).join(', ')})`;
+    const gradientCss = `linear-gradient(to right, ${gradientData
+      .map(
+        (stop) =>
+          `rgba(${hexToRgbArray(stop.color)
+            .map((c) => c * 255)
+            .join(",")}, ${stop.alpha}) ${stop.time * 100}%`
+      )
+      .join(", ")})`;
     previewBar.style.background = gradientCss;
 
     // Re-create stops
-    stopsContainer.innerHTML = '';
+    stopsContainer.innerHTML = "";
     gradientData.forEach((stop, index) => {
-      const stopEl = document.createElement('div');
-      stopEl.className = 'gradient-stop';
+      const stopEl = document.createElement("div");
+      stopEl.className = "gradient-stop";
       stopEl.dataset.index = index;
       stopEl.style.left = `${stop.time * 100}%`;
       stopEl.style.backgroundColor = stop.color;
       if (index === 0 || index === gradientData.length - 1) {
-        stopEl.classList.add('endpoint');
+        stopEl.classList.add("endpoint");
       }
-      if (this.activeGradientEditor.path === path && this.activeGradientEditor.stopIndex === index) {
-        stopEl.classList.add('active');
+      if (
+        this.activeGradientEditor.path === path &&
+        this.activeGradientEditor.stopIndex === index
+      ) {
+        stopEl.classList.add("active");
       }
       stopsContainer.appendChild(stopEl);
     });
 
     // Update controls if a stop is active
     const activeIndex = this.activeGradientEditor.stopIndex;
-    if (this.activeGradientEditor.path === path && activeIndex !== null && gradientData[activeIndex]) {
-      controlsContainer.classList.add('visible');
+    if (
+      this.activeGradientEditor.path === path &&
+      activeIndex !== null &&
+      gradientData[activeIndex]
+    ) {
+      controlsContainer.classList.add("visible");
       const activeStop = gradientData[activeIndex];
-      const editorType = wrapper.dataset.editorType || 'color';
+      const editorType = wrapper.dataset.editorType || "color";
 
-      const alphaSlider = wrapper.querySelector(`#${DebuggerUIBuilder._createSafeId(path)}-alpha-slider`);
-      const alphaValue = wrapper.querySelector(`#${DebuggerUIBuilder._createSafeId(path)}-alpha-value`);
+      const alphaSlider = wrapper.querySelector(
+        `#${DebuggerUIBuilder._createSafeId(path)}-alpha-slider`
+      );
+      const alphaValue = wrapper.querySelector(
+        `#${DebuggerUIBuilder._createSafeId(path)}-alpha-value`
+      );
 
       alphaSlider.value = activeStop.alpha;
       alphaValue.textContent = activeStop.alpha.toFixed(2);
 
-      if (editorType === 'brightness') {
-        const brightnessSlider = wrapper.querySelector(`#${DebuggerUIBuilder._createSafeId(path)}-brightness-slider`);
-        const brightnessValue = wrapper.querySelector(`#${DebuggerUIBuilder._createSafeId(path)}-brightness-value`);
+      if (editorType === "brightness") {
+        const brightnessSlider = wrapper.querySelector(
+          `#${DebuggerUIBuilder._createSafeId(path)}-brightness-slider`
+        );
+        const brightnessValue = wrapper.querySelector(
+          `#${DebuggerUIBuilder._createSafeId(path)}-brightness-value`
+        );
         const rgb = hexToRgbArray(activeStop.color);
-        const luminance = (rgb[0] * 0.299 + rgb[1] * 0.587 + rgb[2] * 0.114);
+        const luminance = rgb[0] * 0.299 + rgb[1] * 0.587 + rgb[2] * 0.114;
         brightnessSlider.value = luminance;
         brightnessValue.textContent = luminance.toFixed(2);
-      } else { // 'color'
-        const colorPicker = wrapper.querySelector(`#${DebuggerUIBuilder._createSafeId(path)}-color-picker`);
+      } else {
+        // 'color'
+        const colorPicker = wrapper.querySelector(
+          `#${DebuggerUIBuilder._createSafeId(path)}-color-picker`
+        );
         colorPicker.value = activeStop.color;
       }
-
     } else {
-      controlsContainer.classList.remove('visible');
+      controlsContainer.classList.remove("visible");
     }
   }
 
@@ -27731,14 +28099,15 @@ class DebuggerEventHandler {
       this.uiClock.destroy();
       this.uiClock = null;
     }
-    const clockContainer = this.element.querySelector("#debugger-ui-clock-container");
+    const clockContainer = this.element.querySelector(
+      "#debugger-ui-clock-container"
+    );
     if (clockContainer) {
       this.uiClock = new MapShineClock(clockContainer, null, {
         showDragHandle: false,
         showDisclaimer: false,
       });
     }
-
 
     // Link the transition manager to the UI update function
     if (game.mapShine.transitionManager) {
@@ -27775,9 +28144,18 @@ class DebuggerEventHandler {
     });
 
     // Gradient Editor Listeners
-    this.element.addEventListener("dblclick", this._boundGradientBarDoubleClick);
-    this.element.addEventListener("mousedown", this._boundGradientStopMouseDown);
-    this.element.addEventListener("contextmenu", this._boundGradientStopContextMenu);
+    this.element.addEventListener(
+      "dblclick",
+      this._boundGradientBarDoubleClick
+    );
+    this.element.addEventListener(
+      "mousedown",
+      this._boundGradientStopMouseDown
+    );
+    this.element.addEventListener(
+      "contextmenu",
+      this._boundGradientStopContextMenu
+    );
 
     // Listeners for the clock drag (window-level, managed separately)
     const clockContainer = this.element.querySelector(
@@ -27894,10 +28272,12 @@ class DebuggerEventHandler {
     // @ts-ignore
     if (stopIndex === 0 || stopIndex === gradientData.length - 1) return;
 
-    const wrapper = this.element.querySelector(`.gradient-editor-wrapper[data-path="${path}"]`);
+    const wrapper = this.element.querySelector(
+      `.gradient-editor-wrapper[data-path="${path}"]`
+    );
     if (!wrapper) return;
 
-    const bar = wrapper.querySelector('.gradient-bar-container');
+    const bar = wrapper.querySelector(".gradient-bar-container");
     const rect = bar.getBoundingClientRect();
 
     const x = event.clientX - rect.left;
@@ -27936,10 +28316,10 @@ class DebuggerEventHandler {
   }
 
   _onGradientBarDoubleClick(event) {
-    const bar = event.target.closest('.gradient-bar-container');
+    const bar = event.target.closest(".gradient-bar-container");
     if (!bar) return;
 
-    const wrapper = bar.closest('.gradient-editor-wrapper');
+    const wrapper = bar.closest(".gradient-editor-wrapper");
     const path = wrapper.dataset.path;
     const gradientData = this._getPathValue(this.config, path);
     if (!gradientData) return;
@@ -27986,36 +28366,44 @@ class DebuggerEventHandler {
   }
 
   _onGradientStopMouseDown(event) {
-    const stop = event.target.closest('.gradient-stop');
+    const stop = event.target.closest(".gradient-stop");
     if (!stop) return;
 
-    const wrapper = stop.closest('.gradient-editor-wrapper');
+    const wrapper = stop.closest(".gradient-editor-wrapper");
     const path = wrapper.dataset.path;
     const index = parseInt(stop.dataset.index, 10);
 
     this.activeGradientEditor.path = path;
     this.activeGradientEditor.stopIndex = index;
 
-    this._renderGradientEditor(wrapper, path, this._getPathValue(this.config, path));
+    this._renderGradientEditor(
+      wrapper,
+      path,
+      this._getPathValue(this.config, path)
+    );
 
     this.activeGradientEditor.isDragging = true;
     window.addEventListener("mousemove", this._boundGradientMouseMove);
-    window.addEventListener("mouseup", this._boundGradientMouseUp, { once: true });
+    window.addEventListener("mouseup", this._boundGradientMouseUp, {
+      once: true,
+    });
   }
 
   _onGradientStopContextMenu(event) {
-    const stop = event.target.closest('.gradient-stop');
+    const stop = event.target.closest(".gradient-stop");
     if (!stop) return;
     event.preventDefault();
 
-    const wrapper = stop.closest('.gradient-editor-wrapper');
+    const wrapper = stop.closest(".gradient-editor-wrapper");
     const path = wrapper.dataset.path;
     const index = parseInt(stop.dataset.index, 10);
 
     const gradientData = this._getPathValue(this.config, path);
     // @ts-ignore
     if (!gradientData || gradientData.length <= 2) {
-      ui.notifications.warn("Cannot remove the start or end stops of a gradient.");
+      ui.notifications.warn(
+        "Cannot remove the start or end stops of a gradient."
+      );
       return;
     }
 
@@ -28791,7 +29179,12 @@ class DebuggerEventHandler {
       const index = parseInt(button.dataset.index, 10);
       if (!isNaN(index)) {
         list.splice(index, 1);
-        console.log("MapShine | Removed item at index", index, "new list:", list);
+        console.log(
+          "MapShine | Removed item at index",
+          index,
+          "new list:",
+          list
+        );
       }
     }
 
@@ -28846,7 +29239,10 @@ class DebuggerEventHandler {
       items.length = 0;
     }
 
-    console.log(`MapShine | Rendering ${items.length} items for ${path}:`, items);
+    console.log(
+      `MapShine | Rendering ${items.length} items for ${path}:`,
+      items
+    );
 
     listContainer.innerHTML = items
       .map((item, index) => {
@@ -28873,7 +29269,7 @@ class DebuggerEventHandler {
 
   async _handleGenericInput(e) {
     // New logic for number inputs linked to sliders
-    if (e.target.type === 'number' && e.target.dataset.sliderId) {
+    if (e.target.type === "number" && e.target.dataset.sliderId) {
       const sliderId = e.target.dataset.sliderId;
       const slider = this.element.querySelector(`#${sliderId}`);
       if (slider) {
@@ -28888,13 +29284,13 @@ class DebuggerEventHandler {
         if (value > max) value = max;
 
         // Also snap to the nearest step on the 'change' event (e.g., blur or enter)
-        if (e.type === 'change') {
+        if (e.type === "change") {
           value = Math.round(value / step) * step;
         }
 
         // Only update the input field's text if the clamped/snapped value is different
         // This prevents the cursor from jumping while typing. We reformat on 'change'.
-        if (Number(e.target.value) !== value && e.type === 'change') {
+        if (Number(e.target.value) !== value && e.type === "change") {
           const stepString = slider.step;
           const decimals = stepString.includes(".")
             ? stepString.split(".")[1].length
@@ -28904,7 +29300,7 @@ class DebuggerEventHandler {
 
         slider.value = value;
         // Dispatch the same event type on the slider to trigger its existing handling logic
-        const eventType = e.type === 'input' ? 'input' : 'change';
+        const eventType = e.type === "input" ? "input" : "change";
         slider.dispatchEvent(new Event(eventType, { bubbles: true }));
       }
       return; // We've handled this, don't process further.
@@ -28916,7 +29312,7 @@ class DebuggerEventHandler {
       const wrapper = target.closest(".gradient-editor-wrapper");
       const path = wrapper.dataset.path;
       const { stopIndex } = this.activeGradientEditor;
-      const editorType = wrapper.dataset.editorType || 'color';
+      const editorType = wrapper.dataset.editorType || "color";
 
       if (path === null || stopIndex === null) return;
 
@@ -28924,22 +29320,29 @@ class DebuggerEventHandler {
       const gradientData = this._getPathValue(this.config, path);
       if (!gradientData || !gradientData[stopIndex]) return;
 
-      if (target.id.endsWith('-alpha-slider')) {
+      if (target.id.endsWith("-alpha-slider")) {
         gradientData[stopIndex].alpha = parseFloat(target.value);
-      } else if (editorType === 'brightness' && target.id.endsWith('-brightness-slider')) {
+      } else if (
+        editorType === "brightness" &&
+        target.id.endsWith("-brightness-slider")
+      ) {
         const brightness = parseFloat(target.value);
         const intVal = Math.round(brightness * 255);
-        const hexVal = intVal.toString(16).padStart(2, '0');
+        const hexVal = intVal.toString(16).padStart(2, "0");
         gradientData[stopIndex].color = `#${hexVal}${hexVal}${hexVal}`;
-      } else if (editorType === 'color' && target.id.endsWith('-color-picker')) {
+      } else if (
+        editorType === "color" &&
+        target.id.endsWith("-color-picker")
+      ) {
         gradientData[stopIndex].color = target.value;
       }
 
       this._renderGradientEditor(wrapper, path, gradientData);
 
-      if (e.type === 'input') {
+      if (e.type === "input") {
         this.throttledSystemUpdate(path, gradientData);
-      } else { // 'change' event
+      } else {
+        // 'change' event
         this._performSystemUpdate(path, gradientData);
       }
 
@@ -28985,8 +29388,8 @@ class DebuggerEventHandler {
       target.type === "checkbox"
         ? target.checked
         : isSlider
-          ? Number(target.value)
-          : target.value;
+        ? Number(target.value)
+        : target.value;
 
     if (target.type === "radio") {
       if (!target.checked) return;
@@ -29660,9 +30063,9 @@ class MaterialEditorDebugger {
   }
 
   /**
-    * Re-renders the dynamic parts of the UI, such as the main controls and profile sections.
-    * This is crucial for updating the UI when the scene profile structure changes.
-    */
+   * Re-renders the dynamic parts of the UI, such as the main controls and profile sections.
+   * This is crucial for updating the UI when the scene profile structure changes.
+   */
   render() {
     if (!this.element || !this.eventHandler || !this.uiBuilder) return;
 
@@ -29905,14 +30308,13 @@ class SimpleUIPanel extends Application {
       }
 
       controlsHTML += `
-														<div class="simple-control-row" title="${data.tooltip
-        }">
-																<label for="simple-enabled-${key}">${data.name
-        }</label>
+														<div class="simple-control-row" title="${data.tooltip}">
+																<label for="simple-enabled-${key}">${data.name}</label>
 																<div class="simple-widgets">
 																		${intensitySlider}
-																		<input type="checkbox" id="simple-enabled-${key}" data-key="${key}" data-type="enabled" ${isEnabled ? "checked" : ""
-        }>
+																		<input type="checkbox" id="simple-enabled-${key}" data-key="${key}" data-type="enabled" ${
+        isEnabled ? "checked" : ""
+      }>
 																		<button type="button" class="simple-reset-btn" data-action="reset-setting" data-key="${key}" title="Reset to Default">R</button>
 																</div>
 														</div>
@@ -29947,8 +30349,8 @@ class SimpleUIPanel extends Application {
 																<div class="simple-slider-wrapper">
 																		<input type="range" id="simple-gamma-slider" data-path="postProcessing.colorCorrection.gamma" min="0.5" max="1.5" step="0.01" value="${gammaValue}">
 																		<span class="value-span" id="simple-gamma-slider-value">${gammaValue.toFixed(
-      2
-    )}</span>
+                                      2
+                                    )}</span>
 																</div>
 																<button type="button" class="simple-reset-btn" data-action="reset-setting" data-path="postProcessing.colorCorrection.gamma" title="Reset to Default">R</button>
 														</div>
@@ -30244,7 +30646,9 @@ Hooks.on("renderSceneControls", (app, html, data) => {
   // Prevent duplicate clocks on re-renders
   if (html.querySelector("#map-shine-main-ui-clock")) return;
 
-  const tokenControls = html.querySelector('ol.main-controls[data-control="token"]');
+  const tokenControls = html.querySelector(
+    'ol.main-controls[data-control="token"]'
+  );
   if (tokenControls) {
     const clockContainer = document.createElement("li");
     clockContainer.id = "map-shine-main-ui-clock"; // ID for idempotency check
