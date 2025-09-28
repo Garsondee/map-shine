@@ -1810,7 +1810,6 @@ export const MODULE_DEFAULTS = {
     lightOcclusion: {
       enabled: true,
       intensity: 1.0,
-      falloff: 0.5,
     },
     wind: {
       angle: 45,
@@ -5548,115 +5547,237 @@ class ResourceManager {
  ***************************************************************************************/
 class LightMaskManager {
   constructor() {
-    this.lightPolygonMaskTexture = null;
-    this.lightMaskGraphics = null;
-    this.blurredLightMaskTexture = null;
-    this.intermediateBlurTexture = null;
-    this.kawaseBlurFilter1 = null;
-    this.kawaseBlurFilter2 = null;
-    this.blurSourceSprite = null;
+    this.lightPolygonMaskTexture = null; // The final output
+
+    // --- Properties for two-stage rendering ---
+    this.gradientTexture = null;
+
+    // Stage A: Unoccluded Gradients
+    this.lightContainer = null;
+    this.unoccludedGradientsTexture = null;
+
+    // Stage B: Occlusion Mask
+    this.occlusionMaskGraphics = null;
+    this.occlusionMaskTexture = null;
+
+    // Stage C: Final Compositing
+    this.compositeContainer = null;
+    this.gradientCompositeSprite = null;
+    this.maskCompositeSprite = null;
+    // --- End properties ---
+
     this._needsUpdate = true;
     this._destroyed = false;
+    this._currentExponent = -1; // Track the current gradient exponent to avoid redundant texture generation
+
+    this._onProfileUpdate = this.updateFromConfig.bind(this);
+    this._flagUpdate = () => {
+      this._needsUpdate = true;
+    };
+    this._boundOnResize = this._onResize.bind(this);
+  }
+
+  /**
+   * Generates a reusable radial gradient texture with a realistic falloff.
+   * @param {number} falloffExponent - The exponent for the falloff curve (e.g., 1.0 for linear, 2.0 for quadratic).
+   * @private
+   */
+  _createGradientTexture(falloffExponent) {
+    // Destroy the old texture if it exists to prevent memory leaks
+    if (this.gradientTexture) {
+      this.gradientTexture.destroy(true);
+    }
+    this._currentExponent = falloffExponent;
+
+    const gradientSize = 128;
+    const canvasElement = document.createElement("canvas");
+    canvasElement.width = gradientSize;
+    canvasElement.height = gradientSize;
+    const context = canvasElement.getContext("2d");
+
+    if (context) {
+      const imageData = context.getImageData(0, 0, gradientSize, gradientSize);
+      const data = imageData.data;
+      const centerX = gradientSize / 2;
+      const centerY = gradientSize / 2;
+      const radius = gradientSize / 2;
+
+      for (let y = 0; y < gradientSize; y++) {
+        for (let x = 0; x < gradientSize; x++) {
+          const dx = x - centerX;
+          const dy = y - centerY;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          // Calculate distance from center, normalized to a 0.0-1.0 range
+          const normalizedDist = Math.min(distance / radius, 1.0);
+
+          // Calculate intensity using a power curve for a natural falloff
+          const intensity = Math.pow(1.0 - normalizedDist, falloffExponent);
+
+          const colorByte = Math.floor(intensity * 255);
+          const index = (y * gradientSize + x) * 4;
+          data[index] = colorByte; // R
+          data[index + 1] = colorByte; // G
+          data[index + 2] = colorByte; // B
+          data[index + 3] = 255; // A
+        }
+      }
+      context.putImageData(imageData, 0, 0);
+      this.gradientTexture = PIXI.Texture.from(canvasElement);
+    } else {
+      this.gradientTexture = PIXI.Texture.WHITE;
+      console.error(
+        "Map Shine | Could not create 2D context for gradient texture."
+      );
+    }
   }
 
   initialize() {
     const renderer = canvas.app.renderer;
-
-    this.lightMaskGraphics = new PIXI.Graphics();
-    this.lightPolygonMaskTexture = PIXI.RenderTexture.create({
-      width: renderer.screen.width,
-      height: renderer.screen.height,
-    });
-
-    this.kawaseBlurFilter1 = new PIXI.filters.KawaseBlurFilter(10, 3, true);
-    this.kawaseBlurFilter2 = new PIXI.filters.KawaseBlurFilter(10, 3, true);
+    const screen = renderer.screen;
 
     const textureOptions = {
-      width: renderer.screen.width,
-      height: renderer.screen.height,
+      width: screen.width,
+      height: screen.height,
       type: PIXI.TYPES.FLOAT,
       scaleMode: PIXI.SCALE_MODES.LINEAR,
     };
 
-    this.intermediateBlurTexture = PIXI.RenderTexture.create(textureOptions);
-    this.blurredLightMaskTexture = PIXI.RenderTexture.create(textureOptions);
+    // Final output and intermediate textures
+    this.lightPolygonMaskTexture = PIXI.RenderTexture.create(textureOptions);
+    this.unoccludedGradientsTexture = PIXI.RenderTexture.create(textureOptions);
+    this.occlusionMaskTexture = PIXI.RenderTexture.create(textureOptions);
 
-    this.blurSourceSprite = new PIXI.Sprite();
-    this.blurSourceSprite.width = renderer.screen.width;
-    this.blurSourceSprite.height = renderer.screen.height;
+    // Create the initial gradient texture with a default falloff
+    this._createGradientTexture(0.5);
 
-    const flagUpdate = () => {
-      this._needsUpdate = true;
-    };
-    Hooks.on("canvasPan", flagUpdate);
-    Hooks.on("createLight", flagUpdate);
-    Hooks.on("updateLight", flagUpdate);
-    Hooks.on("deleteLight", flagUpdate);
-    Hooks.on("createWall", flagUpdate);
-    Hooks.on("updateWall", flagUpdate);
-    Hooks.on("deleteWall", flagUpdate);
-    window.addEventListener("resize", () => this._onResize());
+    // Stage A resources
+    this.lightContainer = new PIXI.Container();
+
+    // Stage B resources
+    this.occlusionMaskGraphics = new PIXI.Graphics();
+
+    // Stage C resources
+    this.compositeContainer = new PIXI.Container();
+    this.gradientCompositeSprite = new PIXI.Sprite();
+    this.gradientCompositeSprite.width = screen.width;
+    this.gradientCompositeSprite.height = screen.height;
+    this.maskCompositeSprite = new PIXI.Sprite();
+    this.maskCompositeSprite.width = screen.width;
+    this.maskCompositeSprite.height = screen.height;
+    this.gradientCompositeSprite.mask = this.maskCompositeSprite;
+    this.compositeContainer.addChild(
+      this.gradientCompositeSprite,
+      this.maskCompositeSprite
+    );
+
+    // Event listeners
+    Hooks.on("canvasPan", this._flagUpdate);
+    Hooks.on("createLight", this._flagUpdate);
+    Hooks.on("updateLight", this._flagUpdate);
+    Hooks.on("deleteLight", this._flagUpdate);
+    Hooks.on("createWall", this._flagUpdate);
+    Hooks.on("updateWall", this._flagUpdate);
+    Hooks.on("deleteWall", this._flagUpdate);
+    window.addEventListener("resize", this._boundOnResize);
+    Hooks.on("MapShine.profileUpdated", this._onProfileUpdate);
 
     this.updateFromConfig(game.mapShine.profileManager.activeConfig);
-    console.log("Map Shine | LightMaskManager initialized.");
+    console.log(
+      "Map Shine | LightMaskManager initialized (Performant Gradient Mode)."
+    );
   }
 
   destroy() {
     if (this._destroyed) return;
     this._destroyed = true;
 
-    this.lightPolygonMaskTexture?.destroy(true);
-    this.lightMaskGraphics?.destroy();
-    this.blurredLightMaskTexture?.destroy(true);
-    this.intermediateBlurTexture?.destroy(true);
-    this.kawaseBlurFilter1?.destroy();
-    this.kawaseBlurFilter2?.destroy();
-    this.blurSourceSprite?.destroy();
+    // Hooks
+    Hooks.off("canvasPan", this._flagUpdate);
+    Hooks.off("createLight", this._flagUpdate);
+    Hooks.off("updateLight", this._flagUpdate);
+    Hooks.off("deleteLight", this._flagUpdate);
+    Hooks.off("createWall", this._flagUpdate);
+    Hooks.off("updateWall", this._flagUpdate);
+    Hooks.off("deleteWall", this._flagUpdate);
+    window.removeEventListener("resize", this._boundOnResize);
+    Hooks.off("MapShine.profileUpdated", this._onProfileUpdate);
 
-    // Nullify all properties
+    // Destroy all PIXI objects
+    this.lightPolygonMaskTexture?.destroy(true);
+    this.gradientTexture?.destroy(true);
+    this.lightContainer?.destroy({ children: true });
+    this.unoccludedGradientsTexture?.destroy(true);
+    this.occlusionMaskGraphics?.destroy();
+    this.occlusionMaskTexture?.destroy(true);
+    this.compositeContainer?.destroy({ children: true });
+    this.gradientCompositeSprite?.destroy();
+    this.maskCompositeSprite?.destroy();
+
+    // Nullify references
     this.lightPolygonMaskTexture = null;
-    this.lightMaskGraphics = null;
-    this.blurredLightMaskTexture = null;
-    this.intermediateBlurTexture = null;
-    this.kawaseBlurFilter1 = null;
-    this.kawaseBlurFilter2 = null;
-    this.blurSourceSprite = null;
+    this.gradientTexture = null;
+    this.lightContainer = null;
+    this.unoccludedGradientsTexture = null;
+    this.occlusionMaskGraphics = null;
+    this.occlusionMaskTexture = null;
+    this.compositeContainer = null;
+    this.gradientCompositeSprite = null;
+    this.maskCompositeSprite = null;
 
     console.log("Map Shine | LightMaskManager destroyed.");
   }
 
   updateFromConfig(config) {
-    if (!config.lightMask) return;
+    if (!config?.lightMask) return;
+
     const blurAmount = config.lightMask.blur ?? 50;
-    if (this.kawaseBlurFilter1) this.kawaseBlurFilter1.blur = blurAmount;
-    if (this.kawaseBlurFilter2) this.kawaseBlurFilter2.blur = blurAmount;
+
+    // Convert the blur value (0-250) to an exponent (6.0 - 1.0).
+    // A lower blur value results in a higher exponent, creating a harder edge.
+    // A higher blur value results in a lower exponent, creating a softer fade.
+    const maxExponent = 6.0;
+    const minExponent = 1.0;
+    const newExponent =
+      maxExponent - (blurAmount / 250.0) * (maxExponent - minExponent);
+
+    // Only regenerate the texture if the exponent has actually changed
+    if (Math.abs(this._currentExponent - newExponent) > 0.001) {
+      this._createGradientTexture(newExponent);
+    }
+
     this._needsUpdate = true;
   }
 
   _onResize() {
     const renderer = canvas.app.renderer;
-    this.lightPolygonMaskTexture?.resize(
-      renderer.screen.width,
-      renderer.screen.height
-    );
-    this.intermediateBlurTexture?.resize(
-      renderer.screen.width,
-      renderer.screen.height
-    );
-    this.blurredLightMaskTexture?.resize(
-      renderer.screen.width,
-      renderer.screen.height
-    );
+    const screenWidth = renderer.screen.width;
+    const screenHeight = renderer.screen.height;
 
-    if (this.blurSourceSprite) {
-      this.blurSourceSprite.width = renderer.screen.width;
-      this.blurSourceSprite.height = renderer.screen.height;
+    // Resize all render textures
+    this.lightPolygonMaskTexture?.resize(screenWidth, screenHeight);
+    this.unoccludedGradientsTexture?.resize(screenWidth, screenHeight);
+    this.occlusionMaskTexture?.resize(screenWidth, screenHeight);
+
+    // Resize screen-filling sprites
+    if (this.gradientCompositeSprite) {
+      this.gradientCompositeSprite.width = screenWidth;
+      this.gradientCompositeSprite.height = screenHeight;
     }
+    if (this.maskCompositeSprite) {
+      this.maskCompositeSprite.width = screenWidth;
+      this.maskCompositeSprite.height = screenHeight;
+    }
+
     this._needsUpdate = true;
   }
 
   update() {
     if (this._destroyed) return;
+
+    // The update method now ONLY checks if a render is needed.
+    // The decision to update is made externally by ProfileManager
+    // calling updateFromConfig.
     if (this._needsUpdate) {
       this._render();
       this._needsUpdate = false;
@@ -5664,50 +5785,72 @@ class LightMaskManager {
   }
 
   _render() {
-    if (!this.lightMaskGraphics || !this.lightPolygonMaskTexture) return;
-    const renderer = canvas.app.renderer;
+    if (
+      !this.lightContainer ||
+      !this.gradientTexture ||
+      !this.occlusionMaskGraphics
+    )
+      return;
 
-    // Phase 1: Render hard mask
-    const graphics = this.lightMaskGraphics;
-    graphics.clear();
-    graphics.beginFill(0xffffff);
-    for (const light of canvas.scene.lights) {
-      if (
-        !light.object?.visible ||
-        !light.object.lightSource?.active ||
-        light.object.lightSource.shape?.points.length < 6
-      ) {
-        continue;
-      }
-      graphics.drawPolygon(light.object.lightSource.shape.points);
+    const renderer = canvas.app.renderer;
+    const lights = canvas.scene.lights;
+    const worldTransform = canvas.stage.transform.worldTransform;
+
+    // === Stage A: Render all unoccluded gradients with ADD blend mode ===
+    this.lightContainer.removeChildren().forEach((c) => c.destroy());
+
+    for (const light of lights) {
+      if (!light.object?.visible || !light.object.lightSource?.active) continue;
+      const source = light.object.lightSource;
+      const radius = source.radius;
+      if (radius <= 0) continue;
+
+      const gradientSprite = new PIXI.Sprite(this.gradientTexture);
+      gradientSprite.anchor.set(0.5);
+      gradientSprite.position.copyFrom(light.object.center);
+      gradientSprite.width = gradientSprite.height = radius * 2;
+      gradientSprite.blendMode = PIXI.BLEND_MODES.ADD;
+      this.lightContainer.addChild(gradientSprite);
     }
-    graphics.endFill();
-    renderer.render(graphics, {
-      renderTexture: this.lightPolygonMaskTexture,
+    renderer.render(this.lightContainer, {
+      renderTexture: this.unoccludedGradientsTexture,
+      transform: worldTransform,
       clear: true,
-      transform: canvas.stage.transform.worldTransform,
     });
 
-    // Phase 2: Kawase Blur
-    if (this.kawaseBlurFilter1 && this.kawaseBlurFilter2) {
-      this.blurSourceSprite.texture = this.lightPolygonMaskTexture;
-      this.blurSourceSprite.filters = [this.kawaseBlurFilter1];
-      renderer.render(this.blurSourceSprite, {
-        renderTexture: this.intermediateBlurTexture,
-        clear: true,
-      });
-
-      this.blurSourceSprite.texture = this.intermediateBlurTexture;
-      this.blurSourceSprite.filters = [this.kawaseBlurFilter2];
-      renderer.render(this.blurSourceSprite, {
-        renderTexture: this.blurredLightMaskTexture,
-        clear: true,
-      });
+    // === Stage B: Render the solid occlusion mask ===
+    this.occlusionMaskGraphics.clear();
+    this.occlusionMaskGraphics.beginFill(0xffffff);
+    for (const light of lights) {
+      if (
+        light.object?.visible &&
+        light.object.lightSource?.active &&
+        light.object.lightSource.shape?.points.length >= 6
+      ) {
+        this.occlusionMaskGraphics.drawPolygon(
+          light.object.lightSource.shape.points
+        );
+      }
     }
+    this.occlusionMaskGraphics.endFill();
+    renderer.render(this.occlusionMaskGraphics, {
+      renderTexture: this.occlusionMaskTexture,
+      transform: worldTransform,
+      clear: true,
+    });
+
+    // === Stage C: Composite the two textures using a screen-space mask ===
+    this.gradientCompositeSprite.texture = this.unoccludedGradientsTexture;
+    this.maskCompositeSprite.texture = this.occlusionMaskTexture;
+
+    renderer.render(this.compositeContainer, {
+      renderTexture: this.lightPolygonMaskTexture,
+      clear: true,
+    });
   }
 
   getTexture() {
-    return this.blurredLightMaskTexture;
+    return this.lightPolygonMaskTexture;
   }
 }
 
@@ -17779,6 +17922,7 @@ class DiagnosticLayer extends CanvasLayer {
     this.overlayContainer = null; // For outlines and labels
     this.overlays = new Map(); // key: targetId, value: PIXI.Container with graphics/text
     this.fullscreenSprite = null; // For viewing intermediate textures
+    this.backgroundGfx = null; // For the black background
     this.tooltip = null;
     this._destroyed = false;
     this._needsRefresh = true;
@@ -17796,6 +17940,11 @@ class DiagnosticLayer extends CanvasLayer {
 
     this.diagnosticContainer = this.addChild(new PIXI.Container());
     this.overlayContainer = this.addChild(new PIXI.Container());
+
+    // Add a graphics object for the background, before the sprite.
+    this.backgroundGfx = this.addChild(new PIXI.Graphics());
+    this.backgroundGfx.visible = false;
+
     this.fullscreenSprite = this.addChild(new PIXI.Sprite());
     this.fullscreenSprite.visible = false;
 
@@ -17948,9 +18097,13 @@ class DiagnosticLayer extends CanvasLayer {
       this.tempRenderTexture = null;
     }
 
+    // Ensure all components are hidden by default before we decide what to show.
     this.fullscreenSprite.visible = false;
     this.diagnosticContainer.visible = false;
     this.overlayContainer.visible = false;
+    if (this.backgroundGfx) {
+      this.backgroundGfx.visible = false;
+    }
 
     if (!config.showMasks) {
       return;
@@ -17961,7 +18114,11 @@ class DiagnosticLayer extends CanvasLayer {
 
     if (displaySuffix.startsWith("generated_")) {
       const key = displaySuffix.replace("generated_", "");
-      fullscreenTexture = game.mapShine.geometryMaskManager?.getMask(key);
+      if (key === "lightMask") {
+        fullscreenTexture = game.mapShine.lightMaskManager?.getTexture();
+      } else {
+        fullscreenTexture = game.mapShine.geometryMaskManager?.getMask(key);
+      }
       isFullscreenView = true;
     } else if (displaySuffix === "external_illumination") {
       fullscreenTexture = game.modules
@@ -18029,6 +18186,20 @@ class DiagnosticLayer extends CanvasLayer {
       this.fullscreenSprite.position.copyFrom(topLeft);
       this.fullscreenSprite.width = screen.width / stage.scale.x;
       this.fullscreenSprite.height = screen.height / stage.scale.y;
+
+      // If the light mask is selected, draw a black background behind it for contrast.
+      if (displaySuffix === "generated_lightMask" && this.backgroundGfx) {
+        this.backgroundGfx.visible = true;
+        this.backgroundGfx.clear();
+        this.backgroundGfx.beginFill(0x000000);
+        this.backgroundGfx.drawRect(
+          topLeft.x,
+          topLeft.y,
+          this.fullscreenSprite.width,
+          this.fullscreenSprite.height
+        );
+        this.backgroundGfx.endFill();
+      }
     } else {
       this.diagnosticContainer.visible = true;
       this.overlayContainer.visible = true;
@@ -20115,7 +20286,6 @@ class CloudShadowsFilter extends PIXI.Filter {
           float shadowAmount = shadedCloudValue * maskValue * u_shadowIntensity;
 
           if (u_occlusionEnabled) {
-            // The light mask is now pre-blurred, so its value is already a gradient from 0.0 to 1.0.
             float lightMaskValue = texture2D(uLightPolygonMask, vScreenCoord).r;
             shadowAmount *= (1.0 - lightMaskValue * u_occlusionIntensity);
           }
@@ -20914,6 +21084,7 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
     this.filter = null;
     this.time = 0; // For animations if needed in the future
   }
+
   static getSettingsHTML() {
     const effectKey = "structuralShadows";
     const content = `
@@ -28997,6 +29168,11 @@ class DebuggerEventHandler {
       }
     }
 
+    // Add the unified light mask.
+    if (game.mapShine.lightMaskManager) {
+      textures.generated["generated_lightMask"] = "Light Mask";
+    }
+
     // Intermediate Textures
     const layerChecks = {
       metallicShinePattern: {
@@ -29055,8 +29231,13 @@ class DebuggerEventHandler {
       }
     }
 
-    if (canvas.effects?.darkness) {
-      textures.external["external_darknessLayer"] = "Core: Darkness Layer";
+    // Add external/core layers that the DiagnosticLayer can handle.
+    if (game.modules.get("illuminationbuffer")?.api?.getLightingTexture) {
+      textures.external["external_illumination"] =
+        "External: Illumination Buffer";
+    }
+    if (canvas.effects?.illumination?.texture) {
+      textures.external["external_lightingLayer"] = "Core: Illumination Layer";
     }
 
     const available = textures;
