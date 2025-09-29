@@ -590,6 +590,7 @@ const EFFECT_SOURCE_OPTIONS = {
   canopy: "Canopy Shadows",
   structuralShadows: "Structural Shadows",
   water: "Water Surface",
+  pressurisedSteam: "Pressurised Steam",
   // More effects can be added here as they become compatible.
 };
 
@@ -2758,6 +2759,79 @@ export const MODULE_DEFAULTS = {
       },
     },
   },
+  pressurisedSteam: {
+    enabled: true,
+    blendMode: 0,
+    maskThreshold: 0.5,
+    maskInfluence: 1.5,
+    particleTexture: "modules/map-shine/assets/steam.webp",
+    lifetime: {
+      min: 0.5,
+      max: 2.0,
+    },
+    colorAlphaGradient: [
+      {
+        time: 0,
+        color: "#ffffff",
+        alpha: 0,
+      },
+      {
+        time: 0.1,
+        color: "#eeeeee",
+        alpha: 0.8,
+      },
+      {
+        time: 0.7,
+        color: "#dddddd",
+        alpha: 0.4,
+      },
+      {
+        time: 1,
+        color: "#cccccc",
+        alpha: 0,
+      },
+    ],
+    emissiveGradient: [
+      {
+        time: 0,
+        color: "#000000",
+        alpha: 1,
+      },
+      {
+        time: 1,
+        color: "#000000",
+        alpha: 1,
+      },
+    ],
+    scale: {
+      sizeMultiplier: 1.8,
+      start: 0.2,
+      end: 1.5,
+      minMult: 0.7,
+    },
+    speed: {
+      start: 250,
+      end: 20,
+      minMult: 0.8,
+    },
+    rotation: {
+      enabled: true,
+      minSpeed: -60,
+      maxSpeed: 60,
+      accel: 0,
+    },
+    path: {
+      angle: {
+        min: -100,
+        max: -80,
+      },
+    },
+    burst: {
+      onDuration: 10.0,
+      offDuration: 10.0,
+      frequency: 0.005,
+    },
+  },
   sparks: {
     enabled: true,
     blendMode: 1,
@@ -3314,32 +3388,16 @@ class FontLoader {
  */
 class MapShineInitialiser {
   /**
-   * Main entry point for module initialization. Called once during the 'init' hook.
+   * Main initialization function for the module, called during the 'init' hook.
+   * Orchestrates the setup of settings, layers, hooks, and the global namespace.
    */
   static initialize() {
-    if (game.mapShine?.initialized) {
-      console.log(
-        "Map Shine | Initialization aborted: module has already been initialized."
-      );
-      return;
-    }
-
-    // Delegate registration to dedicated manager classes.
+    console.log("Map Shine | Initializing.");
     SettingsManager.registerSettings();
-    LayerManager.registerLayers();
-
-    // Create the global namespace and its core managers.
     this._initializeGlobalNamespace();
-
-    // Set up hooks, patches, and other integrations.
+    LayerManager.registerLayers();
     HooksManager.registerIntegrationsAndHooks();
-
-    // Finalize setup by initializing the scene change manager, which relies on the global namespace.
-    game.mapShine.sceneChangeManager.initialize();
-
-    console.log(
-      `GNU Terry Pratchett: For as long as his name is still passed along the clacks, Death can't have him.`
-    );
+    console.log("Map Shine | Initialization complete.");
   }
 
   /**
@@ -3365,6 +3423,8 @@ class MapShineInitialiser {
           DEPENDENCIES_END: 15,
           DISCOVERY_START: 20,
           DISCOVERY_END: 40,
+          TEXTURE_PRELOAD_START: 41,
+          TEXTURE_PRELOAD_END: 44,
           SETUP_START: 45,
           RESOURCE_MANAGER_INIT: 48,
           PROFILES_INIT: 50,
@@ -3372,6 +3432,8 @@ class MapShineInitialiser {
           CONFIG_FINALIZE: 55,
           LAYERS_UPDATE_START: 60,
           LAYERS_UPDATE_END: 70,
+          PARTICLES_SETUP_START: 71,
+          PARTICLES_SETUP_END: 74,
           SCREEN_FX_INIT: 75,
           TOKEN_MANAGER_INIT: 78,
           DYNAMIC_EXPOSURE_INIT: 80,
@@ -3387,6 +3449,8 @@ class MapShineInitialiser {
           DEPENDENCIES_END: "Dependencies ready.",
           DISCOVERY_START: "Discovering effect maps...",
           DISCOVERY_END: "Effect maps found.",
+          TEXTURE_PRELOAD_START: "Pre-loading textures...",
+          TEXTURE_PRELOAD_END: "Textures ready.",
           SETUP_START: "Configuring effects...",
           RESOURCE_MANAGER_INIT: "Initializing resource manager...",
           PROFILES_INIT: "Loading profiles...",
@@ -3394,6 +3458,8 @@ class MapShineInitialiser {
           CONFIG_FINALIZE: "Finalizing configuration...",
           LAYERS_UPDATE_START: "Updating effect layers...",
           LAYERS_UPDATE_END: "Effect layers updated.",
+          PARTICLES_SETUP_START: "Initializing particle systems...",
+          PARTICLES_SETUP_END: "Particle systems ready.",
           SCREEN_FX_INIT: "Initializing screen effects...",
           TOKEN_MANAGER_INIT: "Initializing token manager...",
           DYNAMIC_EXPOSURE_INIT: "Initializing dynamic exposure...",
@@ -4313,6 +4379,7 @@ class HooksManager {
       );
       PIXI.particles.Emitter.registerBehavior(SparkPathBehavior);
       PIXI.particles.Emitter.registerBehavior(FireWindBehavior);
+      PIXI.particles.Emitter.registerBehavior(PressurisedSteamBehavior);
       PIXI.particles.Emitter.registerBehavior(SmellyFliesBehavior);
       PIXI.particles.Emitter.registerBehavior(ColorFromSpawnBehavior);
       PIXI.particles.Emitter.registerBehavior(MapShineLightingBehavior);
@@ -4694,7 +4761,7 @@ class HooksManager {
       canvas.stage.addChild(worldContainer);
       game.mapShine.worldContainer = worldContainer;
     });
-    Hooks.on("canvasReady", () => {
+    Hooks.on("canvasReady", (canvas) => {
       // This ticker takes over after the initial draw, ensuring that the CoordinateManager
       // and ResourceManager are kept up-to-date on every subsequent animation frame.
       const mainTicker = () => {
@@ -4711,6 +4778,9 @@ class HooksManager {
       Hooks.once("canvasTearDown", () => {
         canvas.app.ticker.remove(mainTicker);
       });
+
+      // Start the main setup and discovery process.
+      MapShineLifecycle.beginPersistentDiscovery(canvas);
 
       if (canvas.roofs) {
         // Set a high z-index to render above most custom effect layers.
@@ -5306,9 +5376,9 @@ class ResourceManager {
       return this._frameCache.tokenMask;
     }
 
-    if (!canvas.mapShine?.tokenMaskManager) return null;
+    if (!game.mapShine?.tokenMaskManager) return null;
 
-    const texture = canvas.mapShine.tokenMaskManager.getMaskTexture();
+    const texture = game.mapShine.tokenMaskManager.getMaskTexture();
     this._frameCache.tokenMask = texture;
     return texture;
   }
@@ -7484,7 +7554,7 @@ class MapShineLifecycle {
 
   static async beginPersistentDiscovery(canvas, maxAttempts = 5) {
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      if (!canvas?.scene || !canvas.mapShine?.isModuleActive) {
+      if (!canvas?.scene || !game.mapShine?.initialized) {
         console.log(
           "Map Shine | Discovery aborted, canvas is no longer active."
         );
@@ -7524,6 +7594,10 @@ class MapShineLifecycle {
           `Map Shine | Texture discovery successful on attempt #${attempt}. Initializing all systems.`
         );
         game.mapShine.loadingManager?.setProgress("DISCOVERY_END");
+
+        // Pre-load all discovered textures before proceeding to setup.
+        await this._preloadDiscoveredTextures();
+
         await this.runFullSetup(canvas);
         return; // Success, exit the loop and the function.
       } else {
@@ -7575,7 +7649,6 @@ class MapShineLifecycle {
     const config = game.mapShine.profileManager.activeConfig;
     game.mapShine.lightMaskManager.updateFromConfig(config);
     for (const layer of canvas.layers) {
-      if (layer instanceof ParticleLayer) continue; // Skip the particle layer
       if (typeof layer.updateFromConfig === "function") {
         try {
           await layer.updateFromConfig(config);
@@ -7589,6 +7662,17 @@ class MapShineLifecycle {
     }
     ScreenEffectsManager.updateAllFiltersFromConfig(config);
     await loadingManager?.tick("LAYERS_UPDATE_END");
+
+    // Await particle systems readiness
+    const particleLayer = canvas.layers.find((l) => l instanceof ParticleLayer);
+    if (
+      particleLayer &&
+      typeof particleLayer.awaitParticleSetup === "function"
+    ) {
+      await loadingManager?.tick("PARTICLES_SETUP_START");
+      await particleLayer.awaitParticleSetup();
+      await loadingManager?.tick("PARTICLES_SETUP_END");
+    }
 
     // 6. Initialize the global screen filters.
     ScreenEffectsManager.initialize(game.mapShine.worldContainer);
@@ -7630,7 +7714,7 @@ class MapShineLifecycle {
 
     // 7. Initialize canvas-specific managers.
 
-    canvas.mapShine.tokenMaskManager = new DynamicTokenMaskManager(canvas);
+    game.mapShine.tokenMaskManager = new DynamicTokenMaskManager(canvas);
     await loadingManager?.tick("CANVAS_MANAGERS_INIT");
 
     // Pre-warm the structural shadows layer to prevent pop-in after loading.
@@ -7765,6 +7849,55 @@ class MapShineLifecycle {
       // This ensures the UI accurately reflects whether a texture exists to power the effect.
       handler?.setEffectAvailability(effectKey, hasTexture);
     }
+  }
+  /**
+   * Iterates through all discovered effect targets and pre-loads their associated textures into GPU memory.
+   * This is done during the loading screen to prevent stuttering on the first frame of scene interaction.
+   */
+  static async _preloadDiscoveredTextures() {
+    const loadingManager = game.mapShine.loadingManager;
+    await loadingManager?.tick("TEXTURE_PRELOAD_START");
+
+    const targets = game.mapShine.effectTargetManager.targets;
+    const allPaths = new Set();
+
+    // Gather paths from the scene background target
+    if (targets.background) {
+      Object.values(targets.background).forEach((path) => {
+        if (typeof path === "string" && path) {
+          allPaths.add(path);
+        }
+      });
+    }
+
+    // Gather paths from all tile targets
+    for (const tileTarget of targets.tiles.values()) {
+      Object.values(tileTarget).forEach((value) => {
+        if (typeof value === "string" && value) {
+          allPaths.add(value);
+        }
+      });
+    }
+
+    if (allPaths.size > 0) {
+      console.log(
+        `Map Shine | Pre-loading ${allPaths.size} discovered textures...`
+      );
+      const promises = Array.from(allPaths).map((path) =>
+        foundry.canvas.loadTexture(path)
+      );
+      try {
+        await Promise.all(promises);
+        console.log(
+          "Map Shine | All discovered textures pre-loaded successfully."
+        );
+      } catch (error) {
+        console.warn("Map Shine | Error during texture pre-loading:", error);
+        // We don't halt the process, as some textures might be invalid paths.
+      }
+    }
+
+    await loadingManager?.tick("TEXTURE_PRELOAD_END");
   }
 }
 
@@ -8747,6 +8880,7 @@ class TextureAutoLoader {
     water: "_Water",
     caustics: "_Caustics",
     shoreline: "_Shoreline",
+    steam: "_Steam",
   };
 
   async discoverAllTargets() {
@@ -10546,9 +10680,9 @@ class LightningOcclusionFilter extends PIXI.Filter {
 
 /***************************************************************************************
  *
- *                              PARTICLE SYSTEM BUG REPORT
+ *                              PARTICLE SYSTEM BUG REPORT & LESSONS
  *
- *  ROOT CAUSE:
+ *  ROOT CAUSE OF PROPERTYLIST BUG:
  *  A bug was identified within the external `particle-emitter.min.js` library in the
  *  `PropertyNode.createList()` method. This method has an optimization that fails when
  *  it is provided a property list with exactly two entries that have identical values
@@ -10561,14 +10695,8 @@ class LightningOcclusionFilter extends PIXI.Filter {
  *  crashes when it attempts to access `node.next.time`, as `node.next` is null,
  *  resulting in the observed TypeError.
  *
- *  PREVIOUS VULNERABILITY:
- *  The original `buildSparkEmitterConfig` function was vulnerable because it unconditionally
- *  used the modern `{ list: [...] }` format for all time-variant properties. If a user set
- *  the start and end values for scale or color to be the same, it would trigger this bug.
- *
  *  SOLUTION:
- *  The `buildSparkEmitterConfig` function was refactored to mirror the more robust implementation
- *  of `buildParticleEmitterConfig`. The solution has two parts:
+ *  The affected `build...EmitterConfig` functions were refactored. The solution has two parts:
  *
  *  1.  It now checks if the start and end values for a property (e.g., scale, color) are
  *      identical. If they are, it uses the appropriate `Static` behavior (e.g., `scaleStatic`),
@@ -10578,8 +10706,39 @@ class LightningOcclusionFilter extends PIXI.Filter {
  *      legacy `{start, end}` format. The library correctly handles this format without triggering
  *      the bug.
  *
- *  This approach makes our code resilient to the underlying library issue, ensuring stability
- *  regardless of user-defined particle settings.
+ *  This approach makes our code resilient to the underlying library issue.
+ *
+ *  ---
+ *
+ *  EMITTER STATE CORRUPTION BUG (LESSON LEARNED):
+ *  During the development of the "Pressurised Steam" effect, a persistent issue was
+ *  encountered where dynamically changing an emitter's rotation after initialization
+ *  would cause it to permanently stop emitting particles.
+ *
+ *  BUG BEHAVIOR:
+ *  Calling `emitter.rotate()` or manually setting `emitter.rotation` inside an update
+ *  loop or on a timer consistently resulted in the emitter entering a non-functional state.
+ *  This occurred even when using the library's intended `emitter.emit = true/false`
+ *  mechanism for emission control.
+ *
+ *  ROOT CAUSE & SOLUTION:
+ *  The root cause is likely an instability in the `pixi-particles` library where modifying
+ *  the emitter's core transform properties (rotation, spawn position) after particles
+ *  have already been emitted leads to an unrecoverable internal state corruption.
+ *
+ *  The definitive solution is to **AVOID MODIFYING THE EMITTER'S ROTATION POST-INITIALIZATION**.
+ *  Instead of setting `emitter.rotation` to change the direction of a burst, all movement
+ *  logic should be encapsulated within a custom behavior that operates at the particle level.
+ *
+ *  CORRECT IMPLEMENTATION PATTERN:
+ *  1.  **Static Emitter:** Configure the emitter with no built-in movement behaviors (e.g., remove `moveSpeed`).
+ *  2.  **Custom Behavior (`initParticles`):** For each new particle, calculate its initial
+ *      velocity vector based on the desired (and potentially randomized) angle and speed. Store
+ *      this velocity on the particle object itself (e.g., `particle.velocity = new PIXI.Point(...)`).
+ *  3.  **Custom Behavior (`updateParticle`):** On each frame, update the particle's position
+ *      manually using its stored velocity and the frame's delta time (`particle.position.x += particle.velocity.x * deltaSec`).
+ *      This method also allows for implementing custom physics like air drag by modifying the
+ *      velocity over the particle's lifetime.
  *
  ***************************************************************************************/
 
@@ -10695,10 +10854,25 @@ const PARTICLE_EFFECT_DEFINITIONS = {
         spawnMode: "range",
       }),
   },
+  pressurisedSteam: {
+    title: "Pressurised Steam",
+    description:
+      "Creates intermittent bursts of steam from defined areas. Requires a _Steam.webp texture or a Map Point group.",
+    configPath: "pressurisedSteam",
+    triggerTexture: "steam",
+    buildEmitterConfig: (effectConfig, targetData, maskKey, groupData) =>
+      buildPressurisedSteamEmitterConfig(
+        effectConfig,
+        targetData,
+        maskKey || "steam",
+        groupData
+      ),
+  },
 };
 
 class ParticleEffectController {
-  constructor(definition, parentContainer) {
+  constructor(key, definition, parentContainer) {
+    this.key = key;
     this.definition = definition;
     this.parentContainer = parentContainer; // This is the main container from ParticleManager
     this.emitters = new Map();
@@ -11071,6 +11245,225 @@ class ParticleEffectController {
         effectKey,
         definition.title,
         sparksContent,
+        headerExtra
+      );
+    } else if (effectKey === "pressurisedSteam") {
+      const steamPath = "pressurisedSteam";
+      const steamContent = `
+        <p class="description-text">${definition.description}</p>
+        <details>
+            <summary><span class="accordion-toggle"></span><strong>Spawning & Density</strong></summary>
+            <div style="padding-left: 15px;">
+                ${DebuggerUIBuilder._createTextureInputHTML(
+                  definition.triggerTexture,
+                  `Effect Mask (_Steam)`
+                )}
+                ${DebuggerUIBuilder._createSliderHTML(
+                  `${steamPath}.maskInfluence`,
+                  "Particle Density",
+                  0.01,
+                  5,
+                  0.01
+                )}
+                ${DebuggerUIBuilder._createSliderHTML(
+                  `${steamPath}.maskThreshold`,
+                  "Mask Threshold",
+                  0,
+                  1,
+                  0.01
+                )}
+            </div>
+        </details>
+        <details>
+            <summary><span class="accordion-toggle"></span><strong>Burst Emission Cycle</strong></summary>
+            <div style="padding-left: 15px;">
+                <p class="description-text">Controls the on/off cycle of the steam bursts.</p>
+                ${DebuggerUIBuilder._createSliderHTML(
+                  `${steamPath}.burst.onDuration`,
+                  "On Duration (s)",
+                  0.1,
+                  60,
+                  0.1
+                )}
+                ${DebuggerUIBuilder._createSliderHTML(
+                  `${steamPath}.burst.offDuration`,
+                  "Off Duration (s)",
+                  0.1,
+                  60,
+                  0.1
+                )}
+                <hr style="border-color: #555; margin: 6px 0;">
+                <p class="description-text">The rate of particle emission when the burst is active.</p>
+                ${DebuggerUIBuilder._createSliderHTML(
+                  `${steamPath}.burst.frequency`,
+                  "Spawn Rate (s)",
+                  0.001,
+                  0.5,
+                  0.001
+                )}
+            </div>
+        </details>
+        <details>
+            <summary><span class="accordion-toggle"></span><strong>Particle Appearance</strong></summary>
+            <div style="padding-left: 15px;">
+                ${DebuggerUIBuilder._createSelectHTML(
+                  `${steamPath}.blendMode`,
+                  "Blend Mode",
+                  BLEND_MODE_OPTIONS
+                )}
+                ${DebuggerUIBuilder._createTextInputHTML(
+                  `${steamPath}.particleTexture`,
+                  "Particle Texture"
+                )}
+                <details>
+                    <summary><span class="accordion-toggle"></span><strong>Lifetime</strong></summary>
+                    <div style="padding-left: 15px;">
+                        ${DebuggerUIBuilder._createSliderHTML(
+                          `${steamPath}.lifetime.min`,
+                          "Min Lifetime (s)",
+                          0.1,
+                          5,
+                          0.1
+                        )}
+                        ${DebuggerUIBuilder._createSliderHTML(
+                          `${steamPath}.lifetime.max`,
+                          "Max Lifetime (s)",
+                          0.1,
+                          5,
+                          0.1
+                        )}
+                    </div>
+                </details>
+                ${DebuggerUIBuilder._createGradientEditorHTML(
+                  `${steamPath}.colorAlphaGradient`,
+                  "Color & Alpha Over Life"
+                )}
+                ${DebuggerUIBuilder._createGradientEditorHTML(
+                  `${steamPath}.emissiveGradient`,
+                  "Emissive (Brightness) Over Life"
+                )}
+                <details>
+                    <summary><span class="accordion-toggle"></span><strong>Scale / Size</strong></summary>
+                    <div style="padding-left: 15px;">
+                        ${DebuggerUIBuilder._createSliderHTML(
+                          `${steamPath}.scale.sizeMultiplier`,
+                          "Global Size",
+                          0.1,
+                          5,
+                          0.05
+                        )}
+                        ${DebuggerUIBuilder._createSliderHTML(
+                          `${steamPath}.scale.start`,
+                          "Start Scale",
+                          0.1,
+                          2,
+                          0.05
+                        )}
+                        ${DebuggerUIBuilder._createSliderHTML(
+                          `${steamPath}.scale.end`,
+                          "End Scale",
+                          0,
+                          2,
+                          0.05
+                        )}
+                        ${DebuggerUIBuilder._createSliderHTML(
+                          `${steamPath}.scale.minMult`,
+                          "Random Size Min",
+                          0.1,
+                          1,
+                          0.01
+                        )}
+                    </div>
+                </details>
+            </div>
+        </details>
+        <details>
+            <summary><span class="accordion-toggle"></span><strong>Movement & Physics</strong></summary>
+            <div style="padding-left:15px;">
+                <details>
+                    <summary><span class="accordion-toggle"></span><strong>Initial Velocity (Air Drag)</strong></summary>
+                    <div style="padding-left:15px;">
+                        <p class="description-text">High start and low end speed simulates air drag.</p>
+                        ${DebuggerUIBuilder._createSliderHTML(
+                          `${steamPath}.speed.start`,
+                          "Start Speed",
+                          10,
+                          500,
+                          1
+                        )}
+                        ${DebuggerUIBuilder._createSliderHTML(
+                          `${steamPath}.speed.end`,
+                          "End Speed",
+                          0,
+                          100,
+                          1
+                        )}
+                        ${DebuggerUIBuilder._createSliderHTML(
+                          `${steamPath}.speed.minMult`,
+                          "Random Speed Min",
+                          0.1,
+                          1,
+                          0.01
+                        )}
+                    </div>
+                </details>
+                <details>
+                    <summary><span class="accordion-toggle"></span><strong>Direction</strong></summary>
+                    <div style="padding-left:15px;">
+                        ${DebuggerUIBuilder._createSliderHTML(
+                          `${steamPath}.path.angle.min`,
+                          "Min Start Angle",
+                          -180,
+                          180,
+                          1
+                        )}
+                        ${DebuggerUIBuilder._createSliderHTML(
+                          `${steamPath}.path.angle.max`,
+                          "Max Start Angle",
+                          -180,
+                          180,
+                          1
+                        )}
+                    </div>
+                </details>
+                <details>
+                    <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                      `${steamPath}.rotation.enabled`,
+                      "Tumbling / Rotation",
+                      true
+                    )}</div></summary>
+                    <div style="padding-left: 15px;">
+                        ${DebuggerUIBuilder._createSliderHTML(
+                          `${steamPath}.rotation.minSpeed`,
+                          "Min Rot. Speed",
+                          -180,
+                          180,
+                          1
+                        )}
+                        ${DebuggerUIBuilder._createSliderHTML(
+                          `${steamPath}.rotation.maxSpeed`,
+                          "Max Rot. Speed",
+                          -180,
+                          180,
+                          1
+                        )}
+                        ${DebuggerUIBuilder._createSliderHTML(
+                          `${steamPath}.rotation.accel`,
+                          "Rot. Accel.",
+                          -90,
+                          90,
+                          1
+                        )}
+                    </div>
+                </details>
+            </div>
+        </details>
+    `;
+      const headerExtra = `<button type="button" class="create-effect-from-ui" data-action="create-particle-effect-area" data-effect-key="${effectKey}" title="Create new area for this particle effect"><i class="fas fa-plus-square"></i></button>`;
+      return DebuggerUIBuilder._createAccordionHTML(
+        effectKey,
+        definition.title,
+        steamContent,
         headerExtra
       );
     }
@@ -11661,7 +12054,7 @@ class ParticleEffectController {
     }
 
     // --- 2. Process Geometry-Based Mask Targets ---
-    const effectKey = this.definition.triggerTexture;
+    const effectKey = this.key;
     const groups = MapPointsManager.getGroups();
 
     for (const group of Object.values(groups)) {
@@ -11851,6 +12244,22 @@ class ParticleEffectController {
     return this.particleOutputTexture;
   }
 
+  async processAllPendingTargets() {
+    if (this.pendingTargets.size === 0) return;
+
+    const processingPromises = [];
+    for (const [targetId, targetData] of this.pendingTargets.entries()) {
+      processingPromises.push(
+        this._createEmitterForTarget(targetData, targetId).then((success) => {
+          if (success) {
+            this.pendingTargets.delete(targetId);
+          }
+        })
+      );
+    }
+    await Promise.all(processingPromises);
+  }
+
   async update(deltaTime) {
     if (this.definition.configPath === "biofilm") {
       this._initializeBiofilmResources();
@@ -11861,8 +12270,6 @@ class ParticleEffectController {
       // Process one pending target per frame to spread the load.
       const [targetId, targetData] = this.pendingTargets.entries().next().value;
       const success = await this._createEmitterForTarget(targetData, targetId);
-      // If successful (or if it failed in a non-recoverable way), remove it from the queue.
-      // If it failed because a dependency wasn't ready (returned false), it will be retried on the next frame.
       if (success) {
         this.pendingTargets.delete(targetId);
       }
@@ -11926,6 +12333,15 @@ class ParticleEffectController {
     }
 
     for (const { emitter } of this.emitters.values()) {
+      // Manually update any behaviors that have a custom `update(emitter, delta)` method.
+      // This is a custom extension to the pixi-particles library's behavior system.
+      if (emitter.initBehaviors) {
+        for (const behavior of emitter.initBehaviors) {
+          if (typeof behavior.update === "function") {
+            behavior.update(emitter, deltaTime);
+          }
+        }
+      }
       emitter.update(deltaTime);
     }
 
@@ -12560,6 +12976,151 @@ const buildSparkEmitterConfig = (effectConfig, targetData, maskKey) => {
   };
 };
 
+const buildPressurisedSteamEmitterConfig = (
+  effectConfig,
+  targetData,
+  maskKey,
+  groupData = null
+) => {
+  // This is mostly a copy of buildParticleEmitterConfig with modifications
+  const globalParticleConfig =
+    game.mapShine.profileManager.activeConfig.particleSystems;
+  const globalMultiplier = globalParticleConfig.globalDensityMultiplier ?? 1.0;
+  const config = effectConfig || {};
+  const rect = targetData?.rect;
+
+  if (!rect) {
+    return { maxParticles: 0, behaviors: [] };
+  }
+
+  const spawnMaskTexture = targetData[maskKey];
+  if (!spawnMaskTexture) {
+    return { maxParticles: 0, behaviors: [] };
+  }
+
+  const isScreenSpaceMask = spawnMaskTexture instanceof PIXI.RenderTexture;
+
+  const spawnBehavior = {
+    type: "spawnShape",
+    config: {
+      type: "textureMask",
+      data: {
+        texture: spawnMaskTexture,
+        width: rect.width,
+        height: rect.height,
+        x: 0,
+        y: 0,
+        threshold: (config.maskThreshold ?? 0.5) * 255,
+        isDynamicScreenMask: isScreenSpaceMask,
+      },
+    },
+  };
+
+  const pathConfig = config.path ?? {};
+  const minAngle = pathConfig.angle?.min ?? -100;
+  const maxAngle = pathConfig.angle?.max ?? -80;
+
+  const behaviors = [
+    {
+      type: "textureSingle",
+      config: { texture: config.particleTexture },
+    },
+    spawnBehavior,
+    // The custom behavior now receives the full speed config to manage movement.
+    {
+      type: "pressurisedSteam",
+      config: {
+        ...(config.burst ?? {}),
+        minAngle: minAngle,
+        maxAngle: maxAngle,
+        speed: config.speed ?? { start: 250, end: 20, minMult: 0.8 },
+      },
+    },
+  ];
+
+  // Color/Alpha
+  if (config.colorAlphaGradient && config.colorAlphaGradient.length > 0) {
+    const {
+      isColorStatic,
+      staticColor,
+      colorList,
+      isAlphaStatic,
+      staticAlpha,
+      alphaList,
+    } = _generateBehaviorListsFromGradient(config.colorAlphaGradient);
+    if (isColorStatic) {
+      behaviors.push({ type: "colorStatic", config: { color: staticColor } });
+    } else {
+      behaviors.push({ type: "color", config: { color: colorList } });
+    }
+    if (isAlphaStatic) {
+      behaviors.push({ type: "alphaStatic", config: { alpha: staticAlpha } });
+    } else {
+      behaviors.push({ type: "alpha", config: { alpha: alphaList } });
+    }
+  }
+
+  // Scale
+  const scaleConfig = config.scale ?? {};
+  const startScale =
+    (scaleConfig.start ?? 0.2) * (scaleConfig.sizeMultiplier ?? 1.0);
+  const endScale =
+    (scaleConfig.end ?? 1.5) * (scaleConfig.sizeMultiplier ?? 1.0);
+  behaviors.push({
+    type: "scale",
+    config: {
+      scale: { start: startScale, end: endScale },
+      minMult: scaleConfig.minMult ?? 0.7,
+    },
+  });
+
+  // Lighting
+  if (config.emissiveGradient) {
+    behaviors.push({
+      type: "mapShineLighting",
+      config: {
+        emissive: _generateEmissiveListFromGradient(config.emissiveGradient),
+      },
+    });
+  }
+
+  // Rotation
+  const rotConfig = config.rotation ?? {};
+  if (rotConfig.enabled) {
+    behaviors.push({
+      type: "rotation",
+      config: {
+        minStart: 0,
+        maxStart: 360,
+        minSpeed: rotConfig.minSpeed ?? -50,
+        maxSpeed: rotConfig.maxSpeed ?? 50,
+        accel: rotConfig.accel ?? 0,
+      },
+    });
+  }
+
+  const lifetimeConfig = config.lifetime ?? {};
+
+  return {
+    lifetime: {
+      min: lifetimeConfig.min ?? 0.5,
+      max: lifetimeConfig.max ?? 2.0,
+    },
+    blendMode: config.blendMode ?? PIXI.BLEND_MODES.NORMAL,
+    frequency: config.burst?.frequency ?? 0.005,
+    emitterLifetime: -1,
+    maxParticles: Math.floor(
+      2000 * (config.maskInfluence ?? 1.5) * globalMultiplier
+    ),
+    pos: {
+      x: isScreenSpaceMask ? 0 : rect.x,
+      y: isScreenSpaceMask ? 0 : rect.y,
+    },
+    addAtBack: false,
+    behaviors: behaviors,
+  };
+};
+
 class ParticleManager {
   constructor() {
     this.masterContainer = new PIXI.Container();
@@ -12584,6 +13145,7 @@ class ParticleManager {
 
       const effectContainer = new PIXI.Container();
       const controller = new ParticleEffectController(
+        key,
         definition,
         effectContainer
       );
@@ -12608,6 +13170,14 @@ class ParticleManager {
     for (const controller of this.controllers.values()) {
       controller.updateFromConfig(config);
     }
+  }
+
+  async processAllPendingTargets() {
+    const promises = [];
+    for (const controller of this.controllers.values()) {
+      promises.push(controller.processAllPendingTargets());
+    }
+    await Promise.all(promises);
   }
 
   update(deltaTime) {
@@ -13261,6 +13831,12 @@ export class ParticleLayer extends CanvasLayer {
     }
   }
 
+  async awaitParticleSetup() {
+    if (game.mapShine.particleManager) {
+      await game.mapShine.particleManager.processAllPendingTargets();
+    }
+  }
+
   async updateEffectTargets(targets) {
     if (game.mapShine.particleManager) {
       // This method internally fetches the latest config to decide what to create.
@@ -13618,6 +14194,126 @@ class FireWindBehavior {
   }
 }
 
+class PressurisedSteamBehavior {
+  static type = "pressurisedSteam";
+
+  constructor(config) {
+    // @ts-ignore
+    this.order = PIXI.particles.behaviors.BehaviorOrder.Normal;
+    this.config = config;
+  }
+
+  /**
+   * Initializes the state for a given emitter.
+   * @param {PIXI.particles.Emitter} emitter The emitter to initialize.
+   */
+  initEmitter(emitter) {
+    emitter._steamState = "on";
+    emitter._steamTimer = this.config.onDuration ?? 10.0;
+    emitter.emit = true;
+  }
+
+  /**
+   * Updates the emitter's state machine (on/off cycle).
+   * @param {PIXI.particles.Emitter} emitter The emitter to update.
+   * @param {number} delta The time elapsed in seconds.
+   */
+  update(emitter, delta) {
+    if (emitter._steamState === undefined) {
+      this.initEmitter(emitter);
+    }
+
+    emitter._steamTimer -= delta;
+
+    while (emitter._steamTimer <= 0) {
+      if (emitter._steamState === "on") {
+        emitter._steamState = "off";
+        emitter._steamTimer += this.config.offDuration ?? 10.0;
+        emitter.emit = false;
+      } else {
+        emitter._steamState = "on";
+        emitter._steamTimer += this.config.onDuration ?? 10.0;
+        emitter.emit = true;
+      }
+    }
+  }
+
+  /**
+   * Initializes newly created particles with a unique, random velocity.
+   * @param {PIXI.particles.Particle} first The first particle in the new batch.
+   */
+  initParticles(first) {
+    let p = first;
+    while (p) {
+      if (!p.velocity) {
+        // @ts-ignore
+        p.velocity = new PIXI.Point();
+      }
+      const pConfig = p.config || (p.config = {});
+
+      // Calculate a new random angle FOR EACH PARTICLE within the configured range.
+      const angleDegrees =
+        this.config.minAngle +
+        Math.random() * (this.config.maxAngle - this.config.minAngle);
+      const angleRadians = angleDegrees * (Math.PI / 180.0);
+
+      const speedConfig = this.config.speed;
+      const speedMult =
+        speedConfig.minMult + Math.random() * (1 - speedConfig.minMult);
+      const startSpeed = speedConfig.start * speedMult;
+
+      // Set initial velocity based on the particle's unique random angle.
+      // @ts-ignore
+      p.velocity.x = Math.cos(angleRadians) * startSpeed;
+      // @ts-ignore
+      p.velocity.y = Math.sin(angleRadians) * startSpeed;
+
+      pConfig.startSpeed = startSpeed;
+      pConfig.endSpeed = speedConfig.end * speedMult;
+
+      p = p.next;
+    }
+  }
+
+  /**
+   * Updates a single particle's position and velocity each frame.
+   * @param {PIXI.particles.Particle} particle The particle to update.
+   * @param {number} delta The time elapsed in seconds.
+   */
+  updateParticle(particle, delta) {
+    // @ts-ignore
+    if (!particle.velocity || !particle.config) return;
+
+    const pConfig = particle.config;
+
+    const currentSpeed =
+      pConfig.startSpeed +
+      (pConfig.endSpeed - pConfig.startSpeed) * particle.agePercent;
+
+    const magnitude = Math.hypot(
+      // @ts-ignore
+      particle.velocity.x,
+      // @ts-ignore
+      particle.velocity.y
+    );
+    if (magnitude > 0) {
+      // @ts-ignore
+      particle.velocity.x = (particle.velocity.x / magnitude) * currentSpeed;
+      // @ts-ignore
+      particle.velocity.y = (particle.velocity.y / magnitude) * currentSpeed;
+    }
+
+    // @ts-ignore
+    particle.position.x += particle.velocity.x * delta;
+    // @ts-ignore
+    particle.position.y += particle.velocity.y * delta;
+  }
+
+  destroy() {
+    // No special cleanup needed
+  }
+}
+
 /**
  * A custom particle behavior that sets a particle's tint based on color data
  * attached to it during the spawn process.
@@ -13643,6 +14339,16 @@ class ColorFromSpawnBehavior {
       next = next.next;
     }
   }
+
+  // Required method, even if empty.
+  updateParticle(particle, delta) {
+    // This is a one-shot behavior on initialization.
+  }
+
+  // Required method for cleanup.
+  destroy() {
+    // Nothing to destroy.
+  }
 }
 
 class SmellyFliesBehavior {
@@ -13653,7 +14359,6 @@ class SmellyFliesBehavior {
     this.order = PIXI.particles.behaviors.BehaviorOrder.Late;
     this.config = config;
     this.group = config.group;
-    this.elapsedTime = 0;
 
     if (this.group) {
       this.shape = new GeometryMaskShape({
@@ -13818,7 +14523,7 @@ class SmellyFliesBehavior {
       if (t2 < 0) n2 = 0.0;
       else {
         t2 *= t2;
-        n2 = t2 * t2 * dot(grad3[gi2], x2, y2, z2);
+        n2 = t1 * t1 * dot(grad3[gi2], x2, y2, z2);
       }
 
       let t3 = 0.6 - x3 * x3 - y3 * y3 - z3 * z3;
@@ -13831,6 +14536,26 @@ class SmellyFliesBehavior {
       return 32.0 * (n0 + n1 + n2 + n3);
     };
   })();
+
+  /**
+   * Initializes per-emitter state.
+   * @param {PIXI.particles.Emitter} emitter The emitter instance.
+   */
+  initEmitter(emitter) {
+    emitter._smellyFliesElapsedTime = 0;
+  }
+
+  /**
+   * Updates the emitter's shared timer once per frame.
+   * @param {PIXI.particles.Emitter} emitter The emitter instance.
+   * @param {number} deltaSec Time elapsed in seconds.
+   */
+  update(emitter, deltaSec) {
+    if (emitter._smellyFliesElapsedTime === undefined) {
+      this.initEmitter(emitter);
+    }
+    emitter._smellyFliesElapsedTime += deltaSec;
+  }
 
   /**
    * Sets up all parameters required for a fly to begin its take-off animation.
@@ -13898,7 +14623,9 @@ class SmellyFliesBehavior {
     const cfg = fly.config;
     if (!cfg) return;
 
-    this.elapsedTime += deltaSec;
+    // Read the per-emitter elapsed time, which is now correctly updated once per frame.
+    const elapsedTime = fly.emitter._smellyFliesElapsedTime ?? 0;
+
     const oldPosition = fly.oldPosition;
     oldPosition.copyFrom(fly.position);
 
@@ -13907,7 +14634,7 @@ class SmellyFliesBehavior {
         this._updateTakingOff(fly, deltaSec);
         break;
       case "flying":
-        this._updateFlying(fly, deltaSec);
+        this._updateFlying(fly, deltaSec, elapsedTime);
         break;
       case "landing":
         this._updateLanding(fly, deltaSec);
@@ -13957,7 +14684,7 @@ class SmellyFliesBehavior {
       cfg.velocity = cfg.targetVelocity;
       cfg.currentBaseScale = this.FLYING_SCALE;
       cfg.state = "flying";
-      this._updateFlying(fly, 0); // Update once with zero delta to finalize position
+      this._updateFlying(fly, 0, fly.emitter._smellyFliesElapsedTime); // Update once with zero delta to finalize position
     } else {
       const progress = 1.0 - cfg.stateTimer / totalDuration;
       const ease = 1 - Math.pow(1 - progress, 3); // Ease out cubic
@@ -13979,7 +14706,7 @@ class SmellyFliesBehavior {
     }
   }
 
-  _updateFlying(fly, deltaSec) {
+  _updateFlying(fly, deltaSec, elapsedTime) {
     const cfg = fly.config;
     const flyConfig = this.config.flying;
     const homePoint = cfg.home;
@@ -13989,7 +14716,7 @@ class SmellyFliesBehavior {
     // 1. Random erratic movement force using simplex noise
     const noiseStrength = flyConfig.noiseStrength ?? 400;
     const noiseFrequency = flyConfig.noiseFrequency ?? 2.0;
-    const time = this.elapsedTime * noiseFrequency;
+    const time = elapsedTime * noiseFrequency;
     // Get a smoothly changing angle from noise
     const randomAngle = this._simplexNoise3D(cfg.id, time, 0) * Math.PI * 2;
     const randomForce = {
@@ -14302,7 +15029,11 @@ export class SmellyFliesLayer extends CanvasLayer {
     const definition = PARTICLE_EFFECT_DEFINITIONS.smellyFlies;
     if (definition) {
       // The controller's parent container is this layer itself.
-      this.controller = new ParticleEffectController(definition, this);
+      this.controller = new ParticleEffectController(
+        "smellyFlies",
+        definition,
+        this
+      );
     } else {
       console.error("Map Shine | SmellyFlies particle definition not found!");
     }
@@ -27572,6 +28303,7 @@ class DebuggerUIBuilder {
       PrismLayer.getSettingsHTML(),
       ParticleEffectController.getSettingsHTML("fire"),
       ParticleEffectController.getSettingsHTML("sparks"),
+      ParticleEffectController.getSettingsHTML("pressurisedSteam"),
       ParticleEffectController.getSettingsHTML("dust"),
       ParticleEffectController.getSettingsHTML("glint"),
       ParticleEffectController.getSettingsHTML("metallicGlints"),
