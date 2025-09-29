@@ -31,7 +31,6 @@
 import { ProfileManager } from "./managers/ProfileManager.js";
 import { CoordinateManager } from "./managers/CoordinateManager.js";
 import { TokenManager } from "./managers/TokenManager.js";
-// @ts-ignore
 import { hexToRgbArray, lerp } from "./utils/ColorUtils.js";
 import { SceneChangeManager } from "./managers/SceneChangeManager.js";
 import { AmbientLayer } from "./layers/AmbientLayer.js";
@@ -1763,6 +1762,7 @@ export const MODULE_DEFAULTS = {
   tileOpacity: 0,
   lightMask: {
     blur: 50,
+    noise: 0.05,
   },
   baseShine: {
     enabled: true,
@@ -2454,10 +2454,6 @@ export const MODULE_DEFAULTS = {
       speed: 0.5,
       scale: 4.2,
       intensity: 0.0025,
-      biofilmDistortion: {
-        enabled: true,
-        intensity: 0.005,
-      },
     },
     murkiness: {
       enabled: false,
@@ -2488,10 +2484,14 @@ export const MODULE_DEFAULTS = {
       specularity: {
         enabled: true,
         color: "#FFFFFF",
-        intensity: 0.75,
-        shininess: 256,
+        intensity: 0.5,
+        shininess: 512,
         lightAngle: 45,
         lightElevation: 60,
+        cloudOcclusion: {
+          enabled: true,
+          intensity: 1.0,
+        },
       },
     },
     caustics: {
@@ -3243,7 +3243,7 @@ class FontLoader {
     const allFonts = new Set([...currentlyLoadedFonts, ...newFonts]);
 
     const fontQuery = Array.from(allFonts)
-      .map((font) => `family = ${font.replace(/ /g, "+")}:wght @400; 700`)
+      .map((font) => `family=${font.replace(/ /g, "+")}:wght@400;700`)
       .join("&");
 
     // @ts-ignore
@@ -3424,7 +3424,6 @@ class MapShineInitialiser {
       },
       profileManager: new ProfileManager(),
       transitionManager: null, // Initialized below
-      // @ts-ignore
       sceneChangeManager: new SceneChangeManager(),
       setupCompletionPromise: null,
       resolveSetupCompletion: null,
@@ -4213,7 +4212,6 @@ class LayerManager {
 
       // --- High-Level Layers & Filters (zIndex > 200) ---
       ambient: {
-        // @ts-ignore
         layerClass: AmbientLayer,
         group: "primary",
         zIndex: ambientZIndex, // Uses setting, defaults to 250.
@@ -4601,7 +4599,6 @@ class HooksManager {
     }
 
     // This hook ensures settings that should be textareas are rendered as such.
-    // @ts-ignore
     // @ts-ignore
     Hooks.on("renderSettingsConfig", (app, html, data) => {
       const settingsToConvert = [
@@ -5547,144 +5544,120 @@ class ResourceManager {
  ***************************************************************************************/
 class LightMaskManager {
   constructor() {
-    this.lightPolygonMaskTexture = null; // The final output
+    // Final output texture
+    this.blurredLightMaskTexture = null;
 
-    // --- Properties for two-stage rendering ---
-    this.gradientTexture = null;
+    // --- Properties for three-stage rendering (Hard Mask -> Blur 1 -> Blur 2 -> Blur 3 + Noise) ---
+    // Stage 1: Hard Mask
+    this.lightMaskGraphics = null;
+    this.lightPolygonMaskTexture = null;
 
-    // Stage A: Unoccluded Gradients
-    this.lightContainer = null;
-    this.unoccludedGradientsTexture = null;
-
-    // Stage B: Occlusion Mask
-    this.occlusionMaskGraphics = null;
-    this.occlusionMaskTexture = null;
-
-    // Stage C: Final Compositing
-    this.compositeContainer = null;
-    this.gradientCompositeSprite = null;
-    this.maskCompositeSprite = null;
-    // --- End properties ---
+    // Stage 2: Blurring
+    this.intermediateBlurTexture = null;
+    this.intermediateBlurTexture2 = null;
+    this.kawaseBlurFilter1 = null;
+    this.kawaseBlurFilter2 = null;
+    this.kawaseBlurFilter3 = null;
+    this.noiseFilter = null;
+    this.blurSourceSprite = null; // Sprite for full-res operations
+    this.downscaledBlurSprite = null; // Sprite for half-res operations
 
     this._needsUpdate = true;
     this._destroyed = false;
-    this._currentExponent = -1; // Track the current gradient exponent to avoid redundant texture generation
 
-    this._onProfileUpdate = this.updateFromConfig.bind(this);
     this._flagUpdate = () => {
       this._needsUpdate = true;
     };
+
+    // Bind event handlers for robust listener management
+    this._onProfileUpdate = this.updateFromConfig.bind(this);
     this._boundOnResize = this._onResize.bind(this);
-  }
-
-  /**
-   * Generates a reusable radial gradient texture with a realistic falloff.
-   * @param {number} falloffExponent - The exponent for the falloff curve (e.g., 1.0 for linear, 2.0 for quadratic).
-   * @private
-   */
-  _createGradientTexture(falloffExponent) {
-    // Destroy the old texture if it exists to prevent memory leaks
-    if (this.gradientTexture) {
-      this.gradientTexture.destroy(true);
-    }
-    this._currentExponent = falloffExponent;
-
-    const gradientSize = 128;
-    const canvasElement = document.createElement("canvas");
-    canvasElement.width = gradientSize;
-    canvasElement.height = gradientSize;
-    const context = canvasElement.getContext("2d");
-
-    if (context) {
-      const imageData = context.getImageData(0, 0, gradientSize, gradientSize);
-      const data = imageData.data;
-      const centerX = gradientSize / 2;
-      const centerY = gradientSize / 2;
-      const radius = gradientSize / 2;
-
-      for (let y = 0; y < gradientSize; y++) {
-        for (let x = 0; x < gradientSize; x++) {
-          const dx = x - centerX;
-          const dy = y - centerY;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-
-          // Calculate distance from center, normalized to a 0.0-1.0 range
-          const normalizedDist = Math.min(distance / radius, 1.0);
-
-          // Calculate intensity using a power curve for a natural falloff
-          const intensity = Math.pow(1.0 - normalizedDist, falloffExponent);
-
-          const colorByte = Math.floor(intensity * 255);
-          const index = (y * gradientSize + x) * 4;
-          data[index] = colorByte; // R
-          data[index + 1] = colorByte; // G
-          data[index + 2] = colorByte; // B
-          data[index + 3] = 255; // A
-        }
-      }
-      context.putImageData(imageData, 0, 0);
-      this.gradientTexture = PIXI.Texture.from(canvasElement);
-    } else {
-      this.gradientTexture = PIXI.Texture.WHITE;
-      console.error(
-        "Map Shine | Could not create 2D context for gradient texture."
-      );
-    }
   }
 
   initialize() {
     const renderer = canvas.app.renderer;
     const screen = renderer.screen;
 
-    const textureOptions = {
+    // Half-resolution for blur passes to improve performance
+    const downscaledWidth = Math.floor(screen.width / 2);
+    const downscaledHeight = Math.floor(screen.height / 2);
+
+    // Use floating-point textures for high-quality gradients without color banding
+    const downscaledTextureOptions = {
+      width: downscaledWidth,
+      height: downscaledHeight,
+      type: PIXI.TYPES.FLOAT,
+      scaleMode: PIXI.SCALE_MODES.LINEAR,
+    };
+
+    const fullResTextureOptions = {
       width: screen.width,
       height: screen.height,
       type: PIXI.TYPES.FLOAT,
       scaleMode: PIXI.SCALE_MODES.LINEAR,
     };
 
-    // Final output and intermediate textures
-    this.lightPolygonMaskTexture = PIXI.RenderTexture.create(textureOptions);
-    this.unoccludedGradientsTexture = PIXI.RenderTexture.create(textureOptions);
-    this.occlusionMaskTexture = PIXI.RenderTexture.create(textureOptions);
+    // Stage 1 resources (Full resolution)
+    this.lightMaskGraphics = new PIXI.Graphics();
+    // @ts-ignore
+    this.lightPolygonMaskTexture = PIXI.RenderTexture.create({
+      width: screen.width,
+      height: screen.height,
+      scaleMode: PIXI.SCALE_MODES.LINEAR,
+    });
 
-    // Create the initial gradient texture with a default falloff
-    this._createGradientTexture(0.5);
-
-    // Stage A resources
-    this.lightContainer = new PIXI.Container();
-
-    // Stage B resources
-    this.occlusionMaskGraphics = new PIXI.Graphics();
-
-    // Stage C resources
-    this.compositeContainer = new PIXI.Container();
-    this.gradientCompositeSprite = new PIXI.Sprite();
-    this.gradientCompositeSprite.width = screen.width;
-    this.gradientCompositeSprite.height = screen.height;
-    this.maskCompositeSprite = new PIXI.Sprite();
-    this.maskCompositeSprite.width = screen.width;
-    this.maskCompositeSprite.height = screen.height;
-    this.gradientCompositeSprite.mask = this.maskCompositeSprite;
-    this.compositeContainer.addChild(
-      this.gradientCompositeSprite,
-      this.maskCompositeSprite
+    // Stage 2 resources (Downscaled for performance)
+    this.intermediateBlurTexture = PIXI.RenderTexture.create(
+      // @ts-ignore
+      downscaledTextureOptions
+    );
+    this.intermediateBlurTexture2 = PIXI.RenderTexture.create(
+      // @ts-ignore
+      downscaledTextureOptions
+    );
+    // The final output texture must be full resolution
+    this.blurredLightMaskTexture = PIXI.RenderTexture.create(
+      // @ts-ignore
+      fullResTextureOptions
     );
 
-    // Event listeners
+    // @ts-ignore
+    this.kawaseBlurFilter1 = new PIXI.filters.KawaseBlurFilter(15, 2, true);
+    // @ts-ignore
+    this.kawaseBlurFilter2 = new PIXI.filters.KawaseBlurFilter(15, 2, true);
+    // @ts-ignore
+    this.kawaseBlurFilter3 = new PIXI.filters.KawaseBlurFilter(15, 2, true);
+    this.noiseFilter = new NoiseFilter({ noiseAmount: 0.05 });
+
+    // Sprite for full-resolution rendering (final pass)
+    this.blurSourceSprite = new PIXI.Sprite();
+    this.blurSourceSprite.width = screen.width;
+    this.blurSourceSprite.height = screen.height;
+
+    // Sprite for downscaled rendering (intermediate blur passes)
+    this.downscaledBlurSprite = new PIXI.Sprite();
+    this.downscaledBlurSprite.width = downscaledWidth;
+    this.downscaledBlurSprite.height = downscaledHeight;
+
+    // Register hooks to flag updates
     Hooks.on("canvasPan", this._flagUpdate);
+    // @ts-ignore
     Hooks.on("createLight", this._flagUpdate);
+    // @ts-ignore
     Hooks.on("updateLight", this._flagUpdate);
+    // @ts-ignore
     Hooks.on("deleteLight", this._flagUpdate);
     Hooks.on("createWall", this._flagUpdate);
     Hooks.on("updateWall", this._flagUpdate);
     Hooks.on("deleteWall", this._flagUpdate);
     window.addEventListener("resize", this._boundOnResize);
-    Hooks.on("MapShine.profileUpdated", this._onProfileUpdate);
+    // @ts-ignore
+    Hooks.on("mapShine:profileUpdated", this._onProfileUpdate);
 
+    // Initial configuration
     this.updateFromConfig(game.mapShine.profileManager.activeConfig);
     console.log(
-      "Map Shine | LightMaskManager initialized (Performant Gradient Mode)."
+      "Map Shine | LightMaskManager initialized (3-Pass Kawase Blur with Downscaling)."
     );
   }
 
@@ -5692,58 +5665,68 @@ class LightMaskManager {
     if (this._destroyed) return;
     this._destroyed = true;
 
-    // Hooks
+    // Unregister hooks
     Hooks.off("canvasPan", this._flagUpdate);
+    // @ts-ignore
     Hooks.off("createLight", this._flagUpdate);
+    // @ts-ignore
     Hooks.off("updateLight", this._flagUpdate);
+    // @ts-ignore
     Hooks.off("deleteLight", this._flagUpdate);
     Hooks.off("createWall", this._flagUpdate);
     Hooks.off("updateWall", this._flagUpdate);
     Hooks.off("deleteWall", this._flagUpdate);
     window.removeEventListener("resize", this._boundOnResize);
-    Hooks.off("MapShine.profileUpdated", this._onProfileUpdate);
+    // @ts-ignore
+    Hooks.off("mapShine:profileUpdated", this._onProfileUpdate);
 
     // Destroy all PIXI objects
+    this.lightMaskGraphics?.destroy();
     this.lightPolygonMaskTexture?.destroy(true);
-    this.gradientTexture?.destroy(true);
-    this.lightContainer?.destroy({ children: true });
-    this.unoccludedGradientsTexture?.destroy(true);
-    this.occlusionMaskGraphics?.destroy();
-    this.occlusionMaskTexture?.destroy(true);
-    this.compositeContainer?.destroy({ children: true });
-    this.gradientCompositeSprite?.destroy();
-    this.maskCompositeSprite?.destroy();
+    this.intermediateBlurTexture?.destroy(true);
+    this.intermediateBlurTexture2?.destroy(true);
+    this.blurredLightMaskTexture?.destroy(true);
+    this.kawaseBlurFilter1?.destroy();
+    this.kawaseBlurFilter2?.destroy();
+    this.kawaseBlurFilter3?.destroy();
+    // @ts-ignore
+    this.noiseFilter?.destroy();
+    this.blurSourceSprite?.destroy();
+    this.downscaledBlurSprite?.destroy();
 
     // Nullify references
+    this.lightMaskGraphics = null;
     this.lightPolygonMaskTexture = null;
-    this.gradientTexture = null;
-    this.lightContainer = null;
-    this.unoccludedGradientsTexture = null;
-    this.occlusionMaskGraphics = null;
-    this.occlusionMaskTexture = null;
-    this.compositeContainer = null;
-    this.gradientCompositeSprite = null;
-    this.maskCompositeSprite = null;
+    this.intermediateBlurTexture = null;
+    this.intermediateBlurTexture2 = null;
+    this.blurredLightMaskTexture = null;
+    this.kawaseBlurFilter1 = null;
+    this.kawaseBlurFilter2 = null;
+    this.kawaseBlurFilter3 = null;
+    this.noiseFilter = null;
+    this.blurSourceSprite = null;
+    this.downscaledBlurSprite = null;
 
     console.log("Map Shine | LightMaskManager destroyed.");
   }
 
   updateFromConfig(config) {
-    if (!config?.lightMask) return;
+    if (!config?.lightMask || !this.kawaseBlurFilter1) return;
 
     const blurAmount = config.lightMask.blur ?? 50;
+    // Since we are blurring on a half-resolution texture, we need to halve the blur amount
+    // to achieve a visually similar result to the full-resolution blur.
+    const mappedBlur = blurAmount / 2 / 4;
 
-    // Convert the blur value (0-250) to an exponent (6.0 - 1.0).
-    // A lower blur value results in a higher exponent, creating a harder edge.
-    // A higher blur value results in a lower exponent, creating a softer fade.
-    const maxExponent = 6.0;
-    const minExponent = 1.0;
-    const newExponent =
-      maxExponent - (blurAmount / 250.0) * (maxExponent - minExponent);
+    this.kawaseBlurFilter1.blur = mappedBlur;
+    this.kawaseBlurFilter2.blur = mappedBlur;
+    // The final pass is on a full-res texture, but the input is already blurred,
+    // so we keep the blur amount consistent with the other passes.
+    this.kawaseBlurFilter3.blur = mappedBlur;
 
-    // Only regenerate the texture if the exponent has actually changed
-    if (Math.abs(this._currentExponent - newExponent) > 0.001) {
-      this._createGradientTexture(newExponent);
+    if (this.noiseFilter) {
+      this.noiseFilter.noiseAmount = config.lightMask.noise ?? 0.0;
+      this.noiseFilter.enabled = this.noiseFilter.noiseAmount > 0;
     }
 
     this._needsUpdate = true;
@@ -5754,19 +5737,23 @@ class LightMaskManager {
     const screenWidth = renderer.screen.width;
     const screenHeight = renderer.screen.height;
 
+    const downscaledWidth = Math.floor(screenWidth / 2);
+    const downscaledHeight = Math.floor(screenHeight / 2);
+
     // Resize all render textures
     this.lightPolygonMaskTexture?.resize(screenWidth, screenHeight);
-    this.unoccludedGradientsTexture?.resize(screenWidth, screenHeight);
-    this.occlusionMaskTexture?.resize(screenWidth, screenHeight);
+    this.intermediateBlurTexture?.resize(downscaledWidth, downscaledHeight);
+    this.intermediateBlurTexture2?.resize(downscaledWidth, downscaledHeight);
+    this.blurredLightMaskTexture?.resize(screenWidth, screenHeight);
 
     // Resize screen-filling sprites
-    if (this.gradientCompositeSprite) {
-      this.gradientCompositeSprite.width = screenWidth;
-      this.gradientCompositeSprite.height = screenHeight;
+    if (this.blurSourceSprite) {
+      this.blurSourceSprite.width = screenWidth;
+      this.blurSourceSprite.height = screenHeight;
     }
-    if (this.maskCompositeSprite) {
-      this.maskCompositeSprite.width = screenWidth;
-      this.maskCompositeSprite.height = screenHeight;
+    if (this.downscaledBlurSprite) {
+      this.downscaledBlurSprite.width = downscaledWidth;
+      this.downscaledBlurSprite.height = downscaledHeight;
     }
 
     this._needsUpdate = true;
@@ -5774,10 +5761,9 @@ class LightMaskManager {
 
   update() {
     if (this._destroyed) return;
-
-    // The update method now ONLY checks if a render is needed.
-    // The decision to update is made externally by ProfileManager
-    // calling updateFromConfig.
+    if (this.noiseFilter) {
+      this.noiseFilter.uniforms.uTime = canvas.app.ticker.lastTime;
+    }
     if (this._needsUpdate) {
       this._render();
       this._needsUpdate = false;
@@ -5785,72 +5771,127 @@ class LightMaskManager {
   }
 
   _render() {
-    if (
-      !this.lightContainer ||
-      !this.gradientTexture ||
-      !this.occlusionMaskGraphics
-    )
-      return;
+    if (!this.lightMaskGraphics || !this.kawaseBlurFilter1) return;
 
     const renderer = canvas.app.renderer;
     const lights = canvas.scene.lights;
     const worldTransform = canvas.stage.transform.worldTransform;
 
-    // === Stage A: Render all unoccluded gradients with ADD blend mode ===
-    this.lightContainer.removeChildren().forEach((c) => c.destroy());
-
-    for (const light of lights) {
-      if (!light.object?.visible || !light.object.lightSource?.active) continue;
-      const source = light.object.lightSource;
-      const radius = source.radius;
-      if (radius <= 0) continue;
-
-      const gradientSprite = new PIXI.Sprite(this.gradientTexture);
-      gradientSprite.anchor.set(0.5);
-      gradientSprite.position.copyFrom(light.object.center);
-      gradientSprite.width = gradientSprite.height = radius * 2;
-      gradientSprite.blendMode = PIXI.BLEND_MODES.ADD;
-      this.lightContainer.addChild(gradientSprite);
-    }
-    renderer.render(this.lightContainer, {
-      renderTexture: this.unoccludedGradientsTexture,
-      transform: worldTransform,
-      clear: true,
-    });
-
-    // === Stage B: Render the solid occlusion mask ===
-    this.occlusionMaskGraphics.clear();
-    this.occlusionMaskGraphics.beginFill(0xffffff);
+    // --- Stage 1: Render Hard Mask (Full Resolution) ---
+    this.lightMaskGraphics.clear();
+    this.lightMaskGraphics.beginFill(0xffffff);
     for (const light of lights) {
       if (
-        light.object?.visible &&
-        light.object.lightSource?.active &&
-        light.object.lightSource.shape?.points.length >= 6
+        !light.object?.visible ||
+        !light.object.lightSource?.active ||
+        light.object.lightSource.radius <= 0 ||
+        !light.object.lightSource.shape?.points ||
+        light.object.lightSource.shape.points.length < 6
       ) {
-        this.occlusionMaskGraphics.drawPolygon(
-          light.object.lightSource.shape.points
-        );
+        continue;
       }
+      this.lightMaskGraphics.drawPolygon(light.object.lightSource.shape.points);
     }
-    this.occlusionMaskGraphics.endFill();
-    renderer.render(this.occlusionMaskGraphics, {
-      renderTexture: this.occlusionMaskTexture,
+    this.lightMaskGraphics.endFill();
+
+    renderer.render(this.lightMaskGraphics, {
+      renderTexture: this.lightPolygonMaskTexture,
       transform: worldTransform,
       clear: true,
     });
 
-    // === Stage C: Composite the two textures using a screen-space mask ===
-    this.gradientCompositeSprite.texture = this.unoccludedGradientsTexture;
-    this.maskCompositeSprite.texture = this.occlusionMaskTexture;
+    // --- Stage 2: Three-Pass Kawase Blur & Noise (Using Downscaling) ---
+    // Pass 1 (Full-res -> Half-res)
+    this.downscaledBlurSprite.texture = this.lightPolygonMaskTexture;
+    this.downscaledBlurSprite.filters = [this.kawaseBlurFilter1];
+    renderer.render(this.downscaledBlurSprite, {
+      renderTexture: this.intermediateBlurTexture,
+      clear: true,
+    });
 
-    renderer.render(this.compositeContainer, {
-      renderTexture: this.lightPolygonMaskTexture,
+    // Pass 2 (Half-res -> Half-res)
+    this.downscaledBlurSprite.texture = this.intermediateBlurTexture;
+    this.downscaledBlurSprite.filters = [this.kawaseBlurFilter2];
+    renderer.render(this.downscaledBlurSprite, {
+      renderTexture: this.intermediateBlurTexture2,
+      clear: true,
+    });
+
+    // Pass 3 (Final, Half-res -> Full-res)
+    // The source sprite must be full-size to fill the final texture.
+    this.blurSourceSprite.texture = this.intermediateBlurTexture2;
+    this.blurSourceSprite.filters = [this.kawaseBlurFilter3, this.noiseFilter];
+    renderer.render(this.blurSourceSprite, {
+      renderTexture: this.blurredLightMaskTexture,
       clear: true,
     });
   }
 
   getTexture() {
-    return this.lightPolygonMaskTexture;
+    return this.blurredLightMaskTexture;
+  }
+}
+
+/**
+ * A simple filter that adds random noise to an image.
+ * This is used to dither the light mask, preventing color banding and adding texture.
+ */
+class NoiseFilter extends PIXI.Filter {
+  constructor(options = {}) {
+    const vertexSrc = `
+            attribute vec2 aVertexPosition;
+            attribute vec2 aTextureCoord;
+            uniform mat3 projectionMatrix;
+            varying vec2 vTextureCoord;
+
+            void main(void) {
+                gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
+                vTextureCoord = aTextureCoord;
+            }
+        `;
+
+    const fragmentSrc = `
+            precision mediump float;
+            varying vec2 vTextureCoord;
+
+            uniform sampler2D uSampler;
+            uniform float uNoiseAmount;
+            uniform float uTime;
+
+            // A simple pseudo-random function
+            float random(vec2 st) {
+                return fract(sin(dot(st.xy, vec2(12.9898, 78.233)) + uTime) * 43758.5453123);
+            }
+
+            void main() {
+                vec4 color = texture2D(uSampler, vTextureCoord);
+                
+                // Only apply noise if there is some color to begin with
+                if (color.a > 0.0) {
+                    float noise = (random(vTextureCoord) - 0.5) * uNoiseAmount;
+                    color.rgb += noise;
+                }
+
+                gl_FragColor = color;
+            }
+        `;
+
+    super(vertexSrc, fragmentSrc, {
+      uNoiseAmount: options.noiseAmount ?? 0.05,
+      // @ts-ignore
+      uTime: 0.0,
+    });
+  }
+
+  /**
+   * The amount of noise to apply, from 0 to 1.
+   * @type {number}
+   */
+  get noiseAmount() {
+    return this.uniforms.uNoiseAmount;
+  }
+  set noiseAmount(value) {
+    this.uniforms.uNoiseAmount = value;
   }
 }
 
@@ -6759,7 +6800,6 @@ class OverheadEffectLayer extends CanvasLayer {
   }
 
   // @ts-ignore
-  // @ts-ignore
   async _draw(options) {
     // @ts-ignore
     this._destroyed = false;
@@ -7152,7 +7192,7 @@ class LoadingScreen {
                               }
                               .loading-background-overlay {
                                   ${backgroundStyle}
-                                  position: absolute; top: 0; left: 0; width: 90%; height: 90%;
+                                  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
                                   z-index: 1; /* Behind content */
                               }
                               .loading-content { text-align: center; position: relative; z-index: 2; }
@@ -7603,6 +7643,7 @@ class MapShineLifecycle {
       structuralLayer.renderEffectNow(0);
     }
 
+    // After
     // 8. Hide the loading screen.
     if (loadingScreen) {
       await loadingManager?.tick("SETUP_COMPLETE");
@@ -7615,6 +7656,8 @@ class MapShineLifecycle {
     game.mapShine.systemsReady = true;
 
     // Signal to the scene transition manager that the main setup is complete.
+    // This is the true 'end point' of the loading process. Resolving this promise
+    // allows the Scene.view wrapper to proceed with the final fade-in animation.
     if (game.mapShine.resolveSetupCompletion) {
       console.log(
         "Map Shine | Signaling full setup completion to scene transition."
@@ -10601,7 +10644,6 @@ const PARTICLE_EFFECT_DEFINITIONS = {
     configPath: "smellyFlies",
     triggerTexture: "smellyFlies", // This is a dummy key for the UI, effect is geometry-based
     // @ts-ignore
-    // @ts-ignore
     buildEmitterConfig: (effectConfig, targetData, maskKey, group) =>
       buildSmellyFliesEmitterConfig(effectConfig, targetData, group),
   },
@@ -12151,12 +12193,15 @@ const buildParticleEmitterConfig = (
   ];
 
   if (config.colorAlphaGradient && config.colorAlphaGradient.length > 0) {
-    // @ts-ignore
     const {
+      // @ts-ignore
       isColorStatic,
+      // @ts-ignore
       staticColor,
       colorList,
+      // @ts-ignore
       isAlphaStatic,
+      // @ts-ignore
       staticAlpha,
       alphaList,
     } = _generateBehaviorListsFromGradient(config.colorAlphaGradient);
@@ -12395,12 +12440,15 @@ const buildSparkEmitterConfig = (effectConfig, targetData, maskKey) => {
   }
 
   if (config.colorAlphaGradient && config.colorAlphaGradient.length > 0) {
-    // @ts-ignore
     const {
+      // @ts-ignore
       isColorStatic,
+      // @ts-ignore
       staticColor,
       colorList,
+      // @ts-ignore
       isAlphaStatic,
+      // @ts-ignore
       staticAlpha,
       alphaList,
     } = _generateBehaviorListsFromGradient(config.colorAlphaGradient);
@@ -12617,7 +12665,6 @@ class FireWindManager {
   }
 
   updateFromConfig(config) {
-    // @ts-ignore
     // @ts-ignore
     const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
     // This now correctly applies the timeFactor to the base config values each time it's called.
@@ -13088,7 +13135,6 @@ export class ParticleLayer extends CanvasLayer {
   }
 
   // @ts-ignore
-  // @ts-ignore
   async _draw(options) {
     this._destroyed = false;
     this._initialized = false; // Reset flag for new scene
@@ -13169,7 +13215,6 @@ export class ParticleLayer extends CanvasLayer {
   }
 
   // @ts-ignore
-  // @ts-ignore
   _onAnimate(deltaTime) {
     if (this._destroyed || !game.mapShine.particleManager) return;
 
@@ -13249,7 +13294,6 @@ class LightningLayer extends CanvasLayer {
   }
 
   // @ts-ignore
-  // @ts-ignore
   async _draw(options) {
     this._destroyed = false;
     this.eventMode = "none";
@@ -13274,7 +13318,6 @@ class LightningLayer extends CanvasLayer {
     return super._tearDown(options);
   }
 
-  // @ts-ignore
   // @ts-ignore
   async updateFromConfig(config) {
     // The LightningManager listens for config changes via hooks and its own ticker,
@@ -13468,8 +13511,8 @@ class MapShineLightingBehavior {
       } else if (config.emissive.list.length > 1) {
         // @ts-ignore
         this._emissive = new PIXI.particles.PropertyList(false);
-        // @ts-ignore
         this._emissive.reset(
+          // @ts-ignore
           PIXI.particles.PropertyNode.createList(config.emissive)
         );
       }
@@ -13477,12 +13520,10 @@ class MapShineLightingBehavior {
   }
 
   // @ts-ignore
-  // @ts-ignore
   initParticles(first) {
     // No per-particle init needed
   }
 
-  // @ts-ignore
   // @ts-ignore
   updateParticle(particle, deltaSec) {
     // This behavior runs *after* the standard Alpha behavior, so particle.alpha
@@ -13536,6 +13577,7 @@ class FireWindBehavior {
     let p = first;
     while (p) {
       // Each particle gets its own velocity vector, initialized to zero.
+      // @ts-ignore
       p.velocity = new PIXI.Point(0, 0);
       p = p.next;
     }
@@ -13549,6 +13591,7 @@ class FireWindBehavior {
   updateParticle(particle, deltaSec) {
     const windManager = game.mapShine?.fireWindManager;
     // Do nothing if the particle is invalid or the necessary systems aren't ready.
+    // @ts-ignore
     if (!particle.velocity || !windManager || !this.config.enabled) return;
 
     // 1. Get the current wind force from the manager.
@@ -13562,11 +13605,15 @@ class FireWindBehavior {
     const totalAccelY = this.buoyancy.y + windAccelY;
 
     // 3. Update the particle's velocity based on the total acceleration.
+    // @ts-ignore
     particle.velocity.x += totalAccelX * deltaSec;
+    // @ts-ignore
     particle.velocity.y += totalAccelY * deltaSec;
 
     // 4. Update the particle's screen position based on its new velocity.
+    // @ts-ignore
     particle.position.x += particle.velocity.x * deltaSec;
+    // @ts-ignore
     particle.position.y += particle.velocity.y * deltaSec;
   }
 }
@@ -13579,7 +13626,6 @@ class FireWindBehavior {
 class ColorFromSpawnBehavior {
   static type = "colorFromSpawn";
 
-  // @ts-ignore
   // @ts-ignore
   constructor(config) {
     // @ts-ignore
@@ -13791,7 +13837,6 @@ class SmellyFliesBehavior {
    * @param {PIXI.particles.Particle} fly The particle to prepare.
    * @param {object} cfg The particle's configuration object.
    */
-  // @ts-ignore
   // @ts-ignore
   _prepareForTakeOff(fly, cfg) {
     const flyConfig = this.config.flying;
@@ -14249,7 +14294,6 @@ export class SmellyFliesLayer extends CanvasLayer {
   }
 
   // @ts-ignore
-  // @ts-ignore
   async _draw(options) {
     this._destroyed = false;
     this._initialized = false;
@@ -14295,7 +14339,6 @@ export class SmellyFliesLayer extends CanvasLayer {
     }
   }
 
-  // @ts-ignore
   // @ts-ignore
   _onAnimate(deltaTime) {
     if (this._destroyed || !this.controller) return;
@@ -14712,7 +14755,6 @@ class HeatDistortionNoiseFilter extends PIXI.Filter {
   }
 }
 
-// @ts-ignore
 // @ts-ignore
 class LightingMaskFilter extends PIXI.Filter {
   constructor(options = {}) {
@@ -15926,9 +15968,8 @@ export class ScreenEffectsManager {
       }
     }
     const tiltShiftFilter = this.getFilter("tiltShift");
-    const TiltShiftFilterConstructor =
-      // @ts-ignore
-      PIXI.filters?.TiltShiftFilter;
+    // @ts-ignore
+    const TiltShiftFilterConstructor = PIXI.filters?.TiltShiftFilter;
     if (
       tiltShiftFilter &&
       TiltShiftFilterConstructor &&
@@ -17417,7 +17458,6 @@ class FoamLayer extends CanvasLayer {
   }
 
   // @ts-ignore
-  // @ts-ignore
   async _draw(options) {
     this._destroyed = false;
     this.time = 0;
@@ -17579,7 +17619,6 @@ class BackgroundEffectTileLayer extends CanvasLayer {
   }
 
   // @ts-ignore
-  // @ts-ignore
   async _draw(options) {
     // @ts-ignore
     this._destroyed = false;
@@ -17617,7 +17656,6 @@ class BackgroundEffectTileLayer extends CanvasLayer {
     return super._tearDown(options);
   }
 
-  // @ts-ignore
   // @ts-ignore
   _onAnimate(deltaTime) {
     if (this._destroyed || !this.visible || this.backgroundSprites.size === 0) {
@@ -17724,7 +17762,6 @@ class MaskedEffectLayer extends CanvasLayer {
   }
 
   // @ts-ignore
-  // @ts-ignore
   async _draw(options) {
     this._destroyed = false;
     this._needsMaskUpdate = true;
@@ -17785,7 +17822,6 @@ class MaskedEffectLayer extends CanvasLayer {
    * Base animation loop. Handles re-rendering the mask when needed.
    * Subclasses should call `super._onAnimate(deltaTime)` at the start of their own loop.
    */
-  // @ts-ignore
   // @ts-ignore
   _onAnimate(deltaTime) {
     if (this._destroyed) return;
@@ -17931,7 +17967,6 @@ class DiagnosticLayer extends CanvasLayer {
     this.tempRenderTexture = null; // To hold transient render textures for inspection
   }
 
-  // @ts-ignore
   // @ts-ignore
   async _draw(options) {
     this._destroyed = false;
@@ -18358,7 +18393,6 @@ class MapPointsLayer extends CanvasLayer {
    * @override
    */
   // @ts-ignore
-  // @ts-ignore
   async _draw(options) {
     this.mapPointsContainer = this.addChild(new PIXI.Container());
     this.eventMode = "none";
@@ -18565,7 +18599,6 @@ class MapPointsEditor extends FormApplication {
   }
 
   // @ts-ignore
-  // @ts-ignore
   set form(value) {
     // This setter intentionally does nothing. The base class's constructor
     // will attempt to set `this.form = null`, which would throw an error if this
@@ -18588,7 +18621,6 @@ class MapPointsEditor extends FormApplication {
     });
   }
 
-  // @ts-ignore
   // @ts-ignore
   async getData(options) {
     const allGroups = MapPointsManager.getGroups();
@@ -19087,7 +19119,6 @@ class MapPointsEditor extends FormApplication {
     }
   }
 
-  // @ts-ignore
   // @ts-ignore
   async _updateObject(event, formData) {
     // This form doesn't have a single "submit" action, so this method can be left empty.
@@ -19686,9 +19717,9 @@ class MetallicShineLayer extends CanvasLayer {
                 ${DebuggerUIBuilder._createSliderHTML(
                   "baseShine.pattern.stripes.scale",
                   "Frequency / Scale",
-                  1,
-                  50,
-                  0.5,
+                  0.001,
+                  2,
+                  0.001,
                   "The number of stripes. Higher values mean more, thinner stripes."
                 )}
                 ${DebuggerUIBuilder._createSliderHTML(
@@ -19820,7 +19851,6 @@ class MetallicShineLayer extends CanvasLayer {
     );
   }
 
-  // @ts-ignore
   // @ts-ignore
   async _draw(options) {
     // @ts-ignore
@@ -20297,25 +20327,45 @@ class CloudShadowsFilter extends PIXI.Filter {
   `;
 
     super(vertexSrc, fragmentSrc, {
+      // @ts-ignore
       uOutdoorsMask: PIXI.Texture.EMPTY,
+      // @ts-ignore
       uLightPolygonMask: PIXI.Texture.EMPTY,
+      // @ts-ignore
       u_time: 0.0,
+      // @ts-ignore
       u_camera_offset: [0, 0],
+      // @ts-ignore
       u_view_size: [0, 0],
+      // @ts-ignore
       uSceneRectNorm: [0, 0, 1, 1],
+      // @ts-ignore
       u_windDirection: [0.01, 0.01],
+      // @ts-ignore
       u_noise_scale: 0.1,
+      // @ts-ignore
       u_noise_octaves: 5,
+      // @ts-ignore
       u_noise_persistence: 0.5,
+      // @ts-ignore
       u_noise_lacunarity: 2.5,
+      // @ts-ignore
       u_shading_threshold: 1.0,
+      // @ts-ignore
       u_shading_softness: 0.2,
+      // @ts-ignore
       u_shading_brightness: 0.51,
+      // @ts-ignore
       u_shading_contrast: 1.0,
+      // @ts-ignore
       u_shading_gamma: 1.0,
+      // @ts-ignore
       u_shadowIntensity: 0.5,
+      // @ts-ignore
       u_outputRawCloud: false,
+      // @ts-ignore
       u_occlusionEnabled: true,
+      // @ts-ignore
       u_occlusionIntensity: 1.0,
     });
   }
@@ -20557,6 +20607,7 @@ class CloudShadowsLayer extends MaskedEffectLayer {
     this._patternGeneratorSprite.width = renderer.screen.width;
     this._patternGeneratorSprite.height = renderer.screen.height;
     this._patternGeneratorSprite.filters = [this.cloudFilter];
+    // @ts-ignore
     this.rawCloudTexture = PIXI.RenderTexture.create({
       width: renderer.screen.width,
       height: renderer.screen.height,
@@ -20701,6 +20752,7 @@ class CloudShadowsLayer extends MaskedEffectLayer {
       canvas.primary.filters = (canvas.primary.filters || []).filter(
         (f) => f !== this.cloudFilter
       );
+      // @ts-ignore
       this.cloudFilter.destroy();
       this.cloudFilter = null;
     }
@@ -20816,7 +20868,6 @@ class CanopyLayer extends MaskedEffectLayer {
 }
 
 class CanopyFilter extends PIXI.Filter {
-  // @ts-ignore
   // @ts-ignore
   constructor(options = {}) {
     const vertexSrc = `
@@ -21247,8 +21298,8 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
     u.uOutdoorsMask = resourceManager.getOutdoorsMask() || PIXI.Texture.WHITE;
     // Use raw cloud texture so clouds can appear "indoors"
     // Fallback to a black texture (no clouds) if cloud shadows are inactive.
-    // @ts-ignore
     u.uCloudOcclusionMask =
+      // @ts-ignore
       resourceManager.getRawCloudTexture(deltaTime) || PIXI.Texture.BLACK;
     u.uLightMask = resourceManager.getLightMask() || PIXI.Texture.WHITE;
 
@@ -21302,7 +21353,6 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
   // It will now return a neutral texture (white), effectively disabling structural
   // shadows from affecting other effects like metallic sheen. We can revisit this
   // if a more complex interaction is needed in the future.
-  // @ts-ignore
   // @ts-ignore
   renderEffectNow(deltaTime) {}
 
@@ -22003,6 +22053,7 @@ class GroundGlowLayer extends CanvasLayer {
     );
   }
 
+  // @ts-ignore
   async _draw(options) {
     this._destroyed = false;
     this.eventMode = "none";
@@ -22014,6 +22065,7 @@ class GroundGlowLayer extends CanvasLayer {
     this.glowSpritesContainer = new PIXI.Container();
 
     // Texture to render the combined glow sprites into
+    // @ts-ignore
     this.glowCompositeTexture = PIXI.RenderTexture.create({
       width: renderer.screen.width,
       height: renderer.screen.height,
@@ -22047,6 +22099,7 @@ class GroundGlowLayer extends CanvasLayer {
     window.removeEventListener("resize", this._onResizeBound);
     Hooks.off("canvasPan", this._onPanBound);
 
+    // @ts-ignore
     this.glowFilter?.destroy();
     this.effectSprite?.destroy();
     this.glowCompositeTexture?.destroy(true);
@@ -22075,9 +22128,11 @@ class GroundGlowLayer extends CanvasLayer {
     // Update filter uniforms
     const u = this.glowFilter.uniforms;
     u.uLightMask = resourceManager.getLightMask() || PIXI.Texture.WHITE;
+    // @ts-ignore
     u.uTokenMask = resourceManager.getTokenMask() || PIXI.Texture.BLACK;
 
     // Position and scale the final sprite to cover the screen
+    // @ts-ignore
     this.effectSprite.position.copyFrom(CoordinateManager.getCameraOffset());
     this.effectSprite.width = CoordinateManager.getViewSize().width;
     this.effectSprite.height = CoordinateManager.getViewSize().height;
@@ -22238,13 +22293,21 @@ class GroundGlowFilter extends PIXI.Filter {
       `;
 
     super(vertexSrc, fragmentSrc, {
+      // @ts-ignore
       uLightMask: PIXI.Texture.EMPTY,
+      // @ts-ignore
       uTokenMask: PIXI.Texture.EMPTY,
+      // @ts-ignore
       uIntensity: 1.0,
+      // @ts-ignore
       uBrightness: 1.0,
+      // @ts-ignore
       uSaturation: 1.0,
+      // @ts-ignore
       uInvert: false,
+      // @ts-ignore
       uTokenMaskEnabled: true,
+      // @ts-ignore
       uTokenMaskThreshold: 0.1,
       ...options,
     });
@@ -22409,7 +22472,6 @@ class HeatDistortionLayer extends CanvasLayer {
     );
   }
 
-  // @ts-ignore
   // @ts-ignore
   async _draw(options) {
     this.visible = false;
@@ -22954,6 +23016,8 @@ class WaterEffectsFilter extends PIXI.Filter {
                           uniform float u_specularity_intensity;
                           uniform float u_specularity_shininess;
                           uniform vec3 u_specularity_light_direction;
+                          uniform bool u_specularityCloudOcclusionEnabled;
+                          uniform float u_specularityCloudOcclusionIntensity;
 
                           // Caustics
                           uniform bool u_caustics_enabled;
@@ -23164,6 +23228,12 @@ class WaterEffectsFilter extends PIXI.Filter {
                                       float specularity = pow(specAngle, u_specularity_shininess);
                                       float outdoorsMaskValue = texture2D(u_outdoorsMask, vTextureCoord).r;
                                       specularityResult = u_specularity_color * specularity * u_specularity_intensity * outdoorsMaskValue;
+
+                                      if (u_specularityCloudOcclusionEnabled) {
+                                          float cloudValue = texture2D(u_cloudShadows, vScreenCoord).r;
+                                          float occlusionFactor = 1.0 - (cloudValue * u_specularityCloudOcclusionIntensity);
+                                          specularityResult *= occlusionFactor;
+                                      }
                                   }
 
                                   finalColor += (openWaterFoamResult + specularityResult) * waterMaskValue;
@@ -23214,6 +23284,10 @@ class WaterEffectsFilter extends PIXI.Filter {
       u_outdoorsMask: options.u_outdoorsMask ?? PIXI.Texture.WHITE,
       // @ts-ignore
       uSceneRectNorm: [0, 0, 1, 1],
+      // @ts-ignore
+      u_specularityCloudOcclusionEnabled: true,
+      // @ts-ignore
+      u_specularityCloudOcclusionIntensity: 1.0,
       // @ts-ignore
       u_causticsLineSharpness: 20.0,
       // @ts-ignore
@@ -23580,6 +23654,23 @@ class WaterFXLayer extends MaskedEffectLayer {
                                             1,
                                             "The height of the light source in the sky. 90 is directly overhead."
                                           )}
+                                          <details id="details-water-specularity-cloudOcclusion" style="margin-top: 5px;">
+                                              <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                                                "water.surface.specularity.cloudOcclusion.enabled",
+                                                "Cloud Occlusion",
+                                                true
+                                              )}</div></summary>
+                                              <div style="padding-left: 15px;">
+                                                  <p class="description-text">Uses the Cloud Shadows texture to darken the highlights, simulating them being obscured by clouds.</p>
+                                                  ${DebuggerUIBuilder._createSliderHTML(
+                                                    "water.surface.specularity.cloudOcclusion.intensity",
+                                                    "Intensity",
+                                                    0,
+                                                    1,
+                                                    0.01
+                                                  )}
+                                              </div>
+                                          </details>
                                       </div>
                                   </details>
                               </div>
@@ -24137,6 +24228,12 @@ class WaterFXLayer extends MaskedEffectLayer {
       const z = Math.sin(elevation);
 
       u.u_specularity_light_direction = [x, y, z];
+      if (srfConfig.specularity.cloudOcclusion) {
+        u.u_specularityCloudOcclusionEnabled =
+          srfConfig.specularity.cloudOcclusion.enabled;
+        u.u_specularityCloudOcclusionIntensity =
+          srfConfig.specularity.cloudOcclusion.intensity;
+      }
     } else {
       u.u_specularity_enabled = false;
     }
@@ -24210,7 +24307,6 @@ class WaterFXLayer extends MaskedEffectLayer {
       screen.height / stage.scale.y,
     ];
 
-    // --- MODIFICATION START ---
     // The uniforms for the displacement filter must be updated BEFORE it is rendered.
     this.displacementFilter.uniforms.u_time = this.time;
     Object.assign(
@@ -24218,15 +24314,7 @@ class WaterFXLayer extends MaskedEffectLayer {
       CoordinateManager.getShaderUniforms()
     );
 
-    // Get the biofilm texture and pass it to the displacement filter
     const resourceManager = game.mapShine.resourceManager;
-    if (resourceManager) {
-      const biofilmTexture = resourceManager.getBiofilmOutputTexture();
-      if (biofilmTexture) {
-        this.displacementFilter.uniforms.uBiofilmMap = biofilmTexture;
-      }
-    }
-    // --- MODIFICATION END ---
 
     renderer.render(this.displacementSprite, {
       renderTexture: this.displacementTexture,
@@ -24501,11 +24589,6 @@ class WaveDisplacementFilter extends PIXI.Filter {
                           uniform float u_speed;
                           uniform float u_scale;
 
-                          // Biofilm uniforms
-                          uniform sampler2D uBiofilmMap;
-                          uniform bool u_useBiofilm;
-                          uniform float u_biofilmIntensity;
-
                           // World-space uniforms
                           uniform vec2 u_camera_offset;
                           uniform vec2 u_view_size;
@@ -24605,14 +24688,6 @@ class WaveDisplacementFilter extends PIXI.Filter {
                               // Combine noises for a more complex pattern
                               vec2 displacement = vec2(noise1_x + noise2_x, noise1_y + noise2_y) * 0.5;
 
-                              // Add displacement from biofilm
-                              if (u_useBiofilm) {
-                                  vec4 biofilmColor = texture2D(uBiofilmMap, vScreenCoord);
-                                  // Use the alpha channel as the primary driver for displacement intensity
-                                  float biofilmAmount = biofilmColor.a;
-                                  displacement.y += biofilmAmount * u_biofilmIntensity;
-                              }
-
                               // Output the displacement vector in the R and G channels, normalized to 0-1 range
                               gl_FragColor = vec4(displacement * 0.5 + 0.5, 0.0, 1.0);
                           }
@@ -24626,12 +24701,6 @@ class WaveDisplacementFilter extends PIXI.Filter {
       u_camera_offset: [0, 0],
       // @ts-ignore
       u_view_size: [1, 1],
-      // @ts-ignore
-      uBiofilmMap: PIXI.Texture.EMPTY,
-      // @ts-ignore
-      u_useBiofilm: false,
-      // @ts-ignore
-      u_biofilmIntensity: 0.0,
     });
   }
 }
@@ -24645,7 +24714,6 @@ class WaveDisplacementFilter extends PIXI.Filter {
 // --- 5.12. Building Shadows ---
 
 class BuildingShadowsFilter extends PIXI.Filter {
-  // @ts-ignore
   // @ts-ignore
   constructor(options = {}) {
     const vertexSrc = `
@@ -24972,7 +25040,6 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
 }
 
 class OverheadRecolorFilter extends PIXI.Filter {
-  // @ts-ignore
   // @ts-ignore
   constructor(options = {}) {
     const vertexSrc = `
@@ -25489,7 +25556,6 @@ class MapShineClock {
   }
 
   // @ts-ignore
-  // @ts-ignore
   _onDragEnd(event) {
     this._isDragging = false;
     $(window).off("mousemove.daynightclock", this._onDragBound);
@@ -25516,7 +25582,6 @@ class DayNightClock extends Application {
     });
   }
 
-  // @ts-ignore
   // @ts-ignore
   async _renderInner(data) {
     // The application just needs to provide a container for the component.
@@ -26255,7 +26320,6 @@ class CurveEditor {
       circle.setAttribute("cursor", "grab");
       this.svg.appendChild(circle);
 
-      // @ts-ignore
       // @ts-ignore
       circle.addEventListener("mousedown", (e) => {
         this.activePoint = i;
@@ -27459,6 +27523,7 @@ class DebuggerUIBuilder {
   }
 
   _getLightingHTML() {
+    // @ts-ignore
     const effectKey = "lighting"; // This is a virtual key for the accordion
     const content = `
     <p class="description-text">Global settings that affect how light interacts with Map Shine effects.</p>
@@ -27502,7 +27567,6 @@ class DebuggerUIBuilder {
       HeatDistortionLayer.getSettingsHTML(),
       CanopyLayer.getSettingsHTML(),
       StructuralShadowsLayer.getSettingsHTML(),
-      // @ts-ignore
       AmbientLayer.getSettingsHTML(),
       GroundGlowLayer.getSettingsHTML(),
       PrismLayer.getSettingsHTML(),
@@ -27761,8 +27825,8 @@ class DebuggerUIBuilder {
  */
 function _generateBehaviorListsFromGradient(gradient) {
   if (!gradient || gradient.length === 0) {
-    // @ts-ignore
     return {
+      // @ts-ignore
       isColorStatic: true,
       staticColor: "#ffffff",
       isAlphaStatic: true,
@@ -27947,7 +28011,6 @@ class DebuggerEventHandler {
         pauseEffectOverlay: ["universal.pauseEffect."],
       }[effectKey];
 
-      // @ts-ignore
       // @ts-ignore
       for (const [key, setting] of allSettings.entries()) {
         if (key.startsWith(MODULE_ID)) {
@@ -28503,7 +28566,6 @@ class DebuggerEventHandler {
   }
 
   // @ts-ignore
-  // @ts-ignore
   _onGradientMouseUp(event) {
     if (!this.activeGradientEditor.isDragging) return;
 
@@ -28698,7 +28760,6 @@ class DebuggerEventHandler {
             if (effectKey === "loadingScreen") {
               for (const key in defaultsToUse) {
                 // @ts-ignore
-                // @ts-ignore
                 const path = `universal.sceneTransition.${key}`;
                 const settingKey = `universal.sceneTransition.${key}`;
                 const defaultValue = defaultsToUse[key];
@@ -28852,7 +28913,6 @@ class DebuggerEventHandler {
     this._updateDebuggerTime(newTime);
   }
 
-  // @ts-ignore
   // @ts-ignore
   _onDebuggerClockDragEnd(event) {
     this._isDebuggerClockDragging = false;
@@ -29031,7 +29091,6 @@ class DebuggerEventHandler {
   }
 
   async _onPreviewClick(event) {
-    // @ts-ignore
     // @ts-ignore
     const btn = event.currentTarget;
     const transitionManager = game.mapShine.transitionManager;
@@ -29232,10 +29291,12 @@ class DebuggerEventHandler {
     }
 
     // Add external/core layers that the DiagnosticLayer can handle.
+    // @ts-ignore
     if (game.modules.get("illuminationbuffer")?.api?.getLightingTexture) {
       textures.external["external_illumination"] =
         "External: Illumination Buffer";
     }
+    // @ts-ignore
     if (canvas.effects?.illumination?.texture) {
       textures.external["external_lightingLayer"] = "Core: Illumination Layer";
     }
@@ -30343,7 +30404,6 @@ class MaterialEditorDebugger {
     this._updateSceneHookId = Hooks.on(
       "updateScene",
       // @ts-ignore
-      // @ts-ignore
       (scene, data, options) => {
         const flagPath = `flags.${MODULE_ID}`;
         if (
@@ -30492,7 +30552,6 @@ class SimpleUIPanel extends Application {
   async render(force, options) {
     await super.render(force, options);
     // @ts-ignore
-    // @ts-ignore
     this.element.find('input[type="range"]').each((i, el) => {
       // @ts-ignore
       this._updateSliderValue(el.id, el.value, el.step);
@@ -30500,7 +30559,6 @@ class SimpleUIPanel extends Application {
     return this;
   }
 
-  // @ts-ignore
   // @ts-ignore
   async _renderInner(data) {
     const html = this._buildHTML();
@@ -30695,7 +30753,6 @@ class SimpleUIPanel extends Application {
 globalThis.DebuggerUIBuilder = DebuggerUIBuilder;
 
 // @ts-ignore
-// @ts-ignore
 class MapShineGuideContent {
   static async getHTML() {
     // @ts-ignore
@@ -30757,7 +30814,6 @@ Hooks.on("getSceneControlButtons", (controls) => {
       icon: "fas fa-clock",
       toggle: true,
       active: !!game.mapShine?.dayNightClock,
-      // @ts-ignore
       // @ts-ignore
       onClick: (toggled) => {
         game.mapShine?.showDayNightClock();
@@ -30860,7 +30916,6 @@ Hooks.on("canvasDraw", (canvas) => {
   }
 });
 
-// @ts-ignore
 // @ts-ignore
 Hooks.on("renderSceneControls", (app, html, data) => {
   if (!game.user.isGM) return;

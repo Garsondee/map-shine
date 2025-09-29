@@ -1,491 +1,819 @@
-    
 <div class="map-shine-guide">
-    <!-- Header -->
-    <div class="header">
-        <h1>Welcome to Map Shine</h1>
-        <p class="subtitle">A comprehensive toolkit for creating beautiful, dynamic, and immersive maps in Foundry VTT.</p>
+  <!-- Header -->
+  <div class="header">
+    <h1>Welcome to Map Shine</h1>
+    <p class="subtitle">
+      A comprehensive toolkit for creating beautiful, dynamic, and immersive
+      maps in Foundry VTT.
+    </p>
+  </div>
+
+  <!-- Important Notice Section -->
+  <section class="important-notice">
+    <h3>
+      <i class="fas fa-exclamation-triangle"></i> Under Construction - Please
+      Read!
+    </h3>
+    <p>
+      Thank you for trying Map Shine! Please be aware that this module is very
+      new and should be considered in a "beta" or "early access" state. While it
+      is functional, some effects might be fragile or not work as expected in
+      all situations.
+    </p>
+    <p>
+      <strong
+        >It is highly recommended that you test effects in a separate scene
+        before using them in a live game.</strong
+      >
+      This will help you get familiar with the settings and ensure everything is
+      working correctly on your system.
+    </p>
+
+    <h4>Useful Links:</h4>
+    <ul>
+      <li>
+        <strong>Found a Bug?</strong> Please report it on the
+        <a href="https://github.com/Garsondee/map-shine/issues" target="_blank"
+          >GitHub Issue Tracker</a
+        >.
+      </li>
+      <li>
+        <strong>Need help or have a question?</strong> You can reach me on
+        <a href="https://discord.com/users/165787672441389056" target="_blank"
+          >Discord</a
+        >.
+      </li>
+      <li>
+        <strong>Want to support development?</strong> Check out my
+        <a href="https://www.patreon.com/c/MythicaMachina" target="_blank"
+          >Patreon</a
+        >.
+      </li>
+    </ul>
+
+    <h4>Test the Module with a Free Demo Map!</h4>
+    <p>
+      To help you verify that everything is installed and working correctly,
+      I've provided a free demonstration map that uses many of the module's core
+      effects. You can download it here:
+      <br />
+      <a
+        href="https://github.com/Garsondee/mythica-machina-goblin-alchemist"
+        target="_blank"
+        >Mythica Machina - Goblin Alchemist Demo Map</a
+      >
+
+      // Here is a link to the actual manifest
+      <a
+        href="https://raw.githubusercontent.com/Garsondee/mythica-machina-goblin-alchemist/refs/heads/main/module.json"
+        target="_blank"
+        >Mythica Machina - Goblin Alchemist Demo Map Manifest</a
+      >
+    </p>
+  </section>
+
+  <!-- Table of Contents -->
+  <nav class="toc">
+    <h2>Table of Contents</h2>
+    <ul>
+      <li><a href="#introduction">What is Map Shine?</a></li>
+      <li><a href="#core-concept">The Core Concept</a></li>
+      <li><a href="#getting-started">Getting Started</a></li>
+      <li><a href="#editor-panel">The Editor Panel</a></li>
+      <li><a href="#key-effects">Tour of Key Effects</a></li>
+      <li><a href="#advanced-tools">Advanced Tools</a></li>
+      <li><a href="#post-processing">Post-Processing Pipeline</a></li>
+      <li><a href="#automated-effects">Automated Effects</a></li>
+      <li><a href="#troubleshooting">Troubleshooting</a></li>
+    </ul>
+  </nav>
+
+  <!-- Introduction -->
+  <details id="introduction" open>
+    <summary><h2>What is Map Shine?</h2></summary>
+    <div class="details-content">
+      <p>
+        Map Shine is designed to empower Game Masters and map-makers with a
+        suite of powerful visual effects that are intuitive and easy to
+        implement. The core philosophy is to handle the complex technical work
+        behind the scenes, allowing you to focus on the creative process. From
+        shimmering metallic surfaces and dynamic cloud shadows to magical
+        glowing runes and crackling fire, this module aims to be your one-stop
+        shop for bringing your scenes to life.
+      </p>
     </div>
+  </details>
 
-    <!-- Important Notice Section -->
-    <section class="important-notice">
-        <h3><i class="fas fa-exclamation-triangle"></i> Under Construction - Please Read!</h3>
+  <!-- Core Concept -->
+  <details id="core-concept">
+    <summary>
+      <h2>The Core Concept: Automatic Effects via "Effect Maps"</h2>
+    </summary>
+    <div class="details-content">
+      <p>
+        The magic of Map Shine lies in its automatic effect system. You don't
+        need to configure complex settings for every tile or draw special
+        lighting. Instead, the module automatically detects and applies effects
+        based on the filenames of your textures.
+      </p>
+      <p>
+        This is done using special texture files called
+        <strong>Effect Maps</strong>. An Effect Map is simply a secondary image
+        that you place in the same folder as your main map texture. You give it
+        the same name as your main map, but with a special suffix. For example:
+      </p>
+      <ul>
+        <li>Your main map: <code>MyDungeon.webp</code></li>
+        <li>
+          The Effect Map for metallic shine:
+          <code>MyDungeon<strong>_Specular</strong>.webp</code>
+        </li>
+      </ul>
+      <p>
+        When you load <code>MyDungeon.webp</code> into a scene (either as the
+        background or a tile), Map Shine sees the <code>_Specular</code> file
+        and automatically applies the Metallic Shine effect to it. The same
+        principle applies to dozens of other effects!
+      </p>
+      <img
+        src="modules/map-shine/assets/tutorials/core_concept_diagram.webp"
+        alt="Diagram showing a base map, a specular map, and the final result with shine."
+        class="guide-image" />
+    </div>
+  </details>
+
+  <!-- Getting Started -->
+  <details id="getting-started">
+    <summary>
+      <h2>Getting Started: Your First Effect (Metallic Shine)</h2>
+    </summary>
+    <div class="details-content">
+      <p>
+        Let's walk through adding a simple but impressive effect: making the
+        metal parts of a treasure chest shine.
+      </p>
+
+      <h4>Step 1: The Base Map</h4>
+      <p>
+        Start with your regular map image. Here, we have a simple treasure chest
+        on a wooden floor.
+      </p>
+      <img
+        src="modules/map-shine/assets/tutorials/walkthrough_step1_base.webp"
+        alt="A simple map of a treasure chest."
+        class="guide-image" />
+
+      <h4>Step 2: Create the Specular Map</h4>
+      <p>
+        In an image editor (like Photoshop, GIMP, or Krita), create a new black
+        and white image. This is your <strong>Specular Map</strong>. The rule is
+        simple:
+      </p>
+      <ul>
+        <li><strong>White areas will be shiny.</strong></li>
+        <li><strong>Black areas will be dull.</strong></li>
+        <li>Shades of grey will have partial shininess.</li>
+      </ul>
+      <p>
+        For our chest, we'll paint the metal parts white and leave everything
+        else black.
+      </p>
+      <img
+        src="modules/map-shine/assets/tutorials/walkthrough_step2_specular.webp"
+        alt="A black and white specular map for the treasure chest."
+        class="guide-image" />
+
+      <h4>Step 3: Naming and Placement</h4>
+      <p>Save both files in the same folder with the correct names:</p>
+      <ul>
+        <li><code>TreasureChest.webp</code></li>
+        <li><code>TreasureChest_Specular.webp</code></li>
+      </ul>
+
+      <h4>Step 4: See the Magic!</h4>
+      <p>
+        Create a tile in your Foundry scene using
+        <code>TreasureChest.webp</code>. The Metallic Shine effect will
+        automatically appear!
+      </p>
+      <img
+        src="modules/map-shine/assets/tutorials/walkthrough_step4_result.webp"
+        alt="The treasure chest in Foundry with the shine effect applied."
+        class="guide-image" />
+
+      <h4>Step 5: Tweak and Customize</h4>
+      <p>
+        Open the Map Shine Editor from the token controls. Find the "Metallic
+        Shine" section and experiment with the settings to change the color,
+        speed, and intensity of the effect until it's perfect.
+      </p>
+      <img
+        src="modules/map-shine/assets/tutorials/editor_panel_overview.webp"
+        alt="Screenshot of the Map Shine editor panel."
+        class="guide-image" />
+    </div>
+  </details>
+
+  <!-- The Editor Panel -->
+  <details id="editor-panel">
+    <summary><h2>The Editor Panel: Your Control Center</h2></summary>
+    <div class="details-content">
+      <p>
+        The editor gives you granular control over every effect. It's divided
+        into a few key areas:
+      </p>
+      <ul>
+        <li>
+          <strong>Main Controls & Profiles:</strong> At the top, you can manage
+          settings that affect the entire module. This is where you save and
+          load different looks for your scenes.
+        </li>
+        <li>
+          <strong>Post-Processing Pipeline:</strong> This column on the left
+          contains effects that are applied to the entire screen, like cinematic
+          color grading, vignettes, and lens effects.
+        </li>
+        <li>
+          <strong>Main Effects Area:</strong> The main columns contain
+          individual settings for all the map-based effects like Metallic Shine,
+          Cloud Shadows, and Fire Particles.
+        </li>
+      </ul>
+
+      <h4>Scene Appearances vs. World Profiles</h4>
+      <p>
+        Map Shine features a powerful two-tier system for saving your settings.
+        In the "Main Controls" section, you'll see options for both.
+      </p>
+      <ul>
+        <li>
+          <strong>Scene Appearances:</strong> These are visual profiles saved
+          *directly with the scene*. They allow you to create and switch between
+          multiple, unique looks for a single map (e.g., a "Day" version and a
+          "Night" version). Use the "Activate for All" button to push a selected
+          appearance to all players.
+        </li>
+        <li>
+          <strong>World Profile Library:</strong> These are reusable presets
+          saved at the *world level*. You can save a look you love—like a
+          perfect "Eerie Undead" color grade—and easily load it into any scene
+          in your world as a starting point.
+        </li>
+      </ul>
+      <img
+        src="modules/map-shine/assets/tutorials/diagram_profile_system.webp"
+        alt="Diagram showing a World Profile being applied to multiple Scene Appearances."
+        class="guide-image" />
+
+      <h4>The Day/Night Clock</h4>
+      <p>
+        Accessible from the token controls, the Day/Night Clock is your tool for
+        controlling all time-based effects. Drag the sun/moon icon around the
+        dial to change the time. As you do, you'll see the scene's lighting and
+        shadows change in real-time. This clock controls:
+      </p>
+      <ul>
+        <li>
+          <strong>Time of Day Color Grade:</strong> The overall color,
+          brightness, and mood of outdoor areas.
+        </li>
+        <li>
+          <strong>Building Shadows:</strong> The length and direction of shadows
+          cast by buildings.
+        </li>
+      </ul>
+      <img
+        src="modules/map-shine/assets/tutorials/ui_day_night_clock.webp"
+        alt="A screenshot of the Day/Night Clock UI."
+        class="guide-image" />
+    </div>
+  </details>
+
+  <!-- Key Effects -->
+  <details id="key-effects">
+    <summary><h2>A Tour of Key Effects (Texture-Based)</h2></summary>
+    <div class="details-content">
+      <p>
+        Here are some of the most common effect types and the maps they require:
+      </p>
+      <div class="effect-card">
+        <h3>Reflective & Wet Surfaces</h3>
+        <p><strong>Requires:</strong> <code>_Specular.webp</code></p>
         <p>
-            Thank you for trying Map Shine! Please be aware that this module is very new and should be considered in a "beta" or "early access" state. While it is functional, some effects might be fragile or not work as expected in all situations.
+          The core shine effect. Use it for polished metal, wet cavern floors,
+          icy surfaces, or anything that should reflect light.
+        </p>
+      </div>
+      <div class="effect-card">
+        <h3>Shadows</h3>
+        <p>
+          <strong>Requires:</strong> <code>_Outdoors.webp</code>,
+          <code>_Canopy.webp</code>, <code>_Structural.webp</code>
         </p>
         <p>
-            <strong>It is highly recommended that you test effects in a separate scene before using them in a live game.</strong> This will help you get familiar with the settings and ensure everything is working correctly on your system.
+          Map Shine has a powerful shadow system. Use <code>_Outdoors</code> to
+          define what's inside vs. outside, <code>_Canopy</code> for dappled
+          forest light, and <code>_Structural</code> for indoor shadows from
+          things like rafters or pillars.
         </p>
-        
-        <h4>Useful Links:</h4>
+        <img
+          src="modules/map-shine/assets/tutorials/shadows_demo.webp"
+          alt="A scene showing dynamic cloud and canopy shadows."
+          class="guide-image" />
+      </div>
+      <div class="effect-card">
+        <h3>Particles & Fire</h3>
+        <p>
+          <strong>Requires:</strong> <code>_Fire.webp</code>,
+          <code>_Sparks.webp</code>, <code>_Dust.webp</code>
+        </p>
+        <p>
+          Bring your maps to life with animated particles. The
+          <code>_Fire</code> map generates flames and embers,
+          <code>_Sparks</code> creates energetic sparks, and
+          <code>_Dust</code> adds subtle motes floating in sunbeams.
+        </p>
+        <img
+          src="modules/map-shine/assets/tutorials/particles_demo.webp"
+          alt="A campfire with animated fire and spark particles."
+          class="guide-image" />
+      </div>
+      <div class="effect-card">
+        <h3>Glows & Emissives</h3>
+        <p>
+          <strong>Requires:</strong> <code>_Ambient.webp</code>,
+          <code>_GroundGlow.webp</code>
+        </p>
+        <p>
+          Make parts of your map glow! <code>_Ambient</code> is a
+          general-purpose glow for things like lava or magic runes.
+          <code>_GroundGlow</code> is a special effect that only appears in
+          dark, unlit areas.
+        </p>
+      </div>
+      <div class="effect-card">
+        <h3>The Complete Water System</h3>
+        <p>
+          <strong>Requires:</strong> <code>_Water.webp</code> (and optionally
+          <code>_Shoreline.webp</code>)
+        </p>
+        <p>
+          This is a multi-layered effect for creating realistic and dynamic
+          water. Start with a <strong>`_Water.webp`</strong> map where white
+          marks your water areas. The system will then add:
+        </p>
         <ul>
-            <li><strong>Found a Bug?</strong> Please report it on the <a href="https://github.com/Garsondee/map-shine/issues" target="_blank">GitHub Issue Tracker</a>.</li>
-            <li><strong>Need help or have a question?</strong> You can reach me on <a href="https://discord.com/users/165787672441389056" target="_blank">Discord</a>.</li>
-            <li><strong>Want to support development?</strong> Check out my <a href="https://www.patreon.com/c/MythicaMachina" target="_blank">Patreon</a>.</li>
+          <li>
+            <strong>Wave Distortion:</strong> An underlying ripple that distorts
+            the view of the seabed.
+          </li>
+          <li>
+            <strong>Underwater Caustics:</strong> Shifting patterns of light on
+            the ground beneath the water.
+          </li>
+          <li>
+            <strong>Surface Foam & Sheen:</strong> Animated foam and light
+            reflections on the water's surface.
+          </li>
+          <li>
+            <strong>Shoreline Effects:</strong> If you provide a soft, grayscale
+            <strong>`_Shoreline.webp`</strong> map (white where the foam should
+            be thickest), the module will generate animated foam and spray along
+            the coast. If you don't provide one, it will attempt to auto-detect
+            the shoreline.
+          </li>
         </ul>
-
-        <h4>Test the Module with a Free Demo Map!</h4>
+        <img
+          src="modules/map-shine/assets/tutorials/effect_water_system.webp"
+          alt="A before-and-after comparison showing a static water texture transformed into an animated surface."
+          class="guide-image" />
+      </div>
+      <div class="effect-card">
+        <h3>Magical & Environmental Effects</h3>
         <p>
-            To help you verify that everything is installed and working correctly, I've provided a free demonstration map that uses many of the module's core effects. You can download it here:
-            <br>
-            <a href="https://github.com/Garsondee/mythica-machina-goblin-alchemist" target="_blank">Mythica Machina - Goblin Alchemist Demo Map</a>
+          <strong>Requires:</strong> <code>_Iridescence.webp</code>,
+          <code>_Prism.webp</code>, <code>_Heat.webp</code>
         </p>
-    </section>
-
-    <!-- Table of Contents -->
-    <nav class="toc">
-        <h2>Table of Contents</h2>
+        <p>
+          These maps are for more fantastical or specific environmental effects.
+        </p>
         <ul>
-            <li><a href="#introduction">What is Map Shine?</a></li>
-            <li><a href="#core-concept">The Core Concept</a></li>
-            <li><a href="#getting-started">Getting Started</a></li>
-            <li><a href="#editor-panel">The Editor Panel</a></li>
-            <li><a href="#key-effects">Tour of Key Effects</a></li>
-            <li><a href="#advanced-tools">Advanced Tools</a></li>
-            <li><a href="#post-processing">Post-Processing Pipeline</a></li>
-            <li><a href="#automated-effects">Automated Effects</a></li>
-            <li><a href="#troubleshooting">Troubleshooting</a></li>
+          <li>
+            <strong>Iridescence:</strong> Creates a shimmering, oil-slick or
+            soap-bubble effect. Perfect for fey crossings or magical potions.
+          </li>
+          <li>
+            <strong>Prism:</strong> Splits the light in bright areas, creating a
+            rainbow fringe. Great for crystals or divine magic.
+          </li>
+          <li>
+            <strong>Heat Distortion:</strong> Creates a rising heat-haze that
+            distorts the view. Essential for fire, forges, and desert scenes.
+          </li>
         </ul>
-    </nav>
+        <img
+          src="modules/map-shine/assets/tutorials/effect_heat_distortion.gif"
+          alt="An animated GIF showing heat distortion over a campfire."
+          class="guide-image" />
+      </div>
+    </div>
+  </details>
 
-    <!-- Introduction -->
-    <details id="introduction" open>
-        <summary><h2>What is Map Shine?</h2></summary>
-        <div class="details-content">
-            <p>Map Shine is designed to empower Game Masters and map-makers with a suite of powerful visual effects that are intuitive and easy to implement. The core philosophy is to handle the complex technical work behind the scenes, allowing you to focus on the creative process. From shimmering metallic surfaces and dynamic cloud shadows to magical glowing runes and crackling fire, this module aims to be your one-stop shop for bringing your scenes to life.</p>
-        </div>
-    </details>
+  <!-- Advanced Tools -->
+  <details id="advanced-tools">
+    <summary><h2>Advanced Tools: The Map Points Editor</h2></summary>
+    <div class="details-content">
+      <p>
+        Some effects, like lightning or a swarm of flies, aren't tied to a
+        specific texture. For these, you use the
+        <strong>Map Points Editor</strong>, which lets you draw points, lines,
+        and shapes directly onto the map and assign an effect to them.
+      </p>
 
-    <!-- Core Concept -->
-    <details id="core-concept">
-        <summary><h2>The Core Concept: Automatic Effects via "Effect Maps"</h2></summary>
-        <div class="details-content">
-            <p>The magic of Map Shine lies in its automatic effect system. You don't need to configure complex settings for every tile or draw special lighting. Instead, the module automatically detects and applies effects based on the filenames of your textures.</p>
-            <p>This is done using special texture files called <strong>Effect Maps</strong>. An Effect Map is simply a secondary image that you place in the same folder as your main map texture. You give it the same name as your main map, but with a special suffix. For example:</p>
-            <ul>
-                <li>Your main map: <code>MyDungeon.webp</code></li>
-                <li>The Effect Map for metallic shine: <code>MyDungeon<strong>_Specular</strong>.webp</code></li>
-            </ul>
-            <p>When you load <code>MyDungeon.webp</code> into a scene (either as the background or a tile), Map Shine sees the <code>_Specular</code> file and automatically applies the Metallic Shine effect to it. The same principle applies to dozens of other effects!</p>
-            <img src="modules/map-shine/assets/tutorials/core_concept_diagram.webp" alt="Diagram showing a base map, a specular map, and the final result with shine." class="guide-image">
-        </div>
-    </details>
+      <h4>Example 1: Creating Lightning</h4>
+      <ol>
+        <li>Open the Map Points Editor from the Editor Panel.</li>
+        <li>Create a new "Line" group and give it a name.</li>
+        <li>
+          Check the "Use as Effect Source" box and select "Lightning" from the
+          "Target Effect" dropdown.
+        </li>
+        <li>Activate placement mode and click two points on the map.</li>
+      </ol>
+      <p>A lightning bolt will now arc between those points!</p>
+      <img
+        src="modules/map-shine/assets/tutorials/map_points_lightning.webp"
+        alt="A screenshot of a lightning bolt created with the Map Points Editor."
+        class="guide-image" />
 
-    <!-- Getting Started -->
-    <details id="getting-started">
-        <summary><h2>Getting Started: Your First Effect (Metallic Shine)</h2></summary>
-        <div class="details-content">
-            <p>Let's walk through adding a simple but impressive effect: making the metal parts of a treasure chest shine.</p>
-            
-            <h4>Step 1: The Base Map</h4>
-            <p>Start with your regular map image. Here, we have a simple treasure chest on a wooden floor.</p>
-            <img src="modules/map-shine/assets/tutorials/walkthrough_step1_base.webp" alt="A simple map of a treasure chest." class="guide-image">
+      <h4>Example 2: Creating a Fly Swarm</h4>
+      <p>
+        The **Smelly Flies** effect uses an Area group to define where flies can
+        land and walk around, and a Point group to define where they swarm in
+        the air.
+      </p>
+      <ol>
+        <li>
+          Create a new "Area" group. Check "Use as Effect Source" and select
+          "Smelly Flies".
+        </li>
+        <li>
+          Activate placement mode and click to draw a polygon around the area
+          where flies can land (e.g., a pile of rubbish).
+        </li>
+        <li>
+          The flies will now swarm near the center of this area and land within
+          its bounds.
+        </li>
+      </ol>
+      <img
+        src="modules/map-shine/assets/tutorials/map_points_smelly_flies.webp"
+        alt="A screenshot showing the Map Points editor with an Area group creating a swarm of flies."
+        class="guide-image" />
+    </div>
+  </details>
 
-            <h4>Step 2: Create the Specular Map</h4>
-            <p>In an image editor (like Photoshop, GIMP, or Krita), create a new black and white image. This is your <strong>Specular Map</strong>. The rule is simple:</p>
-            <ul>
-                <li><strong>White areas will be shiny.</strong></li>
-                <li><strong>Black areas will be dull.</strong></li>
-                <li>Shades of grey will have partial shininess.</li>
-            </ul>
-            <p>For our chest, we'll paint the metal parts white and leave everything else black.</p>
-            <img src="modules/map-shine/assets/tutorials/walkthrough_step2_specular.webp" alt="A black and white specular map for the treasure chest." class="guide-image">
+  <!-- Post-Processing -->
+  <details id="post-processing">
+    <summary><h2>Deep Dive: The Post-Processing Pipeline</h2></summary>
+    <div class="details-content">
+      <p>
+        Located in the left-hand column of the Editor, the Post-Processing
+        Pipeline contains effects that apply to the entire screen, allowing you
+        to create a truly cinematic look for your scenes. This is where you can
+        fine-tune the final mood and atmosphere.
+      </p>
 
-            <h4>Step 3: Naming and Placement</h4>
-            <p>Save both files in the same folder with the correct names:</p>
-            <ul>
-                <li><code>TreasureChest.webp</code></li>
-                <li><code>TreasureChest_Specular.webp</code></li>
-            </ul>
-            
-            <h4>Step 4: See the Magic!</h4>
-            <p>Create a tile in your Foundry scene using <code>TreasureChest.webp</code>. The Metallic Shine effect will automatically appear!</p>
-            <img src="modules/map-shine/assets/tutorials/walkthrough_step4_result.webp" alt="The treasure chest in Foundry with the shine effect applied." class="guide-image">
+      <h4>Color Correction & Grading</h4>
+      <p>
+        This is the heart of the pipeline. You can use the sliders to adjust
+        Brightness, Contrast, and Saturation, or dive deeper with professional
+        tools:
+      </p>
+      <ul>
+        <li>
+          <strong>Color Presets:</strong> Quickly apply a look like "Cinematic"
+          or "Vintage Film". You can also save your own custom color grades as
+          "Favorites" to reuse later.
+        </li>
+        <li>
+          <strong>Curves Editor:</strong> For precise, non-linear control over
+          the tonal range of your scene, just like in Photoshop.
+        </li>
+        <li>
+          <strong>Selective Color:</strong> Isolate a specific color in your
+          scene and change it. For example, you could make everything black and
+          white except for the color red.
+        </li>
+        <li>
+          <strong>LUTs (Look-Up Tables):</strong> Advanced users can apply
+          professional `.cube` LUT files for industry-standard color grading.
+        </li>
+      </ul>
+      <img
+        src="modules/map-shine/assets/tutorials/ui_curves_editor.webp"
+        alt="A screenshot of the interactive Curves editor UI inside the Map Shine panel."
+        class="guide-image" />
+      <img
+        src="modules/map-shine/assets/tutorials/effect_selective_color.webp"
+        alt="A before-and-after image showing the Selective Color effect used to make a scene black and white except for a red cloak."
+        class="guide-image" />
 
-            <h4>Step 5: Tweak and Customize</h4>
-            <p>Open the Map Shine Editor from the token controls. Find the "Metallic Shine" section and experiment with the settings to change the color, speed, and intensity of the effect until it's perfect.</p>
-            <img src="modules/map-shine/assets/tutorials/editor_panel_overview.webp" alt="Screenshot of the Map Shine editor panel." class="guide-image">
-        </div>
-    </details>
+      <h4>Lens & Film Effects</h4>
+      <p>
+        Simulate real-world camera effects to add a touch of realism or style:
+      </p>
+      <ul>
+        <li>
+          <strong>Vignette:</strong> Darkens the corners of the screen to draw
+          focus to the center.
+        </li>
+        <li>
+          <strong>Chromatic Aberration:</strong> Creates a subtle color fringe
+          effect, often seen at the edges of camera lenses.
+        </li>
+        <li>
+          <strong>Film Grain:</strong> Adds a procedural film grain or digital
+          noise effect over the final image for a gritty, cinematic feel.
+        </li>
+      </ul>
+    </div>
+  </details>
 
-    <!-- The Editor Panel -->
-    <details id="editor-panel">
-        <summary><h2>The Editor Panel: Your Control Center</h2></summary>
-        <div class="details-content">
-            <p>The editor gives you granular control over every effect. It's divided into a few key areas:</p>
-            <ul>
-                <li><strong>Main Controls & Profiles:</strong> At the top, you can manage settings that affect the entire module. This is where you save and load different looks for your scenes.</li>
-                <li><strong>Post-Processing Pipeline:</strong> This column on the left contains effects that are applied to the entire screen, like cinematic color grading, vignettes, and lens effects.</li>
-                <li><strong>Main Effects Area:</strong> The main columns contain individual settings for all the map-based effects like Metallic Shine, Cloud Shadows, and Fire Particles.</li>
-            </ul>
+  <!-- Automated Effects -->
+  <details id="automated-effects">
+    <summary><h2>Automated & Scene-Wide Effects</h2></summary>
+    <div class="details-content">
+      <p>
+        Some effects are not tied to a specific map texture but happen
+        automatically in response to game events. You can configure these in the
+        main effects area of the editor.
+      </p>
+      <ul>
+        <li>
+          <strong>Pause & Combat Effects:</strong> Apply a configurable visual
+          transition when the game is paused or when combat starts. You can
+          desaturate the scene, slow down all animations, or apply a custom
+          color tint to signal a change in game state.
+        </li>
+        <li>
+          <strong>Dynamic Exposure ("Dazzle"):</strong> Creates a "dazzle"
+          effect when a token moves from a dark indoor area (as defined by your
+          `_Outdoors` map) to a bright outdoor one, simulating eyes adjusting to
+          bright light.
+        </li>
+      </ul>
+    </div>
+  </details>
 
-            <h4>Scene Appearances vs. World Profiles</h4>
-            <p>Map Shine features a powerful two-tier system for saving your settings. In the "Main Controls" section, you'll see options for both.</p>
-            <ul>
-                <li><strong>Scene Appearances:</strong> These are visual profiles saved *directly with the scene*. They allow you to create and switch between multiple, unique looks for a single map (e.g., a "Day" version and a "Night" version). Use the "Activate for All" button to push a selected appearance to all players.</li>
-                <li><strong>World Profile Library:</strong> These are reusable presets saved at the *world level*. You can save a look you love—like a perfect "Eerie Undead" color grade—and easily load it into any scene in your world as a starting point.</li>
-            </ul>
-            <img src="modules/map-shine/assets/tutorials/diagram_profile_system.webp" alt="Diagram showing a World Profile being applied to multiple Scene Appearances." class="guide-image">
-            
-            <h4>The Day/Night Clock</h4>
-            <p>Accessible from the token controls, the Day/Night Clock is your tool for controlling all time-based effects. Drag the sun/moon icon around the dial to change the time. As you do, you'll see the scene's lighting and shadows change in real-time. This clock controls:</p>
-            <ul>
-                <li><strong>Time of Day Color Grade:</strong> The overall color, brightness, and mood of outdoor areas.</li>
-                <li><strong>Building Shadows:</strong> The length and direction of shadows cast by buildings.</li>
-            </ul>
-            <img src="modules/map-shine/assets/tutorials/ui_day_night_clock.webp" alt="A screenshot of the Day/Night Clock UI." class="guide-image">
-        </div>
-    </details>
+  <!-- Troubleshooting -->
+  <details id="troubleshooting">
+    <summary><h2>Troubleshooting & Diagnostics</h2></summary>
+    <div class="details-content">
+      <p>If an effect isn't showing up, here are the first things to check:</p>
+      <ol>
+        <li>
+          <strong>Check your filenames!</strong> This is the most common issue.
+          Ensure the suffix is correct (e.g., <code>_Specular</code>, not
+          <code>_specular</code>) and that there are no typos.
+        </li>
+        <li>
+          <strong>Check the Editor Panel.</strong> Is the master "Enable All
+          Effects" toggle on? Is the specific effect you want enabled?
+        </li>
+        <li>
+          <strong>Use the Diagnostic Tools.</strong> In the Editor Panel, under
+          "World Profiles and Diagnostics", check the "Show Discovered Masks"
+          box. This will overlay your map with colors, showing you exactly which
+          effect maps Map Shine has found and where they are being applied. It's
+          the best way to confirm the module can see your files.
+        </li>
+      </ol>
+    </div>
+  </details>
 
-    <!-- Key Effects -->
-    <details id="key-effects">
-        <summary><h2>A Tour of Key Effects (Texture-Based)</h2></summary>
-        <div class="details-content">
-            <p>Here are some of the most common effect types and the maps they require:</p>
-            <div class="effect-card">
-                <h3>Reflective & Wet Surfaces</h3>
-                <p><strong>Requires:</strong> <code>_Specular.webp</code></p>
-                <p>The core shine effect. Use it for polished metal, wet cavern floors, icy surfaces, or anything that should reflect light.</p>
-            </div>
-            <div class="effect-card">
-                <h3>Shadows</h3>
-                <p><strong>Requires:</strong> <code>_Outdoors.webp</code>, <code>_Canopy.webp</code>, <code>_Structural.webp</code></p>
-                <p>Map Shine has a powerful shadow system. Use <code>_Outdoors</code> to define what's inside vs. outside, <code>_Canopy</code> for dappled forest light, and <code>_Structural</code> for indoor shadows from things like rafters or pillars.</p>
-                <img src="modules/map-shine/assets/tutorials/shadows_demo.webp" alt="A scene showing dynamic cloud and canopy shadows." class="guide-image">
-            </div>
-            <div class="effect-card">
-                <h3>Particles & Fire</h3>
-                <p><strong>Requires:</strong> <code>_Fire.webp</code>, <code>_Sparks.webp</code>, <code>_Dust.webp</code></p>
-                <p>Bring your maps to life with animated particles. The <code>_Fire</code> map generates flames and embers, <code>_Sparks</code> creates energetic sparks, and <code>_Dust</code> adds subtle motes floating in sunbeams.</p>
-                <img src="modules/map-shine/assets/tutorials/particles_demo.webp" alt="A campfire with animated fire and spark particles." class="guide-image">
-            </div>
-            <div class="effect-card">
-                <h3>Glows & Emissives</h3>
-                <p><strong>Requires:</strong> <code>_Ambient.webp</code>, <code>_GroundGlow.webp</code></p>
-                <p>Make parts of your map glow! <code>_Ambient</code> is a general-purpose glow for things like lava or magic runes. <code>_GroundGlow</code> is a special effect that only appears in dark, unlit areas.</p>
-            </div>
-            <div class="effect-card">
-                <h3>The Complete Water System</h3>
-                <p><strong>Requires:</strong> <code>_Water.webp</code> (and optionally <code>_Shoreline.webp</code>)</p>
-                <p>This is a multi-layered effect for creating realistic and dynamic water. Start with a <strong>`_Water.webp`</strong> map where white marks your water areas. The system will then add:</p>
-                <ul>
-                    <li><strong>Wave Distortion:</strong> An underlying ripple that distorts the view of the seabed.</li>
-                    <li><strong>Underwater Caustics:</strong> Shifting patterns of light on the ground beneath the water.</li>
-                    <li><strong>Surface Foam & Sheen:</strong> Animated foam and light reflections on the water's surface.</li>
-                    <li><strong>Shoreline Effects:</strong> If you provide a soft, grayscale <strong>`_Shoreline.webp`</strong> map (white where the foam should be thickest), the module will generate animated foam and spray along the coast. If you don't provide one, it will attempt to auto-detect the shoreline.</li>
-                </ul>
-                <img src="modules/map-shine/assets/tutorials/effect_water_system.webp" alt="A before-and-after comparison showing a static water texture transformed into an animated surface." class="guide-image">
-            </div>
-            <div class="effect-card">
-                <h3>Magical & Environmental Effects</h3>
-                <p><strong>Requires:</strong> <code>_Iridescence.webp</code>, <code>_Prism.webp</code>, <code>_Heat.webp</code></p>
-                <p>These maps are for more fantastical or specific environmental effects.</p>
-                <ul>
-                    <li><strong>Iridescence:</strong> Creates a shimmering, oil-slick or soap-bubble effect. Perfect for fey crossings or magical potions.</li>
-                    <li><strong>Prism:</strong> Splits the light in bright areas, creating a rainbow fringe. Great for crystals or divine magic.</li>
-                    <li><strong>Heat Distortion:</strong> Creates a rising heat-haze that distorts the view. Essential for fire, forges, and desert scenes.</li>
-                </ul>
-                <img src="modules/map-shine/assets/tutorials/effect_heat_distortion.gif" alt="An animated GIF showing heat distortion over a campfire." class="guide-image">
-            </div>
-        </div>
-    </details>
-    
-    <!-- Advanced Tools -->
-    <details id="advanced-tools">
-        <summary><h2>Advanced Tools: The Map Points Editor</h2></summary>
-        <div class="details-content">
-            <p>Some effects, like lightning or a swarm of flies, aren't tied to a specific texture. For these, you use the <strong>Map Points Editor</strong>, which lets you draw points, lines, and shapes directly onto the map and assign an effect to them.</p>
-            
-            <h4>Example 1: Creating Lightning</h4>
-            <ol>
-                <li>Open the Map Points Editor from the Editor Panel.</li>
-                <li>Create a new "Line" group and give it a name.</li>
-                <li>Check the "Use as Effect Source" box and select "Lightning" from the "Target Effect" dropdown.</li>
-                <li>Activate placement mode and click two points on the map.</li>
-            </ol>
-            <p>A lightning bolt will now arc between those points!</p>
-            <img src="modules/map-shine/assets/tutorials/map_points_lightning.webp" alt="A screenshot of a lightning bolt created with the Map Points Editor." class="guide-image">
-            
-            <h4>Example 2: Creating a Fly Swarm</h4>
-            <p>The **Smelly Flies** effect uses an Area group to define where flies can land and walk around, and a Point group to define where they swarm in the air.</p>
-            <ol>
-                <li>Create a new "Area" group. Check "Use as Effect Source" and select "Smelly Flies".</li>
-                <li>Activate placement mode and click to draw a polygon around the area where flies can land (e.g., a pile of rubbish).</li>
-                <li>The flies will now swarm near the center of this area and land within its bounds.</li>
-            </ol>
-            <img src="modules/map-shine/assets/tutorials/map_points_smelly_flies.webp" alt="A screenshot showing the Map Points editor with an Area group creating a swarm of flies." class="guide-image">
-        </div>
-    </details>
-
-    <!-- Post-Processing -->
-    <details id="post-processing">
-        <summary><h2>Deep Dive: The Post-Processing Pipeline</h2></summary>
-        <div class="details-content">
-            <p>Located in the left-hand column of the Editor, the Post-Processing Pipeline contains effects that apply to the entire screen, allowing you to create a truly cinematic look for your scenes. This is where you can fine-tune the final mood and atmosphere.</p>
-            
-            <h4>Color Correction & Grading</h4>
-            <p>This is the heart of the pipeline. You can use the sliders to adjust Brightness, Contrast, and Saturation, or dive deeper with professional tools:</p>
-            <ul>
-                <li><strong>Color Presets:</strong> Quickly apply a look like "Cinematic" or "Vintage Film". You can also save your own custom color grades as "Favorites" to reuse later.</li>
-                <li><strong>Curves Editor:</strong> For precise, non-linear control over the tonal range of your scene, just like in Photoshop.</li>
-                <li><strong>Selective Color:</strong> Isolate a specific color in your scene and change it. For example, you could make everything black and white except for the color red.</li>
-                <li><strong>LUTs (Look-Up Tables):</strong> Advanced users can apply professional `.cube` LUT files for industry-standard color grading.</li>
-            </ul>
-            <img src="modules/map-shine/assets/tutorials/ui_curves_editor.webp" alt="A screenshot of the interactive Curves editor UI inside the Map Shine panel." class="guide-image">
-            <img src="modules/map-shine/assets/tutorials/effect_selective_color.webp" alt="A before-and-after image showing the Selective Color effect used to make a scene black and white except for a red cloak." class="guide-image">
-
-
-            <h4>Lens & Film Effects</h4>
-            <p>Simulate real-world camera effects to add a touch of realism or style:</p>
-            <ul>
-                <li><strong>Vignette:</strong> Darkens the corners of the screen to draw focus to the center.</li>
-                <li><strong>Chromatic Aberration:</strong> Creates a subtle color fringe effect, often seen at the edges of camera lenses.</li>
-                <li><strong>Film Grain:</strong> Adds a procedural film grain or digital noise effect over the final image for a gritty, cinematic feel.</li>
-            </ul>
-        </div>
-    </details>
-
-    <!-- Automated Effects -->
-    <details id="automated-effects">
-        <summary><h2>Automated & Scene-Wide Effects</h2></summary>
-        <div class="details-content">
-            <p>Some effects are not tied to a specific map texture but happen automatically in response to game events. You can configure these in the main effects area of the editor.</p>
-            <ul>
-                <li><strong>Pause & Combat Effects:</strong> Apply a configurable visual transition when the game is paused or when combat starts. You can desaturate the scene, slow down all animations, or apply a custom color tint to signal a change in game state.</li>
-                <li><strong>Dynamic Exposure ("Dazzle"):</strong> Creates a "dazzle" effect when a token moves from a dark indoor area (as defined by your `_Outdoors` map) to a bright outdoor one, simulating eyes adjusting to bright light.</li>
-            </ul>
-        </div>
-    </details>
-
-    <!-- Troubleshooting -->
-    <details id="troubleshooting">
-        <summary><h2>Troubleshooting & Diagnostics</h2></summary>
-        <div class="details-content">
-            <p>If an effect isn't showing up, here are the first things to check:</p>
-            <ol>
-                <li><strong>Check your filenames!</strong> This is the most common issue. Ensure the suffix is correct (e.g., <code>_Specular</code>, not <code>_specular</code>) and that there are no typos.</li>
-                <li><strong>Check the Editor Panel.</strong> Is the master "Enable All Effects" toggle on? Is the specific effect you want enabled?</li>
-                <li><strong>Use the Diagnostic Tools.</strong> In the Editor Panel, under "World Profiles and Diagnostics", check the "Show Discovered Masks" box. This will overlay your map with colors, showing you exactly which effect maps Map Shine has found and where they are being applied. It's the best way to confirm the module can see your files.</li>
-            </ol>
-        </div>
-    </details>
-
-    <!-- Support -->
-    <section class="footer">
-        <h2>Support the Project</h2>
-        <p>Thank you for using Map Shine! Map making is my passion and my livelihood. If you enjoy this module and find it useful, please consider supporting my work through Patreon or by checking out my map packs on the Foundry VTT store and DriveThruRPG. Every bit of support helps me continue developing powerful, free tools for the entire community.</p>
-    </section>
+  <!-- Support -->
+  <section class="footer">
+    <h2>Support the Project</h2>
+    <p>
+      Thank you for using Map Shine! Map making is my passion and my livelihood.
+      If you enjoy this module and find it useful, please consider supporting my
+      work through Patreon or by checking out my map packs on the Foundry VTT
+      store and DriveThruRPG. Every bit of support helps me continue developing
+      powerful, free tools for the entire community.
+    </p>
+  </section>
 </div>
 
 <style>
-    /* General Styles */
-    .map-shine-guide { 
-        padding: 15px; 
-        font-family: "Signika", sans-serif; 
-        background-color: #fdfdfd; 
-        color: #333;
-        line-height: 1.6;
-    }
-    .map-shine-guide .header {
-        text-align: center;
-        margin-bottom: 2rem;
-        padding-bottom: 1rem;
-        border-bottom: 1px solid #ddd;
-    }
-    .map-shine-guide h1 { 
-        font-size: 2.2em; 
-        color: #111;
-        margin-bottom: 0.5rem;
-    }
-    .map-shine-guide .subtitle {
-        font-size: 1.1em;
-        color: #555;
-        margin-top: 0;
-    }
-    .map-shine-guide h3 {
-        font-size: 1.4em;
-        color: #2a2a2a;
-        margin-top: 1.5rem;
-        margin-bottom: 0.5rem;
-    }
-    .map-shine-guide h4 {
-        font-size: 1.2em;
-        color: #333;
-        font-weight: bold;
-    }
-    .map-shine-guide p { 
-        margin-bottom: 1rem;
-    }
-    .map-shine-guide ul, .map-shine-guide ol { 
-        margin-left: 25px; 
-        padding-left: 0;
-        margin-bottom: 1rem;
-    }
-    .map-shine-guide li {
-        margin-bottom: 0.5rem;
-    }
-    .map-shine-guide strong {
-        color: #111;
-    }
-    .map-shine-guide a {
-        color: #0066cc;
-        text-decoration: none;
-    }
-    .map-shine-guide a:hover {
-        text-decoration: underline;
-    }
-    .map-shine-guide .guide-image {
-        max-width: 100%;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        margin-top: 0.5rem;
-        margin-bottom: 1.5rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
+  /* General Styles */
+  .map-shine-guide {
+    padding: 15px;
+    font-family: "Signika", sans-serif;
+    background-color: #fdfdfd;
+    color: #333;
+    line-height: 1.6;
+  }
+  .map-shine-guide .header {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #ddd;
+  }
+  .map-shine-guide h1 {
+    font-size: 2.2em;
+    color: #111;
+    margin-bottom: 0.5rem;
+  }
+  .map-shine-guide .subtitle {
+    font-size: 1.1em;
+    color: #555;
+    margin-top: 0;
+  }
+  .map-shine-guide h3 {
+    font-size: 1.4em;
+    color: #2a2a2a;
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+  .map-shine-guide h4 {
+    font-size: 1.2em;
+    color: #333;
+    font-weight: bold;
+  }
+  .map-shine-guide p {
+    margin-bottom: 1rem;
+  }
+  .map-shine-guide ul,
+  .map-shine-guide ol {
+    margin-left: 25px;
+    padding-left: 0;
+    margin-bottom: 1rem;
+  }
+  .map-shine-guide li {
+    margin-bottom: 0.5rem;
+  }
+  .map-shine-guide strong {
+    color: #111;
+  }
+  .map-shine-guide a {
+    color: #0066cc;
+    text-decoration: none;
+  }
+  .map-shine-guide a:hover {
+    text-decoration: underline;
+  }
+  .map-shine-guide .guide-image {
+    max-width: 100%;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-top: 0.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
 
-    /* --- NEW & UPDATED STYLES --- */
+  /* --- NEW & UPDATED STYLES --- */
 
-    /* New Important Notice Box */
-    .map-shine-guide .important-notice {
-        background-color: #fff9e6; /* Softer yellow */
-        border: 1px solid #ffde7a;
-        border-left: 5px solid #ffc107; /* Stronger accent */
-        color: #5d4a00;
-        padding: 15px 20px;
-        margin-bottom: 2rem;
-        border-radius: 4px;
-    }
-    .map-shine-guide .important-notice h3 {
-        color: #c79a00;
-        margin-top: 0;
-        font-size: 1.5em;
-    }
-    .map-shine-guide .important-notice h4 {
-        margin-top: 1.5rem;
-        border-bottom: 1px solid #ffde7a;
-        padding-bottom: 4px;
-    }
-    .map-shine-guide .important-notice p {
-        margin: 0.5rem 0;
-    }
-    .map-shine-guide .important-notice ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-    }
-    .map-shine-guide .important-notice li {
-        margin-bottom: 0.25rem;
-    }
+  /* New Important Notice Box */
+  .map-shine-guide .important-notice {
+    background-color: #fff9e6; /* Softer yellow */
+    border: 1px solid #ffde7a;
+    border-left: 5px solid #ffc107; /* Stronger accent */
+    color: #5d4a00;
+    padding: 15px 20px;
+    margin-bottom: 2rem;
+    border-radius: 4px;
+  }
+  .map-shine-guide .important-notice h3 {
+    color: #c79a00;
+    margin-top: 0;
+    font-size: 1.5em;
+  }
+  .map-shine-guide .important-notice h4 {
+    margin-top: 1.5rem;
+    border-bottom: 1px solid #ffde7a;
+    padding-bottom: 4px;
+  }
+  .map-shine-guide .important-notice p {
+    margin: 0.5rem 0;
+  }
+  .map-shine-guide .important-notice ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .map-shine-guide .important-notice li {
+    margin-bottom: 0.25rem;
+  }
 
-    /* New Table of Contents */
-    .map-shine-guide .toc {
-        background-color: #f7f7f7;
-        border: 1px solid #e0e0e0;
-        border-radius: 4px;
-        padding: 1rem 1.5rem;
-        margin-bottom: 2rem;
-    }
-    .map-shine-guide .toc h2 {
-        border-bottom: none;
-        margin: 0 0 1rem 0;
-        font-size: 1.5em;
-        padding: 0;
-    }
+  /* New Table of Contents */
+  .map-shine-guide .toc {
+    background-color: #f7f7f7;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    padding: 1rem 1.5rem;
+    margin-bottom: 2rem;
+  }
+  .map-shine-guide .toc h2 {
+    border-bottom: none;
+    margin: 0 0 1rem 0;
+    font-size: 1.5em;
+    padding: 0;
+  }
+  .map-shine-guide .toc ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    columns: 2;
+  }
+  @media (max-width: 600px) {
     .map-shine-guide .toc ul {
-        margin: 0;
-        padding: 0;
-        list-style: none;
-        columns: 2;
+      columns: 1;
     }
-    @media (max-width: 600px) {
-        .map-shine-guide .toc ul {
-            columns: 1;
-        }
-    }
-    .map-shine-guide .toc li a {
-        display: block;
-        padding: 4px 0;
-    }
-    
-    /* New Collapsible Sections */
-    .map-shine-guide details {
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        margin-bottom: 1rem;
-        background: #fff;
-    }
-    .map-shine-guide summary {
-        padding: 0.75rem 1rem;
-        font-weight: bold;
-        cursor: pointer;
-        background-color: #f9f9f9;
-        transition: background-color 0.2s ease-in-out;
-        list-style: none; /* Hide default arrow */
-    }
-    .map-shine-guide summary:hover {
-        background-color: #f1f1f1;
-    }
-    .map-shine-guide summary::-webkit-details-marker {
-        display: none; /* Hide default arrow for Chrome/Safari */
-    }
-    .map-shine-guide summary::before {
-        content: '►';
-        margin-right: 0.75em;
-        font-size: 0.8em;
-        color: #666;
-        display: inline-block;
-        transition: transform 0.2s;
-    }
-    .map-shine-guide details[open] > summary::before {
-        transform: rotate(90deg);
-    }
-    .map-shine-guide summary h2 { 
-        display: inline;
-        font-size: 1.7em; 
-        border: none;
-        padding: 0; 
-        margin: 0;
-        color: #222;
-    }
-    .map-shine-guide .details-content {
-        padding: 0.5rem 1.5rem 1.5rem 1.5rem;
-        border-top: 1px solid #ddd;
-    }
-    
-    /* Modernized Code Snippets */
-    .map-shine-guide code { 
-        background: #2d2d2d; 
-        border: 1px solid #444;
-        color: #e6e1d5;
-        padding: 3px 8px; 
-        border-radius: 4px; 
-        font-family: 'Consolas', 'Monaco', monospace;
-        font-size: 0.9em;
-    }
+  }
+  .map-shine-guide .toc li a {
+    display: block;
+    padding: 4px 0;
+  }
 
-    /* Modernized Effect Cards */
-    .map-shine-guide .effect-card {
-        background: #fcfcfc;
-        border: 1px solid #e0e0e0;
-        border-left: 4px solid #40a0fa;
-        padding: 15px 20px;
-        margin-bottom: 1.5rem;
-        border-radius: 4px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
-    .map-shine-guide .effect-card h3 {
-        margin-top: 0;
-        color: #1a6ab5;
-    }
+  /* New Collapsible Sections */
+  .map-shine-guide details {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+    background: #fff;
+  }
+  .map-shine-guide summary {
+    padding: 0.75rem 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    background-color: #f9f9f9;
+    transition: background-color 0.2s ease-in-out;
+    list-style: none; /* Hide default arrow */
+  }
+  .map-shine-guide summary:hover {
+    background-color: #f1f1f1;
+  }
+  .map-shine-guide summary::-webkit-details-marker {
+    display: none; /* Hide default arrow for Chrome/Safari */
+  }
+  .map-shine-guide summary::before {
+    content: "►";
+    margin-right: 0.75em;
+    font-size: 0.8em;
+    color: #666;
+    display: inline-block;
+    transition: transform 0.2s;
+  }
+  .map-shine-guide details[open] > summary::before {
+    transform: rotate(90deg);
+  }
+  .map-shine-guide summary h2 {
+    display: inline;
+    font-size: 1.7em;
+    border: none;
+    padding: 0;
+    margin: 0;
+    color: #222;
+  }
+  .map-shine-guide .details-content {
+    padding: 0.5rem 1.5rem 1.5rem 1.5rem;
+    border-top: 1px solid #ddd;
+  }
 
-    /* Footer */
-    .map-shine-guide .footer {
-        margin-top: 2rem;
-        padding-top: 1rem;
-        border-top: 1px solid #ddd;
-        text-align: center;
-        font-size: 0.9em;
-        color: #666;
-    }
+  /* Modernized Code Snippets */
+  .map-shine-guide code {
+    background: #2d2d2d;
+    border: 1px solid #444;
+    color: #e6e1d5;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-family: "Consolas", "Monaco", monospace;
+    font-size: 0.9em;
+  }
+
+  /* Modernized Effect Cards */
+  .map-shine-guide .effect-card {
+    background: #fcfcfc;
+    border: 1px solid #e0e0e0;
+    border-left: 4px solid #40a0fa;
+    padding: 15px 20px;
+    margin-bottom: 1.5rem;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+  .map-shine-guide .effect-card h3 {
+    margin-top: 0;
+    color: #1a6ab5;
+  }
+
+  /* Footer */
+  .map-shine-guide .footer {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid #ddd;
+    text-align: center;
+    font-size: 0.9em;
+    color: #666;
+  }
 </style>
-
-  
