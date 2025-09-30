@@ -90,8 +90,6 @@ class SceneChangeManager {
 
 		const headingFont = getFont("heading1");
 		const subheadingFont = getFont("heading2");
-		// @ts-ignore
-		const bodyFont = getFont("body");
 		const hintFont = getFont("hint");
 
 		console.log(`[MapShine Transition] Creating overlay element.`);
@@ -208,7 +206,14 @@ class SceneChangeManager {
 					padding: 4rem 5rem;
 					border: 1px solid rgba(148, 163, 184, 0.15);
 					box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px rgba(59, 130, 246, 0.15);
-					max-width: 700px;
+					width: 80vw;
+					max-width: 80vw;
+					aspect-ratio: 16 / 9;
+					display: flex;
+					flex-direction: column;
+					justify-content: center;
+					-webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+					mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
 				}
 
 				.loading-content::before {
@@ -254,7 +259,8 @@ class SceneChangeManager {
 					line-height: 1.1;
 				}
 				.loading-bar-container { 
-					width: 450px; 
+					width: 60%;
+					max-width: 550px; 
 					height: 0.75rem; 
 					margin: 0 auto; 
 					background: rgba(15, 23, 42, 0.8); 
@@ -375,10 +381,6 @@ class SceneChangeManager {
 		this._cycleHints();
 	}
 
-	/**
-	 * Manages the hint cycling animation (adapted from LoadingScreen).
-	 * @private
-	 */
 	_cycleHints() {
 		console.log("[MapShine SceneChangeManager] _cycleHints called");
 		if (!this.transitionOverlay) {
@@ -454,7 +456,6 @@ class SceneChangeManager {
 
 		if (this._shuffledHints.length <= 1) {
 			if (this._shuffledHints.length === 1) {
-				// @ts-ignore
 				hintElement.innerText = this._shuffledHints[0];
 				console.log("[MapShine SceneChangeManager] Single hint displayed:", this._shuffledHints[0]);
 				hintElement.animate([{ opacity: 0 }, { opacity: 1 }], {
@@ -484,10 +485,9 @@ class SceneChangeManager {
 
 			this._hintAnimation.finished
 				.then(() => {
-					if (!this.transitionOverlay) return; // Guard against element being removed during animation
+					if (!this.transitionOverlay) return;
 					this._currentHintIndex =
 						(this._currentHintIndex + 1) % this._shuffledHints.length;
-					// @ts-ignore
 					hintElement.innerText = this._shuffledHints[this._currentHintIndex];
 
 					hintElement.animate([{ opacity: 0 }, { opacity: 1 }], {
@@ -498,10 +498,9 @@ class SceneChangeManager {
 
 					this._hintInterval = setTimeout(showNextHint, HINT_PAUSE_DURATION);
 				})
-				.catch(() => { }); // Catch the expected cancellation error
+				.catch(() => { });
 		};
 
-		// @ts-ignore
 		hintElement.innerText = this._shuffledHints[this._currentHintIndex];
 		console.log("[MapShine SceneChangeManager] First hint displayed:", this._shuffledHints[this._currentHintIndex]);
 		const initialAnimation = hintElement.animate(
@@ -563,7 +562,7 @@ class SceneChangeManager {
 		this.transitionOverlay.style.pointerEvents = "auto";
 
 		// Force a reflow to ensure the initial state is applied
-		this.transitionOverlay.offsetHeight;
+		void this.transitionOverlay.offsetHeight;
 
 		// Now fade in the overlay (fade to black)
 		this.transitionOverlay.style.opacity = "1";
@@ -571,7 +570,6 @@ class SceneChangeManager {
 		// Animate the loading bar
 		const loadingBar = this.transitionOverlay.querySelector('.loading-bar-fill');
 		if (loadingBar) {
-			// @ts-ignore
 			loadingBar.style.width = "30%"; // Show some initial progress
 		}
 
@@ -597,13 +595,10 @@ class SceneChangeManager {
 		const statusText = this.transitionOverlay.querySelector('.loading-status');
 
 		if (loadingBar) {
-			// @ts-ignore
 			loadingBar.style.transition = "width 0.5s ease-out";
-			// @ts-ignore
 			loadingBar.style.width = "100%"; // Complete the loading
 		}
 		if (statusText) {
-			// @ts-ignore
 			statusText.style.transition = "opacity 0.3s ease-in-out";
 			statusText.textContent = "Scene ready!";
 		}

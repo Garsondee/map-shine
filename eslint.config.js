@@ -6,22 +6,23 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 
 export default [
+  // Apply ESLint recommended rules
+  js.configs.recommended,
+
+  // Apply TypeScript-ESLint recommended rules
+  ...tseslint.configs.recommended,
+
   // Main configuration object for your project's JavaScript files.
   {
     // Apply this configuration only to the JavaScript files in your 'scripts' directory.
     files: ["scripts/**/*.js"],
-
-    // We combine the recommended rules from ESLint and TypeScript-ESLint.
-    // tseslint.configs.recommended includes the necessary parser and plugin setup.
-    ...js.configs.recommended,
-    ...tseslint.configs.recommended,
 
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "module",
       globals: {
         ...globals.browser,
-        // Foundry VTT Globals
+        // --- Standard Foundry VTT Globals ---
         game: "readonly",
         canvas: "readonly",
         Hooks: "readonly",
@@ -32,6 +33,16 @@ export default [
         Dialog: "readonly",
         foundry: "readonly",
         CONST: "readonly",
+
+        // --- Added Globals to Fix 'no-undef' Errors ---
+        $: "readonly",
+        Application: "readonly",
+        CanvasLayer: "readonly",
+        FilePicker: "readonly",
+        FormApplication: "readonly",
+        Handlebars: "readonly",
+        renderTemplate: "readonly",
+        Scene: "readonly",
       },
     },
 
@@ -40,10 +51,21 @@ export default [
       // Disable the base ESLint rule to avoid conflicts with the TypeScript version.
       "no-unused-vars": "off",
       // Use the TypeScript-aware version of 'no-unused-vars'.
-      "@typescript-eslint/no-unused-vars": "warn",
+      // Allow underscore-prefixed variables to be unused (intentionally unused convention)
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
 
       // Allowing 'any' is practical for Foundry module development, especially with the global object.
       "@typescript-eslint/no-explicit-any": "off",
+
+      // Allow aliasing 'this' to local variables (common pattern in callbacks/closures)
+      "@typescript-eslint/no-this-alias": "off",
     },
   },
 

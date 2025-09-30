@@ -5,6 +5,7 @@
  * @pixi/particle-emitter is licensed under the MIT License.
  * http://www.opensource.org/licenses/mit-license
  */
+// @ts-ignore
 this.PIXI = this.PIXI || {};
 (function (exports, core, constants, sprite, math, ticker$1, display) {
   "use strict";
@@ -3668,6 +3669,7 @@ this.PIXI = this.PIXI || {};
   exports.behaviors = index$1;
   exports.upgradeConfig = upgradeConfig;
 })(
+  // @ts-ignore
   (this.PIXI.particles = this.PIXI.particles || {}),
   PIXI,
   PIXI,

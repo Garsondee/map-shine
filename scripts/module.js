@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+// @ts-nocheck
 /**
  * @fileoverview Map Shine - Advanced Visual Effects Module for Foundry VTT
  *
@@ -22,7 +24,7 @@
  * @requires pixi.js ^7.4.3
  *
  *
- * @todo HIGH Priority - Underwater Caustics cloud occlusion is broken.
+ *
  *
  *
  * @todo Glow in the dark is broken.
@@ -174,6 +176,14 @@ import { AmbientLayer } from "./layers/AmbientLayer.js";
  * @constant {string}
  */
 export const MODULE_ID = "map-shine";
+
+/**
+ * The maximum delta time in seconds allowed for a single simulation step.
+ * This prevents physics "explosions" or extreme jumps during moments of low frame rate.
+ * The value 1/30 corresponds to a minimum of 30 frames per second.
+ * @constant {number}
+ */
+const MAX_DELTA_TIME = 1 / 30;
 
 /**
  * Default configuration settings for all universal effects in the Map Shine module.
@@ -2445,6 +2455,14 @@ export const MODULE_DEFAULTS = {
   },
   water: {
     enabled: true,
+    depthDisplacement: {
+      enabled: true,
+      strength: 0.005,
+      darken: 0.15,
+      wallColor: "#0d1a26",
+      wallIntensity: 0.8,
+      wallSmearBlend: 0.3,
+    },
     flow: {
       enabled: false,
       angle: 45,
@@ -2468,6 +2486,9 @@ export const MODULE_DEFAULTS = {
         strength: 0.3,
         scale: 15,
         speed: 0.02,
+        modulationScale: 3,
+        modulationSpeed: 0.01,
+        modulationStrength: 0.5,
       },
     },
     surface: {
@@ -3195,13 +3216,8 @@ class NativeAnimation {
   /**
    * A simple GSAP `to` replacement using requestAnimationFrame.
    * The config object contains the duration and callbacks, plus any properties on the target object to animate.
-   * @param {object} target The object whose properties you want to animate.
-   * @param {object} config The animation configuration.
-   * @param {number} config.duration Animation duration in seconds.
-   * @param {function} [config.onUpdate] Callback on each animation frame.
-   * @param {function} [config.onComplete] Callback on animation completion.
-   * @param {(string|function)} [config.ease] Easing function or name (e.g., "power2.inOut").
-   * @param {*} [config.key] A unique key for this animation, defaults to the target object.
+   * @param {object} target - The object whose properties you want to animate.
+   * @param {object} config - Animation configuration. Include duration, onUpdate, onComplete, ease, key, and any properties to animate.
    * @returns {{kill: function}} An object with a kill method to stop the animation.
    */
   static to(target, config) {
@@ -3304,8 +3320,10 @@ class FontLoader {
     if (uniqueFontsToLoad.length === 0) return;
 
     const link =
-      document.getElementById(this.STYLESHEET_ID) || this._createLink();
-    // @ts-ignore
+      /** @type {HTMLLinkElement} */ (
+        document.getElementById(this.STYLESHEET_ID)
+      ) || this._createLink();
+
     const currentlyLoadedFonts = this._getLoadedFonts(link);
 
     const newFonts = uniqueFontsToLoad.filter(
@@ -3320,7 +3338,6 @@ class FontLoader {
       .map((font) => `family=${font.replace(/ /g, "+")}:wght@400;700`)
       .join("&");
 
-    // @ts-ignore
     link.href = `https://fonts.googleapis.com/css2?${fontQuery}&display=swap`;
   }
 
@@ -3355,7 +3372,7 @@ class FontLoader {
         const name = family.split(":")[0].replace(/\+/g, " ");
         loaded.add(name);
       }
-    } catch (e) {
+    } catch {
       // The URL might be invalid if the href is not set yet, which is fine.
     }
     return loaded;
@@ -3528,7 +3545,7 @@ class MapShineInitialiser {
             if (canvas.scene) {
               // Clamp the value to prevent any floating point errors going outside the 0-1 range.
               const clampedDarkness = Math.max(0, Math.min(1, darkness));
-              // @ts-ignore
+
               await canvas.scene.update({ darkness: clampedDarkness });
             }
           }
@@ -3537,7 +3554,7 @@ class MapShineInitialiser {
         // Trigger the expensive update for all visual systems.
         await game.mapShine.profileManager.updateAllSystemsFromConfig();
         // Notify other components (like the clock UI itself) that the time has officially changed.
-        // @ts-ignore
+        // @ts-expect-error - Custom hook type augmentation not working with foundry-vtt-types package
         Hooks.callAll("mapShine:timeChanged", time);
       }
     };
@@ -3564,7 +3581,7 @@ class MapShineInitialiser {
           const serializableTiles = Array.from(
             discoveredTargets.tiles.entries()
           ).map(([tileId, targetData]) => {
-            const { tile, ...rest } = targetData;
+            const { tile: _tile, ...rest } = targetData;
             return [tileId, rest];
           });
 
@@ -3597,12 +3614,13 @@ class MapShineInitialiser {
             // ensuring the loading process can continue without waiting for the updateScene hook.
           }
         } else {
-          const flagData = canvas.scene.getFlag(MODULE_ID, FLAG_NAME);
+          const flagData = /** @type {any} */ (
+            canvas.scene.getFlag(MODULE_ID, FLAG_NAME)
+          );
           if (flagData) {
             const rehydratedTiles = new Map();
-            // @ts-ignore
+
             if (flagData.tiles) {
-              // @ts-ignore
               for (const [tileId, targetData] of flagData.tiles) {
                 const tile = canvas.tiles.get(tileId);
                 if (tile) {
@@ -3614,7 +3632,6 @@ class MapShineInitialiser {
               }
             }
             this.targets = {
-              // @ts-ignore
               background: flagData.background,
               tiles: rehydratedTiles,
             };
@@ -3647,7 +3664,7 @@ class MapShineInitialiser {
 
         this.applyTileOpacities();
         await this.broadcastUpdate();
-        // @ts-ignore
+        // @ts-expect-error - Custom hook type augmentation not working with foundry-vtt-types package
         Hooks.callAll("mapShine:targetsRefreshed");
       },
       async broadcastUpdate() {
@@ -4369,11 +4386,11 @@ class HooksManager {
         "color: #4CAF50; font-weight: bold;",
         "pixi-particles library loaded correctly onto PIXI object."
       );
-      // @ts-ignore
+
       PIXI.particles.behaviors.ShapeSpawnBehavior.registerShape(
         TextureMaskShape
       );
-      // @ts-ignore
+
       PIXI.particles.behaviors.ShapeSpawnBehavior.registerShape(
         GeometryMaskShape
       );
@@ -4666,8 +4683,8 @@ class HooksManager {
     }
 
     // This hook ensures settings that should be textareas are rendered as such.
-    // @ts-ignore
-    Hooks.on("renderSettingsConfig", (app, html, data) => {
+
+    Hooks.on("renderSettingsConfig", (_app, html) => {
       const settingsToConvert = [
         `${MODULE_ID}.universal.sceneTransition.randomHints`,
         `${MODULE_ID}.loading-screen-random-backgrounds`,
@@ -4689,7 +4706,7 @@ class HooksManager {
           }
 
           const textarea = document.createElement("textarea");
-          // @ts-ignore
+
           textarea.name = input.name;
           textarea.id = input.id;
           textarea.value = value; // Use the raw value.
@@ -4769,7 +4786,11 @@ class HooksManager {
           CoordinateManager.update();
           game.mapShine.resourceManager?.onFrameStart();
           game.mapShine.lightMaskManager?.update();
-          ScreenEffectsManager.updateFrame(canvas.app.ticker.elapsedMS / 1000);
+          const deltaTime = Math.min(
+            canvas.app.ticker.elapsedMS / 1000,
+            MAX_DELTA_TIME
+          );
+          ScreenEffectsManager.updateFrame(deltaTime);
         }
       };
       canvas.app.ticker.add(mainTicker, null, PIXI.UPDATE_PRIORITY.HIGH);
@@ -4785,10 +4806,10 @@ class HooksManager {
       if (canvas.roofs) {
         // Set a high z-index to render above most custom effect layers.
         // Ambient is 250, Prism 251, etc. This places roofs above them.
-        // @ts-ignore
+
         canvas.roofs.zIndex = 260;
         // The stage's children need to be re-sorted for the new z-index to take effect.
-        // @ts-ignore
+
         canvas.stage.sortChildren();
         console.log(
           "Map Shine | Elevated RoofsLayer z-index to 260 to ensure overhead tiles render on top of effects."
@@ -5575,6 +5596,64 @@ class ResourceManager {
     this._frameCache.biofilmOutputTexture = texture;
     return texture;
   }
+
+  /**
+   * Retrieves the distortion noise texture from the PrismLayer.
+   * Caches the texture for the duration of the current frame.
+   * @returns {PIXI.RenderTexture|null} The prism distortion noise texture.
+   */
+  getPrismDistortionNoise() {
+    if (this._destroyed) return null;
+    if (this._frameCache.prismDistortionNoise) {
+      return this._frameCache.prismDistortionNoise;
+    }
+
+    const layer = canvas.layers.find((l) => l instanceof PrismLayer);
+    if (!layer?.distortionNoiseManager) return null;
+
+    const texture = layer.distortionNoiseManager.getTexture();
+    this._frameCache.prismDistortionNoise = texture;
+    return texture;
+  }
+
+  /**
+   * Retrieves the distortion noise texture from the IridescenceLayer.
+   * Caches the texture for the duration of the current frame.
+   * @returns {PIXI.RenderTexture|null} The iridescence distortion noise texture.
+   */
+  getIridescenceDistortionNoise() {
+    if (this._destroyed) return null;
+    if (this._frameCache.iridescenceDistortionNoise) {
+      return this._frameCache.iridescenceDistortionNoise;
+    }
+
+    const layer = canvas.layers.find((l) => l instanceof IridescenceLayer);
+    if (!layer?.distortionNoiseManager) return null;
+
+    const texture = layer.distortionNoiseManager.getTexture();
+    this._frameCache.iridescenceDistortionNoise = texture;
+    return texture;
+  }
+
+  /**
+   * Retrieves the heat distortion noise texture from the HeatDistortionLayer.
+   * This layer renders noise inline rather than using a NoiseTextureManager.
+   * Caches the texture for the duration of the current frame.
+   * @returns {PIXI.RenderTexture|null} The heat distortion noise texture.
+   */
+  getHeatDistortionNoise() {
+    if (this._destroyed) return null;
+    if (this._frameCache.heatDistortionNoise) {
+      return this._frameCache.heatDistortionNoise;
+    }
+
+    const layer = canvas.layers.find((l) => l instanceof HeatDistortionLayer);
+    if (!layer?.noiseTexture) return null;
+
+    const texture = layer.noiseTexture;
+    this._frameCache.heatDistortionNoise = texture;
+    return texture;
+  }
 }
 
 // =================================================================================
@@ -5669,7 +5748,8 @@ class LightMaskManager {
 
     // Stage 1 resources (Full resolution)
     this.lightMaskGraphics = new PIXI.Graphics();
-    // @ts-ignore
+
+    // @ts-expect-error - PIXI.RenderTexture.create accepts options object in v5+
     this.lightPolygonMaskTexture = PIXI.RenderTexture.create({
       width: screen.width,
       height: screen.height,
@@ -5677,25 +5757,24 @@ class LightMaskManager {
     });
 
     // Stage 2 resources (Downscaled for performance)
+    // @ts-expect-error - PIXI.RenderTexture.create accepts options object in v5+
     this.intermediateBlurTexture = PIXI.RenderTexture.create(
-      // @ts-ignore
       downscaledTextureOptions
     );
+    // @ts-expect-error - PIXI.RenderTexture.create accepts options object in v5+
     this.intermediateBlurTexture2 = PIXI.RenderTexture.create(
-      // @ts-ignore
       downscaledTextureOptions
     );
     // The final output texture must be full resolution
+    // @ts-expect-error - PIXI.RenderTexture.create accepts options object in v5+
     this.blurredLightMaskTexture = PIXI.RenderTexture.create(
-      // @ts-ignore
       fullResTextureOptions
     );
 
-    // @ts-ignore
     this.kawaseBlurFilter1 = new PIXI.filters.KawaseBlurFilter(15, 2, true);
-    // @ts-ignore
+
     this.kawaseBlurFilter2 = new PIXI.filters.KawaseBlurFilter(15, 2, true);
-    // @ts-ignore
+
     this.kawaseBlurFilter3 = new PIXI.filters.KawaseBlurFilter(15, 2, true);
     this.noiseFilter = new NoiseFilter({ noiseAmount: 0.05 });
 
@@ -5711,17 +5790,17 @@ class LightMaskManager {
 
     // Register hooks to flag updates
     Hooks.on("canvasPan", this._flagUpdate);
-    // @ts-ignore
+    // @ts-expect-error - Foundry VTT light/wall hooks not in type definitions
     Hooks.on("createLight", this._flagUpdate);
-    // @ts-ignore
+    // @ts-expect-error - Foundry VTT light/wall hooks not in type definitions
     Hooks.on("updateLight", this._flagUpdate);
-    // @ts-ignore
+    // @ts-expect-error - Foundry VTT light/wall hooks not in type definitions
     Hooks.on("deleteLight", this._flagUpdate);
     Hooks.on("createWall", this._flagUpdate);
     Hooks.on("updateWall", this._flagUpdate);
     Hooks.on("deleteWall", this._flagUpdate);
     window.addEventListener("resize", this._boundOnResize);
-    // @ts-ignore
+    // @ts-expect-error - Custom module hook
     Hooks.on("mapShine:profileUpdated", this._onProfileUpdate);
 
     // Initial configuration
@@ -5737,17 +5816,17 @@ class LightMaskManager {
 
     // Unregister hooks
     Hooks.off("canvasPan", this._flagUpdate);
-    // @ts-ignore
+    // @ts-expect-error - Foundry VTT light/wall hooks not in type definitions
     Hooks.off("createLight", this._flagUpdate);
-    // @ts-ignore
+    // @ts-expect-error - Foundry VTT light/wall hooks not in type definitions
     Hooks.off("updateLight", this._flagUpdate);
-    // @ts-ignore
+    // @ts-expect-error - Foundry VTT light/wall hooks not in type definitions
     Hooks.off("deleteLight", this._flagUpdate);
     Hooks.off("createWall", this._flagUpdate);
     Hooks.off("updateWall", this._flagUpdate);
     Hooks.off("deleteWall", this._flagUpdate);
     window.removeEventListener("resize", this._boundOnResize);
-    // @ts-ignore
+    // @ts-expect-error - Custom module hook
     Hooks.off("mapShine:profileUpdated", this._onProfileUpdate);
 
     // Destroy all PIXI objects
@@ -5759,7 +5838,7 @@ class LightMaskManager {
     this.kawaseBlurFilter1?.destroy();
     this.kawaseBlurFilter2?.destroy();
     this.kawaseBlurFilter3?.destroy();
-    // @ts-ignore
+
     this.noiseFilter?.destroy();
     this.blurSourceSprite?.destroy();
     this.downscaledBlurSprite?.destroy();
@@ -5948,7 +6027,7 @@ class NoiseFilter extends PIXI.Filter {
 
     super(vertexSrc, fragmentSrc, {
       uNoiseAmount: options.noiseAmount ?? 0.05,
-      // @ts-ignore
+
       uTime: 0.0,
     });
   }
@@ -5971,7 +6050,8 @@ class AppearanceTransitionManager {
     this.activeTransition = null;
     this.status = "idle"; // "idle", "transitioning", "previewing"
     this.statusMessage = "Idle";
-    this._updateUICallback = () => {};
+    /** @type {(status: string, message: string) => void} */
+    this._updateUICallback = (_status, _message) => {};
     this._configBeforePreview = null;
   }
 
@@ -5983,7 +6063,6 @@ class AppearanceTransitionManager {
     this.status = status;
     this.statusMessage = message;
     if (typeof this._updateUICallback === "function") {
-      // @ts-ignore
       this._updateUICallback(status, message);
     }
   }
@@ -6032,7 +6111,7 @@ class AppearanceTransitionManager {
           lerp(startRgb[2], endRgb[2], progress),
         ];
         // Use the PIXI.Color constructor instead of the deprecated fromRGB method.
-        // @ts-ignore
+
         target[key] = new PIXI.Color(lerpedRgb).toHex();
       } else if (
         endType === "object" &&
@@ -6071,7 +6150,7 @@ class AppearanceTransitionManager {
       this.profileManager.activeConfig = endConfig;
       await this.profileManager.updateAllSystemsFromConfig();
       // Also broadcast the final time for any listeners like the clock.
-      // @ts-ignore
+      // @ts-expect-error - Custom hook type augmentation not working with foundry-vtt-types package
       Hooks.callAll("mapShine:timeChanged", endConfig.timeOfDay.currentTime);
       this._setStatus("idle", "Transition complete (instant)");
       return;
@@ -6100,9 +6179,7 @@ class AppearanceTransitionManager {
         ? "Previewing transition..."
         : "Transitioning...";
       this._setStatus(statusType, startMessage);
-
       this.activeTransition = NativeAnimation.to(transitionState, {
-        // @ts-ignore
         progress: 1,
         duration: duration / 1000,
         ease: "power1.inOut",
@@ -6110,14 +6187,15 @@ class AppearanceTransitionManager {
           const interpolatedConfig = this._interpolateConfigs(
             startConfig,
             endConfig,
+
             transitionState.progress
           );
           this.profileManager.activeConfig = interpolatedConfig;
           this.profileManager.updateAllSystemsFromConfig({
             skipParticles: true,
           });
+          // @ts-expect-error - Custom hook type augmentation not working with foundry-vtt-types package
           Hooks.callAll(
-            // @ts-ignore
             "mapShine:timeChanged",
             interpolatedConfig.timeOfDay.currentTime
           );
@@ -6150,8 +6228,8 @@ class AppearanceTransitionManager {
             }
           }
           await this.profileManager.updateAllSystemsFromConfig();
+          // @ts-expect-error - Custom hook type augmentation not working with foundry-vtt-types package
           Hooks.callAll(
-            // @ts-ignore
             "mapShine:timeChanged",
             endConfig.timeOfDay.currentTime
           );
@@ -6319,7 +6397,7 @@ class DynamicExposureManager {
       const maskValue = pixelData[0];
       const isNowOutdoors = maskValue > 128;
       this.isIndoors = !isNowOutdoors;
-    } catch (e) {
+    } catch {
       // It's safe to ignore extraction errors here, as this is just setting an initial state.
     }
   }
@@ -6368,7 +6446,7 @@ class DynamicExposureManager {
       if (canTriggerEffect && wasIndoors && isNowOutdoors) {
         this._triggerDazzleEffect();
       }
-    } catch (e) {
+    } catch {
       // This can happen if the texture is not yet ready on the GPU.
       // It's safe to ignore and try again on the next movement.
     }
@@ -6391,7 +6469,6 @@ class DynamicExposureManager {
     // Animate the exposure boost using the native animation helper
     this.ccFilter.uniforms.uDynamicExposureBoost = this.config.intensity;
     this.dazzleAnimation = NativeAnimation.to(this.ccFilter.uniforms, {
-      // @ts-ignore
       uDynamicExposureBoost: 0,
       duration: this.config.duration / 1000,
       ease: "power2.out",
@@ -6521,8 +6598,8 @@ class PauseEffectManager {
         game.mapShine.profileManager.activeConfig.timeControl.globalTime;
     }
 
+    // @ts-expect-error - progress property not in type definitions but is valid
     this._animation = NativeAnimation.to(this._animationState, {
-      // @ts-ignore
       progress: targetProgress,
       duration: peConfig.duration / 1000,
       ease: "power2.inOut",
@@ -6646,7 +6723,7 @@ class CombatEffectManager {
     this._updateEffects(this._animationState.progress);
 
     Hooks.on("combatStart", () => this._boundOnCombatChange(true));
-    // @ts-ignore
+
     Hooks.on("combatEnd", () => this._boundOnCombatChange(false));
     Hooks.on("deleteCombat", () => this._boundOnCombatChange(false));
 
@@ -6658,7 +6735,7 @@ class CombatEffectManager {
     if (!this._isInitialized) return;
 
     Hooks.off("combatStart", this._boundOnCombatChange);
-    // @ts-ignore
+
     Hooks.off("combatEnd", this._boundOnCombatChange);
     Hooks.off("deleteCombat", this._boundOnCombatChange);
 
@@ -6729,8 +6806,8 @@ class CombatEffectManager {
         game.mapShine.profileManager.activeConfig.timeControl.globalTime;
     }
 
+    // @ts-expect-error - progress property not in type definitions but is valid
     this._animation = NativeAnimation.to(this._animationState, {
-      // @ts-ignore
       progress: targetProgress,
       duration: ceConfig.duration / 1000,
       ease: "power2.inOut",
@@ -6830,12 +6907,12 @@ class CombatEffectManager {
     u.uSelectiveTargetLum = cc.selective.targetLuminance;
     u.uSelectiveSoftness = cc.selective.softness;
     u.uSelectiveInvert = cc.selective.invert;
-    // @ts-ignore
-    u.uSelectiveDesaturation = cc.desaturation;
-    // @ts-ignore
-    u.uSelectiveTargetSaturation = cc.targetSaturation;
-    // @ts-ignore
-    u.uSelectiveTargetBrightness = cc.targetBrightness;
+    // @ts-expect-error - Extended properties from defaults
+    u.uSelectiveDesaturation = cc.selective.desaturation;
+    // @ts-expect-error - Extended properties from defaults
+    u.uSelectiveTargetSaturation = cc.selective.targetSaturation;
+    // @ts-expect-error - Extended properties from defaults
+    u.uSelectiveTargetBrightness = cc.selective.targetBrightness;
   }
 }
 
@@ -6869,9 +6946,7 @@ class OverheadEffectLayer extends CanvasLayer {
     this._boundOnCanvasReady = this._refreshOverheadTiles.bind(this);
   }
 
-  // @ts-ignore
-  async _draw(options) {
-    // @ts-ignore
+  async _draw() {
     this._destroyed = false;
     /** @type {string} */
     this.eventMode = "auto";
@@ -6879,13 +6954,12 @@ class OverheadEffectLayer extends CanvasLayer {
     const screen = CoordinateManager.getScreenDimensions();
 
     this.spritesContainer = new PIXI.Container();
-    // @ts-ignore
+
     this.compositeTexture = PIXI.RenderTexture.create({
       width: screen.width,
       height: screen.height,
     });
 
-    // @ts-ignore
     this.blurFilter = new PIXI.BlurFilter();
     this.recolorFilter = new OverheadRecolorFilter();
 
@@ -6910,7 +6984,6 @@ class OverheadEffectLayer extends CanvasLayer {
   }
 
   async _tearDown(options) {
-    // @ts-ignore
     this._destroyed = true;
 
     for (const anim of this.activeAnimations.values()) {
@@ -6935,7 +7008,7 @@ class OverheadEffectLayer extends CanvasLayer {
 
     this.spritesContainer?.destroy({ children: true });
     this.blurFilter?.destroy();
-    // @ts-ignore
+
     this.recolorFilter?.destroy();
     this.compositeTexture?.destroy(true);
     this.compositeSprite?.destroy();
@@ -7036,7 +7109,7 @@ class OverheadEffectLayer extends CanvasLayer {
     // The texture of compositeSprite is screen-sized. To make the sprite have a world-size
     // that perfectly matches the viewport, we need to scale it by 1 / canvasScale.
     const scale = CoordinateManager.getCanvasScale();
-    // @ts-ignore
+
     this.compositeSprite.position.copyFrom(CoordinateManager.getCameraOffset());
     if (scale > 0) {
       this.compositeSprite.scale.set(1 / scale);
@@ -7099,14 +7172,13 @@ class OverheadEffectLayer extends CanvasLayer {
           const oeConfig =
             game.mapShine.profileManager.activeConfig.overheadEffect;
           const duration = (oeConfig.hoverFadeDuration || 500) / 1000;
-          // @ts-ignore
+
           sprite.eventMode = "static";
           sprite.cursor = "pointer";
 
           sprite.on("pointerover", () => {
             const anim = NativeAnimation.to(sprite, {
               key: `overhead-${tile.id}`,
-              // @ts-ignore
               alpha: 0,
               duration: duration,
               ease: "power2.out",
@@ -7116,7 +7188,6 @@ class OverheadEffectLayer extends CanvasLayer {
           sprite.on("pointerout", () => {
             const anim = NativeAnimation.to(sprite, {
               key: `overhead-${tile.id}`,
-              // @ts-ignore
               alpha: 1,
               duration: duration,
               ease: "power2.inOut",
@@ -7265,23 +7336,37 @@ class LoadingScreen {
                                   position: absolute; top: 0; left: 0; width: 100%; height: 100%;
                                   z-index: 1; /* Behind content */
                               }
-                              .loading-content { text-align: center; position: relative; z-index: 2; }
+                              .loading-content { 
+                                  text-align: center; 
+                                  position: relative; 
+                                  z-index: 2;
+                                  width: 80vw;
+                                  max-width: 80vw;
+                                  aspect-ratio: 16 / 9;
+                                  display: flex;
+                                  align-items: center;
+                                  justify-content: center;
+                              }
                               .loading-text-box {
-                                  background: rgba(0, 0, 0, 0.45);
+                                  background: rgba(0, 0, 0, 0.7);
                                   backdrop-filter: blur(12px);
                                   -webkit-backdrop-filter: blur(12px);
                                   border-radius: 12px;
                                   padding: 3.5rem 4.5rem;
                                   border: 1px solid rgba(255, 255, 255, 0.1);
                                   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-                                  max-width: 650px;
-                                  -webkit-mask-image: radial-gradient(ellipse at center, black 25%, transparent 75%);
-                                  mask-image: radial-gradient(ellipse at center, black 25%, transparent 75%);
+                                  width: 100%;
+                                  height: 100%;
+                                  display: flex;
+                                  flex-direction: column;
+                                  justify-content: center;
+                                  -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+                                  mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
                               }
                               .loading-logo { width: 150px; height: auto; margin: 0 auto 10px auto; display: block; filter: drop-shadow(0 0 10px rgba(0,0,0,0.6)); }
                               .loading-subhead { font-family: "${subheadingFont}", sans-serif; font-size: 24px; font-weight: normal; color: #f0f0f0; margin: 0 0 10px 0; text-shadow: 0 2px 5px rgba(0,0,0,0.7); }
                               .loading-title { font-family: "${headingFont}", sans-serif; font-size: 72px; margin: 0 0 30px 0; text-shadow: 0 2px 5px rgba(0,0,0,0.7); color: #fff; }
-                              .loading-bar-container { max-width: 400px; height: 20px; border: 2px solid rgba(255, 255, 255, 0.5); margin: 0 auto; background-color: rgba(0,0,0,0.5); border-radius: 5px; overflow: hidden; }
+                              .loading-bar-container { width: 60%; max-width: 500px; height: 20px; border: 2px solid rgba(255, 255, 255, 0.5); margin: 0 auto; background-color: rgba(0,0,0,0.5); border-radius: 5px; overflow: hidden; }
                               .loading-bar-fill { width: 0%; height: 100%; background-color: rgba(255, 255, 255, 0.9); transform-origin: left; transition: width 0.2s ease-out; box-shadow: 0 0 10px rgba(255, 255, 255, 0.5); }
                               .loading-status { margin-top: 15px; font-size: 16px; color: #f5f5f5; height: 20px; line-height: 20px; opacity: 0; transition: opacity ${
                                 this.statusFadeDuration / 1000
@@ -7341,9 +7426,8 @@ class LoadingScreen {
     this.fillElement = this.element.querySelector(".loading-bar-fill");
     this.statusTextElement = this.element.querySelector("#loading-status-text");
 
-    // @ts-ignore
     this.statusTextElement.innerText = "Initializing...";
-    // @ts-ignore
+
     this.statusTextElement.style.opacity = "1";
 
     // Force a reflow to ensure animations start properly
@@ -7430,7 +7514,7 @@ class LoadingScreen {
     }
 
     this._currentHintIndex = 0;
-    // @ts-ignore
+
     hintElement.innerText = this._shuffledHints[0];
     console.log(
       "[MapShine LoadingScreen] First hint displayed:",
@@ -7462,7 +7546,7 @@ class LoadingScreen {
         if (!this.element) return;
         this._currentHintIndex =
           (this._currentHintIndex + 1) % this._shuffledHints.length;
-        // @ts-ignore
+
         hintElement.innerText = this._shuffledHints[this._currentHintIndex];
         hintElement.classList.add("visible");
       }, HINT_TRANSITION_DURATION);
@@ -7488,22 +7572,19 @@ class LoadingScreen {
   setProgress(progress, message) {
     if (!this.fillElement) return;
     const p = Math.min(100, Math.max(0, progress));
-    // @ts-ignore
+
     this.fillElement.style.width = `${p}%`;
 
     if (
       message &&
       this.statusTextElement &&
-      // @ts-ignore
       this.statusTextElement.innerText !== message
     ) {
-      // @ts-ignore
       this.statusTextElement.style.opacity = "0";
       setTimeout(() => {
         if (this.statusTextElement) {
-          // @ts-ignore
           this.statusTextElement.innerText = message;
-          // @ts-ignore
+
           this.statusTextElement.style.opacity = "1";
         }
       }, this.statusFadeDuration);
@@ -7512,11 +7593,9 @@ class LoadingScreen {
 
   setStatus(message) {
     if (this.statusTextElement) {
-      // @ts-ignore
       this.statusTextElement.innerText = message;
-      // @ts-ignore
+
       if (this.statusTextElement.style.opacity !== "1") {
-        // @ts-ignore
         this.statusTextElement.style.opacity = "1";
       }
     }
@@ -7906,12 +7985,10 @@ export { MapShineLifecycle };
 
 class SystemStatusManager {
   constructor() {
-    // @ts-ignore
     if (SystemStatusManager._instance) {
-      // @ts-ignore
       return SystemStatusManager._instance;
     }
-    // @ts-ignore
+
     SystemStatusManager._instance = this;
 
     this._callbacks = {};
@@ -8030,11 +8107,10 @@ class SystemStatusManager {
   }
 
   static get instance() {
-    // @ts-ignore
     if (!SystemStatusManager._instance) {
       new SystemStatusManager();
     }
-    // @ts-ignore
+
     return SystemStatusManager._instance;
   }
 
@@ -8159,7 +8235,7 @@ class MapPointsManager {
     await canvas.scene.update({
       [path]: newGroup,
     });
-    // @ts-ignore
+    // @ts-expect-error - Custom hook type augmentation not working with foundry-vtt-types package
     Hooks.callAll("mapShine:mapPointsUpdated", {
       created: groupId,
     });
@@ -8187,7 +8263,7 @@ class MapPointsManager {
       await canvas.scene.update(updateData, {
         diff: false,
       });
-      // @ts-ignore
+      // @ts-expect-error - Custom hook type augmentation not working with foundry-vtt-types package
       Hooks.callAll("mapShine:mapPointsUpdated", {
         updated: groupId,
       });
@@ -8210,7 +8286,7 @@ class MapPointsManager {
     if (game.mapShine.activeMapPointGroup === groupId) {
       game.mapShine.activeMapPointGroup = null;
     }
-    // @ts-ignore
+    // @ts-expect-error - Custom hook type augmentation not working with foundry-vtt-types package
     Hooks.callAll("mapShine:mapPointsUpdated", {
       deleted: groupId,
     });
@@ -8247,7 +8323,7 @@ class MapPointsManager {
     console.log(
       `MapShine | MapPointsManager: Scene update complete. Calling hook.`
     );
-    // @ts-ignore
+    // @ts-expect-error - Custom hook type augmentation not working with foundry-vtt-types package
     Hooks.callAll("mapShine:mapPointsUpdated", {
       updated: groupId,
     });
@@ -8275,18 +8351,16 @@ class MapPointsManager {
     await canvas.scene.update({
       [path]: updatedGroup,
     });
-    // @ts-ignore
     Hooks.callAll("mapShine:mapPointsUpdated", {
       updated: groupId,
     });
   }
 
-  static async deletePoint(groupId, pointIndex) {
+  static async removePoint(groupId, pointIndex) {
     if (!game.user.isGM) return; // No warning.
 
     const group = this.getGroup(groupId);
     if (!group) return;
-
     const newPoints = [...group.points];
     newPoints.splice(pointIndex, 1);
     const updatedGroup = this.validate({
@@ -8298,7 +8372,6 @@ class MapPointsManager {
     await canvas.scene.update({
       [path]: updatedGroup,
     });
-    // @ts-ignore
     Hooks.callAll("mapShine:mapPointsUpdated", {
       updated: groupId,
     });
@@ -8394,7 +8467,6 @@ class GeometryMaskManager {
     for (const effectKey of Object.keys(EFFECT_SOURCE_OPTIONS)) {
       if (!effectKey) continue; // Skip the "None" option
 
-      // @ts-ignore
       const renderTexture = PIXI.RenderTexture.create({
         width: screen.width,
         height: screen.height,
@@ -8407,7 +8479,6 @@ class GeometryMaskManager {
       });
     }
 
-    // @ts-ignore
     Hooks.on("mapShine:mapPointsUpdated", this._boundOnMapPointsUpdated);
     Hooks.on("canvasPan", this._boundOnPan);
     window.addEventListener("resize", this._boundOnResize);
@@ -8422,7 +8493,6 @@ class GeometryMaskManager {
     if (this._destroyed) return;
     this._destroyed = true;
 
-    // @ts-ignore
     Hooks.off("mapShine:mapPointsUpdated", this._boundOnMapPointsUpdated);
     Hooks.off("canvasPan", this._boundOnPan);
     window.removeEventListener("resize", this._boundOnResize);
@@ -8482,7 +8552,7 @@ class GeometryMaskManager {
               `Map Shine | Post-render frame: Notifying particle systems that masks are ready.`
             );
             // Notify the particle system so it can create the emitters.
-            // @ts-ignore
+            // @ts-expect-error - Custom hook type augmentation not working with foundry-vtt-types package
             Hooks.callAll("mapShine:mapPointsUpdated");
           });
         }
@@ -8561,7 +8631,7 @@ class GeometryMaskManager {
 
       // Apply the world-to-screen transformation directly to the container.
       // This pre-transforms our world-space geometry for the renderer.
-      // @ts-ignore
+
       renderContainer.transform.setFromMatrix(
         canvas.stage.transform.worldTransform
       );
@@ -8965,7 +9035,7 @@ class TextureAutoLoader {
     let decodedFilename;
     try {
       decodedFilename = decodeURI(filename);
-    } catch (e) {
+    } catch {
       decodedFilename = filename;
     }
 
@@ -8995,7 +9065,7 @@ class TextureAutoLoader {
       if (isWaterTile) {
         console.log(`Files found in directory:`, filesInDir);
       }
-    } catch (e) {
+    } catch {
       // This part is unchanged
       return discoveredPaths;
     }
@@ -9014,7 +9084,7 @@ class TextureAutoLoader {
         let decodedFNameOnly;
         try {
           decodedFNameOnly = decodeURI(fNameOnly);
-        } catch (e) {
+        } catch {
           decodedFNameOnly = fNameOnly;
         }
         return (
@@ -9045,7 +9115,7 @@ class NoiseTextureManager {
     this._needsUpdate = true; // A flag to force an update after config changes or pans.
 
     const screen = renderer.screen;
-    // @ts-ignore
+
     this.renderTexture = PIXI.RenderTexture.create({
       width: screen.width,
       height: screen.height,
@@ -9168,7 +9238,7 @@ class NoiseTextureManager {
     if (this.isWorldSpace && this._onPanBound) {
       Hooks.off("canvasPan", this._onPanBound);
     }
-    // @ts-ignore
+
     this.filter?.destroy();
     this.sourceSprite?.destroy();
     this.renderTexture?.destroy(true);
@@ -9187,7 +9257,7 @@ class DynamicTokenMaskManager {
     console.log("DynamicTokenMaskManager | Initializing with sprite pooling.");
 
     const screen = CoordinateManager.getScreenDimensions();
-    // @ts-ignore
+
     this.renderTexture = PIXI.RenderTexture.create({
       width: screen.width,
       height: screen.height,
@@ -9328,9 +9398,9 @@ class CompositeMaskGenerator {
       ]);
 
       const container = new PIXI.Container();
-      // @ts-ignore
+
       const baseSprite = new PIXI.Sprite(baseTex);
-      // @ts-ignore
+
       const overlaySprite = new PIXI.Sprite(overlayTex);
 
       // Set sprite properties to match the target tile/background
@@ -9345,7 +9415,7 @@ class CompositeMaskGenerator {
       container.addChild(baseSprite, overlaySprite);
 
       // Create a render texture to capture the result
-      // @ts-ignore
+
       const renderTexture = PIXI.RenderTexture.create({
         width: renderer.screen.width,
         height: renderer.screen.height,
@@ -9881,7 +9951,6 @@ class LightningEffect {
         }
 
         if (currentWidth > 0.1) {
-          // @ts-ignore
           this.graphics.lineStyle({
             width: currentWidth,
             color: color,
@@ -10410,10 +10479,8 @@ class LightningManager {
     const bloomConfig =
       game.mapShine.profileManager.activeConfig.lightning.bloom;
     const BloomFilterConstructor =
-      // @ts-ignore
-      PIXI.filters.AdvancedBloomFilter ||
-      // @ts-ignore
-      (PIXI.filters.filters && PIXI.filters.filters.AdvancedBloomFilter);
+      PIXI.filters?.AdvancedBloomFilter ||
+      (globalThis.filters && globalThis.filters.AdvancedBloomFilter);
     if (BloomFilterConstructor) {
       // Construct the filter with its initial settings to prevent initialization errors.
       this.bloomFilter = new BloomFilterConstructor(bloomConfig);
@@ -10431,13 +10498,13 @@ class LightningManager {
     ].filter(Boolean);
 
     // The `eventMode` property prevents the container from blocking pointer events.
-    // @ts-ignore
+
     this.container.eventMode = "none";
     // The `filterArea` is required for filters like bloom to function correctly.
     this.container.filterArea = canvas.app.screen;
 
     canvas.app.ticker.add(this._tickerFunction);
-    // @ts-ignore
+
     Hooks.on("mapShine:mapPointsUpdated", this._onMapPointsUpdated);
     this._onMapPointsUpdated();
   }
@@ -10446,7 +10513,6 @@ class LightningManager {
     if (this._destroyed) return;
     this._destroyed = true;
 
-    // @ts-ignore
     Hooks.off("mapShine:mapPointsUpdated", this._onMapPointsUpdated);
     canvas.app.ticker.remove(this._tickerFunction);
 
@@ -10456,9 +10522,9 @@ class LightningManager {
     this.persistentEffects.clear();
 
     this.bloomFilter?.destroy();
-    // @ts-ignore
+
     this.rgbSplitFilter?.destroy();
-    // @ts-ignore
+
     this.occlusionFilter?.destroy();
     this.bloomFilter = null;
     this.rgbSplitFilter = null;
@@ -10474,8 +10540,10 @@ class LightningManager {
   }
 
   update(deltaTime) {
-    // @ts-ignore
     if (this._destroyed || !this.container || this.container.destroyed) return;
+
+    // Clamp delta time to prevent physics explosions on frame drops
+    const clampedDeltaTime = Math.min(deltaTime, MAX_DELTA_TIME);
 
     const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
     const config = game.mapShine.profileManager.activeConfig.lightning;
@@ -10500,7 +10568,7 @@ class LightningManager {
     // Update one-off effects and remove them when they expire.
     const expiredEffectIds = [];
     this.effects.forEach((effect, id) => {
-      effect.update(deltaTime, timeFactor);
+      effect.update(clampedDeltaTime, timeFactor);
       if (effect.isExpired) {
         expiredEffectIds.push(id);
       }
@@ -10513,9 +10581,8 @@ class LightningManager {
     // Update persistent effects and their state transitions.
     this.persistentEffects.forEach((persistent) => {
       if (persistent.state === "IDLE") {
-        persistent.nextEventTime -= deltaTime * timeFactor;
+        persistent.nextEventTime -= clampedDeltaTime * timeFactor;
         if (persistent.nextEventTime <= 0) {
-          // @ts-ignore
           if (this._destroyed || !this.container || this.container.destroyed)
             return;
 
@@ -10535,7 +10602,7 @@ class LightningManager {
       } else if (persistent.state === "STRIKING") {
         if (persistent.effect) {
           persistent.effect.config = config; // Ensure it has the latest config
-          persistent.effect.update(deltaTime, timeFactor);
+          persistent.effect.update(clampedDeltaTime, timeFactor);
           if (persistent.effect.isExpired) {
             persistent.effect.destroy();
             persistent.effect = null;
@@ -10613,7 +10680,6 @@ class LightningManager {
       }
     }
 
-    // @ts-ignore
     this.container.blendMode = bloomConfig.blendMode ?? PIXI.BLEND_MODES.ADD;
   }
 }
@@ -10663,9 +10729,8 @@ class LightningOcclusionFilter extends PIXI.Filter {
           `;
 
     super(vertexSrc, fragmentSrc, {
-      // @ts-ignore
       uOutdoorsMask: PIXI.Texture.EMPTY,
-      // @ts-ignore
+
       uCloudTexture: PIXI.Texture.EMPTY,
       ...options,
     });
@@ -10802,7 +10867,7 @@ const PARTICLE_EFFECT_DEFINITIONS = {
       "Simulates a swarm of flies orbiting a central point, occasionally landing and walking around. Requires a Point or Area group from Map Points. The first point of the group defines the center of the swarm, and the area defines where they can walk.",
     configPath: "smellyFlies",
     triggerTexture: "smellyFlies", // This is a dummy key for the UI, effect is geometry-based
-    // @ts-ignore
+
     buildEmitterConfig: (effectConfig, targetData, maskKey, group) =>
       buildSmellyFliesEmitterConfig(effectConfig, targetData, group),
   },
@@ -10896,11 +10961,7 @@ class ParticleEffectController {
     }
 
     if (definition.configPath === "fire.particles") {
-      const BloomFilterConstructor =
-        // @ts-ignore
-        PIXI.filters.AdvancedBloomFilter ||
-        // @ts-ignore
-        (PIXI.filters.filters && PIXI.filters.filters.AdvancedBloomFilter);
+      const BloomFilterConstructor = PIXI.AdvancedBloomFilter;
       if (BloomFilterConstructor) {
         this.bloomFilter = new BloomFilterConstructor();
       }
@@ -10929,14 +10990,14 @@ class ParticleEffectController {
     if (this.particleOutputTexture) return;
 
     const screen = CoordinateManager.getScreenDimensions();
-    // @ts-ignore
+
     this.particleOutputTexture = PIXI.RenderTexture.create({
       width: screen.width,
       height: screen.height,
     });
 
     this.displacementSprite = new PIXI.Sprite();
-    // @ts-ignore
+
     this.displacementFilter = new PIXI.DisplacementFilter(
       this.displacementSprite
     );
@@ -12139,7 +12200,6 @@ class ParticleEffectController {
       const emitter = new PIXI.particles.Emitter(emitterParent, emitterConfig);
 
       if (spawnMaskSource instanceof PIXI.Texture) {
-        // @ts-ignore
         emitter._customMaskTexture = spawnMaskSource;
       }
 
@@ -12178,7 +12238,6 @@ class ParticleEffectController {
       if (
         !this.parentContainer ||
         !currentFullConfig.enabled ||
-        // @ts-ignore
         !currentEffectConfig?.enabled
       )
         return true; // Effect is disabled, count as "success" to remove from pending.
@@ -12380,13 +12439,12 @@ class ParticleEffectController {
       controllerConfig?.enabled;
     if (this.definition.configPath === "fire.particles") {
       const fireConfig = foundry.utils.getProperty(fullConfig, "fire");
-      // @ts-ignore
+
       isVisible = isVisible && fireConfig?.enabled;
     }
     this.parentContainer.visible = isVisible;
 
     if (this.particleOnlyContainer) {
-      // @ts-ignore
       this.particleOnlyContainer.blendMode =
         this.config.blendMode ?? PIXI.BLEND_MODES.NORMAL;
       this.parentContainer.blendMode =
@@ -12474,7 +12532,7 @@ class ParticleEffectController {
 
     if (this.bloomFilter) {
       const fireConfig = foundry.utils.getProperty(fullConfig, "fire");
-      // @ts-ignore
+
       const bloomConfig = fireConfig?.bloom;
       const shouldUseBloom =
         this.parentContainer.visible && bloomConfig?.enabled;
@@ -12512,12 +12570,12 @@ class ParticleEffectController {
 
   destroy() {
     this.destroyAllEmitters();
-    // @ts-ignore
+
     this.rgbSplitFilter?.destroy();
     this.bloomFilter?.destroy();
     this.displacementFilter?.destroy();
     this.displacementSprite?.destroy();
-    // @ts-ignore
+
     this.biofilmMaskFilter?.destroy();
     this.particleOutputTexture?.destroy(true);
 
@@ -12597,6 +12655,7 @@ const buildParticleEmitterConfig = (
     },
   };
 
+  /** @type {Array<{type: string, config: any}>} */
   const behaviors = [
     {
       type: "textureSingle",
@@ -12610,14 +12669,13 @@ const buildParticleEmitterConfig = (
 
   if (config.colorAlphaGradient && config.colorAlphaGradient.length > 0) {
     const {
-      // @ts-ignore
       isColorStatic,
-      // @ts-ignore
+
       staticColor,
       colorList,
-      // @ts-ignore
+
       isAlphaStatic,
-      // @ts-ignore
+
       staticAlpha,
       alphaList,
     } = _generateBehaviorListsFromGradient(config.colorAlphaGradient);
@@ -12625,26 +12683,21 @@ const buildParticleEmitterConfig = (
     // If the effect is driven by the specular map (i.e., metallicGlints),
     // source the particle color from the spawn point on the map itself.
     if (maskKey === "specular") {
-      // @ts-ignore
       behaviors.push({ type: "colorFromSpawn", config: {} });
     }
     // For all other effects, use the standard gradient-based coloring.
     else {
       if (isColorStatic) {
-        // @ts-ignore
         behaviors.push({ type: "colorStatic", config: { color: staticColor } });
       } else {
-        // @ts-ignore
         behaviors.push({ type: "color", config: { color: colorList } });
       }
     }
 
     // Alpha is handled by the gradient for all effects.
     if (isAlphaStatic) {
-      // @ts-ignore
       behaviors.push({ type: "alphaStatic", config: { alpha: staticAlpha } });
     } else {
-      // @ts-ignore
       behaviors.push({ type: "alpha", config: { alpha: alphaList } });
     }
   }
@@ -12658,7 +12711,6 @@ const buildParticleEmitterConfig = (
     behaviors.push({
       type: "scaleStatic",
       config: {
-        // @ts-ignore
         min: startScale,
         max: startScale,
       },
@@ -12667,7 +12719,6 @@ const buildParticleEmitterConfig = (
     behaviors.push({
       type: "scale",
       config: {
-        // @ts-ignore
         scale: {
           start: startScale,
           end: endScale,
@@ -12684,7 +12735,6 @@ const buildParticleEmitterConfig = (
     behaviors.push({
       type: "mapShineLighting",
       config: {
-        // @ts-ignore
         emissive: _generateEmissiveListFromGradient(config.emissiveGradient),
       },
     });
@@ -12744,7 +12794,6 @@ const buildParticleEmitterConfig = (
       behaviors.push({
         type: "moveSpeedStatic",
         config: {
-          // @ts-ignore
           min: startSpeed,
           max: startSpeed,
         },
@@ -12753,7 +12802,6 @@ const buildParticleEmitterConfig = (
       behaviors.push({
         type: "moveSpeed",
         config: {
-          // @ts-ignore
           speed: {
             start: startSpeed,
             end: endSpeed,
@@ -12770,7 +12818,6 @@ const buildParticleEmitterConfig = (
     behaviors.push({
       type: "rotation",
       config: {
-        // @ts-ignore
         minStart: 0,
         maxStart: 360,
         minSpeed: rotConfig.minSpeed ?? 0,
@@ -12782,7 +12829,6 @@ const buildParticleEmitterConfig = (
     behaviors.push({
       type: "rotationStatic",
       config: {
-        // @ts-ignore
         min: 0,
         max: 360,
       },
@@ -12834,6 +12880,7 @@ const buildSparkEmitterConfig = (effectConfig, targetData, maskKey) => {
 
   const lifetimeConfig = config.lifetime ?? {};
 
+  /** @type {Array<{type: string, config: any}>} */
   const behaviors = [
     {
       type: "textureSingle",
@@ -12849,7 +12896,6 @@ const buildSparkEmitterConfig = (effectConfig, targetData, maskKey) => {
     behaviors.push({
       type: "mapShineLighting",
       config: {
-        // @ts-ignore
         emissive: _generateEmissiveListFromGradient(config.emissiveGradient),
       },
     });
@@ -12857,31 +12903,26 @@ const buildSparkEmitterConfig = (effectConfig, targetData, maskKey) => {
 
   if (config.colorAlphaGradient && config.colorAlphaGradient.length > 0) {
     const {
-      // @ts-ignore
       isColorStatic,
-      // @ts-ignore
+
       staticColor,
       colorList,
-      // @ts-ignore
+
       isAlphaStatic,
-      // @ts-ignore
+
       staticAlpha,
       alphaList,
     } = _generateBehaviorListsFromGradient(config.colorAlphaGradient);
 
     if (isColorStatic) {
-      // @ts-ignore
       behaviors.push({ type: "colorStatic", config: { color: staticColor } });
     } else {
-      // @ts-ignore
       behaviors.push({ type: "color", config: { color: colorList } });
     }
 
     if (isAlphaStatic) {
-      // @ts-ignore
       behaviors.push({ type: "alphaStatic", config: { alpha: staticAlpha } });
     } else {
-      // @ts-ignore
       behaviors.push({ type: "alpha", config: { alpha: alphaList } });
     }
   }
@@ -12898,7 +12939,6 @@ const buildSparkEmitterConfig = (effectConfig, targetData, maskKey) => {
     behaviors.push({
       type: "scaleStatic",
       config: {
-        // @ts-ignore
         min: startScale,
         max: startScale,
       },
@@ -12907,7 +12947,6 @@ const buildSparkEmitterConfig = (effectConfig, targetData, maskKey) => {
     behaviors.push({
       type: "scale",
       config: {
-        // @ts-ignore
         scale: {
           start: startScale,
           end: endScale,
@@ -12920,7 +12959,6 @@ const buildSparkEmitterConfig = (effectConfig, targetData, maskKey) => {
   behaviors.push({
     type: "sparkPath",
     config: {
-      // @ts-ignore
       speed: {
         list: [
           {
@@ -12979,8 +13017,7 @@ const buildSparkEmitterConfig = (effectConfig, targetData, maskKey) => {
 const buildPressurisedSteamEmitterConfig = (
   effectConfig,
   targetData,
-  maskKey,
-  groupData = null
+  maskKey
 ) => {
   // This is mostly a copy of buildParticleEmitterConfig with modifications
   const globalParticleConfig =
@@ -13020,6 +13057,7 @@ const buildPressurisedSteamEmitterConfig = (
   const minAngle = pathConfig.angle?.min ?? -100;
   const maxAngle = pathConfig.angle?.max ?? -80;
 
+  /** @type {Array<{type: string, config: any}>} */
   const behaviors = [
     {
       type: "textureSingle",
@@ -13042,9 +13080,12 @@ const buildPressurisedSteamEmitterConfig = (
   if (config.colorAlphaGradient && config.colorAlphaGradient.length > 0) {
     const {
       isColorStatic,
+
       staticColor,
       colorList,
+
       isAlphaStatic,
+
       staticAlpha,
       alphaList,
     } = _generateBehaviorListsFromGradient(config.colorAlphaGradient);
@@ -13235,8 +13276,6 @@ class FireWindManager {
   }
 
   updateFromConfig(config) {
-    // @ts-ignore
-    const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
     // This now correctly applies the timeFactor to the base config values each time it's called.
     // The time delta passed to update() is also scaled, so we no longer double-apply the time scaling.
     this.config = {
@@ -13387,124 +13426,127 @@ class TextureMaskShape {
     }
 
     this.isCompiling = true;
-    this._compilationPromise = new Promise(async (resolve, reject) => {
+    this._compilationPromise = new Promise((resolve, reject) => {
       // Yield to the event loop to prevent blocking on the first frame
-      await new Promise((r) => setTimeout(r, 0));
+      setTimeout(async () => {
+        await this._performCompilation(resolve, reject);
+      }, 0);
+    });
+    return this._compilationPromise;
+  }
 
-      const renderer = canvas.app?.renderer;
-      if (
-        !renderer ||
-        !this.texture?.valid ||
-        this.texture.width === 0 ||
-        this.texture.height === 0
-      ) {
-        this.isCompiled = true;
-        this.isCompiling = false;
-        resolve();
-        return;
-      }
+  async _performCompilation(resolve, reject) {
+    const renderer = canvas.app?.renderer;
+    if (
+      !renderer ||
+      !this.texture?.valid ||
+      this.texture.width === 0 ||
+      this.texture.height === 0
+    ) {
+      this.isCompiled = true;
+      this.isCompiling = false;
+      resolve();
+      return;
+    }
 
-      this.validPoints.length = 0;
-      const texture = this.texture;
-      const step = Math.max(1, Math.floor(this.pointCompilationDensity));
+    this.validPoints.length = 0;
+    const texture = this.texture;
+    const step = Math.max(1, Math.floor(this.pointCompilationDensity));
 
-      try {
-        // @ts-ignore
-        const renderTexture = PIXI.RenderTexture.create({
-          width: texture.width,
-          height: texture.height,
-        });
-        const sprite = new PIXI.Sprite(texture);
-        renderer.render(sprite, {
-          renderTexture: renderTexture,
-          clear: true,
-        });
-        const pixelData = renderer.extract.pixels(renderTexture);
-        sprite.destroy();
-        renderTexture.destroy(true); // Clean up the temporary texture
+    try {
+      const renderTexture = PIXI.RenderTexture.create({
+        width: texture.width,
+        height: texture.height,
+      });
+      const sprite = new PIXI.Sprite(texture);
+      renderer.render(sprite, {
+        renderTexture: renderTexture,
+        clear: true,
+      });
+      const pixelData = renderer.extract.pixels(renderTexture);
+      sprite.destroy();
+      renderTexture.destroy(true); // Clean up the temporary texture
 
-        if (this.isDynamicScreenMask) {
-          for (let y = 0; y < texture.height; y += step) {
-            for (let x = 0; x < texture.width; x += step) {
-              const index = (y * texture.width + x) * 4;
-              const pixelValue = pixelData[index];
-              let shouldSpawn = false;
-              if (this.spawnMode === "range") {
-                if (
-                  pixelValue >= this.threshold &&
-                  pixelValue <= this.upperThreshold
-                ) {
-                  shouldSpawn = true;
-                }
-              } else {
-                if (pixelValue >= this.threshold) {
-                  shouldSpawn = true;
-                }
+      if (this.isDynamicScreenMask) {
+        for (let y = 0; y < texture.height; y += step) {
+          for (let x = 0; x < texture.width; x += step) {
+            const index = (y * texture.width + x) * 4;
+            const pixelValue = pixelData[index];
+            let shouldSpawn = false;
+            if (this.spawnMode === "range") {
+              if (
+                pixelValue >= this.threshold &&
+                pixelValue <= this.upperThreshold
+              ) {
+                shouldSpawn = true;
               }
-              if (shouldSpawn) {
-                const cameraOffset = CoordinateManager.getCameraOffset();
-                const canvasScale = CoordinateManager.getCanvasScale();
-                const worldPoint = new PIXI.Point(
-                  cameraOffset.x + x / canvasScale,
-                  cameraOffset.y + y / canvasScale
-                );
-                this.validPoints.push({
-                  point: worldPoint,
-                  color: [
-                    pixelData[index],
-                    pixelData[index + 1],
-                    pixelData[index + 2],
-                  ],
-                });
+            } else {
+              if (pixelValue >= this.threshold) {
+                shouldSpawn = true;
               }
             }
-          }
-        } else {
-          for (let y = 0; y < texture.height; y += step) {
-            for (let x = 0; x < texture.width; x += step) {
-              const index = (y * texture.width + x) * 4;
-              const pixelValue = pixelData[index];
-              let shouldSpawn = false;
-              if (this.spawnMode === "range") {
-                if (
-                  pixelValue >= this.threshold &&
-                  pixelValue <= this.upperThreshold
-                ) {
-                  shouldSpawn = true;
-                }
-              } else {
-                if (pixelValue >= this.threshold) {
-                  shouldSpawn = true;
-                }
-              }
-              if (shouldSpawn) {
-                const relativeX = (x / texture.width) * this.width;
-                const relativeY = (y / texture.height) * this.height;
-                const worldX = this.offsetX + relativeX;
-                const worldY = this.offsetY + relativeY;
-                this.validPoints.push({
-                  point: new PIXI.Point(worldX, worldY),
-                  color: [
-                    pixelData[index],
-                    pixelData[index + 1],
-                    pixelData[index + 2],
-                  ],
-                });
-              }
+            if (shouldSpawn) {
+              const cameraOffset = CoordinateManager.getCameraOffset();
+              const canvasScale = CoordinateManager.getCanvasScale();
+              const worldPoint = new PIXI.Point(
+                cameraOffset.x + x / canvasScale,
+                cameraOffset.y + y / canvasScale
+              );
+              this.validPoints.push({
+                point: worldPoint,
+                color: [
+                  pixelData[index],
+                  pixelData[index + 1],
+                  pixelData[index + 2],
+                ],
+              });
             }
           }
         }
-        this.isCompiled = true;
-        this.isCompiling = false;
-        resolve();
-      } catch (e) {
-        console.error("TextureMaskShape | Error during point compilation:", e);
-        this.isCompiled = true;
-        this.isCompiling = false;
-        reject(e);
+      } else {
+        for (let y = 0; y < texture.height; y += step) {
+          for (let x = 0; x < texture.width; x += step) {
+            const index = (y * texture.width + x) * 4;
+            const pixelValue = pixelData[index];
+            let shouldSpawn = false;
+            if (this.spawnMode === "range") {
+              if (
+                pixelValue >= this.threshold &&
+                pixelValue <= this.upperThreshold
+              ) {
+                shouldSpawn = true;
+              }
+            } else {
+              if (pixelValue >= this.threshold) {
+                shouldSpawn = true;
+              }
+            }
+            if (shouldSpawn) {
+              const relativeX = (x / texture.width) * this.width;
+              const relativeY = (y / texture.height) * this.height;
+              const worldX = this.offsetX + relativeX;
+              const worldY = this.offsetY + relativeY;
+              this.validPoints.push({
+                point: new PIXI.Point(worldX, worldY),
+                color: [
+                  pixelData[index],
+                  pixelData[index + 1],
+                  pixelData[index + 2],
+                ],
+              });
+            }
+          }
+        }
       }
-    });
-    return this._compilationPromise;
+      this.isCompiled = true;
+      this.isCompiling = false;
+      resolve();
+    } catch (e) {
+      console.error("TextureMaskShape | Error during point compilation:", e);
+      this.isCompiled = true;
+      this.isCompiling = false;
+      reject(e);
+    }
   }
 
   getRandPos(particle) {
@@ -13669,7 +13711,6 @@ class GeometryMaskShape {
             if (Math.random() < keepProbability) break;
           } while (attempts < MAX_ATTEMPTS);
 
-          // @ts-ignore
           if (attempts >= MAX_ATTEMPTS) p.copyFrom(this._centroid);
         } else {
           // Standard uniform rejection sampling
@@ -13680,7 +13721,6 @@ class GeometryMaskShape {
           } while (!this._isPointInPolygon(p) && attempts < MAX_ATTEMPTS);
 
           if (attempts >= MAX_ATTEMPTS)
-            // @ts-ignore
             p.copyFrom(
               this._points[Math.floor(Math.random() * this._points.length)]
             );
@@ -13704,8 +13744,7 @@ export class ParticleLayer extends CanvasLayer {
     this._onPanBoundForParticles = null; // To hold the bound pan listener
   }
 
-  // @ts-ignore
-  async _draw(options) {
+  async _draw() {
     this._destroyed = false;
     this._initialized = false; // Reset flag for new scene
     this.eventMode = "none";
@@ -13719,7 +13758,7 @@ export class ParticleLayer extends CanvasLayer {
 
     // Bind and register the listener for map point updates.
     this._onMapPointsUpdatedBound = this._onMapPointsUpdated.bind(this);
-    // @ts-ignore
+
     Hooks.on("mapShine:mapPointsUpdated", this._onMapPointsUpdatedBound);
 
     // This new hook will listen for camera pans to trigger a recompilation
@@ -13754,7 +13793,6 @@ export class ParticleLayer extends CanvasLayer {
 
     // Unregister the map point listener to prevent memory leaks.
     if (this._onMapPointsUpdatedBound) {
-      // @ts-ignore
       Hooks.off("mapShine:mapPointsUpdated", this._onMapPointsUpdatedBound);
     }
 
@@ -13784,9 +13822,11 @@ export class ParticleLayer extends CanvasLayer {
     }
   }
 
-  // @ts-ignore
   _onAnimate(deltaTime) {
     if (this._destroyed || !game.mapShine.particleManager) return;
+
+    // Clamp delta time to prevent physics explosions on frame drops
+    const clampedDeltaTime = Math.min(deltaTime, MAX_DELTA_TIME);
 
     // The CoordinateManager and ResourceManager are now updated by a dedicated high-priority ticker.
 
@@ -13806,8 +13846,7 @@ export class ParticleLayer extends CanvasLayer {
 
     // Tick the particle simulation forward.
     const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
-    // Use elapsedMS for a more reliable time delta, which is what pixi-particles expects.
-    const deltaInSeconds = (canvas.app.ticker.elapsedMS / 1000) * timeFactor;
+    const deltaInSeconds = clampedDeltaTime * timeFactor;
 
     if (game.mapShine.fireWindManager) {
       game.mapShine.fireWindManager.update(deltaInSeconds);
@@ -13869,8 +13908,7 @@ class LightningLayer extends CanvasLayer {
     this._destroyed = false;
   }
 
-  // @ts-ignore
-  async _draw(options) {
+  async _draw() {
     this._destroyed = false;
     this.eventMode = "none";
 
@@ -13894,8 +13932,7 @@ class LightningLayer extends CanvasLayer {
     return super._tearDown(options);
   }
 
-  // @ts-ignore
-  async updateFromConfig(config) {
+  async updateFromConfig() {
     // The LightningManager listens for config changes via hooks and its own ticker,
     // so this layer doesn't need to pass updates down.
   }
@@ -13905,17 +13942,15 @@ class SparkPathBehavior {
   static type = "sparkPath";
 
   constructor(config) {
-    // @ts-ignore
     this.order = PIXI.particles.behaviors.BehaviorOrder.Late;
     this.config = config;
-    // @ts-ignore
+
     this._speed = new PIXI.particles.PropertyList(false);
 
     // Initialize the speed PropertyList using the robust method from the old version.
     // This correctly parses the { list: [...] } structure from the config.
     if (this.config.speed) {
       this._speed.reset(
-        // @ts-ignore
         PIXI.particles.PropertyNode.createList(this.config.speed)
       );
     } else {
@@ -13923,7 +13958,6 @@ class SparkPathBehavior {
         "MapShine | SparkPathBehavior received no speed config, using fallback."
       );
       this._speed.reset(
-        // @ts-ignore
         PIXI.particles.PropertyNode.createList({
           list: [
             {
@@ -14074,7 +14108,6 @@ class MapShineLightingBehavior {
   static type = "mapShineLighting";
 
   constructor(config) {
-    // @ts-ignore
     this.order = PIXI.particles.behaviors.BehaviorOrder.Late + 1; // Run after color and alpha
     this.config = config;
     this._emissive = null;
@@ -14085,23 +14118,19 @@ class MapShineLightingBehavior {
         this._isStatic = true;
         this._emissive = config.emissive.list[0].value;
       } else if (config.emissive.list.length > 1) {
-        // @ts-ignore
         this._emissive = new PIXI.particles.PropertyList(false);
         this._emissive.reset(
-          // @ts-ignore
           PIXI.particles.PropertyNode.createList(config.emissive)
         );
       }
     }
   }
 
-  // @ts-ignore
-  initParticles(first) {
+  initParticles() {
     // No per-particle init needed
   }
 
-  // @ts-ignore
-  updateParticle(particle, deltaSec) {
+  updateParticle(particle) {
     // This behavior runs *after* the standard Alpha behavior, so particle.alpha
     // has already been set for this frame according to its lifetime gradient.
     if (particle.alpha === undefined || this._emissive === null) return;
@@ -14137,7 +14166,6 @@ class FireWindBehavior {
   static type = "fireWind";
 
   constructor(config) {
-    // @ts-ignore
     this.order = PIXI.particles.behaviors.BehaviorOrder.Normal;
     this.config = config;
     // The fire's natural upward buoyancy is now part of this self-contained behavior.
@@ -14153,7 +14181,7 @@ class FireWindBehavior {
     let p = first;
     while (p) {
       // Each particle gets its own velocity vector, initialized to zero.
-      // @ts-ignore
+
       p.velocity = new PIXI.Point(0, 0);
       p = p.next;
     }
@@ -14167,7 +14195,7 @@ class FireWindBehavior {
   updateParticle(particle, deltaSec) {
     const windManager = game.mapShine?.fireWindManager;
     // Do nothing if the particle is invalid or the necessary systems aren't ready.
-    // @ts-ignore
+
     if (!particle.velocity || !windManager || !this.config.enabled) return;
 
     // 1. Get the current wind force from the manager.
@@ -14181,15 +14209,15 @@ class FireWindBehavior {
     const totalAccelY = this.buoyancy.y + windAccelY;
 
     // 3. Update the particle's velocity based on the total acceleration.
-    // @ts-ignore
+
     particle.velocity.x += totalAccelX * deltaSec;
-    // @ts-ignore
+
     particle.velocity.y += totalAccelY * deltaSec;
 
     // 4. Update the particle's screen position based on its new velocity.
-    // @ts-ignore
+
     particle.position.x += particle.velocity.x * deltaSec;
-    // @ts-ignore
+
     particle.position.y += particle.velocity.y * deltaSec;
   }
 }
@@ -14198,7 +14226,6 @@ class PressurisedSteamBehavior {
   static type = "pressurisedSteam";
 
   constructor(config) {
-    // @ts-ignore
     this.order = PIXI.particles.behaviors.BehaviorOrder.Normal;
     this.config = config;
   }
@@ -14209,6 +14236,7 @@ class PressurisedSteamBehavior {
    */
   initEmitter(emitter) {
     emitter._steamState = "on";
+
     emitter._steamTimer = this.config.onDuration ?? 10.0;
     emitter.emit = true;
   }
@@ -14228,10 +14256,12 @@ class PressurisedSteamBehavior {
     while (emitter._steamTimer <= 0) {
       if (emitter._steamState === "on") {
         emitter._steamState = "off";
+
         emitter._steamTimer += this.config.offDuration ?? 10.0;
         emitter.emit = false;
       } else {
         emitter._steamState = "on";
+
         emitter._steamTimer += this.config.onDuration ?? 10.0;
         emitter.emit = true;
       }
@@ -14246,7 +14276,6 @@ class PressurisedSteamBehavior {
     let p = first;
     while (p) {
       if (!p.velocity) {
-        // @ts-ignore
         p.velocity = new PIXI.Point();
       }
       const pConfig = p.config || (p.config = {});
@@ -14263,9 +14292,9 @@ class PressurisedSteamBehavior {
       const startSpeed = speedConfig.start * speedMult;
 
       // Set initial velocity based on the particle's unique random angle.
-      // @ts-ignore
+
       p.velocity.x = Math.cos(angleRadians) * startSpeed;
-      // @ts-ignore
+
       p.velocity.y = Math.sin(angleRadians) * startSpeed;
 
       pConfig.startSpeed = startSpeed;
@@ -14281,7 +14310,6 @@ class PressurisedSteamBehavior {
    * @param {number} delta The time elapsed in seconds.
    */
   updateParticle(particle, delta) {
-    // @ts-ignore
     if (!particle.velocity || !particle.config) return;
 
     const pConfig = particle.config;
@@ -14291,21 +14319,18 @@ class PressurisedSteamBehavior {
       (pConfig.endSpeed - pConfig.startSpeed) * particle.agePercent;
 
     const magnitude = Math.hypot(
-      // @ts-ignore
       particle.velocity.x,
-      // @ts-ignore
+
       particle.velocity.y
     );
     if (magnitude > 0) {
-      // @ts-ignore
       particle.velocity.x = (particle.velocity.x / magnitude) * currentSpeed;
-      // @ts-ignore
+
       particle.velocity.y = (particle.velocity.y / magnitude) * currentSpeed;
     }
 
-    // @ts-ignore
     particle.position.x += particle.velocity.x * delta;
-    // @ts-ignore
+
     particle.position.y += particle.velocity.y * delta;
   }
 
@@ -14322,9 +14347,7 @@ class PressurisedSteamBehavior {
 class ColorFromSpawnBehavior {
   static type = "colorFromSpawn";
 
-  // @ts-ignore
-  constructor(config) {
-    // @ts-ignore
+  constructor() {
     this.order = PIXI.particles.behaviors.BehaviorOrder.Normal;
   }
 
@@ -14341,7 +14364,8 @@ class ColorFromSpawnBehavior {
   }
 
   // Required method, even if empty.
-  updateParticle(particle, delta) {
+
+  updateParticle() {
     // This is a one-shot behavior on initialization.
   }
 
@@ -14355,7 +14379,6 @@ class SmellyFliesBehavior {
   static type = "smellyFlies";
 
   constructor(config) {
-    // @ts-ignore
     this.order = PIXI.particles.behaviors.BehaviorOrder.Late;
     this.config = config;
     this.group = config.group;
@@ -14554,6 +14577,7 @@ class SmellyFliesBehavior {
     if (emitter._smellyFliesElapsedTime === undefined) {
       this.initEmitter(emitter);
     }
+
     emitter._smellyFliesElapsedTime += deltaSec;
   }
 
@@ -14562,7 +14586,7 @@ class SmellyFliesBehavior {
    * @param {PIXI.particles.Particle} fly The particle to prepare.
    * @param {object} cfg The particle's configuration object.
    */
-  // @ts-ignore
+
   _prepareForTakeOff(fly, cfg) {
     const flyConfig = this.config.flying;
     cfg.state = "taking_off";
@@ -14600,7 +14624,7 @@ class SmellyFliesBehavior {
         const tempParticle = {
           position: new PIXI.Point(),
         };
-        // @ts-ignore
+
         this.shape.getRandPos(tempParticle);
         cfg.home = tempParticle.position;
       } else {
@@ -15020,8 +15044,7 @@ export class SmellyFliesLayer extends CanvasLayer {
     this._initialized = false;
   }
 
-  // @ts-ignore
-  async _draw(options) {
+  async _draw() {
     this._destroyed = false;
     this._initialized = false;
     this.eventMode = "none";
@@ -15042,7 +15065,7 @@ export class SmellyFliesLayer extends CanvasLayer {
     canvas.app.ticker.add(this._onAnimateBound);
 
     this._onMapPointsUpdatedBound = this._onMapPointsUpdated.bind(this);
-    // @ts-ignore
+
     Hooks.on("mapShine:mapPointsUpdated", this._onMapPointsUpdatedBound);
   }
 
@@ -15054,7 +15077,6 @@ export class SmellyFliesLayer extends CanvasLayer {
       canvas.app.ticker.remove(this._onAnimateBound);
     }
     if (this._onMapPointsUpdatedBound) {
-      // @ts-ignore
       Hooks.off("mapShine:mapPointsUpdated", this._onMapPointsUpdatedBound);
     }
 
@@ -15070,7 +15092,6 @@ export class SmellyFliesLayer extends CanvasLayer {
     }
   }
 
-  // @ts-ignore
   _onAnimate(deltaTime) {
     if (this._destroyed || !this.controller) return;
     if (!this._initialized && game.mapShine.systemsReady) {
@@ -15078,8 +15099,11 @@ export class SmellyFliesLayer extends CanvasLayer {
     }
     if (!this._initialized) return;
 
+    // Clamp delta time to prevent physics explosions on frame drops
+    const clampedDeltaTime = Math.min(deltaTime, MAX_DELTA_TIME);
+
     const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
-    const deltaInSeconds = (canvas.app.ticker.elapsedMS / 1000) * timeFactor;
+    const deltaInSeconds = clampedDeltaTime * timeFactor;
     this.controller.update(deltaInSeconds);
   }
 
@@ -15280,7 +15304,6 @@ class FilmGrainFilter extends PIXI.Filter {
           `;
 
     super(PIXI.Filter.defaultVertexSrc, fragmentSrc, {
-      // @ts-ignore
       u_time: 0.0,
       u_intensity: options.intensity ?? 0.1,
       u_size: options.size ?? 1.5,
@@ -15381,7 +15404,7 @@ class HeatDistortionNoiseFilter extends PIXI.Filter {
               uniform float u_risingSpeed;
 
               // 2D Simplex Noise functions by Ashima Arts.
-              vec3 permute(vec3 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
+              vec3 permute(vec3 x) { return mod(((x*34.0)+1.0)*x, 256.0); }
               vec3 taylorInvSqrt(vec3 r) { return 1.79284291400159 - 0.85373472095314 * r; }
               float snoise(vec2 v) {
                   const vec4 C = vec4(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439);
@@ -15390,7 +15413,7 @@ class HeatDistortionNoiseFilter extends PIXI.Filter {
                   vec2 i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
                   vec2 x1 = x0.xy + C.xx - i1;
                   vec2 x2 = x0.xy + C.zz;
-                  i = mod(i, 289.0);
+                  i = mod(i, 256.0);
                   vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 )) + i.x + vec3(0.0, i1.x, 1.0 ));
                   vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x1,x1), dot(x2,x2)), 0.0);
                   m = m*m; m = m*m;
@@ -15450,71 +15473,37 @@ class HeatDistortionNoiseFilter extends PIXI.Filter {
               }
           `;
     super(vertexSrc, fragmentSrc, {
-      // @ts-ignore
       u_time: 0.0,
-      // @ts-ignore
+
       u_camera_offset: [0, 0],
-      // @ts-ignore
+
       u_view_size: [1, 1],
-      // @ts-ignore
+
       u_primarySpeed: 0.01,
-      // @ts-ignore
+
       u_primaryScale: 1.5,
-      // @ts-ignore
+
       u_primaryOctaves: 3,
-      // @ts-ignore
+
       u_primaryLacunarity: 2.0,
-      // @ts-ignore
+
       u_primaryPersistence: 0.5,
-      // @ts-ignore
+
       u_secondarySpeed: 0.08,
-      // @ts-ignore
+
       u_secondaryScale: 6.0,
-      // @ts-ignore
+
       u_secondaryOctaves: 2,
-      // @ts-ignore
+
       u_secondaryLacunarity: 2.5,
-      // @ts-ignore
+
       u_secondaryPersistence: 0.4,
-      // @ts-ignore
+
       u_risingSpeed: 0.02,
       // u_risingIntensity is no longer used by the shader but is kept for config compatibility
-      // @ts-ignore
+
       u_risingIntensity: 0.5,
       ...options,
-    });
-  }
-}
-
-// @ts-ignore
-class LightingMaskFilter extends PIXI.Filter {
-  constructor(options = {}) {
-    const fragmentSrc = `
-                          precision mediump float;
-                          varying vec2 vTextureCoord;
-
-                          uniform sampler2D uSampler;
-                          uniform float uLuminanceThreshold;
-                          uniform float uSoftness;
-                          uniform bool uInvert;
-
-                          const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
-
-                          void main(void) {
-                              vec4 lightingColor = texture2D(uSampler, vTextureCoord);
-                              float lightLevel = dot(lightingColor.rgb, lum_weights);
-
-                              float maskAlpha = smoothstep(uLuminanceThreshold, uLuminanceThreshold + uSoftness, lightLevel);
-
-                              float finalAlpha = uInvert ? maskAlpha : 1.0 - maskAlpha;
-
-                              gl_FragColor = vec4(vec3(finalAlpha), 1.0);
-                          }
-                      `;
-    super(PIXI.Filter.defaultVertexSrc, fragmentSrc, {
-      uLuminanceThreshold: options.luminanceThreshold ?? 0.25,
-      uSoftness: options.softness ?? 0.1,
-      uInvert: options.invert ?? false,
     });
   }
 }
@@ -15688,70 +15677,69 @@ class ColorCorrectionFilter extends PIXI.Filter {
                       `;
 
     super(PIXI.Filter.defaultVertexSrc, fragmentSrc, {
-      // @ts-ignore
       uSaturation: 1.0,
-      // @ts-ignore
+
       uBrightness: 0.0,
-      // @ts-ignore
+
       uContrast: 1.0,
-      // @ts-ignore
+
       uExposure: 0.0,
-      // @ts-ignore
+
       uGamma: 1.0,
-      // @ts-ignore
+
       uInBlack: 0.0,
-      // @ts-ignore
+
       uInWhite: 1.0,
-      // @ts-ignore
+
       uTemperature: 0.0,
-      // @ts-ignore
+
       uWbTint: 0.0,
-      // @ts-ignore
+
       uInvert: false,
-      // @ts-ignore
+
       uTintColor: [1.0, 1.0, 1.0],
-      // @ts-ignore
+
       uTintAmount: 0.0,
-      // @ts-ignore
+
       uSelectiveEnabled: false,
-      // @ts-ignore
+
       uSelectiveColor: [1.0, 0.0, 0.0],
-      // @ts-ignore
+
       uSelectiveHueRange: 0.1,
-      // @ts-ignore
+
       uSelectiveSatRange: 0.4,
-      // @ts-ignore
+
       uSelectiveLumRange: 0.5,
-      // @ts-ignore
+
       uSelectiveTargetLum: 0.5,
-      // @ts-ignore
+
       uSelectiveSoftness: 0.1,
-      // @ts-ignore
+
       uSelectiveInvert: false,
-      // @ts-ignore
+
       uSelectiveDesaturation: 1.0,
-      // @ts-ignore
+
       uSelectiveTargetSaturation: 1.0,
-      // @ts-ignore
+
       uSelectiveTargetBrightness: 0.0,
-      // @ts-ignore
+
       uCurveLUT: PIXI.Texture.EMPTY,
-      // @ts-ignore
+
       uCurvesEnabled: false,
-      // @ts-ignore
+
       uAmbientCompositeTexture: PIXI.Texture.EMPTY,
-      // @ts-ignore
+
       uAmbientCompositeEnabled: false,
-      // @ts-ignore
+
       uAmbientCompositeBlendMode: PIXI.BLEND_MODES.NORMAL,
-      // @ts-ignore
+
       uSceneRectNorm: [0, 0, 1, 1],
       uIntensity: options.intensity ?? 1.0,
-      // @ts-ignore
+
       uDynamicExposureBoost: 0.0,
-      // @ts-ignore
+
       uDynamicHighlightPreservation: 0.8,
-      // @ts-ignore
+
       uDynamicContrastBoost: 1.0,
     });
   }
@@ -15780,12 +15768,11 @@ class LutUtils {
       lutData[i * 4 + 3] = 255;
     }
 
-    // @ts-ignore
     const bufferResource = new PIXI.BufferResource(lutData, {
       width: lutSize,
       height: 1,
     });
-    // @ts-ignore
+
     const baseTexture = new PIXI.BaseTexture(bufferResource, {
       scaleMode: PIXI.SCALE_MODES.LINEAR,
       mipmap: PIXI.MIPMAP_MODES.OFF,
@@ -16138,7 +16125,7 @@ export class ScreenEffectsManager {
                                               <div class="widget-group"><input type="radio" name="curve-channel" id="curve-channel-g" value="green" data-path="postProcessing.colorCorrection.curves.activeChannel"><label for="curve-channel-g" style="color:#8f8;">G</label></div>
                                               <div class="widget-group"><input type="radio" name="curve-channel" id="curve-channel-b" value="blue" data-path="postProcessing.colorCorrection.curves.activeChannel"><label for="curve-channel-b" style="color:#8af;">B</label></div>
                                           </div>
-                                          <div id="curve-editor-container" style="width: 256px; height: 256px; background: #222 url('data:image/svg+xml,%3Csvg width=\'16\' height=\'16\' viewBox=\'0 0 16 16\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M0 0 H8 V8 H0 Z\' fill=\'%23333\'/%3E%3Cpath d=\'M8 8 H16 V16 H8 Z\' fill=\'%23333\'/%3E%3C/svg%3E'); border: 1px solid #555; position: relative;">
+                                          <div id="curve-editor-container" style="width: 256px; height: 256px; background: #222 url('data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0 H8 V8 H0 Z' fill='%23333'/%3E%3Cpath d='M8 8 H16 V16 H8 Z' fill='%23333'/%3E%3C/svg%3E'); border: 1px solid #555; position: relative;">
                                               <svg width="100%" height="100%" style="position: absolute; top: 0; left: 0; pointer-events: none;">
                                                   <line x1="0" y1="100%" x2="100%" y2="0" stroke="rgba(255,255,255,0.2)" stroke-width="1" stroke-dasharray="4 4"/>
                                               </svg>
@@ -16484,14 +16471,12 @@ export class ScreenEffectsManager {
     ];
 
     const BloomFilterConstructor =
-      // @ts-ignore
       PIXI.filters?.AdvancedBloomFilter ||
       (globalThis.filters && globalThis.filters.AdvancedBloomFilter);
     if (BloomFilterConstructor)
       managedFilterClasses.push(BloomFilterConstructor);
 
     const TiltShiftFilterConstructor =
-      // @ts-ignore
       PIXI.filters?.TiltShiftFilter ||
       (globalThis.filters && globalThis.filters.TiltShiftFilter);
     if (TiltShiftFilterConstructor)
@@ -16553,17 +16538,17 @@ export class ScreenEffectsManager {
 
     try {
       this.addFilter("vignette", new VignetteFilter());
-    } catch (e) {
+    } catch {
       ppErrors.push("Vignette");
     }
     try {
       this.addFilter("lensDistortion", new LensDistortionFilter());
-    } catch (e) {
+    } catch {
       ppErrors.push("LensDistortion");
     }
     try {
       this.addFilter("chromaticAberration", new ChromaticAberrationFilter());
-    } catch (e) {
+    } catch {
       ppErrors.push("ChromaticAberration (Post)");
     }
     try {
@@ -16575,13 +16560,12 @@ export class ScreenEffectsManager {
       combatFilter.enabled = false;
       this.addFilter("combatEffect", combatFilter);
       this.addFilter("filmGrain", new FilmGrainFilter());
-    } catch (e) {
+    } catch {
       ppErrors.push("ColorCorrection, SceneIllumination, or FilmGrain");
     }
 
     try {
       const TiltShiftFilterConstructor =
-        // @ts-ignore
         PIXI.filters?.TiltShiftFilter ||
         (globalThis.filters && globalThis.filters.TiltShiftFilter);
       if (TiltShiftFilterConstructor) {
@@ -16590,13 +16574,12 @@ export class ScreenEffectsManager {
       } else {
         ppErrors.push("TiltShift (Bundling Failed)");
       }
-    } catch (e) {
+    } catch {
       ppErrors.push("TiltShift (Creation Failed)");
     }
 
     try {
       const BloomFilterConstructor =
-        // @ts-ignore
         PIXI.filters?.AdvancedBloomFilter ||
         (globalThis.filters && globalThis.filters.AdvancedBloomFilter);
       if (BloomFilterConstructor) {
@@ -16699,7 +16682,7 @@ export class ScreenEffectsManager {
       }
     }
     const tiltShiftFilter = this.getFilter("tiltShift");
-    // @ts-ignore
+
     const TiltShiftFilterConstructor = PIXI.filters?.TiltShiftFilter;
     if (
       tiltShiftFilter &&
@@ -16767,10 +16750,8 @@ export class ScreenEffectsManager {
 
     const advancedBloomFilter = this.getFilter("advancedBloom");
     const BloomFilterConstructor =
-      // @ts-ignore
-      PIXI.filters.AdvancedBloomFilter ||
-      // @ts-ignore
-      (PIXI.filters.filters && PIXI.filters.filters.AdvancedBloomFilter);
+      PIXI.filters?.AdvancedBloomFilter ||
+      (globalThis.filters && globalThis.filters.AdvancedBloomFilter);
 
     if (
       advancedBloomFilter &&
@@ -16798,8 +16779,7 @@ export class ScreenEffectsManager {
       const ccConfig = pp.colorCorrection;
       ccFilter.enabled = config.enabled && pp.enabled && ccConfig.enabled;
       const u = ccFilter.uniforms;
-      if (ccConfig.dynamicExposure) {
-      }
+      u.uDynamicExposure = ccConfig.dynamicExposure;
       u.uSaturation = ccConfig.saturation;
       u.uBrightness = ccConfig.brightness;
       u.uContrast = ccConfig.contrast;
@@ -17049,9 +17029,8 @@ class AmbientColorFilter extends PIXI.Filter {
 
       u_intensity: options.intensity ?? 1.0,
 
-      // @ts-ignore
       uTokenMask: PIXI.Texture.EMPTY,
-      // @ts-ignore
+
       uTokenMaskEnabled: false,
       uTokenMaskThreshold: options.tokenMaskThreshold ?? 0.1,
     });
@@ -17091,9 +17070,8 @@ class HeatDistortionFilter extends PIXI.Filter {
                       `;
 
     super(PIXI.Filter.defaultVertexSrc, fragmentSrc, {
-      // @ts-ignore
       u_displacementMap: PIXI.Texture.EMPTY,
-      // @ts-ignore
+
       u_intensityMask: PIXI.Texture.EMPTY,
       u_intensity: options.intensity ?? 0.01,
     });
@@ -17153,7 +17131,7 @@ class LensDistortionFilter extends PIXI.Filter {
                       `,
       {
         u_amount: options.amount ?? 0.0,
-        // @ts-ignore
+
         u_center: [options.centerX ?? 0.5, options.centerY ?? 0.5],
       }
     );
@@ -17190,7 +17168,7 @@ class ChromaticAberrationFilter extends PIXI.Filter {
                       `,
       {
         u_amount: options.amount ?? 0.0,
-        // @ts-ignore
+
         u_center: [options.centerX ?? 0.5, options.centerY ?? 0.5],
       }
     );
@@ -17362,19 +17340,18 @@ class PrismFilter extends PIXI.Filter {
                           }
                       `;
     super(PIXI.Filter.defaultVertexSrc, fragmentSrc, {
-      // @ts-ignore
       uPrismMask: PIXI.Texture.EMPTY,
-      // @ts-ignore
+
       uDistortionMap: PIXI.Texture.EMPTY,
-      // @ts-ignore
+
       uSceneRectNorm: [0, 0, 1, 1],
       uIntensity: options.intensity ?? 5.0,
-      // @ts-ignore
+
       uAngleRad: (options.angle ?? 45.0) * (Math.PI / 180.0),
       uThreshold: options.threshold ?? 0.85,
       uSoftness: options.softness ?? 0.1,
       uDistortionStrength: options.distortionStrength ?? 2.0,
-      // @ts-ignore
+
       uTexelSize: [0.001, 0.001], // Default value, will be updated in animation loop
     });
   }
@@ -17521,7 +17498,7 @@ class FoamFilter extends PIXI.Filter {
               uniform float uCrestBreakupContrast;
 
 
-              vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 289.0);}
+              vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 256.0);}
               vec4 taylorInvSqrt(vec4 r){return 1.79284291400159 - 0.85373472095314 * r;}
               float snoise(vec3 v) {
                   const vec2 C = vec2(1.0/6.0, 1.0/3.0);
@@ -17535,7 +17512,7 @@ class FoamFilter extends PIXI.Filter {
                   vec3 x1 = x0 - i1 + C.xxx;
                   vec3 x2 = x0 - i2 + C.yyy;
                   vec3 x3 = x0 - D.yyy;
-                  i = mod(i, 289.0);
+                  i = mod(i, 256.0);
                   vec4 p = permute( permute( i.z + vec4(0.0, i1.z, i2.z, 1.0 ))
                       + i.y + vec4(0.0, i1.y, i2.y, 1.0 ))
                       + i.x + vec4(0.0, i1.x, i2.x, 1.0 );
@@ -17707,17 +17684,16 @@ class FoamFilter extends PIXI.Filter {
           `;
 
     super(vertexSrc, fragmentSrc, {
-      // @ts-ignore
       uWaterMask: PIXI.Texture.EMPTY,
-      // @ts-ignore
+
       u_camera_offset: [0, 0],
-      // @ts-ignore
+
       u_view_size: [1, 1],
-      // @ts-ignore
+
       u_time: 0.0,
-      // @ts-ignore
+
       uTexelSize: [1 / (window.innerWidth || 1), 1 / (window.innerHeight || 1)],
-      // @ts-ignore
+
       uCanvasScale: [1.0, 1.0],
       uIntensity: options.intensity ?? 1.5,
       uThreshold: options.threshold ?? 0.2,
@@ -17740,7 +17716,7 @@ class FoamFilter extends PIXI.Filter {
       uBreakupNoiseOctaves: options.breakupNoise?.octaves ?? 5,
       uBreakupNoiseLacunarity: options.breakupNoise?.lacunarity ?? 2.8,
       uBreakupNoisePersistence: options.breakupNoise?.persistence ?? 0.35,
-      // @ts-ignore
+
       uBreakupNoiseBrightness: (options.breakupNoise?.brightness ?? 0.4) - 0.5,
       uBreakupNoiseContrast: options.breakupNoise?.contrast ?? 1.2,
       uSuppressionNoiseEnabled: options.suppressionNoise?.enabled ?? true,
@@ -17751,7 +17727,7 @@ class FoamFilter extends PIXI.Filter {
       uSuppressionNoiseLacunarity: options.suppressionNoise?.lacunarity ?? 2.0,
       uSuppressionNoisePersistence:
         options.suppressionNoise?.persistence ?? 0.5,
-      // @ts-ignore
+
       uSuppressionNoiseBrightness:
         (options.suppressionNoise?.brightness ?? 0.5) - 0.5,
       uSuppressionNoiseContrast: options.suppressionNoise?.contrast ?? 1.0,
@@ -17760,7 +17736,7 @@ class FoamFilter extends PIXI.Filter {
       uCrestFoamIntensity: options.crestFoam?.intensity ?? 1.8,
       uCrestFoamFrequency: options.crestFoam?.frequency ?? 35.0,
       uCrestFoamSpeed: options.crestFoam?.speed ?? 0.03,
-      // @ts-ignore
+
       uCrestFoamAngle: (options.crestFoam?.angle ?? 15.0) * (Math.PI / 180.0),
       uCrestFoamSharpness: options.crestFoam?.sharpness ?? 12.0,
       uCrestFoamPerturbStrength: options.crestFoam?.perturbStrength ?? 35.0,
@@ -17771,7 +17747,7 @@ class FoamFilter extends PIXI.Filter {
       uCrestBreakupScale: options.crestFoam?.crestBreakup?.scale ?? 0.35,
       uCrestBreakupSpeed: options.crestFoam?.crestBreakup?.speed ?? 0.08,
       uCrestBreakupOctaves: options.crestFoam?.crestBreakup?.octaves ?? 3,
-      // @ts-ignore
+
       uCrestBreakupBrightness:
         (options.crestFoam?.crestBreakup?.brightness ?? 0.45) - 0.5,
       uCrestBreakupContrast: options.crestFoam?.crestBreakup?.contrast ?? 1.8,
@@ -18188,8 +18164,7 @@ class FoamLayer extends CanvasLayer {
     );
   }
 
-  // @ts-ignore
-  async _draw(options) {
+  async _draw() {
     this._destroyed = false;
     this.time = 0;
 
@@ -18236,7 +18211,6 @@ class FoamLayer extends CanvasLayer {
     const scale = CoordinateManager.getCanvasScale();
     u.uCanvasScale = [scale, scale];
 
-    // @ts-ignore
     this.effectSprite.position.copyFrom(CoordinateManager.getCameraOffset());
     this.effectSprite.width = CoordinateManager.getViewSize().width;
     this.effectSprite.height = CoordinateManager.getViewSize().height;
@@ -18325,7 +18299,6 @@ class FoamLayer extends CanvasLayer {
     canvas.app.ticker.remove(this._onAnimateBound);
     window.removeEventListener("resize", this._onResizeBound);
 
-    // @ts-ignore
     this.foamFilter?.destroy();
     this.effectSprite?.destroy();
 
@@ -18349,14 +18322,11 @@ class BackgroundEffectTileLayer extends CanvasLayer {
     this._boundOnAnimate = this._onAnimate.bind(this);
   }
 
-  // @ts-ignore
-  async _draw(options) {
-    // @ts-ignore
+  async _draw() {
     this._destroyed = false;
     this.eventMode = "none";
     this.spritesContainer = this.addChild(new PIXI.Container());
 
-    // @ts-ignore
     Hooks.on("mapShine:targetsRefreshed", this._boundRefresh);
     canvas.app.ticker.add(this._boundOnAnimate);
 
@@ -18365,7 +18335,6 @@ class BackgroundEffectTileLayer extends CanvasLayer {
   }
 
   async _tearDown(options) {
-    // @ts-ignore
     this._destroyed = true;
 
     // Restore original tiles
@@ -18377,7 +18346,6 @@ class BackgroundEffectTileLayer extends CanvasLayer {
       }
     }
 
-    // @ts-ignore
     Hooks.off("mapShine:targetsRefreshed", this._boundRefresh);
     canvas.app.ticker.remove(this._boundOnAnimate);
 
@@ -18387,8 +18355,7 @@ class BackgroundEffectTileLayer extends CanvasLayer {
     return super._tearDown(options);
   }
 
-  // @ts-ignore
-  _onAnimate(deltaTime) {
+  _onAnimate() {
     if (this._destroyed || !this.visible || this.backgroundSprites.size === 0) {
       return;
     }
@@ -18492,8 +18459,7 @@ class MaskedEffectLayer extends CanvasLayer {
     return union;
   }
 
-  // @ts-ignore
-  async _draw(options) {
+  async _draw() {
     this._destroyed = false;
     this._needsMaskUpdate = true;
     this.eventMode = "none";
@@ -18507,7 +18473,7 @@ class MaskedEffectLayer extends CanvasLayer {
 
     const renderer = canvas.app.renderer;
     this.maskContainer = new PIXI.Container();
-    // @ts-ignore
+
     this.combinedMaskTexture = PIXI.RenderTexture.create({
       width: renderer.screen.width,
       height: renderer.screen.height,
@@ -18553,8 +18519,8 @@ class MaskedEffectLayer extends CanvasLayer {
    * Base animation loop. Handles re-rendering the mask when needed.
    * Subclasses should call `super._onAnimate(deltaTime)` at the start of their own loop.
    */
-  // @ts-ignore
-  _onAnimate(deltaTime) {
+
+  _onAnimate(_deltaTime) {
     if (this._destroyed) return;
 
     if (this._needsMaskUpdate) {
@@ -18660,6 +18626,10 @@ class MaskedEffectLayer extends CanvasLayer {
       try {
         sprite.texture = await foundry.canvas.loadTexture(texturePath);
       } catch (e) {
+        console.warn(
+          `MapShine | Failed to load texture "${texturePath}":`,
+          e.message
+        );
         sprite.texture = PIXI.Texture.EMPTY;
       }
     }
@@ -18698,8 +18668,7 @@ class DiagnosticLayer extends CanvasLayer {
     this.tempRenderTexture = null; // To hold transient render textures for inspection
   }
 
-  // @ts-ignore
-  async _draw(options) {
+  async _draw() {
     this._destroyed = false;
     this.eventMode = "none";
     this._needsRefresh = true;
@@ -18889,17 +18858,17 @@ class DiagnosticLayer extends CanvasLayer {
     } else if (displaySuffix === "external_illumination") {
       fullscreenTexture = game.modules
         .get("illuminationbuffer")
-        // @ts-ignore
+
         ?.api?.getLightingTexture();
       isFullscreenView = true;
     } else if (displaySuffix === "external_lightingLayer") {
       // Correctly access the final rendered texture from the core illumination effects layer.
-      // @ts-ignore
+
       fullscreenTexture = canvas.effects.illumination?.texture;
       isFullscreenView = true;
     } else if (displaySuffix === "external_darknessLayer") {
       // Correctly access the final rendered texture from the core darkness effects layer.
-      // @ts-ignore
+
       fullscreenTexture = canvas.effects.darkness?.texture;
       isFullscreenView = true;
     } else if (displaySuffix.startsWith("intermediate_")) {
@@ -18915,15 +18884,15 @@ class DiagnosticLayer extends CanvasLayer {
         },
         heatNoise: {
           class: HeatDistortionLayer,
-          property: "noiseManager",
+          property: "noiseTexture",
         },
         iridescenceNoise: {
           class: IridescenceLayer,
           property: "distortionNoiseManager",
         },
-        structuralNoise: {
-          class: StructuralShadowsLayer,
-          property: "intensityNoiseManager",
+        prismNoise: {
+          class: PrismLayer,
+          property: "distortionNoiseManager",
         },
       };
       if (layerMap[key]) {
@@ -18933,6 +18902,7 @@ class DiagnosticLayer extends CanvasLayer {
           if (info.method) fullscreenTexture = layer[info.method]();
           else if (info.property && layer[info.property]?.getTexture)
             fullscreenTexture = layer[info.property].getTexture();
+          else if (info.property) fullscreenTexture = layer[info.property];
         }
       }
       isFullscreenView = true;
@@ -18943,12 +18913,12 @@ class DiagnosticLayer extends CanvasLayer {
       this.fullscreenSprite.visible = true;
       const stage = canvas.stage;
       const screen = canvas.app.screen;
-      // @ts-ignore
+
       const topLeft = stage.toLocal({
         x: 0,
         y: 0,
       });
-      // @ts-ignore
+
       this.fullscreenSprite.position.copyFrom(topLeft);
       this.fullscreenSprite.width = screen.width / stage.scale.x;
       this.fullscreenSprite.height = screen.height / stage.scale.y;
@@ -19078,6 +19048,10 @@ class DiagnosticLayer extends CanvasLayer {
       try {
         sprite.texture = await foundry.canvas.loadTexture(texturePath);
       } catch (e) {
+        console.warn(
+          `MapShine | Failed to load texture "${texturePath}":`,
+          e.message
+        );
         sprite.texture = PIXI.Texture.EMPTY;
       }
     }
@@ -19123,15 +19097,15 @@ class MapPointsLayer extends CanvasLayer {
   /**
    * @override
    */
-  // @ts-ignore
-  async _draw(options) {
+
+  async _draw() {
     this.mapPointsContainer = this.addChild(new PIXI.Container());
     this.eventMode = "none";
     this.alpha =
       game.mapShine.mapPointsEditor && game.mapShine.mapPointsEditor.rendered
         ? 1
         : 0;
-    // @ts-ignore
+
     Hooks.on("mapShine:mapPointsUpdated", this._boundDrawMapPoints);
     this._drawMapPoints();
   }
@@ -19140,7 +19114,6 @@ class MapPointsLayer extends CanvasLayer {
    * @override
    */
   async _tearDown(options) {
-    // @ts-ignore
     Hooks.off("mapShine:mapPointsUpdated", this._boundDrawMapPoints);
     this.mapPointsContainer?.destroy({
       children: true,
@@ -19288,12 +19261,11 @@ class MapPointsEditor extends FormApplication {
   constructor(options = {}) {
     super(options);
     this._selectedGroupId =
-      // @ts-ignore
       game.user.getFlag(MODULE_ID, "lastSelectedMapPointGroup") || null;
     game.mapShine.activeMapPointGroup = this._selectedGroupId;
 
     // Hook to re-render this UI if the underlying data changes elsewhere.
-    // @ts-ignore
+
     this._hookId = Hooks.on("mapShine:mapPointsUpdated", (context = {}) => {
       if (!this.rendered) return;
 
@@ -19301,14 +19273,14 @@ class MapPointsEditor extends FormApplication {
         this._selectedGroupId = context.created;
         game.user.setFlag(
           MODULE_ID,
-          // @ts-ignore
+
           "lastSelectedMapPointGroup",
           this._selectedGroupId
         );
         game.mapShine.activeMapPointGroup = this._selectedGroupId;
       } else if (context.deleted && context.deleted === this._selectedGroupId) {
         this._selectedGroupId = null;
-        // @ts-ignore
+
         game.user.unsetFlag(MODULE_ID, "lastSelectedMapPointGroup");
         game.mapShine.activeMapPointGroup = null;
       }
@@ -19323,13 +19295,12 @@ class MapPointsEditor extends FormApplication {
    * The base `FormApplication` constructor attempts to set this property to `null`,
    * so we must provide both a getter and a setter.
    */
-  // @ts-ignore
+
   get form() {
     // The `element` is a jQuery object; `[0]` gets the raw DOM element.
     return this.element?.find("form")?.[0];
   }
 
-  // @ts-ignore
   set form(value) {
     // This setter intentionally does nothing. The base class's constructor
     // will attempt to set `this.form = null`, which would throw an error if this
@@ -19352,14 +19323,13 @@ class MapPointsEditor extends FormApplication {
     });
   }
 
-  // @ts-ignore
-  async getData(options) {
+  async getData(_options) {
     const allGroups = MapPointsManager.getGroups();
     // Ensure the selected group ID still exists, otherwise reset it.
     if (this._selectedGroupId && !allGroups[this._selectedGroupId]) {
       this._selectedGroupId = null;
       game.mapShine.activeMapPointGroup = null;
-      // @ts-ignore
+
       game.user.unsetFlag(MODULE_ID, "lastSelectedMapPointGroup");
     }
     return {
@@ -19367,7 +19337,6 @@ class MapPointsEditor extends FormApplication {
     };
   }
 
-  // @ts-ignore
   async render(force, options) {
     await super.render(force, options);
     const layer = canvas.layers.find((l) => l instanceof MapPointsLayer);
@@ -19730,11 +19699,10 @@ class MapPointsEditor extends FormApplication {
     // --- Live UI Updates without a full re-render ---
     // These happen on 'input' and 'change'
     if (path === "isEffectSource") {
-      // @ts-ignore
       form.querySelector("#mp-effectTarget-wrapper").style.display = value
         ? "flex"
         : "none";
-      // @ts-ignore
+
       form.querySelector("#mp-emission-settings-wrapper").style.display = value
         ? "block"
         : "none";
@@ -19746,7 +19714,6 @@ class MapPointsEditor extends FormApplication {
           "#mp-emission-falloff-wrapper"
         );
         if (falloffWrapper) {
-          // @ts-ignore
           falloffWrapper.style.display = value === "point" ? "none" : "block";
         }
       }
@@ -19756,7 +19723,6 @@ class MapPointsEditor extends FormApplication {
         .querySelector('input[name="emission.falloff.strength"]')
         ?.closest(".control-row-slider");
       if (strengthSliderRow) {
-        // @ts-ignore
         strengthSliderRow.style.display = value ? "grid" : "none";
       }
     }
@@ -19793,7 +19759,7 @@ class MapPointsEditor extends FormApplication {
         const groupId = target.dataset.groupId;
         if (groupId) {
           this._selectedGroupId = groupId;
-          // @ts-ignore
+
           game.user.setFlag(MODULE_ID, "lastSelectedMapPointGroup", groupId);
           game.mapShine.activeMapPointGroup = groupId;
           this.render(false);
@@ -19805,12 +19771,11 @@ class MapPointsEditor extends FormApplication {
         const typeInput = this.form.querySelector('[name="newGroupType"]');
         // The hook will now handle the state update and re-render.
         await MapPointsManager.createGroup({
-          // @ts-ignore
           label: nameInput.value || "New Group",
-          // @ts-ignore
+
           type: typeInput.value,
         });
-        // @ts-ignore
+
         nameInput.value = "";
         break;
       }
@@ -19850,8 +19815,7 @@ class MapPointsEditor extends FormApplication {
     }
   }
 
-  // @ts-ignore
-  async _updateObject(event, formData) {
+  async _updateObject(_event, _formData) {
     // This form doesn't have a single "submit" action, so this method can be left empty.
   }
 
@@ -19859,7 +19823,6 @@ class MapPointsEditor extends FormApplication {
     // Deactivate placement mode when the editor is closed.
     game.mapShine.mapPointsInteractionManager?.deactivate();
 
-    // @ts-ignore
     Hooks.off("mapShine:mapPointsUpdated", this._hookId);
     game.mapShine.mapPointsEditor = null;
 
@@ -20184,53 +20147,52 @@ class MetallicShineFilter extends PIXI.Filter {
         `;
 
     super(vertexSrc, fragmentSrc, {
-      // @ts-ignore
       uSpecularMap: PIXI.Texture.EMPTY,
-      // @ts-ignore
+
       uStripePattern: PIXI.Texture.EMPTY,
-      // @ts-ignore
+
       uCloudOcclusionMask: PIXI.Texture.EMPTY,
-      // @ts-ignore
+
       uStructuralMask: PIXI.Texture.EMPTY,
-      // @ts-ignore
+
       uOutdoorsMask: PIXI.Texture.EMPTY,
-      // @ts-ignore
+
       uCloudOcclusionEnabled: false,
-      // @ts-ignore
+
       uCloudOcclusionIntensity: 1.0,
-      // @ts-ignore
+
       uGlobalIntensity: 1.0,
-      // @ts-ignore
+
       uDarkness: 0.0,
-      // @ts-ignore
+
       uColorCorrectionEnabled: true,
-      // @ts-ignore
+
       uSaturation: 1.0,
-      // @ts-ignore
+
       uBrightness: 0.0,
-      // @ts-ignore
+
       uContrast: 1.0,
-      // @ts-ignore
+
       uGamma: 1.0,
-      // @ts-ignore
+
       uTintColor: [1.0, 1.0, 1.0],
-      // @ts-ignore
+
       uTintAmount: 0.0,
-      // @ts-ignore
+
       uInvert: false,
-      // @ts-ignore
+
       uSceneRectNorm: [0, 0, 1, 1],
-      // @ts-ignore
+
       uBuildingShadowsEnabled: false,
-      // @ts-ignore
+
       uBuildingShadowIntensity: 0.5,
-      // @ts-ignore
+
       uBuildingShadowOffset: [0, 0],
-      // @ts-ignore
+
       uBuildingShadowBlur: 0.0,
-      // @ts-ignore
+
       uBuildingTexelSize: [0.001, 0.001],
-      // @ts-ignore
+
       uBuildingCanvasScale: [1.0, 1.0],
       ...options,
     });
@@ -20330,7 +20292,6 @@ class MetallicStripePatternFilter extends PIXI.Filter {
         `;
 
     super(vertexSrc, fragmentSrc, {
-      // @ts-ignore
       uTime: 0.0,
       uSpeed: options.uSpeed ?? 0.0,
       uAngle: options.uAngle ?? 140.0,
@@ -20341,13 +20302,13 @@ class MetallicStripePatternFilter extends PIXI.Filter {
       uRandomWidth: options.uRandomWidth ?? 0.2,
       uRandomIntensity: options.uRandomIntensity ?? 0.3,
       // Parallax uniforms
-      // @ts-ignore
+
       u_camera_offset: [0, 0],
-      // @ts-ignore
+
       u_view_size: [1, 1],
-      // @ts-ignore
+
       u_resolution: [1, 1],
-      // @ts-ignore
+
       uParallax: 1.0,
     });
   }
@@ -20582,9 +20543,7 @@ class MetallicShineLayer extends CanvasLayer {
     );
   }
 
-  // @ts-ignore
-  async _draw(options) {
-    // @ts-ignore
+  async _draw() {
     this._destroyed = false;
     this.eventMode = "none";
     this._needsMaskUpdate = true;
@@ -20594,7 +20553,7 @@ class MetallicShineLayer extends CanvasLayer {
     const screen = renderer.screen;
 
     this.sourceContainer = new PIXI.Container();
-    // @ts-ignore
+
     this.specularCompositeTexture = PIXI.RenderTexture.create({
       width: screen.width,
       height: screen.height,
@@ -20607,7 +20566,6 @@ class MetallicShineLayer extends CanvasLayer {
       console.error("MapShine | Failed to create Metallic Shine filters.", e);
     }
 
-    // @ts-ignore
     this.stripePatternTexture = PIXI.RenderTexture.create({
       width: screen.width,
       height: screen.height,
@@ -20621,7 +20579,6 @@ class MetallicShineLayer extends CanvasLayer {
     this.effectSprite.filters = this.shineFilter ? [this.shineFilter] : [];
     this.addChild(this.effectSprite);
 
-    // @ts-ignore
     this.finalShineTexture = PIXI.RenderTexture.create({
       width: screen.width,
       height: screen.height,
@@ -20673,7 +20630,6 @@ class MetallicShineLayer extends CanvasLayer {
     // const cloudTexture = resourceManager.getCloudShadowTexture(deltaTime) || PIXI.Texture.BLACK;
     // After:
     const cloudTexture =
-      // @ts-ignore
       resourceManager.getRawCloudTexture(deltaTime) || PIXI.Texture.BLACK;
     const structuralMask =
       resourceManager.getStructuralMask() || PIXI.Texture.WHITE;
@@ -20731,7 +20687,6 @@ class MetallicShineLayer extends CanvasLayer {
     const cameraOffset = CoordinateManager.getCameraOffset();
     const viewSize = CoordinateManager.getViewSize();
 
-    // @ts-ignore
     this.effectSprite.position.copyFrom(cameraOffset);
     this.effectSprite.width = viewSize.width;
     this.effectSprite.height = viewSize.height;
@@ -20797,6 +20752,10 @@ class MetallicShineLayer extends CanvasLayer {
       try {
         sprite.texture = await foundry.canvas.loadTexture(texturePath);
       } catch (e) {
+        console.warn(
+          `MapShine | Failed to load texture "${texturePath}":`,
+          e.message
+        );
         sprite.texture = PIXI.Texture.EMPTY;
       }
     }
@@ -20895,9 +20854,9 @@ class MetallicShineLayer extends CanvasLayer {
     if (this.effectSprite) {
       const stage = canvas.stage;
       const screen = canvas.app.screen;
-      // @ts-ignore
+
       const topLeft = stage.toLocal({ x: 0, y: 0 });
-      // @ts-ignore
+
       this.effectSprite.position.copyFrom(topLeft);
       this.effectSprite.width = screen.width / stage.scale.x;
       this.effectSprite.height = screen.height / stage.scale.y;
@@ -20907,7 +20866,7 @@ class MetallicShineLayer extends CanvasLayer {
 
   async _tearDown(options) {
     if (this._destroyed) return;
-    // @ts-ignore
+
     this._destroyed = true;
 
     canvas.app.ticker.remove(this._onAnimateBound);
@@ -20916,11 +20875,11 @@ class MetallicShineLayer extends CanvasLayer {
 
     this.sourceContainer?.destroy({ children: true });
     this.specularCompositeTexture?.destroy(true);
-    // @ts-ignore
+
     this.stripePatternFilter?.destroy();
     this.stripeGeneratorSprite?.destroy();
     this.stripePatternTexture?.destroy(true);
-    // @ts-ignore
+
     this.shineFilter?.destroy();
     this.effectSprite?.destroy();
     this.finalShineTexture?.destroy(true);
@@ -20939,8 +20898,7 @@ class MetallicShineLayer extends CanvasLayer {
 }
 
 class CloudShadowsFilter extends PIXI.Filter {
-  // @ts-ignore
-  constructor(options = {}) {
+  constructor(_options = {}) {
     const vertexSrc = `
       attribute vec2 aVertexPosition;
       attribute vec2 aTextureCoord;
@@ -21058,45 +21016,44 @@ class CloudShadowsFilter extends PIXI.Filter {
   `;
 
     super(vertexSrc, fragmentSrc, {
-      // @ts-ignore
       uOutdoorsMask: PIXI.Texture.EMPTY,
-      // @ts-ignore
+
       uLightPolygonMask: PIXI.Texture.EMPTY,
-      // @ts-ignore
+
       u_time: 0.0,
-      // @ts-ignore
+
       u_camera_offset: [0, 0],
-      // @ts-ignore
+
       u_view_size: [0, 0],
-      // @ts-ignore
+
       uSceneRectNorm: [0, 0, 1, 1],
-      // @ts-ignore
+
       u_windDirection: [0.01, 0.01],
-      // @ts-ignore
+
       u_noise_scale: 0.1,
-      // @ts-ignore
+
       u_noise_octaves: 5,
-      // @ts-ignore
+
       u_noise_persistence: 0.5,
-      // @ts-ignore
+
       u_noise_lacunarity: 2.5,
-      // @ts-ignore
+
       u_shading_threshold: 1.0,
-      // @ts-ignore
+
       u_shading_softness: 0.2,
-      // @ts-ignore
+
       u_shading_brightness: 0.51,
-      // @ts-ignore
+
       u_shading_contrast: 1.0,
-      // @ts-ignore
+
       u_shading_gamma: 1.0,
-      // @ts-ignore
+
       u_shadowIntensity: 0.5,
-      // @ts-ignore
+
       u_outputRawCloud: false,
-      // @ts-ignore
+
       u_occlusionEnabled: true,
-      // @ts-ignore
+
       u_occlusionIntensity: 1.0,
     });
   }
@@ -21338,7 +21295,7 @@ class CloudShadowsLayer extends MaskedEffectLayer {
     this._patternGeneratorSprite.width = renderer.screen.width;
     this._patternGeneratorSprite.height = renderer.screen.height;
     this._patternGeneratorSprite.filters = [this.cloudFilter];
-    // @ts-ignore
+
     this.rawCloudTexture = PIXI.RenderTexture.create({
       width: renderer.screen.width,
       height: renderer.screen.height,
@@ -21483,7 +21440,7 @@ class CloudShadowsLayer extends MaskedEffectLayer {
       canvas.primary.filters = (canvas.primary.filters || []).filter(
         (f) => f !== this.cloudFilter
       );
-      // @ts-ignore
+
       this.cloudFilter.destroy();
       this.cloudFilter = null;
     }
@@ -21589,7 +21546,7 @@ class CanopyLayer extends MaskedEffectLayer {
       canvas.primary.filters = (canvas.primary.filters || []).filter(
         (f) => f !== this.filter
       );
-      // @ts-ignore
+
       this.filter.destroy();
       this.filter = null;
     }
@@ -21599,8 +21556,7 @@ class CanopyLayer extends MaskedEffectLayer {
 }
 
 class CanopyFilter extends PIXI.Filter {
-  // @ts-ignore
-  constructor(options = {}) {
+  constructor(_options = {}) {
     const vertexSrc = `
           attribute vec2 aVertexPosition;
           attribute vec2 aTextureCoord;
@@ -21662,21 +21618,28 @@ class CanopyFilter extends PIXI.Filter {
       `;
 
     super(vertexSrc, fragmentSrc, {
-      // @ts-ignore
       uCanopyMask: PIXI.Texture.EMPTY,
-      // @ts-ignore
+
       uIntensity: 1.0,
-      // @ts-ignore
+
       uTint: [0.0, 0.0, 0.0],
-      // @ts-ignore
+
       uSceneRectNorm: [0, 0, 1, 1], // Add the new uniform with a default value
     });
   }
 }
 
+/**
+ * Structural Filter - Shader that renders natural window light into interior spaces.
+ *
+ * This filter applies the _Structural colored luminance masks to create dynamic
+ * window lighting that can be occluded by clouds and artificial light sources.
+ * See StructuralShadowsLayer class documentation for full design intent.
+ *
+ * @extends PIXI.Filter
+ */
 class StructuralFilter extends PIXI.Filter {
-  // @ts-ignore
-  constructor(options = {}) {
+  constructor(_options = {}) {
     const vertexSrc = `
           attribute vec2 aVertexPosition;
           attribute vec2 aTextureCoord;
@@ -21818,46 +21781,79 @@ class StructuralFilter extends PIXI.Filter {
       `;
 
     super(vertexSrc, fragmentSrc, {
-      // @ts-ignore
       uStructuralMask: PIXI.Texture.EMPTY,
-      // @ts-ignore
+
       uOutdoorsMask: PIXI.Texture.EMPTY,
-      // @ts-ignore
+
       uCloudOcclusionMask: PIXI.Texture.EMPTY,
-      // @ts-ignore
+
       uLightMask: PIXI.Texture.EMPTY,
-      // @ts-ignore
+
       uSceneRectNorm: [0, 0, 1, 1],
-      // @ts-ignore
+
       uBlendMode: 5, // Default to OVERLAY
-      // @ts-ignore
+
       uIntensity: 1.0,
-      // @ts-ignore
+
       uCcEnabled: true,
-      // @ts-ignore
+
       uSaturation: 1.0,
-      // @ts-ignore
+
       uBrightness: 0.0,
-      // @ts-ignore
+
       uContrast: 1.0,
-      // @ts-ignore
+
       uGamma: 1.0,
-      // @ts-ignore
+
       uTintColor: [1.0, 1.0, 1.0],
-      // @ts-ignore
+
       uTintAmount: 0.0,
-      // @ts-ignore
+
       uCloudOcclusionEnabled: true,
-      // @ts-ignore
+
       uCloudOcclusionIntensity: 0.8,
-      // @ts-ignore
+
       uLightOcclusionEnabled: true,
-      // @ts-ignore
+
       uLightOcclusionIntensity: 1.0,
     });
   }
 }
 
+/**
+ * Structural Shadows Layer - Creates animated interior lighting from windows using _Structural masks.
+ *
+ * PURPOSE:
+ * This effect uses colored luminance mask textures (_Structural) to simulate natural light
+ * cast from WINDOWS into interior spaces. It enables dynamic, animated interior lighting
+ * that responds to environmental conditions like cloud cover.
+ *
+ * WHAT _STRUCTURAL MASKS REPRESENT:
+ * - Colored RGB luminance masks that define light and shadow from windows
+ * - BRIGHT areas = Natural light cast through windows into rooms
+ * - DARK areas = Structural shadows (areas not receiving window light)
+ * - Color information = Tint of the window light (e.g., stained glass, time of day)
+ *
+ * INTENDED USE:
+ * ✓ Window light casting into interior spaces
+ * ✓ Natural light that should be affected by clouds passing overhead
+ * ✓ Animated lighting patterns (sunrise/sunset through windows)
+ * ✓ Environmental lighting that changes with weather
+ *
+ * NOT INTENDED FOR:
+ * ✗ Artificial interior light sources (torches, lamps, candles, etc.)
+ * ✗ Light that should remain constant regardless of exterior conditions
+ * ✗ Light sources that shouldn't disappear when clouds pass overhead
+ *
+ * TECHNICAL DETAILS:
+ * - Applied as a filter to canvas.primary
+ * - Supports cloud occlusion (rooms darken when clouds block the sun)
+ * - Supports light occlusion (artificial lights can "cut out" shadows)
+ * - Uses _Outdoors mask to limit effect to indoor areas
+ * - Fully configurable color correction, blending, and intensity
+ *
+ * @extends MaskedEffectLayer
+ */
 class StructuralShadowsLayer extends MaskedEffectLayer {
   constructor() {
     super({
@@ -22030,7 +22026,6 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
     // Use raw cloud texture so clouds can appear "indoors"
     // Fallback to a black texture (no clouds) if cloud shadows are inactive.
     u.uCloudOcclusionMask =
-      // @ts-ignore
       resourceManager.getRawCloudTexture(deltaTime) || PIXI.Texture.BLACK;
     u.uLightMask = resourceManager.getLightMask() || PIXI.Texture.WHITE;
 
@@ -22073,7 +22068,7 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
       canvas.primary.filters = (canvas.primary.filters || []).filter(
         (f) => f !== this.filter
       );
-      // @ts-ignore
+
       this.filter.destroy();
       this.filter = null;
     }
@@ -22084,8 +22079,8 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
   // It will now return a neutral texture (white), effectively disabling structural
   // shadows from affecting other effects like metallic sheen. We can revisit this
   // if a more complex interaction is needed in the future.
-  // @ts-ignore
-  renderEffectNow(deltaTime) {}
+
+  renderEffectNow(_deltaTime) {}
 
   getStructuralShadowTexture(deltaTime) {
     if (this._destroyed) return null;
@@ -22285,22 +22280,22 @@ class IridescenceFilter extends PIXI.Filter {
 
     super(vertexSrc, fragmentSrc, {
       // Textures
-      // @ts-ignore
+
       uMaskTexture: PIXI.Texture.EMPTY,
-      // @ts-ignore
+
       uDistortionMap: PIXI.Texture.EMPTY,
       // World
       uParallax: options.parallax ?? 0.0,
-      // @ts-ignore
+
       uCameraOffset: [0, 0],
-      // @ts-ignore
+
       uViewSize: [1, 1],
-      // @ts-ignore
+
       uResolution: [1, 1],
-      // @ts-ignore
+
       uSceneRectNorm: [0, 0, 1, 1],
       // Effect
-      // @ts-ignore
+
       uTime: 0.0,
       uSpeed: options.speed ?? 0.0,
       uScale: options.scale ?? 8.0,
@@ -22311,13 +22306,13 @@ class IridescenceFilter extends PIXI.Filter {
       uPersistence: options.fbm?.persistence ?? 0.5,
       uLacunarity: options.fbm?.lacunarity ?? 2.0,
       uFbmEvolution: options.fbm?.evolution ?? 0.1,
-      // @ts-ignore
+
       uFbmBrightness: (options.fbm?.brightness ?? 0.5) - 0.5,
       uFbmContrast: options.fbm?.contrast ?? 1.0,
       // Gradient
-      // @ts-ignore
+
       uGradientColors: [],
-      // @ts-ignore
+
       uNumColors: 0,
       uHueShift: options.gradient?.hueShift ?? 0.0,
       uGradientBrightness: options.gradient?.brightness ?? 0.0,
@@ -22603,17 +22598,20 @@ class IridescenceLayer extends MaskedEffectLayer {
     );
 
     const u = this.iridescenceFilter.uniforms;
+    const resourceManager = game.mapShine.resourceManager;
 
     // Update time and input textures
     u.uTime += deltaTime * timeFactor;
-    u.uDistortionMap = this.distortionNoiseManager.getTexture();
+    u.uDistortionMap = resourceManager
+      ? resourceManager.getIridescenceDistortionNoise()
+      : this.distortionNoiseManager.getTexture();
     u.uMaskTexture = this.getMaskTexture();
 
     // Get all coordinate uniforms from the manager
     Object.assign(u, CoordinateManager.getShaderUniforms());
 
     // Position the effect sprite to cover the full screen view
-    // @ts-ignore
+
     this.effectSprite.position.copyFrom(CoordinateManager.getCameraOffset());
     this.effectSprite.width = CoordinateManager.getViewSize().width;
     this.effectSprite.height = CoordinateManager.getViewSize().height;
@@ -22674,12 +22672,12 @@ class IridescenceLayer extends MaskedEffectLayer {
     if (this.effectSprite) {
       const stage = canvas.stage;
       const screen = canvas.app.screen;
-      // @ts-ignore
+
       const topLeft = stage.toLocal({
         x: 0,
         y: 0,
       });
-      // @ts-ignore
+
       this.effectSprite.position.copyFrom(topLeft);
       this.effectSprite.width = screen.width / stage.scale.x;
       this.effectSprite.height = screen.height / stage.scale.y;
@@ -22688,7 +22686,7 @@ class IridescenceLayer extends MaskedEffectLayer {
 
   async _tearDown(options) {
     this.distortionNoiseManager?.destroy();
-    // @ts-ignore
+
     this.iridescenceFilter?.destroy();
     this.effectSprite?.destroy();
 
@@ -22703,6 +22701,43 @@ class IridescenceLayer extends MaskedEffectLayer {
 // AmbientLayer has been moved to scripts/layers/AmbientLayer.js
 // TODO: Re-enable import once dependencies are resolved
 
+/**
+ * Ground Glow Layer - Displays the _GroundGlow texture only in DARK areas of the scene.
+ *
+ * CORE CONCEPT:
+ * This effect represents materials (bioluminescent fungi, phosphorescent crystals, etc.) that
+ * glow in darkness but are overpowered/invisible in bright areas. Instead of expensive pixel
+ * luminance testing, it uses available masks to efficiently detect dark regions.
+ *
+ * DETECTION STRATEGY (Default "Glow in the Dark" Mode):
+ * Uses mask-based detection to identify dark areas without pixel testing:
+ *
+ * OUTDOOR AREAS (_Outdoors mask = bright):
+ *   Shows Ground Glow when ALL of:
+ *   - Scene darkness is high (> 0.75, indicating nighttime)
+ *   - NO local light sources present (light mask is dark)
+ *   Result: Glow visible in dark nighttime areas away from torches/lights
+ *
+ * INDOOR AREAS (_Outdoors mask = dark):
+ *   Shows Ground Glow when ALL of:
+ *   - _Structural luminance is LOW (shadowed areas, away from windows)
+ *     Note: _Structural represents natural window light (bright = window light, dark = shadows)
+ *     See StructuralShadowsLayer for full _Structural mask documentation
+ *   - NO artificial light sources present (light mask is dark)
+ *   Result: Glow visible in shadowed corners without artificial lighting
+ *
+ * INVERTED MODE ("Glow in the Light"):
+ *   Simply shows the glow wherever light sources ARE present (light mask is bright)
+ *   Ignores all other masks and conditions
+ *
+ * MASKS USED:
+ * - uLightMask: Foundry's lighting (bright = light sources, dark = no light)
+ * - uOutdoorsMask: Indoor/outdoor regions (bright = outdoor, dark = indoor)
+ * - uStructuralMask: Colored luminance mask (bright = window light, dark = structural shadows)
+ * - uTokenMask: Token positions to hide glow under tokens
+ *
+ * @extends CanvasLayer
+ */
 class GroundGlowLayer extends CanvasLayer {
   constructor() {
     super();
@@ -22784,8 +22819,7 @@ class GroundGlowLayer extends CanvasLayer {
     );
   }
 
-  // @ts-ignore
-  async _draw(options) {
+  async _draw() {
     this._destroyed = false;
     this.eventMode = "none";
     this._needsMaskUpdate = true;
@@ -22796,7 +22830,7 @@ class GroundGlowLayer extends CanvasLayer {
     this.glowSpritesContainer = new PIXI.Container();
 
     // Texture to render the combined glow sprites into
-    // @ts-ignore
+
     this.glowCompositeTexture = PIXI.RenderTexture.create({
       width: renderer.screen.width,
       height: renderer.screen.height,
@@ -22830,7 +22864,6 @@ class GroundGlowLayer extends CanvasLayer {
     window.removeEventListener("resize", this._onResizeBound);
     Hooks.off("canvasPan", this._onPanBound);
 
-    // @ts-ignore
     this.glowFilter?.destroy();
     this.effectSprite?.destroy();
     this.glowCompositeTexture?.destroy(true);
@@ -22859,11 +22892,16 @@ class GroundGlowLayer extends CanvasLayer {
     // Update filter uniforms
     const u = this.glowFilter.uniforms;
     u.uLightMask = resourceManager.getLightMask() || PIXI.Texture.WHITE;
-    // @ts-ignore
+    u.uOutdoorsMask = resourceManager.getOutdoorsMask() || PIXI.Texture.WHITE;
+    u.uStructuralMask =
+      resourceManager.getStructuralMask() || PIXI.Texture.WHITE;
     u.uTokenMask = resourceManager.getTokenMask() || PIXI.Texture.BLACK;
 
+    // Pass scene darkness level to shader
+    u.uSceneDarkness = canvas.scene?.darkness ?? 0.0;
+
     // Position and scale the final sprite to cover the screen
-    // @ts-ignore
+
     this.effectSprite.position.copyFrom(CoordinateManager.getCameraOffset());
     this.effectSprite.width = CoordinateManager.getViewSize().width;
     this.effectSprite.height = CoordinateManager.getViewSize().height;
@@ -22919,6 +22957,10 @@ class GroundGlowLayer extends CanvasLayer {
       try {
         sprite.texture = await foundry.canvas.loadTexture(texturePath);
       } catch (e) {
+        console.warn(
+          `MapShine | Failed to load texture "${texturePath}":`,
+          e.message
+        );
         sprite.texture = PIXI.Texture.EMPTY;
       }
     }
@@ -22958,6 +23000,14 @@ class GroundGlowLayer extends CanvasLayer {
   }
 }
 
+/**
+ * Ground Glow Filter - Shader that controls visibility of _GroundGlow texture based on darkness.
+ *
+ * This filter implements mask-based dark area detection to show glow effects only where appropriate.
+ * See GroundGlowLayer class documentation for full logic explanation.
+ *
+ * @extends PIXI.Filter
+ */
 class GroundGlowFilter extends PIXI.Filter {
   constructor(options = {}) {
     const vertexSrc = `
@@ -22981,6 +23031,8 @@ class GroundGlowFilter extends PIXI.Filter {
 
           uniform sampler2D uSampler;
           uniform sampler2D uLightMask;
+          uniform sampler2D uOutdoorsMask;
+          uniform sampler2D uStructuralMask;
           uniform sampler2D uTokenMask;
 
           // Effect Controls
@@ -22990,6 +23042,7 @@ class GroundGlowFilter extends PIXI.Filter {
           uniform bool uInvert;
           uniform bool uTokenMaskEnabled;
           uniform float uTokenMaskThreshold;
+          uniform float uSceneDarkness; // Scene darkness level (0 = day, 1 = night)
 
           const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
 
@@ -23007,10 +23060,43 @@ class GroundGlowFilter extends PIXI.Filter {
                   }
               }
 
-              float lightValue = texture2D(uLightMask, vScreenCoord).r;
-              float darknessValue = 1.0 - lightValue;
-
-              float lightInfluence = uInvert ? lightValue : darknessValue;
+              // Get mask values
+              float lightValue = texture2D(uLightMask, vScreenCoord).r;  // Local light sources (0 = dark, 1 = bright)
+              float outdoorsValue = texture2D(uOutdoorsMask, vScreenCoord).r;  // 1 = outdoor, 0 = indoor
+              
+              // _Structural is a colored luminance mask (RGB), so calculate proper luminance
+              vec3 structuralColor = texture2D(uStructuralMask, vScreenCoord).rgb;
+              float structuralLuminance = dot(structuralColor, lum_weights); // Bright = window light, Dark = shadows
+              
+              float lightInfluence;
+              
+              if (uInvert) {
+                  // Inverted mode: Glow in Light
+                  // Show when there's local light, regardless of indoor/outdoor or scene darkness
+                  lightInfluence = lightValue;
+              } else {
+                  // Normal mode: Glow in the Dark
+                  // Goal: Only show _GroundGlow texture in DARK parts of the scene
+                  
+                  float hasNoLocalLight = 1.0 - lightValue; // High value = no artificial lights nearby
+                  
+                  // OUTDOOR CONTRIBUTION:
+                  // Show in outdoor areas when scene darkness is high (nighttime, > 0.75)
+                  // AND no local light sources
+                  float isOutdoor = outdoorsValue;
+                  float isSceneDark = smoothstep(0.7, 0.8, uSceneDarkness); // Smooth transition around darkness 0.75
+                  float outdoorContribution = isOutdoor * isSceneDark * hasNoLocalLight;
+                  
+                  // INDOOR CONTRIBUTION:
+                  // Show in indoor areas when _Structural luminance is DARK (shadows, away from windows)
+                  // AND no artificial lights
+                  float isIndoor = 1.0 - outdoorsValue;
+                  float hasStructuralShadow = 1.0 - structuralLuminance; // Invert: high where structural is dark
+                  float indoorContribution = isIndoor * hasStructuralShadow * hasNoLocalLight;
+                  
+                  // Combine both: Show in DARK outdoor areas OR DARK indoor areas
+                  lightInfluence = max(outdoorContribution, indoorContribution);
+              }
 
               vec3 workingColor = glowColor.rgb;
               workingColor += uBrightness - 1.0; // Brightness is additive, 1.0 is neutral
@@ -23024,22 +23110,27 @@ class GroundGlowFilter extends PIXI.Filter {
       `;
 
     super(vertexSrc, fragmentSrc, {
-      // @ts-ignore
       uLightMask: PIXI.Texture.EMPTY,
-      // @ts-ignore
+
+      uOutdoorsMask: PIXI.Texture.WHITE,
+
+      uStructuralMask: PIXI.Texture.WHITE,
+
       uTokenMask: PIXI.Texture.EMPTY,
-      // @ts-ignore
+
       uIntensity: 1.0,
-      // @ts-ignore
+
       uBrightness: 1.0,
-      // @ts-ignore
+
       uSaturation: 1.0,
-      // @ts-ignore
+
       uInvert: false,
-      // @ts-ignore
+
       uTokenMaskEnabled: true,
-      // @ts-ignore
+
       uTokenMaskThreshold: 0.1,
+
+      uSceneDarkness: 0.0,
       ...options,
     });
   }
@@ -23203,8 +23294,7 @@ class HeatDistortionLayer extends CanvasLayer {
     );
   }
 
-  // @ts-ignore
-  async _draw(options) {
+  async _draw() {
     this.visible = false;
     this.eventMode = "none";
 
@@ -23221,7 +23311,7 @@ class HeatDistortionLayer extends CanvasLayer {
     this.addChild(this.heatSourceContainer);
 
     const renderer = canvas.app.renderer;
-    // @ts-ignore
+
     this.combinedMaskTexture = PIXI.RenderTexture.create({
       width: renderer.screen.width,
       height: renderer.screen.height,
@@ -23230,7 +23320,7 @@ class HeatDistortionLayer extends CanvasLayer {
     // Setup for the new dedicated noise filter
     try {
       this.noiseFilter = new HeatDistortionNoiseFilter();
-      // @ts-ignore
+
       this.noiseTexture = PIXI.RenderTexture.create({
         width: renderer.screen.width,
         height: renderer.screen.height,
@@ -23296,7 +23386,7 @@ class HeatDistortionLayer extends CanvasLayer {
     if (texturePath !== currentPath) {
       try {
         sprite.texture = await foundry.canvas.loadTexture(texturePath);
-      } catch (e) {
+      } catch (_e) {
         sprite.texture = PIXI.Texture.EMPTY;
       }
     }
@@ -23433,7 +23523,6 @@ class HeatDistortionLayer extends CanvasLayer {
       window.removeEventListener("resize", this._onResizeBound);
     if (this._onPanBound) Hooks.off("canvasPan", this._onPanBound);
 
-    // @ts-ignore
     this.noiseFilter?.destroy();
     this.noiseSprite?.destroy();
     this.noiseTexture?.destroy(true);
@@ -23645,9 +23734,12 @@ class PrismLayer extends MaskedEffectLayer {
     );
 
     // Feed the generated textures into the global filter's uniforms.
+    const resourceManager = game.mapShine.resourceManager;
     const u = prismFilter.uniforms;
     u.uPrismMask = this.getMaskTexture();
-    u.uDistortionMap = this.distortionNoiseManager.getTexture();
+    u.uDistortionMap = resourceManager
+      ? resourceManager.getPrismDistortionNoise()
+      : this.distortionNoiseManager.getTexture();
     u.uDistortionStrength = pConfig.distortionNoise.enabled
       ? pConfig.distortionStrength
       : 0.0;
@@ -23728,6 +23820,14 @@ class WaterEffectsFilter extends PIXI.Filter {
                           uniform bool u_wave_enabled;
                           uniform float u_wave_intensity;
 
+                          // Depth Displacement
+                          uniform bool u_depthDisplacementEnabled;
+                          uniform float u_depthDisplacementStrength;
+                          uniform float u_depthDisplacementDarken;
+                          uniform vec3 u_depthWallColor;
+                          uniform float u_depthWallIntensity;
+                          uniform float u_depthWallSmearBlend;
+
                           // Surface (Open Water Foam & Specularity)
                           uniform bool u_surface_enabled;
                           uniform vec3 u_openWaterFoamColor;
@@ -23803,8 +23903,11 @@ class WaterEffectsFilter extends PIXI.Filter {
                           uniform float u_sandy_strength;
                           uniform float u_sandy_scale;
                           uniform float u_sandy_speed;
+                          uniform float u_sandy_modulation_scale;
+                          uniform float u_sandy_modulation_speed;
+                          uniform float u_sandy_modulation_strength;
 
-                          vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 289.0);}
+                          vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 256.0);}
                           vec4 taylorInvSqrt(vec4 r){return 1.79284291400159 - 0.85373472095314 * r;}
                           float snoise(vec3 v) {
                               const vec2 C = vec2(1.0/6.0, 1.0/3.0);
@@ -23818,7 +23921,7 @@ class WaterEffectsFilter extends PIXI.Filter {
                               vec3 x1 = x0 - i1 + C.xxx;
                               vec3 x2 = x0 - i2 + C.yyy; // 2.0*C.x = 1/3 = C.y
                               vec3 x3 = x0 - D.yyy;      // -1.0+3.0*C.x = -0.5 = -D.y
-                              i = mod(i, 289.0);
+                              i = mod(i, 256.0);
                               vec4 p = permute( permute( i.z + vec4(0.0, i1.z, i2.z, 1.0 ))
                                   + i.y + vec4(0.0, i1.y, i2.y, 1.0 ))
                                   + i.x + vec4(0.0, i1.x, i2.x, 1.0 );
@@ -23903,13 +24006,64 @@ class WaterEffectsFilter extends PIXI.Filter {
                               }
 
                               vec2 swirl_uv_offset = swirl_world_offset / u_view_size;
-                              vec2 total_uv_offset = wave_uv_offset + swirl_uv_offset;
+                              
+                              vec2 depth_uv_offset = vec2(0.0);
+                              if (u_depthDisplacementEnabled) {
+                                  // The displacement is proportional to depth (maskValue) and the distance
+                                  // from the center of the screen, creating a parallax effect.
+                                  depth_uv_offset.x = waterMaskValue * u_depthDisplacementStrength * (vScreenCoord.x - 0.5) * 2.0;
+                                  depth_uv_offset.y = waterMaskValue * u_depthDisplacementStrength * (vScreenCoord.y - 0.5) * 2.0;
+                              }
+                              
+                              vec2 total_uv_offset = wave_uv_offset + swirl_uv_offset + depth_uv_offset;
 
                               vec2 final_distorted_uv = vTextureCoord + total_uv_offset;
                               vec2 final_distorted_world_coord = flowed_world_coord + (total_uv_offset * u_view_size);
                               // --- END UNIFIED DISTORTION ---
 
+                              // Detect wall/gap areas and create smearing effect
+                              float wallMask = 0.0;
+                              vec3 smearedColor = vec3(0.0);
+                              bool needsSmearing = false;
+                              
+                              if (u_depthDisplacementEnabled && length(depth_uv_offset) > 0.0001) {
+                                  // Sample the water mask at the displaced position
+                                  float displacedWaterMask = texture2D(u_waterMask, final_distorted_uv).r;
+                                  // If we're in a water area but the displaced position is NOT water, this is a gap/wall
+                                  wallMask = waterMaskValue * (1.0 - displacedWaterMask);
+                                  
+                                  // Create smearing effect by sampling along the displacement path
+                                  if (wallMask > 0.01) {
+                                      needsSmearing = true;
+                                      const int smearSamples = 8;
+                                      vec3 smearAccum = vec3(0.0);
+                                      float smearWeightTotal = 0.0;
+                                      
+                                      // March backwards from displaced position to find valid pixels
+                                      for (int i = 0; i < smearSamples; i++) {
+                                          float t = float(i) / float(smearSamples - 1);
+                                          vec2 sampleUV = mix(vTextureCoord, final_distorted_uv, t);
+                                          float sampleWaterMask = texture2D(u_waterMask, sampleUV).r;
+                                          
+                                          // Weight samples more heavily if they're in water areas
+                                          float weight = sampleWaterMask * (1.0 - t) + 0.1;
+                                          vec3 sampleColor = texture2D(uSampler, sampleUV).rgb;
+                                          smearAccum += sampleColor * weight;
+                                          smearWeightTotal += weight;
+                                      }
+                                      
+                                      smearedColor = smearWeightTotal > 0.0 ? smearAccum / smearWeightTotal : u_depthWallColor;
+                                  }
+                              }
+
                               vec4 sceneColor = texture2D(uSampler, mix(vTextureCoord, final_distorted_uv, waterMaskValue));
+                              
+                              // Apply smeared color if needed
+                              if (needsSmearing && wallMask > 0.01) {
+                                  // Blend between smeared pixels and wall color
+                                  vec3 blendedWallColor = mix(smearedColor, u_depthWallColor, u_depthWallSmearBlend);
+                                  sceneColor.rgb = mix(sceneColor.rgb, blendedWallColor, wallMask * u_depthWallIntensity);
+                              }
 
                               vec3 finalColor = sceneColor.rgb;
 
@@ -23991,12 +24145,22 @@ class WaterEffectsFilter extends PIXI.Filter {
 
                                   vec2 sandy_uv = flowed_world_coord * u_sandy_scale * 0.01;
                                   float sandy_noise = fbm(vec3(sandy_uv, u_time * u_sandy_speed), 4, 2.5, 0.4);
-                                  float sandy_occlusion = sandy_noise * u_sandy_strength;
+                                  
+                                  // Add larger scale modulation noise to vary sandy texture opacity
+                                  vec2 modulation_uv = flowed_world_coord * u_sandy_modulation_scale * 0.01;
+                                  float modulation_noise = snoise(vec3(modulation_uv, u_time * u_sandy_modulation_speed)) * 0.5 + 0.5;
+                                  float modulation_factor = mix(1.0 - u_sandy_modulation_strength, 1.0, modulation_noise);
+                                  
+                                  float sandy_occlusion = sandy_noise * u_sandy_strength * modulation_factor;
 
                                   float total_occlusion = (wavy_occlusion + sandy_occlusion) * waterMaskValue;
                                   total_occlusion = clamp(total_occlusion, 0.0, 1.0);
 
                                   finalColor = mix(finalColor, u_murkiness_color, total_occlusion);
+                              }
+                              
+                              if (u_depthDisplacementEnabled) {
+                                  finalColor *= (1.0 - (waterMaskValue * u_depthDisplacementDarken));
                               }
 
                               gl_FragColor = vec4(clamp(finalColor, 0.0, 1.0), sceneColor.a);
@@ -24013,78 +24177,94 @@ class WaterEffectsFilter extends PIXI.Filter {
       u_blurredWaterMask: options.u_blurredWaterMask ?? PIXI.Texture.EMPTY,
       u_cloudShadows: options.u_cloudShadows ?? PIXI.Texture.EMPTY,
       u_outdoorsMask: options.u_outdoorsMask ?? PIXI.Texture.WHITE,
-      // @ts-ignore
+
       uSceneRectNorm: [0, 0, 1, 1],
-      // @ts-ignore
+
+      u_depthDisplacementEnabled: true,
+
+      u_depthDisplacementStrength: 0.005,
+
+      u_depthDisplacementDarken: 0.15,
+
+      u_depthWallColor: [0.05, 0.1, 0.15],
+
+      u_depthWallIntensity: 0.8,
+
+      u_depthWallSmearBlend: 0.3,
+
       u_specularityCloudOcclusionEnabled: true,
-      // @ts-ignore
+
       u_specularityCloudOcclusionIntensity: 1.0,
-      // @ts-ignore
+
       u_causticsLineSharpness: 20.0,
-      // @ts-ignore
+
       u_causticsBloomIntensity: 0.3,
-      // @ts-ignore
+
       u_causticsLineDistortion: 0.3,
-      // @ts-ignore
+
       u_causticsLineDistortionScale: 1.5,
-      // @ts-ignore
+
       u_causticsIntersectionBoost: 4.0,
-      // @ts-ignore
+
       u_causticsRoughnessScale: 5.0,
-      // @ts-ignore
+
       u_causticsRoughnessIntensity: 0.4,
-      // @ts-ignore
+
       u_causticsCloudOcclusionEnabled: true,
-      // @ts-ignore
+
       u_causticsCloudOcclusionIntensity: 0.8,
-      // @ts-ignore
+
       u_shorelinePatternScale: 5.0,
-      // @ts-ignore
+
       u_shorelinePatternSpeed: 0.1,
-      // @ts-ignore
+
       u_shorelinePatternEvolution: 0.2,
-      // @ts-ignore
+
       u_shorelinePatternOctaves: 3,
-      // @ts-ignore
+
       u_shorelinePatternLacunarity: 2.0,
-      // @ts-ignore
+
       u_shorelinePatternPersistence: 0.5,
-      // @ts-ignore
+
       u_shorelinePatternBrightness: 0.5,
-      // @ts-ignore
+
       u_shorelinePatternContrast: 1.5,
-      // @ts-ignore
+
       u_shorelineDisplacementEnabled: true,
-      // @ts-ignore
+
       u_shorelineDisplacementScale: 2.0,
-      // @ts-ignore
+
       u_shorelineDisplacementSpeed: 0.05,
-      // @ts-ignore
+
       u_shorelineDisplacementStrength: 10.0,
-      // Flow
-      // @ts-ignore
+
       u_flow_enabled: false,
-      // @ts-ignore
+
       u_flow_direction: [1, 0],
-      // @ts-ignore
+
       u_flow_speed: 0.0,
-      // Murkiness
-      // @ts-ignore
+
       u_murkiness_enabled: false,
-      // @ts-ignore
+
       u_murkiness_color: [0, 0, 0],
-      // @ts-ignore
+
       u_wavy_strength: 0.0,
-      // @ts-ignore
+
       u_wavy_scale: 0.0,
-      // @ts-ignore
+
       u_wavy_speed: 0.0,
-      // @ts-ignore
+
       u_sandy_strength: 0.0,
-      // @ts-ignore
+
       u_sandy_scale: 0.0,
-      // @ts-ignore
+
       u_sandy_speed: 0.0,
+
+      u_sandy_modulation_scale: 3.0,
+
+      u_sandy_modulation_speed: 0.01,
+
+      u_sandy_modulation_strength: 0.5,
     });
   }
 }
@@ -24214,6 +24394,30 @@ class WaterFXLayer extends MaskedEffectLayer {
                                             25,
                                             0.5
                                           )}
+                                          <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1);">
+                                              <strong style="display: block; margin-bottom: 8px;">Opacity Modulation</strong>
+                                              ${DebuggerUIBuilder._createSliderHTML(
+                                                "water.murkiness.sandyNoise.modulationScale",
+                                                "Modulation Scale",
+                                                0.1,
+                                                100,
+                                                0.1
+                                              )}
+                                              ${DebuggerUIBuilder._createSliderHTML(
+                                                "water.murkiness.sandyNoise.modulationSpeed",
+                                                "Modulation Speed",
+                                                0,
+                                                5,
+                                                0.01
+                                              )}
+                                              ${DebuggerUIBuilder._createSliderHTML(
+                                                "water.murkiness.sandyNoise.modulationStrength",
+                                                "Modulation Strength",
+                                                0,
+                                                1,
+                                                0.01
+                                              )}
+                                          </div>
                                       </div>
                                   </details>
                               </div>
@@ -24250,6 +24454,53 @@ class WaterFXLayer extends MaskedEffectLayer {
                                     0.05,
                                     0.0001,
                                     "The strength of the distortion. Higher values push the pixels further."
+                                  )}
+                              </div>
+                          </details>
+                          <details id="details-water-depth-displacement">
+                              <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                                "water.depthDisplacement.enabled",
+                                "Depth Parallax",
+                                true
+                              )}</div></summary>
+                              <div style="padding-left: 15px;">
+                                  <p class="description-text">Creates a "faux-3D" parallax effect by displacing the map under the water based on the water mask's brightness, simulating depth.</p>
+                                  ${DebuggerUIBuilder._createSliderHTML(
+                                    "water.depthDisplacement.strength",
+                                    "Strength",
+                                    0,
+                                    0.05,
+                                    0.0005,
+                                    "How much the underlying map is shifted downwards. Higher values make the water appear deeper."
+                                  )}
+                                  ${DebuggerUIBuilder._createSliderHTML(
+                                    "water.depthDisplacement.darken",
+                                    "Darkening",
+                                    0,
+                                    1,
+                                    0.01,
+                                    "How much to darken the displaced image. This is applied in addition to any Murkiness."
+                                  )}
+                                  ${DebuggerUIBuilder._createColorPickerHTML(
+                                    "water.depthDisplacement.wallColor",
+                                    "Wall Color",
+                                    "The color used to fill the gaps/walls created by the parallax displacement at water edges."
+                                  )}
+                                  ${DebuggerUIBuilder._createSliderHTML(
+                                    "water.depthDisplacement.wallIntensity",
+                                    "Wall Intensity",
+                                    0,
+                                    1,
+                                    0.01,
+                                    "Controls how strongly the wall color is applied to gap areas. 0 = no wall color, 1 = full wall color."
+                                  )}
+                                  ${DebuggerUIBuilder._createSliderHTML(
+                                    "water.depthDisplacement.wallSmearBlend",
+                                    "Smear/Wall Blend",
+                                    0,
+                                    1,
+                                    0.01,
+                                    "Controls the blend between smeared pixels and wall color. 0 = pure pixel smearing, 1 = pure wall color."
                                   )}
                               </div>
                           </details>
@@ -24869,7 +25120,7 @@ class WaterFXLayer extends MaskedEffectLayer {
     this.displacementSprite.width = renderer.screen.width;
     this.displacementSprite.height = renderer.screen.height;
     this.displacementSprite.filters = [this.displacementFilter];
-    // @ts-ignore
+
     this.displacementTexture = PIXI.RenderTexture.create({
       width: renderer.screen.width,
       height: renderer.screen.height,
@@ -24877,9 +25128,9 @@ class WaterFXLayer extends MaskedEffectLayer {
 
     const initialBlur =
       game.mapShine.profileManager.activeConfig.water.shoreline.detectionBlur;
-    // @ts-ignore
+
     this.blurFilter = new PIXI.BlurFilter(initialBlur, 4);
-    // @ts-ignore
+
     this.blurredWaterMaskTexture = PIXI.RenderTexture.create({
       width: renderer.screen.width,
       height: renderer.screen.height,
@@ -24887,14 +25138,14 @@ class WaterFXLayer extends MaskedEffectLayer {
     this.blurSourceSprite = new PIXI.Sprite(this.getMaskTexture());
     this.blurSourceSprite.filters = [this.blurFilter];
     this.shorelineMaskContainer = new PIXI.Container();
-    // @ts-ignore
+
     this.shorelineMaskTexture = PIXI.RenderTexture.create({
       width: renderer.screen.width,
       height: renderer.screen.height,
     });
 
     this.causticsMaskContainer = new PIXI.Container();
-    // @ts-ignore
+
     this.combinedCausticsMaskTexture = PIXI.RenderTexture.create({
       width: renderer.screen.width,
       height: renderer.screen.height,
@@ -24906,6 +25157,17 @@ class WaterFXLayer extends MaskedEffectLayer {
   _updateWaterFilterUniforms(filter, wConfig) {
     if (!filter) return;
     const u = filter.uniforms;
+
+    // Depth Displacement
+    const depthConfig = wConfig.depthDisplacement;
+    if (depthConfig) {
+      u.u_depthDisplacementEnabled = depthConfig.enabled;
+      u.u_depthDisplacementStrength = depthConfig.strength;
+      u.u_depthDisplacementDarken = depthConfig.darken;
+      u.u_depthWallColor = hexToRgbArray(depthConfig.wallColor);
+      u.u_depthWallIntensity = depthConfig.wallIntensity;
+      u.u_depthWallSmearBlend = depthConfig.wallSmearBlend;
+    }
 
     // Flow
     if (wConfig.flow) {
@@ -24925,6 +25187,10 @@ class WaterFXLayer extends MaskedEffectLayer {
       u.u_sandy_strength = wConfig.murkiness.sandyNoise.strength;
       u.u_sandy_scale = wConfig.murkiness.sandyNoise.scale;
       u.u_sandy_speed = wConfig.murkiness.sandyNoise.speed;
+      u.u_sandy_modulation_scale = wConfig.murkiness.sandyNoise.modulationScale;
+      u.u_sandy_modulation_speed = wConfig.murkiness.sandyNoise.modulationSpeed;
+      u.u_sandy_modulation_strength =
+        wConfig.murkiness.sandyNoise.modulationStrength;
     }
 
     u.u_wave_enabled = wConfig.wave.enabled;
@@ -25028,7 +25294,7 @@ class WaterFXLayer extends MaskedEffectLayer {
     const renderer = canvas.app.renderer;
     const stage = canvas.stage;
     const screen = renderer.screen;
-    // @ts-ignore
+
     const topLeft = stage.toLocal({
       x: 0,
       y: 0,
@@ -25087,7 +25353,6 @@ class WaterFXLayer extends MaskedEffectLayer {
 
     const rect = canvas.scene.dimensions.sceneRect;
     if (rect && screen.width > 0 && screen.height > 0) {
-      // @ts-ignore
       const topLeftScreen = canvas.stage.toGlobal({
         x: rect.x,
         y: rect.y,
@@ -25254,12 +25519,11 @@ class WaterFXLayer extends MaskedEffectLayer {
       canvas.primary.filters = (canvas.primary.filters || []).filter(
         (f) => f !== this.waterEffectsFilter
       );
-      // @ts-ignore
+
       this.waterEffectsFilter.destroy();
       this.waterEffectsFilter = null;
     }
 
-    // @ts-ignore
     this.displacementFilter?.destroy();
     this.displacementSprite?.destroy();
     this.displacementTexture?.destroy(true);
@@ -25333,7 +25597,7 @@ class WaveDisplacementFilter extends PIXI.Filter {
                           //               Distributed under the MIT License. See LICENSE file.
                           //               https://github.com/ashima/webgl-noise
                           //
-                          vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 289.0);}
+                          vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 256.0);}
                           vec4 taylorInvSqrt(vec4 r){return 1.79284291400159 - 0.85373472095314 * r;}
 
                           float snoise(vec3 v) {
@@ -25355,7 +25619,7 @@ class WaveDisplacementFilter extends PIXI.Filter {
                               vec3 x3 = x0 - D.yyy;      // -1.0+3.0*C.x = -0.5 = -D.y
 
                               // Permutations
-                              i = mod(i, 289.0);
+                              i = mod(i, 256.0);
                               vec4 p = permute( permute( i.z + vec4(0.0, i1.z, i2.z, 1.0 ))
                                   + i.y + vec4(0.0, i1.y, i2.y, 1.0 ))
                                   + i.x + vec4(0.0, i1.x, i2.x, 1.0 );
@@ -25424,13 +25688,12 @@ class WaveDisplacementFilter extends PIXI.Filter {
                           }
                       `;
     super(vertexSrc, fragmentSrc, {
-      // @ts-ignore
       u_time: 0.0,
       u_speed: options.speed ?? 0.05,
       u_scale: options.scale ?? 4.0,
-      // @ts-ignore
+
       u_camera_offset: [0, 0],
-      // @ts-ignore
+
       u_view_size: [1, 1],
     });
   }
@@ -25445,8 +25708,7 @@ class WaveDisplacementFilter extends PIXI.Filter {
 // --- 5.12. Building Shadows ---
 
 class BuildingShadowsFilter extends PIXI.Filter {
-  // @ts-ignore
-  constructor(options = {}) {
+  constructor(_options = {}) {
     const vertexSrc = `
               attribute vec2 aVertexPosition;
               attribute vec2 aTextureCoord;
@@ -25520,22 +25782,21 @@ class BuildingShadowsFilter extends PIXI.Filter {
           `;
 
     super(vertexSrc, fragmentSrc, {
-      // @ts-ignore
       uOutdoorsMask: PIXI.Texture.EMPTY,
-      // @ts-ignore
+
       uShadowOffset: [0, 0],
-      // @ts-ignore
+
       uBlur: 1.0,
-      // @ts-ignore
+
       uIntensity: 0.6,
-      // @ts-ignore
+
       uTexelSize: [
         1.0 / (window.innerWidth || 1),
         1.0 / (window.innerHeight || 1),
       ],
-      // @ts-ignore
+
       uCanvasScale: [1.0, 1.0],
-      // @ts-ignore
+
       uSceneRectNorm: [0, 0, 1, 1],
     });
   }
@@ -25760,7 +26021,7 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
       canvas.primary.filters = (canvas.primary.filters || []).filter(
         (f) => f !== this.filter
       );
-      // @ts-ignore
+
       this.filter.destroy();
       this.filter = null;
     }
@@ -25771,8 +26032,7 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
 }
 
 class OverheadRecolorFilter extends PIXI.Filter {
-  // @ts-ignore
-  constructor(options = {}) {
+  constructor(_options = {}) {
     const vertexSrc = `
               attribute vec2 aVertexPosition;
               attribute vec2 aTextureCoord;
@@ -25842,23 +26102,22 @@ class OverheadRecolorFilter extends PIXI.Filter {
           `;
 
     super(vertexSrc, fragmentSrc, {
-      // @ts-ignore
       uStructuralMask: PIXI.Texture.EMPTY,
-      // @ts-ignore
+
       uRecolorTint: [1.0, 1.0, 1.0],
-      // @ts-ignore
+
       uRecolorIntensity: 0.5,
-      // @ts-ignore
+
       uRecolorEnabled: false,
       // New uniforms
-      // @ts-ignore
+
       uCloudShadows: PIXI.Texture.EMPTY,
-      // @ts-ignore
+
       uCloudShadowDarkenIntensity: 0.5,
-      // @ts-ignore
+
       uCloudShadowDarkenEnabled: false,
       // Darkness uniform
-      // @ts-ignore
+
       uDarkness: 0.0,
     });
   }
@@ -25883,7 +26142,7 @@ class MapShineClock {
     this._dragData = {};
 
     this._onExternalTimeChangeBound = this._onExternalTimeChange.bind(this);
-    // @ts-ignore
+
     Hooks.on("mapShine:timeChanged", this._onExternalTimeChangeBound);
 
     this.render();
@@ -26078,7 +26337,6 @@ class MapShineClock {
       });
 
     this.element.find(".time-display-input").on("change", (event) => {
-      // @ts-ignore
       const inputVal = event.currentTarget.value;
       const parts = inputVal.split(":");
       if (parts.length === 2) {
@@ -26093,7 +26351,6 @@ class MapShineClock {
   }
 
   destroy() {
-    // @ts-ignore
     Hooks.off("mapShine:timeChanged", this._onExternalTimeChangeBound);
     $(window).off(".daynightclock");
 
@@ -26242,12 +26499,12 @@ class MapShineClock {
   _updateTime(newTime, { fromHook = false } = {}) {
     this.currentTime = (newTime + 24) % 24;
     if (!this.element) return;
-    // @ts-ignore
+
     const tintColor = this.constructor._getColorForTime(this.currentTime);
     this.element.find(".clock-face").css("--clock-tint-color", tintColor);
-    // @ts-ignore
+
     const angle = this.constructor._getAngleForTime(this.currentTime);
-    // @ts-ignore
+
     const formattedTime = this.constructor._formatTime(this.currentTime);
     const isNight = this.currentTime < 6 || this.currentTime >= 18;
     this.element.find(".clock-hand").css("transform", `rotate(${angle}deg)`);
@@ -26281,13 +26538,12 @@ class MapShineClock {
     let angleRad = Math.atan2(deltaY, deltaX) + Math.PI / 2;
     if (angleRad < 0) angleRad += 2 * Math.PI;
     const angleDeg = angleRad * (180 / Math.PI);
-    // @ts-ignore
+
     const newTime = this.constructor._getTimeForAngle(angleDeg);
     this._updateTime(newTime);
   }
 
-  // @ts-ignore
-  _onDragEnd(event) {
+  _onDragEnd(_event) {
     this._isDragging = false;
     $(window).off("mousemove.daynightclock", this._onDragBound);
     $(window).off("mouseup.daynightclock", this._onDragEndBound);
@@ -26313,8 +26569,7 @@ class DayNightClock extends Application {
     });
   }
 
-  // @ts-ignore
-  async _renderInner(data) {
+  async _renderInner(_data) {
     // The application just needs to provide a container for the component.
     const container = document.createElement("div");
     container.style.backgroundColor = "#1e1e1e";
@@ -26434,41 +26689,40 @@ class TimeOfDayColorFilter extends PIXI.Filter {
           `;
 
     super(PIXI.Filter.defaultVertexSrc, fragmentSrc, {
-      // @ts-ignore
       uOutdoorsMask: PIXI.Texture.EMPTY,
-      // @ts-ignore
+
       uIntensity: 1.0,
-      // @ts-ignore
+
       uBlendFactor: 0.0,
       // "From" defaults
-      // @ts-ignore
+
       uFromSaturation: 1.0,
-      // @ts-ignore
+
       uFromBrightness: 0.0,
-      // @ts-ignore
+
       uFromContrast: 1.0,
-      // @ts-ignore
+
       uFromExposure: 0.0,
-      // @ts-ignore
+
       uFromGamma: 1.0,
-      // @ts-ignore
+
       uFromTemperature: 0.0,
-      // @ts-ignore
+
       uFromTint: 0.0,
       // "To" defaults
-      // @ts-ignore
+
       uToSaturation: 1.0,
-      // @ts-ignore
+
       uToBrightness: 0.0,
-      // @ts-ignore
+
       uToContrast: 1.0,
-      // @ts-ignore
+
       uToExposure: 0.0,
-      // @ts-ignore
+
       uToGamma: 1.0,
-      // @ts-ignore
+
       uToTemperature: 0.0,
-      // @ts-ignore
+
       uToTint: 0.0,
       ...options,
     });
@@ -26731,7 +26985,7 @@ class TimeOfDayLayer extends MaskedEffectLayer {
       canvas.primary.filters = (canvas.primary.filters || []).filter(
         (f) => f !== this.filter
       );
-      // @ts-ignore
+
       this.filter.destroy();
       this.filter = null;
     }
@@ -26989,11 +27243,11 @@ class CurveEditor {
         "http://www.w3.org/2000/svg",
         "line"
       );
-      // @ts-ignore
+
       vLine.setAttribute("x1", pos);
-      // @ts-ignore
+
       vLine.setAttribute("y1", 0);
-      // @ts-ignore
+
       vLine.setAttribute("x2", pos);
       vLine.setAttribute("y2", this.height);
       gridGroup.appendChild(vLine);
@@ -27002,12 +27256,12 @@ class CurveEditor {
         "http://www.w3.org/2000/svg",
         "line"
       );
-      // @ts-ignore
+
       hLine.setAttribute("x1", 0);
-      // @ts-ignore
+
       hLine.setAttribute("y1", pos);
       hLine.setAttribute("x2", this.width);
-      // @ts-ignore
+
       hLine.setAttribute("y2", pos);
       gridGroup.appendChild(hLine);
     }
@@ -27017,11 +27271,11 @@ class CurveEditor {
       "http://www.w3.org/2000/svg",
       "line"
     );
-    // @ts-ignore
+
     neutralLine.setAttribute("x1", 0);
     neutralLine.setAttribute("y1", this.height);
     neutralLine.setAttribute("x2", this.width);
-    // @ts-ignore
+
     neutralLine.setAttribute("y2", 0);
     neutralLine.setAttribute("stroke", "rgba(255,255,255,0.2)");
     neutralLine.setAttribute("stroke-width", "1");
@@ -27041,9 +27295,9 @@ class CurveEditor {
         "circle"
       );
       circle.setAttribute("cx", p.x);
-      // @ts-ignore
+
       circle.setAttribute("cy", this.height - p.y);
-      // @ts-ignore
+
       circle.setAttribute("r", 6);
       circle.setAttribute("fill", "rgba(0, 170, 255, 0.5)"); // Semi-transparent fill
       circle.setAttribute("stroke", "#fff"); // White stroke
@@ -27051,8 +27305,7 @@ class CurveEditor {
       circle.setAttribute("cursor", "grab");
       this.svg.appendChild(circle);
 
-      // @ts-ignore
-      circle.addEventListener("mousedown", (e) => {
+      circle.addEventListener("mousedown", (_e) => {
         this.activePoint = i;
       });
       return circle;
@@ -27127,7 +27380,7 @@ class CurveEditor {
     this.controlPoints.forEach((circle, i) => {
       // When drawing, flip the internal "y-up" coordinate to SVG's "y-down" screen coordinate.
       circle.setAttribute("cx", this.points[i].x);
-      // @ts-ignore
+
       circle.setAttribute("cy", this.height - this.points[i].y);
     });
 
@@ -28254,8 +28507,7 @@ class DebuggerUIBuilder {
   }
 
   _getLightingHTML() {
-    // @ts-ignore
-    const effectKey = "lighting"; // This is a virtual key for the accordion
+    const _effectKey = "lighting"; // This is a virtual key for the accordion
     const content = `
     <p class="description-text">Global settings that affect how light interacts with Map Shine effects.</p>
     <details>
@@ -28553,12 +28805,11 @@ class DebuggerUIBuilder {
 /**
  * Generates separate color and alpha lists for the particle emitter from a single gradient array.
  * @param {Array<object>} gradient - An array of stop objects, each with {time, color, alpha}.
- * @returns {{colorList: object, alphaList: object}} An object containing the config lists for the behaviors.
+ * @returns {{isColorStatic: boolean, staticColor?: string, colorList?: object, isAlphaStatic: boolean, staticAlpha?: number, alphaList?: object}} An object containing the config lists or static values for the behaviors.
  */
 function _generateBehaviorListsFromGradient(gradient) {
   if (!gradient || gradient.length === 0) {
     return {
-      // @ts-ignore
       isColorStatic: true,
       staticColor: "#ffffff",
       isAlphaStatic: true,
@@ -28599,7 +28850,6 @@ function _generateBehaviorListsFromGradient(gradient) {
     };
   }
 
-  // @ts-ignore
   return result;
 }
 
@@ -28682,16 +28932,14 @@ class DebuggerEventHandler {
     const displayEl = this.element.querySelector("#overhead-zoom-display");
     if (displayEl) {
       const transform = canvas.stage.transform;
-      // @ts-ignore
+
       const current = transform.scale.x.toFixed(2);
-      const min = // @ts-ignore
-        (
-          typeof transform.minScale === "number" ? transform.minScale : 0.1
-        ).toFixed(2);
-      const max = // @ts-ignore
-        (
-          typeof transform.maxScale === "number" ? transform.maxScale : 3.0
-        ).toFixed(2);
+      const min = (
+        typeof transform.minScale === "number" ? transform.minScale : 0.1
+      ).toFixed(2);
+      const max = (
+        typeof transform.maxScale === "number" ? transform.maxScale : 3.0
+      ).toFixed(2);
 
       const config = this.profileManager.activeConfig.overheadEffect;
       const pointMin = (config.zoomPointMin || 0).toFixed(2);
@@ -28743,8 +28991,7 @@ class DebuggerEventHandler {
         pauseEffectOverlay: ["universal.pauseEffect."],
       }[effectKey];
 
-      // @ts-ignore
-      for (const [key, setting] of allSettings.entries()) {
+      for (const [key, _setting] of allSettings.entries()) {
         if (key.startsWith(MODULE_ID)) {
           const settingKey = key.replace(`${MODULE_ID}.`, "");
           if (prefixes.some((p) => settingKey.startsWith(p))) {
@@ -28817,7 +29064,6 @@ class DebuggerEventHandler {
 
       if (isGameSettingAccordion) {
         for (const key in settingsToPaste) {
-          // @ts-ignore
           if (game.settings.settings.has(`${MODULE_ID}.${key}`)) {
             await game.settings.set(MODULE_ID, key, settingsToPaste[key]);
           }
@@ -28860,13 +29106,12 @@ class DebuggerEventHandler {
       this._getPathValue(this.config, path)
     );
 
-    // @ts-ignore
     if (!gradientData || gradientData.length <= 2) {
       return; // Nothing to reset
     }
 
     const startPoint = gradientData[0];
-    // @ts-ignore
+
     const endPoint = gradientData[gradientData.length - 1];
     startPoint.time = 0;
     endPoint.time = 1;
@@ -29172,7 +29417,7 @@ class DebuggerEventHandler {
     }
 
     // Global hook
-    // @ts-ignore
+
     Hooks.on("mapShine:timeChanged", this._onTimeChangedBound);
   }
 
@@ -29184,7 +29429,7 @@ class DebuggerEventHandler {
     const name = await Dialog.prompt({
       title: "New Clean Profile",
       content: `<p>Enter a name for the new, clean appearance profile:</p><input type="text" name="profileName" placeholder="e.g., Night Time">`,
-      // @ts-ignore
+
       callback: (html) => html.find('input[name="profileName"]').val(),
       rejectClose: false,
     });
@@ -29213,7 +29458,7 @@ class DebuggerEventHandler {
       )}</strong>":</p><input type="text" name="newName" value="${Handlebars.escapeExpression(
         profile.name
       )}">`,
-      // @ts-ignore
+
       callback: (html) => html.find('input[name="newName"]').val(),
       rejectClose: false,
     });
@@ -29247,7 +29492,6 @@ class DebuggerEventHandler {
     });
   }
 
-  // @ts-ignore
   async _onCreateSceneProfilesClick() {
     await this.profileManager.createInitialSceneProfiles();
   }
@@ -29272,7 +29516,7 @@ class DebuggerEventHandler {
     if (!gradientData) return;
 
     // Cannot move start or end stops horizontally
-    // @ts-ignore
+
     if (stopIndex === 0 || stopIndex === gradientData.length - 1) return;
 
     const wrapper = this.element.querySelector(
@@ -29297,8 +29541,7 @@ class DebuggerEventHandler {
     this.throttledSystemUpdate(path, gradientData);
   }
 
-  // @ts-ignore
-  _onGradientMouseUp(event) {
+  _onGradientMouseUp(_event) {
     if (!this.activeGradientEditor.isDragging) return;
 
     const { path } = this.activeGradientEditor;
@@ -29330,7 +29573,7 @@ class DebuggerEventHandler {
     const time = (event.clientX - rect.left) / rect.width;
 
     let insertIndex = 1;
-    // @ts-ignore
+
     for (let i = 0; i < gradientData.length - 1; i++) {
       if (time > gradientData[i].time && time < gradientData[i + 1].time) {
         insertIndex = i + 1;
@@ -29352,11 +29595,11 @@ class DebuggerEventHandler {
       lerp(startColor[1], endColor[1], blend),
       lerp(startColor[2], endColor[2], blend),
     ];
-    // @ts-ignore
+
     const newColorHex = new PIXI.Color(newColorRgb).toHex();
 
     const newStop = { time, color: newColorHex, alpha: newAlpha };
-    // @ts-ignore
+
     gradientData.splice(insertIndex, 0, newStop);
 
     this.activeGradientEditor.path = path;
@@ -29401,7 +29644,7 @@ class DebuggerEventHandler {
     const index = parseInt(stop.dataset.index, 10);
 
     const gradientData = this._getPathValue(this.config, path);
-    // @ts-ignore
+
     if (!gradientData || gradientData.length <= 2) {
       ui.notifications.warn(
         "Cannot remove the start or end stops of a gradient."
@@ -29410,9 +29653,8 @@ class DebuggerEventHandler {
     }
 
     // Cannot remove first or last stop
-    // @ts-ignore
+
     if (index > 0 && index < gradientData.length - 1) {
-      // @ts-ignore
       gradientData.splice(index, 1);
 
       this.activeGradientEditor.path = null;
@@ -29491,8 +29733,7 @@ class DebuggerEventHandler {
           yes: async () => {
             if (effectKey === "loadingScreen") {
               for (const key in defaultsToUse) {
-                // @ts-ignore
-                const path = `universal.sceneTransition.${key}`;
+                const _path = `universal.sceneTransition.${key}`;
                 const settingKey = `universal.sceneTransition.${key}`;
                 const defaultValue = defaultsToUse[key];
                 if (Array.isArray(defaultValue)) {
@@ -29645,8 +29886,7 @@ class DebuggerEventHandler {
     this._updateDebuggerTime(newTime);
   }
 
-  // @ts-ignore
-  _onDebuggerClockDragEnd(event) {
+  _onDebuggerClockDragEnd(_event) {
     this._isDebuggerClockDragging = false;
     window.removeEventListener("mousemove", this._onDebuggerClockDragBound);
     // The "mouseup" listener is {once: true}, so it removes itself automatically.
@@ -29823,8 +30063,7 @@ class DebuggerEventHandler {
   }
 
   async _onPreviewClick(event) {
-    // @ts-ignore
-    const btn = event.currentTarget;
+    const _btn = event.currentTarget;
     const transitionManager = game.mapShine.transitionManager;
 
     if (transitionManager.status === "previewing") {
@@ -29842,11 +30081,6 @@ class DebuggerEventHandler {
     if (dropdown && dropdown.value !== "-1") {
       await this.profileManager.activateSceneProfile(dropdown.value);
     }
-  }
-
-  // @ts-ignore
-  async _onCreateSceneProfilesClick() {
-    await this.profileManager.createInitialSceneProfiles();
   }
 
   updateTransitionStatus(status, message) {
@@ -29978,23 +30212,18 @@ class DebuggerEventHandler {
       },
       heatNoise: {
         class: HeatDistortionLayer,
-        property: "noiseManager",
-        name: "Heat Noise",
+        property: "noiseTexture",
+        name: "Heat Distortion Noise",
       },
       iridescenceNoise: {
         class: IridescenceLayer,
         property: "distortionNoiseManager",
         name: "Iridescence Noise",
       },
-      canopyNoise: {
-        class: CanopyLayer,
+      prismNoise: {
+        class: PrismLayer,
         property: "distortionNoiseManager",
-        name: "Canopy Noise",
-      },
-      structuralNoise: {
-        class: StructuralShadowsLayer,
-        property: "intensityNoiseManager",
-        name: "Structural Noise",
+        name: "Prism Distortion Noise",
       },
     };
 
@@ -30013,7 +30242,6 @@ class DebuggerEventHandler {
           if (
             prop &&
             (prop instanceof PIXI.RenderTexture ||
-              // @ts-ignore
               typeof prop.getTexture === "function")
           ) {
             textures.intermediates[intermediateKey] = check.name;
@@ -30023,12 +30251,12 @@ class DebuggerEventHandler {
     }
 
     // Add external/core layers that the DiagnosticLayer can handle.
-    // @ts-ignore
+
     if (game.modules.get("illuminationbuffer")?.api?.getLightingTexture) {
       textures.external["external_illumination"] =
         "External: Illumination Buffer";
     }
-    // @ts-ignore
+
     if (canvas.effects?.illumination?.texture) {
       textures.external["external_lightingLayer"] = "Core: Illumination Layer";
     }
@@ -30237,7 +30465,6 @@ class DebuggerEventHandler {
 
     // If no value is set or it's empty, fall back to the registered default
     if (!valueString || valueString.trim() === "") {
-      // @ts-ignore
       const setting = game.settings.settings.get(`${MODULE_ID}.${path}`);
       if (setting && setting.default) {
         valueString = setting.default;
@@ -31043,7 +31270,7 @@ class DebuggerEventHandler {
 
   destroy() {
     // Remove the global hook listener
-    // @ts-ignore
+
     Hooks.off("mapShine:timeChanged", this._onTimeChangedBound);
 
     // Destroy the UI clock component if it exists
@@ -31135,8 +31362,8 @@ class MaterialEditorDebugger {
     // The hook now triggers a full re-render of the dynamic UI parts
     this._updateSceneHookId = Hooks.on(
       "updateScene",
-      // @ts-ignore
-      (scene, data, options) => {
+
+      (scene, data, _options) => {
         const flagPath = `flags.${MODULE_ID}`;
         if (
           !scene.isView ||
@@ -31190,7 +31417,7 @@ class MaterialEditorDebugger {
     const indicator = this.element.querySelector(`#status-${category}-${key}`);
     if (indicator) {
       indicator.className = `traffic-light ${statusObject.state}`;
-      // @ts-ignore
+
       indicator.title = statusObject.message;
     }
 
@@ -31199,7 +31426,7 @@ class MaterialEditorDebugger {
       if (input) {
         // Only display the path if it was successfully found.
         // The message for other states is not a path.
-        // @ts-ignore
+
         input.value = statusObject.state === "ok" ? statusObject.message : "";
       }
     }
@@ -31280,19 +31507,16 @@ class SimpleUIPanel extends Application {
     });
   }
 
-  // @ts-ignore
   async render(force, options) {
     await super.render(force, options);
-    // @ts-ignore
+
     this.element.find('input[type="range"]').each((i, el) => {
-      // @ts-ignore
       this._updateSliderValue(el.id, el.value, el.step);
     });
     return this;
   }
 
-  // @ts-ignore
-  async _renderInner(data) {
+  async _renderInner(_data) {
     const html = this._buildHTML();
     return $(html);
   }
@@ -31446,7 +31670,6 @@ class SimpleUIPanel extends Application {
         // We need to reset both the enabled and intensity settings for this key
         const enabledSettingName = `user-${key}-enabled`;
         const defaultEnabled = game.settings.settings.get(
-          // @ts-ignore
           `${MODULE_ID}.${enabledSettingName}`
         ).default;
         await game.settings.set(MODULE_ID, enabledSettingName, defaultEnabled);
@@ -31455,7 +31678,6 @@ class SimpleUIPanel extends Application {
         if (configData.intensitySubPath) {
           const intensitySettingName = `user-${key}-intensity`;
           const defaultIntensity = game.settings.settings.get(
-            // @ts-ignore
             `${MODULE_ID}.${intensitySettingName}`
           ).default;
           await game.settings.set(
@@ -31484,10 +31706,8 @@ class SimpleUIPanel extends Application {
 // Make DebuggerUIBuilder available globally for extracted modules
 globalThis.DebuggerUIBuilder = DebuggerUIBuilder;
 
-// @ts-ignore
-class MapShineGuideContent {
+class _MapShineGuideContent {
   static async getHTML() {
-    // @ts-ignore
     return renderTemplate("modules/map-shine/templates/guide.html");
   }
 }
@@ -31517,7 +31737,7 @@ class UserGuide extends Application {
 }
 
 // THIS IS THE CORRECT WAY TO MAKE CONTROLS IN FOUNDRY VTT - Please don't break it.
-// @ts-ignore
+
 Hooks.on("getSceneControlButtons", (controls) => {
   if (!game.user.isGM) return;
 
@@ -31546,8 +31766,8 @@ Hooks.on("getSceneControlButtons", (controls) => {
       icon: "fas fa-clock",
       toggle: true,
       active: !!game.mapShine?.dayNightClock,
-      // @ts-ignore
-      onClick: (toggled) => {
+
+      onClick: (_toggled) => {
         game.mapShine?.showDayNightClock();
       },
     };
@@ -31606,7 +31826,7 @@ Hooks.on("updateScene", (scene, data, options) => {
     // Check if the current user initiated this update. If so, they have already cleared their
     // own overrides, and their UI will be updated by their original action.
     // This prevents the race condition. Other clients will proceed.
-    // @ts-ignore
+
     if (options.userId === game.user.id) return;
 
     game.mapShine?.profileManager.initializeForScene();
@@ -31643,13 +31863,12 @@ Hooks.on("canvasDraw", (canvas) => {
   // with core layers and are affected by post-processing effects.
   if (layersToWrap.length > 0) {
     worldContainer.addChild(...layersToWrap);
-    // @ts-ignore
+
     worldContainer.sortChildren();
   }
 });
 
-// @ts-ignore
-Hooks.on("renderSceneControls", (app, html, data) => {
+Hooks.on("renderSceneControls", (app, html, _data) => {
   if (!game.user.isGM) return;
 
   // Prevent duplicate clocks on re-renders
