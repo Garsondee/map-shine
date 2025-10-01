@@ -2004,15 +2004,6 @@ export const MODULE_DEFAULTS = {
       },
     },
   },
-  advancedBloom: {
-    enabled: true,
-    blendMode: 1,
-    threshold: 0.21,
-    bloomScale: 2,
-    brightness: 2,
-    blur: 3.5,
-    quality: 4,
-  },
   sceneAppearance: {
     transitionDuration: 3500,
   },
@@ -2679,14 +2670,6 @@ export const MODULE_DEFAULTS = {
   },
   fire: {
     enabled: true,
-    bloom: {
-      enabled: true,
-      threshold: 0.04,
-      bloomScale: 5,
-      brightness: 5,
-      blur: 0,
-      quality: 4,
-    },
     particles: {
       enabled: true,
       blendMode: 1,
@@ -2701,28 +2684,23 @@ export const MODULE_DEFAULTS = {
       colorAlphaGradient: [
         {
           time: 0,
-          color: "#FFDD88",
+          color: "#FFFFFF",
           alpha: 0,
         },
         {
-          time: 0.13768124787703803,
-          color: "#ffd782",
-          alpha: 0.47,
+          time: 0.1,
+          color: "#FFDD88",
+          alpha: 1,
         },
         {
-          time: 0.2655800067782381,
-          color: "#ff731e",
-          alpha: 0.12,
+          time: 0.35,
+          color: "#FF7700",
+          alpha: 1,
         },
         {
-          time: 0.671140900715665,
-          color: "#000000",
-          alpha: 0.26,
-        },
-        {
-          time: 0.840843686122106,
-          color: "#000000",
-          alpha: 0.13,
+          time: 0.6,
+          color: "#333333",
+          alpha: 0.5,
         },
         {
           time: 1,
@@ -2733,13 +2711,13 @@ export const MODULE_DEFAULTS = {
       emissiveGradient: [
         {
           time: 0,
-          color: "#ffffff",
-          alpha: 0,
+          color: "#FFFFFF",
+          alpha: 1,
         },
         {
-          time: 0.18435862667639175,
-          color: "#ffffff",
-          alpha: 0.4,
+          time: 0.25,
+          color: "#FFDD88",
+          alpha: 0.8,
         },
         {
           time: 1,
@@ -2988,19 +2966,6 @@ export const MODULE_DEFAULTS = {
       magnitude: 5,
       speed: 0.1,
       scale: 0.005,
-    },
-    bloom: {
-      enabled: true,
-      blendMode: 1,
-      threshold: 0.5,
-      bloomScale: 1,
-      brightness: 2,
-      blur: 8,
-      quality: 4,
-      rgbSplit: {
-        enabled: true,
-        amount: 0.5,
-      },
     },
   },
   smellyFlies: {
@@ -9417,10 +9382,6 @@ class SystemStatusManager {
           state: "unknown",
           message: "Not yet compiled.",
         },
-        bloom: {
-          state: "unknown",
-          message: "Not yet compiled.",
-        },
         iridescence: {
           state: "unknown",
           message: "Not yet compiled.",
@@ -11113,7 +11074,7 @@ const PARTICLE_EFFECT_DEFINITIONS = {
   fire: {
     title: "Flames",
     description:
-      "A multi-stage effect for fire, combining particles and a bloom glow. Requires a _Fire.webp map where white areas are the heart of the flame.",
+      "A fire effect with animated flame particles. Requires a _Fire.webp map where white areas are the heart of the flame.",
     configPath: "fire.particles",
     triggerTexture: "fire",
     buildEmitterConfig: (effectConfig, targetData) =>
@@ -11173,7 +11134,6 @@ class ParticleEffectController {
     this.pendingTargets = new Map();
     this.config = {};
     this.rgbSplitFilter = null;
-    this.bloomFilter = null;
     this.cloudSuppressorFilter = null;
 
     // Defer biofilm-specific resource creation
@@ -11189,17 +11149,6 @@ class ParticleEffectController {
       this.rgbSplitFilter = new ParticleRgbSplitFilter();
     }
 
-    if (definition.configPath === "fire.particles") {
-      const BloomFilterConstructor =
-        PIXI.filters?.AdvancedBloomFilter ||
-        (globalThis.filters && globalThis.filters.AdvancedBloomFilter);
-      if (BloomFilterConstructor) {
-        this.bloomFilter = new BloomFilterConstructor();
-      }
-      // For fire, we need a wrapper so blending happens before bloom.
-      this.particleOnlyContainer = new PIXI.Container();
-      this.parentContainer.addChild(this.particleOnlyContainer);
-    }
 
     // Create the suppressor filter for the specified particle effects.
     if (
@@ -11248,61 +11197,6 @@ class ParticleEffectController {
       BLEND_MODE_OPTIONS
     );
 
-    // Special case for Fire Bloom
-    if (effectKey === "fire") {
-      content += `
-                    <details id="details-fire-bloom">
-                      <summary><span class="accordion-toggle"></span>
-                        <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                          "fire.bloom.enabled",
-                          "Bloom Effect",
-                          true
-                        )}</div>
-                      </summary>
-                      <div style="padding-left: 15px;">
-                        <div class="warning-box" style="background-color: #554422; border-color: #ffaa66;"><strong style="color: #ffddaa;">PERFORMANCE WARNING:</strong> This can be demanding. Lowering 'Quality' can improve performance.</div>
-                        <p class="description-text">Adds a soft glow to the fire particles.</p>
-                        ${DebuggerUIBuilder._createSliderHTML(
-                          "fire.bloom.threshold",
-                          "Threshold",
-                          0,
-                          1,
-                          0.01
-                        )}
-                        ${DebuggerUIBuilder._createSliderHTML(
-                          "fire.bloom.brightness",
-                          "Brightness",
-                          0,
-                          5,
-                          0.05
-                        )}
-                        ${DebuggerUIBuilder._createSliderHTML(
-                          "fire.bloom.bloomScale",
-                          "Scale",
-                          0.1,
-                          5,
-                          0.1,
-                          "The size of the bloom effect."
-                        )}
-                        ${DebuggerUIBuilder._createSliderHTML(
-                          "fire.bloom.blur",
-                          "Blur Amount",
-                          0,
-                          20,
-                          0.5
-                        )}
-                        ${DebuggerUIBuilder._createSliderHTML(
-                          "fire.bloom.quality",
-                          "Quality",
-                          1,
-                          15,
-                          1,
-                          "Number of blur samples. Higher is smoother but much slower."
-                        )}
-                      </div>
-                    </details>
-                  `;
-    }
 
     if (effectKey === "sparks") {
       const sparksPath = "sparks";
@@ -11833,8 +11727,8 @@ class ParticleEffectController {
                       )}
                       ${DebuggerUIBuilder._createGradientEditorHTML(
                         `${path}.emissiveGradient`,
-                        "Emissive (Brightness) Over Life",
-                        "brightness"
+                        "Emissive Color Over Life",
+                        "color"
                       )}
 
                       <details>
@@ -12435,6 +12329,26 @@ class ParticleEffectController {
       }
 
       emitter.autoUpdate = false;
+      
+      // CRITICAL FIX: Override the particle initialization to force blend mode on sprites
+      // The emitter config's blendMode doesn't always apply properly to particles
+      if (emitterConfig.blendMode !== undefined) {  
+        const targetBlendMode = emitterConfig.blendMode;
+        // Hook into the emitter's update to ensure particles have correct blend mode
+        const originalUpdate = emitter.update.bind(emitter);
+        emitter.update = function(deltaTime) {
+          originalUpdate(deltaTime);
+          // Ensure all active particles have the correct blend mode
+          let particle = this._activeParticlesFirst;
+          while (particle) {
+            if (particle.blendMode !== targetBlendMode) {
+              particle.blendMode = targetBlendMode;
+            }
+            particle = particle.next;
+          }
+        };
+      }
+      
       this.emitters.set(targetId, { emitter });
       return true;
     } catch (err) {
@@ -12518,6 +12432,25 @@ class ParticleEffectController {
       const emitterParent = this.particleOnlyContainer || this.parentContainer;
       const emitter = new PIXI.particles.Emitter(emitterParent, emitterConfig);
       emitter.autoUpdate = false;
+
+      // CRITICAL FIX: Override the particle initialization to force blend mode on sprites
+      // The emitter config's blendMode doesn't always apply properly to particles
+      if (emitterConfig.blendMode !== undefined) {
+        const targetBlendMode = emitterConfig.blendMode;
+        // Hook into the emitter's update to ensure particles have correct blend mode
+        const originalUpdate = emitter.update.bind(emitter);
+        emitter.update = function(deltaTime) {
+          originalUpdate(deltaTime);
+          // Ensure all active particles have the correct blend mode
+          let particle = this._activeParticlesFirst;
+          while (particle) {
+            if (particle.blendMode !== targetBlendMode) {
+              particle.blendMode = targetBlendMode;
+            }
+            particle = particle.next;
+          }
+        };
+      }
 
       this.emitters.set(targetId, { emitter });
       return true; // Success!
@@ -12674,15 +12607,16 @@ class ParticleEffectController {
       isVisible = isVisible && fireConfig?.enabled;
     }
     this.parentContainer.visible = isVisible;
-
+    // DO NOT set blendMode on containers - this prevents particles from blending with each other!
+    // The emitter config's blendMode applies to individual particle sprites, which is what we want.
+    // Setting it on the container would control how the whole container blends with the background.
+    // Keep containers at NORMAL blend mode so particles can blend with each other inside.
+    // We now force particle sprites to have the correct blend mode in the emitter update loop.
     if (this.particleOnlyContainer) {
-      this.particleOnlyContainer.blendMode =
-        this.config.blendMode ?? PIXI.BLEND_MODES.NORMAL;
-      this.parentContainer.blendMode =
-        this.config.blendMode ?? PIXI.BLEND_MODES.NORMAL;
+      this.particleOnlyContainer.blendMode = PIXI.BLEND_MODES.NORMAL;
+      this.parentContainer.blendMode = PIXI.BLEND_MODES.NORMAL;
     } else {
-      this.parentContainer.blendMode =
-        this.config?.blendMode ?? PIXI.BLEND_MODES.NORMAL;
+      this.parentContainer.blendMode = PIXI.BLEND_MODES.NORMAL;
     }
 
     this.parentContainer.alpha = 1.0;
@@ -12761,26 +12695,6 @@ class ParticleEffectController {
       manageFilter(this.cloudSuppressorFilter, shouldUseSuppressor);
     }
 
-    if (this.bloomFilter) {
-      const fireConfig = foundry.utils.getProperty(fullConfig, "fire");
-
-      const bloomConfig = fireConfig?.bloom;
-      const shouldUseBloom =
-        this.parentContainer.visible && bloomConfig?.enabled;
-
-      if (shouldUseBloom) {
-        this.bloomFilter.enabled = true;
-        foundry.utils.mergeObject(this.bloomFilter, bloomConfig);
-        if (canvas?.app?.screen) {
-          this.parentContainer.filterArea = canvas.app.screen;
-        }
-      } else {
-        // When bloom is disabled, also disable the filter to prevent it from running.
-        this.bloomFilter.enabled = false;
-        this.parentContainer.filterArea = null;
-      }
-      manageFilter(this.bloomFilter, shouldUseBloom);
-    }
     this.parentContainer.filters = allFilters.length > 0 ? allFilters : null;
   }
 
@@ -12803,7 +12717,6 @@ class ParticleEffectController {
     this.destroyAllEmitters();
 
     this.rgbSplitFilter?.destroy();
-    this.bloomFilter?.destroy();
     this.displacementFilter?.destroy();
     this.displacementSprite?.destroy();
 
@@ -12811,7 +12724,6 @@ class ParticleEffectController {
     this.particleOutputTexture?.destroy(true);
 
     this.rgbSplitFilter = null;
-    this.bloomFilter = null;
     this.displacementFilter = null;
     this.displacementSprite = null;
     this.biofilmMaskFilter = null;
@@ -12963,10 +12875,12 @@ const buildParticleEmitterConfig = (
 
   // Add the new lighting behavior
   if (config.emissiveGradient) {
+    const emissiveLists = _generateEmissiveColorListFromGradient(config.emissiveGradient);
     behaviors.push({
       type: "mapShineLighting",
       config: {
-        emissive: _generateEmissiveListFromGradient(config.emissiveGradient),
+        emissive: emissiveLists.brightnessList,
+        emissiveColor: emissiveLists.colorList,
       },
     });
   }
@@ -13124,10 +13038,12 @@ const buildSparkEmitterConfig = (effectConfig, targetData, maskKey) => {
 
   // Add the new lighting behavior
   if (config.emissiveGradient) {
+    const emissiveLists = _generateEmissiveColorListFromGradient(config.emissiveGradient);
     behaviors.push({
       type: "mapShineLighting",
       config: {
-        emissive: _generateEmissiveListFromGradient(config.emissiveGradient),
+        emissive: emissiveLists.brightnessList,
+        emissiveColor: emissiveLists.colorList,
       },
     });
   }
@@ -13348,10 +13264,12 @@ const buildPressurisedSteamEmitterConfig = (
 
   // Lighting
   if (config.emissiveGradient) {
+    const emissiveLists = _generateEmissiveColorListFromGradient(config.emissiveGradient);
     behaviors.push({
       type: "mapShineLighting",
       config: {
-        emissive: _generateEmissiveListFromGradient(config.emissiveGradient),
+        emissive: emissiveLists.brightnessList,
+        emissiveColor: emissiveLists.colorList,
       },
     });
   }
@@ -14814,16 +14732,38 @@ class MapShineLightingBehavior {
     this.config = config;
     this._emissive = null;
     this._isStatic = false;
+    this._emissiveColor = null;
+    this._colorIsStatic = false;
 
-    if (config.emissive && config.emissive.list) {
+    // Brightness list (for alpha/lighting calculations)
+    if (config.emissive && config.emissive.list && config.emissive.list.length > 0) {
       if (config.emissive.list.length === 1) {
         this._isStatic = true;
         this._emissive = config.emissive.list[0].value;
       } else if (config.emissive.list.length > 1) {
-        this._emissive = new PIXI.particles.PropertyList(false);
-        this._emissive.reset(
-          PIXI.particles.PropertyNode.createList(config.emissive)
-        );
+        try {
+          this._emissive = new PIXI.particles.PropertyList(false);
+          this._emissive.reset(
+            PIXI.particles.PropertyNode.createList(config.emissive)
+          );
+        } catch (e) {
+          console.warn("MapShine | Failed to create emissive PropertyList:", e, config.emissive);
+          // Fallback to static value using first entry
+          this._isStatic = true;
+          this._emissive = config.emissive.list[0].value;
+        }
+      }
+    }
+
+    // Color list (for tint animation)
+    // Store as raw array for manual interpolation since PropertyList doesn't handle colors well
+    if (config.emissiveColor && config.emissiveColor.list) {
+      if (config.emissiveColor.list.length === 1) {
+        this._colorIsStatic = true;
+        this._emissiveColor = config.emissiveColor.list[0].value;
+      } else if (config.emissiveColor.list.length > 1) {
+        // Store the sorted list for manual interpolation
+        this._emissiveColor = [...config.emissiveColor.list].sort((a, b) => a.time - b.time);
       }
     }
   }
@@ -14832,15 +14772,76 @@ class MapShineLightingBehavior {
     // No per-particle init needed
   }
 
+  /**
+   * Manually interpolates a color value from a sorted list based on age percent.
+   * @param {Array} colorList - Sorted array of {time, value} objects where value is a color integer
+   * @param {number} agePercent - Age of the particle (0.0 to 1.0)
+   * @returns {number} Interpolated color as integer (0xRRGGBB)
+   * @private
+   */
+  _interpolateColor(colorList, agePercent) {
+    // Find the two stops to interpolate between
+    let i = 0;
+    while (i < colorList.length - 1 && colorList[i + 1].time < agePercent) {
+      i++;
+    }
+
+    // If we're at or past the last stop, return the last color
+    if (i >= colorList.length - 1) {
+      return colorList[colorList.length - 1].value;
+    }
+
+    const startStop = colorList[i];
+    const endStop = colorList[i + 1];
+
+    // Calculate interpolation factor between the two stops
+    const t = (agePercent - startStop.time) / (endStop.time - startStop.time);
+
+    // Extract RGB components from both colors
+    const startR = (startStop.value >> 16) & 0xFF;
+    const startG = (startStop.value >> 8) & 0xFF;
+    const startB = startStop.value & 0xFF;
+
+    const endR = (endStop.value >> 16) & 0xFF;
+    const endG = (endStop.value >> 8) & 0xFF;
+    const endB = endStop.value & 0xFF;
+
+    // Interpolate each component
+    const r = Math.round(startR + (endR - startR) * t);
+    const g = Math.round(startG + (endG - startG) * t);
+    const b = Math.round(startB + (endB - startB) * t);
+
+    // Combine back into integer
+    return (r << 16) | (g << 8) | b;
+  }
+
   updateParticle(particle) {
     // This behavior runs *after* the standard Alpha behavior, so particle.alpha
     // has already been set for this frame according to its lifetime gradient.
     if (particle.alpha === undefined || this._emissive === null) return;
 
     // Get the particle's "emissive strength" for the current frame (0.0 to 1.0).
-    const emissiveValue = this._isStatic
-      ? this._emissive
-      : this._emissive.interpolate(particle.agePercent);
+    let emissiveValue;
+    try {
+      emissiveValue = this._isStatic
+        ? this._emissive
+        : this._emissive.interpolate(particle.agePercent);
+    } catch (e) {
+      // If interpolation fails, bail out
+      console.warn("MapShine | Emissive interpolation failed:", e);
+      return;
+    }
+
+    // Get the emissive color for the current frame (if color animation is enabled)
+    let emissiveColor = null;
+    if (this._emissiveColor !== null) {
+      if (this._colorIsStatic) {
+        emissiveColor = this._emissiveColor;
+      } else {
+        // Manual interpolation for color values
+        emissiveColor = this._interpolateColor(this._emissiveColor, particle.agePercent);
+      }
+    }
 
     // Get scene darkness level (0.0 is bright, 1.0 is pitch black).
     const darkness = canvas.scene?.environment.darknessLevel ?? 0;
@@ -14861,6 +14862,32 @@ class MapShineLightingBehavior {
     // For non-emissive particles (emissiveValue=0), this is just the darkenedAlpha.
     // For emissive particles, this adds their glow back on top of the darkened base.
     particle.alpha = darkenedAlpha + emissiveBoost;
+    
+    // Step 4: Apply emissive color and brightness to the particle tint.
+    if (emissiveValue > 0) {
+      // If we have an emissive color animation, use it directly as the base tint
+      // Otherwise, use the particle's current tint
+      let baseTint = emissiveColor !== null ? emissiveColor : (particle.tint ?? 0xFFFFFF);
+      
+      // Scale up the brightness - emissiveValue of 1.0 makes it much brighter
+      const brightnessMultiplier = 1.0 + (emissiveValue * 3.0); // Up to 4x brighter at full emissive
+      
+      // Extract RGB from the base tint (stored as a single integer)
+      const r = ((baseTint >> 16) & 0xFF) / 255;
+      const g = ((baseTint >> 8) & 0xFF) / 255;
+      const b = (baseTint & 0xFF) / 255;
+      
+      // Brighten the color, clamping to white (1.0)
+      const brightR = Math.min(1.0, r * brightnessMultiplier);
+      const brightG = Math.min(1.0, g * brightnessMultiplier);
+      const brightB = Math.min(1.0, b * brightnessMultiplier);
+      
+      // Convert back to integer tint
+      particle.tint = ((brightR * 255) << 16) | ((brightG * 255) << 8) | (brightB * 255);
+    } else if (emissiveColor !== null) {
+      // Even with no brightness, apply the emissive color if it exists
+      particle.tint = emissiveColor;
+    }
   }
 }
 
@@ -15834,7 +15861,7 @@ export class SmellyFliesLayer extends CanvasLayer {
 // SECTION 9: GENERIC FILTERS & SCREEN EFFECTS
 // =================================================================================
 // Description: Reusable visual filters including Kawase blur, FXAA, vignette,
-//              screen grain, RGB split, bloom, glow, and color correction.
+//              screen grain, RGB split, glow, and color correction.
 //              Also includes the ScreenEffectsManager for post-processing pipeline.
 // ---------------------------------------------------------------------------------
 
@@ -16564,7 +16591,6 @@ export class ScreenEffectsManager {
   static _filters = new Map();
   static _container = null;
   static _curveLut = null;
-  static _bloomSprite = null;
 
   static getManagedEffectsHTML() {
     const buildSelectiveControls = (pathPrefix) => `
@@ -16838,57 +16864,6 @@ export class ScreenEffectsManager {
                               </div>
                           </details>
 
-                          <details id="details-advancedBloom">
-                              <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                                "advancedBloom.enabled",
-                                "Advanced Bloom (Full Screen)",
-                                true
-                              )}</div></summary>
-                              <div>
-                                  <div class="warning-box" style="background-color: #554422; border-color: #ffaa66;"><strong style="color: #ffddaa;">PERFORMANCE WARNING:</strong> This is a demanding effect. Lowering 'Quality' can significantly improve performance.</div>
-                                  <p class="description-text">Adds a powerful, high-quality bloom effect to the brightest parts of the entire scene.</p>
-                                  ${DebuggerUIBuilder._createSliderHTML(
-                                    "advancedBloom.threshold",
-                                    "Threshold",
-                                    0,
-                                    1,
-                                    0.01,
-                                    "Only pixels brighter than this value will contribute to the bloom."
-                                  )}
-                                  ${DebuggerUIBuilder._createSliderHTML(
-                                    "advancedBloom.bloomScale",
-                                    "Scale",
-                                    0.1,
-                                    2,
-                                    0.05,
-                                    "The size and spread of the bloom glow."
-                                  )}
-                                  ${DebuggerUIBuilder._createSliderHTML(
-                                    "advancedBloom.brightness",
-                                    "Brightness",
-                                    0.5,
-                                    2,
-                                    0.05,
-                                    "A brightness multiplier applied to the glowing areas."
-                                  )}
-                                  ${DebuggerUIBuilder._createSliderHTML(
-                                    "advancedBloom.blur",
-                                    "Blur",
-                                    0,
-                                    20,
-                                    0.5,
-                                    "The amount of blur applied to the glow."
-                                  )}
-                                  ${DebuggerUIBuilder._createSliderHTML(
-                                    "advancedBloom.quality",
-                                    "Quality",
-                                    1,
-                                    15,
-                                    1,
-                                    "The number of blur passes. Higher is smoother but much more performance-intensive."
-                                  )}
-                              </div>
-                          </details>
 
                           <details id="details-postProcessing-dynamicExposure">
                               <summary>
@@ -17121,11 +17096,6 @@ export class ScreenEffectsManager {
   static initialize(container) {
     if (!this._container) {
       this._container = container;
-      this._bloomSprite = new PIXI.Sprite(PIXI.Texture.EMPTY);
-      this._bloomSprite.name = "mapShineBloomSprite";
-      // The bloom sprite is a screen-space overlay effect and should be added to the top-level
-      // interface container so it is not affected by other world-space post-processing filters.
-      canvas.interface.addChild(this._bloomSprite);
     }
   }
 
@@ -17173,11 +17143,6 @@ export class ScreenEffectsManager {
       ColorCorrectionFilter,
     ];
 
-    const BloomFilterConstructor =
-      PIXI.filters?.AdvancedBloomFilter ||
-      (globalThis.filters && globalThis.filters.AdvancedBloomFilter);
-    if (BloomFilterConstructor)
-      managedFilterClasses.push(BloomFilterConstructor);
 
     const TiltShiftFilterConstructor =
       PIXI.filters?.TiltShiftFilter ||
@@ -17281,35 +17246,6 @@ export class ScreenEffectsManager {
       ppErrors.push("TiltShift (Creation Failed)");
     }
 
-    try {
-      const BloomFilterConstructor =
-        PIXI.filters?.AdvancedBloomFilter ||
-        (globalThis.filters && globalThis.filters.AdvancedBloomFilter);
-      if (BloomFilterConstructor) {
-        const bloomFilter = new BloomFilterConstructor();
-        this._filters.set("advancedBloom", bloomFilter);
-        if (this._bloomSprite) {
-          this._bloomSprite.filters = [bloomFilter];
-        }
-        systemStatus.update("shaders", "bloom", {
-          state: "ok",
-          message: "Compiled successfully.",
-        });
-      } else {
-        ppErrors.push("AdvancedBloom (Bundling Failed)");
-        systemStatus.update("shaders", "bloom", {
-          state: "error",
-          message: "Bundling failed.",
-        });
-      }
-    } catch (e) {
-      ppErrors.push("AdvancedBloom (Creation Failed)");
-      console.error("MapShine | Failed to create AdvancedBloomFilter", e);
-      systemStatus.update("shaders", "bloom", {
-        state: "error",
-        message: `Compilation failed: ${e.message}`,
-      });
-    }
 
     systemStatus.update("shaders", "postProcessing", {
       state: ppErrors.length === 0 ? "ok" : "error",
@@ -17322,7 +17258,6 @@ export class ScreenEffectsManager {
 
   static updateAllFiltersFromConfig(config) {
     const pp = config.postProcessing;
-    const ab = config.advancedBloom;
 
     const universalSettings = {
       pauseEffect: {
@@ -17451,31 +17386,6 @@ export class ScreenEffectsManager {
       ];
     }
 
-    const advancedBloomFilter = this.getFilter("advancedBloom");
-    const BloomFilterConstructor =
-      PIXI.filters?.AdvancedBloomFilter ||
-      (globalThis.filters && globalThis.filters.AdvancedBloomFilter);
-
-    if (
-      advancedBloomFilter &&
-      BloomFilterConstructor &&
-      advancedBloomFilter instanceof BloomFilterConstructor
-    ) {
-      advancedBloomFilter.enabled = config.enabled && pp.enabled && ab.enabled;
-      if (advancedBloomFilter.enabled) {
-        advancedBloomFilter.threshold = ab.threshold;
-        advancedBloomFilter.bloomScale = ab.bloomScale;
-        advancedBloomFilter.brightness = ab.brightness;
-        advancedBloomFilter.blur = ab.blur;
-        advancedBloomFilter.quality = ab.quality;
-      }
-      if (this._bloomSprite) {
-        this._bloomSprite.visible = advancedBloomFilter.enabled;
-        if (advancedBloomFilter.enabled) {
-          this._bloomSprite.blendMode = ab.blendMode ?? PIXI.BLEND_MODES.ADD;
-        }
-      }
-    }
 
     const ccFilter = this.getFilter("colorCorrection");
     if (ccFilter instanceof ColorCorrectionFilter) {
@@ -17591,35 +17501,6 @@ export class ScreenEffectsManager {
       }
     }
 
-    // Existing bloom sprite logic
-    if (!this._bloomSprite) return;
-
-    // Add null checks to prevent errors during scene transitions
-    if (!this._bloomSprite.transform || !this._bloomSprite.position) return;
-
-    const bloomFilter = this.getFilter("advancedBloom");
-    if (bloomFilter && bloomFilter.enabled) {
-      const resourceManager = game.mapShine.resourceManager;
-      if (resourceManager) {
-        const shineTexture =
-          resourceManager.getAnimatedShineTexture(deltaTimeInSeconds);
-        if (this._bloomSprite.texture !== shineTexture) {
-          this._bloomSprite.texture = shineTexture || PIXI.Texture.EMPTY;
-        }
-
-        // Now that the texture is correct, we position and size the world-space sprite
-        // to perfectly cover the screen, making it world-stable.
-        const cameraOffset = CoordinateManager.getCameraOffset();
-        const viewSize = CoordinateManager.getViewSize();
-
-        // Additional safety check before accessing position
-        if (cameraOffset && viewSize && this._bloomSprite.position) {
-          this._bloomSprite.position.copyFrom(cameraOffset);
-          this._bloomSprite.width = viewSize.width;
-          this._bloomSprite.height = viewSize.height;
-        }
-      }
-    }
   }
 
   static tearDown() {
@@ -17629,18 +17510,6 @@ export class ScreenEffectsManager {
     }
     this._filters.clear();
 
-    if (this._bloomSprite) {
-      // The sprite is a child of canvas.interface, which is destroyed with the scene.
-      // We must explicitly remove and destroy it to be safe, then nullify the reference.
-      if (
-        canvas.interface &&
-        canvas.interface.children.includes(this._bloomSprite)
-      ) {
-        canvas.interface.removeChild(this._bloomSprite);
-      }
-      this._bloomSprite.destroy();
-      this._bloomSprite = null;
-    }
 
     if (this._container.filters) {
       this._container.filters = null;
@@ -29605,6 +29474,71 @@ function _generateEmissiveListFromGradient(gradient) {
   }
 
   return valueList;
+}
+
+/**
+ * Generates an emissive color list from a gradient for use in particle behaviors.
+ * Unlike _generateEmissiveListFromGradient, this preserves full RGB color information.
+ * @param {Array<object>} gradient - An array of stop objects, each with {time, color, alpha}.
+ * @returns {object} A config object with both color and brightness lists.
+ */
+function _generateEmissiveColorListFromGradient(gradient) {
+  if (!gradient || gradient.length < 1) {
+    // Fallback to white with no emission
+    return { 
+      colorList: [{ value: 0xFFFFFF, time: 0 }],
+      brightnessList: [{ value: 0, time: 0 }]
+    };
+  }
+
+  const sortedGradient = [...gradient].sort((a, b) => a.time - b.time);
+  const colorList = [];
+  const brightnessList = [];
+  const lum_weights = { r: 0.299, g: 0.587, b: 0.114 };
+
+  for (const stop of sortedGradient) {
+    const rgb = hexToRgbArray(stop.color); // returns [r,g,b] in 0-1 range
+    
+    // Convert RGB to integer tint value (0xRRGGBB)
+    const r8 = Math.round(rgb[0] * 255);
+    const g8 = Math.round(rgb[1] * 255);
+    const b8 = Math.round(rgb[2] * 255);
+    const tintValue = (r8 << 16) | (g8 << 8) | b8;
+    
+    // Calculate luminance for brightness
+    const luminance = rgb[0] * lum_weights.r + rgb[1] * lum_weights.g + rgb[2] * lum_weights.b;
+    const brightnessValue = luminance * stop.alpha;
+    
+    colorList.push({
+      value: tintValue,
+      time: stop.time
+    });
+    
+    brightnessList.push({
+      value: brightnessValue,
+      time: stop.time
+    });
+  }
+
+  // Handle the PropertyNode.createList bug where two identical values cause issues
+  if (brightnessList.length > 1) {
+    const firstBrightness = brightnessList[0].value;
+    const allBrightnessSame = brightnessList.every(
+      (item) => Math.abs(item.value - firstBrightness) < 0.001
+    );
+    if (allBrightnessSame) {
+      // Reduce to single node to avoid the bug
+      return {
+        colorList: { list: colorList },
+        brightnessList: { list: [{ value: firstBrightness, time: 0 }] }
+      };
+    }
+  }
+
+  return { 
+    colorList: { list: colorList },
+    brightnessList: { list: brightnessList }
+  };
 }
 
 class DebuggerEventHandler {
