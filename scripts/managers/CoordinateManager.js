@@ -62,12 +62,12 @@ class CoordinateManager {
 		const screen = canvas.app.renderer.screen;
 
 		// Calculate the world-space coordinate corresponding to the top-left corner of the screen.
-		// @ts-expect-error
+		// @ts-expect-error - PIXI.Point constructor signature mismatch between @pixi/display types and Foundry's PIXI implementation
 		const topLeftWorld = stage.toLocal(new PIXI.Point(0, 0));
 		this.cameraOffset = { x: topLeftWorld.x, y: topLeftWorld.y };
 
 		// Store the current zoom level.
-		// @ts-expect-error
+		// @ts-expect-error - stage.scale is Observable but TypeScript doesn't recognize .x property accessor
 		this.canvasScale = stage.scale.x;
 
 		// Calculate the dimensions of the visible area in world-space coordinates.
@@ -87,7 +87,7 @@ class CoordinateManager {
 			this.screenDimensions.width > 0 &&
 			this.screenDimensions.height > 0
 		) {
-			// @ts-expect-error
+			// @ts-expect-error - PIXI.Point constructor signature mismatch between @pixi/display types and Foundry's PIXI implementation
 			const topLeftScreen = stage.toGlobal(new PIXI.Point(rect.x, rect.y));
 			const sceneWidthPixels = rect.width * this.canvasScale;
 			const sceneHeightPixels = rect.height * this.canvasScale;

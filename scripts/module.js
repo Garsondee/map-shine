@@ -26,20 +26,20 @@
  *
  *
  *
- *
  * @todo Glow in the dark is broken.
- */
-
+*/
 import { ProfileManager } from "./managers/ProfileManager.js";
 import { CoordinateManager } from "./managers/CoordinateManager.js";
 import { TokenManager } from "./managers/TokenManager.js";
 import { hexToRgbArray, lerp } from "./utils/ColorUtils.js";
 import { AmbientLayer } from "./layers/AmbientLayer.js";
+import { FireToneCurveFilter } from "./filters/FireToneCurveFilter.js";
 
 /***************************************************************************************
  *
  *                              UNIFIED LIGHT MASKING SYSTEM
  *
+{{ ... }}
  *  PURPOSE & BREAKTHROUGH:
  *  This system represents the definitive method for creating a high-quality, performant,
  *  and screen-space mask of all active light sources on the canvas. Its primary
@@ -592,6 +592,7 @@ const EFFECT_SOURCE_OPTIONS = {
   "": "None",
   sparks: "Sparks",
   fire: "Fire Particles",
+  candleFlame: "Candle Flame",
   dust: "Dust Motes",
   smellyFlies: "Smelly Flies",
   lightning: "Lightning",
@@ -2672,7 +2673,7 @@ export const MODULE_DEFAULTS = {
     enabled: true,
     particles: {
       enabled: true,
-      blendMode: 1,
+      blendMode: 0,
       maskThreshold: 0.06,
       maskInfluence: 1.01,
       particleTexture: "modules/map-shine/assets/flame.webp",
@@ -2680,6 +2681,14 @@ export const MODULE_DEFAULTS = {
       lifetime: {
         min: 0.1,
         max: 3.4,
+      },
+      // Fire Tone Curve Filter defaults
+      toneCurve: {
+        enabled: false,
+        contrast: 1.4,
+        gamma: 0.9,
+        knee: 0.2,
+        coreClamp: 1.2,
       },
       colorAlphaGradient: [
         {
@@ -2699,12 +2708,12 @@ export const MODULE_DEFAULTS = {
         },
         {
           time: 0.6,
-          color: "#333333",
-          alpha: 0.5,
+          color: "#444444",
+          alpha: 0.7,
         },
         {
           time: 1,
-          color: "#000000",
+          color: "#111111",
           alpha: 0,
         },
       ],
@@ -2755,6 +2764,65 @@ export const MODULE_DEFAULTS = {
         angleChangeFrequencyMax: 15,
         angleChangeRange: 20,
       },
+      colorCorrection: {
+        enabled: false,
+        saturation: 1.0,
+        brightness: 0.0,
+        contrast: 1.0,
+        exposure: 0.0,
+        gamma: 1.0,
+      },
+    },
+  },
+  candleFlame: {
+    enabled: true,
+    blendMode: 1,
+    particleTexture: "modules/map-shine/assets/particle.webp",
+    frequency: 0.01,
+    lifetime: {
+      min: 0.8,
+      max: 1.5,
+    },
+    colorAlphaGradient: [
+      {
+        time: 0,
+        color: "#FFEFD5",
+        alpha: 1.0,
+      },
+      {
+        time: 0.3,
+        color: "#FFD700",
+        alpha: 0.8,
+      },
+      {
+        time: 1.0,
+        color: "#FFA500",
+        alpha: 0.0,
+      },
+    ],
+    emissiveGradient: [
+      {
+        time: 0,
+        color: "#FFFFFF",
+        alpha: 1,
+      },
+      {
+        time: 1,
+        color: "#FFD700",
+        alpha: 0.5,
+      },
+    ],
+    scale: {
+      sizeMultiplier: 0.2,
+      start: 0.5,
+      end: 1.2,
+      minMult: 0.8,
+    },
+    jiggle: {
+      upwardVelocity: -50,
+      amplitude: 20.0,
+      frequency: 5.0,
+      risingFactor: 1.5,
     },
   },
   pressurisedSteam: {
@@ -2913,6 +2981,15 @@ export const MODULE_DEFAULTS = {
   },
   lightning: {
     enabled: true,
+    minDelay: 100,
+    maxDelay: 500,
+    flickerChance: 0.15,
+    burstMinStrikes: 1,
+    burstMaxStrikes: 5,
+    burstStrikeDuration: 50,
+    burstStrikeDelay: 80,
+    endPointVariationX: 50,
+    endPointVariationY: 50,
     offPeriodMin: 1,
     offPeriodMax: 1761,
     strikeDuration: 50,
@@ -4357,6 +4434,7 @@ class HooksManager {
         GeometryMaskShape
       );
       PIXI.particles.Emitter.registerBehavior(SparkPathBehavior);
+      PIXI.particles.Emitter.registerBehavior(CandleFlameBehavior);
       PIXI.particles.Emitter.registerBehavior(FireWindBehavior);
       PIXI.particles.Emitter.registerBehavior(PressurisedSteamBehavior);
       PIXI.particles.Emitter.registerBehavior(SmellyFliesBehavior);
@@ -9217,13 +9295,30 @@ class MapShineLifecycle {
   }
 
   static async runMinimalSetup(canvas) {
+    const loadingScreen = game.mapShine.loadingScreen;
+    const loadingManager = game.mapShine.loadingManager;
+
     game.mapShine.profileManager.initializeForScene();
     await game.mapShine.profileManager.updateAllSystemsFromConfig();
-    ScreenEffectsManager.initialize(canvas.stage);
-    ScreenEffectsManager.setupAllGlobalFilters();
-    ScreenEffectsManager.updateAllFiltersFromConfig(
-      game.mapShine.profileManager.activeConfig
-    );
+
+    // Minimal setup for screen effects, now correctly targeting the worldContainer
+    if (game.mapShine.worldContainer) {
+      ScreenEffectsManager.initialize(game.mapShine.worldContainer);
+      ScreenEffectsManager.setupAllGlobalFilters();
+      ScreenEffectsManager.updateAllSystemsFromConfig(
+        game.mapShine.profileManager.activeConfig
+      );
+    }
+    
+    // Hide the loading screen as setup is complete
+    if (loadingScreen) {
+        // Visually complete the loading bar for user feedback before hiding.
+        await loadingManager?.tick("SETUP_COMPLETE");
+        await loadingScreen.hide();
+        game.mapShine.loadingScreen = null;
+        if (game.mapShine.loadingManager)
+            game.mapShine.loadingManager.screen = null;
+    }
 
     // Signal to the scene transition manager that setup is complete.
     if (game.mapShine.resolveSetupCompletion) {
@@ -9360,7 +9455,6 @@ class MapShineLifecycle {
   }
 }
 
-// Export MapShineLifecycle for use in other modules
 export { MapShineLifecycle };
 
 class SystemStatusManager {
@@ -11051,6 +11145,15 @@ const PARTICLE_EFFECT_DEFINITIONS = {
     buildEmitterConfig: (effectConfig, targetData) =>
       buildParticleEmitterConfig(effectConfig, targetData, "prism"),
   },
+  candleFlame: {
+    title: "Candle Flame",
+    description:
+      "A jiggling flame effect suitable for candles viewed from above. Requires a Point group from Map Points.",
+    configPath: "candleFlame",
+    triggerTexture: "candleFlame", // This is a dummy key, effect is geometry-based
+    buildEmitterConfig: (effectConfig, targetData, maskKey, group) =>
+      buildCandleFlameEmitterConfig(effectConfig, targetData, group),
+  },
   smellyFlies: {
     title: "Smelly Flies",
     description:
@@ -11135,6 +11238,8 @@ class ParticleEffectController {
     this.config = {};
     this.rgbSplitFilter = null;
     this.cloudSuppressorFilter = null;
+    this.fireToneFilter = null;
+    this.fireColorCorrectionFilter = null;
 
     // Defer biofilm-specific resource creation
     this.displacementFilter = null;
@@ -11433,6 +11538,195 @@ class ParticleEffectController {
         sparksContent,
         headerExtra
       );
+    } else if (effectKey === "fire") {
+      const firePath = "fire.particles";
+      const headerExtra = `<button type="button" class="create-effect-from-ui" data-action="create-particle-effect-area" data-effect-key="${effectKey}" title="Create new area for this particle effect"><i class="fas fa-plus-square"></i></button>`;
+      const fireContent = `
+        <p class="description-text">${definition.description}</p>
+        ${DebuggerUIBuilder._createTextureInputHTML(
+          definition.triggerTexture,
+          `Effect Mask (_${definition.triggerTexture.charAt(0).toUpperCase() + definition.triggerTexture.slice(1)})`
+        )}
+        ${DebuggerUIBuilder._createSliderHTML(
+          `${firePath}.maskInfluence`,
+          "Particle Density",
+          0.01,
+          5,
+          0.01
+        )}
+        ${DebuggerUIBuilder._createSliderHTML(
+          `${firePath}.maskThreshold`,
+          "Mask Threshold",
+          0,
+          1,
+          0.01
+        )}
+
+        <details>
+          <summary><span class="accordion-toggle"></span><strong>Appearance</strong></summary>
+          <div style="padding-left: 15px;">
+            ${DebuggerUIBuilder._createSelectHTML(`${firePath}.blendMode`, "Blend Mode", BLEND_MODE_OPTIONS)}
+            ${DebuggerUIBuilder._createTextInputHTML(`${firePath}.particleTexture`, "Particle Texture")}
+            ${DebuggerUIBuilder._createGradientEditorHTML(`${firePath}.colorAlphaGradient`, "Color & Alpha Over Life")}
+            ${DebuggerUIBuilder._createGradientEditorHTML(`${firePath}.emissiveGradient`, "Emissive Over Life")}
+          </div>
+        </details>
+        
+        <details>
+          <summary><span class="accordion-toggle"></span><strong>Spawning & Lifetime</strong></summary>
+          <div style="padding-left: 15px;">
+            ${DebuggerUIBuilder._createSliderHTML(`${firePath}.frequency`, "Spawn Rate (s)", 0.001, 0.1, 0.001)}
+            ${DebuggerUIBuilder._createSliderHTML(`${firePath}.lifetime.min`, "Min Lifetime (s)", 0.1, 5, 0.1)}
+            ${DebuggerUIBuilder._createSliderHTML(`${firePath}.lifetime.max`, "Max Lifetime (s)", 0.1, 5, 0.1)}
+          </div>
+        </details>
+        
+        <details>
+          <summary><span class="accordion-toggle"></span><strong>Shape & Size</strong></summary>
+          <div style="padding-left: 15px;">
+            ${DebuggerUIBuilder._createSliderHTML(`${firePath}.scale.sizeMultiplier`, "Global Size", 0.01, 3, 0.01)}
+            ${DebuggerUIBuilder._createSliderHTML(`${firePath}.scale.start`, "Start Scale", 0, 2, 0.01)}
+            ${DebuggerUIBuilder._createSliderHTML(`${firePath}.scale.end`, "End Scale", 0, 2, 0.01)}
+            ${DebuggerUIBuilder._createSliderHTML(`${firePath}.scale.minMult`, "Random Size Min", 0.1, 1, 0.01)}
+          </div>
+        </details>
+        
+        <details>
+          <summary><span class="accordion-toggle"></span><strong>Speed & Motion</strong></summary>
+          <div style="padding-left: 15px;">
+            ${DebuggerUIBuilder._createSliderHTML(`${firePath}.speed.start`, "Start Speed", 0, 10, 0.1)}
+            ${DebuggerUIBuilder._createSliderHTML(`${firePath}.speed.end`, "End Speed", 0, 10, 0.1)}
+            ${DebuggerUIBuilder._createSliderHTML(`${firePath}.speed.minMult`, "Random Speed Min", 0.1, 1, 0.01)}
+          </div>
+        </details>
+        
+        <details>
+          <summary><span class="accordion-toggle"></span><strong>Rotation</strong></summary>
+          <div style="padding-left: 15px;">
+            ${DebuggerUIBuilder._createCheckboxHTML(`${firePath}.rotation.enabled`, "Enable Rotation", false)}
+            ${DebuggerUIBuilder._createSliderHTML(`${firePath}.rotation.minSpeed`, "Min Rotation Speed (°/s)", -360, 360, 1)}
+            ${DebuggerUIBuilder._createSliderHTML(`${firePath}.rotation.maxSpeed`, "Max Rotation Speed (°/s)", -360, 360, 1)}
+            ${DebuggerUIBuilder._createSliderHTML(`${firePath}.rotation.accel`, "Rotation Acceleration", 0, 200, 1)}
+          </div>
+        </details>
+        
+        <details>
+          <summary><span class="accordion-toggle"></span><strong>Wind Influence</strong></summary>
+          <div style="padding-left: 15px;">
+            ${DebuggerUIBuilder._createCheckboxHTML(`${firePath}.wind.enabled`, "Enable Wind", false)}
+            ${DebuggerUIBuilder._createSliderHTML(`${firePath}.wind.force`, "Wind Force", 0, 200, 1)}
+            ${DebuggerUIBuilder._createSliderHTML(`${firePath}.wind.baseSpeed`, "Base Wind Speed", 0, 100, 1)}
+            ${DebuggerUIBuilder._createSliderHTML(`${firePath}.wind.gustSpeed`, "Gust Speed", 0, 300, 1)}
+            ${DebuggerUIBuilder._createSliderHTML(`${firePath}.wind.gustFrequencyMin`, "Min Gust Frequency (s)", 0.1, 30, 0.1)}
+            ${DebuggerUIBuilder._createSliderHTML(`${firePath}.wind.gustFrequencyMax`, "Max Gust Frequency (s)", 0.1, 30, 0.1)}
+            ${DebuggerUIBuilder._createSliderHTML(`${firePath}.wind.gustDurationMin`, "Min Gust Duration (s)", 0.1, 5, 0.1)}
+            ${DebuggerUIBuilder._createSliderHTML(`${firePath}.wind.gustDurationMax`, "Max Gust Duration (s)", 0.1, 5, 0.1)}
+            ${DebuggerUIBuilder._createSliderHTML(`${firePath}.wind.angleChangeFrequencyMin`, "Min Angle Change (s)", 1, 60, 1)}
+            ${DebuggerUIBuilder._createSliderHTML(`${firePath}.wind.angleChangeFrequencyMax`, "Max Angle Change (s)", 1, 60, 1)}
+            ${DebuggerUIBuilder._createSliderHTML(`${firePath}.wind.angleChangeRange`, "Angle Change Range (°)", 0, 180, 1)}
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="accordion-toggle"></span><strong>Flame Tone Curve</strong></summary>
+          <div style="padding-left: 15px;">
+            ${DebuggerUIBuilder._createCheckboxHTML(
+              `${firePath}.toneCurve.enabled`,
+              "Enable Fire Tone Curve",
+              false
+            )}
+            ${DebuggerUIBuilder._createSliderHTML(
+              `${firePath}.toneCurve.contrast`,
+              "Contrast",
+              0.5,
+              3.0,
+              0.01
+            )}
+            ${DebuggerUIBuilder._createSliderHTML(
+              `${firePath}.toneCurve.gamma`,
+              "Gamma",
+              0.5,
+              3.0,
+              0.01
+            )}
+            ${DebuggerUIBuilder._createSliderHTML(
+              `${firePath}.toneCurve.knee`,
+              "Knee",
+              0.0,
+              1.0,
+              0.01
+            )}
+            ${DebuggerUIBuilder._createSliderHTML(
+              `${firePath}.toneCurve.coreClamp`,
+              "Core Clamp",
+              0.5,
+              1.5,
+              0.01
+            )}
+          </div>
+        </details>
+        
+        <details>
+          <summary><span class="accordion-toggle"></span><strong>Fire Color Correction</strong></summary>
+          <div style="padding-left: 15px;">
+            <p class="description-text">Apply color correction filters specifically to fire particles.</p>
+            ${DebuggerUIBuilder._createCheckboxHTML(`${firePath}.colorCorrection.enabled`, "Enable Fire CC", false)}
+            ${DebuggerUIBuilder._createSliderHTML(`${firePath}.colorCorrection.saturation`, "Saturation", 0, 2, 0.05)}
+            ${DebuggerUIBuilder._createSliderHTML(`${firePath}.colorCorrection.brightness`, "Brightness", -1, 1, 0.01)}
+            ${DebuggerUIBuilder._createSliderHTML(`${firePath}.colorCorrection.contrast`, "Contrast", 0, 3, 0.05)}
+            ${DebuggerUIBuilder._createSliderHTML(`${firePath}.colorCorrection.exposure`, "Exposure", -2, 2, 0.05)}
+            ${DebuggerUIBuilder._createSliderHTML(`${firePath}.colorCorrection.gamma`, "Gamma", 0.1, 3, 0.05)}
+          </div>
+        </details>
+      `;
+      return DebuggerUIBuilder._createAccordionHTML(
+        effectKey,
+        definition.title,
+        fireContent,
+        headerExtra
+      );
+    } else if (effectKey === "candleFlame") {
+      const candlePath = "candleFlame";
+      const headerExtra = `<button type="button" class="create-effect-from-ui" data-action="create-particle-effect-area" data-effect-key="${effectKey}" title="Create new point for this particle effect"><i class="fas fa-plus-square"></i></button>` ;
+      const candleContent = `
+        <p class="description-text">${definition.description}</p>
+        <details>
+          <summary><span class="accordion-toggle"></span><strong>Appearance</strong></summary>
+          <div style="padding-left: 15px;">
+            ${DebuggerUIBuilder._createSelectHTML(`${candlePath}.blendMode` , "Blend Mode", BLEND_MODE_OPTIONS)}
+            ${DebuggerUIBuilder._createTextInputHTML(`${candlePath}.particleTexture` , "Particle Texture")}
+            ${DebuggerUIBuilder._createGradientEditorHTML(`${candlePath}.colorAlphaGradient` , "Color & Alpha Over Life")}
+            ${DebuggerUIBuilder._createGradientEditorHTML(`${candlePath}.emissiveGradient` , "Emissive Over Life")}
+          </div>
+        </details>
+        <details>
+          <summary><span class="accordion-toggle"></span><strong>Spawning & Lifetime</strong></summary>
+          <div style="padding-left: 15px;">
+            ${DebuggerUIBuilder._createSliderHTML(`${candlePath}.frequency` , "Spawn Rate (s)", 0.001, 0.1, 0.001)}
+            ${DebuggerUIBuilder._createSliderHTML(`${candlePath}.lifetime.min` , "Min Lifetime (s)", 0.1, 5, 0.1)}
+            ${DebuggerUIBuilder._createSliderHTML(`${candlePath}.lifetime.max` , "Max Lifetime (s)", 0.1, 5, 0.1)}
+          </div>
+        </details>
+        <details>
+          <summary><span class="accordion-toggle"></span><strong>Shape & Size</strong></summary>
+          <div style="padding-left: 15px;">
+            ${DebuggerUIBuilder._createSliderHTML(`${candlePath}.scale.sizeMultiplier` , "Global Size", 0.01, 2, 0.01)}
+            ${DebuggerUIBuilder._createSliderHTML(`${candlePath}.scale.start` , "Start Scale", 0, 2, 0.01)}
+            ${DebuggerUIBuilder._createSliderHTML(`${candlePath}.scale.end` , "End Scale", 0, 2, 0.01)}
+            ${DebuggerUIBuilder._createSliderHTML(`${candlePath}.scale.minMult` , "Random Size Min", 0.1, 1, 0.01)}
+          </div>
+        </details>
+        <details>
+          <summary><span class="accordion-toggle"></span><strong>Jiggle Motion</strong></summary>
+          <div style="padding-left: 15px;">
+            ${DebuggerUIBuilder._createSliderHTML(`${candlePath}.jiggle.upwardVelocity` , "Upward Velocity", -200, 0, 1)}
+            ${DebuggerUIBuilder._createSliderHTML(`${candlePath}.jiggle.amplitude` , "Jiggle Amplitude", 0, 100, 1)}
+            ${DebuggerUIBuilder._createSliderHTML(`${candlePath}.jiggle.frequency` , "Jiggle Frequency", 0.1, 20, 0.1)}
+            ${DebuggerUIBuilder._createSliderHTML(`${candlePath}.jiggle.risingFactor` , "Rising Factor", 0.1, 5, 0.1, "Controls how much the jiggle increases towards the tip.")}
+          </div>
+        </details>
+      `;
+      return DebuggerUIBuilder._createAccordionHTML(effectKey, definition.title, candleContent, headerExtra);
     } else if (effectKey === "pressurisedSteam") {
       const steamPath = "pressurisedSteam";
       const steamContent = `
@@ -11876,8 +12170,8 @@ class ParticleEffectController {
                           `${path}.wind.force`,
                           "Wind Force",
                           0,
-                          500,
-                          5,
+                          50,
+                          0.5,
                           "How strongly the wind pushes the particles."
                         )}
                         ${DebuggerUIBuilder._createSliderHTML(
@@ -12677,22 +12971,51 @@ class ParticleEffectController {
       manageFilter(this.biofilmMaskFilter, shouldUseMask);
     }
 
-    // Manage the cloud suppressor filter.
-    if (this.cloudSuppressorFilter) {
-      const shouldUseSuppressor = this.parentContainer.visible;
-      this.cloudSuppressorFilter.enabled = shouldUseSuppressor;
+    // Manage Fire Tone Curve filter for Flames
+    if (this.definition.configPath === "fire.particles") {
+      const tc = controllerConfig?.toneCurve;
+      const shouldUseTone = this.parentContainer.visible && tc?.enabled;
+      if (shouldUseTone) {
+        if (!this.fireToneFilter) {
+          this.fireToneFilter = new FireToneCurveFilter({
+            contrast: tc.contrast,
+            gamma: tc.gamma,
+            knee: tc.knee,
+            coreClamp: tc.coreClamp,
+          });
+        } else if (this.fireToneFilter.uniforms) {
+          const u = this.fireToneFilter.uniforms;
+          u.u_contrast = tc.contrast;
+          u.u_gamma = tc.gamma;
+          u.u_knee = tc.knee;
+          u.u_coreClamp = tc.coreClamp;
+        }
 
-      if (shouldUseSuppressor) {
-        // Feed the shading settings from the main cloud shadows config into the suppressor filter.
-        const cloudShadingConfig = fullConfig.cloudShadows.shading;
-        const u = this.cloudSuppressorFilter.uniforms;
-        u.u_shading_threshold = cloudShadingConfig.threshold;
-        u.u_shading_softness = cloudShadingConfig.softness;
-        u.u_shading_brightness = cloudShadingConfig.brightness;
-        u.u_shading_contrast = cloudShadingConfig.contrast;
-        u.u_shading_gamma = cloudShadingConfig.gamma;
       }
-      manageFilter(this.cloudSuppressorFilter, shouldUseSuppressor);
+      manageFilter(this.fireToneFilter, shouldUseTone);
+      
+      // Manage Fire Color Correction filter
+      const cc = controllerConfig?.colorCorrection;
+      const shouldUseCC = this.parentContainer.visible && cc?.enabled;
+      if (shouldUseCC) {
+        if (!this.fireColorCorrectionFilter) {
+          this.fireColorCorrectionFilter = new ColorCorrectionFilter({
+            saturation: cc.saturation,
+            brightness: cc.brightness,
+            contrast: cc.contrast,
+            exposure: cc.exposure,
+            gamma: cc.gamma,
+          });
+        } else if (this.fireColorCorrectionFilter.uniforms) {
+          const u = this.fireColorCorrectionFilter.uniforms;
+          u.uSaturation = cc.saturation;
+          u.uBrightness = cc.brightness;
+          u.uContrast = cc.contrast;
+          u.uExposure = cc.exposure;
+          u.uGamma = cc.gamma;
+        }
+      }
+      manageFilter(this.fireColorCorrectionFilter, shouldUseCC);
     }
 
     this.parentContainer.filters = allFilters.length > 0 ? allFilters : null;
@@ -12719,6 +13042,8 @@ class ParticleEffectController {
     this.rgbSplitFilter?.destroy();
     this.displacementFilter?.destroy();
     this.displacementSprite?.destroy();
+    this.fireToneFilter?.destroy();
+    this.fireColorCorrectionFilter?.destroy();
 
     this.biofilmMaskFilter?.destroy();
     this.particleOutputTexture?.destroy(true);
@@ -12726,6 +13051,8 @@ class ParticleEffectController {
     this.rgbSplitFilter = null;
     this.displacementFilter = null;
     this.displacementSprite = null;
+    this.fireToneFilter = null;
+    this.fireColorCorrectionFilter = null;
     this.biofilmMaskFilter = null;
     this.particleOutputTexture = null;
 
@@ -12740,6 +13067,39 @@ class ParticleEffectController {
     }
   }
 }
+
+/**
+ * Helper function to add blend mode as a behavior to particle emitters.
+ * The PIXI particle emitter requires blend modes to be set via a behavior, not just the config.
+ * @param {Array} behaviors - The behaviors array to add the blend mode to
+ * @param {number} blendMode - The numeric PIXI blend mode constant
+ */
+const addBlendModeBehavior = (behaviors, blendMode) => {
+  // Convert numeric blend mode to string name for BlendModeBehavior
+  const blendModeNames = {
+    [PIXI.BLEND_MODES.NORMAL]: "normal",
+    [PIXI.BLEND_MODES.ADD]: "add",
+    [PIXI.BLEND_MODES.MULTIPLY]: "multiply",
+    [PIXI.BLEND_MODES.SCREEN]: "screen",
+    [PIXI.BLEND_MODES.OVERLAY]: "overlay",
+    [PIXI.BLEND_MODES.DARKEN]: "darken",
+    [PIXI.BLEND_MODES.LIGHTEN]: "lighten",
+    [PIXI.BLEND_MODES.COLOR_DODGE]: "color_dodge",
+    [PIXI.BLEND_MODES.COLOR_BURN]: "color_burn",
+    [PIXI.BLEND_MODES.HARD_LIGHT]: "hard_light",
+    [PIXI.BLEND_MODES.SOFT_LIGHT]: "soft_light",
+    [PIXI.BLEND_MODES.DIFFERENCE]: "difference",
+    [PIXI.BLEND_MODES.EXCLUSION]: "exclusion",
+  };
+  const blendModeName = blendModeNames[blendMode] || "normal";
+  
+  behaviors.push({
+    type: "blendMode",
+    config: {
+      blendMode: blendModeName,
+    },
+  });
+};
 
 const buildParticleEmitterConfig = (
   effectConfig,
@@ -12885,12 +13245,16 @@ const buildParticleEmitterConfig = (
     });
   }
 
+  // Add blend mode as a behavior (required for particles to respect it)
+  const blendMode = config.blendMode ?? PIXI.BLEND_MODES.NORMAL;
+  addBlendModeBehavior(behaviors, blendMode);
+
   const emitterConfig = {
     lifetime: {
       min: lifetimeConfig.min ?? 4,
       max: lifetimeConfig.max ?? 12,
     },
-    blendMode: config.blendMode ?? PIXI.BLEND_MODES.NORMAL,
+    blendMode: blendMode,
     frequency:
       (config.frequency ?? 0.1) / globalMultiplier / intensityMultiplier,
     emitterLifetime: -1,
@@ -13140,12 +13504,16 @@ const buildSparkEmitterConfig = (effectConfig, targetData, maskKey) => {
     },
   });
 
+  // Add blend mode as a behavior (required for particles to respect it)
+  const blendMode = config.blendMode ?? PIXI.BLEND_MODES.ADD;
+  addBlendModeBehavior(behaviors, blendMode);
+
   return {
     lifetime: {
       min: lifetimeConfig.min ?? 1.5,
       max: lifetimeConfig.max ?? 3.0,
     },
-    blendMode: config.blendMode ?? PIXI.BLEND_MODES.ADD,
+    blendMode: blendMode,
     frequency: config.frequency / globalMultiplier,
     emitterLifetime: -1,
     maxParticles: Math.max(
@@ -13158,6 +13526,87 @@ const buildSparkEmitterConfig = (effectConfig, targetData, maskKey) => {
     },
     addAtBack: false,
     behaviors: behaviors,
+  };
+};
+
+const buildCandleFlameEmitterConfig = (effectConfig, targetData, group) => {
+  const globalParticleConfig = game.mapShine.profileManager.activeConfig.particleSystems;
+  const globalMultiplier = globalParticleConfig.globalDensityMultiplier ?? 1.0;
+  const config = effectConfig || {};
+
+  // Candle flames are point-based, so they don't use a rect from a texture target.
+  // The emitter position will be handled by the geometry spawner.
+  if (!group || group.type !== 'point' || group.points.length === 0) {
+    return { maxParticles: 0, behaviors: [] };
+  }
+
+  const spawnBehavior = {
+    type: 'spawnShape',
+    config: {
+      type: 'geometryMask',
+      data: { group },
+    },
+  };
+
+  const behaviors = [
+    {
+      type: 'textureSingle',
+      config: { texture: config.particleTexture },
+    },
+    spawnBehavior,
+    {
+      type: 'candleFlame',
+      config: config.jiggle,
+    }
+  ];
+
+  // Color & Alpha
+  if (config.colorAlphaGradient?.length > 0) {
+    const { isColorStatic, staticColor, colorList, isAlphaStatic, staticAlpha, alphaList } = _generateBehaviorListsFromGradient(config.colorAlphaGradient);
+    if (isColorStatic) behaviors.push({ type: 'colorStatic', config: { color: staticColor } });
+    else behaviors.push({ type: 'color', config: { color: colorList } });
+
+    if (isAlphaStatic) behaviors.push({ type: 'alphaStatic', config: { alpha: staticAlpha } });
+    else behaviors.push({ type: 'alpha', config: { alpha: alphaList } });
+  }
+
+  // Scale
+  const scaleConfig = config.scale ?? {};
+  const startScale = (scaleConfig.start ?? 0.5) * (scaleConfig.sizeMultiplier ?? 1.0);
+  const endScale = (scaleConfig.end ?? 1.2) * (scaleConfig.sizeMultiplier ?? 1.0);
+  behaviors.push({
+    type: 'scale',
+    config: {
+      scale: { start: startScale, end: endScale },
+      minMult: scaleConfig.minMult ?? 0.8,
+    },
+  });
+
+  // Lighting/Emissive
+  if (config.emissiveGradient) {
+    const emissiveLists = _generateEmissiveColorListFromGradient(config.emissiveGradient);
+    behaviors.push({
+      type: "mapShineLighting",
+      config: {
+        emissive: emissiveLists.brightnessList,
+        emissiveColor: emissiveLists.colorList,
+      },
+    });
+  }
+  
+  // Blend Mode
+  const blendMode = config.blendMode ?? PIXI.BLEND_MODES.ADD;
+  addBlendModeBehavior(behaviors, blendMode);
+  
+  return {
+    lifetime: config.lifetime,
+    frequency: config.frequency / globalMultiplier,
+    emitterLifetime: -1,
+    maxParticles: Math.floor(200 * globalMultiplier), // A sensible limit for a single flame point
+    pos: { x: 0, y: 0 }, // Position is handled by spawnShape
+    addAtBack: false,
+    behaviors: behaviors,
+    blendMode: blendMode
   };
 };
 
@@ -13291,12 +13740,16 @@ const buildPressurisedSteamEmitterConfig = (
 
   const lifetimeConfig = config.lifetime ?? {};
 
+  // Add blend mode as a behavior (required for particles to respect it)
+  const blendMode = config.blendMode ?? PIXI.BLEND_MODES.NORMAL;
+  addBlendModeBehavior(behaviors, blendMode);
+
   return {
     lifetime: {
       min: lifetimeConfig.min ?? 0.5,
       max: lifetimeConfig.max ?? 2.0,
     },
-    blendMode: config.blendMode ?? PIXI.BLEND_MODES.NORMAL,
+    blendMode: blendMode,
     frequency: config.burst?.frequency ?? 0.005,
     emitterLifetime: -1,
     maxParticles: Math.floor(
@@ -14066,6 +14519,7 @@ class LightningLayer extends CanvasLayer {
     this._onMapPointsUpdatedBound = null;
     this._animationId = null;
     this._lastDrawTime = 0;
+    this._activeBursts = new Map(); // Track active bursts per group ID
   }
 
   async _draw() {
@@ -14123,16 +14577,14 @@ class LightningLayer extends CanvasLayer {
 
       // Check if it's time for the next flash
       if (time >= this._nextFlashTime) {
-        this._drawLightning();
+        // Start new bursts for all lightning groups
+        this._startBursts();
         // Schedule next flash with random delay
         this._nextFlashTime = time + this._getRandomDelay();
-      } else {
-        // Between flashes, clear the graphics
-        if (this.graphics && !this._cleared) {
-          this.graphics.clear();
-          this._cleared = true;
-        }
       }
+
+      // Update and render all active bursts
+      this._updateBursts(time);
 
       this._animationId = requestAnimationFrame(animate);
     };
@@ -14165,7 +14617,151 @@ class LightningLayer extends CanvasLayer {
    * Called when Map Points are updated via the hook.
    */
   _onMapPointsUpdated() {
-    this._drawLightning();
+    // Clear active bursts when map points change
+    this._activeBursts.clear();
+    // Clear graphics
+    if (this.graphics) {
+      this.graphics.clear();
+    }
+  }
+
+  /**
+   * Starts new bursts for all lightning groups.
+   */
+  _startBursts() {
+    const config = game.mapShine?.profileManager?.activeConfig?.lightning;
+    if (!config || !config.enabled) return;
+
+    const groups = MapPointsManager.getGroups();
+
+    for (const [groupId, group] of Object.entries(groups)) {
+      // Only process line-type groups that are effect sources for lightning
+      if (
+        group.type === "line" &&
+        group.isEffectSource &&
+        group.effectTarget === "lightning" &&
+        group.points &&
+        group.points.length >= 2
+      ) {
+        // Random number of strikes in this burst
+        const minStrikes = config?.burstMinStrikes ?? 1;
+        const maxStrikes = config?.burstMaxStrikes ?? 5;
+        const strikeCount = Math.floor(minStrikes + Math.random() * (maxStrikes - minStrikes + 1));
+
+        // Create burst data
+        this._activeBursts.set(groupId, {
+          group: group,
+          strikeCount: strikeCount,
+          currentStrike: 0,
+          nextStrikeTime: performance.now(),
+          strikeDuration: config?.burstStrikeDuration ?? 50,
+          strikeDelay: config?.burstStrikeDelay ?? 80,
+          strikes: [] // Will store strike data for each strike in the burst
+        });
+      }
+    }
+  }
+
+  /**
+   * Updates and renders all active bursts.
+   */
+  _updateBursts(time) {
+    if (this._activeBursts.size === 0) {
+      // No active bursts, clear the graphics
+      if (this.graphics && !this._cleared) {
+        this.graphics.clear();
+        this._cleared = true;
+      }
+      return;
+    }
+
+    const config = game.mapShine?.profileManager?.activeConfig?.lightning;
+    if (!config || !config.enabled) return;
+
+    // Clear graphics for redraw
+    if (this.graphics) {
+      this.graphics.clear();
+      this._cleared = false;
+    }
+
+    // Track bursts to remove
+    const burstsToRemove = [];
+
+    for (const [groupId, burst] of this._activeBursts.entries()) {
+      // Check if we need to create a new strike
+      if (burst.currentStrike < burst.strikeCount && time >= burst.nextStrikeTime) {
+        // Generate new strike with random end point variation
+        const firstPoint = burst.group.points[0];
+        const lastPoint = burst.group.points[burst.group.points.length - 1];
+
+        // Apply random variation to end point
+        const endPointVariationX = config?.endPointVariationX ?? 50;
+        const endPointVariationY = config?.endPointVariationY ?? 50;
+        const variedEndPoint = {
+          x: lastPoint.x + (Math.random() - 0.5) * 2 * endPointVariationX,
+          y: lastPoint.y + (Math.random() - 0.5) * 2 * endPointVariationY
+        };
+
+        // Generate lightning path
+        const mainPath = this._generateLightningPath(
+          firstPoint,
+          variedEndPoint,
+          50,
+          0.3 + Math.random() * 0.15
+        );
+
+        // Generate branches
+        const branches = this._generateBranches(mainPath, 0.12, 1, 5, 0, 2);
+
+        // Random intensity
+        const intensity = 0.7 + Math.random() * 0.3;
+
+        // Store strike data
+        burst.strikes.push({
+          mainPath: mainPath,
+          branches: branches,
+          intensity: intensity,
+          startTime: time,
+          endTime: time + burst.strikeDuration
+        });
+
+        burst.currentStrike++;
+        burst.nextStrikeTime = time + burst.strikeDuration + burst.strikeDelay;
+      }
+
+      // Draw all active strikes in this burst
+      const activeStrikes = burst.strikes.filter(strike => time < strike.endTime);
+      
+      // Remove expired strikes
+      burst.strikes = activeStrikes;
+
+      // Draw active strikes
+      for (const strike of activeStrikes) {
+        // Check for flicker
+        const flickerChance = config?.flickerChance ?? 0.15;
+        if (Math.random() < flickerChance) {
+          continue;
+        }
+
+        // Draw main bolt
+        this._drawLightningBolt(strike.mainPath, 5, strike.intensity, 0);
+
+        // Draw branches
+        for (const branch of strike.branches) {
+          this._drawLightningBolt(branch.path, branch.width, strike.intensity * 0.8, branch.depth);
+        }
+      }
+
+      // Check if burst is complete
+      if (burst.currentStrike >= burst.strikeCount && burst.strikes.length === 0) {
+        burstsToRemove.push(groupId);
+      }
+    }
+
+    // Remove completed bursts
+    for (const groupId of burstsToRemove) {
+      this._activeBursts.delete(groupId);
+    }
   }
 
   /**
@@ -14450,66 +15046,11 @@ class LightningLayer extends CanvasLayer {
 
   /**
    * Draws realistic lightning bolts for all Map Point groups designated as lightning sources.
+   * @deprecated This method is now handled by the burst system in _updateBursts
    */
   _drawLightning() {
-    if (!this.graphics || this._destroyed) return;
-
-    // Clear previous drawings
-    this.graphics.clear();
-    this._cleared = false;
-
-    // Check if lightning is enabled
-    const config = game.mapShine?.profileManager?.activeConfig?.lightning;
-    if (!config || !config.enabled) {
-      return;
-    }
-
-    // Get all Map Point groups
-    const groups = MapPointsManager.getGroups();
-
-    // Iterate through all groups
-    for (const group of Object.values(groups)) {
-      // Only process line-type groups that are effect sources for lightning
-      if (
-        group.type === "line" &&
-        group.isEffectSource &&
-        group.effectTarget === "lightning" &&
-        group.points &&
-        group.points.length >= 2
-      ) {
-        // Get the first and last points
-        const firstPoint = group.points[0];
-        const lastPoint = group.points[group.points.length - 1];
-
-        // Random flicker: occasionally hide the bolt
-        const flickerChance = config?.flickerChance ?? 0.15;
-        if (Math.random() < flickerChance) {
-          continue; // Skip this bolt for flicker effect
-        }
-
-        // Generate curved jagged lightning path
-        const mainPath = this._generateLightningPath(
-          firstPoint,
-          lastPoint,
-          50, // Increased displacement for sharper main bolt
-          0.3 + Math.random() * 0.15 // Moderate curve for main bolt (0.3-0.45 range)
-        );
-
-        // Generate branches with sub-branches (reduced for better performance)
-        const branches = this._generateBranches(mainPath, 0.12, 1, 5, 0, 2); // 12% chance, max depth 2 for performance
-
-        // Random intensity variation
-        const intensity = 0.7 + Math.random() * 0.3;
-
-        // Draw main bolt (depth 0)
-        this._drawLightningBolt(mainPath, 5, intensity, 0);
-
-        // Draw branches with inherited width and appropriate depth
-        for (const branch of branches) {
-          this._drawLightningBolt(branch.path, branch.width, intensity * 0.8, branch.depth);
-        }
-      }
-    }
+    // Legacy method - functionality moved to burst system
+    // Kept for backward compatibility if needed
   }
 
   /**
@@ -14524,21 +15065,72 @@ class LightningLayer extends CanvasLayer {
             "lightning.enabled",
             "Enable Lightning"
           )}
+          <h4>Timing Controls</h4>
           ${DebuggerUIBuilder._createSliderHTML(
             "lightning.minDelay",
-            "Min Delay (ms)",
+            "Min Delay Between Bursts (ms)",
             50,
-            1000,
-            10,
+            2000,
+            50,
             100
           )}
           ${DebuggerUIBuilder._createSliderHTML(
             "lightning.maxDelay",
-            "Max Delay (ms)",
+            "Max Delay Between Bursts (ms)",
             100,
-            2000,
-            10,
+            5000,
+            50,
             500
+          )}
+          <h4>Burst Controls</h4>
+          ${DebuggerUIBuilder._createSliderHTML(
+            "lightning.burstMinStrikes",
+            "Min Strikes Per Burst",
+            1,
+            10,
+            1,
+            1
+          )}
+          ${DebuggerUIBuilder._createSliderHTML(
+            "lightning.burstMaxStrikes",
+            "Max Strikes Per Burst",
+            1,
+            10,
+            1,
+            5
+          )}
+          ${DebuggerUIBuilder._createSliderHTML(
+            "lightning.burstStrikeDuration",
+            "Strike Duration (ms)",
+            10,
+            200,
+            10,
+            50
+          )}
+          ${DebuggerUIBuilder._createSliderHTML(
+            "lightning.burstStrikeDelay",
+            "Delay Between Strikes (ms)",
+            10,
+            300,
+            10,
+            80
+          )}
+          <h4>Variation Controls</h4>
+          ${DebuggerUIBuilder._createSliderHTML(
+            "lightning.endPointVariationX",
+            "End Point X Variation (px)",
+            0,
+            200,
+            5,
+            50
+          )}
+          ${DebuggerUIBuilder._createSliderHTML(
+            "lightning.endPointVariationY",
+            "End Point Y Variation (px)",
+            0,
+            200,
+            5,
+            50
           )}
           ${DebuggerUIBuilder._createSliderHTML(
             "lightning.flickerChance",
@@ -14721,6 +15313,52 @@ class SparkPathBehavior {
   _getRandom(min, max) {
     if (min === max) return min;
     return Math.random() * (max - min) + min;
+  }
+}
+
+class CandleFlameBehavior {
+  static type = "candleFlame";
+
+  constructor(config) {
+    this.order = PIXI.particles.behaviors.BehaviorOrder.Normal;
+    this.config = config;
+    this.time = 0; // Shared time for all particles using this behavior instance
+  }
+
+  initParticles(first) {
+    let p = first;
+    while (p) {
+      p.config = p.config || {};
+      // Give each particle a random offset so they don't all jiggle in perfect sync
+      p.config.jiggleOffset = Math.random() * Math.PI * 2;
+      p = p.next;
+    }
+  }
+
+  // A custom update method called by the emitter controller to update shared time
+  update(emitter, delta) {
+    this.time += delta;
+  }
+
+  updateParticle(particle, deltaSec) {
+    if (!particle.config) return;
+
+    const cfg = this.config;
+    const pcfg = particle.config;
+
+    // 1. Upward motion
+    particle.position.y += cfg.upwardVelocity * deltaSec;
+
+    // 2. Jiggle motion
+    // The amplitude of the jiggle increases as the particle gets older (moves up)
+    const currentAmplitude = cfg.amplitude * Math.pow(particle.agePercent, cfg.risingFactor);
+    const jiggle = Math.sin(this.time * cfg.frequency + pcfg.jiggleOffset) * currentAmplitude;
+
+    particle.position.x += jiggle * deltaSec;
+  }
+
+  destroy() {
+    // No special cleanup needed
   }
 }
 
@@ -15721,6 +16359,39 @@ const buildSmellyFliesEmitterConfig = (effectConfig, targetData, group) => {
     },
   };
 
+  const behaviors = [
+    {
+      type: "textureSingle",
+      config: {
+        texture: config.particleTexture,
+      },
+    },
+    {
+      type: "scaleStatic",
+      config: {
+        min: 1.0,
+        max: 1.0,
+      },
+    },
+    // Use a static alpha to prevent default fade-out, ensuring flies are persistent.
+    {
+      type: "alphaStatic",
+      config: {
+        alpha: 1.0,
+      },
+    },
+    // The moveSpeedStatic behavior is removed to prevent conflicts with the custom behavior.
+    spawnBehavior,
+    {
+      type: "smellyFlies",
+      config: { ...config, group }, // Pass the full config and group data to the behavior
+    },
+  ];
+
+  // Add blend mode as a behavior (required for particles to respect it)
+  const blendMode = config.blendMode ?? PIXI.BLEND_MODES.NORMAL;
+  addBlendModeBehavior(behaviors, blendMode);
+
   return {
     lifetime: { min: 60, max: 120 }, // Flies live for a long time
     // A low frequency makes this a continuous emitter. It will spawn
@@ -15730,36 +16401,10 @@ const buildSmellyFliesEmitterConfig = (effectConfig, targetData, group) => {
     frequency: 1.0 / ((config.maxParticles || 100) * 0.1),
     emitterLifetime: -1,
     maxParticles: Math.floor(config.maxParticles * globalMultiplier),
+    blendMode: blendMode,
     pos: { x: 0, y: 0 },
     addAtBack: false,
-    behaviors: [
-      {
-        type: "textureSingle",
-        config: {
-          texture: config.particleTexture,
-        },
-      },
-      {
-        type: "scaleStatic",
-        config: {
-          min: 1.0,
-          max: 1.0,
-        },
-      },
-      // Use a static alpha to prevent default fade-out, ensuring flies are persistent.
-      {
-        type: "alphaStatic",
-        config: {
-          alpha: 1.0,
-        },
-      },
-      // The moveSpeedStatic behavior is removed to prevent conflicts with the custom behavior.
-      spawnBehavior,
-      {
-        type: "smellyFlies",
-        config: { ...config, group }, // Pass the full config and group data to the behavior
-      },
-    ],
+    behaviors: behaviors,
   };
 };
 
@@ -17488,6 +18133,171 @@ export class ScreenEffectsManager {
       u.uSelectiveDesaturation = sel.desaturation;
       u.uSelectiveTargetSaturation = sel.targetSaturation;
       u.uSelectiveTargetBrightness = sel.targetBrightness;
+    }
+  }
+
+  /**
+   * Updates only a specific filter based on the configuration path.
+   * This is the targeted update version that avoids updating all filters.
+   * @param {string} path - The configuration path (e.g., "postProcessing.vignette.amount")
+   * @param {Object} config - The full configuration object
+   */
+  static updateFilterFromPath(path, config) {
+    const pp = config.postProcessing;
+    const pathParts = path.split('.');
+    
+    // Handle prism filter (top-level, not in postProcessing)
+    if (pathParts[0] === 'prism') {
+      const prismFilter = this.getFilter("prism");
+      if (prismFilter instanceof PrismFilter) {
+        const pConfig = config.prism;
+        prismFilter.enabled = config.enabled && pConfig.enabled;
+        const u = prismFilter.uniforms;
+        u.uIntensity = pConfig.intensity;
+        u.uAngleRad = pConfig.angle * (Math.PI / 180.0);
+        u.uThreshold = pConfig.threshold;
+        u.uSoftness = pConfig.softness;
+        u.uDistortionStrength = pConfig.distortionStrength;
+        const screen = canvas?.app?.screen;
+        if (screen) {
+          u.uTexelSize = [1 / screen.width, 1 / screen.height];
+        }
+      }
+      return;
+    }
+    
+    // All other filters are in postProcessing
+    if (pathParts[0] !== 'postProcessing' || pathParts.length < 2) {
+      return;
+    }
+    
+    const filterKey = pathParts[1]; // e.g., "vignette", "colorCorrection", etc.
+    
+    switch (filterKey) {
+      case 'vignette': {
+        const vignetteFilter = this.getFilter("vignette");
+        if (vignetteFilter instanceof VignetteFilter) {
+          vignetteFilter.enabled = config.enabled && pp.enabled && pp.vignette.enabled;
+          vignetteFilter.amount = pp.vignette.amount;
+          vignetteFilter.softness = pp.vignette.softness;
+        }
+        break;
+      }
+      
+      case 'lensDistortion': {
+        const lensDistortionFilter = this.getFilter("lensDistortion");
+        if (lensDistortionFilter instanceof LensDistortionFilter) {
+          lensDistortionFilter.enabled = config.enabled && pp.enabled && pp.lensDistortion.enabled;
+          lensDistortionFilter.amount = pp.lensDistortion.amount;
+          lensDistortionFilter.center = [
+            pp.lensDistortion.centerX,
+            pp.lensDistortion.centerY,
+          ];
+        }
+        break;
+      }
+      
+      case 'chromaticAberration': {
+        const caFilter = this.getFilter("chromaticAberration");
+        if (caFilter instanceof ChromaticAberrationFilter) {
+          caFilter.enabled = config.enabled && pp.enabled && pp.chromaticAberration.enabled;
+          caFilter.amount = pp.chromaticAberration.amount;
+          caFilter.center = [
+            pp.chromaticAberration.centerX,
+            pp.chromaticAberration.centerY,
+          ];
+        }
+        break;
+      }
+      
+      case 'tiltShift': {
+        const tiltShiftFilter = this.getFilter("tiltShift");
+        const TiltShiftFilterConstructor = PIXI.filters?.TiltShiftFilter;
+        if (tiltShiftFilter && TiltShiftFilterConstructor && tiltShiftFilter instanceof TiltShiftFilterConstructor) {
+          const tsConfig = pp.tiltShift;
+          tiltShiftFilter.enabled = config.enabled && pp.enabled && tsConfig.enabled;
+          tiltShiftFilter.blur = tsConfig.blur;
+          tiltShiftFilter.gradientBlur = tsConfig.gradientBlur;
+          const screen = canvas.app.screen;
+          if (tiltShiftFilter.start) {
+            tiltShiftFilter.start.x = tsConfig.startX * screen.width;
+            tiltShiftFilter.start.y = tsConfig.startY * screen.height;
+          }
+          if (tiltShiftFilter.end) {
+            tiltShiftFilter.end.x = tsConfig.endX * screen.width;
+            tiltShiftFilter.end.y = tsConfig.endY * screen.height;
+          }
+        }
+        break;
+      }
+      
+      case 'grain': {
+        const grainFilter = this.getFilter("filmGrain");
+        if (grainFilter instanceof FilmGrainFilter) {
+          const gConfig = pp.grain;
+          grainFilter.enabled = config.enabled && pp.enabled && gConfig.enabled;
+          grainFilter.intensity = gConfig.intensity;
+          grainFilter.size = gConfig.size;
+          grainFilter.monochromatic = gConfig.monochromatic;
+          grainFilter.luminanceResponse = [
+            gConfig.luminanceResponse.shadows,
+            gConfig.luminanceResponse.highlights,
+          ];
+        }
+        break;
+      }
+      
+      case 'colorCorrection': {
+        const ccFilter = this.getFilter("colorCorrection");
+        if (ccFilter instanceof ColorCorrectionFilter) {
+          const ccConfig = pp.colorCorrection;
+          ccFilter.enabled = config.enabled && pp.enabled && ccConfig.enabled;
+          const u = ccFilter.uniforms;
+          u.uDynamicExposure = ccConfig.dynamicExposure;
+          u.uSaturation = ccConfig.saturation;
+          u.uBrightness = ccConfig.brightness;
+          u.uContrast = ccConfig.contrast;
+          u.uInvert = ccConfig.invert;
+          u.uExposure = ccConfig.exposure;
+          u.uGamma = ccConfig.gamma;
+          u.uInBlack = ccConfig.levels.inBlack;
+          u.uInWhite = ccConfig.levels.inWhite;
+          u.uTemperature = ccConfig.whiteBalance.temperature;
+          u.uWbTint = ccConfig.whiteBalance.tint;
+          u.uTintColor = hexToRgbArray(ccConfig.tint.color);
+          u.uTintAmount = ccConfig.tint.amount;
+          const sel = ccConfig.selective;
+          u.uSelectiveEnabled = sel.enabled;
+          u.uSelectiveColor = hexToRgbArray(sel.color);
+          u.uSelectiveHueRange = sel.hueRange;
+          u.uSelectiveSatRange = sel.saturationRange;
+          u.uSelectiveLumRange = sel.luminanceRange;
+          u.uSelectiveTargetLum = sel.targetLuminance;
+          u.uSelectiveSoftness = sel.softness;
+          u.uSelectiveInvert = sel.invert;
+          u.uSelectiveDesaturation = sel.desaturation;
+          u.uSelectiveTargetSaturation = sel.targetSaturation;
+          u.uSelectiveTargetBrightness = sel.targetBrightness;
+          const curvesConfig = ccConfig.curves;
+          if (curvesConfig) {
+            u.uCurvesEnabled = curvesConfig.enabled;
+            if (curvesConfig.enabled) {
+              if (this._curveLut) this._curveLut.destroy(true);
+              this._curveLut = LutUtils.generateCurveLut(curvesConfig);
+              u.uCurveLUT = this._curveLut;
+            }
+          } else {
+            u.uCurvesEnabled = false;
+          }
+        }
+        break;
+      }
+      
+      default:
+        // Unknown filter - fall back to updating all filters
+        console.warn(`MapShine | Unknown filter key: ${filterKey}, updating all filters`);
+        this.updateAllFiltersFromConfig(config);
+        break;
     }
   }
 
@@ -20371,7 +21181,7 @@ class MapPointsEditor extends FormApplication {
       case "delete-point": {
         const pointIndex = parseInt(target.dataset.pointIndex, 10);
         if (this._selectedGroupId && !isNaN(pointIndex)) {
-          await MapPointsManager.deletePoint(this._selectedGroupId, pointIndex);
+          await MapPointsManager.removePoint(this._selectedGroupId, pointIndex);
         }
         break;
       }
@@ -20501,7 +21311,7 @@ class MapPointsInteractionManager {
     } else if (event.nativeEvent.button === 2) {
       // Right Click
       if (hovered) {
-        MapPointsManager.deletePoint(hovered.groupId, hovered.pointIndex);
+        MapPointsManager.removePoint(hovered.groupId, hovered.pointIndex);
       }
     }
   }
@@ -29133,6 +29943,7 @@ class DebuggerUIBuilder {
       PrismLayer.getSettingsHTML(),
       ParticleEffectController.getSettingsHTML("fire"),
       ParticleEffectController.getSettingsHTML("sparks"),
+      ParticleEffectController.getSettingsHTML("candleFlame"),
       ParticleEffectController.getSettingsHTML("pressurisedSteam"),
       ParticleEffectController.getSettingsHTML("dust"),
       ParticleEffectController.getSettingsHTML("glint"),
@@ -29680,7 +30491,34 @@ class DebuggerEventHandler {
 
   async _onPasteAccordion(effectKey) {
     try {
-      const clipboardText = await navigator.clipboard.readText();
+      // Try to read from clipboard with permission handling
+      let clipboardText;
+      try {
+        // Request permission first (if needed)
+        const permission = await navigator.permissions.query({ name: "clipboard-read" });
+        if (permission.state === "denied") {
+          throw new Error("Clipboard permission denied");
+        }
+        clipboardText = await navigator.clipboard.readText();
+      } catch (permErr) {
+        // Fallback: Create a temporary textarea and use execCommand
+        console.warn("Map Shine | Clipboard API failed, using fallback method:", permErr);
+        const textarea = document.createElement("textarea");
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        
+        const success = document.execCommand("paste");
+        clipboardText = textarea.value;
+        document.body.removeChild(textarea);
+        
+        if (!success || !clipboardText) {
+          ui.notifications.error("Unable to access clipboard. Please copy again and ensure your browser allows clipboard access.");
+          return;
+        }
+      }
+      
       if (!clipboardText) {
         ui.notifications.warn("Clipboard is empty.");
         return;
@@ -29765,8 +30603,8 @@ class DebuggerEventHandler {
   }
 
   /**
-   * The core logic for saving a change and refreshing all visual systems.
-   * This is the expensive operation we want to rate-limit.
+   * The core logic for saving a change and refreshing visual systems.
+   * Now uses targeted updates to only refresh the affected component.
    * @param {string} path - The object path to the setting (e.g., "baseShine.intensity").
    * @param {*} value - The new value for the setting.
    */
@@ -29778,17 +30616,19 @@ class DebuggerEventHandler {
       await game.settings.set(MODULE_ID, path, value);
       // A full refresh ensures any managers reading these settings are updated.
       await this.profileManager.initializeForScene();
+      await this.profileManager.updateAllSystemsFromConfig();
     } else {
+      // Record the change in user overrides
       await this.profileManager.recordUserChange(path, value);
+      
+      // USE TARGETED UPDATE - only refresh the affected system
+      await this.profileManager.updateSystemFromPath(path, value);
     }
 
-    // Update all visual systems with the new configuration
-    await this.profileManager.updateAllSystemsFromConfig();
-
     // After the update, re-render all UI controls to ensure they are in sync with the new state.
-    // This is the key step to guarantee the font preview updates correctly.
     this.updateAllControls();
 
+    // Special case: particle effects may need target updates
     const isParticleSetting =
       Object.values(PARTICLE_EFFECT_DEFINITIONS).some((def) =>
         path.startsWith(def.configPath)
@@ -31724,7 +32564,34 @@ class DebuggerEventHandler {
 
   async _onPasteSettings() {
     try {
-      const jsonString = await navigator.clipboard.readText();
+      // Try to read from clipboard with permission handling
+      let jsonString;
+      try {
+        // Request permission first (if needed)
+        const permission = await navigator.permissions.query({ name: "clipboard-read" });
+        if (permission.state === "denied") {
+          throw new Error("Clipboard permission denied");
+        }
+        jsonString = await navigator.clipboard.readText();
+      } catch (permErr) {
+        // Fallback: Create a temporary textarea and use execCommand
+        console.warn("Map Shine | Clipboard API failed, using fallback method:", permErr);
+        const textarea = document.createElement("textarea");
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        
+        const success = document.execCommand("paste");
+        jsonString = textarea.value;
+        document.body.removeChild(textarea);
+        
+        if (!success || !jsonString) {
+          ui.notifications.error("Unable to access clipboard. Please copy again and ensure your browser allows clipboard access.");
+          return;
+        }
+      }
+      
       if (!jsonString) {
         ui.notifications.warn("Clipboard is empty.");
         return;
@@ -32539,7 +33406,6 @@ class UserGuide extends Application {
 // ---------------------------------------------------------------------------------
 
 // THIS IS THE CORRECT WAY TO MAKE CONTROLS IN FOUNDRY VTT - Please don't break it.
-
 Hooks.on("getSceneControlButtons", (controls) => {
   if (!game.user.isGM) return;
 

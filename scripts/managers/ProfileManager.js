@@ -1,6 +1,46 @@
 import { MODULE_ID, ProfileDataManager, MODULE_DEFAULTS, ConfigBuilder, ParticleLayer, SmellyFliesLayer } from "../module.js";
 
 /**
+ * Maps configuration paths to their corresponding system update functions.
+ * This enables targeted updates instead of refreshing all systems.
+ * 
+ * @constant {Object} CONFIG_SYSTEM_MAP
+ */
+const CONFIG_SYSTEM_MAP = {
+  // Layer-based effects
+  baseShine: { type: 'layer', layerClass: 'MetallicShineLayer' },
+  cloudShadows: { type: 'layer', layerClass: 'CloudShadowsLayer' },
+  iridescence: { type: 'layer', layerClass: 'IridescenceLayer' },
+  canopy: { type: 'layer', layerClass: 'CanopyLayer' },
+  structuralShadows: { type: 'layer', layerClass: 'StructuralShadowsLayer' },
+  prism: { type: 'filter', filterName: 'prism' },
+  ambient: { type: 'layer', layerClass: 'AmbientLayer' },
+  groundGlow: { type: 'layer', layerClass: 'GroundGlowLayer' },
+  heatDistortion: { type: 'layer', layerClass: 'HeatDistortionLayer' },
+  
+  // Post-processing filters
+  postProcessing: { type: 'filter', filterName: 'postProcessing' },
+  
+  // Particle effects
+  dust: { type: 'particle', effectKey: 'dust' },
+  fire: { type: 'particle', effectKey: 'fire' },
+  biofilm: { type: 'particle', effectKey: 'biofilm' },
+  smellyFlies: { type: 'particle', effectKey: 'smellyFlies' },
+  
+  // Time control affects multiple systems
+  timeControl: { type: 'cross-cutting', updateFn: 'updateTimeControl' },
+  
+  // Time of day affects lighting
+  timeOfDay: { type: 'layer', layerClass: 'TimeOfDayLayer' },
+  
+  // Universal settings don't go through profile system
+  universal: { type: 'universal' },
+  
+  // Scene appearance transitions
+  sceneAppearance: { type: 'none' } // Only used during profile switches
+};
+
+/**
  * Central management system for visual effect profiles and configuration.
  *
  * The ProfileManager is the core orchestrator for all Map Shine visual effects,
@@ -478,6 +518,113 @@ export class ProfileManager {
       options
     );
     return activeConfig;
+  }
+
+  /**
+   * Updates only the specific system(s) affected by a configuration change.
+   * This is the optimized version that routes updates to specific components.
+   * 
+   * @param {string} path - The configuration path that changed (e.g., "cloudShadows.wind.speed")
+   * @param {*} value - The new value
+   * @returns {Promise<void>}
+   */
+  async updateSystemFromPath(path, value) {
+    if (!canvas?.ready) return;
+    
+    // Update the active config with the new value
+    foundry.utils.setProperty(this.activeConfig, path, value);
+    
+    // Parse the top-level effect key from the path
+    const topLevelKey = path.split('.')[0];
+    const systemConfig = CONFIG_SYSTEM_MAP[topLevelKey];
+    
+    if (!systemConfig) {
+      console.warn(`MapShine | No system mapping found for: ${topLevelKey}, falling back to full update`);
+      return this.updateAllSystemsFromConfig();
+    }
+    
+    console.log(`MapShine | Targeted update for: ${topLevelKey} (${systemConfig.type})`);
+    
+    switch (systemConfig.type) {
+      case 'layer': {
+        // Find and update only the specific layer
+        const layer = canvas.layers.find(l => l.constructor.name === systemConfig.layerClass);
+        if (layer && typeof layer.updateFromConfig === 'function') {
+          try {
+            await layer.updateFromConfig(this.activeConfig);
+          } catch (e) {
+            console.error(`MapShine | Error updating ${systemConfig.layerClass}:`, e);
+          }
+        }
+        break;
+      }
+      
+      case 'filter': {
+        // Update only the specific filter(s)
+        const { ScreenEffectsManager } = await import("../module.js");
+        if (systemConfig.filterName === 'postProcessing') {
+          // Update all post-processing filters
+          ScreenEffectsManager.updateAllFiltersFromConfig(this.activeConfig);
+        } else {
+          // Update specific filter
+          ScreenEffectsManager.updateFilterFromPath(path, this.activeConfig);
+        }
+        break;
+      }
+      
+      case 'particle': {
+        // Update specific particle effect
+        if (systemConfig.effectKey === 'smellyFlies') {
+          const fliesLayer = canvas.layers.find(l => l instanceof SmellyFliesLayer);
+          if (fliesLayer && typeof fliesLayer.updateFromConfig === 'function') {
+            await fliesLayer.updateFromConfig(this.activeConfig);
+          }
+        } else if (game.mapShine.particleManager) {
+          // Update specific particle controller via the global particle manager
+          const controller = game.mapShine.particleManager.controllers.get(systemConfig.effectKey);
+          if (controller && typeof controller.updateFromConfig === 'function') {
+            controller.updateFromConfig(this.activeConfig);
+          }
+        }
+        break;
+      }
+      
+      case 'cross-cutting': {
+        // Handle effects that span multiple systems
+        if (systemConfig.updateFn === 'updateTimeControl') {
+          game.mapShine.timeControl.timeFactor = value / 100.0;
+          // Time affects multiple layers - need targeted list
+          const timeAffectedLayers = ['TimeOfDayLayer', 'CloudShadowsLayer', 'IridescenceLayer'];
+          for (const layerName of timeAffectedLayers) {
+            const layer = canvas.layers.find(l => l.constructor.name === layerName);
+            if (layer && typeof layer.updateFromConfig === 'function') {
+              await layer.updateFromConfig(this.activeConfig, { timeOnly: true });
+            }
+          }
+        }
+        break;
+      }
+      
+      case 'universal': {
+        // Universal settings are handled differently - they affect game settings
+        // These typically require a full refresh
+        return this.updateAllSystemsFromConfig();
+      }
+      
+      case 'none': {
+        // These settings don't require real-time updates
+        break;
+      }
+      
+      default:
+        console.warn(`MapShine | Unknown system type: ${systemConfig.type}`);
+        break;
+    }
+    
+    // Apply tile opacities if needed (lightweight operation)
+    if (game.mapShine.effectTargetManager && topLevelKey !== 'timeControl') {
+      game.mapShine.effectTargetManager.applyTileOpacities();
+    }
   }
 
   async updateAllSystemsFromConfig(options = {}) {
