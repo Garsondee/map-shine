@@ -17331,7 +17331,7 @@ export class ScreenEffectsManager {
                               <div class="widget-group"><input type="checkbox" id="control-postProcessing-enabled" data-path="postProcessing.enabled"></div>
                           </div>
                           <hr style="border-color:#444; margin: 6px 0;">
-                          <details id="details-postProcessing-colorCorrection"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                          <details id="details-postProcessing-colorCorrection" class="accordion-type-pp-color"><summary>${DebuggerUIBuilder._getPostProcessingIconHTML('postProcessing-colorCorrection')}<div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
                             "postProcessing.colorCorrection.enabled",
                             "Color Correction",
                             true
@@ -17510,9 +17510,9 @@ export class ScreenEffectsManager {
                           </details>
 
 
-                          <details id="details-postProcessing-dynamicExposure">
+                          <details id="details-postProcessing-dynamicExposure" class="accordion-type-pp-exposure">
                               <summary>
-                                  <span class="accordion-toggle"></span>
+                                  ${DebuggerUIBuilder._getPostProcessingIconHTML('postProcessing-dynamicExposure')}
                                   <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
                                     "postProcessing.colorCorrection.dynamicExposure.enabled",
                                     "Dynamic Exposure (Dazzle)",
@@ -17548,7 +17548,7 @@ export class ScreenEffectsManager {
                               </div>
                           </details>
 
-                          <details id="details-postProcessing-vignette"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                          <details id="details-postProcessing-vignette" class="accordion-type-pp-lens"><summary>${DebuggerUIBuilder._getPostProcessingIconHTML('postProcessing-vignette')}<div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
                             "postProcessing.vignette.enabled",
                             "Vignette",
                             true
@@ -17567,7 +17567,7 @@ export class ScreenEffectsManager {
       0.01
     )}</div>
                           </details>
-                          <details id="details-postProcessing-lensDistortion"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                          <details id="details-postProcessing-lensDistortion" class="accordion-type-pp-lens"><summary>${DebuggerUIBuilder._getPostProcessingIconHTML('postProcessing-lensDistortion')}<div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
                             "postProcessing.lensDistortion.enabled",
                             "Lens Distortion",
                             true
@@ -17596,7 +17596,7 @@ export class ScreenEffectsManager {
                                   )}
                               </div>
                           </details>
-                          <details id="details-postProcessing-chromaticAberration"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                          <details id="details-postProcessing-chromaticAberration" class="accordion-type-pp-lens"><summary>${DebuggerUIBuilder._getPostProcessingIconHTML('postProcessing-chromaticAberration')}<div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
                             "postProcessing.chromaticAberration.enabled",
                             "Chromatic Aberration",
                             true
@@ -17625,7 +17625,7 @@ export class ScreenEffectsManager {
                                   )}
                               </div>
                           </details>
-                          <details id="details-postProcessing-grain"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                          <details id="details-postProcessing-grain" class="accordion-type-pp-texture"><summary>${DebuggerUIBuilder._getPostProcessingIconHTML('postProcessing-grain')}<div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
                             "postProcessing.grain.enabled",
                             "Grain / Digital Noise",
                             true
@@ -17678,7 +17678,7 @@ export class ScreenEffectsManager {
                                   </details>
                               </div>
                           </details>
-                          <details id="details-postProcessing-tiltShift"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                          <details id="details-postProcessing-tiltShift" class="accordion-type-pp-lens"><summary>${DebuggerUIBuilder._getPostProcessingIconHTML('postProcessing-tiltShift')}<div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
                             "postProcessing.tiltShift.enabled",
                             "Tilt Shift",
                             true
@@ -17729,7 +17729,6 @@ export class ScreenEffectsManager {
                                   )}
                               </div>
                           </details>
-                          <button id="output-config-btn" title="Log the current full config object to the console for copy/pasting." style="width: 100%; margin-top: 5px;">Log Full Config to Console</button>
                       `;
 
     return {
@@ -21744,7 +21743,7 @@ class MetallicShineLayer extends CanvasLayer {
       false,
       "Ignores scene-specific settings for this effect and uses the configured World Default Profile instead. A default profile must be set."
     );
-    const iconHTML = `<span class="world-based-icon" data-world-based-path="${path}" title="World Based: This effect uses the world-level default profile, ignoring scene-specific settings."><i class="fas fa-globe"></i></span>`;
+    const badgeHTML = `<span class="world-based-badge" data-world-based-path="${path}" title="World Based: This effect uses the world-level default profile, ignoring scene-specific settings.">WORLD</span>`;
 
     const content = `
         ${checkboxHTML}
@@ -21919,9 +21918,9 @@ class MetallicShineLayer extends CanvasLayer {
     `;
     return DebuggerUIBuilder._createAccordionHTML(
       effectKey,
-      "Metallic Shine",
+      "Base Shine",
       content,
-      iconHTML
+      badgeHTML
     );
   }
 
@@ -29118,59 +29117,63 @@ class DebuggerUIBuilder {
       font-size: 10px;
       font-weight: bold;
       padding: 0;
-      line-height: 18px; /* vertically center text */
-      border-radius: 50%;
+      line-height: 18px;
+      border-radius: 3px; /* Square button */
       background: #4a4a4a;
       border: 1px solid #777;
       color: #ddd;
-      margin-right: 5px;
-      flex-shrink: 0; /* prevent shrinking */
-  }
-  #material-editor-debugger .reset-accordion-btn:hover {
-  background: #803030;
-  color: #fff;
-  border-color: #c06060;
-  }
-  .create-effect-from-ui {
-  width: 22px;
-  height: 22px;
-  font-size: 11px;
-  padding: 0;
-  line-height: 20px;
-  border-radius: 4px;
-  background: transparent;
-  border: 1px solid #4CAF50; /* Green */
-  color: #4CAF50;
-  margin-left: 5px;
-  transition: all 0.2s;
-  }
-  .create-effect-from-ui:hover {
-  background: rgba(76, 250, 64, 0.2);
-  color: #fff;
-  border-color: #6fdd73;
-  }
-  /* --- Main Controls Styles --- */
-
-  /* --- Reset Button --- */
-  #material-editor-debugger .reset-accordion-btn {
-      width: 20px;
-      height: 20px;
-      font-size: 10px;
-      font-weight: bold;
-      padding: 0;
-      line-height: 18px; /* vertically center text */
-      border-radius: 50%;
-      background: #4a4a4a;
-      border: 1px solid #777;
-      color: #ddd;
-      margin-right: 5px;
-      flex-shrink: 0; /* prevent shrinking */
+      flex-shrink: 0;
   }
   #material-editor-debugger .reset-accordion-btn:hover {
       background: #803030;
       color: #fff;
       border-color: #c06060;
   }
+  
+  /* --- Plus/Create Button --- */
+  .create-effect-from-ui {
+      width: 20px;
+      height: 20px;
+      font-size: 11px;
+      padding: 0;
+      line-height: 18px;
+      border-radius: 3px;
+      background: transparent;
+      border: 1px solid #4CAF50;
+      color: #4CAF50;
+      transition: all 0.2s;
+      flex-shrink: 0;
+  }
+  .create-effect-from-ui:hover {
+      background: rgba(76, 250, 64, 0.2);
+      color: #fff;
+      border-color: #6fdd73;
+  }
+  
+  /* --- World Based & Clock Based Badges --- */
+  .world-based-badge, .clock-based-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      font-size: 9px;
+      font-weight: bold;
+      text-transform: uppercase;
+      border-radius: 3px;
+      flex-shrink: 0;
+  }
+  .world-based-badge {
+      background: rgba(76, 175, 80, 0.2);
+      border: 1px solid rgba(76, 175, 80, 0.5);
+      color: #90ee90;
+  }
+  .clock-based-badge {
+      background: rgba(33, 150, 243, 0.2);
+      border: 1px solid rgba(33, 150, 243, 0.5);
+      color: #87ceeb;
+  }
+  .world-based-badge.hidden, .clock-based-badge.hidden {
+      display: none;
+  }
+  /* --- Main Controls Styles --- */
 
   #main-controls-section {
       padding: 8px;
@@ -29248,13 +29251,77 @@ class DebuggerUIBuilder {
                                   border-radius: 4px;
                               }
                               #material-editor-debugger .file-picker-btn:hover { background: #555; border-color: #888; }
-                              #material-editor-debugger details { background: rgba(255,255,255,0.05); border: 1px solid #555; border-radius: 2px; padding: 1px; margin-bottom: 0; }
+                              #material-editor-debugger details { background: rgba(255,255,255,0.05); border: 1px solid #555; border-radius: 2px; padding: 1px; margin-bottom: 0; transition: background 0.2s ease-in-out; }
                               #material-editor-debugger details[open] { background: rgba(255,255,255,0.08); padding-bottom: 1px; }
-                              #material-editor-debugger details[open] > summary .accordion-toggle { transform: rotate(90deg); }
+                              
+                              /* Type-specific subtle tints */
+                              #material-editor-debugger details.accordion-type-particle { background: rgba(255, 180, 100, 0.04); border-color: rgba(255, 180, 100, 0.2); }
+                              #material-editor-debugger details.accordion-type-particle[open] { background: rgba(255, 180, 100, 0.08); }
+                              
+                              #material-editor-debugger details.accordion-type-shadow { background: rgba(100, 150, 255, 0.04); border-color: rgba(100, 150, 255, 0.2); }
+                              #material-editor-debugger details.accordion-type-shadow[open] { background: rgba(100, 150, 255, 0.08); }
+                              
+                              #material-editor-debugger details.accordion-type-shader { background: rgba(200, 100, 255, 0.04); border-color: rgba(200, 100, 255, 0.2); }
+                              #material-editor-debugger details.accordion-type-shader[open] { background: rgba(200, 100, 255, 0.08); }
+                              
+                              #material-editor-debugger details.accordion-type-water { background: rgba(100, 200, 255, 0.04); border-color: rgba(100, 200, 255, 0.2); }
+                              #material-editor-debugger details.accordion-type-water[open] { background: rgba(100, 200, 255, 0.08); }
+                              
+                              #material-editor-debugger details.accordion-type-color { background: rgba(255, 200, 150, 0.04); border-color: rgba(255, 200, 150, 0.2); }
+                              #material-editor-debugger details.accordion-type-color[open] { background: rgba(255, 200, 150, 0.08); }
+                              
+                              #material-editor-debugger details.accordion-type-system { background: rgba(150, 150, 150, 0.04); border-color: rgba(150, 150, 150, 0.2); }
+                              #material-editor-debugger details.accordion-type-system[open] { background: rgba(150, 150, 150, 0.08); }
+                              
+                              #material-editor-debugger details.accordion-type-structural { background: rgba(100, 255, 200, 0.04); border-color: rgba(100, 255, 200, 0.2); }
+                              #material-editor-debugger details.accordion-type-structural[open] { background: rgba(100, 255, 200, 0.08); }
+                              
+                              /* Post-Processing Effect Types */
+                              #material-editor-debugger details.accordion-type-pp-color { background: rgba(255, 200, 150, 0.04); border-color: rgba(255, 200, 150, 0.2); }
+                              #material-editor-debugger details.accordion-type-pp-color[open] { background: rgba(255, 200, 150, 0.08); }
+                              
+                              #material-editor-debugger details.accordion-type-pp-exposure { background: rgba(255, 220, 100, 0.04); border-color: rgba(255, 220, 100, 0.2); }
+                              #material-editor-debugger details.accordion-type-pp-exposure[open] { background: rgba(255, 220, 100, 0.08); }
+                              
+                              #material-editor-debugger details.accordion-type-pp-lens { background: rgba(150, 180, 255, 0.04); border-color: rgba(150, 180, 255, 0.2); }
+                              #material-editor-debugger details.accordion-type-pp-lens[open] { background: rgba(150, 180, 255, 0.08); }
+                              
+                              #material-editor-debugger details.accordion-type-pp-texture { background: rgba(180, 180, 180, 0.04); border-color: rgba(180, 180, 180, 0.2); }
+                              #material-editor-debugger details.accordion-type-pp-texture[open] { background: rgba(180, 180, 180, 0.08); }
+                              
                               #material-editor-debugger details.disabled-effect > summary .summary-label { color: #888; }
                               #material-editor-debugger summary { font-weight: bold; cursor: pointer; padding: 0px; display: flex; align-items: center; gap: 5px; list-style: none; }
                               #material-editor-debugger summary::-webkit-details-marker { display: none; }
-                              #material-editor-debugger .accordion-toggle { flex-shrink: 0; width: 0; height: 0; border-top: 4px solid transparent; border-bottom: 4px solid transparent; border-left: 5px solid #ccc; transition: transform 0.2s ease-in-out; margin-left: 2px; }
+                              
+                              /* Icon-based accordion toggle */
+                              #material-editor-debugger .accordion-icon { 
+                                  flex-shrink: 0; 
+                                  width: 16px; 
+                                  height: 16px;
+                                  font-size: 12px;
+                                  display: flex;
+                                  align-items: center;
+                                  justify-content: center;
+                                  color: #ccc; 
+                                  transition: transform 0.2s ease-in-out, color 0.2s ease-in-out; 
+                                  margin-left: 2px; 
+                              }
+                              #material-editor-debugger details[open] > summary .accordion-icon { transform: rotate(90deg); }
+                              
+                              /* Type-specific icon colors */
+                              #material-editor-debugger .accordion-icon[data-accordion-type="particle"] { color: #ffb464; }
+                              #material-editor-debugger .accordion-icon[data-accordion-type="shadow"] { color: #6496ff; }
+                              #material-editor-debugger .accordion-icon[data-accordion-type="shader"] { color: #c864ff; }
+                              #material-editor-debugger .accordion-icon[data-accordion-type="water"] { color: #64c8ff; }
+                              #material-editor-debugger .accordion-icon[data-accordion-type="color"] { color: #ffc896; }
+                              #material-editor-debugger .accordion-icon[data-accordion-type="system"] { color: #969696; }
+                              #material-editor-debugger .accordion-icon[data-accordion-type="structural"] { color: #64ffc8; }
+                              #material-editor-debugger .accordion-icon[data-accordion-type="default"] { color: #c896ff; }
+                              #material-editor-debugger .accordion-icon[data-accordion-type="pp-color"] { color: #ffc896; }
+                              #material-editor-debugger .accordion-icon[data-accordion-type="pp-exposure"] { color: #ffdc64; }
+                              #material-editor-debugger .accordion-icon[data-accordion-type="pp-lens"] { color: #96b4ff; }
+                              #material-editor-debugger .accordion-icon[data-accordion-type="pp-texture"] { color: #b4b4b4; }
+                              
                               #material-editor-debugger .summary-control { display: flex; justify-content: space-between; align-items: center; width: 100%; }
 
                               #material-editor-debugger details details { margin-left: 8px; margin-top: 4px; border-style: dashed; }
@@ -29615,6 +29682,7 @@ class DebuggerUIBuilder {
                                 "showTokenMask",
                                 "Show Token Mask"
                               )}
+                              <button id="output-config-btn" title="Log the current full config object to the console for copy/pasting." style="width: 100%; margin-top: 10px;">Log Full Config to Console</button>
                           </div>
                       </details>
                   `;
@@ -29710,8 +29778,93 @@ class DebuggerUIBuilder {
     return `control-${path.replace(/\.|\[|\]|\s/g, "-")}`;
   }
 
+  /**
+   * Determines the type and icon for an accordion based on its effect ID.
+   * @param {string} id - The effect key/ID
+   * @returns {{type: string, icon: string}} Object containing type and FontAwesome icon class
+   */
+  static _getAccordionTypeInfo(id) {
+    // Particle Effects
+    const particleEffects = ['sparks', 'fire', 'candle', 'pressurisedSteam', 'flies', 'lightning', 'smellyFlies'];
+    if (particleEffects.includes(id)) {
+      return { type: 'particle', icon: 'fa-sparkles' };
+    }
+
+    // Shadow/Layer Effects
+    const shadowEffects = ['cloudShadows', 'canopyShadows', 'buildingShadows'];
+    if (shadowEffects.includes(id)) {
+      return { type: 'shadow', icon: 'fa-cloud-sun' };
+    }
+
+    // Shader/Material Effects
+    const shaderEffects = ['metallicShine', 'iridescence', 'heatDistortion', 'prismEffect'];
+    if (shaderEffects.includes(id)) {
+      return { type: 'shader', icon: 'fa-gem' };
+    }
+
+    // Water Effects
+    const waterEffects = ['water', 'waterEdgeFoam', 'underwaterCaustics'];
+    if (waterEffects.includes(id)) {
+      return { type: 'water', icon: 'fa-water' };
+    }
+
+    // Color Correction/Grading
+    const colorEffects = ['timeOfDayColorGrade', 'groundGlow'];
+    if (colorEffects.includes(id)) {
+      return { type: 'color', icon: 'fa-palette' };
+    }
+
+    // UI/System Settings
+    const systemEffects = ['fontManager', 'loadingScreen', 'pauseEffectOverlay'];
+    if (systemEffects.includes(id)) {
+      return { type: 'system', icon: 'fa-cog' };
+    }
+
+    // Structural/Scene Effects
+    const structuralEffects = ['structuralEffect', 'overheadEffect'];
+    if (structuralEffects.includes(id)) {
+      return { type: 'structural', icon: 'fa-layer-group' };
+    }
+
+    // Post-Processing Effects
+    if (id === 'postProcessing-colorCorrection') {
+      return { type: 'pp-color', icon: 'fa-palette' };
+    }
+    if (id === 'postProcessing-dynamicExposure') {
+      return { type: 'pp-exposure', icon: 'fa-sun' };
+    }
+    if (id === 'postProcessing-vignette') {
+      return { type: 'pp-lens', icon: 'fa-circle' };
+    }
+    if (id === 'postProcessing-lensDistortion') {
+      return { type: 'pp-lens', icon: 'fa-camera' };
+    }
+    if (id === 'postProcessing-chromaticAberration') {
+      return { type: 'pp-lens', icon: 'fa-eye-dropper' };
+    }
+    if (id === 'postProcessing-grain') {
+      return { type: 'pp-texture', icon: 'fa-droplet' };
+    }
+    if (id === 'postProcessing-tiltShift') {
+      return { type: 'pp-lens', icon: 'fa-video' };
+    }
+
+    // Default fallback
+    return { type: 'default', icon: 'fa-wand-magic-sparkles' };
+  }
+
+  /**
+   * Helper to generate icon HTML for inline post-processing effects
+   */
+  static _getPostProcessingIconHTML(id) {
+    const typeInfo = this._getAccordionTypeInfo(id);
+    return `<i class="fas ${typeInfo.icon} accordion-icon" data-accordion-type="${typeInfo.type}"></i>`;
+  }
+
   static _createAccordionHTML(id, title, content, headerExtra = "") {
     let path = `${id}.enabled`;
+    const typeInfo = this._getAccordionTypeInfo(id);
+    const iconHtml = `<i class="fas ${typeInfo.icon} accordion-icon" data-accordion-type="${typeInfo.type}"></i>`;
 
     // Special cases for accordions tied to game settings, not a single profile path.
     if (
@@ -29725,16 +29878,14 @@ class DebuggerUIBuilder {
       const copyButtonHtml = `<button type="button" class="header-btn" data-action="copy-accordion" data-effect-key="${id}" title="Copy Settings"><i class="fas fa-copy"></i></button>`;
       const pasteButtonHtml = `<button type="button" class="header-btn" data-action="paste-accordion" data-effect-key="${id}" title="Paste Settings"><i class="fas fa-paste"></i></button>`;
 
-      return `<details id="details-${id}">
+      return `<details id="details-${id}" class="accordion-type-${typeInfo.type}">
                                                                 <summary>
-                                                                        <span class="accordion-toggle"></span>
-                                                                        <div class="summary-control" style="justify-content: space-between;">
-                                                                                <div style="display: flex; align-items: center; gap: 5px;">
-                                                                                        ${labelHtml}
-                                                                                        ${resetButtonHtml}
-                                                                                        ${headerExtra}
-                                                                                </div>
-                                                                                <div class="widget-group">
+                                                                        ${iconHtml}
+                                                                        ${labelHtml}
+                                                                        <div class="summary-control" style="margin-left: auto; display: flex; align-items: center; gap: 4px;">
+                                                                                ${headerExtra}
+                                                                                ${resetButtonHtml}
+                                                                                <div class="widget-group" style="display: flex; gap: 4px;">
                                                                                         ${copyButtonHtml}
                                                                                         ${pasteButtonHtml}
                                                                                 </div>
@@ -29753,15 +29904,13 @@ class DebuggerUIBuilder {
                                                                     <input type="checkbox" name="${path}" id="${checkboxId}" data-path="${path}">
                                                             </div>`;
 
-    return `<details id="details-${id}">
+    return `<details id="details-${id}" class="accordion-type-${typeInfo.type}">
                                                     <summary>
-                                                            <span class="accordion-toggle"></span>
-                                                            <div class="summary-control">
-                                                                    <div style="display: flex; align-items: center; gap: 5px;">
-                                                                            ${labelHtml}
-                                                                            ${resetButtonHtml}
-                                                                            ${headerExtra}
-                                                                    </div>
+                                                            ${iconHtml}
+                                                            ${labelHtml}
+                                                            <div class="summary-control" style="margin-left: auto; display: flex; align-items: center; gap: 4px;">
+                                                                    ${headerExtra}
+                                                                    ${resetButtonHtml}
                                                                     ${widgetsHtml}
                                                             </div>
                                                     </summary>
