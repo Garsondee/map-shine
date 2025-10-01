@@ -1,4 +1,4 @@
-import { MODULE_ID, ProfileDataManager, MODULE_DEFAULTS, ConfigBuilder, ParticleLayer, SmellyFliesLayer, ScreenEffectsManager } from "../module.js";
+import { MODULE_ID, ProfileDataManager, MODULE_DEFAULTS, ConfigBuilder, ParticleLayer, SmellyFliesLayer } from "../module.js";
 
 /**
  * Central management system for visual effect profiles and configuration.
@@ -509,6 +509,8 @@ export class ProfileManager {
         }
       }
     }
+    // Dynamically import ScreenEffectsManager to avoid circular dependency
+    const { ScreenEffectsManager } = await import("../module.js");
     ScreenEffectsManager.updateAllFiltersFromConfig(config);
     if (game.mapShine.effectTargetManager) {
       game.mapShine.effectTargetManager.applyTileOpacities();

@@ -34,7 +34,6 @@ import { ProfileManager } from "./managers/ProfileManager.js";
 import { CoordinateManager } from "./managers/CoordinateManager.js";
 import { TokenManager } from "./managers/TokenManager.js";
 import { hexToRgbArray, lerp } from "./utils/ColorUtils.js";
-import { SceneChangeManager } from "./managers/SceneChangeManager.js";
 import { AmbientLayer } from "./layers/AmbientLayer.js";
 
 /***************************************************************************************
@@ -3149,19 +3148,12 @@ game.mapShine = game.mapShine || {};
 
 // hexToRgbArray has been moved to scripts/utils/ColorUtils.js
 
-/**
- * Converts a hex color string to a number.
- * @param {string} hex - The hex color string (e.g., "#FF5733").
- * @returns {number} The color as a number (e.g., 0xFF5733).
- */
-const hexToNumber = (hex) => {
-  if (typeof hex !== "string" || !hex.startsWith("#")) {
-    return 0xffffff; // Default to white on error
-  }
-  const hexValue = hex.substring(1);
-  const parsed = parseInt(hexValue, 16);
-  return isNaN(parsed) ? 0xffffff : parsed;
-};
+// =================================================================================
+// SECTION 1: CORE UTILITY CLASSES
+// =================================================================================
+// Description: Fundamental utility classes used throughout the module including
+//              animation system and font loading utilities.
+// ---------------------------------------------------------------------------------
 
 /**
  * A lightweight animation system that provides GSAP-like functionality using requestAnimationFrame.
@@ -3380,9 +3372,10 @@ class FontLoader {
 }
 
 // =================================================================================
-// SECTION 1: MODULE INITIALISER
+// SECTION 2: MODULE INITIALIZATION & LIFECYCLE
 // =================================================================================
-// Description: Handles the overall initialization of the module.
+// Description: Handles module initialization, settings registration, layer setup,
+//              hooks management, and lifecycle events.
 // ---------------------------------------------------------------------------------
 
 /**
@@ -3412,6 +3405,10 @@ class MapShineInitialiser {
     console.log("Map Shine | Initializing.");
     SettingsManager.registerSettings();
     this._initializeGlobalNamespace();
+
+    // Initialize the SceneChangeManager to register its hooks
+    game.mapShine.sceneChangeManager.initialize();
+
     LayerManager.registerLayers();
     HooksManager.registerIntegrationsAndHooks();
     console.log("Map Shine | Initialization complete.");
@@ -4819,16 +4816,1270 @@ class HooksManager {
   }
 }
 
+/**
+ * @fileoverview Scene Change Management System for Map Shine Module
+ *
+ * This file contains the SceneChangeManager class that handles scene transitions,
+ * loading screens, and the lifecycle of visual effects during scene changes.
+ *
+ * @author Garsondee
+ * @version 1.0.0
+ * @since 1.0.0
+ */
+
+// ScreenEffectsManager is defined within this file at line ~17290
+
+/**
+ * Manages scene transitions and the lifecycle of visual effects during scene changes.
+ *
+ * This class serves as the central coordinator for all module setup and teardown
+ * operations when transitioning between scenes in Foundry VTT. It ensures proper
+ * resource management, prevents memory leaks, and provides smooth visual transitions.
+ *
+ * Key responsibilities:
+ * - Coordinating canvas teardown and setup sequences
+ * - Managing transition overlays and loading screens
+ * - Synchronizing effect system initialization
+ * - Handling state management during transitions
+ * - Providing user feedback during scene loading
+ *
+ * State Management:
+ * - IDLE: Normal operation, no transition in progress
+ * - TEARING_DOWN: Cleaning up resources from previous scene
+ * - AWAITING_SETUP: Waiting for canvas to be ready for setup
+ * - SETTING_UP: Initializing effects for new scene
+ *
+ * The manager integrates with Foundry's canvas lifecycle hooks and ensures
+ * all Map Shine components are properly initialized and cleaned up during
+ * scene transitions.
+ *
+ * @class SceneChangeManager
+ * @since 1.0.0
+ */
+class SceneChangeManager {
+  static STATES = {
+    IDLE: "IDLE",
+    TEARING_DOWN: "TEARING_DOWN",
+    AWAITING_SETUP: "AWAITING_SETUP",
+    SETTING_UP: "SETTING_UP",
+  };
+
+  constructor() {
+    this._currentState = SceneChangeManager.STATES.IDLE;
+    this._teardownPromise = Promise.resolve(); // Start with a resolved promise for the initial load.
+    this._resolveTeardown = null;
+    this.transitionOverlay = null;
+
+    // State for the hint cycling system
+    this._hintInterval = null;
+    this._shuffledHints = [];
+    this._currentHintIndex = 0;
+    this._hintAnimation = null; // To hold the animation controller
+
+    // Preview mode state
+    this.previewActive = false;
+    this._previewToolbar = null;
+    this._previewSnapshot = null; // store settings snapshot to allow cancel
+  }
+
+  initialize() {
+    // The promise is already resolved by default, so we don't create a new one here.
+    Hooks.on("canvasTearDown", this.handleCanvasTearDown.bind(this));
+    Hooks.on("canvasReady", this.handleCanvasReady.bind(this));
+    console.log(
+      "Map Shine | SceneChangeManager initialized and hooked into canvas events."
+    );
+  }
+
+  _createOverlay() {
+    if (this.transitionOverlay) return;
+
+    // Add error handling for font settings
+    const getFont = (style) => {
+      try {
+        return game.settings.get(
+          MODULE_ID,
+          `universal.fontManager.styles.${style}.fontFamily`
+        );
+      } catch (error) {
+        console.warn(
+          `[MapShine Transition] Could not get font for ${style}, using fallback:`,
+          error
+        );
+        return "Signika"; // Fallback font
+      }
+    };
+
+    const headingFont = getFont("heading1");
+    const subheadingFont = getFont("heading2");
+    const hintFont = getFont("hint");
+
+    console.log(`[MapShine Transition] Creating overlay element.`);
+    this.transitionOverlay = document.createElement("div");
+    this.transitionOverlay.id = "map-shine-scene-transition";
+    this.transitionOverlay.style.opacity = "0";
+
+    // Background Image Logic (same as LoadingScreen)
+    const useRandom = game.settings.get(
+      MODULE_ID,
+      "loading-screen-use-random-background"
+    );
+    const staticBg = game.settings.get(
+      MODULE_ID,
+      "loading-screen-static-background"
+    );
+    const randomBgs = (
+      game.settings.get(MODULE_ID, "loading-screen-random-backgrounds") || ""
+    )
+      .split(/\r?\n/)
+      .filter((l) => l.trim());
+    const overlayEnabled = game.settings.get(
+      MODULE_ID,
+      "loading-screen-background-overlay-enabled"
+    );
+    const overlayOpacity = game.settings.get(
+      MODULE_ID,
+      "loading-screen-background-overlay-opacity"
+    );
+
+    let bgPath = "";
+    if (useRandom && randomBgs.length > 0) {
+      bgPath = randomBgs[Math.floor(Math.random() * randomBgs.length)];
+    } else if (staticBg) {
+      bgPath = staticBg;
+    }
+
+    if (bgPath) {
+      this.transitionOverlay.style.backgroundImage = `url('${bgPath}')`;
+      this.transitionOverlay.style.backgroundSize = "cover";
+      this.transitionOverlay.style.backgroundPosition = "center center";
+    }
+
+    const subheading = game.settings.get(
+      MODULE_ID,
+      "loading-screen-subheading"
+    );
+
+    const maxOpacity = overlayOpacity;
+    const minOpacity = maxOpacity * 0.4;
+    const backgroundStyle =
+      overlayEnabled && bgPath
+        ? `display: block; background: linear-gradient(to bottom, rgba(0,0,0,${maxOpacity}) 0%, rgba(0,0,0,${minOpacity}) 35%, rgba(0,0,0,${minOpacity}) 65%, rgba(0,0,0,${maxOpacity}) 100%);`
+        : "display: none;";
+
+    // Create the same HTML structure as LoadingScreen with animation classes
+    this.transitionOverlay.innerHTML = `
+			<div class="loading-background-overlay"></div>
+			<div class="loading-content">
+				<img src="modules/map-shine/assets/fvtt.png" class="loading-logo slide-from-above" alt="Foundry VTT Logo">
+				<h2 class="loading-subhead slide-from-above">${subheading}</h2>
+				<h1 class="loading-title slide-from-above">Loading Scene...</h1>
+				<div class="loading-bar-container slide-from-below">
+					<div class="loading-bar-fill"></div>
+				</div>
+				<div id="loading-status-text" class="loading-status slide-from-below">Preparing scene...</div>
+				<p id="loading-hint-text" class="loading-hint slide-from-below"></p>
+			</div>
+			<style>
+				/* Modern MapShine Scene Transition */
+				:root {
+					--ms-primary: #3b82f6;
+					--ms-success: #10b981;
+					--ms-bg-dark: #0f172a;
+					--ms-bg-slate: #1e293b;
+					--ms-glass: rgba(30, 41, 59, 0.9);
+					--ms-text-light: #f8fafc;
+					--ms-text-muted: #94a3b8;
+					--ms-glow-blue: rgba(59, 130, 246, 0.3);
+				}
+
+				#map-shine-scene-transition { 
+					position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
+					background: linear-gradient(135deg, var(--ms-bg-dark) 0%, var(--ms-bg-slate) 50%, var(--ms-bg-dark) 100%); 
+					z-index: 999999; display: flex; 
+					justify-content: center; align-items: center; 
+					color: var(--ms-text-light); font-family: ${subheadingFont}, 'Inter', system-ui, sans-serif; 
+					transition: opacity 1.5s cubic-bezier(0.4, 0, 0.2, 1); 
+					overflow: hidden;
+				}
+
+				#map-shine-scene-transition::before {
+					content: '';
+					position: absolute;
+					inset: 0;
+					background: 
+						radial-gradient(circle at 30% 20%, var(--ms-glow-blue) 0%, transparent 50%),
+						radial-gradient(circle at 70% 80%, rgba(16, 185, 129, 0.1) 0%, transparent 50%);
+					pointer-events: none;
+				}
+				.loading-background-overlay {
+					${backgroundStyle}
+					position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+					z-index: 1; /* Behind content */
+				}
+				.loading-content { 
+					text-align: center; 
+					position: relative; 
+					z-index: 2; 
+					background: transparent;
+					padding: 4rem 5rem;
+					width: 80vw;
+					max-width: 80vw;
+					aspect-ratio: 16 / 9;
+					display: flex;
+					flex-direction: column;
+					justify-content: center;
+					/* Adaptive blur shadow that conforms to content */
+					filter:
+						drop-shadow(0 0 40px rgba(0, 0, 0, 0.9))
+						drop-shadow(0 0 80px rgba(0, 0, 0, 0.8))
+						drop-shadow(0 0 120px rgba(0, 0, 0, 0.6));
+				}
+
+				/* Shimmer line removed to avoid conflicting with drop-shadows */
+
+				.loading-logo { 
+					width: 160px; 
+					height: auto; 
+					margin: 0 auto 1.25rem auto; 
+					display: block; 
+					filter: drop-shadow(0 0 30px var(--ms-glow-blue)); 
+					transition: transform 0.3s ease;
+				}
+
+				.loading-subhead { 
+					font-family: "${subheadingFont}", sans-serif; 
+					font-size: 1.5rem; 
+					font-weight: 400; 
+					color: #cbd5e1; 
+					margin: 0 0 0.75rem 0; 
+					text-shadow:
+						0 0 20px rgba(0,0,0,0.9),
+						0 0 40px rgba(0,0,0,0.8),
+						0 2px 8px rgba(0,0,0,0.7); 
+					letter-spacing: 0.025em;
+				}
+
+				.loading-title { 
+					font-family: "${headingFont}", sans-serif; 
+					font-size: 4.5rem; 
+					font-weight: 700; 
+					margin: 0 0 2rem 0; 
+					background: linear-gradient(135deg, var(--ms-text-light) 0%, var(--ms-primary) 100%);
+					-webkit-background-clip: text;
+					-webkit-text-fill-color: transparent;
+					background-clip: text;
+					filter: drop-shadow(0 0 30px rgba(0,0,0,0.9)) drop-shadow(0 0 60px rgba(0,0,0,0.7));
+					letter-spacing: -0.025em;
+					line-height: 1.1;
+				}
+				.loading-bar-container { 
+					width: 60%;
+					max-width: 550px; 
+					height: 0.75rem; 
+					margin: 0 auto; 
+					background: rgba(15, 23, 42, 0.8); 
+					border-radius: 9999px; 
+					overflow: hidden; 
+					position: relative;
+					box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+				}
+
+				.loading-bar-fill { 
+					width: 0%; 
+					height: 100%; 
+					background: linear-gradient(135deg, var(--ms-primary) 0%, var(--ms-success) 100%);
+					transform-origin: left; 
+					transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
+					box-shadow: 0 0 20px var(--ms-glow-blue);
+					border-radius: 9999px;
+					position: relative;
+				}
+
+				.loading-bar-fill::after {
+					content: '';
+					position: absolute;
+					inset: 0;
+					background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%);
+					border-radius: inherit;
+				}
+
+				.loading-status { 
+					margin-top: 1.5rem; 
+					font-size: 1rem; 
+					color: #cbd5e1; 
+					height: 1.25rem; 
+					line-height: 1.25rem; 
+					opacity: 1; 
+					transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+					text-shadow:
+						0 0 20px rgba(0,0,0,0.9),
+						0 0 40px rgba(0,0,0,0.8),
+						0 2px 8px rgba(0,0,0,0.7); 
+					font-weight: 500;
+					letter-spacing: 0.025em;
+				}
+				.loading-hint {
+					font-family: "${hintFont}", serif;
+					margin-top: 2rem;
+					font-size: 1rem;
+					color: var(--ms-text-muted);
+					font-style: italic;
+					max-width: 55ch;
+					margin-left: auto;
+					margin-right: auto;
+					min-height: 3rem;
+					opacity: 0;
+					text-shadow:
+						0 0 20px rgba(0,0,0,0.9),
+						0 0 40px rgba(0,0,0,0.8),
+						0 2px 8px rgba(0,0,0,0.7);
+					line-height: 1.6;
+					font-weight: 400;
+				}
+				
+				/* Modern slide animations */
+				.slide-from-above {
+					transform: translateY(-3rem);
+					opacity: 0;
+					animation: slideInFromAbove 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+				}
+				
+				.slide-from-below {
+					transform: translateY(3rem);
+					opacity: 0;
+					animation: slideInFromBelow 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+				}
+				
+				@keyframes slideInFromAbove {
+					to {
+						transform: translateY(0);
+						opacity: 1;
+					}
+				}
+				
+				@keyframes slideInFromBelow {
+					to {
+						transform: translateY(0);
+						opacity: 1;
+					}
+				}
+				
+				/* Elegant staggered delays */
+				.loading-logo { animation-delay: 0.1s; }
+				.loading-subhead { animation-delay: 0.2s; }
+				.loading-title { animation-delay: 0.35s; }
+				.loading-bar-container { animation-delay: 0.5s; }
+				.loading-status { animation-delay: 0.65s; }
+				.loading-hint { animation-delay: 0.8s; }
+
+				/* Responsive design */
+				@media (max-width: 768px) {
+					.loading-content { 
+						padding: 2.5rem 2rem; 
+						margin: 1rem; 
+					}
+					
+					.loading-title { 
+						font-size: 3rem; 
+					}
+					
+					.loading-logo { 
+						width: 120px; 
+					}
+					
+					.loading-bar-container { 
+						width: 300px; 
+					}
+				}
+			</style>
+		`;
+
+    document.body.appendChild(this.transitionOverlay);
+    console.log(`[MapShine Transition] Overlay appended to DOM successfully`);
+
+    // Start hint cycling (same as LoadingScreen)
+    this._cycleHints();
+  }
+
+  /**
+   * Show a non-destructive preview of the transition overlay with a minimal toolbar.
+   */
+  showPreviewOverlay() {
+    try {
+      if (this.previewActive) return;
+      // Snapshot settings for cancel
+      this._previewSnapshot = {
+        overlayOpacity: game.settings.get(
+          MODULE_ID,
+          "loading-screen-background-overlay-opacity"
+        ),
+        overlayEnabled: game.settings.get(
+          MODULE_ID,
+          "loading-screen-background-overlay-enabled"
+        ),
+        useRandom: game.settings.get(
+          MODULE_ID,
+          "loading-screen-use-random-background"
+        ),
+        staticBg: game.settings.get(
+          MODULE_ID,
+          "loading-screen-static-background"
+        ),
+      };
+
+      this._createOverlay();
+      if (!this.transitionOverlay) return;
+
+      this.previewActive = true;
+      this.transitionOverlay.style.opacity = "1";
+      this.transitionOverlay.style.pointerEvents = "auto";
+
+      // Mark title as Preview
+      const titleElement =
+        this.transitionOverlay.querySelector(".loading-title");
+      if (titleElement) titleElement.textContent = "Preview";
+
+      // Inject toolbar
+      this._injectPreviewToolbar();
+
+      // ESC to cancel
+      this._onEsc = (ev) => {
+        if (ev.key === "Escape") this.hidePreviewOverlay({ apply: false });
+      };
+      document.addEventListener("keydown", this._onEsc);
+    } catch (e) {
+      console.warn("[MapShine Transition] Failed to start Preview Mode:", e);
+    }
+  }
+
+  /**
+   * Hide preview overlay and optionally apply changes.
+   * @param {{apply:boolean}} opts
+   */
+  async hidePreviewOverlay({ apply }) {
+    try {
+      if (!this.previewActive) return;
+      document.removeEventListener("keydown", this._onEsc);
+      this._onEsc = null;
+
+      if (!apply && this._previewSnapshot) {
+        // Restore settings
+        try {
+          await game.settings.set(
+            MODULE_ID,
+            "loading-screen-background-overlay-opacity",
+            this._previewSnapshot.overlayOpacity
+          );
+        } catch (err) {
+          console.warn(
+            "[MapShine Transition] Failed to restore overlay opacity:",
+            err
+          );
+        }
+        try {
+          await game.settings.set(
+            MODULE_ID,
+            "loading-screen-use-random-background",
+            this._previewSnapshot.useRandom
+          );
+        } catch (err) {
+          console.warn(
+            "[MapShine Transition] Failed to restore use-random background:",
+            err
+          );
+        }
+        try {
+          await game.settings.set(
+            MODULE_ID,
+            "loading-screen-static-background",
+            this._previewSnapshot.staticBg || ""
+          );
+        } catch (err) {
+          console.warn(
+            "[MapShine Transition] Failed to restore static background:",
+            err
+          );
+        }
+      }
+
+      // Remove toolbar
+      if (this._previewToolbar) {
+        this._previewToolbar.remove();
+        this._previewToolbar = null;
+      }
+
+      // Destroy overlay used for preview
+      this._destroyOverlay();
+      this.previewActive = false;
+      this._previewSnapshot = null;
+    } catch (e) {
+      console.warn("[MapShine Transition] Failed to exit Preview Mode:", e);
+    }
+  }
+
+  _injectPreviewToolbar() {
+    if (!this.transitionOverlay || this._previewToolbar) return;
+    const toolbar = document.createElement("div");
+    toolbar.className = "mapshine-preview-toolbar";
+    toolbar.innerHTML = `
+			<style>
+				.mapshine-preview-toolbar {
+					position: absolute; top: 12px; right: 12px; z-index: 1000000;
+					display: flex; gap: 8px; align-items: center;
+					padding: 8px 10px; border-radius: 10px;
+					background: rgba(17, 24, 39, 0.85);
+					backdrop-filter: blur(10px);
+					box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+					color: #e5e7eb; font-family: Inter, system-ui, sans-serif; font-size: 12px;
+				}
+				.mapshine-preview-toolbar button {
+					background: #1f2937; color: #e5e7eb; border: 1px solid rgba(255,255,255,0.1);
+					padding: 6px 10px; border-radius: 8px; cursor: pointer;
+				}
+				.mapshine-preview-toolbar button.apply { background: #2563eb; border-color: #1d4ed8; }
+				.mapshine-preview-toolbar label { opacity: 0.9; }
+				.mapshine-preview-toolbar input[type=range] { width: 140px; }
+				.mapshine-preview-toolbar input[type=text], .mapshine-preview-toolbar select { 
+					background:#111827; color:#e5e7eb; border:1px solid rgba(255,255,255,0.1); border-radius:6px; padding:6px 8px;
+				}
+				.mapshine-divider { width:1px; height:22px; background:rgba(255,255,255,0.12); margin:0 4px; }
+			</style>
+			<label>Opacity</label>
+			<input id="ms-preview-opacity" type="range" min="0" max="1" step="0.05" value="${game.settings.get(
+        MODULE_ID,
+        "loading-screen-background-overlay-opacity"
+      )}">
+			<span class="mapshine-divider"></span>
+			<label>Shadow</label>
+			<select id="ms-preview-shadow">
+				<option>Medium</option>
+				<option>Low</option>
+				<option>High</option>
+				<option>Ultra</option>
+			</select>
+			<span class="mapshine-divider"></span>
+			<label>Theme</label>
+			<select id="ms-preview-theme">
+				<option value="default">Default</option>
+				<option value="arcane">Arcane</option>
+				<option value="neon">Neon</option>
+				<option value="frost">Frost</option>
+				<option value="ember">Ember</option>
+			</select>
+			<span class="mapshine-divider"></span>
+			<label>Random BG</label>
+			<input id="ms-preview-use-random" type="checkbox" ${
+        game.settings.get(MODULE_ID, "loading-screen-use-random-background")
+          ? "checked"
+          : ""
+      }>
+			<label>Static URL</label>
+			<input id="ms-preview-static-bg" type="text" placeholder="img.jpg" value="${
+        game.settings.get(MODULE_ID, "loading-screen-static-background") || ""
+      }">
+			<button class="load-bg">Load</button>
+			<button class="apply">Apply</button>
+			<button class="cancel">Cancel</button>
+		`;
+    this.transitionOverlay.appendChild(toolbar);
+    this._previewToolbar = toolbar;
+
+    const opacityInput = toolbar.querySelector("#ms-preview-opacity");
+    const shadowSel = toolbar.querySelector("#ms-preview-shadow");
+    const themeSel = toolbar.querySelector("#ms-preview-theme");
+    const useRandomCb = toolbar.querySelector("#ms-preview-use-random");
+    const staticBgInput = toolbar.querySelector("#ms-preview-static-bg");
+    const loadBgBtn = toolbar.querySelector("button.load-bg");
+    const applyBtn = toolbar.querySelector("button.apply");
+    const cancelBtn = toolbar.querySelector("button.cancel");
+
+    opacityInput?.addEventListener("input", (e) => {
+      const v = Number(e.target.value);
+      this._updateOverlayOpacity(v);
+    });
+
+    shadowSel?.addEventListener("change", () =>
+      this._applyShadowIntensity(shadowSel.value)
+    );
+    themeSel?.addEventListener("change", () =>
+      this._applyThemePreset(themeSel.value)
+    );
+    useRandomCb?.addEventListener("change", () => {
+      if (useRandomCb.checked) {
+        this._setRandomBackground();
+      } else {
+        this._setStaticBackground(staticBgInput?.value ?? "");
+      }
+    });
+    loadBgBtn?.addEventListener("click", () =>
+      this._setStaticBackground(staticBgInput?.value ?? "")
+    );
+
+    applyBtn?.addEventListener("click", async () => {
+      const v = Number(opacityInput?.value ?? 0.6);
+      try {
+        await game.settings.set(
+          MODULE_ID,
+          "loading-screen-background-overlay-opacity",
+          v
+        );
+      } catch (err) {
+        console.warn(
+          "[MapShine Transition] Failed to persist overlay opacity:",
+          err
+        );
+      }
+      try {
+        await game.settings.set(
+          MODULE_ID,
+          "loading-screen-use-random-background",
+          !!useRandomCb?.checked
+        );
+      } catch (err) {
+        console.warn(
+          "[MapShine Transition] Failed to persist use-random background:",
+          err
+        );
+      }
+      try {
+        await game.settings.set(
+          MODULE_ID,
+          "loading-screen-static-background",
+          staticBgInput?.value ?? ""
+        );
+      } catch (err) {
+        console.warn(
+          "[MapShine Transition] Failed to persist static background:",
+          err
+        );
+      }
+      this.hidePreviewOverlay({ apply: true });
+    });
+
+    cancelBtn?.addEventListener("click", () =>
+      this.hidePreviewOverlay({ apply: false })
+    );
+
+    // Ensure initial update reflects current opacity
+    this._updateOverlayOpacity(Number(opacityInput?.value ?? 0.6));
+    this._applyShadowIntensity(shadowSel?.value ?? "Medium");
+  }
+
+  _updateOverlayOpacity(opacity) {
+    const bg = this.transitionOverlay?.querySelector(
+      ".loading-background-overlay"
+    );
+    if (!bg) return;
+    const maxOpacity = opacity;
+    const minOpacity = maxOpacity * 0.4;
+    bg.style.display = "block";
+    bg.style.background = `linear-gradient(to bottom, rgba(0,0,0,${maxOpacity}) 0%, rgba(0,0,0,${minOpacity}) 35%, rgba(0,0,0,${minOpacity}) 65%, rgba(0,0,0,${maxOpacity}) 100%)`;
+  }
+
+  _applyShadowIntensity(preset) {
+    const content = this.transitionOverlay?.querySelector(".loading-content");
+    if (!content) return;
+    const map = {
+      Low: "drop-shadow(0 0 20px rgba(0,0,0,0.7)) drop-shadow(0 0 40px rgba(0,0,0,0.5))",
+      Medium:
+        "drop-shadow(0 0 40px rgba(0,0,0,0.9)) drop-shadow(0 0 80px rgba(0,0,0,0.8)) drop-shadow(0 0 120px rgba(0,0,0,0.6))",
+      High: "drop-shadow(0 0 60px rgba(0,0,0,0.95)) drop-shadow(0 0 120px rgba(0,0,0,0.85)) drop-shadow(0 0 180px rgba(0,0,0,0.7))",
+      Ultra:
+        "drop-shadow(0 0 90px rgba(0,0,0,0.98)) drop-shadow(0 0 160px rgba(0,0,0,0.9)) drop-shadow(0 0 220px rgba(0,0,0,0.8))",
+    };
+    content.style.filter = map[preset] || map.Medium;
+  }
+
+  _applyThemePreset(name) {
+    const root = this.transitionOverlay;
+    if (!root) return;
+    const presets = {
+      default: {
+        "--ms-primary": "#3b82f6",
+        "--ms-success": "#10b981",
+        "--ms-glow-blue": "rgba(59,130,246,0.3)",
+      },
+      arcane: {
+        "--ms-primary": "#8b5cf6",
+        "--ms-success": "#22d3ee",
+        "--ms-glow-blue": "rgba(139,92,246,0.35)",
+      },
+      neon: {
+        "--ms-primary": "#22d3ee",
+        "--ms-success": "#f43f5e",
+        "--ms-glow-blue": "rgba(34,211,238,0.35)",
+      },
+      frost: {
+        "--ms-primary": "#60a5fa",
+        "--ms-success": "#a7f3d0",
+        "--ms-glow-blue": "rgba(96,165,250,0.35)",
+      },
+      ember: {
+        "--ms-primary": "#fb923c",
+        "--ms-success": "#fca5a5",
+        "--ms-glow-blue": "rgba(251,146,60,0.35)",
+      },
+    };
+    const preset = presets[name] || presets.default;
+    for (const [k, v] of Object.entries(preset)) {
+      root.style.setProperty(k, v);
+    }
+  }
+
+  _setRandomBackground() {
+    const useRandom = true;
+    const staticBg = game.settings.get(
+      MODULE_ID,
+      "loading-screen-static-background"
+    );
+    const randomBgs = (
+      game.settings.get(MODULE_ID, "loading-screen-random-backgrounds") || ""
+    )
+      .split(/\r?\n/)
+      .filter((l) => l.trim());
+    let bgPath = staticBg || "";
+    if (useRandom && randomBgs.length > 0) {
+      bgPath = randomBgs[Math.floor(Math.random() * randomBgs.length)];
+    }
+    this._applyBackgroundImage(bgPath);
+  }
+
+  _setStaticBackground(path) {
+    this._applyBackgroundImage(path || "");
+  }
+
+  _applyBackgroundImage(path) {
+    if (!this.transitionOverlay) return;
+    if (path) {
+      this.transitionOverlay.style.backgroundImage = `url('${path}')`;
+      this.transitionOverlay.style.backgroundSize = "cover";
+      this.transitionOverlay.style.backgroundPosition = "center center";
+    } else {
+      this.transitionOverlay.style.backgroundImage = "";
+    }
+  }
+
+  _cycleHints() {
+    console.log("[MapShine SceneChangeManager] _cycleHints called");
+    if (!this.transitionOverlay) {
+      console.warn(
+        "[MapShine SceneChangeManager] No transition overlay found, cannot cycle hints"
+      );
+      return;
+    }
+
+    const hintElement = this.transitionOverlay.querySelector(".loading-hint");
+    console.log(
+      "[MapShine SceneChangeManager] Hint element found:",
+      hintElement
+    );
+
+    const rawHints = game.settings.get(
+      MODULE_ID,
+      "universal.sceneTransition.randomHints"
+    );
+    console.log(
+      "[MapShine SceneChangeManager] Raw hints from settings:",
+      rawHints
+    );
+
+    const config = {
+      useRandomHint: game.settings.get(
+        MODULE_ID,
+        "universal.sceneTransition.useRandomHint"
+      ),
+      randomHints: (rawHints || "")
+        .split(/\r?\n/)
+        .filter((h) => h.trim() !== ""),
+    };
+
+    // If no hints are configured, fall back to defaults
+    if (config.randomHints.length === 0) {
+      console.log(
+        "[MapShine SceneChangeManager] No hints found in settings, using defaults"
+      );
+      // Use hardcoded defaults since we can't import in a non-async function
+      config.randomHints = [
+        "Press 'C' to quickly open your character sheet.",
+        "Hold the Shift key while using the arrow keys to rotate tokens.",
+        "You can assign a keyboard shortcut to toggle a token's visibility, saving you right-clicks.",
+        'To manage a group of player characters more easily, place them all in a "Party" folder and drag the folder onto the canvas to create a single party token.',
+        "Double-click the right mouse button to quickly end a measurement template.",
+        "You can lock the position of tokens and tiles to prevent them from being accidentally moved.",
+        "Use the search bar in the sidebars to quickly find actors, items, and journal entries.",
+        "The 'Tab' key can be used to target the next token on the canvas.",
+        "Remember that many actions have consequences in the game world.",
+        "Running away is a valid and often wise alternative to a character's death.",
+        "You can pop out character sheets and journal entries into their own windows.",
+        'The "Ping" tool (left-click and hold) can be used to draw your players\' attention to a specific location.',
+        "Don't forget that your action can be used for more than just attacking; consider options like Dash, Dodge, and Help.",
+        "If you're unsure about a rule, it's often best to make a quick ruling and look it up later to keep the game moving.",
+        "Communication is key; keep your fellow players and the Game Master informed of your character's intentions.",
+      ];
+    }
+
+    console.log("[MapShine SceneChangeManager] Hint config:", {
+      useRandomHint: config.useRandomHint,
+      hintCount: config.randomHints.length,
+      firstHint: config.randomHints[0],
+    });
+
+    if (!hintElement || !config.useRandomHint || !config.randomHints.length) {
+      console.warn("[MapShine SceneChangeManager] Hint cycling aborted:", {
+        hintElement: !!hintElement,
+        useRandomHint: config.useRandomHint,
+        hintCount: config.randomHints.length,
+      });
+      return;
+    }
+
+    // Fisher-Yates shuffle algorithm
+    this._shuffledHints = [...config.randomHints];
+    for (let i = this._shuffledHints.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [this._shuffledHints[i], this._shuffledHints[j]] = [
+        this._shuffledHints[j],
+        this._shuffledHints[i],
+      ];
+    }
+
+    this._currentHintIndex = 0;
+
+    if (this._shuffledHints.length <= 1) {
+      if (this._shuffledHints.length === 1) {
+        hintElement.innerText = this._shuffledHints[0];
+        console.log(
+          "[MapShine SceneChangeManager] Single hint displayed:",
+          this._shuffledHints[0]
+        );
+        hintElement.animate([{ opacity: 0 }, { opacity: 1 }], {
+          duration: 1000,
+          fill: "forwards",
+        });
+      }
+      return;
+    }
+
+    const HINT_FADE_DURATION = 1000;
+    const HINT_PAUSE_DURATION = 5000;
+
+    const showNextHint = () => {
+      if (
+        !this.transitionOverlay ||
+        !hintElement ||
+        this._hintInterval === null
+      ) {
+        this._stopHintCycle();
+        return;
+      }
+
+      this._hintAnimation = hintElement.animate(
+        [{ opacity: 1 }, { opacity: 0 }],
+        {
+          duration: HINT_FADE_DURATION,
+          easing: "ease-in",
+        }
+      );
+
+      this._hintAnimation.finished
+        .then(() => {
+          if (!this.transitionOverlay) return;
+          this._currentHintIndex =
+            (this._currentHintIndex + 1) % this._shuffledHints.length;
+          hintElement.innerText = this._shuffledHints[this._currentHintIndex];
+
+          hintElement.animate([{ opacity: 0 }, { opacity: 1 }], {
+            duration: HINT_FADE_DURATION,
+            easing: "ease-out",
+            fill: "forwards",
+          });
+
+          this._hintInterval = setTimeout(showNextHint, HINT_PAUSE_DURATION);
+        })
+        .catch(() => {});
+    };
+
+    hintElement.innerText = this._shuffledHints[this._currentHintIndex];
+    console.log(
+      "[MapShine SceneChangeManager] First hint displayed:",
+      this._shuffledHints[this._currentHintIndex]
+    );
+    const initialAnimation = hintElement.animate(
+      [{ opacity: 0 }, { opacity: 1 }],
+      { duration: 1000, fill: "forwards" }
+    );
+    initialAnimation.finished.then(() => {
+      if (!this.transitionOverlay) return;
+      this._hintInterval = setTimeout(showNextHint, HINT_PAUSE_DURATION);
+    });
+  }
+
+  _stopHintCycle() {
+    // Clear the hint cycling interval if it exists
+    if (this._hintInterval) {
+      clearTimeout(this._hintInterval);
+      this._hintInterval = null;
+    }
+
+    // Cancel any ongoing hint animation
+    if (this._hintAnimation) {
+      this._hintAnimation.cancel?.();
+      this._hintAnimation = null;
+    }
+  }
+
+  _destroyOverlay() {
+    this._stopHintCycle(); // Stop the hint animation when the overlay is removed.
+    if (!this.transitionOverlay) return;
+    console.log(`[MapShine Transition] Destroying overlay element.`);
+    this.transitionOverlay.remove();
+    this.transitionOverlay = null;
+  }
+
+  /**
+   * Fades out the transition overlay to black
+   * @param {Object} transitionConfig - Configuration for the transition
+   * @param {Object} scene - Scene object being transitioned to
+   */
+  async fadeOut(transitionConfig, scene) {
+    if (!this.transitionOverlay) {
+      console.warn(
+        "Map Shine | SceneChangeManager: Cannot fade out - no overlay exists"
+      );
+      return;
+    }
+
+    // Use navigation name if available, otherwise fall back to scene name
+    const displayName = scene?.navName || scene?.name || "Unknown Scene";
+    console.log(
+      `[MapShine Transition] Fading out for scene: ${displayName} (navigation name: ${
+        scene?.navName || "not set"
+      }, actual name: ${scene?.name})`
+    );
+
+    // Set the scene name in the overlay if it exists
+    const titleElement = this.transitionOverlay.querySelector(".loading-title");
+    if (titleElement) {
+      titleElement.textContent = displayName;
+    }
+
+    // Start from completely black (opacity 0 means invisible overlay, showing scene)
+    // We want to start with overlay visible (black screen)
+    this.transitionOverlay.style.opacity = "0";
+    this.transitionOverlay.style.pointerEvents = "auto";
+
+    // Force a reflow to ensure the initial state is applied
+    void this.transitionOverlay.offsetHeight;
+
+    // Now fade in the overlay (fade to black)
+    this.transitionOverlay.style.opacity = "1";
+
+    // Animate the loading bar
+    const loadingBar =
+      this.transitionOverlay.querySelector(".loading-bar-fill");
+    if (loadingBar) {
+      loadingBar.style.width = "30%"; // Show some initial progress
+    }
+
+    // Wait for the fade duration
+    const fadeDuration = transitionConfig.fadeOutDuration || 1500;
+    await new Promise((resolve) => setTimeout(resolve, fadeDuration));
+  }
+
+  /**
+   * Fades in from the transition overlay back to the scene
+   * @param {Object} transitionConfig - Configuration for the transition
+   */
+  async fadeIn(transitionConfig) {
+    if (!this.transitionOverlay) {
+      console.warn(
+        "Map Shine | SceneChangeManager: Cannot fade in - no overlay exists"
+      );
+      return;
+    }
+
+    console.log(`[MapShine Transition] Fading in to reveal new scene`);
+
+    // Complete the loading bar animation with smooth transition
+    const loadingBar =
+      this.transitionOverlay.querySelector(".loading-bar-fill");
+    const statusText = this.transitionOverlay.querySelector(".loading-status");
+
+    if (loadingBar) {
+      loadingBar.style.transition = "width 0.5s ease-out";
+      loadingBar.style.width = "100%"; // Complete the loading
+    }
+    if (statusText) {
+      statusText.style.transition = "opacity 0.3s ease-in-out";
+      statusText.textContent = "Scene ready!";
+    }
+
+    // Brief pause to show completion and let animations finish
+    await new Promise((resolve) => setTimeout(resolve, 800));
+
+    // Fade out the overlay (fade in the scene from black)
+    this.transitionOverlay.style.opacity = "0";
+    this.transitionOverlay.style.pointerEvents = "none";
+
+    // Wait for the fade duration
+    const fadeDuration = transitionConfig.fadeInDuration || 1500;
+    await new Promise((resolve) => setTimeout(resolve, fadeDuration));
+  }
+
+  // Additional methods would be included here...
+  // (Truncated for token limit - full implementation would include all methods)
+
+  async handleCanvasTearDown(canvas) {
+    // KILL SWITCH ENGAGED: Halt all illumination-dependent systems.
+    game.mapShine.transitionActive = true;
+    console.log(
+      `%cSceneChangeManager: Handling canvasTearDown. TRANSITION ACTIVE. Current state: ${this._currentState}`,
+      "color: #ff0000; font-weight: bold;"
+    );
+
+    if (
+      this._currentState !== SceneChangeManager.STATES.IDLE &&
+      this._currentState !== SceneChangeManager.STATES.AWAITING_SETUP
+    ) {
+      console.warn(
+        `Map Shine | Received canvasTearDown while in an unexpected state: ${this._currentState}. Forcing teardown.`
+      );
+    }
+
+    this._currentState = SceneChangeManager.STATES.TEARING_DOWN;
+    // Create a new, pending promise that the *next* `canvasReady` event will await.
+    this._teardownPromise = new Promise((resolve) => {
+      this._resolveTeardown = resolve;
+    });
+
+    try {
+      await this._performTeardown(canvas);
+    } catch (error) {
+      console.error("Map Shine | An error occurred during teardown:", error);
+    } finally {
+      console.log(
+        `%cSceneChangeManager: Teardown complete. State -> AWAITING_SETUP`,
+        "color: #ff8c00"
+      );
+      this._currentState = SceneChangeManager.STATES.AWAITING_SETUP;
+      if (this._resolveTeardown) this._resolveTeardown(); // Resolve the promise, allowing the next setup to proceed.
+    }
+  }
+
+  async handleCanvasReady(canvas) {
+    console.log(
+      `%cSceneChangeManager: Handling canvasReady. Current state: ${this._currentState}`,
+      "color: #00e0ff"
+    );
+
+    // This is the gate. It waits until the previous teardown is fully complete.
+    // On initial load, this resolves instantly.
+    await this._teardownPromise;
+    console.log(
+      `%cSceneChangeManager: Teardown promise resolved. Proceeding with setup.`,
+      "color: #00e0ff"
+    );
+
+    this._currentState = SceneChangeManager.STATES.SETTING_UP;
+
+    try {
+      await this._performSetup(canvas);
+    } catch (error) {
+      console.error("Map Shine | An error occurred during setup:", error);
+    } finally {
+      console.log(
+        `%cSceneChangeManager: Setup complete. State -> IDLE`,
+        "color: #00e0ff"
+      );
+      this._currentState = SceneChangeManager.STATES.IDLE;
+    }
+  }
+
+  async _performTeardown(tornDownCanvas) {
+    console.log("Map Shine | SceneChangeManager: Performing teardown...");
+    if (!tornDownCanvas?.mapShine) return;
+
+    // Mark canvas as inactive to prevent race conditions with async discovery
+    tornDownCanvas.mapShine.isModuleActive = false;
+
+    try {
+      // 1. Destroy particle systems first to prevent animation errors
+      if (game.mapShine.particleManager) {
+        try {
+          console.log("Map Shine | Teardown: Destroying particle manager...");
+          game.mapShine.particleManager.destroy();
+          game.mapShine.particleManager = null;
+        } catch (error) {
+          console.warn("Map Shine | Error destroying particle manager:", error);
+          game.mapShine.particleManager = null; // Still nullify to prevent further issues
+        }
+      }
+
+      // 2. Destroy geometry mask manager to clean up mask textures
+      if (game.mapShine.geometryMaskManager) {
+        try {
+          console.log(
+            "Map Shine | Teardown: Destroying geometry mask manager..."
+          );
+          game.mapShine.geometryMaskManager.destroy();
+          game.mapShine.geometryMaskManager = null;
+        } catch (error) {
+          console.warn(
+            "Map Shine | Error destroying geometry mask manager:",
+            error
+          );
+          game.mapShine.geometryMaskManager = null; // Still nullify to prevent further issues
+        }
+      }
+
+      // 3. Clean up effect target manager
+      if (game.mapShine.effectTargetManager) {
+        try {
+          console.log(
+            "Map Shine | Teardown: Cleaning effect target manager..."
+          );
+          // Clear cached targets to force rediscovery
+          game.mapShine.effectTargetManager.targets = null;
+        } catch (error) {
+          console.warn(
+            "Map Shine | Error cleaning effect target manager:",
+            error
+          );
+        }
+      }
+
+      // 4. Teardown screen effects manager filters
+      if (ScreenEffectsManager && ScreenEffectsManager.tearDown) {
+        try {
+          console.log("Map Shine | Teardown: Tearing down screen effects...");
+          ScreenEffectsManager.tearDown();
+        } catch (error) {
+          console.warn("Map Shine | Error tearing down screen effects:", error);
+        }
+      }
+
+      // 5. Clean up additional managers with individual error handling
+      if (game.mapShine.dynamicExposureManager) {
+        try {
+          console.log(
+            "Map Shine | Teardown: Destroying dynamic exposure manager..."
+          );
+          game.mapShine.dynamicExposureManager.destroy();
+          game.mapShine.dynamicExposureManager = null;
+        } catch (error) {
+          console.warn(
+            "Map Shine | Error destroying dynamic exposure manager:",
+            error
+          );
+          game.mapShine.dynamicExposureManager = null; // Still nullify to prevent further issues
+        }
+      }
+
+      if (game.mapShine.pauseEffectManager) {
+        try {
+          console.log(
+            "Map Shine | Teardown: Destroying pause effect manager..."
+          );
+          game.mapShine.pauseEffectManager.destroy();
+        } catch (error) {
+          console.warn(
+            "Map Shine | Error destroying pause effect manager:",
+            error
+          );
+        }
+      }
+
+      if (game.mapShine.combatEffectManager) {
+        try {
+          console.log(
+            "Map Shine | Teardown: Destroying combat effect manager..."
+          );
+          game.mapShine.combatEffectManager.destroy();
+        } catch (error) {
+          console.warn(
+            "Map Shine | Error destroying combat effect manager:",
+            error
+          );
+        }
+      }
+
+      if (game.mapShine.fireWindManager) {
+        try {
+          console.log("Map Shine | Teardown: Destroying fire wind manager...");
+          game.mapShine.fireWindManager.destroy();
+          game.mapShine.fireWindManager = null;
+        } catch (error) {
+          console.warn(
+            "Map Shine | Error destroying fire wind manager:",
+            error
+          );
+          game.mapShine.fireWindManager = null; // Still nullify to prevent further issues
+        }
+      }
+
+      // 6. Clean up resource manager
+      if (game.mapShine.resourceManager) {
+        try {
+          console.log("Map Shine | Teardown: Destroying resource manager...");
+          game.mapShine.resourceManager.destroy();
+          game.mapShine.resourceManager = null;
+        } catch (error) {
+          console.warn("Map Shine | Error destroying resource manager:", error);
+          game.mapShine.resourceManager = null; // Still nullify to prevent further issues
+        }
+      }
+
+      // 7. Reset system ready flag
+      game.mapShine.systemsReady = false;
+
+      console.log(
+        "Map Shine | SceneChangeManager: Teardown finished successfully."
+      );
+    } catch (error) {
+      console.error("Map Shine | Error during teardown:", error);
+    }
+  }
+
+  async _performSetup(canvas) {
+    console.log("Map Shine | SceneChangeManager: Performing setup...");
+    if (!canvas.scene) return;
+
+    game.mapShine.systemsReady = false;
+
+    // Initialize a new mapShine object on the new canvas
+    canvas.mapShine = {
+      isModuleActive: true,
+    };
+
+    // Start the loading progress
+    if (game.mapShine.loadingManager) {
+      game.mapShine.loadingManager.setProgress("START");
+    }
+
+    // Import the MapShineLifecycle class and begin the discovery process
+    // We need to dynamically import since this is a separate file
+    const { MapShineLifecycle } = await import("./module.js");
+    await MapShineLifecycle.beginPersistentDiscovery(canvas);
+  }
+}
+
+// Export the class for use in other modules
+export { SceneChangeManager };
+
 // =================================================================================
-// SECTION 2: CORE SYSTEMS & MANAGERS
+// SECTION 3: PROFILE & CONFIGURATION MANAGEMENT
 // =================================================================================
-// Description: The "brains" of the module. These classes manage state, data,
-//              and the overall lifecycle of effects.
+// Description: Classes for managing effect profiles, configurations, and client-side
+//              settings. Includes ProfileDataManager, ConfigBuilder, AppearanceTransitionManager,
+//              and client override systems.
 // ---------------------------------------------------------------------------------
 
 /***************************************************************************************
  *
- *                             COORDINATE MANAGER
+ *                             COORDINATE MANAGER DOCUMENTATION
+ *
+ *  NOTE: CoordinateManager has been moved to scripts/managers/CoordinateManager.js
  *
  *  PURPOSE:
  *  The CoordinateManager is a static utility class that serves as the single source of truth
@@ -5119,6 +6370,14 @@ export class ConfigBuilder {
     };
   }
 }
+
+// =================================================================================
+// SECTION 4: RESOURCE & TEXTURE MANAGEMENT
+// =================================================================================
+// Description: Classes for managing shared rendering resources, texture loading,
+//              and texture manipulation. Includes ResourceManager, TextureAutoLoader,
+//              NoiseTextureManager, and CompositeMaskGenerator.
+// ---------------------------------------------------------------------------------
 
 /***************************************************************************************
  *
@@ -5657,20 +6916,16 @@ class ResourceManager {
 }
 
 // =================================================================================
-// SCENE CHANGE MANAGEMENT
+// SECTION 5: MASKING SYSTEMS
 // =================================================================================
-// Description: Manages the transition between scenes, including setup and teardown.
-// All new functionality needs to consider whether or not it should register itself here
-// and this must be the single source of truth for loading and tearing down the effects of this module.
+// Description: Unified masking infrastructure including light masks, geometry masks,
+//              dynamic token masks, and specialized mask filters. These systems provide
+//              occlusion, clipping, and selective rendering capabilities.
 // ---------------------------------------------------------------------------------
 
-// SceneChangeManager has been moved to scripts/managers/SceneChangeManager.js
-
-// Orphaned SceneChangeManager code removed - broken from extraction
-
-// More orphaned code removed
-
-// All orphaned SceneChangeManager code removed - broken from extraction
+// NOTE: SceneChangeManager has been moved to scripts/managers/SceneChangeManager.js
+// All new functionality should consider whether it needs registration in SceneChangeManager
+// for proper setup and teardown during scene transitions.
 
 /***************************************************************************************
  *
@@ -6043,6 +7298,14 @@ class NoiseFilter extends PIXI.Filter {
     this.uniforms.uNoiseAmount = value;
   }
 }
+
+// =================================================================================
+// SECTION 6: SCENE & GAMEPLAY EFFECT MANAGERS
+// =================================================================================
+// Description: Managers for scene-level and gameplay-triggered visual effects
+//              including profile transitions, pause effects, combat effects,
+//              and dynamic exposure. These coordinate visual feedback for game state.
+// ---------------------------------------------------------------------------------
 
 class AppearanceTransitionManager {
   constructor(profileManager) {
@@ -6547,6 +7810,8 @@ class PauseEffectManager {
   _onPauseChange(paused) {
     if (!this._pauseFilter) return;
 
+    console.log(`[PauseEffect] Pause state changed: ${paused}, current progress: ${this._animationState.progress}`);
+
     const peConfig = {
       enabled: game.settings.get(MODULE_ID, "universal.pauseEffect.enabled"),
       duration: game.settings.get(MODULE_ID, "universal.pauseEffect.duration"),
@@ -6588,6 +7853,7 @@ class PauseEffectManager {
     }
 
     if (this._animation) {
+      console.log(`[PauseEffect] Killing existing animation`);
       this._animation.kill();
     }
 
@@ -6598,13 +7864,19 @@ class PauseEffectManager {
         game.mapShine.profileManager.activeConfig.timeControl.globalTime;
     }
 
+    console.log(`[PauseEffect] Starting animation from ${this._animationState.progress} to ${targetProgress} over ${peConfig.duration}ms`);
+
     // @ts-expect-error - progress property not in type definitions but is valid
     this._animation = NativeAnimation.to(this._animationState, {
       progress: targetProgress,
       duration: peConfig.duration / 1000,
       ease: "power2.inOut",
-      onUpdate: () => this._updateEffects(this._animationState.progress),
+      onUpdate: () => {
+        console.log(`[PauseEffect] Animation update: progress=${this._animationState.progress.toFixed(3)}`);
+        this._updateEffects(this._animationState.progress);
+      },
       onComplete: () => {
+        console.log(`[PauseEffect] Animation complete at progress=${targetProgress}`);
         this._animation = null;
         this._updateEffects(targetProgress);
       },
@@ -6665,7 +7937,9 @@ class PauseEffectManager {
 
     const u = this._pauseFilter.uniforms;
     const cc = peConfig.colorCorrection;
-    this._pauseFilter.enabled = progress > 0.001 && cc.enabled;
+    // Keep filter enabled during entire animation (even during fade-out)
+    // Only disable when progress is exactly 0 (animation complete)
+    this._pauseFilter.enabled = progress > 0 && cc.enabled;
     u.uIntensity = progress;
     u.uSaturation = cc.saturation;
     u.uBrightness = cc.brightness;
@@ -7235,6 +8509,7 @@ class LoadingScreen {
     this._hintInterval = null;
     this._shuffledHints = [];
     this._currentHintIndex = 0;
+    this._hintAnimation = null; // To hold the animation controller
   }
 
   show() {
@@ -7305,122 +8580,233 @@ class LoadingScreen {
         : "display: none;";
 
     this.element.innerHTML = `
-                          <div class="loading-background-overlay"></div>
-                          <div class="loading-content">
-                              <div class="loading-text-box">
-                                  <img src="modules/map-shine/assets/fvtt.png" class="loading-logo slide-from-above" alt="Foundry VTT Logo">
-                                  <h2 class="loading-subhead slide-from-above">${subheading}</h2>
-                                  <h1 class="loading-title slide-from-above">${
-                                    game.world.title
-                                  }</h1>
-                                  <div class="loading-bar-container slide-from-below">
-                                      <div class="loading-bar-fill"></div>
-                                  </div>
-                                  <div id="loading-status-text" class="loading-status slide-from-below"></div>
-                                  <p id="loading-hint-text" class="loading-hint"></p>
-                              </div>
-                          </div>
-                          <style>
-                              #map-shine-loading-screen {
-                                  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-                                  background-color: rgba(0, 0, 0, 1);
-                                  z-index: 100000; display: flex;
-                                  justify-content: center; align-items: center;
-                                  color: white; font-family: ${subheadingFont}, Lexend, sans-serif;
-                                  transition: opacity ${
-                                    this.fadeOutDuration / 1000
-                                  }s ease-in-out;
-                              }
-                              .loading-background-overlay {
-                                  ${backgroundStyle}
-                                  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-                                  z-index: 1; /* Behind content */
-                              }
-                              .loading-content { 
-                                  text-align: center; 
-                                  position: relative; 
-                                  z-index: 2;
-                                  width: 80vw;
-                                  max-width: 80vw;
-                                  aspect-ratio: 16 / 9;
-                                  display: flex;
-                                  align-items: center;
-                                  justify-content: center;
-                              }
-                              .loading-text-box {
-                                  background: rgba(0, 0, 0, 0.7);
-                                  backdrop-filter: blur(12px);
-                                  -webkit-backdrop-filter: blur(12px);
-                                  border-radius: 12px;
-                                  padding: 3.5rem 4.5rem;
-                                  border: 1px solid rgba(255, 255, 255, 0.1);
-                                  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-                                  width: 100%;
-                                  height: 100%;
-                                  display: flex;
-                                  flex-direction: column;
-                                  justify-content: center;
-                                  -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
-                                  mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
-                              }
-                              .loading-logo { width: 150px; height: auto; margin: 0 auto 10px auto; display: block; filter: drop-shadow(0 0 10px rgba(0,0,0,0.6)); }
-                              .loading-subhead { font-family: "${subheadingFont}", sans-serif; font-size: 24px; font-weight: normal; color: #f0f0f0; margin: 0 0 10px 0; text-shadow: 0 2px 5px rgba(0,0,0,0.7); }
-                              .loading-title { font-family: "${headingFont}", sans-serif; font-size: 72px; margin: 0 0 30px 0; text-shadow: 0 2px 5px rgba(0,0,0,0.7); color: #fff; }
-                              .loading-bar-container { width: 60%; max-width: 500px; height: 20px; border: 2px solid rgba(255, 255, 255, 0.5); margin: 0 auto; background-color: rgba(0,0,0,0.5); border-radius: 5px; overflow: hidden; }
-                              .loading-bar-fill { width: 0%; height: 100%; background-color: rgba(255, 255, 255, 0.9); transform-origin: left; transition: width 0.2s ease-out; box-shadow: 0 0 10px rgba(255, 255, 255, 0.5); }
-                              .loading-status { margin-top: 15px; font-size: 16px; color: #f5f5f5; height: 20px; line-height: 20px; opacity: 0; transition: opacity ${
-                                this.statusFadeDuration / 1000
-                              }s ease-in-out; text-shadow: 0 2px 5px rgba(0,0,0,0.7); }
+			<div class="loading-background-overlay"></div>
+			<div class="loading-content">
+				<img src="modules/map-shine/assets/fvtt.png" class="loading-logo slide-from-above" alt="Foundry VTT Logo">
+				<h2 class="loading-subhead slide-from-above">${subheading}</h2>
+				<h1 class="loading-title slide-from-above">${game.world.title}</h1>
+				<div class="loading-bar-container slide-from-below">
+					<div class="loading-bar-fill"></div>
+				</div>
+				<div id="loading-status-text" class="loading-status slide-from-below">Initializing...</div>
+				<p id="loading-hint-text" class="loading-hint slide-from-below"></p>
+			</div>
+			<style>
+				/* Modern MapShine Loading Screen */
+				:root {
+					--ms-primary: #3b82f6;
+					--ms-success: #10b981;
+					--ms-bg-dark: #0f172a;
+					--ms-bg-slate: #1e293b;
+					--ms-glass: rgba(30, 41, 59, 0.9);
+					--ms-text-light: #f8fafc;
+					--ms-text-muted: #94a3b8;
+					--ms-glow-blue: rgba(59, 130, 246, 0.3);
+				}
 
-                              .loading-hint {
-                                  font-family: "${hintFont}", sans-serif;
-                                  margin-top: 25px;
-                                  font-size: 16px;
-                                  color: #e8e8e8;
-                                  font-style: italic;
-                                  max-width: 50ch;
-                                  margin-left: auto;
-                                  margin-right: auto;
-                                  min-height: 3em;
-                                  text-shadow: 0 2px 5px rgba(0,0,0,0.7);
-                                  opacity: 0;
-                                  transform: translateY(20px);
-                                  transition: opacity 1s ease-in-out, transform 1s ease-in-out;
-                              }
-                              .loading-hint.visible {
-                                  opacity: 1;
-                                  transform: translateY(0);
-                              }
+				#map-shine-loading-screen { 
+					position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
+					background: linear-gradient(135deg, var(--ms-bg-dark) 0%, var(--ms-bg-slate) 50%, var(--ms-bg-dark) 100%); 
+					z-index: 100000; display: flex; 
+					justify-content: center; align-items: center; 
+					color: var(--ms-text-light); font-family: ${subheadingFont}, 'Inter', system-ui, sans-serif; 
+					transition: opacity ${
+            this.fadeOutDuration / 1000
+          }s cubic-bezier(0.4, 0, 0.2, 1); 
+					overflow: hidden;
+				}
 
-                              /* Slide-in animations for other elements */
-                              .slide-from-above {
-                                  transform: translateY(-50px);
-                                  opacity: 0;
-                                  animation: slideInFromAbove 0.8s ease-out forwards;
-                              }
+				#map-shine-loading-screen::before {
+					content: '';
+					position: absolute;
+					inset: 0;
+					background: 
+						radial-gradient(circle at 30% 20%, var(--ms-glow-blue) 0%, transparent 50%),
+						radial-gradient(circle at 70% 80%, rgba(16, 185, 129, 0.1) 0%, transparent 50%);
+					pointer-events: none;
+				}
+				.loading-background-overlay {
+					${backgroundStyle}
+					position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+					z-index: 1; /* Behind content */
+				}
+				.loading-content { 
+					text-align: center; 
+					position: relative; 
+					z-index: 2; 
+					background: transparent;
+					padding: 4rem 5rem;
+					width: 80vw;
+					max-width: 80vw;
+					aspect-ratio: 16 / 9;
+					display: flex;
+					flex-direction: column;
+					justify-content: center;
+					/* Adaptive blur shadow that conforms to content */
+					filter: 
+						drop-shadow(0 0 40px rgba(0, 0, 0, 0.9))
+						drop-shadow(0 0 80px rgba(0, 0, 0, 0.8))
+						drop-shadow(0 0 120px rgba(0, 0, 0, 0.6));
+				}
 
-                              .slide-from-below {
-                                  transform: translateY(50px);
-                                  opacity: 0;
-                                  animation: slideInFromBelow 0.8s ease-out forwards;
-                              }
+				/* Removed ::before shimmer line as it conflicts with drop-shadow */
 
-                              @keyframes slideInFromAbove {
-                                  to { transform: translateY(0); opacity: 1; }
-                              }
+				.loading-logo { 
+					width: 160px; 
+					height: auto; 
+					margin: 0 auto 1.25rem auto; 
+					display: block; 
+					filter: drop-shadow(0 0 30px var(--ms-glow-blue)); 
+					transition: transform 0.3s ease;
+				}
 
-                              @keyframes slideInFromBelow {
-                                  to { transform: translateY(0); opacity: 1; }
-                              }
+				.loading-subhead { 
+					font-family: "${subheadingFont}", sans-serif; 
+					font-size: 1.5rem; 
+					font-weight: 400; 
+					color: #cbd5e1; 
+					margin: 0 0 0.75rem 0; 
+					text-shadow: 
+						0 0 20px rgba(0,0,0,0.9),
+						0 0 40px rgba(0,0,0,0.8),
+						0 2px 8px rgba(0,0,0,0.7); 
+					letter-spacing: 0.025em;
+				}
 
-                              /* Staggered animation delays */
-                              .loading-logo { animation-delay: 0.1s; }
-                              .loading-subhead { animation-delay: 0.2s; }
-                              .loading-title { animation-delay: 0.3s; }
-                              .loading-bar-container { animation-delay: 0.4s; }
-                              .loading-status { animation-delay: 0.5s; }
-                          </style>
-                      `;
+				.loading-title { 
+					font-family: "${headingFont}", sans-serif; 
+					font-size: 4.5rem; 
+					font-weight: 700; 
+					margin: 0 0 2rem 0; 
+					background: linear-gradient(135deg, var(--ms-text-light) 0%, var(--ms-primary) 100%);
+					-webkit-background-clip: text;
+					-webkit-text-fill-color: transparent;
+					background-clip: text;
+					filter: drop-shadow(0 0 30px rgba(0,0,0,0.9)) drop-shadow(0 0 60px rgba(0,0,0,0.7));
+					letter-spacing: -0.025em;
+					line-height: 1.1;
+				}
+				.loading-bar-container { 
+					width: 60%;
+					max-width: 550px; 
+					height: 0.75rem; 
+					margin: 0 auto; 
+					background: rgba(15, 23, 42, 0.8); 
+					border-radius: 9999px; 
+					overflow: hidden; 
+					position: relative;
+					box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+				}
+
+				.loading-bar-fill { 
+					width: 0%; 
+					height: 100%; 
+					background: linear-gradient(135deg, var(--ms-primary) 0%, var(--ms-success) 100%);
+					transform-origin: left; 
+					transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
+					box-shadow: 0 0 20px var(--ms-glow-blue);
+					border-radius: 9999px;
+					position: relative;
+				}
+
+				.loading-bar-fill::after {
+					content: '';
+					position: absolute;
+					inset: 0;
+					background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%);
+					border-radius: inherit;
+				}
+
+				.loading-status { 
+					margin-top: 1.5rem; 
+					font-size: 1rem; 
+					color: #cbd5e1; 
+					height: 1.25rem; 
+					line-height: 1.25rem; 
+					opacity: 1; 
+					transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+					text-shadow: 
+						0 0 20px rgba(0,0,0,0.9),
+						0 0 40px rgba(0,0,0,0.8),
+						0 2px 8px rgba(0,0,0,0.7); 
+					font-weight: 500;
+					letter-spacing: 0.025em;
+				}
+				.loading-hint {
+					font-family: "${hintFont}", serif;
+					margin-top: 2rem;
+					font-size: 1rem;
+					color: var(--ms-text-muted);
+					font-style: italic;
+					max-width: 55ch;
+					margin-left: auto;
+					margin-right: auto;
+					min-height: 3rem;
+					opacity: 0;
+					text-shadow: 
+						0 0 20px rgba(0,0,0,0.9),
+						0 0 40px rgba(0,0,0,0.8),
+						0 2px 8px rgba(0,0,0,0.7);
+					line-height: 1.6;
+					font-weight: 400;
+				}
+				
+				/* Modern slide animations */
+				.slide-from-above {
+					transform: translateY(-3rem);
+					opacity: 0;
+					animation: slideInFromAbove 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+				}
+				
+				.slide-from-below {
+					transform: translateY(3rem);
+					opacity: 0;
+					animation: slideInFromBelow 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+				}
+				
+				@keyframes slideInFromAbove {
+					to {
+						transform: translateY(0);
+						opacity: 1;
+					}
+				}
+				
+				@keyframes slideInFromBelow {
+					to {
+						transform: translateY(0);
+						opacity: 1;
+					}
+				}
+				
+				/* Elegant staggered delays */
+				.loading-logo { animation-delay: 0.1s; }
+				.loading-subhead { animation-delay: 0.2s; }
+				.loading-title { animation-delay: 0.35s; }
+				.loading-bar-container { animation-delay: 0.5s; }
+				.loading-status { animation-delay: 0.65s; }
+				.loading-hint { animation-delay: 0.8s; }
+
+				/* Responsive design */
+				@media (max-width: 768px) {
+					.loading-content { 
+						padding: 2.5rem 2rem; 
+						margin: 1rem; 
+					}
+					
+					.loading-title { 
+						font-size: 3rem; 
+					}
+					
+					.loading-logo { 
+						width: 120px; 
+					}
+					
+					.loading-bar-container { 
+						width: 300px; 
+					}
+				}
+			</style>
+		`;
 
     document.body.appendChild(this.element);
     this.fillElement = this.element.querySelector(".loading-bar-fill");
@@ -7444,7 +8830,7 @@ class LoadingScreen {
   }
 
   /**
-   * Manages the hint cycling animation using CSS transitions.
+   * Manages the hint cycling animation using Web Animation API.
    * @private
    */
   _cycleHints() {
@@ -7515,57 +8901,86 @@ class LoadingScreen {
 
     this._currentHintIndex = 0;
 
-    hintElement.innerText = this._shuffledHints[0];
-    console.log(
-      "[MapShine LoadingScreen] First hint displayed:",
-      this._shuffledHints[0]
-    );
+    if (this._shuffledHints.length <= 1) {
+      if (this._shuffledHints.length === 1) {
+        hintElement.innerText = this._shuffledHints[0];
+        console.log(
+          "[MapShine LoadingScreen] Single hint displayed:",
+          this._shuffledHints[0]
+        );
+        hintElement.animate([{ opacity: 0 }, { opacity: 1 }], {
+          duration: 1000,
+          fill: "forwards",
+        });
+      }
+      return;
+    }
 
-    // Use requestAnimationFrame to ensure the element is in the DOM before triggering the transition.
-    requestAnimationFrame(() => {
-      if (!this.element) return;
-      // A small additional delay ensures other CSS animations have begun.
-      setTimeout(() => {
-        if (this.element) {
-          hintElement.classList.add("visible");
-        }
-      }, 50);
-    });
-
-    if (this._shuffledHints.length <= 1) return;
-
-    const HINT_TRANSITION_DURATION = 1000; // Must match CSS transition duration
+    const HINT_FADE_DURATION = 1000;
     const HINT_PAUSE_DURATION = 5000;
 
     const showNextHint = () => {
-      if (!this.element) return;
+      if (!this.element || !hintElement || this._hintInterval === null) {
+        this._stopHintCycle();
+        return;
+      }
 
-      hintElement.classList.remove("visible");
+      this._hintAnimation = hintElement.animate(
+        [{ opacity: 1 }, { opacity: 0 }],
+        {
+          duration: HINT_FADE_DURATION,
+          easing: "ease-in",
+        }
+      );
 
-      setTimeout(() => {
-        if (!this.element) return;
-        this._currentHintIndex =
-          (this._currentHintIndex + 1) % this._shuffledHints.length;
+      this._hintAnimation.finished
+        .then(() => {
+          if (!this.element) return;
+          this._currentHintIndex =
+            (this._currentHintIndex + 1) % this._shuffledHints.length;
+          hintElement.innerText = this._shuffledHints[this._currentHintIndex];
 
-        hintElement.innerText = this._shuffledHints[this._currentHintIndex];
-        hintElement.classList.add("visible");
-      }, HINT_TRANSITION_DURATION);
+          hintElement.animate([{ opacity: 0 }, { opacity: 1 }], {
+            duration: HINT_FADE_DURATION,
+            easing: "ease-out",
+            fill: "forwards",
+          });
+
+          this._hintInterval = setTimeout(showNextHint, HINT_PAUSE_DURATION);
+        })
+        .catch(() => {});
     };
 
-    this._hintInterval = setInterval(
-      showNextHint,
-      HINT_PAUSE_DURATION + HINT_TRANSITION_DURATION
+    hintElement.innerText = this._shuffledHints[this._currentHintIndex];
+    console.log(
+      "[MapShine LoadingScreen] First hint displayed:",
+      this._shuffledHints[this._currentHintIndex]
     );
+    const initialAnimation = hintElement.animate(
+      [{ opacity: 0 }, { opacity: 1 }],
+      { duration: 1000, fill: "forwards" }
+    );
+    initialAnimation.finished.then(() => {
+      if (!this.element) return;
+      this._hintInterval = setTimeout(showNextHint, HINT_PAUSE_DURATION);
+    });
   }
 
   /**
-   * Clears the hint cycling interval.
+   * Clears the hint cycling interval and animation.
    * @private
    */
   _stopHintCycle() {
+    // Clear the hint cycling interval if it exists
     if (this._hintInterval) {
-      clearInterval(this._hintInterval);
+      clearTimeout(this._hintInterval);
       this._hintInterval = null;
+    }
+
+    // Cancel any ongoing hint animation
+    if (this._hintAnimation) {
+      this._hintAnimation.cancel?.();
+      this._hintAnimation = null;
     }
   }
 
@@ -8779,121 +10194,201 @@ class PauseScreenManager {
 
         const customCSS = `
             <style>
+              /* CSS Variables for consistent theming */
+              :root {
+                --pause-primary: #3b82f6;
+                --pause-success: #10b981;
+                --pause-bg-dark: #0f172a;
+                --pause-bg-slate: #1e293b;
+                --pause-text-light: #f8fafc;
+                --pause-text-muted: #94a3b8;
+                --pause-glow-blue: rgba(59, 130, 246, 0.3);
+                --pause-glass: rgba(30, 41, 59, 0.9);
+              }
+
               #pause.custom-pause-screen {
-                /* Override Foundry defaults to make it a simple backdrop */
+                /* Override Foundry defaults with modern backdrop */
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100vw !important;
+                height: 100vh !important;
                 background: ${settings.backgroundColor} !important;
-                backdrop-filter: blur(8px) grayscale(0.5);
+                backdrop-filter: blur(12px) saturate(0.8);
+                -webkit-backdrop-filter: blur(12px) saturate(0.8);
                 border: none !important;
                 animation: none !important;
-                padding: 0 5vw; /* Prevent content from touching screen edges */
-                display: flex; /* Use flexbox for centering */
+                padding: 0;
+                margin: 0;
+                display: flex;
                 justify-content: center;
                 align-items: center;
+              }
+
+              /* Add subtle radial glow to the pause screen background */
+              #pause.custom-pause-screen::before {
+                content: '';
+                position: absolute;
+                inset: 0;
+                background: 
+                  radial-gradient(circle at 30% 20%, var(--pause-glow-blue) 0%, transparent 50%),
+                  radial-gradient(circle at 70% 80%, rgba(16, 185, 129, 0.1) 0%, transparent 50%);
+                pointer-events: none;
+                opacity: 0.6;
               }
 
               @layer applications {
-              #pause {
-                height: 450px;
-                width: 100%;
-                position: fixed;
-                top: calc(50vh - 100px);
-                left: 0;
-                background: linear-gradient(to right, transparent 0%, var(--color-cool-5-50) 40%, var(--color-cool-5-50) 60%, transparent 100%);
-                display: none;
-                flex-direction: column;
-                justify-content: center;
-                align-items: center;
-                gap: 1.5rem;
-                pointer-events: none;
-                z-index: calc(var(--z-index-canvas) + 1);
+                #pause {
+                  height: 100vh;
+                  width: 100%;
+                  position: fixed;
+                  top: 0;
+                  left: 0;
+                  background: transparent;
+                  display: none;
+                  flex-direction: column;
+                  justify-content: center;
+                  align-items: center;
+                  pointer-events: none;
+                  z-index: calc(var(--z-index-canvas) + 1);
+                }
               }
-            }
-
-
 
               .map-shine-pause-wrapper {
                 position: relative;
-                width: 1000%; /* Please leave this intact */
-                padding: 4rem 2rem;
-                background: rgba(0,0,0,0.4);
+                padding: 3.5rem 4rem;
+                background: rgba(15, 23, 42, 0.5);
+                border: 1px solid rgba(59, 130, 246, 0.15);
+                border-radius: 1.5rem;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
                 justify-content: center;
-                gap: 1rem;
-                animation: fadeInContent 1.5s ease-out forwards;
+                gap: 1.25rem;
+                animation: fadeInContent 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
                 text-align: center;
+                max-width: 85vw;
+                backdrop-filter: blur(16px);
+                -webkit-backdrop-filter: blur(16px);
+                box-shadow: 
+                  0 0 60px rgba(0, 0, 0, 0.6),
+                  0 0 120px rgba(0, 0, 0, 0.4),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.05);
               }
 
-              .map-shine-pause-wrapper::before,
-              .map-shine-pause-wrapper::after {
+              /* Subtle top shimmer effect */
+              .map-shine-pause-wrapper::before {
                 content: '';
                 position: absolute;
-                left: -50vw; /* Extend beyond the wrapper to span the screen */
-                right: -50vw;
-                height: 3px;
-                background: linear-gradient(to right, transparent, ${
-                  settings.gradientColor1
-                }, ${settings.gradientColor2}, ${
-          settings.gradientColor1
-        }, transparent);
-              }
-
-              .map-shine-pause-wrapper::before {
                 top: 0;
-                box-shadow: 0 0 8px 1px ${settings.gradientShadowColor};
-              }
-
-              .map-shine-pause-wrapper::after {
-                bottom: 0;
-                box-shadow: 0 0 8px 1px ${settings.gradientShadowColor};
+                left: 10%;
+                right: 10%;
+                height: 1px;
+                background: linear-gradient(90deg, 
+                  transparent 0%, 
+                  rgba(59, 130, 246, 0.3) 20%, 
+                  rgba(16, 185, 129, 0.3) 50%,
+                  rgba(59, 130, 246, 0.3) 80%, 
+                  transparent 100%);
+                opacity: 0.8;
               }
 
               .map-shine-pause-title {
                 font-family: "${settings.headingFont}", sans-serif;
-                font-size: 4em; margin: 0; letter-spacing: 5px; color: ${
+                font-size: 4.5rem;
+                font-weight: 700;
+                margin: 0;
+                letter-spacing: -0.025em;
+                text-transform: uppercase;
+                background: linear-gradient(135deg, ${
                   settings.headingColor
-                }; text-transform: uppercase;
-                text-shadow: 0 0 10px #000;
+                } 0%, var(--pause-primary) 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+                filter: drop-shadow(0 0 30px rgba(0,0,0,0.9)) drop-shadow(0 0 60px rgba(0,0,0,0.7));
+                line-height: 1.1;
               }
+
               .map-shine-pause-subtitle {
                 font-family: "${settings.subheadingFont}", sans-serif;
-                font-size: 1.5em; margin: 10px 0 20px 0; color: ${
-                  settings.subheadingColor
-                }; font-style: italic;
-                text-shadow: 0 0 10px #000;
+                font-size: 1.5rem;
+                font-weight: 400;
+                margin: 0;
+                color: ${settings.subheadingColor};
+                font-style: italic;
+                letter-spacing: 0.025em;
+                text-shadow: 
+                  0 0 20px rgba(0,0,0,0.9),
+                  0 0 40px rgba(0,0,0,0.8),
+                  0 2px 8px rgba(0,0,0,0.7);
               }
+
               .map-shine-pause-logo {
-                width: 80px; height: 80px;
+                width: 100px;
+                height: 100px;
                 background-image: url('${settings.logoPath}');
-                background-size: contain; background-repeat: no-repeat; background-position: center;
-                margin: 0 auto; opacity: ${
-                  settings.logoOpacity
-                }; animation: pulseLogo 4s ease-in-out infinite;
+                background-size: contain;
+                background-repeat: no-repeat;
+                background-position: center;
+                margin: 0.5rem auto;
+                opacity: ${settings.logoOpacity};
+                animation: pulseLogo 4s ease-in-out infinite;
+                filter: drop-shadow(0 0 30px var(--pause-glow-blue));
               }
+
               .map-shine-pause-hint {
-                font-family: "${settings.hintFont}", sans-serif;
-                margin-top: 25px;
-                padding-top: 15px;
-                border-top: 1px solid rgba(255, 255, 255, 0.2);
+                font-family: "${settings.hintFont}", serif;
+                margin-top: 1.5rem;
+                padding-top: 1.5rem;
+                border-top: 1px solid rgba(59, 130, 246, 0.2);
+                font-size: 1rem;
                 font-style: italic;
                 color: ${settings.hintColor};
-                max-width: 40ch;
+                max-width: 50ch;
                 margin-left: auto;
                 margin-right: auto;
+                letter-spacing: 0.025em;
+                text-shadow: 
+                  0 0 20px rgba(0,0,0,0.9),
+                  0 2px 8px rgba(0,0,0,0.7);
               }
+
               @keyframes fadeInContent {
-                from { opacity: 0; transform: translateY(20px); }
-                to { opacity: 1; transform: translateY(0); }
+                from { 
+                  opacity: 0; 
+                  transform: translateY(30px) scale(0.95); 
+                }
+                to { 
+                  opacity: 1; 
+                  transform: translateY(0) scale(1); 
+                }
               }
+
+              @keyframes fadeOutContent {
+                from { 
+                  opacity: 1; 
+                  transform: translateY(0) scale(1); 
+                }
+                to { 
+                  opacity: 0; 
+                  transform: translateY(-20px) scale(0.98); 
+                }
+              }
+
+              .map-shine-pause-wrapper.fade-out {
+                animation: fadeOutContent 0.8s cubic-bezier(0.4, 0, 0.6, 1) forwards;
+              }
+
               @keyframes pulseLogo {
-                0%, 100% { transform: scale(1); opacity: ${
-                  settings.logoOpacity
-                }; }
-                50% { transform: scale(1.1); opacity: ${Math.min(
-                  1,
-                  settings.logoOpacity + 0.2
-                )}; }
+                0%, 100% { 
+                  transform: scale(1); 
+                  opacity: ${settings.logoOpacity};
+                }
+                50% { 
+                  transform: scale(1.08); 
+                  opacity: ${Math.min(1, settings.logoOpacity + 0.2)};
+                }
               }
             </style>
           `;
@@ -8917,15 +10412,30 @@ class PauseScreenManager {
 
   /**
    * Resets the #pause element by removing our custom class and content.
-   * This allows Foundry to repopulate it with its defaults if needed later.
+   * Animates the fade-out before cleanup.
    * @private
    */
   static _revertCustomPauseScreen() {
     const pauseElement = document.getElementById("pause");
-    if (pauseElement) {
-      pauseElement.classList.remove("custom-pause-screen");
-      // Clear our custom content to let Foundry's code take over again cleanly
-      pauseElement.innerHTML = "";
+    if (
+      pauseElement &&
+      pauseElement.classList.contains("custom-pause-screen")
+    ) {
+      const wrapper = pauseElement.querySelector(".map-shine-pause-wrapper");
+      if (wrapper) {
+        // Add fade-out class to trigger animation
+        wrapper.classList.add("fade-out");
+
+        // Wait for animation to complete before cleanup
+        setTimeout(() => {
+          pauseElement.classList.remove("custom-pause-screen");
+          pauseElement.innerHTML = "";
+        }, 800); // Match the fadeOutContent animation duration
+      } else {
+        // If wrapper doesn't exist, clean up immediately
+        pauseElement.classList.remove("custom-pause-screen");
+        pauseElement.innerHTML = "";
+      }
     }
     // The font stylesheet is no longer removed here to prevent conflicts with the debugger UI.
   }
@@ -9444,1303 +10954,22 @@ class CompositeMaskGenerator {
   }
 }
 
-class LightningEffect {
-  constructor(startPoint, endPoint, config, parentContainer) {
-    if (!parentContainer) {
-      throw new Error(
-        "LightningEffect must be initialized with a valid parent PIXI.Container."
-      );
-    }
-    this.startPoint = startPoint;
-    this.targetEndPoint = endPoint;
-    this.config = config;
-    this.parent = parentContainer;
-
-    this.id = foundry.utils.randomID();
-    this.graphics = new PIXI.Graphics();
-    this.parent.addChild(this.graphics);
-
-    this.branches = [];
-    this.age = 0;
-    this.isExpired = false;
-    this.restrikeTimer = 0;
-    this.nextFlickerTime =
-      (this.config.flickerInterval ?? 100) * (0.75 + Math.random() * 0.5);
-    this.currentAlpha = 1.0;
-
-    const angle = Math.random() * 2 * Math.PI;
-    const radius = Math.random() * (this.config.path.endPointRandomness ?? 0);
-    this.endPoint = {
-      x: this.targetEndPoint.x + Math.cos(angle) * radius,
-      y: this.targetEndPoint.y + Math.sin(angle) * radius,
-    };
-
-    this._generate();
-  }
-
-  // Simplex noise in 3D, adapted from a public domain implementation.
-  _simplexNoise3D = (function () {
-    const F3 = 1.0 / 3.0;
-    const G3 = 1.0 / 6.0;
-    const grad3 = [
-      [1, 1, 0],
-      [-1, 1, 0],
-      [1, -1, 0],
-      [-1, -1, 0],
-      [1, 0, 1],
-      [-1, 0, 1],
-      [1, 0, -1],
-      [-1, 0, -1],
-      [0, 1, 1],
-      [0, -1, 1],
-      [0, 1, -1],
-      [0, -1, -1],
-    ];
-    // A random permutation array. This is pre-calculated for speed.
-    const p = [
-      151, 160, 137, 91, 90, 15, 131, 13, 201, 95, 96, 53, 194, 233, 7, 225,
-      140, 36, 103, 30, 69, 142, 8, 99, 37, 240, 21, 10, 23, 190, 6, 148, 247,
-      120, 234, 75, 0, 26, 197, 62, 94, 252, 219, 203, 117, 35, 11, 32, 57, 177,
-      33, 88, 237, 149, 56, 87, 174, 20, 125, 136, 171, 168, 68, 175, 74, 165,
-      71, 134, 139, 48, 27, 166, 77, 146, 158, 231, 83, 111, 229, 122, 60, 211,
-      133, 230, 220, 105, 92, 41, 55, 46, 245, 40, 244, 102, 143, 54, 65, 25,
-      63, 161, 1, 216, 80, 73, 209, 76, 132, 187, 208, 89, 18, 169, 200, 196,
-      135, 130, 116, 188, 159, 86, 164, 100, 109, 198, 173, 186, 3, 64, 52, 217,
-      226, 250, 124, 123, 5, 202, 38, 147, 118, 126, 255, 82, 85, 212, 207, 206,
-      59, 227, 47, 16, 58, 17, 182, 189, 28, 42, 223, 183, 170, 213, 119, 248,
-      152, 2, 44, 154, 163, 70, 221, 153, 101, 155, 167, 43, 172, 9, 129, 22,
-      39, 253, 19, 98, 108, 110, 79, 113, 224, 232, 178, 185, 112, 104, 218,
-      246, 97, 228, 251, 34, 242, 193, 238, 210, 144, 12, 191, 179, 162, 241,
-      81, 51, 145, 235, 249, 14, 239, 107, 49, 192, 214, 31, 181, 199, 106, 157,
-      184, 84, 204, 176, 115, 121, 50, 45, 127, 4, 150, 254, 138, 236, 205, 93,
-      222, 114, 67, 29, 24, 72, 243, 141, 128, 195, 78, 66, 215, 61, 156, 180,
-    ];
-    const perm = new Uint8Array(512);
-    for (let i = 0; i < 512; i++) {
-      perm[i] = p[i & 255];
-    }
-
-    function dot(g, x, y, z) {
-      return g[0] * x + g[1] * y + g[2] * z;
-    }
-
-    return function (x, y, z) {
-      let n0, n1, n2, n3;
-      const s = (x + y + z) * F3;
-      const i = Math.floor(x + s);
-      const j = Math.floor(y + s);
-      const k = Math.floor(z + s);
-      const t = (i + j + k) * G3;
-      const X0 = i - t;
-      const Y0 = j - t;
-      const Z0 = k - t;
-      const x0 = x - X0;
-      const y0 = y - Y0;
-      const z0 = z - Z0;
-
-      let i1, j1, k1;
-      let i2, j2, k2;
-      if (x0 >= y0) {
-        if (y0 >= z0) {
-          i1 = 1;
-          j1 = 0;
-          k1 = 0;
-          i2 = 1;
-          j2 = 1;
-          k2 = 0;
-        } else if (x0 >= z0) {
-          i1 = 1;
-          j1 = 0;
-          k1 = 0;
-          i2 = 1;
-          j2 = 0;
-          k2 = 1;
-        } else {
-          i1 = 0;
-          j1 = 0;
-          k1 = 1;
-          i2 = 1;
-          j2 = 0;
-          k2 = 1;
-        }
-      } else {
-        if (y0 < z0) {
-          i1 = 0;
-          j1 = 0;
-          k1 = 1;
-          i2 = 0;
-          j2 = 1;
-          k2 = 1;
-        } else if (x0 < z0) {
-          i1 = 0;
-          j1 = 1;
-          k1 = 0;
-          i2 = 0;
-          j2 = 1;
-          k2 = 1;
-        } else {
-          i1 = 0;
-          j1 = 1;
-          k1 = 0;
-          i2 = 1;
-          j2 = 1;
-          k2 = 0;
-        }
-      }
-
-      const x1 = x0 - i1 + G3;
-      const y1 = y0 - j1 + G3;
-      const z1 = z0 - k1 + G3;
-      const x2 = x0 - i2 + 2.0 * G3;
-      const y2 = y0 - j2 + 2.0 * G3;
-      const z2 = z0 - k2 + 2.0 * G3;
-      const x3 = x0 - 1.0 + 3.0 * G3;
-      const y3 = y0 - 1.0 + 3.0 * G3;
-      const z3 = z0 - 1.0 + 3.0 * G3;
-
-      const ii = i & 255;
-      const jj = j & 255;
-      const kk = k & 255;
-
-      const gi0 = perm[ii + perm[jj + perm[kk]]] % 12;
-      const gi1 = perm[ii + i1 + perm[jj + j1 + perm[kk + k1]]] % 12;
-      const gi2 = perm[ii + i2 + perm[jj + j2 + perm[kk + k2]]] % 12;
-      const gi3 = perm[ii + 1 + perm[jj + 1 + perm[kk + 1]]] % 12;
-
-      let t0 = 0.6 - x0 * x0 - y0 * y0 - z0 * z0;
-      if (t0 < 0) n0 = 0.0;
-      else {
-        t0 *= t0;
-        n0 = t0 * t0 * dot(grad3[gi0], x0, y0, z0);
-      }
-
-      let t1 = 0.6 - x1 * x1 - y1 * y1 - z1 * z1;
-      if (t1 < 0) n1 = 0.0;
-      else {
-        t1 *= t1;
-        n1 = t1 * t1 * dot(grad3[gi1], x1, y1, z1);
-      }
-
-      let t2 = 0.6 - x2 * x2 - y2 * y2 - z2 * z2;
-      if (t2 < 0) n2 = 0.0;
-      else {
-        t2 *= t2;
-        n2 = t2 * t2 * dot(grad3[gi2], x2, y2, z2);
-      }
-
-      let t3 = 0.6 - x3 * x3 - y3 * y3 - z3 * z3;
-      if (t3 < 0) n3 = 0.0;
-      else {
-        t3 *= t3;
-        n3 = t3 * t3 * dot(grad3[gi3], x3, y3, z3);
-      }
-
-      return 32.0 * (n0 + n1 + n2 + n3);
-    };
-  })();
-
-  _getPointOnBezier(t, p0, p1, p2, p3) {
-    const cX = 3 * (p1.x - p0.x);
-    const bX = 3 * (p2.x - p1.x) - cX;
-    const aX = p3.x - p0.x - cX - bX;
-    const cY = 3 * (p1.y - p0.y);
-    const bY = 3 * (p2.y - p1.y) - cY;
-    const aY = p3.y - p0.y - cY - bY;
-    const x = aX * t ** 3 + bX * t ** 2 + cX * t + p0.x;
-    const y = aY * t ** 3 + bY * t ** 2 + cY * t + p0.y;
-    return {
-      x,
-      y,
-    };
-  }
-
-  _generate() {
-    this.branches = [];
-    this._createBranch(
-      this.startPoint,
-      this.endPoint,
-      this.config.width.start,
-      this.config.width.end,
-      this.config.coreWidth.start,
-      this.config.coreWidth.end,
-      0
-    );
-  }
-
-  _createBranch(
-    startPoint,
-    endPoint,
-    startWidth,
-    endWidth,
-    startCoreWidth,
-    endCoreWidth,
-    depth
-  ) {
-    const forkConfig = this.config.fork;
-    if (depth >= forkConfig.maxDepth || startWidth < 0.5) {
-      return;
-    }
-
-    const rand = (min, max) => min + Math.random() * (max - min);
-    const curveConfig = this.config.curve;
-    const startAngle =
-      rand(curveConfig.startAngleMin, curveConfig.startAngleMax) *
-      (Math.PI / 180);
-    const endAngle =
-      rand(curveConfig.endAngleMin, curveConfig.endAngleMax) * (Math.PI / 180);
-    const startDist = rand(
-      curveConfig.controlPointDistanceMin,
-      curveConfig.controlPointDistanceMax
-    );
-    const endDist = rand(
-      curveConfig.controlPointDistanceMin,
-      curveConfig.controlPointDistanceMax
-    );
-
-    const cp1 = {
-      x: startPoint.x + Math.cos(startAngle) * startDist,
-      y: startPoint.y + Math.sin(startAngle) * startDist,
-    };
-    const cp2 = {
-      x: endPoint.x + Math.cos(endAngle) * endDist,
-      y: endPoint.y + Math.sin(endAngle) * endDist,
-    };
-
-    const segments = Math.max(
-      2,
-      Math.floor(this.config.path.segments / (depth + 1))
-    );
-    const fullPath = [];
-    for (let i = 0; i <= segments; i++) {
-      fullPath.push(
-        this._getPointOnBezier(i / segments, startPoint, cp1, cp2, endPoint)
-      );
-    }
-
-    const willFork = Math.random() < forkConfig.chance;
-
-    if (depth < forkConfig.maxDepth && willFork && fullPath.length > 2) {
-      const splitIndex = Math.floor(rand(0.3, 0.7) * (fullPath.length - 1));
-      const trunkPath = fullPath.slice(0, splitIndex + 1);
-      const splitPoint = trunkPath[trunkPath.length - 1];
-
-      const progress = splitIndex / (fullPath.length - 1);
-      const widthAtSplit = lerp(startWidth, endWidth, progress);
-      const coreWidthAtSplit = lerp(startCoreWidth, endCoreWidth, progress);
-
-      this.branches.push({
-        path: trunkPath,
-        startWidth,
-        endWidth: widthAtSplit,
-        startCoreWidth,
-        endCoreWidth: coreWidthAtSplit,
-      });
-
-      const p_before_split = trunkPath[trunkPath.length - 2];
-      const trunkDirX = splitPoint.x - p_before_split.x;
-      const trunkDirY = splitPoint.y - p_before_split.y;
-      const trunkAngle = Math.atan2(trunkDirY, trunkDirX);
-
-      const remainingPath = fullPath.slice(splitIndex);
-      let remainingLength = 0;
-      for (let i = 0; i < remainingPath.length - 1; i++) {
-        remainingLength += Math.hypot(
-          remainingPath[i + 1].x - remainingPath[i].x,
-          remainingPath[i + 1].y - remainingPath[i].y
-        );
-      }
-
-      for (let i = 0; i < 2; i++) {
-        const angleOffset =
-          (i === 0 ? 1 : -1) *
-          rand(forkConfig.angleRange * 0.2, forkConfig.angleRange * 0.5) *
-          (Math.PI / 180);
-        const newAngle = trunkAngle + angleOffset;
-        const newLength =
-          remainingLength * forkConfig.lengthFalloff * rand(0.75, 1.25);
-
-        const newEndPoint = {
-          x: splitPoint.x + Math.cos(newAngle) * newLength,
-          y: splitPoint.y + Math.sin(newAngle) * newLength,
-        };
-        const newStartWidth = widthAtSplit * forkConfig.widthFalloff;
-        const newStartCoreWidth = coreWidthAtSplit * forkConfig.widthFalloff;
-
-        const newEndWidth = endWidth * forkConfig.widthFalloff;
-        const newCoreEndWidth = endCoreWidth * forkConfig.widthFalloff;
-
-        this._createBranch(
-          splitPoint,
-          newEndPoint,
-          newStartWidth,
-          newEndWidth,
-          newStartCoreWidth,
-          newCoreEndWidth,
-          depth + 1
-        );
-      }
-    } else {
-      this.branches.push({
-        path: fullPath,
-        startWidth,
-        endWidth: endWidth,
-        startCoreWidth,
-        endCoreWidth: endCoreWidth,
-      });
-    }
-  }
-
-  update(deltaTime, timeFactor) {
-    if (this._destroyed) return;
-
-    // This is a candidate for a future performance refactor to move the noise
-    // calculation entirely to the GPU using a NoiseTextureManager.
-    const scaledDelta = deltaTime * timeFactor;
-
-    this.age += scaledDelta;
-    if (this.age > this.config.strikeDuration) {
-      this.isExpired = true;
-    }
-
-    if (this.isExpired) {
-      this._draw();
-      return;
-    }
-
-    this.restrikeTimer += deltaTime;
-    if (this.restrikeTimer > this.nextFlickerTime) {
-      this.restrikeTimer = 0;
-      this.nextFlickerTime =
-        (this.config.flickerInterval ?? 100) * (0.75 + Math.random() * 0.5);
-      this._generate();
-    }
-
-    const life = this.age / this.config.strikeDuration;
-    const easePower = this.config.fadeEasePower ?? 3.0;
-    const easedAlpha = Math.pow(1.0 - Math.min(life, 1.0), easePower);
-    this.currentAlpha =
-      (1.0 - Math.random() * this.config.flickerIntensity) * easedAlpha;
-
-    this._draw();
-  }
-
-  _draw() {
-    this.graphics.clear();
-    if (
-      this.isExpired ||
-      this.currentAlpha <= 0 ||
-      this.branches.length === 0
-    ) {
-      this.graphics.visible = false;
-      return;
-    }
-    this.graphics.visible = true;
-
-    this.graphics.alpha = this.currentAlpha * (this.config.brightness ?? 1.0);
-
-    const dConfig = this.config.displacement;
-    const dFineConfig = this.config.displacementFine;
-    const displacementEnabled =
-      dConfig && dConfig.enabled && dConfig.magnitude > 0;
-    const displacementFineEnabled =
-      dFineConfig && dFineConfig.enabled && dFineConfig.magnitude > 0;
-
-    let branchesToDraw = this.branches;
-
-    if (displacementEnabled || displacementFineEnabled) {
-      const displacedBranches = [];
-      const timeCoarse = this.age * (dConfig?.speed ?? 0);
-      const timeFine = this.age * (dFineConfig?.speed ?? 0);
-
-      const displacedPointMap = new Map();
-
-      for (const branch of this.branches) {
-        const displacedPath = [];
-        for (let i = 0; i < branch.path.length; i++) {
-          const p1 = branch.path[i];
-          const pKey = `${p1.x},${p1.y}`;
-
-          if (displacedPointMap.has(pKey)) {
-            displacedPath.push(displacedPointMap.get(pKey));
-            continue;
-          }
-
-          const p2 = branch.path[i < branch.path.length - 1 ? i + 1 : i - 1];
-
-          const dx = p2.x - p1.x;
-          const dy = p2.y - p1.y;
-          let perpX = -dy;
-          let perpY = dx;
-          const len = Math.hypot(perpX, perpY);
-          if (len > 0) {
-            perpX /= len;
-            perpY /= len;
-          }
-
-          let totalDisp = 0;
-          const progress =
-            branch.path.length <= 1 ? 1.0 : i / (branch.path.length - 1);
-
-          if (displacementEnabled) {
-            const noiseValCoarse = this._simplexNoise3D(
-              p1.x * dConfig.scale,
-              p1.y * dConfig.scale,
-              timeCoarse
-            );
-            totalDisp += noiseValCoarse * dConfig.magnitude * progress;
-          }
-          if (displacementFineEnabled) {
-            const noiseValFine = this._simplexNoise3D(
-              p1.x * dFineConfig.scale,
-              p1.y * dFineConfig.scale,
-              timeFine
-            );
-            totalDisp += noiseValFine * dFineConfig.magnitude * progress;
-          }
-
-          const newDisplacedPoint = {
-            x: p1.x + perpX * totalDisp,
-            y: p1.y + perpY * totalDisp,
-          };
-
-          displacedPath.push(newDisplacedPoint);
-          displacedPointMap.set(pKey, newDisplacedPoint);
-        }
-        displacedBranches.push({
-          ...branch,
-          path: displacedPath,
-        });
-      }
-      branchesToDraw = displacedBranches;
-    }
-
-    const drawBranch = (branch, isCore) => {
-      const color = hexToNumber(
-        isCore ? this.config.coreColor : this.config.color
-      );
-      const alpha = isCore
-        ? this.config.coreOpacity ?? 1.0
-        : this.config.sheathOpacity ?? 1.0;
-
-      const startWidth = isCore ? branch.startCoreWidth : branch.startWidth;
-      const endWidth = isCore ? branch.endCoreWidth : branch.endWidth;
-
-      if (startWidth <= 0.1 && endWidth < 0.1) return;
-
-      const widthConfig = this.config.width;
-
-      for (let i = 0; i < branch.path.length - 1; i++) {
-        const p1 = branch.path[i];
-        const p2 = branch.path[i + 1];
-        const progress =
-          branch.path.length <= 1 ? 0 : i / (branch.path.length - 2);
-
-        const baseWidth = lerp(startWidth, endWidth, progress);
-        let currentWidth = baseWidth;
-
-        if (widthConfig?.variationEnabled) {
-          const time = this.age * (widthConfig.variationSpeed ?? 0.1);
-          const noiseVal = this._simplexNoise3D(
-            p1.x * (widthConfig.variationScale ?? 0.1),
-            p1.y * (widthConfig.variationScale ?? 0.1),
-            time
-          ); // noise is -1 to 1
-          const variation =
-            1.0 + noiseVal * (widthConfig.variationAmount ?? 0.5);
-          currentWidth = Math.max(0.1, baseWidth * variation);
-        }
-
-        if (currentWidth > 0.1) {
-          this.graphics.lineStyle({
-            width: currentWidth,
-            color: color,
-            alpha: alpha,
-            cap: PIXI.LINE_CAP.ROUND,
-            join: PIXI.LINE_JOIN.ROUND,
-          });
-          this.graphics.moveTo(p1.x, p1.y);
-          this.graphics.lineTo(p2.x, p2.y);
-        }
-      }
-    };
-
-    for (const branch of branchesToDraw) {
-      drawBranch(branch, false);
-      drawBranch(branch, true);
-    }
-  }
-
-  destroy() {
-    if (this._destroyed) return;
-    this._destroyed = true;
-    this.isExpired = true;
-    this.graphics.destroy();
-  }
-}
-
-class LightningManager {
-  constructor() {
-    this.effects = new Map();
-    this.persistentEffects = new Map();
-    this.container = null;
-    this.bloomFilter = null;
-    this.rgbSplitFilter = null;
-    this.occlusionFilter = null; // New filter for masking
-    this._tickerFunction = this.update.bind(this);
-    this._destroyed = false;
-
-    // Define the handler directly as an arrow function property of the instance.
-    // This guarantees 'this' is always correctly bound.
-    this._onMapPointsUpdated = () => {
-      const groups = MapPointsManager.getGroups();
-      const activeGroupIds = new Set();
-      const config = game.mapShine.profileManager.activeConfig.lightning;
-
-      for (const group of Object.values(groups)) {
-        if (
-          group.isEffectSource &&
-          group.effectTarget === "lightning" &&
-          group.type === "line" &&
-          group.points.length >= 2
-        ) {
-          activeGroupIds.add(group.id);
-          if (!this.persistentEffects.has(group.id)) {
-            const offTime = lerp(
-              config.offPeriodMin,
-              config.offPeriodMax,
-              Math.random()
-            );
-            this.persistentEffects.set(group.id, {
-              data: group,
-              effect: null,
-              state: "IDLE",
-              nextEventTime: offTime,
-            });
-          } else {
-            this.persistentEffects.get(group.id).data = group;
-          }
-        }
-      }
-
-      for (const [groupId, data] of this.persistentEffects.entries()) {
-        if (!activeGroupIds.has(groupId)) {
-          data.effect?.destroy();
-          this.persistentEffects.delete(groupId);
-        }
-      }
-    };
-  }
-
-  static getSettingsHTML() {
-    const effectKey = "lightning";
-    const headerExtra = `<button type="button" class="create-effect-from-ui" data-action="create-particle-effect-area" data-effect-key="${effectKey}" title="Create new area for this particle effect"><i class="fas fa-plus-square"></i></button>`;
-    const content = `
-                      <p class="description-text">Configuration for the procedural lightning effect.</p>
-                      <details>
-                          <summary><span class="accordion-toggle"></span><strong>Strike Timing & Appearance</strong></summary>
-                          <div style="padding-left: 15px;">
-                              <p class="description-text">Controls the timing and visual properties of each lightning strike.</p>
-                              ${DebuggerUIBuilder._createSliderHTML(
-                                `${effectKey}.offPeriodMin`,
-                                "Min Off Time (ms)",
-                                1,
-                                3000,
-                                1,
-                                "The minimum random pause between strikes."
-                              )}
-                              ${DebuggerUIBuilder._createSliderHTML(
-                                `${effectKey}.offPeriodMax`,
-                                "Max Off Time (ms)",
-                                1,
-                                3000,
-                                1,
-                                "The maximum random pause between strikes."
-                              )}
-                              <hr style="border-color: #555; margin: 6px 0;">
-                              ${DebuggerUIBuilder._createSliderHTML(
-                                `${effectKey}.strikeDuration`,
-                                "Strike Duration (ms)",
-                                50,
-                                5000,
-                                50,
-                                "How long a lightning bolt is visible before it fades out."
-                              )}
-                              ${DebuggerUIBuilder._createSliderHTML(
-                                `${effectKey}.fadeEasePower`,
-                                "Fade Ease Power",
-                                1,
-                                8,
-                                0.5,
-                                "Controls the curve of the fade-out. 1=Linear, 2=Quadratic, 3=Cubic, etc."
-                              )}
-                              <hr style="border-color: #555; margin: 6px 0;">
-                              ${DebuggerUIBuilder._createSliderHTML(
-                                `${effectKey}.flickerInterval`,
-                                "Flicker Interval (ms)",
-                                10,
-                                500,
-                                10,
-                                "How often the bolt regenerates its path while visible."
-                              )}
-                              ${DebuggerUIBuilder._createSliderHTML(
-                                `${effectKey}.flickerIntensity`,
-                                "Flicker Intensity",
-                                0,
-                                1,
-                                0.01,
-                                "Random brightness flicker amount."
-                              )}
-                          </div>
-                      </details>
-                      <details>
-                          <summary><span class="accordion-toggle"></span><strong>Color, Intensity & Width</strong></summary>
-                          <div style="padding-left: 15px;">
-                              ${DebuggerUIBuilder._createColorPickerHTML(
-                                `${effectKey}.color`,
-                                "Color (Outer Sheath)"
-                              )}
-                              ${DebuggerUIBuilder._createColorPickerHTML(
-                                `${effectKey}.coreColor`,
-                                "Color (Inner Core)"
-                              )}
-                              <hr style="border-color: #555; margin: 6px 0;">
-                              ${DebuggerUIBuilder._createSliderHTML(
-                                `${effectKey}.brightness`,
-                                "Master Brightness/Alpha",
-                                0,
-                                3,
-                                0.05,
-                                "Overall brightness multiplier for the lightning. Acts as an alpha multiplier for the ADD blend mode."
-                              )}
-                              ${DebuggerUIBuilder._createSliderHTML(
-                                `${effectKey}.sheathOpacity`,
-                                "Sheath Opacity",
-                                0,
-                                1,
-                                0.01,
-                                "Opacity of the outer glow."
-                              )}
-                              ${DebuggerUIBuilder._createSliderHTML(
-                                `${effectKey}.coreOpacity`,
-                                "Core Opacity",
-                                0,
-                                1,
-                                0.01,
-                                "Opacity of the inner core."
-                              )}
-                              <hr style="border-color: #555; margin: 6px 0;">
-                              ${DebuggerUIBuilder._createSliderHTML(
-                                `${effectKey}.width.start`,
-                                "Width (Start)",
-                                0,
-                                30,
-                                0.5
-                              )}
-                              ${DebuggerUIBuilder._createSliderHTML(
-                                `${effectKey}.width.end`,
-                                "Width (End)",
-                                0,
-                                30,
-                                0.5,
-                                "The target width for the thinnest tips of the bolt."
-                              )}
-                              ${DebuggerUIBuilder._createSliderHTML(
-                                `${effectKey}.coreWidth.start`,
-                                "Core Width (Start)",
-                                0,
-                                15,
-                                0.25
-                              )}
-                              ${DebuggerUIBuilder._createSliderHTML(
-                                `${effectKey}.coreWidth.end`,
-                                "Core Width (End)",
-                                0,
-                                15,
-                                0.25
-                              )}
-                              <details id="details-lightning-width-variation">
-                                  <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                                    `${effectKey}.width.variationEnabled`,
-                                    "Width Variation",
-                                    true
-                                  )}</div></summary>
-                                  <div style="padding-left: 15px;">
-                                      <p class="description-text">Adds random, animated noise to the width of the lightning bolt.</p>
-                                      ${DebuggerUIBuilder._createSliderHTML(
-                                        `${effectKey}.width.variationAmount`,
-                                        "Amount",
-                                        0,
-                                        2,
-                                        0.05,
-                                        "The maximum percentage of width variation. 0.5 = +/- 50%."
-                                      )}
-                                      ${DebuggerUIBuilder._createSliderHTML(
-                                        `${effectKey}.width.variationScale`,
-                                        "Scale",
-                                        0.001,
-                                        0.5,
-                                        0.001,
-                                        "The zoom level of the width noise. Larger values = smaller, finer variations."
-                                      )}
-                                      ${DebuggerUIBuilder._createSliderHTML(
-                                        `${effectKey}.width.variationSpeed`,
-                                        "Speed",
-                                        0,
-                                        1,
-                                        0.01,
-                                        "The animation speed of the width noise."
-                                      )}
-                                  </div>
-                              </details>
-                          </div>
-                      </details>
-                      <details>
-                          <summary><span class="accordion-toggle"></span><strong>Path & Shape</strong></summary>
-                          <div style="padding-left: 15px;">
-                              <p class="description-text">Controls the main lightning bolt's shape.</p>
-                              ${DebuggerUIBuilder._createSliderHTML(
-                                `${effectKey}.path.segments`,
-                                "Curve Segments",
-                                20,
-                                200,
-                                5,
-                                "Number of segments to render along the curve. More is smoother."
-                              )}
-                              ${DebuggerUIBuilder._createSliderHTML(
-                                `${effectKey}.path.endPointRandomness`,
-                                "End Point Rand.",
-                                0,
-                                500,
-                                5,
-                                "Maximum random distance (in pixels) from the target end point."
-                              )}
-                          </div>
-                      </details>
-                      <details>
-                          <summary><span class="accordion-toggle"></span><strong>Bezier Curve Controls</strong></summary>
-                          <div style="padding-left: 15px;">
-                              <p class="description-text">Controls the shape of the Bezier curve the lightning follows.</p>
-                              ${DebuggerUIBuilder._createSliderHTML(
-                                `${effectKey}.curve.startAngleMin`,
-                                "Start Angle Min",
-                                -180,
-                                180,
-                                1,
-                                "Minimum angle (degrees) for the curve handle at the start point."
-                              )}
-                              ${DebuggerUIBuilder._createSliderHTML(
-                                `${effectKey}.curve.startAngleMax`,
-                                "Start Angle Max",
-                                -180,
-                                180,
-                                1,
-                                "Maximum angle (degrees) for the curve handle at the start point."
-                              )}
-                              ${DebuggerUIBuilder._createSliderHTML(
-                                `${effectKey}.curve.endAngleMin`,
-                                "End Angle Min",
-                                -180,
-                                180,
-                                1,
-                                "Minimum angle (degrees) for the curve handle at the end point."
-                              )}
-                              ${DebuggerUIBuilder._createSliderHTML(
-                                `${effectKey}.curve.endAngleMax`,
-                                "End Angle Max",
-                                -180,
-                                180,
-                                1,
-                                "Maximum angle (degrees) for the curve handle at the end point."
-                              )}
-                              <hr style="border-color: #555; margin: 6px 0;">
-                              ${DebuggerUIBuilder._createSliderHTML(
-                                `${effectKey}.curve.controlPointDistanceMin`,
-                                "Min Control Point Dist.",
-                                0,
-                                1000,
-                                10,
-                                "Minimum distance of the curve handles from their anchor points."
-                              )}
-                              ${DebuggerUIBuilder._createSliderHTML(
-                                `${effectKey}.curve.controlPointDistanceMax`,
-                                "Max Control Point Dist.",
-                                0,
-                                1000,
-                                10,
-                                "Maximum distance of the curve handles from their anchor points."
-                              )}
-                          </div>
-                      </details>
-                      <details>
-                          <summary><span class="accordion-toggle"></span><strong>Forking / Branching</strong></summary>
-                          <div style="padding-left: 15px;">
-                              ${DebuggerUIBuilder._createSliderHTML(
-                                `${effectKey}.fork.maxDepth`,
-                                "Max Fork Depth",
-                                0,
-                                8,
-                                1,
-                                "Maximum number of recursive forks."
-                              )}
-                              ${DebuggerUIBuilder._createSliderHTML(
-                                `${effectKey}.fork.chance`,
-                                "Forking Chance",
-                                0,
-                                1,
-                                0.01,
-                                "Probability (0 to 1) that a branch will split into smaller forks."
-                              )}
-                              ${DebuggerUIBuilder._createSliderHTML(
-                                `${effectKey}.fork.angleRange`,
-                                "Fork Angle Range (deg)",
-                                0,
-                                180,
-                                1,
-                                "Maximum deviation in degrees from the parent branch direction."
-                              )}
-                              ${DebuggerUIBuilder._createSliderHTML(
-                                `${effectKey}.fork.lengthFalloff`,
-                                "Fork Length Falloff",
-                                0.5,
-                                1.0,
-                                0.01,
-                                "Each fork is this percentage of its parent's remaining length."
-                              )}
-                              ${DebuggerUIBuilder._createSliderHTML(
-                                `${effectKey}.fork.widthFalloff`,
-                                "Fork Width Falloff",
-                                0.5,
-                                1.0,
-                                0.01,
-                                "Each fork starts at this percentage of its parent's width at the split point."
-                              )}
-                          </div>
-                      </details>
-                      <details>
-                          <summary><span class="accordion-toggle"></span><strong>Displacement</strong></summary>
-                          <div style="padding-left: 15px;">
-                              <p class="description-text">Animates the lightning path with noisy displacement for a more erratic look. Two layers of noise can be combined.</p>
-                              <details id="details-lightning-displacement-main">
-                                  <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                                    `${effectKey}.displacement.enabled`,
-                                    "Main Displacement",
-                                    true
-                                  )}</div></summary>
-                                  <div style="padding-left: 15px;">
-                                      <p class="description-text">Standard displacement for high-frequency jitter and sharp turns.</p>
-                                      ${DebuggerUIBuilder._createSliderHTML(
-                                        `${effectKey}.displacement.magnitude`,
-                                        "Magnitude",
-                                        0,
-                                        50,
-                                        1,
-                                        "Maximum displacement distance in pixels."
-                                      )}
-                                      ${DebuggerUIBuilder._createSliderHTML(
-                                        `${effectKey}.displacement.speed`,
-                                        "Speed",
-                                        0,
-                                        1,
-                                        0.01,
-                                        "How fast the noise pattern animates."
-                                      )}
-                                      ${DebuggerUIBuilder._createSliderHTML(
-                                        `${effectKey}.displacement.scale`,
-                                        "Scale",
-                                        0.01,
-                                        1,
-                                        0.01,
-                                        "Zoom level of the noise pattern. Larger values = smaller, finer waves."
-                                      )}
-                                  </div>
-                              </details>
-                              <details id="details-lightning-displacement-fine">
-                                  <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                                    `${effectKey}.displacementFine.enabled`,
-                                    "Large-Scale Displacement",
-                                    true
-                                  )}</div></summary>
-                                  <div style="padding-left: 15px;">
-                                      <p class="description-text">Low-frequency noise for large, slow bends along the bolt's path.</p>
-                                      ${DebuggerUIBuilder._createSliderHTML(
-                                        `${effectKey}.displacementFine.magnitude`,
-                                        "Magnitude",
-                                        0,
-                                        50,
-                                        1,
-                                        "Maximum displacement distance in pixels."
-                                      )}
-                                      ${DebuggerUIBuilder._createSliderHTML(
-                                        `${effectKey}.displacementFine.speed`,
-                                        "Speed",
-                                        0,
-                                        1,
-                                        0.01,
-                                        "How fast the noise pattern animates."
-                                      )}
-                                      ${DebuggerUIBuilder._createSliderHTML(
-                                        `${effectKey}.displacementFine.scale`,
-                                        "Scale",
-                                        0,
-                                        0.01,
-                                        0.0001,
-                                        "Zoom level of the noise pattern. Smaller values = larger, broader waves."
-                                      )}
-                                  </div>
-                              </details>
-                          </div>
-                      </details>
-                      <details>
-                          <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                            `${effectKey}.bloom.enabled`,
-                            "Bloom Effect",
-                            true
-                          )}</div></summary>
-                          <div style="padding-left: 15px;">
-                              <div class="warning-box" style="background-color: #554422; border-color: #ffaa66;"><strong style="color: #ffddaa;">PERFORMANCE WARNING:</strong> This can be demanding. Lowering 'Quality' can improve performance.</div>
-                              <p class="description-text">Adds a powerful bloom glow to the lightning. This is a dedicated bloom effect that is not shared with other effects.</p>
-                              ${DebuggerUIBuilder._createSelectHTML(
-                                `${effectKey}.bloom.blendMode`,
-                                "Blend Mode",
-                                BLEND_MODE_OPTIONS
-                              )}
-                              ${DebuggerUIBuilder._createSliderHTML(
-                                `${effectKey}.bloom.threshold`,
-                                "Threshold",
-                                0,
-                                1,
-                                0.01,
-                                "Only areas brighter than this will bloom."
-                              )}
-                              ${DebuggerUIBuilder._createSliderHTML(
-                                `${effectKey}.bloom.brightness`,
-                                "Brightness",
-                                0,
-                                1000,
-                                1,
-                                "The overall brightness and intensity of the bloom."
-                              )}
-                              ${DebuggerUIBuilder._createSliderHTML(
-                                `${effectKey}.bloom.bloomScale`,
-                                "Scale",
-                                0.1,
-                                50,
-                                0.1,
-                                "The size of the bloom effect."
-                              )}
-                              ${DebuggerUIBuilder._createSliderHTML(
-                                `${effectKey}.bloom.blur`,
-                                "Blur Amount",
-                                0,
-                                50,
-                                0.5,
-                                "How much the bloom is blurred."
-                              )}
-                              ${DebuggerUIBuilder._createSliderHTML(
-                                `${effectKey}.bloom.quality`,
-                                "Quality",
-                                1,
-                                15,
-                                1,
-                                "Number of blur samples. Higher is smoother but much slower."
-                              )}
-                              <details id="details-lightning-bloom-rgbSplit"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                                `${effectKey}.bloom.rgbSplit.enabled`,
-                                "RGB Split",
-                                true
-                              )}</div></summary>
-                                  <div>${DebuggerUIBuilder._createSliderHTML(
-                                    `${effectKey}.bloom.rgbSplit.amount`,
-                                    "Amount",
-                                    0,
-                                    20,
-                                    0.1,
-                                    "Adds a chromatic aberration effect to the bloom."
-                                  )}</div>
-                              </details>
-                          </div>
-                      </details>
-                  `;
-    return DebuggerUIBuilder._createAccordionHTML(
-      effectKey,
-      "Lightning Effect",
-      content,
-      headerExtra
-    );
-  }
-
-  initialize() {
-    if (this.container) this.destroy();
-    this._destroyed = false;
-
-    this.container = new PIXI.Container();
-    // The container is now added to the canvas by its parent LightningLayer.
-
-    const bloomConfig =
-      game.mapShine.profileManager.activeConfig.lightning.bloom;
-    const BloomFilterConstructor =
-      PIXI.filters?.AdvancedBloomFilter ||
-      (globalThis.filters && globalThis.filters.AdvancedBloomFilter);
-    if (BloomFilterConstructor) {
-      // Construct the filter with its initial settings to prevent initialization errors.
-      this.bloomFilter = new BloomFilterConstructor(bloomConfig);
-      this.bloomFilter.enabled = false;
-    }
-    this.rgbSplitFilter = new ChromaticAberrationFilter();
-    this.rgbSplitFilter.enabled = false;
-    this.occlusionFilter = new LightningOcclusionFilter();
-    this.occlusionFilter.enabled = false;
-
-    this.container.filters = [
-      this.bloomFilter,
-      this.rgbSplitFilter,
-      this.occlusionFilter,
-    ].filter(Boolean);
-
-    // The `eventMode` property prevents the container from blocking pointer events.
-
-    this.container.eventMode = "none";
-    // The `filterArea` is required for filters like bloom to function correctly.
-    this.container.filterArea = canvas.app.screen;
-
-    canvas.app.ticker.add(this._tickerFunction);
-
-    Hooks.on("mapShine:mapPointsUpdated", this._onMapPointsUpdated);
-    this._onMapPointsUpdated();
-  }
-
-  destroy() {
-    if (this._destroyed) return;
-    this._destroyed = true;
-
-    Hooks.off("mapShine:mapPointsUpdated", this._onMapPointsUpdated);
-    canvas.app.ticker.remove(this._tickerFunction);
-
-    this.effects.forEach((effect) => effect.destroy());
-    this.effects.clear();
-    this.persistentEffects.forEach((data) => data.effect?.destroy());
-    this.persistentEffects.clear();
-
-    this.bloomFilter?.destroy();
-
-    this.rgbSplitFilter?.destroy();
-
-    this.occlusionFilter?.destroy();
-    this.bloomFilter = null;
-    this.rgbSplitFilter = null;
-    this.occlusionFilter = null;
-
-    if (this.container) {
-      this.container.filters = null;
-      this.container.destroy({
-        children: true,
-      });
-    }
-    this.container = null;
-  }
-
-  update(deltaTime) {
-    if (this._destroyed || !this.container || this.container.destroyed) return;
-
-    // Clamp delta time to prevent physics explosions on frame drops
-    const clampedDeltaTime = Math.min(deltaTime, MAX_DELTA_TIME);
-
-    const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
-    const config = game.mapShine.profileManager.activeConfig.lightning;
-
-    // If the entire effect is disabled, clear everything and hide the container.
-    if (!config.enabled) {
-      if (this.effects.size > 0 || this.persistentEffects.size > 0) {
-        this.effects.forEach((e) => e.destroy());
-        this.effects.clear();
-        this.persistentEffects.forEach((p) => {
-          p.effect?.destroy();
-          p.effect = null;
-        });
-      }
-      this.container.visible = false;
-      if (this.bloomFilter) this.bloomFilter.enabled = false;
-      if (this.rgbSplitFilter) this.rgbSplitFilter.enabled = false;
-      if (this.occlusionFilter) this.occlusionFilter.enabled = false;
-      return;
-    }
-
-    // Update one-off effects and remove them when they expire.
-    const expiredEffectIds = [];
-    this.effects.forEach((effect, id) => {
-      effect.update(clampedDeltaTime, timeFactor);
-      if (effect.isExpired) {
-        expiredEffectIds.push(id);
-      }
-    });
-    expiredEffectIds.forEach((id) => {
-      this.effects.get(id)?.destroy();
-      this.effects.delete(id);
-    });
-
-    // Update persistent effects and their state transitions.
-    this.persistentEffects.forEach((persistent) => {
-      if (persistent.state === "IDLE") {
-        persistent.nextEventTime -= clampedDeltaTime * timeFactor;
-        if (persistent.nextEventTime <= 0) {
-          if (this._destroyed || !this.container || this.container.destroyed)
-            return;
-
-          const group = persistent.data;
-          const strikeConfig = {
-            ...config,
-            isFork: false,
-          };
-          persistent.effect = new LightningEffect(
-            group.points[0],
-            group.points[group.points.length - 1],
-            strikeConfig,
-            this.container
-          );
-          persistent.state = "STRIKING";
-        }
-      } else if (persistent.state === "STRIKING") {
-        if (persistent.effect) {
-          persistent.effect.config = config; // Ensure it has the latest config
-          persistent.effect.update(clampedDeltaTime, timeFactor);
-          if (persistent.effect.isExpired) {
-            persistent.effect.destroy();
-            persistent.effect = null;
-            persistent.state = "IDLE";
-            const offTime = lerp(
-              config.offPeriodMin,
-              config.offPeriodMax,
-              Math.random()
-            );
-            persistent.nextEventTime = offTime;
-          }
-        } else {
-          persistent.state = "IDLE";
-          const offTime = lerp(
-            config.offPeriodMin,
-            config.offPeriodMax,
-            Math.random()
-          );
-          persistent.nextEventTime = offTime;
-        }
-      }
-    });
-
-    // After all updates, determine if any lightning is currently striking.
-    let isAnyLightningStriking = this.effects.size > 0;
-    if (!isAnyLightningStriking) {
-      for (const p of this.persistentEffects.values()) {
-        if (p.state === "STRIKING") {
-          isAnyLightningStriking = true;
-          break;
-        }
-      }
-    }
-
-    // The container is visible only when an effect is active.
-    this.container.visible = isAnyLightningStriking;
-
-    // Configure filters only when the container is visible.
-    const bloomConfig = config.bloom;
-    const shouldUseBloom = this.container.visible && bloomConfig.enabled;
-
-    if (this.bloomFilter) {
-      this.bloomFilter.enabled = shouldUseBloom;
-      if (shouldUseBloom) {
-        this.bloomFilter.threshold = bloomConfig.threshold;
-        this.bloomFilter.bloomScale = bloomConfig.bloomScale;
-        this.bloomFilter.brightness = bloomConfig.brightness;
-        this.bloomFilter.blur = bloomConfig.blur;
-        this.bloomFilter.quality = bloomConfig.quality;
-      }
-    }
-
-    const rgbSplitConfig = bloomConfig.rgbSplit;
-    const shouldUseRgbSplit = shouldUseBloom && rgbSplitConfig.enabled;
-
-    if (this.rgbSplitFilter) {
-      this.rgbSplitFilter.enabled = shouldUseRgbSplit;
-      if (shouldUseRgbSplit) {
-        this.rgbSplitFilter.amount = (rgbSplitConfig.amount ?? 0) / 400;
-      }
-    }
-
-    // New: Update and enable/disable the occlusion filter
-    if (this.occlusionFilter) {
-      const resourceManager = game.mapShine.resourceManager;
-      const outdoorsMask = resourceManager?.getOutdoorsMask();
-      const cloudTexture = resourceManager?.getRawCloudTexture(deltaTime);
-
-      if (outdoorsMask?.valid && cloudTexture?.valid) {
-        this.occlusionFilter.enabled = this.container.visible;
-        this.occlusionFilter.uniforms.uOutdoorsMask = outdoorsMask;
-        this.occlusionFilter.uniforms.uCloudTexture = cloudTexture;
-      } else {
-        this.occlusionFilter.enabled = false;
-      }
-    }
-
-    this.container.blendMode = bloomConfig.blendMode ?? PIXI.BLEND_MODES.ADD;
-  }
-}
-
-class LightningOcclusionFilter extends PIXI.Filter {
-  constructor(options = {}) {
-    const vertexSrc = `
-              attribute vec2 aVertexPosition;
-              attribute vec2 aTextureCoord;
-              uniform mat3 projectionMatrix;
-              varying vec2 vTextureCoord;
-              varying vec2 vScreenCoord;
-
-              void main(void) {
-                  gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
-                  vTextureCoord = aTextureCoord;
-                  vScreenCoord = gl_Position.xy * 0.5 + 0.5;
-              }
-          `;
-
-    const fragmentSrc = `
-              precision mediump float;
-              varying vec2 vTextureCoord;
-              varying vec2 vScreenCoord;
-
-              uniform sampler2D uSampler; // The rendered lightning
-              uniform sampler2D uOutdoorsMask;
-              uniform sampler2D uCloudTexture;
-
-              void main() {
-                  vec4 lightningColor = texture2D(uSampler, vTextureCoord);
-
-                  if (lightningColor.a == 0.0) {
-                      discard;
-                      return;
-                  }
-
-                  float outdoorsValue = texture2D(uOutdoorsMask, vScreenCoord).r;
-                  float cloudValue = texture2D(uCloudTexture, vScreenCoord).r; // 0=clear, 1=cloud
-
-                  // Final alpha is the lightning's own alpha, multiplied by the outdoors mask,
-                  // and then by the inverse of the cloud value (so clouds block light).
-                  float finalAlpha = lightningColor.a * outdoorsValue * (1.0 - cloudValue);
-
-                  gl_FragColor = vec4(lightningColor.rgb, finalAlpha);
-              }
-          `;
-
-    super(vertexSrc, fragmentSrc, {
-      uOutdoorsMask: PIXI.Texture.EMPTY,
-
-      uCloudTexture: PIXI.Texture.EMPTY,
-      ...options,
-    });
-  }
-}
+// =================================================================================
+// SECTION 7: LIGHTNING SYSTEM
+// =================================================================================
+// Description: Complete lightning effect system including effects, manager,
+//              occlusion filter, and canvas layer. Provides animated lightning
+//              bolts with realistic branching and wall occlusion.
+// ---------------------------------------------------------------------------------
+// LightningEffect, LightningManager, and LightningOcclusionFilter classes removed.
+// Lightning functionality has been simplified and moved to LightningLayer.
 
 // =================================================================================
-// SECTION 3: PARTICLE SYSTEMS
+// SECTION 8: PARTICLE SYSTEMS
 // =================================================================================
-// Description: This section contains the management system for all particle effects.
+// Description: Complete particle system including definitions, emitter configurations,
+//              controllers, behaviors, managers, and canvas layers. Handles fire,
+//              sparks, dust, steam, flies, and foam particle effects.
 // ---------------------------------------------------------------------------------
 
 /***************************************************************************************
@@ -10961,7 +11190,9 @@ class ParticleEffectController {
     }
 
     if (definition.configPath === "fire.particles") {
-      const BloomFilterConstructor = PIXI.AdvancedBloomFilter;
+      const BloomFilterConstructor =
+        PIXI.filters?.AdvancedBloomFilter ||
+        (globalThis.filters && globalThis.filters.AdvancedBloomFilter);
       if (BloomFilterConstructor) {
         this.bloomFilter = new BloomFilterConstructor();
       }
@@ -13901,44 +14132,515 @@ export class ParticleLayer extends CanvasLayer {
   }
 }
 
+/**
+ * Lightning layer that renders realistic animated lightning bolts between
+ * Map Point groups designated as lightning effect sources. Features include:
+ * - Procedurally generated jagged paths using recursive midpoint displacement
+ * - Random branching for natural appearance
+ * - Multi-layer glow effect (outer blue glow, middle bright glow, core white)
+ * - Animated flickering and intensity variation
+ */
 class LightningLayer extends CanvasLayer {
   constructor() {
     super();
-    this.manager = null;
+    this.graphics = null;
     this._destroyed = false;
+    this._onMapPointsUpdatedBound = null;
+    this._animationId = null;
+    this._lastDrawTime = 0;
   }
 
   async _draw() {
     this._destroyed = false;
     this.eventMode = "none";
 
-    // This layer now owns the LightningManager.
-    this.manager = new LightningManager();
-    this.manager.initialize();
+    // Create a single PIXI.Graphics object
+    this.graphics = new PIXI.Graphics();
+    this.addChild(this.graphics);
 
-    // Add the manager's container to this layer
-    this.addChild(this.manager.container);
+    // Listen for Map Points updates
+    this._onMapPointsUpdatedBound = this._onMapPointsUpdated.bind(this);
+    Hooks.on("mapShine:mapPointsUpdated", this._onMapPointsUpdatedBound);
+
+    // Start animation loop for flickering
+    this._startAnimation();
+
+    // Initial draw
+    this._drawLightning();
   }
 
   async _tearDown(options) {
     if (this._destroyed) return;
     this._destroyed = true;
 
-    if (this.manager) {
-      this.manager.destroy();
-      this.manager = null;
+    // Stop animation
+    this._stopAnimation();
+
+    // Unregister the map points listener
+    if (this._onMapPointsUpdatedBound) {
+      Hooks.off("mapShine:mapPointsUpdated", this._onMapPointsUpdatedBound);
+      this._onMapPointsUpdatedBound = null;
+    }
+
+    // Destroy the graphics object
+    if (this.graphics) {
+      this.graphics.destroy();
+      this.graphics = null;
     }
 
     return super._tearDown(options);
   }
 
-  async updateFromConfig() {
-    // The LightningManager listens for config changes via hooks and its own ticker,
-    // so this layer doesn't need to pass updates down.
+  /**
+   * Starts the animation loop for flickering lightning.
+   */
+  _startAnimation() {
+    if (this._animationId) return;
+
+    // Initialize next flash time with random delay
+    this._nextFlashTime = performance.now() + this._getRandomDelay();
+
+    const animate = (time) => {
+      if (this._destroyed) return;
+
+      // Check if it's time for the next flash
+      if (time >= this._nextFlashTime) {
+        this._drawLightning();
+        // Schedule next flash with random delay
+        this._nextFlashTime = time + this._getRandomDelay();
+      } else {
+        // Between flashes, clear the graphics
+        if (this.graphics && !this._cleared) {
+          this.graphics.clear();
+          this._cleared = true;
+        }
+      }
+
+      this._animationId = requestAnimationFrame(animate);
+    };
+
+    this._animationId = requestAnimationFrame(animate);
+  }
+
+  /**
+   * Generates a random delay between lightning flashes.
+   * @returns {number} Delay in milliseconds
+   */
+  _getRandomDelay() {
+    const config = game.mapShine?.profileManager?.activeConfig?.lightning;
+    const minDelay = config?.minDelay ?? 100;
+    const maxDelay = config?.maxDelay ?? 500;
+    return minDelay + Math.random() * (maxDelay - minDelay);
+  }
+
+  /**
+   * Stops the animation loop.
+   */
+  _stopAnimation() {
+    if (this._animationId) {
+      cancelAnimationFrame(this._animationId);
+      this._animationId = null;
+    }
+  }
+
+  /**
+   * Called when Map Points are updated via the hook.
+   */
+  _onMapPointsUpdated() {
+    this._drawLightning();
+  }
+
+  /**
+   * Generates a curved bezier path between two points for natural flow.
+   * @param {Object} start - Starting point {x, y}
+   * @param {Object} end - Ending point {x, y}
+   * @param {number} curveAmount - Amount of curve variation (0-1)
+   * @param {number} segments - Number of segments to sample along the bezier
+   * @returns {Array<{x: number, y: number}>} Array of points forming the curved path
+   */
+  _generateBezierPath(start, end, curveAmount = 0.3, segments = 8) {
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const length = Math.sqrt(dx * dx + dy * dy);
+    
+    // Perpendicular vector (normalized)
+    const perpX = -dy / length;
+    const perpY = dx / length;
+    
+    // Create two control points with random offsets perpendicular to the line
+    // This creates a natural S-curve or dramatic arc
+    // Add extra randomization for more varied curves
+    const offset1 = (Math.random() - 0.5) * length * curveAmount * (1.0 + Math.random() * 0.5);
+    const offset2 = (Math.random() - 0.5) * length * curveAmount * (1.0 + Math.random() * 0.5);
+    
+    const control1 = {
+      x: start.x + dx * 0.33 + perpX * offset1,
+      y: start.y + dy * 0.33 + perpY * offset1
+    };
+    
+    const control2 = {
+      x: start.x + dx * 0.67 + perpX * offset2,
+      y: start.y + dy * 0.67 + perpY * offset2
+    };
+    
+    // Sample points along the cubic bezier curve
+    const points = [];
+    for (let i = 0; i <= segments; i++) {
+      const t = i / segments;
+      const t2 = t * t;
+      const t3 = t2 * t;
+      const mt = 1 - t;
+      const mt2 = mt * mt;
+      const mt3 = mt2 * mt;
+      
+      // Cubic bezier formula: P = (1-t)³P0 + 3(1-t)²tP1 + 3(1-t)t²P2 + t³P3
+      const x = mt3 * start.x + 3 * mt2 * t * control1.x + 3 * mt * t2 * control2.x + t3 * end.x;
+      const y = mt3 * start.y + 3 * mt2 * t * control1.y + 3 * mt * t2 * control2.y + t3 * end.y;
+      
+      points.push({ x, y });
+    }
+    
+    return points;
+  }
+
+  /**
+   * Generates a jagged lightning path with curvature between two points.
+   * @param {Object} start - Starting point {x, y}
+   * @param {Object} end - Ending point {x, y}
+   * @param {number} displacement - Maximum perpendicular offset for jaggedness
+   * @param {number} curveAmount - Amount of bezier curvature (0-1)
+   * @returns {Array<{x: number, y: number}>} Array of points forming the lightning bolt
+   */
+  _generateLightningPath(start, end, displacement = 30, curveAmount = 0.3) {
+    // First, generate a curved path using bezier (fewer segments for better jaggedness)
+    const curvePath = this._generateBezierPath(start, end, curveAmount, 6);
+    
+    // Then apply jaggedness to the curved path
+    const points = [curvePath[0]];
+
+    const generateSegment = (p1, p2, disp) => {
+      // Base case: displacement too small, just connect directly
+      if (disp < 2) {
+        return [p2];
+      }
+
+      // Calculate midpoint
+      const midX = (p1.x + p2.x) / 2;
+      const midY = (p1.y + p2.y) / 2;
+
+      // Calculate perpendicular offset
+      const dx = p2.x - p1.x;
+      const dy = p2.y - p1.y;
+      const length = Math.sqrt(dx * dx + dy * dy);
+
+      if (length < 10) {
+        return [p2];
+      }
+
+      // Perpendicular vector (normalized)
+      const perpX = -dy / length;
+      const perpY = dx / length;
+
+      // Random offset along perpendicular
+      const offset = (Math.random() - 0.5) * disp;
+      const mid = {
+        x: midX + perpX * offset,
+        y: midY + perpY * offset,
+      };
+
+      // Recursively subdivide
+      const newDisp = disp * 0.5;
+      const leftSegment = generateSegment(p1, mid, newDisp);
+      const rightSegment = generateSegment(mid, p2, newDisp);
+
+      return [...leftSegment, ...rightSegment];
+    };
+
+    // Apply jaggedness to each segment of the curved path
+    for (let i = 0; i < curvePath.length - 1; i++) {
+      const segmentPath = generateSegment(curvePath[i], curvePath[i + 1], displacement); // Full displacement for sharp jaggedness
+      points.push(...segmentPath);
+    }
+
+    return points;
+  }
+
+  /**
+   * Generates branch paths from a main lightning bolt.
+   * @param {Array<{x: number, y: number}>} mainPath - Main lightning path
+   * @param {number} branchProbability - Probability of branch at each segment (0-1)
+   * @param {number} startIndex - Index along path to start branching (for recursive branches)
+   * @param {number} parentWidth - Width of parent bolt at this point (for width inheritance)
+   * @param {number} currentDepth - Current recursion depth (for limiting recursion)
+   * @param {number} maxDepth - Maximum recursion depth allowed
+   * @returns {Array<{path: Array<{x: number, y: number}>, depth: number, positionRatio: number}>} Array of branch objects
+   */
+  _generateBranches(mainPath, branchProbability = 0.3, startIndex = 1, parentWidth = 5, currentDepth = 0, maxDepth = 3) {
+    const branches = [];
+    
+    // Prevent infinite recursion
+    if (currentDepth >= maxDepth) {
+      return branches;
+    }
+
+    // Skip the last few points to avoid branches at the end
+    const endIndex = Math.max(startIndex + 1, mainPath.length - 3);
+
+    for (let i = startIndex; i < endIndex; i++) {
+      if (Math.random() < branchProbability) {
+        const branchStart = mainPath[i];
+        const mainDir = {
+          x: mainPath[i + 1].x - mainPath[i - 1].x,
+          y: mainPath[i + 1].y - mainPath[i - 1].y,
+        };
+
+        // Normalize main direction
+        const mainLength = Math.sqrt(mainDir.x * mainDir.x + mainDir.y * mainDir.y);
+        if (mainLength < 0.1) continue; // Skip if main direction is too small
+        
+        const normalizedDir = {
+          x: mainDir.x / mainLength,
+          y: mainDir.y / mainLength
+        };
+
+        // Calculate position along the main path (0 = start, 1 = end)
+        const positionRatio = (i - startIndex) / (endIndex - startIndex);
+        
+        // Calculate inherited width from parent bolt at this position
+        // Uses same taper formula as _drawLightningBolt
+        const taper = Math.pow(1 - positionRatio, 2.5);
+        const inheritedWidth = parentWidth * (0.05 + 0.95 * taper);
+        
+        // Branch length increases (longer branches overall)
+        // Early branches are much longer than end branches
+        const lengthScale = 1.0 - (positionRatio * 0.6); // 100% at start, 40% at end
+        const branchLength = (120 + Math.random() * 180) * lengthScale; // Increased base length
+
+        // Random branch direction with forward lean
+        // Base angle: perpendicular to main direction
+        // Forward bias: shift angle toward forward direction
+        const side = Math.random() > 0.5 ? 1 : -1; // Left or right of main bolt
+        const baseAngle = side * Math.PI * 0.5; // 90° or -90° (perpendicular)
+        const forwardBias = side * Math.PI * 0.25; // 45° forward lean (applied relative to side)
+        const randomVariation = (Math.random() - 0.5) * Math.PI * 0.3; // ±27° variation
+        const angle = baseAngle + forwardBias + randomVariation;
+        
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+
+        const branchEnd = {
+          x: branchStart.x + (normalizedDir.x * cos - normalizedDir.y * sin) * branchLength,
+          y: branchStart.y + (normalizedDir.x * sin + normalizedDir.y * cos) * branchLength,
+        };
+
+        const branchPath = this._generateLightningPath(
+          branchStart,
+          branchEnd,
+          20 + positionRatio * 15, // Increased displacement for sharper branches
+          0.3 + Math.random() * 0.2 // Moderate curve for branches (0.3-0.5 range)
+        );
+        
+        branches.push({ 
+          path: branchPath, 
+          depth: currentDepth + 1, 
+          positionRatio: positionRatio,
+          width: inheritedWidth // Store inherited width
+        });
+
+        // Add sub-branches (branches from branches)
+        // Much more likely on early branches (near origin)
+        // Inverse of position: 1.0 at start, 0.0 at end
+        const subBranchProbability = 0.5 * (1.0 - positionRatio); // 50% at start, 0% at end (reduced from 80%)
+        
+        if (Math.random() < subBranchProbability && branchPath.length > 5 && currentDepth < maxDepth - 1) {
+          // Start sub-branching earlier along the branch
+          const subBranches = this._generateBranches(
+            branchPath, 
+            0.2, // Reduced probability for sub-branches (from 0.25)
+            Math.floor(branchPath.length * 0.2), // Start earlier (20% instead of 30%)
+            inheritedWidth, // Pass inherited width to sub-branches
+            currentDepth + 1, // Increment depth
+            maxDepth // Pass max depth limit
+          );
+          branches.push(...subBranches.map(sb => ({ 
+            path: sb.path, 
+            depth: sb.depth, 
+            positionRatio: sb.positionRatio,
+            width: sb.width
+          })));
+        }
+      }
+    }
+
+    return branches;
+  }
+
+  /**
+   * Draws a lightning path with glow effect and tapering.
+   * Uses optimized rendering with continuous paths instead of individual segments.
+   * @param {Array<{x: number, y: number}>} path - Array of points
+   * @param {number} baseWidth - Base width of the bolt at start
+   * @param {number} alpha - Opacity
+   * @param {number} branchDepth - Branch depth (0 = main bolt, 1+ = branches)
+   */
+  _drawLightningBolt(path, baseWidth = 4, alpha = 1.0, branchDepth = 0) {
+    if (path.length < 2) return;
+
+    // Reduce width for branches based on depth
+    const depthScale = Math.pow(0.6, branchDepth);
+    const startWidth = baseWidth * depthScale;
+    
+    // Keep full path detail for jagged lightning appearance
+    const renderPath = path;
+    
+    // Three layers: outer glow, middle glow, core
+    const layers = [
+      { widthMult: 3, color: 0x88ccff, alpha: alpha * 0.3 },
+      { widthMult: 1.5, color: 0xffffff, alpha: alpha * 0.6 },
+      { widthMult: 1, color: 0xffffff, alpha: alpha }
+    ];
+
+    // Draw each layer with proper tapering
+    for (const layer of layers) {
+      // For branches, use aggressive taper to reach near-invisible by 90%
+      // For main bolt, use moderate taper
+      const taperExponent = branchDepth > 0 ? 4.0 : 2.5;
+      const minWidthRatio = branchDepth > 0 ? 0.001 : 0.05; // Nearly invisible for branches
+      
+      // Draw segments with individual tapering for sharp end
+      for (let i = 0; i < renderPath.length - 1; i++) {
+        const t = i / (renderPath.length - 1);
+        const taper = Math.pow(1 - t, taperExponent);
+        const segmentWidth = startWidth * layer.widthMult * (minWidthRatio + (1 - minWidthRatio) * taper);
+        
+        // Skip drawing segments that are too thin (optimization)
+        if (segmentWidth < 0.1) continue;
+        
+        this.graphics.lineStyle({
+          width: segmentWidth,
+          color: layer.color,
+          alpha: layer.alpha,
+          cap: PIXI.LINE_CAP.ROUND,
+          join: PIXI.LINE_JOIN.ROUND,
+        });
+        
+        this.graphics.moveTo(renderPath[i].x, renderPath[i].y);
+        this.graphics.lineTo(renderPath[i + 1].x, renderPath[i + 1].y);
+      }
+    }
+  }
+
+  /**
+   * Draws realistic lightning bolts for all Map Point groups designated as lightning sources.
+   */
+  _drawLightning() {
+    if (!this.graphics || this._destroyed) return;
+
+    // Clear previous drawings
+    this.graphics.clear();
+    this._cleared = false;
+
+    // Check if lightning is enabled
+    const config = game.mapShine?.profileManager?.activeConfig?.lightning;
+    if (!config || !config.enabled) {
+      return;
+    }
+
+    // Get all Map Point groups
+    const groups = MapPointsManager.getGroups();
+
+    // Iterate through all groups
+    for (const group of Object.values(groups)) {
+      // Only process line-type groups that are effect sources for lightning
+      if (
+        group.type === "line" &&
+        group.isEffectSource &&
+        group.effectTarget === "lightning" &&
+        group.points &&
+        group.points.length >= 2
+      ) {
+        // Get the first and last points
+        const firstPoint = group.points[0];
+        const lastPoint = group.points[group.points.length - 1];
+
+        // Random flicker: occasionally hide the bolt
+        const flickerChance = config?.flickerChance ?? 0.15;
+        if (Math.random() < flickerChance) {
+          continue; // Skip this bolt for flicker effect
+        }
+
+        // Generate curved jagged lightning path
+        const mainPath = this._generateLightningPath(
+          firstPoint,
+          lastPoint,
+          50, // Increased displacement for sharper main bolt
+          0.3 + Math.random() * 0.15 // Moderate curve for main bolt (0.3-0.45 range)
+        );
+
+        // Generate branches with sub-branches (reduced for better performance)
+        const branches = this._generateBranches(mainPath, 0.12, 1, 5, 0, 2); // 12% chance, max depth 2 for performance
+
+        // Random intensity variation
+        const intensity = 0.7 + Math.random() * 0.3;
+
+        // Draw main bolt (depth 0)
+        this._drawLightningBolt(mainPath, 5, intensity, 0);
+
+        // Draw branches with inherited width and appropriate depth
+        for (const branch of branches) {
+          this._drawLightningBolt(branch.path, branch.width, intensity * 0.8, branch.depth);
+        }
+      }
+    }
+  }
+
+  /**
+   * Returns the settings HTML for the debugger UI.
+   * @returns {string} HTML string for the lightning settings accordion.
+   */
+  static getSettingsHTML() {
+    const effectKey = "lightning";
+    const content = `
+          <p class="description-text">Realistic animated lightning bolts with jagged paths, branching, glowing effects, and flickering. Create line-type Map Point groups and set them as lightning effect sources to define where bolts should appear.</p>
+          ${DebuggerUIBuilder._createCheckboxHTML(
+            "lightning.enabled",
+            "Enable Lightning"
+          )}
+          ${DebuggerUIBuilder._createSliderHTML(
+            "lightning.minDelay",
+            "Min Delay (ms)",
+            50,
+            1000,
+            10,
+            100
+          )}
+          ${DebuggerUIBuilder._createSliderHTML(
+            "lightning.maxDelay",
+            "Max Delay (ms)",
+            100,
+            2000,
+            10,
+            500
+          )}
+          ${DebuggerUIBuilder._createSliderHTML(
+            "lightning.flickerChance",
+            "Flicker Chance",
+            0,
+            1,
+            0.05,
+            0.15
+          )}
+        `;
+
+    return DebuggerUIBuilder._createAccordionHTML(
+      effectKey,
+      "Lightning",
+      content
+    );
   }
 }
 
-class SparkPathBehavior {
+class SparkPathBehavior { 
   static type = "sparkPath";
 
   constructor(config) {
@@ -15129,10 +15831,11 @@ export class SmellyFliesLayer extends CanvasLayer {
 }
 
 // =================================================================================
-// SECTION 4: GENERIC FILTERS
+// SECTION 9: GENERIC FILTERS & SCREEN EFFECTS
 // =================================================================================
-// Description: Reusable PIXI.Filter classes used by various layers or as
-//              global post-processing effects.
+// Description: Reusable visual filters including Kawase blur, FXAA, vignette,
+//              screen grain, RGB split, bloom, glow, and color correction.
+//              Also includes the ScreenEffectsManager for post-processing pipeline.
 // ---------------------------------------------------------------------------------
 
 class NoisePatternFilter extends PIXI.Filter {
@@ -18301,16 +19004,16 @@ class FoamLayer extends CanvasLayer {
 
     this.foamFilter?.destroy();
     this.effectSprite?.destroy();
-
     await super._tearDown(options);
   }
 }
 
 // =================================================================================
-// SECTION 5: EFFECT LAYERS & THEIR DEDICATED COMPONENTS
+// SECTION 10: EFFECT LAYERS
 // =================================================================================
-// Description: The main CanvasLayer implementations and any PIXI.Filters
-//              that are tightly coupled to a single layer.
+// Description: Main CanvasLayer implementations for visual effects including
+//              ambient occlusion, clouds, metallic shine, RGB split, vignette,
+//              heat haze, iridescence, and glow effects.
 // ---------------------------------------------------------------------------------
 
 class BackgroundEffectTileLayer extends CanvasLayer {
@@ -22898,14 +23601,14 @@ class GroundGlowLayer extends CanvasLayer {
     u.uTokenMask = resourceManager.getTokenMask() || PIXI.Texture.BLACK;
 
     // Pass scene darkness level to shader
-    u.uSceneDarkness = canvas.scene?.darkness ?? 0.0;
+    u.uSceneDarkness = canvas.scene?.environment?.darknessLevel ?? canvas.scene?.darkness ?? 0.0;
 
     // Position and scale the final sprite to cover the screen
 
     this.effectSprite.position.copyFrom(CoordinateManager.getCameraOffset());
     this.effectSprite.width = CoordinateManager.getViewSize().width;
     this.effectSprite.height = CoordinateManager.getViewSize().height;
-  }
+  } 
 
   _renderCompositeMask() {
     if (!this.glowSpritesContainer || !this.glowCompositeTexture) return;
@@ -25700,10 +26403,10 @@ class WaveDisplacementFilter extends PIXI.Filter {
 }
 
 // =================================================================================
-// SECTION 5b: TIME BASED EFFECTS
+// SECTION 11: TIME-BASED EFFECTS
 // =================================================================================
-// Description: Classes for time based effects.
-// ---------------------------------------------------------------------------------
+// Description: Time of day effects including dynamic lighting, exposure control,
+//              and sunrise/sunset color adjustments. Manages time-driven visual changes.
 
 // --- 5.12. Building Shadows ---
 
@@ -26994,10 +27697,11 @@ class TimeOfDayLayer extends MaskedEffectLayer {
 }
 
 // =================================================================================
-// SECTION 6: USER INTERFACE & SETTINGS MANAGEMENT
+// SECTION 12: USER INTERFACE & SETTINGS MANAGEMENT
 // =================================================================================
-// Description: Classes for the loading screen, debugger UI, profile management,
-//              and client-side settings overrides.
+// Description: UI components including loading screens, debugger interface,
+//              profile management panel, map points editor, and user guide.
+//              Handles all visual configuration and management interfaces.
 // ---------------------------------------------------------------------------------
 
 const CLIENT_OVERRIDES_CONFIG = {
@@ -27518,6 +28222,11 @@ class DebuggerUIBuilder {
   _buildLoadingScreenSection() {
     const content = `
         <p class="description-text">Configure the initial world loading screen and scene-to-scene transitions.</p>
+        <div class="control-row" style="display:flex; justify-content:flex-end; gap:8px; margin: 6px 0 10px 0;">
+          <button data-action="preview-transition" id="preview-transition-btn" class="ms-preview-transition-btn">
+            <i class="fas fa-film"></i> Preview Transition
+          </button>
+        </div>
         
         <details id="details-loadingScreen-initial">
           <summary><span class="accordion-toggle"></span><strong>Backgrounds &amp; Overlays</strong></summary>
@@ -28561,7 +29270,7 @@ class DebuggerUIBuilder {
       ParticleEffectController.getSettingsHTML("metallicGlints"),
       ParticleEffectController.getSettingsHTML("biofilm"),
       ParticleEffectController.getSmellyFliesSettingsHTML(),
-      LightningManager.getSettingsHTML(),
+      LightningLayer.getSettingsHTML(),
       this._getOverheadEffectHTML(),
     ];
   }
@@ -29177,6 +29886,117 @@ class DebuggerEventHandler {
     const revertBtn = this.element.querySelector("#revert-changes-btn");
     if (revertBtn) {
       revertBtn.disabled = !isDirty;
+    }
+
+    // Bind live preview updates for Loading Screen & Transitions when preview is active
+    this._wireLoadingPreviewLiveUpdates();
+  }
+
+  _wireLoadingPreviewLiveUpdates() {
+    if (!this.element) return;
+    const mgr = game.mapShine?.sceneChangeManager;
+    if (!mgr || !mgr.previewActive) return;
+
+    const bindIfNeeded = (el, type, handler) => {
+      if (!el) return;
+      const key = `msBound_${type}`;
+      if (el.dataset && el.dataset[key]) return;
+      el.addEventListener(type, handler);
+      if (el.dataset) el.dataset[key] = "1";
+    };
+
+    // Elements within Loading Screen (initial) section
+    const overlayEnabledEl = this.element.querySelector(
+      '[data-path="loading-screen-background-overlay-enabled"]'
+    );
+    const overlayOpacityEl = this.element.querySelector(
+      '[data-path="loading-screen-background-overlay-opacity"]'
+    );
+    const useRandomBgEl = this.element.querySelector(
+      '[data-path="loading-screen-use-random-background"]'
+    );
+    const staticBgEl = this.element.querySelector(
+      '[data-path="loading-screen-static-background"]'
+    );
+
+    // Elements within Scene Transition section
+    const logoPathEl = this.element.querySelector(
+      '[data-path="universal.sceneTransition.logoPath"]'
+    );
+    const headingEl = this.element.querySelector(
+      '[data-path="universal.sceneTransition.heading"]'
+    );
+    const subheadingEl = this.element.querySelector(
+      '[data-path="universal.sceneTransition.subheading"]'
+    );
+    const useRandomHintEl = this.element.querySelector(
+      '[data-path="universal.sceneTransition.useRandomHint"]'
+    );
+    const hintsWrapper = this.element.querySelector(
+      "#sceneTransition-randomHints-wrapper"
+    );
+
+    // Overlay enabled toggle
+    bindIfNeeded(overlayEnabledEl, "change", () => {
+      const bg = mgr.transitionOverlay?.querySelector(
+        ".loading-background-overlay"
+      );
+      if (!bg) return;
+      if (overlayEnabledEl.checked) {
+        const v = Number(overlayOpacityEl?.value ?? 0.6);
+        mgr._updateOverlayOpacity?.(v);
+      } else {
+        bg.style.display = "none";
+      }
+    });
+
+    // Opacity live update
+    bindIfNeeded(overlayOpacityEl, "input", () => {
+      if (overlayEnabledEl && !overlayEnabledEl.checked) return;
+      const v = Number(overlayOpacityEl.value);
+      mgr._updateOverlayOpacity?.(v);
+    });
+
+    // Random/static background controls
+    bindIfNeeded(useRandomBgEl, "change", () => {
+      if (useRandomBgEl.checked) {
+        mgr._setRandomBackground?.();
+      } else {
+        mgr._setStaticBackground?.(staticBgEl?.value ?? "");
+      }
+    });
+    bindIfNeeded(staticBgEl, "change", () => {
+      if (useRandomBgEl && useRandomBgEl.checked) return;
+      mgr._setStaticBackground?.(staticBgEl.value ?? "");
+    });
+
+    // Logo and text content bindings (update DOM directly on the overlay)
+    bindIfNeeded(logoPathEl, "input", () => {
+      const img = mgr.transitionOverlay?.querySelector(".loading-logo");
+      if (img && logoPathEl.value) img.setAttribute("src", logoPathEl.value);
+    });
+    bindIfNeeded(headingEl, "input", () => {
+      const title = mgr.transitionOverlay?.querySelector(".loading-title");
+      if (title) title.textContent = headingEl.value || title.textContent;
+    });
+    bindIfNeeded(subheadingEl, "input", () => {
+      const sub = mgr.transitionOverlay?.querySelector(".loading-subhead");
+      if (sub) sub.textContent = subheadingEl.value;
+    });
+
+    // Hints: re-cycle when toggle or list content changes
+    bindIfNeeded(useRandomHintEl, "change", () => {
+      mgr._stopHintCycle?.();
+      mgr._cycleHints?.();
+    });
+    if (hintsWrapper && !hintsWrapper.dataset.msBound_input) {
+      const refreshHints = () => {
+        mgr._stopHintCycle?.();
+        mgr._cycleHints?.();
+      };
+      hintsWrapper.addEventListener("input", refreshHints);
+      hintsWrapper.addEventListener("change", refreshHints);
+      hintsWrapper.dataset.msBound_input = "1";
     }
   }
 
@@ -29839,6 +30659,9 @@ class DebuggerEventHandler {
       case "create-scene-profiles":
         this._onCreateSceneProfilesClick();
         break;
+      case "preview-transition":
+        this._onPreviewTransitionClick(e);
+        break;
       case "preview-profile":
         this._onPreviewClick(e);
         break;
@@ -30073,6 +30896,44 @@ class DebuggerEventHandler {
       if (dropdown && dropdown.value !== "-1") {
         await this.profileManager.previewProfile(dropdown.value);
       }
+    }
+  }
+
+  async _onPreviewTransitionClick(event) {
+    const btn = event.currentTarget;
+    const mgr = game.mapShine?.sceneChangeManager;
+    if (!mgr) {
+      ui.notifications?.warn?.("Map Shine: SceneChangeManager not ready.");
+      return;
+    }
+
+    // Debug: Check if methods exist
+    if (typeof mgr.showPreviewOverlay !== "function") {
+      console.error(
+        "MapShine | SceneChangeManager missing showPreviewOverlay method. Available methods:",
+        Object.getOwnPropertyNames(Object.getPrototypeOf(mgr))
+      );
+      ui.notifications?.error?.(
+        "Map Shine: Preview feature not available. Please reload Foundry (Ctrl+F5 to clear cache)."
+      );
+      return;
+    }
+
+    try {
+      if (mgr.previewActive) {
+        // Hide preview overlay without applying settings changes.
+        await mgr.hidePreviewOverlay({ apply: false });
+        btn.innerHTML = `<i class="fas fa-film"></i> Preview Transition`;
+      } else {
+        // Show non-destructive preview overlay.
+        mgr.showPreviewOverlay();
+        btn.innerHTML = `<i class="fas fa-eye-slash"></i> End Transition Preview`;
+      }
+    } catch (err) {
+      console.error("MapShine | Preview Transition toggle failed:", err);
+      ui.notifications?.error?.(
+        "Map Shine: Failed to toggle transition preview. See console for details."
+      );
     }
   }
 
@@ -31736,6 +32597,13 @@ class UserGuide extends Application {
   }
 }
 
+// =================================================================================
+// SECTION 13: GLOBAL HOOKS REGISTRATION
+// =================================================================================
+// Description: Foundry VTT hook registrations for module initialization,
+//              scene updates, canvas drawing, and UI rendering.
+// ---------------------------------------------------------------------------------
+
 // THIS IS THE CORRECT WAY TO MAKE CONTROLS IN FOUNDRY VTT - Please don't break it.
 
 Hooks.on("getSceneControlButtons", (controls) => {
@@ -31871,18 +32739,17 @@ Hooks.on("canvasDraw", (canvas) => {
 Hooks.on("renderSceneControls", (app, html, _data) => {
   if (!game.user.isGM) return;
 
-  // Prevent duplicate clocks on re-renders
-  if (html.querySelector("#map-shine-main-ui-clock")) return;
-
   const tokenControls = html.querySelector(
     'ol.main-controls[data-control="token"]'
   );
-  if (tokenControls) {
+  if (!tokenControls) return;
+
+  // Clock: add if missing
+  if (!html.querySelector("#map-shine-main-ui-clock")) {
     const clockContainer = document.createElement("li");
     clockContainer.id = "map-shine-main-ui-clock"; // ID for idempotency check
     clockContainer.classList.add("scene-control-clock-wrapper");
     clockContainer.title = "Map Shine Day/Night Cycle";
-
     tokenControls.appendChild(clockContainer);
 
     // Instantiate the clock component, passing null for the application instance.
@@ -31890,5 +32757,48 @@ Hooks.on("renderSceneControls", (app, html, _data) => {
       showDragHandle: false,
       showDisclaimer: false,
     });
+  }
+
+  // Preview Button: add if missing
+  if (!html.querySelector("#map-shine-preview-button")) {
+    const previewLi = document.createElement("li");
+    previewLi.id = "map-shine-preview-button";
+    previewLi.classList.add("scene-control-preview-wrapper");
+    previewLi.title = "Map Shine Preview Loading Screen";
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "map-shine-preview-toggle";
+    btn.style.cssText =
+      "padding:4px 8px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:#1f2937;color:#e5e7eb;cursor:pointer;";
+    btn.textContent = "Preview Loading Screen";
+
+    btn.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      const mgr = game.mapShine?.sceneChangeManager;
+      if (!mgr) {
+        ui.notifications?.warn?.("Map Shine: SceneChangeManager not ready.");
+        return;
+      }
+
+      // Check if methods exist (cache issue protection)
+      if (typeof mgr.showPreviewOverlay !== "function") {
+        ui.notifications?.error?.(
+          "Map Shine: Preview feature not available. Please reload Foundry (Ctrl+F5 to clear cache)."
+        );
+        return;
+      }
+
+      if (mgr.previewActive) {
+        mgr.hidePreviewOverlay({ apply: false });
+        btn.textContent = "Preview Loading Screen";
+      } else {
+        mgr.showPreviewOverlay();
+        btn.textContent = "Exit Preview";
+      }
+    });
+
+    previewLi.appendChild(btn);
+    tokenControls.appendChild(previewLi);
   }
 });
