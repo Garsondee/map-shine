@@ -31,7 +31,7 @@
     "scripts/pixi-filters.js"
   ],
   "styles": [
-    "styles/module.css"
+    "styles/styles.css"
   ],
   "templates": [
     "templates/guide.html"
