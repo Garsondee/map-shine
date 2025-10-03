@@ -634,8 +634,8 @@ export class ProfileManager {
       config.timeControl.globalTime / 100.0;
 
     // Update the wind manager with the latest configuration.
-    if (game.mapShine.fireWindManager) {
-      game.mapShine.fireWindManager.updateFromConfig(
+    if (game.mapShine.windManager) {
+      game.mapShine.windManager.updateFromConfig(
         config.fire.particles.wind
       );
     }

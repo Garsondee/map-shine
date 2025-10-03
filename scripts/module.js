@@ -1758,14 +1758,21 @@
     },
   };
 
-  export const MODULE_DEFAULTS = {
-    timeControl: {
-      globalTime: 100,
-    },
-    enabled: true,
-    debug: true,
-    showTokenMask: false,
-    showDustMaskDebug: false,
+export const MODULE_DEFAULTS = {
+  timeControl: {
+    globalTime: 100,
+  },
+  wind: {
+    angle: 0,
+    speed: 0.1,
+    strength: 100,
+    gustiness: 0.2,
+    gustFrequency: 0.5,
+  },
+  enabled: true,
+  debug: true,
+  showTokenMask: false,
+  showDustMaskDebug: false,
     showGlintMaskDebug: false,
     tileOpacity: 0,
     lightMask: {
@@ -1822,7 +1829,7 @@
       wind: {
         angle: 45,
         speed: 0.05,
-        linkToFireWind: false,
+        linkToWind: false,
         linkedWindForce: 0.001,
         linkedMaxSpeed: 0.005,
         linkedDrag: 0.5,
@@ -3156,11 +3163,12 @@
     physicsRope: {
       enabled: true,
       gravity: 500,
-      windStrength: 200,
-      windSpeed: 2.0,
       segmentLength: 10,
       animationSpeed: 1,
+      damping: 0.95,
       texturePath: "modules/map-shine/assets/rope.webp",
+      indoorWindShielding: 0.9, // 0.0 = no shielding, 1.0 = 100% shielding
+      isIndoors: false,
     },
     overheadEffect: {
       enabled: true,
@@ -3557,7 +3565,7 @@
         resolveSetupCompletion: null,
         debugger: null,
         particleManager: null,
-        fireWindManager: null,
+        windManager: null,
         tokenManager: null,
         dynamicExposureManager: null,
         resourceManager: null, // The new resource manager
@@ -4446,7 +4454,7 @@
         );
         PIXI.particles.Emitter.registerBehavior(SparkPathBehavior);
         PIXI.particles.Emitter.registerBehavior(CandleFlameBehavior);
-        PIXI.particles.Emitter.registerBehavior(FireWindBehavior);
+        PIXI.particles.Emitter.registerBehavior(WindBehavior);
         PIXI.particles.Emitter.registerBehavior(PressurisedSteamBehavior);
         PIXI.particles.Emitter.registerBehavior(SmellyFliesBehavior);
         PIXI.particles.Emitter.registerBehavior(ColorFromSpawnBehavior);
@@ -5832,17 +5840,17 @@
           }
         }
 
-        if (game.mapShine.fireWindManager) {
+        if (game.mapShine.windManager) {
           try {
-            console.log("Map Shine | Teardown: Destroying fire wind manager...");
-            game.mapShine.fireWindManager.destroy();
-            game.mapShine.fireWindManager = null;
+            console.log("Map Shine | Teardown: Destroying wind manager...");
+            game.mapShine.windManager.destroy();
+            game.mapShine.windManager = null;
           } catch (error) {
             console.warn(
-              "Map Shine | Error destroying fire wind manager:",
+              "Map Shine | Error destroying wind manager:",
               error
             );
-            game.mapShine.fireWindManager = null; // Still nullify to prevent further issues
+            game.mapShine.windManager = null; // Still nullify to prevent further issues
           }
         }
 
@@ -8836,14 +8844,14 @@
       game.mapShine.profileManager.initializeForScene();
       await loadingManager?.tick("PROFILES_INIT");
 
-      if (!game.mapShine.fireWindManager) {
-        game.mapShine.fireWindManager = new FireWindManager();
+      if (!game.mapShine.windManager) {
+        game.mapShine.windManager = new WindManager();
       }
       // Update the wind manager with the finalized, time-scaled configuration
-      game.mapShine.fireWindManager.updateFromConfig(
+      game.mapShine.windManager.updateFromConfig(
         game.mapShine.profileManager.activeConfig.fire.particles.wind
       );
-      await loadingManager?.tick("FIRE_WIND_INIT");
+      await loadingManager?.tick("WIND_INIT");
 
       // 3. (NEW) Finalize the configuration based on discovered textures.
       this.finalizeConfigurationAndUI();
@@ -9374,10 +9382,9 @@
           game.mapShine.profileManager.activeConfig.physicsRope;
         newGroup.texturePath = "modules/map-shine/assets/rope.webp"; // A default texture
         newGroup.gravity = ropeDefaults.gravity;
-        newGroup.windStrength = ropeDefaults.windStrength;
-        newGroup.windSpeed = ropeDefaults.windSpeed;
         newGroup.segmentLength = ropeDefaults.segmentLength;
         newGroup.animationSpeed = ropeDefaults.animationSpeed;
+        newGroup.isIndoors = false; // Default to outdoor (full wind)
       }
 
       const path = `flags.${MODULE_ID}.${this.FLAG_NAME}.${groupId}`;
@@ -11293,17 +11300,11 @@
           <details>
             <summary><span class="accordion-toggle"></span><strong>Wind Influence</strong></summary>
             <div style="padding-left: 10px;">
-              ${DebuggerUIBuilder._createCheckboxHTML(`${firePath}.wind.enabled`, "Enable Wind", false)}
-              ${DebuggerUIBuilder._createSliderHTML(`${firePath}.wind.force`, "Wind Force", 0, 200, 1)}
-              ${DebuggerUIBuilder._createSliderHTML(`${firePath}.wind.baseSpeed`, "Base Wind Speed", 0, 100, 1)}
-              ${DebuggerUIBuilder._createSliderHTML(`${firePath}.wind.gustSpeed`, "Gust Speed", 0, 300, 1)}
-              ${DebuggerUIBuilder._createSliderHTML(`${firePath}.wind.gustFrequencyMin`, "Min Gust Frequency (s)", 0.1, 30, 0.1)}
-              ${DebuggerUIBuilder._createSliderHTML(`${firePath}.wind.gustFrequencyMax`, "Max Gust Frequency (s)", 0.1, 30, 0.1)}
-              ${DebuggerUIBuilder._createSliderHTML(`${firePath}.wind.gustDurationMin`, "Min Gust Duration (s)", 0.1, 5, 0.1)}
-              ${DebuggerUIBuilder._createSliderHTML(`${firePath}.wind.gustDurationMax`, "Max Gust Duration (s)", 0.1, 5, 0.1)}
-              ${DebuggerUIBuilder._createSliderHTML(`${firePath}.wind.angleChangeFrequencyMin`, "Min Angle Change (s)", 1, 60, 1)}
-              ${DebuggerUIBuilder._createSliderHTML(`${firePath}.wind.angleChangeFrequencyMax`, "Max Angle Change (s)", 1, 60, 1)}
-              ${DebuggerUIBuilder._createSliderHTML(`${firePath}.wind.angleChangeRange`, "Angle Change Range (°)", 0, 180, 1)}
+              <p class="description-text" style="font-style: italic; color: #999;">Wind is now controlled globally in the "Wind" section. The values below reflect the current global settings.</p>
+              ${DebuggerUIBuilder._createReadOnlyDisplayHTML(`${firePath}.wind.enabled`, "Wind Enabled")}
+              ${DebuggerUIBuilder._createReadOnlyDisplayHTML(`${firePath}.wind.force`, "Wind Force")}
+              ${DebuggerUIBuilder._createReadOnlyDisplayHTML(`${firePath}.wind.baseSpeed`, "Base Wind Speed")}
+              ${DebuggerUIBuilder._createReadOnlyDisplayHTML(`${firePath}.wind.gustSpeed`, "Gust Speed")}
             </div>
           </details>
 
@@ -11833,7 +11834,7 @@
                     </details>
                   `;
 
-      // Special case for Fire Wind
+      // Special case for Wind settings
       if (effectKey === "fire") {
         content += `
                       <details id="details-fire-wind">
@@ -12964,12 +12965,12 @@
     if (maskKey === "fire") {
       // Fire particles have special movement logic for rising.
       if (config.wind?.enabled) {
-        // With wind, all movement is handled by the custom FireWindBehavior.
+        // With wind, all movement is handled by the custom WindBehavior.
         // This behavior includes buoyancy and applies wind forces directly to velocity.
         // We do NOT add moveAcceleration or set emitterConfig.speed, as that would
         // create conflicts with our custom physics simulation.
         behaviors.push({
-          type: "fireWind",
+          type: "wind",
           config: config.wind,
         });
       } else {
@@ -13526,7 +13527,7 @@
     }
   }
 
-  class FireWindManager {
+  class WindManager {
     constructor(config = {}) {
       this.config = config;
 
@@ -14198,8 +14199,8 @@
       const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
       const deltaInSeconds = clampedDeltaTime * timeFactor;
 
-      if (game.mapShine.fireWindManager) {
-        game.mapShine.fireWindManager.update(deltaInSeconds);
+      if (game.mapShine.windManager) {
+        game.mapShine.windManager.update(deltaInSeconds);
       }
 
       game.mapShine.particleManager.update(deltaInSeconds);
@@ -15287,10 +15288,14 @@
         particle.tint = emissiveColor;
       }
     }
+
+    destroy() {
+      // No special cleanup needed
+    }
   }
 
-  class FireWindBehavior {
-    static type = "fireWind";
+  class WindBehavior {
+    static type = "wind";
 
     constructor(config) {
       this.order = PIXI.particles.behaviors.BehaviorOrder.Normal;
@@ -15320,7 +15325,7 @@
      * @param {number} deltaSec The time elapsed in seconds.
      */
     updateParticle(particle, deltaSec) {
-      const windManager = game.mapShine?.fireWindManager;
+      const windManager = game.mapShine?.windManager;
       // Do nothing if the particle is invalid or the necessary systems aren't ready.
 
       if (!particle.velocity || !windManager || !this.config.enabled) return;
@@ -20447,20 +20452,20 @@
  * Represents a single physics rope with Verlet integration
  */
 class PhysicsRope {
-  constructor(points, config, texture) {
+  constructor(points, config, texture, isIndoors = false) {
     this.config = foundry.utils.mergeObject(
       {
         gravity: 500,
-        windStrength: 200,
-        windSpeed: 2.0,
         segmentLength: 10,
         animationSpeed: 1,
         damping: 0.99,
         tapering: 0.5, // 0 = no taper, 1 = max taper (70% reduction at center)
         texturePath: "modules/map-shine/assets/rope.webp",
+        indoorWindShielding: 0.9, // Default 90% wind reduction indoors
       },
       config
     );
+    this.isIndoors = isIndoors;
 
     // this.points are the simulation points (centerline)
     this.points = this._subdividePoints(points, this.config.segmentLength);
@@ -20544,15 +20549,17 @@ class PhysicsRope {
       locked: false,
     });
 
-    // Add initial sag to the rope to help kickstart gravity
+    // Add initial sag to the rope to help kickstart gravity (only if gravity is enabled)
     // Apply a downward offset to middle points
-    for (let i = 1; i < subdivided.length - 1; i++) {
-      // Create a parabolic sag, strongest in the middle
-      const normalizedPos = i / (subdivided.length - 1); // 0 to 1
-      const sagFactor = Math.sin(normalizedPos * Math.PI); // 0 at ends, 1 in middle
-      const sagAmount = segmentLength * 2 * sagFactor;
-      subdivided[i].y += sagAmount;
-      subdivided[i].prevY += sagAmount;
+    if (this.config.gravity > 0) {
+      for (let i = 1; i < subdivided.length - 1; i++) {
+        // Create a parabolic sag, strongest in the middle
+        const normalizedPos = i / (subdivided.length - 1); // 0 to 1
+        const sagFactor = Math.sin(normalizedPos * Math.PI); // 0 at ends, 1 in middle
+        const sagAmount = segmentLength * 2 * sagFactor;
+        subdivided[i].y += sagAmount;
+        subdivided[i].prevY += sagAmount;
+      }
     }
 
     return subdivided;
@@ -20578,37 +20585,44 @@ class PhysicsRope {
       let windForceX = 0;
       let windForceY = 0;
       
-      // Use FireWindManager if available, otherwise fall back to generic animation
-      if (game.mapShine?.fireWindManager) {
-        const windManager = game.mapShine.fireWindManager;
-        const windAngleRad = windManager.angle * (Math.PI / 180);
-        const windSpeed = windManager.speed;
+      // Use global WindManager for all wind simulation
+      if (game.mapShine?.windManager) {
+        const windManager = game.mapShine.windManager;
+        const windConfig = game.mapShine.profileManager.activeConfig.fire.particles.wind;
         
-        const baseForce = windSpeed * this.config.windStrength * 0.1;
-        const baseWindX = Math.cos(windAngleRad) * baseForce;
-        const baseWindY = Math.sin(windAngleRad) * baseForce;
-        
-        const lengthPhase = i * 0.5;
-        const timePhase = this.time * this.config.windSpeed;
-        const variation = Math.sin(timePhase + lengthPhase) * 0.2;
-        
-        const perpX = -Math.sin(windAngleRad) * variation * baseForce;
-        const perpY = Math.cos(windAngleRad) * variation * baseForce;
-        
-        windForceX = baseWindX + perpX;
-        windForceY = baseWindY + perpY;
-      } else {
-        const windWaveX = Math.sin(this.time * this.config.windSpeed + i * 0.3);
-        const windWaveY = Math.cos(this.time * this.config.windSpeed * 0.7 + i * 0.5) * 0.3;
-        windForceX = windWaveX * this.config.windStrength;
-        windForceY = windWaveY * this.config.windStrength * 0.5;
+        // Only apply wind if it's enabled in global settings
+        if (windConfig.enabled) {
+          const windAngleRad = windManager.angle * (Math.PI / 180);
+          const windSpeed = windManager.speed;
+          
+          // Use global wind force setting
+          const baseForce = windSpeed * windConfig.force * 0.1;
+          const baseWindX = Math.cos(windAngleRad) * baseForce;
+          const baseWindY = Math.sin(windAngleRad) * baseForce;
+          
+          // Add variation along rope length using global baseSpeed
+          const lengthPhase = i * 0.5;
+          const timePhase = this.time * (windConfig.baseSpeed * 0.05);
+          const variation = Math.sin(timePhase + lengthPhase) * 0.2;
+          
+          const perpX = -Math.sin(windAngleRad) * variation * baseForce;
+          const perpY = Math.cos(windAngleRad) * variation * baseForce;
+          
+          // Apply indoor wind shielding if rope is marked as indoors
+          const windMultiplier = this.isIndoors ? (1.0 - this.config.indoorWindShielding) : 1.0;
+          windForceX = (baseWindX + perpX) * windMultiplier;
+          windForceY = (baseWindY + perpY) * windMultiplier;
+        }
       }
       
       const dampedVx = vx * this.config.damping;
       const dampedVy = vy * this.config.damping;
       
+      // Apply gravity force
+      const gravityForce = this.config.gravity * deltaTime;
+      
       point.x += dampedVx + windForceX * deltaTime;
-      point.y += dampedVy + windForceY * deltaTime;
+      point.y += dampedVy + windForceY * deltaTime + gravityForce;
     }
 
     // Constraint resolution (maintain segment lengths for rope integrity)
@@ -20694,7 +20708,6 @@ class PhysicsRope {
         const centerX = simPoint.x;
         const centerY = simPoint.y;
         
-        const vertexIndex = i * 2;
         const bufferIndex = i * 4;
 
         if (bufferIndex + 3 < vertices.length) {
@@ -20770,13 +20783,12 @@ export class PhysicsRopeLayer extends CanvasLayer {
 
           const ropeConfig = {
             gravity: group.gravity,
-            windStrength: group.windStrength,
-            windSpeed: group.windSpeed,
             segmentLength: group.segmentLength,
             animationSpeed: group.animationSpeed,
+            indoorWindShielding: group.indoorWindShielding ?? game.mapShine.profileManager.activeConfig.physicsRope.indoorWindShielding,
           };
 
-          const rope = new PhysicsRope(group.points, ropeConfig, texture);
+          const rope = new PhysicsRope(group.points, ropeConfig, texture, group.isIndoors ?? false);
           this.ropeContainer.addChild(rope.mesh);
           this.ropes.push(rope);
         } catch (err) {
@@ -20949,264 +20961,126 @@ export class PhysicsRopeLayer extends CanvasLayer {
           .join("");
 
         // Ensure emission data exists with defaults for robustness
-      const emission = foundry.utils.mergeObject(
-        {
-          intensity: 1.0,
-          falloff: {
-            enabled: false,
-            strength: 0.5,
+        const emission = foundry.utils.mergeObject(
+          {
+            intensity: 1.0,
+            falloff: {
+              enabled: false,
+              strength: 0.5,
+            },
           },
-        },
-        selectedGroup.emission
-      );
-
-      // Ensure rope data exists with defaults for rope groups
-      const ropeDefaults =
-        MODULE_DEFAULTS.physicsRope;
-      const ropeConfig =
-        selectedGroup.type === "rope"
-          ? foundry.utils.mergeObject(ropeDefaults, {
-              texturePath: selectedGroup.texturePath || ropeDefaults.texturePath,
-              gravity: selectedGroup.gravity ?? ropeDefaults.gravity,
-              windStrength:
-                selectedGroup.windStrength ?? ropeDefaults.windStrength,
-              windSpeed: selectedGroup.windSpeed ?? ropeDefaults.windSpeed,
-              segmentLength:
-                selectedGroup.segmentLength ?? ropeDefaults.segmentLength,
-              animationSpeed:
-                selectedGroup.animationSpeed ?? ropeDefaults.animationSpeed,
-            })
-          : ropeDefaults;
+          selectedGroup.emission
+        );
 
         detailsHTML = `
-                                <div class="mp-details-header">
-                                    <h4>${Handlebars.escapeExpression(
-                                      selectedGroup.label
-                                    )}</h4>
-                                    <button type="button" data-action="delete-group" class="delete-btn" title="Delete Group"><i class="fas fa-trash"></i> Delete Group</button>
-                                </div>
-                                <div class="mp-group-properties">
-                                    <div class="control-row">
-                                        <label for="mp-group-label">Label</label>
-                                        <input type="text" name="label" id="mp-group-label" value="${Handlebars.escapeExpression(
-                                          selectedGroup.label
-                                        )}">
-                                    </div>
-                                    <div class="control-row">
-                                        <label for="mp-group-type">Type</label>
-                                        <select name="type" id="mp-group-type">
-                                            <option value="point" ${
-                                              selectedGroup.type === "point"
-                                                ? "selected"
-                                                : ""
-                                            }>Points</option>
-                                            <option value="line" ${
-                                              selectedGroup.type === "line"
-                                                ? "selected"
-                                                : ""
-                                            }>Line</option>
-                                            <option value="area" ${
-                                              selectedGroup.type === "area"
-                                                ? "selected"
-                                                : ""
-                                            }>Area</option>
-                                            <option value="rope" ${
-                                              selectedGroup.type === "rope"
-                                                ? "selected"
-                                                : ""
-                                            }>Physics Rope</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                ${
-                                  selectedGroup.type === "rope"
-                                    ? `
-                                  <details class="mp-rope-settings" style="margin-top: 5px;">
-                                    <summary><span class="accordion-toggle"></span><strong><i class="fas fa-anchor"></i> Physics Rope</strong></summary>
-                                    <div style="padding-left: 10px; margin-top: 6px;">
-                                      <div class="control-row">
-                                        <label for="mp-rope-texturePath">Rope Texture</label>
-                                        <div class="file-input" style="display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: center;">
-                                          <input type="text" name="texturePath" id="mp-rope-texturePath" value="${Handlebars.escapeExpression(ropeConfig.texturePath)}">
-                                          <button type="button" data-action="pick-rope-texture" title="Browse"><i class="fas fa-folder-open"></i></button>
-                                        </div>
-                                      </div>
-                                      <div class="control-row control-row-slider">
-                                        <label for="mp-rope-gravity">Gravity</label>
-                                        <input type="range" name="gravity" id="mp-rope-gravity" min="0" max="2000" step="10" value="${ropeConfig.gravity}">
-                                        <span class="value-span">${ropeConfig.gravity.toFixed(0)}</span>
-                                      </div>
-                                      <div class="control-row control-row-slider">
-                                        <label for="mp-rope-windStrength">Wind Strength</label>
-                                        <input type="range" name="windStrength" id="mp-rope-windStrength" min="0" max="1000" step="10" value="${ropeConfig.windStrength}">
-                                        <span class="value-span">${ropeConfig.windStrength.toFixed(0)}</span>
-                                      </div>
-                                      <div class="control-row control-row-slider">
-                                        <label for="mp-rope-windSpeed">Wind Speed</label>
-                                        <input type="range" name="windSpeed" id="mp-rope-windSpeed" min="0" max="10" step="0.1" value="${ropeConfig.windSpeed}">
-                                        <span class="value-span">${ropeConfig.windSpeed.toFixed(1)}</span>
-                                      </div>
-                                      <div class="control-row control-row-slider">
-                                        <label for="mp-rope-segmentLength">Segment Length</label>
-                                        <input type="range" name="segmentLength" id="mp-rope-segmentLength" min="5" max="50" step="1" value="${ropeConfig.segmentLength}">
-                                        <span class="value-span">${ropeConfig.segmentLength.toFixed(0)}</span>
-                                      </div>
-                                      <div class="control-row control-row-slider">
-                                        <label for="mp-rope-animationSpeed">Animation Speed</label>
-                                        <input type="range" name="animationSpeed" id="mp-rope-animationSpeed" min="0" max="5" step="0.1" value="${ropeConfig.animationSpeed}">
-                                        <span class="value-span">${ropeConfig.animationSpeed.toFixed(1)}</span>
-                                      </div>
-                                    </div>
-                                  </details>`
-                                    : ""
-                                }
-                                <ul class="mp-points-list">
-                                    ${selectedGroup.points
-                                      .map(
-                                        (p, i) => `
-                                            <span>#${i + 1}</span>
-                                            <span>X: ${Math.round(p.x)}</span>
-                                            <span>Y: ${Math.round(p.y)}</span>
-                                            <button type="button" data-action="delete-point" data-point-index="${i}" title="Delete Point"><i class="fas fa-times"></i></button>
-                                        </li>
-                                    `
-                                      )
-                                      .join("")}
-                                </ul>
-                                <div class="mp-effect-source-settings">
-                                    <h4><i class="fas fa-magic"></i> Effect Source</h4>
-                                    <div class="control-row">
-                                        <label for="mp-isEffectSource" title="If checked, this group's geometry will be used to generate the selected effect.">Use as Effect Source</label>
-                                        <input type="checkbox" name="isEffectSource" id="mp-isEffectSource" ${
-                                          selectedGroup.isEffectSource
-                                            ? "checked"
-                                            : ""
-                                        }>
-                                    </div>
-                                    <div class="control-row" id="mp-effectTarget-wrapper" style="display: ${
-                                      selectedGroup.isEffectSource
-                                        ? "flex"
-                                        : "none"
-                                    };">
-                                        <label for="mp-effectTarget">Target Effect</label>
-                                        <select name="effectTarget" id="mp-effectTarget">
-                                            ${effectOptions}
-                                        </select>
-                                    </div>
-                                    <div id="mp-emission-settings-wrapper" style="margin-top: 8px; display: ${
-                                      selectedGroup.isEffectSource
-                                        ? "block"
-                                        : "none"
-                                    }; border-top: 1px solid #555; padding-top: 8px;">
-                                        <h5 class="mp-sub-header">Custom Emission</h5>
-                                        <div class="control-row control-row-slider">
-                                            <label for="mp-emission-intensity" title="A multiplier for particle density and spawn rate.">Intensity</label>
-                                            <input type="range" name="emission.intensity" id="mp-emission-intensity" min="0.1" max="15" step="0.1" value="${
-                                              emission.intensity
-                                            }">
-                                            <span class="value-span">${emission.intensity.toFixed(
-                                              1
-                                            )}</span>
-                                        </div>
-                                        <div id="mp-emission-falloff-wrapper" style="margin-top: 5px; display: ${
-                                          selectedGroup.type === "point"
-                                            ? "none"
-                                            : "block"
-                                        };">
-                                            <div class="control-row">
-                                                <label for="mp-emission-falloff-enabled" title="Concentrate particle spawns towards the center of lines and areas.">Emission Falloff</label>
-                                                <input type="checkbox" name="emission.falloff.enabled" id="mp-emission-falloff-enabled" ${
-                                                  emission.falloff.enabled
-                                                    ? "checked"
-                                                    : ""
-                                                }>
-                                            </div>
-                                            <div class="control-row control-row-slider" style="display: ${
-                                              emission.falloff.enabled
-                                                ? "grid"
-                                                : "none"
-                                            };">
-                                                <label for="mp-emission-falloff-strength" title="How strongly spawns are biased towards the center. 0=uniform, 1=max bias.">Strength</label>
-                                                <input type="range" name="emission.falloff.strength" id="mp-emission-falloff-strength" min="0" max="0.99" step="0.01" value="${
-                                                  emission.falloff.strength
-                                                }">
-                                                <span class="value-span">${emission.falloff.strength.toFixed(
-                                                  2
-                                                )}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            `;
+          <div class="mp-details-header">
+              <h4>${Handlebars.escapeExpression(selectedGroup.label)}</h4>
+              <button type="button" data-action="delete-group" class="delete-btn" title="Delete Group"><i class="fas fa-trash"></i> Delete Group</button>
+          </div>
+          <div class="mp-group-properties">
+              <div class="control-row">
+                  <label for="mp-group-label">Label</label>
+                  <input type="text" name="label" id="mp-group-label" value="${Handlebars.escapeExpression(selectedGroup.label)}">
+              </div>
+              <div class="control-row">
+                  <label for="mp-group-type">Type</label>
+                  <select name="type" id="mp-group-type">
+                      <option value="point" ${selectedGroup.type === "point" ? "selected" : ""}>Points</option>
+                      <option value="line" ${selectedGroup.type === "line" ? "selected" : ""}>Line</option>
+                      <option value="area" ${selectedGroup.type === "area" ? "selected" : ""}>Area</option>
+                      <option value="rope" ${selectedGroup.type === "rope" ? "selected" : ""}>Physics Rope</option>
+                  </select>
+              </div>
+          </div>
+          <ul class="mp-points-list">
+              ${selectedGroup.points.map((p, i) => `
+                  <li>
+                      <span>#${i + 1}</span>
+                      <span>X: ${Math.round(p.x)}</span>
+                      <span>Y: ${Math.round(p.y)}</span>
+                      <button type="button" data-action="delete-point" data-point-index="${i}" title="Delete Point"><i class="fas fa-times"></i></button>
+                  </li>`
+              ).join("")}
+          </ul>
+          <div class="mp-effect-source-settings">
+              <h4><i class="fas fa-magic"></i> Effect Source</h4>
+              <div class="control-row">
+                  <label for="mp-isEffectSource" title="If checked, this group's geometry will be used to generate the selected effect.">Use as Effect Source</label>
+                  <input type="checkbox" name="isEffectSource" id="mp-isEffectSource" ${selectedGroup.isEffectSource ? "checked" : ""}>
+              </div>
+              <div class="control-row" id="mp-effectTarget-wrapper" style="display: ${selectedGroup.isEffectSource ? "flex" : "none"};">
+                  <label for="mp-effectTarget">Target Effect</label>
+                  <select name="effectTarget" id="mp-effectTarget">
+                      ${effectOptions}
+                  </select>
+              </div>
+              <div id="mp-emission-settings-wrapper" style="margin-top: 8px; display: ${selectedGroup.isEffectSource ? "block" : "none"}; border-top: 1px solid #555; padding-top: 8px;">
+                  <h5 class="mp-sub-header">Custom Emission</h5>
+                  <div class="control-row control-row-slider">
+                      <label for="mp-emission-intensity" title="A multiplier for particle density and spawn rate.">Intensity</label>
+                      <input type="range" name="emission.intensity" id="mp-emission-intensity" min="0.1" max="15" step="0.1" value="${emission.intensity}">
+                      <span class="value-span">${emission.intensity.toFixed(1)}</span>
+                  </div>
+                  <div id="mp-emission-falloff-wrapper" style="margin-top: 5px; display: ${selectedGroup.type === "point" ? "none" : "block"};">
+                      <div class="control-row">
+                          <label for="mp-emission-falloff-enabled" title="Concentrate particle spawns towards the center of lines and areas.">Emission Falloff</label>
+                          <input type="checkbox" name="emission.falloff.enabled" id="mp-emission-falloff-enabled" ${emission.falloff.enabled ? "checked" : ""}>
+                      </div>
+                      <div class="control-row control-row-slider" style="display: ${emission.falloff.enabled ? "grid" : "none"};">
+                          <label for="mp-emission-falloff-strength" title="How strongly spawns are biased towards the center. 0=uniform, 1=max bias.">Strength</label>
+                          <input type="range" name="emission.falloff.strength" id="mp-emission-falloff-strength" min="0" max="0.99" step="0.01" value="${emission.falloff.strength}">
+                          <span class="value-span">${emission.falloff.strength.toFixed(2)}</span>
+                      </div>
+                  </div>
+              </div>
+          </div>
+        `;
       } else {
         detailsHTML = `<div class="mp-details-placeholder">Select a group to view its details.</div>`;
       }
 
       // Determine button state and text for the placement tool
-      const isPlacementActive =
-        game.mapShine.mapPointsInteractionManager.isActive;
-      const placementButtonText = isPlacementActive
-        ? "Deactivate Point Placement Mode"
-        : "Activate Point Placement Mode";
+      const isPlacementActive = game.mapShine.mapPointsInteractionManager.isActive;
+      const placementButtonText = isPlacementActive ? "Deactivate Point Placement Mode" : "Activate Point Placement Mode";
       const placementButtonClass = isPlacementActive ? "active" : "";
 
       // Main Template
       return `
-                            <form class="mp-editor">
-                                <div class="mp-main-content">
-                                    <div class="mp-panel mp-panel-groups">
-                                        <h3>Groups</h3>
-                                        <ul class="mp-group-list">
-                                            ${groups
-                                              .map(
-                                                (g) => `
-                                                <li class="mp-group-item ${
-                                                  g.id === this._selectedGroupId
-                                                    ? "selected"
-                                                    : ""
-                                                }" data-group-id="${
-                                                  g.id
-                                                }" data-action="select-group">
-                                                    <span class="mp-group-item-status ${
-                                                      g.isBroken
-                                                        ? "broken"
-                                                        : "valid"
-                                                    }" title="${
-                                                  g.isBroken ? g.reason : "Valid"
-                                                }"></span>
-                                                    <span class="mp-group-item-label">${Handlebars.escapeExpression(
-                                                      g.label
-                                                    )}</span>
-                                                    <span class="mp-group-item-type">${
-                                                      g.type
-                                                    }</span>
-                                                </li>
-                                            `
-                                              )
-                                              .join("")}
-                                        </ul>
-                                        <div class="mp-create-group-form">
-                                            <input type="text" name="newGroupName" placeholder="New Group Name">
-                                            <div class="create-controls">
-                                                <select name="newGroupType">
-                                                    <option value="point">Points</option>
-                                                    <option value="line">Line</option>
-                                                    <option value="area">Area</option>
-                                                    <option value="rope">Physics Rope</option>
-                                                </select>
-                                            </div>
-                                            <button type="button" data-action="create-group">Create Group</button>
-                                        </div>
-                                    </div>
-                                    <div class="mp-panel mp-panel-details">
-                                        ${detailsHTML}
-                                    </div>
-                                </div>
-                                <div class="mp-editor-footer">
-                                    <button type="button" data-action="toggle-placement" class="${placementButtonClass}" style="width: 100%;">${placementButtonText}</button>
-                                </div>
-                            </form>
-                        `;
+        <form class="mp-editor">
+            <div class="mp-main-content">
+                <div class="mp-panel mp-panel-groups">
+                    <h3>Groups</h3>
+                    <ul class="mp-group-list">
+                        ${groups.map((g) => `
+                            <li class="mp-group-item ${g.id === this._selectedGroupId ? "selected" : ""}" data-group-id="${g.id}" data-action="select-group">
+                                <span class="mp-group-item-status ${g.isBroken ? "broken" : "valid"}" title="${g.isBroken ? g.reason : "Valid"}"></span>
+                                <span class="mp-group-item-label">${Handlebars.escapeExpression(g.label)}</span>
+                                <span class="mp-group-item-type">${g.type}</span>
+                            </li>`
+                        ).join("")}
+                    </ul>
+                    <div class="mp-create-group-form">
+                        <input type="text" name="newGroupName" placeholder="New Group Name">
+                        <div class="create-controls">
+                            <select name="newGroupType">
+                                <option value="point">Points</option>
+                                <option value="line">Line</option>
+                                <option value="area">Area</option>
+                                <option value="rope">Physics Rope</option>
+                            </select>
+                        </div>
+                        <button type="button" data-action="create-group">Create Group</button>
+                    </div>
+                </div>
+                <div class="mp-panel mp-panel-details">
+                    ${detailsHTML}
+                </div>
+            </div>
+            <div class="mp-editor-footer">
+                <button type="button" data-action="toggle-placement" class="${placementButtonClass}" style="width: 100%;">${placementButtonText}</button>
+            </div>
+        </form>
+      `;
     }
 
     activateListeners(html) {
@@ -22690,12 +22564,12 @@ export class PhysicsRopeLayer extends CanvasLayer {
                                     )}
                     <details id="details-cloudShadows-wind-link" style="margin-top: 5px;">
                       <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-                        "cloudShadows.wind.linkToFireWind",
+                        "cloudShadows.wind.linkToWind",
                         "Link to Complex Wind",
                         true
                       )}</div></summary>
                       <div style="padding-left: 10px;">
-                        <p class="description-text">Overrides the simple wind settings above and uses the wind simulation from the Fire effect.</p>
+                        <p class="description-text">Overrides the simple wind settings above and uses the complex wind simulation system.</p>
                         ${DebuggerUIBuilder._createSliderHTML(
                           "cloudShadows.wind.linkedWindForce",
                           "Wind Force",
@@ -22904,10 +22778,10 @@ export class PhysicsRopeLayer extends CanvasLayer {
       const windConfig = csConfig.wind;
       const deltaInSeconds = deltaTime / 1000;
       if (
-        windConfig.linkToFireWind &&
-        game.mapShine.fireWindManager?.config?.enabled
+        windConfig.linkToWind &&
+        game.mapShine.windManager?.config?.enabled
       ) {
-        const windManager = game.mapShine.fireWindManager;
+        const windManager = game.mapShine.windManager;
         const windAngleRad = windManager.angle * (Math.PI / 180.0);
         const windForceMagnitude =
           windManager.speed * (windConfig.linkedWindForce ?? 0.001);
@@ -27731,7 +27605,7 @@ export class PhysicsRopeLayer extends CanvasLayer {
         return;
       }
 
-      const windManager = game.mapShine?.fireWindManager;
+      const windManager = game.mapShine?.windManager;
       const arrow = this.element.find(".clock-wind-arrow")[0];
 
       if (windManager && arrow) {
@@ -27747,7 +27621,8 @@ export class PhysicsRopeLayer extends CanvasLayer {
           // We scale strength so that max gust is full length.
           const scale = strength * 0.45; // 0.45 instead of 0.5 to keep it inside the clock face
 
-          arrow.style.transform = `rotate(${angle}deg) scaleY(${scale})`;
+          // Add 90 degrees to correct the windsock orientation
+          arrow.style.transform = `rotate(${angle + 90}deg) scaleY(${scale})`;
         } else {
           arrow.style.display = "none";
         }
@@ -30288,6 +30163,12 @@ export class PhysicsRopeLayer extends CanvasLayer {
       return `<div class="control-row control-row-slider"><label for="${id}" ${titleAttr}>${label}</label><input type="range" name="${path}" id="${id}" data-path="${path}" min="${min}" max="${max}" step="${step}"><input type="number" id="${id}-value" class="value-span" data-slider-id="${id}" min="${min}" max="${max}" step="${step}"></div>`;
     }
 
+    static _createReadOnlyDisplayHTML(path, label, title = "") {
+      const id = this._createSafeId(path);
+      const titleAttr = title ? `title="${title}"` : "";
+      return `<div class="control-row"><label ${titleAttr}>${label}</label><span class="read-only-value" id="${id}-readonly" data-readonly-path="${path}">-</span></div>`;
+    }
+
     static _createColorPickerHTML(path, label) {
       const id = this._createSafeId(path);
       return `<div class="control-row"><label for="${id}">${label}</label><div class="widget-group" style="flex-grow: 1;"><input type="color" name="${path}" id="${id}" data-path="${path}"></div></div>`;
@@ -30406,9 +30287,108 @@ export class PhysicsRopeLayer extends CanvasLayer {
       );
     }
 
+    _getPhysicsRopeHTML() {
+      const path = "physicsRope";
+      const windPath = "fire.particles.wind";
+      const content = `
+        <p class="description-text">Define the default global settings for Physics Ropes created via Map Points.</p>
+        ${DebuggerUIBuilder._createTextureInputHTML(
+          `${path}.texturePath`,
+          "Default Rope Texture",
+          "modules/map-shine/assets/rope.webp"
+        )}
+        ${DebuggerUIBuilder._createSliderHTML(
+          `${path}.gravity`,
+          "Gravity", 0, 2, 0.05
+        )}
+        ${DebuggerUIBuilder._createSliderHTML(
+          `${path}.segmentLength`,
+          "Segment Length", 1, 50, 1
+        )}
+        ${DebuggerUIBuilder._createSliderHTML(
+          `${path}.damping`,
+          "Damping", 0.8, 1, 0.005
+        )}
+        ${DebuggerUIBuilder._createSliderHTML(
+          `${path}.indoorWindShielding`,
+          "Indoor Wind Shielding", 0, 1, 0.05
+        )}
+        <details>
+          <summary><span class="accordion-toggle"></span><strong>Wind Influence</strong></summary>
+          <div style="padding-left: 10px;">
+            <p class="description-text" style="font-style: italic; color: #999;">Wind is now controlled globally in the "Wind" section. The values below reflect the current global settings.</p>
+            ${DebuggerUIBuilder._createReadOnlyDisplayHTML(`${windPath}.enabled`, "Wind Enabled")}
+            ${DebuggerUIBuilder._createReadOnlyDisplayHTML(`${windPath}.force`, "Wind Force")}
+            ${DebuggerUIBuilder._createReadOnlyDisplayHTML(`${windPath}.baseSpeed`, "Base Wind Speed")}
+          </div>
+        </details>
+      `;
+      return DebuggerUIBuilder._createAccordionHTML(
+        "physicsRope",
+        "Physics Rope",
+        content
+      );
+    }
+
+    _getWindHTML() {
+      const windPath = "fire.particles.wind";
+      const content = `
+        <p class="description-text">Configure the global wind conditions that affect various particle systems like fire and physics ropes.</p>
+        <details>
+          <summary><span class="accordion-toggle"></span><strong>Global Wind Simulation</strong></summary>
+          <div style="padding-left: 10px;">
+          ${DebuggerUIBuilder._createSliderHTML(
+            `${windPath}.baseSpeed`,
+            "Base Wind Speed", 0, 200, 1
+          )}
+          ${DebuggerUIBuilder._createSliderHTML(
+            `${windPath}.gustSpeed`,
+            "Gust Speed", 0, 500, 1
+          )}
+          ${DebuggerUIBuilder._createSliderHTML(
+            `${windPath}.gustFrequencyMin`,
+            "Min Gust Frequency (s)", 0.1, 30, 0.1
+          )}
+          ${DebuggerUIBuilder._createSliderHTML(
+            `${windPath}.gustFrequencyMax`,
+            "Max Gust Frequency (s)", 0.1, 30, 0.1
+          )}
+          ${DebuggerUIBuilder._createSliderHTML(
+            `${windPath}.gustDurationMin`,
+            "Min Gust Duration (s)", 0.1, 5, 0.1
+          )}
+          ${DebuggerUIBuilder._createSliderHTML(
+            `${windPath}.gustDurationMax`,
+            "Max Gust Duration (s)", 0.1, 5, 0.1
+          )}
+          ${DebuggerUIBuilder._createSliderHTML(
+            `${windPath}.angleChangeFrequencyMin`,
+            "Min Angle Change Frequency (s)", 1, 60, 1
+          )}
+          ${DebuggerUIBuilder._createSliderHTML(
+            `${windPath}.angleChangeFrequencyMax`,
+            "Max Angle Change Frequency (s)", 1, 60, 1
+          )}
+          ${DebuggerUIBuilder._createSliderHTML(
+            `${windPath}.angleChangeRange`,
+            "Angle Change Range (degrees)", 0, 180, 1
+          )}
+          </div>
+        </details>
+      `;
+
+      return DebuggerUIBuilder._createAccordionHTML(
+        "wind",
+        "Wind",
+        content
+      );
+    }
+
     _getEffectSections() {
       return [
         this._getLightingHTML(),
+        this._getWindHTML(),
+        this._getPhysicsRopeHTML(),
         MetallicShineLayer.getSettingsHTML(),
         TimeOfDayLayer.getSettingsHTML(),
         BuildingShadowsLayer.getSettingsHTML(),
@@ -32111,6 +32091,34 @@ export class PhysicsRopeLayer extends CanvasLayer {
           console.log("MapShine | Found list manager for path:", path);
           this._renderListManagerItems(path);
         });
+
+      // Update read-only display fields
+      this.element.querySelectorAll("[data-readonly-path]").forEach((el) => {
+        const path = el.dataset.readonlyPath;
+        const isGameSetting = path.startsWith("universal.") || path.startsWith("loading-screen-");
+        let value;
+
+        if (isGameSetting) {
+          value = game.settings.get(MODULE_ID, path);
+        } else {
+          value = this._getPathValue(this.config, path);
+        }
+
+        if (value === undefined || value === null) {
+          el.textContent = "-";
+          return;
+        }
+
+        // Format the value for display
+        if (typeof value === "boolean") {
+          el.textContent = value ? "Yes" : "No";
+        } else if (typeof value === "number") {
+          // Format numbers with appropriate precision
+          el.textContent = Number.isInteger(value) ? value.toString() : value.toFixed(2);
+        } else {
+          el.textContent = String(value);
+        }
+      });
 
       this._updateRandomHintVisibility();
       this._updatePauseHintVisibility();
