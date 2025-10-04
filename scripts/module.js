@@ -4541,6 +4541,7 @@ export const MODULE_DEFAULTS = {
         PIXI.particles.Emitter.registerBehavior(PressurisedSteamBehavior);
         PIXI.particles.Emitter.registerBehavior(SmellyFliesBehavior);
         PIXI.particles.Emitter.registerBehavior(ColorFromSpawnBehavior);
+        PIXI.particles.Emitter.registerBehavior(GPUMaskSpawnBehavior);
         PIXI.particles.Emitter.registerBehavior(MapShineLightingBehavior);
       } else {
         console.error(
@@ -15650,6 +15651,253 @@ export const MODULE_DEFAULTS = {
     // Required method for cleanup.
     destroy() {
       // Nothing to destroy.
+    }
+  }
+
+  /**
+   * GPU-based mask spawn behavior that eliminates expensive GPU-to-CPU readback.
+   * Instead of pre-computing all valid spawn points, this behavior:
+   * 1. Assigns random UV coordinates to particles on init
+   * 2. Samples the mask texture on GPU during particle update
+   * 3. Repositions particles that fail the threshold test
+   * 
+   * This distributes the workload across frames and keeps all data on GPU.
+   */
+  class GPUMaskSpawnBehavior {
+    static type = "gpuMaskSpawn";
+
+    constructor(config) {
+      this.order = PIXI.particles.behaviors.BehaviorOrder.Spawn;
+      
+      // Mask texture and configuration
+      this.maskTexture = config.maskTexture;
+      this.colorTexture = config.colorTexture || null;
+      this.threshold = config.threshold ?? 128;
+      this.upperThreshold = config.upperThreshold ?? 255;
+      this.spawnMode = config.spawnMode || "threshold";
+      
+      // Bounds for spawn area
+      this.bounds = config.bounds || {
+        x: 0,
+        y: 0,
+        width: this.maskTexture?.width || 100,
+        height: this.maskTexture?.height || 100
+      };
+      
+      // Dynamic screen mask flag
+      this.isDynamicScreenMask = config.isDynamicScreenMask ?? false;
+      
+      // Renderer reference for pixel sampling
+      this.renderer = canvas.app?.renderer;
+      
+      // Cache for render textures to avoid recreating each frame
+      this._maskRenderTexture = null;
+      this._colorRenderTexture = null;
+      this._maskPixelData = null;
+      this._colorPixelData = null;
+      this._needsRefresh = true;
+      
+      // Maximum attempts per frame to find valid spawn position
+      this.maxAttemptsPerFrame = 3;
+    }
+
+    /**
+     * Initialize particles with random UV coordinates
+     */
+    initParticles(first) {
+      let next = first;
+      while (next) {
+        // Assign random UV coordinates for mask sampling
+        next.spawnCheckUV = {
+          u: Math.random(),
+          v: Math.random()
+        };
+        
+        // Mark particle as not yet validated
+        next.spawnValidated = false;
+        next.spawnAttempts = 0;
+        
+        // Start particle invisible until valid position found
+        next.alpha = 0;
+        
+        next = next.next;
+      }
+    }
+
+    /**
+     * Update particle - check mask and reposition if needed
+     */
+    updateParticle(particle, deltaSec) {
+      // Skip if particle is already validated
+      if (particle.spawnValidated) {
+        return;
+      }
+      
+      // Limit attempts per frame to avoid stalling
+      if (particle.spawnAttempts >= this.maxAttemptsPerFrame) {
+        return;
+      }
+      
+      particle.spawnAttempts++;
+      
+      // Refresh pixel data if needed (for dynamic masks or first time)
+      if (this._needsRefresh) {
+        this._refreshPixelData();
+      }
+      
+      // Sample mask at particle's UV coordinates
+      if (this._maskPixelData && this.maskTexture?.valid) {
+        const u = particle.spawnCheckUV.u;
+        const v = particle.spawnCheckUV.v;
+        
+        const texWidth = this.maskTexture.width;
+        const texHeight = this.maskTexture.height;
+        
+        const x = Math.floor(u * texWidth);
+        const y = Math.floor(v * texHeight);
+        const index = (y * texWidth + x) * 4;
+        
+        const pixelValue = this._maskPixelData[index];
+        
+        // Check if pixel passes threshold test
+        let isValid = false;
+        if (this.spawnMode === "range") {
+          isValid = pixelValue >= this.threshold && pixelValue <= this.upperThreshold;
+        } else {
+          isValid = pixelValue >= this.threshold;
+        }
+        
+        if (isValid) {
+          // Valid spawn position found - place particle
+          this._placeParticle(particle, u, v, x, y, texWidth, texHeight);
+          particle.spawnValidated = true;
+          particle.alpha = 1; // Make particle visible
+        } else {
+          // Invalid position - generate new random UV for next attempt
+          particle.spawnCheckUV.u = Math.random();
+          particle.spawnCheckUV.v = Math.random();
+        }
+      }
+    }
+
+    /**
+     * Place particle at validated spawn position
+     */
+    _placeParticle(particle, u, v, texX, texY, texWidth, texHeight) {
+      if (this.isDynamicScreenMask) {
+        // For dynamic screen masks, convert screen coordinates to world coordinates
+        const cameraOffset = CoordinateManager.getCameraOffset();
+        const canvasScale = CoordinateManager.getCanvasScale();
+        
+        const worldX = cameraOffset.x + (u * this.bounds.width) / canvasScale;
+        const worldY = cameraOffset.y + (v * this.bounds.height) / canvasScale;
+        
+        particle.position.x = worldX;
+        particle.position.y = worldY;
+      } else {
+        // For static masks, use bounds directly
+        particle.position.x = this.bounds.x + u * this.bounds.width;
+        particle.position.y = this.bounds.y + v * this.bounds.height;
+      }
+      
+      // Sample color if color texture is available
+      if (this._colorPixelData && this.colorTexture?.valid) {
+        const colorX = Math.floor((texX / texWidth) * this.colorTexture.width);
+        const colorY = Math.floor((texY / texHeight) * this.colorTexture.height);
+        const colorIndex = (colorY * this.colorTexture.width + colorX) * 4;
+        
+        particle.spawnColor = [
+          this._colorPixelData[colorIndex],
+          this._colorPixelData[colorIndex + 1],
+          this._colorPixelData[colorIndex + 2]
+        ];
+      } else if (this._maskPixelData) {
+        // Fallback to mask texture color
+        const index = (texY * texWidth + texX) * 4;
+        particle.spawnColor = [
+          this._maskPixelData[index],
+          this._maskPixelData[index + 1],
+          this._maskPixelData[index + 2]
+        ];
+      }
+    }
+
+    /**
+     * Refresh pixel data from GPU (only when needed)
+     */
+    _refreshPixelData() {
+      if (!this.renderer || !this.maskTexture?.valid) {
+        return;
+      }
+      
+      try {
+        // Extract mask texture pixels
+        if (!this._maskRenderTexture || this._maskRenderTexture.width !== this.maskTexture.width) {
+          if (this._maskRenderTexture) {
+            this._maskRenderTexture.destroy(true);
+          }
+          this._maskRenderTexture = PIXI.RenderTexture.create({
+            width: this.maskTexture.width,
+            height: this.maskTexture.height
+          });
+        }
+        
+        const sprite = new PIXI.Sprite(this.maskTexture);
+        this.renderer.render(sprite, {
+          renderTexture: this._maskRenderTexture,
+          clear: true
+        });
+        this._maskPixelData = this.renderer.extract.pixels(this._maskRenderTexture);
+        sprite.destroy();
+        
+        // Extract color texture pixels if available
+        if (this.colorTexture?.valid) {
+          if (!this._colorRenderTexture || this._colorRenderTexture.width !== this.colorTexture.width) {
+            if (this._colorRenderTexture) {
+              this._colorRenderTexture.destroy(true);
+            }
+            this._colorRenderTexture = PIXI.RenderTexture.create({
+              width: this.colorTexture.width,
+              height: this.colorTexture.height
+            });
+          }
+          
+          const colorSprite = new PIXI.Sprite(this.colorTexture);
+          this.renderer.render(colorSprite, {
+            renderTexture: this._colorRenderTexture,
+            clear: true
+          });
+          this._colorPixelData = this.renderer.extract.pixels(this._colorRenderTexture);
+          colorSprite.destroy();
+        }
+        
+        this._needsRefresh = false;
+      } catch (e) {
+        console.error("GPUMaskSpawnBehavior | Error refreshing pixel data:", e);
+      }
+    }
+
+    /**
+     * Force refresh of pixel data (for dynamic masks on camera pan)
+     */
+    forceRefresh() {
+      this._needsRefresh = true;
+    }
+
+    /**
+     * Cleanup
+     */
+    destroy() {
+      if (this._maskRenderTexture) {
+        this._maskRenderTexture.destroy(true);
+        this._maskRenderTexture = null;
+      }
+      if (this._colorRenderTexture) {
+        this._colorRenderTexture.destroy(true);
+        this._colorRenderTexture = null;
+      }
+      this._maskPixelData = null;
+      this._colorPixelData = null;
     }
   }
 
