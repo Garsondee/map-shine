@@ -328,18 +328,12 @@ const UNIVERSAL_EFFECT_DEFAULTS = {
 };
 
 /**
- * Setting key for storing user-defined effect profiles.
- * Used with Foundry VTT's game settings to persist custom configurations.
+ * Setting key for storing world-level default configurations for individual effects.
+ * Used with Foundry VTT's game settings to persist world-level defaults.
+ * Structure: { effectKey: effectConfig, ... } (e.g., { fire: {...}, baseShine: {...} }
  * @constant {string}
  */
-const PROFILES_SETTING = "profiles";
-
-/**
- * Setting key for storing the default profile selection.
- * Used with Foundry VTT's game settings to remember user's preferred profile.
- * @constant {string}
- */
-const DEFAULT_PROFILE_SETTING = "defaultProfile";
+const WORLD_DEFAULTS_SETTING = "worldDefaults";
 
 /**
  * Available PIXI.js blend modes for visual effects and filters.
@@ -4295,17 +4289,11 @@ class SettingsManager {
     });
 
     // Register world-level and client-side data stores
-    game.settings.register(MODULE_ID, PROFILES_SETTING, {
+    game.settings.register(MODULE_ID, WORLD_DEFAULTS_SETTING, {
       scope: "world",
       config: false,
       type: Object,
       default: {},
-    });
-    game.settings.register(MODULE_ID, DEFAULT_PROFILE_SETTING, {
-      scope: "world",
-      config: false,
-      type: String,
-      default: "",
     });
     game.settings.register(MODULE_ID, "user-adjustments", {
       scope: "client",
@@ -6031,7 +6019,9 @@ export { SceneChangeManager };
  *  to obtain coordinate and transformation data. Do not perform these calculations
  *  manually within other components.
  *
- ***************************************************************************************/
+ *  NOTE: The CoordinateManager has been moved to scripts/managers/CoordinateManager.js
+ *
+***************************************************************************************/
 
 export class ProfileDataManager {
   constructor(moduleId) {
@@ -6039,30 +6029,30 @@ export class ProfileDataManager {
   }
 
   /**
-   * Loads world-level profiles and the world default setting.
-   * @returns {{profiles: object, defaultProfileName: string}}
+   * Loads world-level default configurations for individual effects.
+   * @returns {object} The worldDefaults object { effectKey: effectConfig, ... }
    */
-  loadWorldData() {
-    const profiles = game.settings.get(this.moduleId, PROFILES_SETTING) || {};
-    const defaultProfileName =
-      game.settings.get(this.moduleId, DEFAULT_PROFILE_SETTING) || "";
-    return { profiles, defaultProfileName };
+  loadWorldDefaults() {
+    return game.settings.get(this.moduleId, WORLD_DEFAULTS_SETTING) || {};
   }
 
   /**
-   * Saves world-level profiles and the world default setting.
-   * @param {object} profiles - The entire world profiles object to save.
-   * @param {string} [defaultProfileName] - If provided, saves the new world default profile name.
+   * Saves world-level default configurations for individual effects.
+   * @param {object} worldDefaults - The entire worldDefaults object to save.
    */
-  async saveWorldData(profiles, defaultProfileName) {
-    await game.settings.set(this.moduleId, PROFILES_SETTING, profiles);
-    if (defaultProfileName !== undefined) {
-      await game.settings.set(
-        this.moduleId,
-        DEFAULT_PROFILE_SETTING,
-        defaultProfileName
-      );
-    }
+  async saveWorldDefaults(worldDefaults) {
+    await game.settings.set(this.moduleId, WORLD_DEFAULTS_SETTING, worldDefaults);
+  }
+
+  /**
+   * Saves a specific effect's configuration as the world default for that effect.
+   * @param {string} effectKey - The effect key (e.g., "fire", "baseShine")
+   * @param {object} effectConfig - The configuration object for that effect
+   */
+  async saveEffectAsWorldDefault(effectKey, effectConfig) {
+    const worldDefaults = this.loadWorldDefaults();
+    worldDefaults[effectKey] = foundry.utils.deepClone(effectConfig);
+    await this.saveWorldDefaults(worldDefaults);
   }
 
   /**
@@ -6214,6 +6204,13 @@ export class ConfigBuilder {
 
   /**
    * Builds the final, live configuration by layering all data sources.
+   * New layering process:
+   * 1. Start with MODULE_DEFAULTS
+   * 2. Layer Active Scene Appearance (if exists)
+   * 3. Layer World-Based Overrides (for effects with worldBasedOnly: true)
+   * 4. Layer User Overrides
+   * 5. Apply Client Overrides
+   * 
    * @param {object} data - An object containing all the raw data.
    * @param {object} options - Options for the build process.
    * @returns {object} An object containing the final config and status information.
@@ -6222,8 +6219,7 @@ export class ConfigBuilder {
     {
       sceneProfiles,
       activeProfileId,
-      worldProfiles,
-      worldDefaultProfileName,
+      worldDefaults,
       rawUserOverrides,
     },
     options = {}
@@ -6235,6 +6231,7 @@ export class ConfigBuilder {
 
     const sceneHasProfiles = sceneProfiles.length > 0;
 
+    // Step 1 & 2: Start with MODULE_DEFAULTS and layer Scene Appearance
     if (sceneHasProfiles) {
       let activeProfile = sceneProfiles.find((p) => p.id === activeProfileId);
       if (!activeProfile && sceneProfiles.length > 0) {
@@ -6251,29 +6248,38 @@ export class ConfigBuilder {
         baseConfig = foundry.utils.deepClone(defaults);
         profileSource = "module";
       }
-    } else if (
-      worldDefaultProfileName &&
-      worldProfiles[worldDefaultProfileName]?.config
-    ) {
-      baseConfig = foundry.utils.mergeObject(
-        foundry.utils.deepClone(defaults),
-        worldProfiles[worldDefaultProfileName].config
-      );
-      profileSource = "world";
     } else {
       baseConfig = foundry.utils.deepClone(defaults);
       profileSource = "module";
     }
 
     baseConfig = this._reconcile(foundry.utils.deepClone(defaults), baseConfig);
+
+    // Step 3: Layer World-Based Overrides
+    // For each effect with worldBasedOnly: true, replace with world default if it exists
+    if (worldDefaults && typeof worldDefaults === 'object') {
+      for (const effectKey in baseConfig) {
+        const effectConfig = baseConfig[effectKey];
+        // Check if this effect has worldBasedOnly set to true
+        if (effectConfig && typeof effectConfig === 'object' && effectConfig.worldBasedOnly === true) {
+          // If a world default exists for this effect, replace the entire effect block
+          if (worldDefaults[effectKey]) {
+            baseConfig[effectKey] = foundry.utils.deepClone(worldDefaults[effectKey]);
+            console.log(`MapShine | Applied world default for effect: ${effectKey}`);
+          }
+        }
+      }
+    }
+
+    // Step 4: Layer User Overrides
     const userOverrides = this._reconcile(
       foundry.utils.deepClone(defaults),
       rawUserOverrides
     );
-
     let effectiveConfig = foundry.utils.deepClone(baseConfig);
     this._customMerge(effectiveConfig, userOverrides);
 
+    // Step 5: Apply Client Overrides
     if (!options.excludeClientOverrides) {
       effectiveConfig = ClientOverrides.apply(effectiveConfig);
     }
@@ -30935,26 +30941,9 @@ class DebuggerUIBuilder {
 
   _buildProfileSection() {
     const isGm = game.user.isGM;
-    const worldProfileSection = isGm
+    const clipboardSection = isGm
       ? `
-                <div class="profile-group">
-                    <strong class="profile-group-title">World Profiles</strong>
-                    <div class="profile-controls">
-                        <select id="profiles-dropdown"></select>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
-                            <button data-action="load-profile" title="Apply this profile's settings as temporary changes.">Load</button>
-                            <button data-action="import-world-profile" title="Create a new scene appearance from this world profile.">Import</button>
-                            <button data-action="update-profile" title="Overwrite the selected profile with your current settings."><i class="fas fa-save"></i> Update</button>
-                            <button data-action="set-default-profile" title="Set this as the default profile for scenes without their own appearances."><i class="fas fa-star"></i> Default</button>
-                        </div>
-                        <button data-action="delete-profile" title="Delete the selected world profile." style="color: #ff8080;"><i class="fas fa-trash"></i> Delete Selected</button>
-                    </div>
-                    <hr style="border-color: #555; margin: 8px 0;">
-                    <div class="profile-controls">
-                        <input type="text" id="profile-name" placeholder="New World Profile Name...">
-                        <button data-action="save-profile" title="Save your current temporary changes as a new world profile."><i class="fas fa-plus-circle"></i> Save As New</button>
-                    </div>
-                </div>
+                
                 <div class="profile-group">
                     <strong class="profile-group-title">Clipboard</strong>
                     <div style="display: flex; gap: 5px; margin-top: 5px;">
@@ -30972,10 +30961,9 @@ class DebuggerUIBuilder {
                                 <strong style="font-size: 1.1em;">Map Point Tools and Debug Options</strong>
                             </summary>
                             <div class="profile-grid">
-                                ${worldProfileSection}
+                                ${clipboardSection}
                                 <div class="profile-group">
                                     <strong class="profile-group-title">Tools & Diagnostics</strong>
-                                    ${this._buildMapToolsSection()}
                                     ${this._buildDiagnosticSection()}
                                 </div>
                             </div>

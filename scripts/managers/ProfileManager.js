@@ -95,8 +95,7 @@ export class ProfileManager {
     this._sceneProfiles = [];
     this._activeProfileId = null;
     this._userOverrides = {};
-    this._worldProfiles = {};
-    this._worldDefaultProfileName = "";
+    this._worldDefaults = {};
   }
 
   reset() {
@@ -125,9 +124,7 @@ export class ProfileManager {
     }
 
     // 1. Load all raw data
-    const worldData = this.dataManager.loadWorldData();
-    this._worldProfiles = worldData.profiles;
-    this._worldDefaultProfileName = worldData.defaultProfileName;
+    this._worldDefaults = this.dataManager.loadWorldDefaults();
 
     const sceneData = this.dataManager.loadSceneData();
     this._sceneProfiles = sceneData.profiles;
@@ -141,8 +138,7 @@ export class ProfileManager {
     const result = ConfigBuilder.buildEffectiveConfig({
       sceneProfiles: this._sceneProfiles,
       activeProfileId: this._activeProfileId,
-      worldProfiles: this._worldProfiles,
-      worldDefaultProfileName: this._worldDefaultProfileName,
+      worldDefaults: this._worldDefaults,
       rawUserOverrides: rawUserOverrides,
     });
 
@@ -166,8 +162,7 @@ export class ProfileManager {
     const { baseConfig } = ConfigBuilder.buildEffectiveConfig({
       sceneProfiles: [],
       activeProfileId: null,
-      worldProfiles: this._worldProfiles,
-      worldDefaultProfileName: this._worldDefaultProfileName,
+      worldDefaults: this._worldDefaults,
       rawUserOverrides: {},
     });
 
@@ -326,8 +321,7 @@ export class ProfileManager {
     const endConfigResult = ConfigBuilder.buildEffectiveConfig({
       sceneProfiles: sceneProfiles,
       activeProfileId: newActiveId,
-      worldProfiles: this._worldProfiles,
-      worldDefaultProfileName: this._worldDefaultProfileName,
+      worldDefaults: this._worldDefaults,
       rawUserOverrides: this._userOverrides, // Client's own overrides
     });
     const endConfig = endConfigResult.activeConfig;
@@ -344,7 +338,7 @@ export class ProfileManager {
   }
 
   // =========================================================================
-  // SECTION: Previewing & World Profiles
+  // SECTION: Previewing & World Defaults
   // =========================================================================
   async previewProfile(profileId) {
     const profile = this._sceneProfiles.find((p) => p.id === profileId);
@@ -353,8 +347,7 @@ export class ProfileManager {
         {
           sceneProfiles: this._sceneProfiles,
           activeProfileId: profileId,
-          worldProfiles: this._worldProfiles,
-          worldDefaultProfileName: this._worldDefaultProfileName,
+          worldDefaults: this._worldDefaults,
           rawUserOverrides: {}, // Previews ignore user overrides
         },
         { excludeClientOverrides: false }
@@ -367,104 +360,36 @@ export class ProfileManager {
     await game.mapShine.transitionManager.endPreview();
   }
 
-  async importWorldProfile(worldProfileName) {
+  /**
+   * Saves a specific effect's current configuration as the world default for that effect.
+   * Only works for effects with worldBasedOnly: true
+   * @param {string} effectKey - The effect key (e.g., "fire", "baseShine")
+   */
+  async saveEffectAsWorldDefault(effectKey) {
     if (!this.isGm) return;
-    const profileData = this._worldProfiles[worldProfileName];
-    if (!profileData?.config) {
-      ui.notifications.warn("Could not find world profile to import.");
+    
+    const currentConfig = this.getCurrentConfig({ excludeClientOverrides: true });
+    const effectConfig = currentConfig[effectKey];
+    
+    if (!effectConfig) {
+      ui.notifications.warn(`Effect "${effectKey}" not found in configuration.`);
       return;
     }
-
-    const newProfile = {
-      id: foundry.utils.randomID(),
-      name: worldProfileName,
-      config: ConfigBuilder._reconcile(
-        foundry.utils.deepClone(MODULE_DEFAULTS),
-        foundry.utils.deepClone(profileData.config)
-      ),
-    };
-
-    await this.dataManager.saveSceneData({
-      profiles: [...this._sceneProfiles, newProfile],
-    });
-    ui.notifications.info(
-      `Imported "${worldProfileName}" as a new scene appearance.`
-    );
-  }
-
-  async saveAsWorldProfile(name, uiState) {
-    if (!this.isGm || !name) return false;
-    if (this._worldProfiles[name]) {
-      const overwrite = await new Promise((resolve) => {
-        const dialog = new globalThis.Dialog({
-          title: "Profile Exists",
-          content: `<p>A world profile named "<strong>${name}</strong>" already exists. Overwrite it?</p>`,
-          buttons: {
-            yes: {
-              icon: '<i class="fas fa-check"></i>',
-              label: "Overwrite",
-              callback: () => resolve(true)
-            },
-            no: {
-              icon: '<i class="fas fa-times"></i>',
-              label: "Cancel",
-              callback: () => resolve(false)
-            }
-          },
-          default: "no",
-          close: () => resolve(false)
-        });
-        dialog.render(true);
-      });
-      if (!overwrite) return false;
+    
+    if (!effectConfig.worldBasedOnly) {
+      ui.notifications.warn(`Effect "${effectKey}" is not a world-based effect.`);
+      return;
     }
-    const newWorldProfiles = foundry.utils.deepClone(this._worldProfiles);
-    newWorldProfiles[name] = {
-      config: this.getCurrentConfig({ excludeClientOverrides: true }),
-      ui: uiState,
-    };
-    await this.dataManager.saveWorldData(newWorldProfiles);
-    this._worldProfiles = newWorldProfiles;
-    ui.notifications.info(`World Profile "${name}" saved!`);
-    return true;
-  }
-
-  async applyWorldProfileAsOverrides(name) {
-    const profileData = this._worldProfiles[name];
-    if (!profileData?.config) return;
-
-    const configToApply = ConfigBuilder._reconcile(
-      foundry.utils.deepClone(MODULE_DEFAULTS),
-      foundry.utils.deepClone(profileData.config)
-    );
-    await this.dataManager.saveUserOverrides(this.activeSceneId, configToApply);
+    
+    await this.dataManager.saveEffectAsWorldDefault(effectKey, effectConfig);
+    this._worldDefaults = this.dataManager.loadWorldDefaults();
+    
+    // Refresh the configuration to apply the new world default
     this.initializeForScene();
     await this.updateAllSystemsFromConfig();
     if (this.ui) this.ui.render();
-    ui.notifications.info(`Applied "${name}" as temporary changes.`);
-  }
-
-  async deleteWorldProfile(name) {
-    if (!this.isGm || !name) return false;
-    const newWorldProfiles = foundry.utils.deepClone(this._worldProfiles);
-    delete newWorldProfiles[name];
-    let newDefault = this._worldDefaultProfileName;
-    if (newDefault === name) {
-      newDefault = "";
-      this._worldDefaultProfileName = "";
-      await this.dataManager.saveWorldData(undefined, newDefault);
-    }
-    await this.dataManager.saveWorldData(newWorldProfiles);
-    this._worldProfiles = newWorldProfiles;
-    ui.notifications.info(`World Profile "${name}" deleted.`);
-    return true;
-  }
-
-  async setWorldDefaultProfile(name) {
-    if (!this.isGm) return;
-    await this.dataManager.saveWorldData(undefined, name);
-    this._worldDefaultProfileName = name;
-    ui.notifications.info(`"${name}" is now the World Default Profile.`);
+    
+    ui.notifications.info(`Saved "${effectKey}" as world default.`);
   }
 
   // =========================================================================
@@ -503,20 +428,15 @@ export class ProfileManager {
     return this._activeProfileId;
   }
 
-  getWorldProfiles() {
-    return this._worldProfiles;
-  }
-
-  getWorldDefaultProfileName() {
-    return this._worldDefaultProfileName;
+  getWorldDefaults() {
+    return this._worldDefaults;
   }
 
   getCurrentConfig(options = {}) {
     const buildData = {
       sceneProfiles: this._sceneProfiles,
       activeProfileId: this._activeProfileId,
-      worldProfiles: this._worldProfiles,
-      worldDefaultProfileName: this._worldDefaultProfileName,
+      worldDefaults: this._worldDefaults,
       rawUserOverrides: this._userOverrides,
     };
     const { activeConfig } = ConfigBuilder.buildEffectiveConfig(
