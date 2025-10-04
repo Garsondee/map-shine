@@ -601,6 +601,48 @@
     // More effects can be added here as they become compatible.
   };
 
+  const ROPE_TYPE_PRESETS = {
+    rope: {
+      label: "Rope",
+      texturePath: "modules/map-shine/assets/rope.webp",
+      segmentLength: 10,
+      animationSpeed: 1,
+      damping: 0.99,
+      windForce: 1.0,
+      tapering: 0.5,
+      indoorWindShielding: 0.9,
+      endpointFade: 0.0,
+      fadeStartDistance: 0.2,
+      fadeEndDistance: 0.2,
+    },
+    chain: {
+      label: "Chain",
+      texturePath: "modules/map-shine/assets/rope.webp",
+      segmentLength: 15,
+      animationSpeed: 0.8,
+      damping: 0.95,
+      windForce: 0.3,
+      tapering: 0.2,
+      indoorWindShielding: 0.7,
+      endpointFade: 0.0,
+      fadeStartDistance: 0.2,
+      fadeEndDistance: 0.2,
+    },
+    elastic: {
+      label: "Elastic/Rubber",
+      texturePath: "modules/map-shine/assets/rope.webp",
+      segmentLength: 8,
+      animationSpeed: 1.2,
+      damping: 0.98,
+      windForce: 1.5,
+      tapering: 0.7,
+      indoorWindShielding: 0.95,
+      endpointFade: 0.0,
+      fadeStartDistance: 0.2,
+      fadeEndDistance: 0.2,
+    },
+  };
+
   const COLOR_CORRECTION_PRESETS = {
     neutral: {
       name: "Neutral (Default)",
@@ -3162,13 +3204,51 @@ export const MODULE_DEFAULTS = {
     },
     physicsRope: {
       enabled: true,
-      gravity: 500,
       segmentLength: 10,
       animationSpeed: 1,
       damping: 0.95,
+      windForce: 1.0,
+      tapering: 0.5,
       texturePath: "modules/map-shine/assets/rope.webp",
       indoorWindShielding: 0.9, // 0.0 = no shielding, 1.0 = 100% shielding
       isIndoors: false,
+      // Type-specific defaults
+      rope: {
+        texturePath: "modules/map-shine/assets/rope.webp",
+        segmentLength: 10,
+        animationSpeed: 1,
+        damping: 0.99,
+        windForce: 1.0,
+        tapering: 0.5,
+        indoorWindShielding: 0.9,
+        endpointFade: 0.0,
+        fadeStartDistance: 0.2,
+        fadeEndDistance: 0.2,
+      },
+      chain: {
+        texturePath: "modules/map-shine/assets/rope.webp",
+        segmentLength: 15,
+        animationSpeed: 0.8,
+        damping: 0.95,
+        windForce: 0.3,
+        tapering: 0.2,
+        indoorWindShielding: 0.7,
+        endpointFade: 0.0,
+        fadeStartDistance: 0.2,
+        fadeEndDistance: 0.2,
+      },
+      elastic: {
+        texturePath: "modules/map-shine/assets/rope.webp",
+        segmentLength: 8,
+        animationSpeed: 1.2,
+        damping: 0.98,
+        windForce: 1.5,
+        tapering: 0.7,
+        indoorWindShielding: 0.95,
+        endpointFade: 0.0,
+        fadeStartDistance: 0.2,
+        fadeEndDistance: 0.2,
+      },
     },
     overheadEffect: {
       enabled: true,
@@ -3582,6 +3662,8 @@ export const MODULE_DEFAULTS = {
       // This is the core function that gets called repeatedly when the clock is dragged.
       const doUpdateTimeOfDay = async function (time) {
         if (game.mapShine.profileManager) {
+          console.log(`MapShine | Updating time of day to: ${time}`);
+          
           // Record the change. This updates the activeConfig immediately.
           await game.mapShine.profileManager.recordUserChange(
             "timeOfDay.currentTime",
@@ -3605,6 +3687,7 @@ export const MODULE_DEFAULTS = {
           }
 
           // Trigger the expensive update for all visual systems.
+          console.log(`MapShine | Updating all systems with time: ${game.mapShine.profileManager.activeConfig.timeOfDay.currentTime}`);
           await game.mapShine.profileManager.updateAllSystemsFromConfig();
           // Notify other components (like the clock UI itself) that the time has officially changed.
           // @ts-expect-error - Custom hook type augmentation not working with foundry-vtt-types package
@@ -8981,7 +9064,7 @@ export const MODULE_DEFAULTS = {
       if (game.mapShine.worldContainer) {
         ScreenEffectsManager.initialize(game.mapShine.worldContainer);
         ScreenEffectsManager.setupAllGlobalFilters();
-        ScreenEffectsManager.updateAllSystemsFromConfig(
+        ScreenEffectsManager.updateAllFiltersFromConfig(
           game.mapShine.profileManager.activeConfig
         );
       }
@@ -9345,13 +9428,14 @@ export const MODULE_DEFAULTS = {
     }
 
     /**
-     * Creates a new, empty group for map points.
-     * @param {object} [options={}] Options for the new group.
-     * @param {string} [options.label="New Group"] A user-friendly label for the group.
+     * Creates a new group and stores it in the scene's flags.
+     * @param {Object} options
+     * @param {string} [options.label="New Group"] The label for the group.
      * @param {string} [options.type="point"] The type of group ('point', 'line', 'area').
+     * @param {Object} [options.ropeSettings] Optional rope-specific settings to apply immediately
      * @returns {Promise<string>} The ID of the newly created group.
      */
-    static async createGroup({ label = "New Group", type = "point" } = {}) {
+    static async createGroup({ label = "New Group", type = "point", ropeSettings = null } = {}) {
       if (!game.user.isGM) {
         ui.notifications.warn(
           "You do not have permission to create map point groups."
@@ -9378,13 +9462,28 @@ export const MODULE_DEFAULTS = {
       };
 
       if (type === "rope") {
-        const ropeDefaults =
-          game.mapShine.profileManager.activeConfig.physicsRope;
-        newGroup.texturePath = "modules/map-shine/assets/rope.webp"; // A default texture
-        newGroup.gravity = ropeDefaults.gravity;
-        newGroup.segmentLength = ropeDefaults.segmentLength;
-        newGroup.animationSpeed = ropeDefaults.animationSpeed;
-        newGroup.isIndoors = false; // Default to outdoor (full wind)
+        // If rope settings are provided, use them; otherwise, construct defaults for the 'rope' type.
+        if (ropeSettings) {
+          Object.assign(newGroup, ropeSettings);
+        } else {
+          // Fallback to the 'rope' type defaults, as this is the generic option in the Map Points Editor.
+          const ropeType = 'rope';
+          const preset = ROPE_TYPE_PRESETS[ropeType];
+          const profileConfig = game.mapShine.profileManager.activeConfig.physicsRope[ropeType] || {};
+
+          newGroup.ropeType = ropeType;
+          newGroup.texturePath = profileConfig.texturePath || preset.texturePath;
+          newGroup.segmentLength = profileConfig.segmentLength ?? preset.segmentLength;
+          newGroup.animationSpeed = profileConfig.animationSpeed ?? preset.animationSpeed;
+          newGroup.damping = profileConfig.damping ?? preset.damping;
+          newGroup.windForce = profileConfig.windForce ?? preset.windForce;
+          newGroup.tapering = profileConfig.tapering ?? preset.tapering;
+          newGroup.indoorWindShielding = profileConfig.indoorWindShielding ?? preset.indoorWindShielding;
+          newGroup.endpointFade = profileConfig.endpointFade ?? preset.endpointFade;
+          newGroup.fadeStartDistance = profileConfig.fadeStartDistance ?? preset.fadeStartDistance;
+          newGroup.fadeEndDistance = profileConfig.fadeEndDistance ?? preset.fadeEndDistance;
+        }
+        newGroup.isIndoors = newGroup.isIndoors ?? false; // Default to outdoor (full wind)
       }
 
       const path = `flags.${MODULE_ID}.${this.FLAG_NAME}.${groupId}`;
@@ -12182,15 +12281,21 @@ export const MODULE_DEFAULTS = {
     }
 
     updateTargets(targets, fullConfig) {
-      this.destroyAllEmitters();
-
+      // NON-DESTRUCTIVE UPDATE: Only destroy/create emitters that have actually changed
+      
       this.config = foundry.utils.getProperty(
         fullConfig,
         this.definition.configPath
       );
+      
+      // If the effect is disabled, destroy all emitters and return
       if (!fullConfig.enabled || !this.config?.enabled) {
+        this.destroyAllEmitters();
         return;
       }
+
+      // Build a set of target IDs that SHOULD exist based on current configuration
+      const desiredTargetIds = new Set();
 
       // --- 1. Process File-Based Texture Targets ---
       let targetsToProcess = [];
@@ -12210,7 +12315,11 @@ export const MODULE_DEFAULTS = {
       for (const target of targetsToProcess) {
         const targetId = target.tile ? target.tile.id : "background";
         if (target[this.definition.triggerTexture]) {
-          this.pendingTargets.set(targetId, target);
+          desiredTargetIds.add(targetId);
+          // Only add to pending if it doesn't already have an emitter
+          if (!this.emitters.has(targetId)) {
+            this.pendingTargets.set(targetId, target);
+          }
         }
       }
 
@@ -12225,17 +12334,54 @@ export const MODULE_DEFAULTS = {
           group.points.length > 0 &&
           !group.isBroken
         ) {
-          console.log(
-            `Map Shine | Found active geometry group '${group.label}' for effect '${effectKey}'.`
-          );
-          // Create a "virtual target" that contains the group data itself.
-          const virtualTarget = {
-            isGeometry: true,
-            group: group,
-          };
           const targetId = `geometry-${group.id}`;
-          this.pendingTargets.set(targetId, virtualTarget);
+          desiredTargetIds.add(targetId);
+          
+          // Only add to pending if it doesn't already have an emitter
+          if (!this.emitters.has(targetId)) {
+            console.log(
+              `Map Shine | Found new geometry group '${group.label}' for effect '${effectKey}'.`
+            );
+            const virtualTarget = {
+              isGeometry: true,
+              group: group,
+            };
+            this.pendingTargets.set(targetId, virtualTarget);
+          }
         }
+      }
+
+      // --- 3. Remove emitters that are no longer needed (DIFF) ---
+      const emittersToRemove = [];
+      for (const [targetId, emitterData] of this.emitters.entries()) {
+        if (!desiredTargetIds.has(targetId)) {
+          emittersToRemove.push(targetId);
+        }
+      }
+
+      // Destroy only the emitters that are no longer needed
+      for (const targetId of emittersToRemove) {
+        const emitterData = this.emitters.get(targetId);
+        if (emitterData?.emitter) {
+          if (emitterData.emitter._customMaskTexture) {
+            emitterData.emitter._customMaskTexture.destroy(true);
+            emitterData.emitter._customMaskTexture = null;
+          }
+          emitterData.emitter.destroy();
+        }
+        this.emitters.delete(targetId);
+        console.log(`Map Shine | Removed emitter for target '${targetId}' (no longer needed)`);
+      }
+
+      // Also clean up any pending targets that are no longer needed
+      const pendingToRemove = [];
+      for (const targetId of this.pendingTargets.keys()) {
+        if (!desiredTargetIds.has(targetId)) {
+          pendingToRemove.push(targetId);
+        }
+      }
+      for (const targetId of pendingToRemove) {
+        this.pendingTargets.delete(targetId);
       }
     }
 
@@ -20455,13 +20601,16 @@ class PhysicsRope {
   constructor(points, config, texture, isIndoors = false) {
     this.config = foundry.utils.mergeObject(
       {
-        gravity: 500,
         segmentLength: 10,
         animationSpeed: 1,
-        damping: 0.99,
-        tapering: 0.5, // 0 = no taper, 1 = max taper (70% reduction at center)
+        damping: 0.95, // Increased damping for quicker return to rest (was 0.99)
+        windForce: 2.0, // Strong wind influence (was 1.0)
+        tapering: 0.5, // 0 = no taper, 1 = max taper (70% reduction at center) - creates visual sag
         texturePath: "modules/map-shine/assets/rope.webp",
         indoorWindShielding: 0.9, // Default 90% wind reduction indoors
+        endpointFade: 0.0, // 0 = no fade, 1 = maximum fade at endpoints to hide seams
+        fadeStartDistance: 0.2, // Distance from start (0-1) where fade begins
+        fadeEndDistance: 0.2, // Distance from end (0-1) where fade begins
       },
       config
     );
@@ -20498,6 +20647,18 @@ class PhysicsRope {
     
     // Disable automatic geometry updates so we can manually control vertices for tapering.
     this.mesh.autoUpdate = false;
+    
+    // Store texture dimensions for tiling calculations
+    this.textureWidth = texture.width;
+    this.textureHeight = texture.height;
+    
+    // Create a container to hold the rope and its mask
+    this.container = new PIXI.Container();
+    this.container.addChild(this.mesh);
+    
+    // Initialize fade mask (will be created when fade is enabled)
+    this.fadeMask = null;
+    this.fadeMaskGraphics = null;
   }
 
   /**
@@ -20549,18 +20710,8 @@ class PhysicsRope {
       locked: false,
     });
 
-    // Add initial sag to the rope to help kickstart gravity (only if gravity is enabled)
-    // Apply a downward offset to middle points
-    if (this.config.gravity > 0) {
-      for (let i = 1; i < subdivided.length - 1; i++) {
-        // Create a parabolic sag, strongest in the middle
-        const normalizedPos = i / (subdivided.length - 1); // 0 to 1
-        const sagFactor = Math.sin(normalizedPos * Math.PI); // 0 at ends, 1 in middle
-        const sagAmount = segmentLength * 2 * sagFactor;
-        subdivided[i].y += sagAmount;
-        subdivided[i].prevY += sagAmount;
-      }
-    }
+    // NOTE: No initial sag is added to simulation points
+    // Gravity affects only visual appearance through tapering, not physics simulation
 
     return subdivided;
   }
@@ -20608,25 +20759,34 @@ class PhysicsRope {
           const perpX = -Math.sin(windAngleRad) * variation * baseForce;
           const perpY = Math.cos(windAngleRad) * variation * baseForce;
           
+          // Calculate distance from nearest anchor (0 at anchors, 1 at center)
+          // This creates a "sail effect" where middle sections catch more wind
+          const normalizedPos = i / (this.points.length - 1);
+          const distanceFromAnchor = Math.sin(normalizedPos * Math.PI); // 0 at ends, 1 at center
+          const positionMultiplier = 0.3 + (0.7 * distanceFromAnchor); // 30% at ends, 100% at center
+          
           // Apply indoor wind shielding if rope is marked as indoors
-          const windMultiplier = this.isIndoors ? (1.0 - this.config.indoorWindShielding) : 1.0;
-          windForceX = (baseWindX + perpX) * windMultiplier;
-          windForceY = (baseWindY + perpY) * windMultiplier;
+          const indoorMultiplier = this.isIndoors ? (1.0 - this.config.indoorWindShielding) : 1.0;
+          // Apply rope-specific wind force multiplier and position-based multiplier
+          const totalWindMultiplier = indoorMultiplier * (this.config.windForce ?? 1.0) * positionMultiplier;
+          windForceX = (baseWindX + perpX) * totalWindMultiplier;
+          windForceY = (baseWindY + perpY) * totalWindMultiplier;
         }
       }
       
       const dampedVx = vx * this.config.damping;
       const dampedVy = vy * this.config.damping;
       
-      // Apply gravity force
-      const gravityForce = this.config.gravity * deltaTime;
+      // NOTE: Gravity is NOT applied to simulation points - it only affects visual tapering
+      // The rope maintains its path, and gravity creates visual sag through vertex manipulation
       
       point.x += dampedVx + windForceX * deltaTime;
-      point.y += dampedVy + windForceY * deltaTime + gravityForce;
+      point.y += dampedVy + windForceY * deltaTime;
     }
 
     // Constraint resolution (maintain segment lengths for rope integrity)
-    const iterations = 3;
+    // More iterations and stronger correction for minimal stretch
+    const iterations = 8; // Increased from 5 for tighter constraints
     for (let iter = 0; iter < iterations; iter++) {
       for (let i = 0; i < this.points.length - 1; i++) {
         const p1 = this.points[i];
@@ -20636,11 +20796,19 @@ class PhysicsRope {
         const dy = p2.y - p1.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         
+        // Avoid division by zero
+        if (dist < 0.001) continue;
+        
         const targetLength = this.segmentLengths[i];
         const diff = targetLength - dist;
+        
+        // Stronger correction for both compression and stretching to minimize stretch
+        // Allows only minimal realistic stretch (< 2% of segment length)
+        const compressionMultiplier = diff > 0 ? 1.0 : 0.9; // Strong correction for both
+        const correctionStrength = 0.7 * compressionMultiplier; // Increased from 0.5
 
-        const offsetX = (dx / dist) * diff * 0.5;
-        const offsetY = (dy / dist) * diff * 0.5;
+        const offsetX = (dx / dist) * diff * correctionStrength;
+        const offsetY = (dy / dist) * diff * correctionStrength;
 
         if (!p1.locked) {
           p1.x -= offsetX;
@@ -20670,6 +20838,22 @@ class PhysicsRope {
       
       // Correctly get the base width from the texture height.
       const baseWidth = this.mesh.texture.height * 0.5;
+      
+      // Calculate cumulative distance along the rope for UV tiling
+      let cumulativeDistance = 0;
+      const distances = [0]; // Start at 0 for first point
+      
+      for (let i = 0; i < this.points.length - 1; i++) {
+        const p1 = this.points[i];
+        const p2 = this.points[i + 1];
+        const segmentDist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+        cumulativeDistance += segmentDist;
+        distances.push(cumulativeDistance);
+      }
+      
+      // Get UV buffer (second buffer in SimpleRope geometry)
+      const uvBuffer = geometry.buffers[1];
+      const uvs = uvBuffer ? uvBuffer.data : null;
       
       for (let i = 0; i < this.points.length; i++) {
         const simPoint = this.points[i];
@@ -20718,16 +20902,141 @@ class PhysicsRope {
             vertices[bufferIndex + 2] = centerX - perpX * adjustedHalfWidth;
             vertices[bufferIndex + 3] = centerY - perpY * adjustedHalfWidth;
         }
+        
+        // Update UV coordinates for tiling
+        if (uvs && this.textureWidth > 0) {
+          const uvIndex = i * 4;
+          // Calculate U coordinate based on distance along rope (for tiling)
+          const u = distances[i] / this.textureWidth;
+          
+          if (uvIndex + 3 < uvs.length) {
+            // Top vertex UV
+            uvs[uvIndex] = u;
+            uvs[uvIndex + 1] = 0;
+            // Bottom vertex UV
+            uvs[uvIndex + 2] = u;
+            uvs[uvIndex + 3] = 1;
+          }
+        }
       }
       
-      // 4. Tell the buffer to upload the modified vertex data to the GPU.
+      // 3. Tell the buffers to upload the modified data to the GPU.
       geometry.buffers[0].update();
+      if (uvBuffer) {
+        uvBuffer.update();
+      }
+    }
+    
+    // 4. Update fade mask if endpoint fade is enabled
+    this._updateFadeMask();
+    
+    // 5. Apply scene darkness tint to the rope
+    this._applyDarknessTint();
+  }
+  
+  /**
+   * Applies scene darkness as a tint to the rope mesh
+   */
+  _applyDarknessTint() {
+    // Get scene darkness level (0.0 is bright, 1.0 is pitch black)
+    const darkness = canvas.scene?.environment?.darknessLevel ?? 0;
+    
+    // Calculate brightness multiplier (1.0 at no darkness, darker as darkness increases)
+    // Using 0.75 multiplier like other effects in the codebase to prevent complete blackout
+    const brightness = 1.0 - (darkness * 0.75);
+    
+    // Convert brightness to RGB tint (grayscale darkening)
+    const tintValue = Math.floor(brightness * 255);
+    const tint = (tintValue << 16) | (tintValue << 8) | tintValue;
+    
+    // Apply tint to the mesh
+    if (this.mesh) {
+      this.mesh.tint = tint;
+    }
+  }
+  
+  /**
+   * Updates or creates the fade mask for endpoint fading
+   */
+  _updateFadeMask() {
+    if (this.config.endpointFade <= 0) {
+      // Remove mask if fade is disabled
+      if (this.fadeMask) {
+        this.mesh.mask = null;
+        if (this.fadeMaskGraphics) {
+          this.fadeMaskGraphics.destroy();
+          this.fadeMaskGraphics = null;
+        }
+        this.fadeMask = null;
+      }
+      return;
+    }
+    
+    // Create mask graphics if it doesn't exist
+    if (!this.fadeMaskGraphics) {
+      this.fadeMaskGraphics = new PIXI.Graphics();
+      this.container.addChild(this.fadeMaskGraphics);
+      this.mesh.mask = this.fadeMaskGraphics;
+    }
+    
+    // Clear and redraw the mask
+    this.fadeMaskGraphics.clear();
+    
+    if (this.points.length < 2) return;
+    
+    const fadeStartDist = Math.max(0.01, Math.min(0.5, this.config.fadeStartDistance ?? 0.2));
+    const fadeEndDist = Math.max(0.01, Math.min(0.5, this.config.fadeEndDistance ?? 0.2));
+    const fadeStrength = this.config.endpointFade;
+    const baseWidth = this.mesh.texture.valid ? this.mesh.texture.height * 0.5 : 10;
+    
+    // Draw gradient mask along the rope
+    for (let i = 0; i < this.points.length - 1; i++) {
+      const normalizedPos = i / (this.points.length - 1);
+      let alpha = 1.0;
+      
+      // Fade from start
+      if (normalizedPos < fadeStartDist) {
+        const startFade = normalizedPos / fadeStartDist;
+        alpha = Math.min(alpha, 1.0 - fadeStrength + (fadeStrength * startFade));
+      }
+      
+      // Fade from end
+      if (normalizedPos > (1.0 - fadeEndDist)) {
+        const endFade = (1.0 - normalizedPos) / fadeEndDist;
+        alpha = Math.min(alpha, 1.0 - fadeStrength + (fadeStrength * endFade));
+      }
+      
+      const p1 = this.points[i];
+      const p2 = this.points[i + 1];
+      
+      // Calculate perpendicular for width
+      const dx = p2.x - p1.x;
+      const dy = p2.y - p1.y;
+      const len = Math.hypot(dx, dy);
+      if (len === 0) continue;
+      
+      const perpX = -dy / len;
+      const perpY = dx / len;
+      const width = baseWidth * 2; // Full width for mask
+      
+      // Draw a rectangle segment with the calculated alpha
+      this.fadeMaskGraphics.beginFill(0xFFFFFF, alpha);
+      this.fadeMaskGraphics.drawPolygon([
+        p1.x + perpX * width, p1.y + perpY * width,
+        p1.x - perpX * width, p1.y - perpY * width,
+        p2.x - perpX * width, p2.y - perpY * width,
+        p2.x + perpX * width, p2.y + perpY * width
+      ]);
+      this.fadeMaskGraphics.endFill();
     }
   }
 
   destroy() {
-    if (this.mesh) {
-      this.mesh.destroy();
+    if (this.fadeMaskGraphics) {
+      this.fadeMaskGraphics.destroy();
+    }
+    if (this.container) {
+      this.container.destroy({ children: true });
     }
   }
 }
@@ -20782,14 +21091,30 @@ export class PhysicsRopeLayer extends CanvasLayer {
           texture.baseTexture.wrapMode = PIXI.WRAP_MODES.REPEAT;
 
           const ropeConfig = {
-            gravity: group.gravity,
             segmentLength: group.segmentLength,
             animationSpeed: group.animationSpeed,
+            damping: group.damping,
+            windForce: group.windForce ?? 1.0,
+            tapering: group.tapering,
             indoorWindShielding: group.indoorWindShielding ?? game.mapShine.profileManager.activeConfig.physicsRope.indoorWindShielding,
+            endpointFade: group.endpointFade ?? 0.0,
+            fadeStartDistance: group.fadeStartDistance ?? 0.2,
+            fadeEndDistance: group.fadeEndDistance ?? 0.2,
           };
 
+          // Migrate old rope groups that don't have the new fade properties
+          if (group.endpointFade === undefined || group.fadeStartDistance === undefined || group.fadeEndDistance === undefined) {
+            const updateProps = {};
+            if (group.endpointFade === undefined) updateProps.endpointFade = 0.0;
+            if (group.fadeStartDistance === undefined) updateProps.fadeStartDistance = 0.2;
+            if (group.fadeEndDistance === undefined) updateProps.fadeEndDistance = 0.2;
+            await MapPointsManager.updateGroupProperties(group.id, updateProps);
+          }
+
           const rope = new PhysicsRope(group.points, ropeConfig, texture, group.isIndoors ?? false);
-          this.ropeContainer.addChild(rope.mesh);
+          rope.id = group.id; // Store the group ID for updates
+          rope.ropeType = group.ropeType || "rope"; // Store the rope type for live updates
+          this.ropeContainer.addChild(rope.container);
           this.ropes.push(rope);
         } catch (err) {
           console.warn(
@@ -20833,6 +21158,45 @@ export class PhysicsRopeLayer extends CanvasLayer {
 
   async refresh() {
     await this._initializeRopes();
+  }
+
+  /**
+   * Update the layer from the active config.
+   * This is called by ProfileManager when rope settings change.
+   * @param {Object} config - The active configuration
+   */
+  async updateFromConfig(config) {
+    if (!config?.physicsRope) return;
+    
+    // Update existing ropes with new physics settings from their type-specific config
+    for (const rope of this.ropes) {
+      // Get the type-specific config (e.g., config.physicsRope.rope, config.physicsRope.chain)
+      const ropeType = rope.ropeType || "rope";
+      const typeConfig = config.physicsRope[ropeType];
+      
+      if (!typeConfig) {
+        console.warn(`MapShine | No config found for rope type "${ropeType}"`);
+        continue;
+      }
+      
+      // Update the rope's config with new values from the type-specific config
+      // This allows real-time tuning of rope physics per rope type
+      if (typeConfig.damping !== undefined) {
+        rope.config.damping = typeConfig.damping;
+      }
+      if (typeConfig.windForce !== undefined) {
+        rope.config.windForce = typeConfig.windForce;
+      }
+      if (typeConfig.animationSpeed !== undefined) {
+        rope.config.animationSpeed = typeConfig.animationSpeed;
+      }
+      if (typeConfig.tapering !== undefined) {
+        rope.config.tapering = typeConfig.tapering;
+      }
+      if (typeConfig.indoorWindShielding !== undefined) {
+        rope.config.indoorWindShielding = typeConfig.indoorWindShielding;
+      }
+    }
   }
 }
 
@@ -21178,6 +21542,11 @@ export class PhysicsRopeLayer extends CanvasLayer {
             game.mapShine.activeMapPointGroup = groupId;
             this.render(false);
           }
+          break;
+        }
+        case "create-physics-rope": {
+          const ropeType = target.dataset.ropeType || "rope";
+          this._createPhysicsRope(ropeType);
           break;
         }
         case "toggle-placement": {
@@ -28402,6 +28771,7 @@ export class PhysicsRopeLayer extends CanvasLayer {
       this.visible = config.enabled && todConfig.enabled;
 
       if (todConfig.currentTime !== undefined) {
+        console.log(`MapShine | TimeOfDayLayer updating time to: ${todConfig.currentTime}`);
         this.currentTime = todConfig.currentTime;
       }
 
@@ -30288,45 +30658,281 @@ export class PhysicsRopeLayer extends CanvasLayer {
     }
 
     _getPhysicsRopeHTML() {
-      const path = "physicsRope";
       const windPath = "fire.particles.wind";
+      
+      // Get all rope groups from the current scene
+      const allGroups = MapPointsManager.getGroups();
+      const ropeGroups = Object.values(allGroups).filter(g => g.type === 'rope');
+      
+      // Separate ropes by type
+      const ropesByType = {
+        rope: ropeGroups.filter(g => (g.ropeType || 'rope') === 'rope'),
+        chain: ropeGroups.filter(g => g.ropeType === 'chain'),
+        elastic: ropeGroups.filter(g => g.ropeType === 'elastic')
+      };
+      
+      // Helper function to create rope list items with expandable properties
+      const createRopeListHTML = (ropes) => {
+        if (ropes.length === 0) {
+          return '<p class="description-text" style="font-style: italic; color: #999; margin: 5px 0;">No ropes of this type</p>';
+        }
+        return ropes.map(rope => `
+          <details class="rope-list-item" style="background: rgba(0,0,0,0.2); border-radius: 3px; margin-bottom: 4px;">
+            <summary style="display: flex; align-items: center; gap: 8px; padding: 4px 8px; cursor: pointer;">
+              <span class="accordion-toggle" style="font-size: 0.8em;"></span>
+              <span style="flex: 1; overflow: hidden; text-overflow: ellipsis;">${Handlebars.escapeExpression(rope.label)}</span>
+              <span style="color: #999; font-size: 0.9em;">${rope.points.length} pts</span>
+              <button type="button" class="rope-reset-btn" data-action="reset-rope-defaults" data-group-id="${rope.id}" title="Reset to default settings" style="padding: 2px 6px; background: #4a9eff; border: none; border-radius: 3px; cursor: pointer;" onclick="event.stopPropagation();">
+                <i class="fas fa-undo"></i>
+              </button>
+              <button type="button" class="rope-delete-btn" data-action="delete-rope-group" data-group-id="${rope.id}" title="Delete this rope" style="padding: 2px 6px; background: #c44; border: none; border-radius: 3px; cursor: pointer;" onclick="event.stopPropagation();">
+                <i class="fas fa-trash"></i>
+              </button>
+            </summary>
+            <div style="padding: 8px 12px; border-top: 1px solid rgba(255,255,255,0.1);">
+              <p class="description-text" style="margin-bottom: 8px; font-size: 0.9em;">Current Runtime Properties:</p>
+              
+              <div class="control-row">
+                <label>Texture:</label>
+                <input type="text" id="rope-instance-texture-${rope.id}" data-path="rope-instance.${rope.id}.texturePath" value="${Handlebars.escapeExpression(rope.texturePath || 'modules/map-shine/assets/rope.webp')}" style="flex: 1; font-family: monospace; font-size: 10px;">
+                <button type="button" class="file-picker-btn" data-fp-target="rope-instance-texture-${rope.id}" data-fp-type="image" title="Browse for texture">
+                  <i class="fas fa-file-image"></i>
+                </button>
+              </div>
+              
+              ${DebuggerUIBuilder._createSliderHTML(
+                `rope-instance.${rope.id}.tapering`,
+                "Tapering (Visual Sag)",
+                0,
+                1,
+                0.05,
+                "Controls visual sag/droop - 0 = straight, 1 = maximum sag",
+                rope.tapering ?? 0.5
+              )}
+              
+              ${DebuggerUIBuilder._createSliderHTML(
+                `rope-instance.${rope.id}.damping`,
+                "Damping",
+                0.001,
+                0.999,
+                0.001,
+                "Physics damping - higher = less movement",
+                rope.damping ?? 0.99
+              )}
+              
+              ${DebuggerUIBuilder._createSliderHTML(
+                `rope-instance.${rope.id}.windForce`,
+                "Wind Force",
+                0,
+                3,
+                0.1,
+                "Wind force multiplier - 0 = no wind, 1 = normal, >1 = stronger",
+                rope.windForce ?? 1.0
+              )}
+              
+              ${DebuggerUIBuilder._createSliderHTML(
+                `rope-instance.${rope.id}.animationSpeed`,
+                "Animation Speed",
+                0.1,
+                3,
+                0.1,
+                "Wind animation speed multiplier",
+                rope.animationSpeed ?? 1.0
+              )}
+              
+              ${DebuggerUIBuilder._createSliderHTML(
+                `rope-instance.${rope.id}.indoorWindShielding`,
+                "Indoor Wind Shielding",
+                0,
+                1,
+                0.05,
+                "Current wind shielding",
+                rope.indoorWindShielding ?? 0.9
+              )}
+              
+              ${DebuggerUIBuilder._createSliderHTML(
+                `rope-instance.${rope.id}.endpointFade`,
+                "Endpoint Fade Strength",
+                0,
+                1,
+                0.05,
+                "Fade strength at endpoints - 0 = no fade, 1 = maximum fade",
+                rope.endpointFade ?? 0.0
+              )}
+              
+              ${DebuggerUIBuilder._createSliderHTML(
+                `rope-instance.${rope.id}.fadeStartDistance`,
+                "Fade Start Distance",
+                0.01,
+                0.5,
+                0.01,
+                "Distance from rope start where fade begins (0.01-0.5, where 1.0 = full rope length)",
+                rope.fadeStartDistance ?? 0.2
+              )}
+              
+              ${DebuggerUIBuilder._createSliderHTML(
+                `rope-instance.${rope.id}.fadeEndDistance`,
+                "Fade End Distance",
+                0.01,
+                0.5,
+                0.01,
+                "Distance from rope end where fade begins (0.01-0.5, where 1.0 = full rope length)",
+                rope.fadeEndDistance ?? 0.2
+              )}
+              
+              <div class="control-row" style="margin-top: 8px;">
+                <label>Is Indoors:</label>
+                <input type="checkbox" data-path="rope-instance.${rope.id}.isIndoors" ${rope.isIndoors ? 'checked' : ''}>
+              </div>
+            </div>
+          </details>
+        `).join('');
+      };
+      
+      // Helper to create settings for a rope type
+      const createRopeTypeSettings = (type, label, isOpen = false) => {
+        const config = this.config?.physicsRope?.[type] || {};
+        const preset = ROPE_TYPE_PRESETS[type];
+        
+        return `
+        <details ${isOpen ? 'open' : ''}>
+          <summary><span class="accordion-toggle"></span><strong>${label}</strong></summary>
+          <div style="padding-left: 10px; margin-top: 8px;">
+            <div style="display: flex; gap: 4px; align-items: center; margin-bottom: 10px;">
+              <button type="button" class="create-effect-from-ui" data-action="create-physics-rope" data-rope-type="${type}" title="Create new ${label.toLowerCase()}">
+                <i class="fas fa-plus-square"></i>
+              </button>
+              <span style="font-weight: bold; margin-left: 4px;">Create New</span>
+            </div>
+            
+            <details>
+              <summary><span class="accordion-toggle"></span><strong>Default Settings</strong></summary>
+              <div style="padding-left: 10px; margin-top: 8px;">
+                <p class="description-text">These settings apply to newly created ${label.toLowerCase()}s.</p>
+                
+                <div class="control-row">
+                  <label>Texture:</label>
+                  <input type="text" id="rope-texture-${type}" data-path="physicsRope.${type}.texturePath" value="${config.texturePath || preset.texturePath}" style="flex: 1;">
+                  <button type="button" class="file-picker-btn" data-fp-target="rope-texture-${type}" data-fp-type="image" title="Browse for texture">
+                    <i class="fas fa-file-image"></i>
+                  </button>
+                </div>
+                
+                ${DebuggerUIBuilder._createSliderHTML(
+                  `physicsRope.${type}.tapering`,
+                  "Tapering (Visual Sag)",
+                  0,
+                  1,
+                  0.05,
+                  "Visual sag/droop - 0 = straight, 1 = maximum sag"
+                )}
+                
+                ${DebuggerUIBuilder._createSliderHTML(
+                  `physicsRope.${type}.segmentLength`,
+                  "Segment Length",
+                  5,
+                  50,
+                  1,
+                  "Distance between rope segments - lower = smoother but more expensive"
+                )}
+                
+                ${DebuggerUIBuilder._createSliderHTML(
+                  `physicsRope.${type}.damping`,
+                  "Damping",
+                  0.001,
+                  0.999,
+                  0.001,
+                  "Physics damping - higher = less movement/bouncing"
+                )}
+                
+                ${DebuggerUIBuilder._createSliderHTML(
+                  `physicsRope.${type}.windForce`,
+                  "Wind Force",
+                  0,
+                  3,
+                  0.1,
+                  "Wind force multiplier - 0 = no wind, 1 = normal, >1 = stronger"
+                )}
+                
+                ${DebuggerUIBuilder._createSliderHTML(
+                  `physicsRope.${type}.animationSpeed`,
+                  "Animation Speed",
+                  0.1,
+                  3,
+                  0.1,
+                  "Wind animation speed multiplier"
+                )}
+                
+                ${DebuggerUIBuilder._createSliderHTML(
+                  `physicsRope.${type}.indoorWindShielding`,
+                  "Indoor Wind Shielding",
+                  0,
+                  1,
+                  0.05,
+                  "How much wind is blocked indoors (0 = full wind, 1 = no wind)"
+                )}
+                
+                ${DebuggerUIBuilder._createSliderHTML(
+                  `physicsRope.${type}.endpointFade`,
+                  "Endpoint Fade Strength",
+                  0,
+                  1,
+                  0.05,
+                  "Fade strength at endpoints - 0 = no fade, 1 = maximum fade"
+                )}
+                
+                ${DebuggerUIBuilder._createSliderHTML(
+                  `physicsRope.${type}.fadeStartDistance`,
+                  "Fade Start Distance",
+                  0.01,
+                  0.5,
+                  0.01,
+                  "Distance from rope start where fade begins (0.01-0.5, where 1.0 = full rope length)"
+                )}
+                
+                ${DebuggerUIBuilder._createSliderHTML(
+                  `physicsRope.${type}.fadeEndDistance`,
+                  "Fade End Distance",
+                  0.01,
+                  0.5,
+                  0.01,
+                  "Distance from rope end where fade begins (0.01-0.5, where 1.0 = full rope length)"
+                )}
+              </div>
+            </details>
+            
+            <div class="rope-list" style="margin-top: 10px;">
+              <strong>Existing ${label}s:</strong>
+              ${createRopeListHTML(ropesByType[type])}
+            </div>
+          </div>
+        </details>
+        `;
+      };
+      
       const content = `
-        <p class="description-text">Define the default global settings for Physics Ropes created via Map Points.</p>
-        ${DebuggerUIBuilder._createTextureInputHTML(
-          `${path}.texturePath`,
-          "Default Rope Texture",
-          "modules/map-shine/assets/rope.webp"
-        )}
-        ${DebuggerUIBuilder._createSliderHTML(
-          `${path}.gravity`,
-          "Gravity", 0, 2, 0.05
-        )}
-        ${DebuggerUIBuilder._createSliderHTML(
-          `${path}.segmentLength`,
-          "Segment Length", 1, 50, 1
-        )}
-        ${DebuggerUIBuilder._createSliderHTML(
-          `${path}.damping`,
-          "Damping", 0.8, 1, 0.005
-        )}
-        ${DebuggerUIBuilder._createSliderHTML(
-          `${path}.indoorWindShielding`,
-          "Indoor Wind Shielding", 0, 1, 0.05
-        )}
+        <p class="description-text">Create and manage physics ropes. Each type has its own physics properties that update in real-time.</p>
+        
+        ${createRopeTypeSettings('rope', 'Rope', true)}
+        ${createRopeTypeSettings('chain', 'Chain', false)}
+        ${createRopeTypeSettings('elastic', 'Elastic/Rubber', false)}
+        
+        <!-- Wind Influence -->
         <details>
           <summary><span class="accordion-toggle"></span><strong>Wind Influence</strong></summary>
           <div style="padding-left: 10px;">
-            <p class="description-text" style="font-style: italic; color: #999;">Wind is now controlled globally in the "Wind" section. The values below reflect the current global settings.</p>
+            <p class="description-text" style="font-style: italic; color: #999;">Wind is controlled globally in the "Wind" section. Values shown below are read-only.</p>
             ${DebuggerUIBuilder._createReadOnlyDisplayHTML(`${windPath}.enabled`, "Wind Enabled")}
             ${DebuggerUIBuilder._createReadOnlyDisplayHTML(`${windPath}.force`, "Wind Force")}
             ${DebuggerUIBuilder._createReadOnlyDisplayHTML(`${windPath}.baseSpeed`, "Base Wind Speed")}
           </div>
         </details>
       `;
+      
       return DebuggerUIBuilder._createAccordionHTML(
         "physicsRope",
         "Physics Rope",
-        content
+        content 
       );
     }
 
@@ -31070,6 +31676,61 @@ export class PhysicsRopeLayer extends CanvasLayer {
      * @param {*} value - The new value for the setting.
      */
     async _performSystemUpdate(path, value) {
+      // Debug logging for rope texture changes
+      if (path?.includes("physicsRope") && path?.includes("texturePath")) {
+        console.log("MapShine | _performSystemUpdate for rope texture:", {
+          path,
+          value,
+          currentConfig: this.config?.physicsRope
+        });
+      }
+      
+      // Handle rope-instance runtime properties (not profile settings)
+      if (path.startsWith("rope-instance.")) {
+        const parts = path.split(".");
+        const ropeId = parts[1];
+        const property = parts[2];
+        
+        // Update the runtime PhysicsRope instance
+        const ropeLayer = canvas.layers.find(l => l.constructor.name === "PhysicsRopeLayer");
+        if (ropeLayer && ropeLayer.ropes) {
+          const rope = ropeLayer.ropes.find(r => r.id === ropeId);
+          if (rope) {
+            if (property === "isIndoors") {
+              rope.isIndoors = value;
+            } else if (property === "texturePath") {
+              // Special handling for texture changes - need to reload texture
+              try {
+                const newTexture = await foundry.canvas.loadTexture(value);
+                newTexture.baseTexture.wrapMode = PIXI.WRAP_MODES.REPEAT;
+                
+                // Update the mesh texture
+                rope.mesh.texture = newTexture;
+                rope.textureWidth = newTexture.width;
+                rope.textureHeight = newTexture.height;
+                
+                console.log(`MapShine | Updated rope ${ropeId} texture to: ${value}`);
+                ui.notifications.info(`Rope texture updated successfully`);
+              } catch (err) {
+                console.error(`MapShine | Failed to load rope texture: ${value}`, err);
+                ui.notifications.error(`Failed to load texture: ${value}`);
+                return; // Don't save if texture failed to load
+              }
+            } else if (rope.config) {
+              rope.config[property] = value;
+            }
+            console.log(`MapShine | Updated rope ${ropeId}.${property} = ${value}`);
+          }
+        }
+        
+        // Also save the change to the MapPointsManager group data
+        await MapPointsManager.updateGroupProperties(ropeId, {
+          [property]: value
+        });
+        
+        return; // Don't save rope-instance changes to profile
+      }
+      
       const isGameSetting =
         path.startsWith("universal.") || path.startsWith("loading-screen-");
 
@@ -31084,6 +31745,14 @@ export class PhysicsRopeLayer extends CanvasLayer {
         
         // USE TARGETED UPDATE - only refresh the affected system
         await this.profileManager.updateSystemFromPath(path, value);
+      }
+      
+      // Debug logging after save
+      if (path?.includes("physicsRope") && path?.includes("texturePath")) {
+        console.log("MapShine | After save, config is now:", {
+          path,
+          configValue: this.config?.physicsRope
+        });
       }
 
       // After the update, re-render all UI controls to ensure they are in sync with the new state.
@@ -31284,6 +31953,72 @@ export class PhysicsRopeLayer extends CanvasLayer {
 
       ui.notifications.info(
         `Ready to draw the new ${groupType} for "${effectName}". Click on the map to add points.`
+      );
+    }
+
+    async _createPhysicsRope(ropeType = "rope") {
+      // 1. Ensure map points editor is open
+      if (!game.mapShine.mapPointsEditor || game.mapShine.mapPointsEditor.closing) {
+        const editor = new MapPointsEditor();
+        game.mapShine.mapPointsEditor = editor;
+        editor.render(true);
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      } else {
+        game.mapShine.mapPointsEditor.bringToTop();
+      }
+    
+      // 2. Create a new rope group
+      const preset = ROPE_TYPE_PRESETS[ropeType];
+      
+      // Get all settings from config for this rope type, falling back to preset
+      const config = this.config;
+      const typeConfig = config?.physicsRope?.[ropeType] || {};
+      
+      const ropeSettings = {
+        texturePath: typeConfig.texturePath || preset.texturePath,
+        segmentLength: typeConfig.segmentLength ?? preset.segmentLength,
+        animationSpeed: typeConfig.animationSpeed ?? preset.animationSpeed,
+        damping: typeConfig.damping ?? preset.damping,
+        windForce: typeConfig.windForce ?? preset.windForce,
+        tapering: typeConfig.tapering ?? preset.tapering,
+        indoorWindShielding: typeConfig.indoorWindShielding ?? preset.indoorWindShielding,
+        endpointFade: typeConfig.endpointFade ?? preset.endpointFade,
+        fadeStartDistance: typeConfig.fadeStartDistance ?? preset.fadeStartDistance,
+        fadeEndDistance: typeConfig.fadeEndDistance ?? preset.fadeEndDistance,
+      };
+      
+      console.log("MapShine | Creating rope:", {
+        ropeType,
+        configValues: typeConfig,
+        presetValues: preset,
+        finalSettings: ropeSettings
+      });
+      
+      const newGroupId = await MapPointsManager.createGroup({
+        label: `New ${preset.label}`,
+        type: "rope",
+        ropeSettings: {
+          ropeType: ropeType,
+          texturePath: ropeSettings.texturePath,
+          segmentLength: ropeSettings.segmentLength,
+          animationSpeed: ropeSettings.animationSpeed,
+          damping: ropeSettings.damping,
+          windForce: ropeSettings.windForce,
+          tapering: ropeSettings.tapering,
+          indoorWindShielding: ropeSettings.indoorWindShielding,
+          endpointFade: ropeSettings.endpointFade,
+          fadeStartDistance: ropeSettings.fadeStartDistance,
+          fadeEndDistance: ropeSettings.fadeEndDistance,
+        }
+      });
+    
+      if (!newGroupId) {
+        ui.notifications.error("Failed to create a new rope group.");
+        return;
+      }
+    
+      ui.notifications.info(
+        `Ready to draw the new ${preset.label}. Click on the map to add anchor points.`
       );
     }
 
@@ -31819,6 +32554,67 @@ export class PhysicsRopeLayer extends CanvasLayer {
           }
           break;
         }
+        case "create-physics-rope": {
+          const ropeType = target.dataset.ropeType || "rope";
+          this._createPhysicsRope(ropeType);
+          break;
+        }
+        case "reset-rope-defaults": {
+          const groupId = target.dataset.groupId;
+          if (groupId) {
+            const group = MapPointsManager.getGroup(groupId);
+            if (!group) {
+              ui.notifications.warn("Rope group not found.");
+              break;
+            }
+            
+            // Default values from PhysicsRope constructor
+            const defaults = {
+              damping: 0.95,
+              windForce: 2.0,
+              tapering: 0.5,
+              animationSpeed: 1.0,
+              indoorWindShielding: 0.9,
+              endpointFade: 0.0,
+              fadeStartDistance: 0.2,
+              fadeEndDistance: 0.2
+            };
+            
+            // Update the group with default values
+            await MapPointsManager.updateGroup(groupId, defaults);
+            
+            // Re-render the debugger to show updated values
+            if (game.mapShine.debugger) {
+              game.mapShine.debugger.render(false);
+            }
+            
+            ui.notifications.info(`Reset "${group.label}" to default settings.`);
+          }
+          break;
+        }
+        case "delete-rope-group": {
+          const groupId = target.dataset.groupId;
+          if (groupId) {
+            const group = MapPointsManager.getGroup(groupId);
+            if (!group) {
+              ui.notifications.warn("Rope group not found.");
+              break;
+            }
+            Dialog.confirm({
+              title: "Delete Rope",
+              content: `<p>Are you sure you want to delete the rope "<strong>${Handlebars.escapeExpression(group.label)}</strong>"?</p>`,
+              yes: async () => {
+                await MapPointsManager.deleteGroup(groupId);
+                // Re-render the debugger to update the rope lists
+                if (game.mapShine.debugger) {
+                  game.mapShine.debugger.render(false);
+                }
+              },
+              defaultYes: false,
+            });
+          }
+          break;
+        }
       }
 
       // All other actions
@@ -32055,10 +32851,21 @@ export class PhysicsRopeLayer extends CanvasLayer {
 
         const isGameSetting =
           path.startsWith("universal.") || path.startsWith("loading-screen-");
+        const isRopeInstance = path.startsWith("rope-instance.");
         let value;
 
         if (isGameSetting) {
           value = game.settings.get(MODULE_ID, path);
+        } else if (isRopeInstance) {
+          // Handle rope instance properties from MapPointsManager
+          const parts = path.split(".");
+          const ropeId = parts[1];
+          const property = parts[2];
+          const allGroups = MapPointsManager.getGroups();
+          const ropeGroup = allGroups[ropeId];
+          if (ropeGroup) {
+            value = ropeGroup[property];
+          }
         } else {
           value = this._getPathValue(this.config, path);
         }
@@ -32688,6 +33495,16 @@ export class PhysicsRopeLayer extends CanvasLayer {
     }
 
     async _handleGenericInput(e) {
+      // Debug logging for rope texture changes
+      if (e.target.dataset.path?.includes("physicsRope") && e.target.dataset.path?.includes("texturePath")) {
+        console.log("MapShine | Rope texture input detected:", {
+          eventType: e.type,
+          path: e.target.dataset.path,
+          value: e.target.value,
+          targetId: e.target.id
+        });
+      }
+      
       // New logic for number inputs linked to sliders
       if (e.target.type === "number" && e.target.dataset.sliderId) {
         const sliderId = e.target.dataset.sliderId;

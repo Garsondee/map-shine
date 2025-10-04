@@ -17,6 +17,7 @@ const CONFIG_SYSTEM_MAP = {
   ambient: { type: 'layer', layerClass: 'AmbientLayer' },
   groundGlow: { type: 'layer', layerClass: 'GroundGlowLayer' },
   heatDistortion: { type: 'layer', layerClass: 'HeatDistortionLayer' },
+  physicsRope: { type: 'layer', layerClass: 'PhysicsRopeLayer' },
   
   // Post-processing filters
   postProcessing: { type: 'filter', filterName: 'postProcessing' },
@@ -475,7 +476,12 @@ export class ProfileManager {
       this.activeSceneId,
       this._userOverrides
     );
+    // Must reload after save completes to ensure we get the updated config
     this.initializeForScene();
+    
+    // Directly update activeConfig to ensure immediate responsiveness
+    // This prevents race conditions where the reload might not pick up the change
+    foundry.utils.setProperty(this.activeConfig, path, value);
   }
 
   async revertToSceneDefault() {

@@ -1,0 +1,68 @@
+Add this code in MapPointsEditor._buildHTML() after line 21069 (after the Effect Source settings closing div):
+
+// Add this before line 21070 (before the closing backtick of detailsHTML)
+
+          <!-- Physics Rope Settings -->
+          <div class="mp-rope-settings" style="display: ${selectedGroup.type === 'rope' ? 'block' : 'none'}; margin-top: 10px; border-top: 1px solid #555; padding-top: 10px;">
+              <h4><i class="fas fa-link"></i> Physics Rope Settings</h4>
+              
+              <div class="control-row">
+                  <label for="mp-rope-type">Rope Type</label>
+                  <select name="ropeType" id="mp-rope-type">
+                      <option value="rope" ${(selectedGroup.ropeType || 'rope') === 'rope' ? 'selected' : ''}>Rope</option>
+                      <option value="chain" ${selectedGroup.ropeType === 'chain' ? 'selected' : ''}>Chain</option>
+                      <option value="elastic" ${selectedGroup.ropeType === 'elastic' ? 'selected' : ''}>Elastic/Rubber</option>
+                  </select>
+              </div>
+              
+              <div class="control-row">
+                  <label for="mp-rope-texturePath">Texture Path</label>
+                  <div style="display: flex; gap: 4px; flex: 1;">
+                      <input type="text" name="texturePath" id="mp-rope-texturePath" value="${selectedGroup.texturePath || 'modules/map-shine/assets/rope.webp'}" style="flex: 1;">
+                      <button type="button" data-action="pick-rope-texture" title="Browse for texture"><i class="fas fa-file-image"></i></button>
+                  </div>
+              </div>
+              
+              <div class="control-row control-row-slider">
+                  <label for="mp-rope-gravity">Gravity</label>
+                  <input type="range" name="gravity" id="mp-rope-gravity" min="0" max="1000" step="10" value="${selectedGroup.gravity || 500}">
+                  <span class="value-span">${(selectedGroup.gravity || 500).toFixed(0)}</span>
+              </div>
+              
+              <div class="control-row control-row-slider">
+                  <label for="mp-rope-segmentLength">Segment Length</label>
+                  <input type="range" name="segmentLength" id="mp-rope-segmentLength" min="1" max="50" step="1" value="${selectedGroup.segmentLength || 10}">
+                  <span class="value-span">${(selectedGroup.segmentLength || 10).toFixed(0)}</span>
+              </div>
+              
+              <div class="control-row control-row-slider">
+                  <label for="mp-rope-damping">Damping</label>
+                  <input type="range" name="damping" id="mp-rope-damping" min="0.8" max="1" step="0.005" value="${selectedGroup.damping || 0.99}">
+                  <span class="value-span">${(selectedGroup.damping || 0.99).toFixed(3)}</span>
+              </div>
+              
+              <div class="control-row control-row-slider">
+                  <label for="mp-rope-tapering">Tapering</label>
+                  <input type="range" name="tapering" id="mp-rope-tapering" min="0" max="1" step="0.05" value="${selectedGroup.tapering || 0.5}">
+                  <span class="value-span">${(selectedGroup.tapering || 0.5).toFixed(2)}</span>
+              </div>
+              
+              <div class="control-row control-row-slider">
+                  <label for="mp-rope-animationSpeed">Animation Speed</label>
+                  <input type="range" name="animationSpeed" id="mp-rope-animationSpeed" min="0" max="3" step="0.1" value="${selectedGroup.animationSpeed || 1}">
+                  <span class="value-span">${(selectedGroup.animationSpeed || 1).toFixed(1)}</span>
+              </div>
+              
+              <div class="control-row">
+                  <label for="mp-rope-isIndoors">Is Indoors</label>
+                  <input type="checkbox" name="isIndoors" id="mp-rope-isIndoors" ${selectedGroup.isIndoors ? 'checked' : ''}>
+              </div>
+              
+              <div class="control-row control-row-slider">
+                  <label for="mp-rope-indoorWindShielding">Indoor Wind Shielding</label>
+                  <input type="range" name="indoorWindShielding" id="mp-rope-indoorWindShielding" min="0" max="1" step="0.05" value="${selectedGroup.indoorWindShielding || 0.9}">
+                  <span class="value-span">${(selectedGroup.indoorWindShielding || 0.9).toFixed(2)}</span>
+              </div>
+          </div>
+
+LOCATION: Insert this right before line 21070 (before the closing backtick and semicolon of detailsHTML)
