@@ -447,9 +447,46 @@
       border: 1px solid #555;
       border-radius: 4px;
       padding: 3px;
-      transition: background 0.2s ease-in-out;
+      transition: background 0.2s ease-in-out, border-color 0.2s ease-in-out, filter 0.2s ease-in-out;
       margin-bottom: 0;
       &[open] { background: rgba(255,255,255,0.08); padding-bottom: 5px; }
+
+      /* Enabled accordions - bright and vibrant */
+      &:not(.disabled-effect) {
+        filter: brightness(1.3) saturate(1.4);
+        
+        &.accordion-type-system   { background: rgba(150, 150, 150, 0.15); border-color: rgba(150, 150, 150, 0.6); }
+        &.accordion-type-structural{ background: rgba(100, 255, 200, 0.15); border-color: rgba(100, 255, 200, 0.6); }
+        &.accordion-type-pp-color   { background: rgba(255, 200, 150, 0.15); border-color: rgba(255, 200, 150, 0.6); }
+        &.accordion-type-pp-exposure{ background: rgba(255, 220, 100, 0.15); border-color: rgba(255, 220, 100, 0.6); }
+        &.accordion-type-pp-lens    { background: rgba(150, 180, 255, 0.15); border-color: rgba(150, 180, 255, 0.6); }
+        &.accordion-type-pp-texture { background: rgba(180, 180, 180, 0.15); border-color: rgba(180, 180, 180, 0.6); }
+        
+        &[open] {
+          background: rgba(255,255,255,0.18);
+          
+          &.accordion-type-system   { background: rgba(150, 150, 150, 0.22); }
+          &.accordion-type-structural{ background: rgba(100, 255, 200, 0.22); }
+          &.accordion-type-pp-color   { background: rgba(255, 200, 150, 0.22); }
+          &.accordion-type-pp-exposure{ background: rgba(255, 220, 100, 0.22); }
+          &.accordion-type-pp-lens    { background: rgba(150, 180, 255, 0.22); }
+          &.accordion-type-pp-texture { background: rgba(180, 180, 180, 0.22); }
+        }
+      }
+
+      /* Disabled accordions - subtle and dimmed */
+      &.disabled-effect {
+        filter: grayscale(0.5) brightness(0.7) opacity(0.6);
+        
+        &.accordion-type-system   { background: rgba(150, 150, 150, 0.04); border-color: rgba(150, 150, 150, 0.2); }
+        &.accordion-type-structural{ background: rgba(100, 255, 200, 0.04); border-color: rgba(100, 255, 200, 0.2); }
+        &.accordion-type-pp-color   { background: rgba(255, 200, 150, 0.04); border-color: rgba(255, 200, 150, 0.2); }
+        &.accordion-type-pp-exposure{ background: rgba(255, 220, 100, 0.04); border-color: rgba(255, 220, 100, 0.2); }
+        &.accordion-type-pp-lens    { background: rgba(150, 180, 255, 0.04); border-color: rgba(150, 180, 255, 0.2); }
+        &.accordion-type-pp-texture { background: rgba(180, 180, 180, 0.04); border-color: rgba(180, 180, 180, 0.2); }
+        
+        > summary .summary-label { color: #888; }
+      }
     }
     summary {
       font-family: var(--ms-subheading-font, Inter, system-ui, sans-serif);
@@ -993,59 +1030,30 @@
       font-size: 11px;
       padding: 0;
     }
-  
+
     .file-picker-btn {
       flex-shrink: 0;
       width: 22px;
       height: 22px;
       line-height: 18px;
-      padding: 0;
-      font-size: 12px;
-      border-radius: 4px;
-      transition: background 0.2s ease-in-out;
     }
-  
-    details {
-      /* Use the unified base accordion styles defined under .mp-editor, #material-editor-debugger */
-    
-      /* Type-specific tints */
-      &.accordion-type-particle { background: rgba(255, 180, 100, 0.04); border-color: rgba(255, 180, 100, 0.2); &[open] { background: rgba(255, 180, 100, 0.08); } }
-      &.accordion-type-shadow   { background: rgba(100, 150, 255, 0.04); border-color: rgba(100, 150, 255, 0.2); &[open] { background: rgba(100, 150, 255, 0.08); } }
-      &.accordion-type-shader   { background: rgba(200, 100, 255, 0.04); border-color: rgba(200, 100, 255, 0.2); &[open] { background: rgba(200, 100, 255, 0.08); } }
-      &.accordion-type-water    { background: rgba(100, 200, 255, 0.04); border-color: rgba(100, 200, 255, 0.2); &[open] { background: rgba(100, 200, 255, 0.08); } }
-      &.accordion-type-color    { background: rgba(255, 200, 150, 0.04); border-color: rgba(255, 200, 150, 0.2); &[open] { background: rgba(255, 200, 150, 0.08); } }
-      &.accordion-type-system   { background: rgba(150, 150, 150, 0.04); border-color: rgba(150, 150, 150, 0.2); &[open] { background: rgba(150, 150, 150, 0.08); } }
-      &.accordion-type-structural{ background: rgba(100, 255, 200, 0.04); border-color: rgba(100, 255, 200, 0.2); &[open] { background: rgba(100, 255, 200, 0.08); } }
-  
-      /* Post-Processing Effect Types */
-      &.accordion-type-pp-color   { background: rgba(255, 200, 150, 0.04); border-color: rgba(255, 200, 150, 0.2); &[open] { background: rgba(255, 200, 150, 0.08); } }
-      &.accordion-type-pp-exposure{ background: rgba(255, 220, 100, 0.04); border-color: rgba(255, 220, 100, 0.2); &[open] { background: rgba(255, 220, 100, 0.08); } }
-      &.accordion-type-pp-lens    { background: rgba(150, 180, 255, 0.04); border-color: rgba(150, 180, 255, 0.2); &[open] { background: rgba(150, 180, 255, 0.08); } }
-      &.accordion-type-pp-texture { background: rgba(180, 180, 180, 0.04); border-color: rgba(180, 180, 180, 0.2); &[open] { background: rgba(180, 180, 180, 0.08); } }
 
-      &.disabled-effect > summary .summary-label { color: #888; }
-    }
-  }
-
-  .list-manager-container {
     .list-item-row {
       display: flex;
       align-items: center;
-      input[type=text] { flex-grow: 1; }
-      .remove-item-btn {
-        flex-shrink: 0;
-        background: #662222;
-        border: 1px solid #aa6666;
-        color: #ffcccc;
-        font-weight: bold;
-        width: 22px;
-        height: 22px;
-        line-height: 20px;
-        text-align: center;
-        padding: 0;
-        &:hover { background: #883333; }
-      }
+      flex-shrink: 0;
+      background: #662222;
+      border: 1px solid #aa6666;
+      color: #ffcccc;
+      font-weight: bold;
+      width: 22px;
+      height: 22px;
+      line-height: 20px;
+      text-align: center;
+      padding: 0;
+      &:hover { background: #883333; }
     }
+
     .add-item-btn {
       background-color: #2a552a;
       border-color: #6aaa6a;
@@ -1053,18 +1061,17 @@
       &:hover { background-color: #3a753a; }
     }
   }
-  
+
+
   /* =============================================================================
      Simple UI Panel
      ========================================================================== */
-  
   .map-shine-simple-panel .window-content {
     background: rgba(30, 30, 30, 0.9);
     padding: 10px;
     color: #eee;
     font-family: "Signika", sans-serif;
   }
-  
   .simple-ui-wrapper {
     display: flex;
     flex-direction: column;
@@ -1133,5 +1140,38 @@
       background: #803030;
       color: #fff;
       border-color: #c06060;
+    }
+  }
+  
+  /* Physics Rope action buttons */
+  .rope-reset-btn,
+  .rope-delete-btn {
+    padding: 2px 6px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    color: #fff;
+    font-size: 11px;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    
+    i {
+      pointer-events: none;
+    }
+  }
+  
+  .rope-reset-btn {
+    background: #4a9eff;
+    &:hover {
+      background: #6bb0ff;
+      box-shadow: 0 0 8px rgba(74, 158, 255, 0.5);
+    }
+  }
+  
+  .rope-delete-btn {
+    background: #c44;
+    &:hover {
+      background: #e55;
+      box-shadow: 0 0 8px rgba(204, 68, 68, 0.5);
     }
   }

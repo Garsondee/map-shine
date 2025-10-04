@@ -5103,8 +5103,84 @@ class SceneChangeManager {
         ? `display: block; background: linear-gradient(to bottom, rgba(0,0,0,${maxOpacity}) 0%, rgba(0,0,0,${minOpacity}) 35%, rgba(0,0,0,${minOpacity}) 65%, rgba(0,0,0,${maxOpacity}) 100%);`
         : "display: none;";
 
+    const fadeOutDuration = 1500; // Match LoadingScreen fade duration
+
+    const inlineCSS = `
+        <style>
+        /* Inline styles scoped to #map-shine-scene-transition to restore visuals without external CSS */
+        #map-shine-scene-transition {
+          position: fixed;
+          top: 0; left: 0; width: 100vw; height: 100vh;
+          background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+          z-index: 100000; display: flex; justify-content: center; align-items: center;
+          color: #f8fafc; font-family: ${JSON.stringify(
+            _subheadingFont || "Inter, system-ui, sans-serif"
+          )};
+          transition: opacity ${
+            fadeOutDuration / 1000
+          }s cubic-bezier(0.4, 0, 0.2, 1);
+          overflow: hidden;
+        }
+        #map-shine-scene-transition::before {
+          content: '';
+          position: absolute; inset: 0;
+          background:
+            radial-gradient(circle at 30% 20%, rgba(59,130,246,0.3) 0%, transparent 50%),
+            radial-gradient(circle at 70% 80%, rgba(16,185,129,0.1) 0%, transparent 50%);
+          pointer-events: none;
+        }
+        #map-shine-scene-transition .loading-background-overlay {
+          position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; display: none;
+        }
+        #map-shine-scene-transition .loading-content {
+          text-align: center; position: relative; z-index: 2; background: transparent;
+          padding: 4rem 5rem; width: 80vw; max-width: 80vw; aspect-ratio: 16 / 9;
+          display: flex; flex-direction: column; justify-content: center;
+          filter: drop-shadow(0 0 40px rgba(0,0,0,0.9)) drop-shadow(0 0 80px rgba(0,0,0,0.8)) drop-shadow(0 0 120px rgba(0,0,0,0.6));
+        }
+        #map-shine-scene-transition .loading-logo { width: 160px; height: auto; margin: 0 auto 1.25rem auto; display: block; filter: drop-shadow(0 0 30px rgba(59,130,246,0.3)); transition: transform 0.3s ease; }
+        #map-shine-scene-transition .loading-subhead { font-family: ${JSON.stringify(
+          _subheadingFont || "Inter, system-ui, sans-serif"
+        )}; font-size: 1.5rem; font-weight: 400; color: #cbd5e1; margin: 0 0 0.75rem 0; text-shadow: 0 0 20px rgba(0,0,0,0.9), 0 0 40px rgba(0,0,0,0.8), 0 2px 8px rgba(0,0,0,0.7); letter-spacing: 0.025em; }
+        #map-shine-scene-transition .loading-title {
+          font-family: ${JSON.stringify(
+            _headingFont || "Inter, system-ui, sans-serif"
+          )};
+          font-size: 4.5rem; font-weight: 700; margin: 0 0 2rem 0;
+          background: linear-gradient(135deg, #f8fafc 0%, #3b82f6 100%);
+          -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+          filter: drop-shadow(0 0 30px rgba(0,0,0,0.9)) drop-shadow(0 0 60px rgba(0,0,0,0.7)); letter-spacing: -0.025em; line-height: 1.1;
+        }
+        #map-shine-scene-transition .loading-bar-container { width: 60%; max-width: 550px; height: 0.75rem; margin: 0 auto; background: rgba(15,23,42,0.8); border-radius: 9999px; overflow: hidden; position: relative; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
+        #map-shine-scene-transition .loading-bar-fill { width: 0%; height: 100%; background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%); transform-origin: left; transition: width 0.4s cubic-bezier(0.4,0,0.2,1); box-shadow: 0 0 20px rgba(59,130,246,0.3); border-radius: 9999px; position: relative; }
+        #map-shine-scene-transition .loading-bar-fill::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%); border-radius: inherit; }
+        #map-shine-scene-transition .loading-status { margin-top: 1.5rem; font-size: 1rem; color: #cbd5e1; height: 1.25rem; line-height: 1.25rem; opacity: 1; transition: opacity 0.3s cubic-bezier(0.4,0,0.2,1); text-shadow: 0 0 20px rgba(0,0,0,0.9), 0 0 40px rgba(0,0,0,0.8), 0 2px 8px rgba(0,0,0,0.7); font-weight: 500; letter-spacing: 0.025em; }
+        #map-shine-scene-transition .loading-hint { font-family: ${JSON.stringify(
+          _hintFont || "serif"
+        )}; margin-top: 2rem; font-size: 1rem; color: #94a3b8; font-style: italic; max-width: 55ch; margin-left: auto; margin-right: auto; min-height: 3rem; opacity: 0; text-shadow: 0 0 20px rgba(0,0,0,0.9), 0 0 40px rgba(0,0,0,0.8), 0 2px 8px rgba(0,0,0,0.7); line-height: 1.6; font-weight: 400; }
+        /* Slide animations and delays */
+        #map-shine-scene-transition .slide-from-above { transform: translateY(-3rem); opacity: 0; animation: slideInFromAbove 1s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+        #map-shine-scene-transition .slide-from-below { transform: translateY(3rem); opacity: 0; animation: slideInFromBelow 1s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+        #map-shine-scene-transition .loading-logo { animation-delay: 0.1s; }
+        #map-shine-scene-transition .loading-subhead { animation-delay: 0.2s; }
+        #map-shine-scene-transition .loading-title { animation-delay: 0.35s; }
+        #map-shine-scene-transition .loading-bar-container { animation-delay: 0.5s; }
+        #map-shine-scene-transition .loading-status { animation-delay: 0.65s; }
+        #map-shine-scene-transition .loading-hint { animation-delay: 0.8s; }
+        @keyframes slideInFromAbove { to { transform: translateY(0); opacity: 1; } }
+        @keyframes slideInFromBelow { to { transform: translateY(0); opacity: 1; } }
+        @media (max-width: 768px) {
+          #map-shine-scene-transition .loading-content { padding: 2.5rem 2rem; margin: 1rem; }
+          #map-shine-scene-transition .loading-title { font-size: 3rem; }
+          #map-shine-scene-transition .loading-logo { width: 120px; }
+          #map-shine-scene-transition .loading-bar-container { width: 300px; }
+        }
+        </style>
+      `;
+
     // Create the same HTML structure as LoadingScreen with animation classes
     this.transitionOverlay.innerHTML = `
+        ${inlineCSS}
         <div class="loading-background-overlay"></div>
         <div class="loading-content">
           <img src="modules/map-shine/assets/fvtt.png" class="loading-logo slide-from-above" alt="Foundry VTT Logo">
@@ -6021,7 +6097,7 @@ export { SceneChangeManager };
  *
  *  NOTE: The CoordinateManager has been moved to scripts/managers/CoordinateManager.js
  *
-***************************************************************************************/
+ ***************************************************************************************/
 
 export class ProfileDataManager {
   constructor(moduleId) {
@@ -6041,7 +6117,11 @@ export class ProfileDataManager {
    * @param {object} worldDefaults - The entire worldDefaults object to save.
    */
   async saveWorldDefaults(worldDefaults) {
-    await game.settings.set(this.moduleId, WORLD_DEFAULTS_SETTING, worldDefaults);
+    await game.settings.set(
+      this.moduleId,
+      WORLD_DEFAULTS_SETTING,
+      worldDefaults
+    );
   }
 
   /**
@@ -6210,18 +6290,13 @@ export class ConfigBuilder {
    * 3. Layer World-Based Overrides (for effects with worldBasedOnly: true)
    * 4. Layer User Overrides
    * 5. Apply Client Overrides
-   * 
+   *
    * @param {object} data - An object containing all the raw data.
    * @param {object} options - Options for the build process.
    * @returns {object} An object containing the final config and status information.
    */
   static buildEffectiveConfig(
-    {
-      sceneProfiles,
-      activeProfileId,
-      worldDefaults,
-      rawUserOverrides,
-    },
+    { sceneProfiles, activeProfileId, worldDefaults, rawUserOverrides },
     options = {}
   ) {
     const defaults = foundry.utils.deepClone(MODULE_DEFAULTS);
@@ -6257,15 +6332,23 @@ export class ConfigBuilder {
 
     // Step 3: Layer World-Based Overrides
     // For each effect with worldBasedOnly: true, replace with world default if it exists
-    if (worldDefaults && typeof worldDefaults === 'object') {
+    if (worldDefaults && typeof worldDefaults === "object") {
       for (const effectKey in baseConfig) {
         const effectConfig = baseConfig[effectKey];
         // Check if this effect has worldBasedOnly set to true
-        if (effectConfig && typeof effectConfig === 'object' && effectConfig.worldBasedOnly === true) {
+        if (
+          effectConfig &&
+          typeof effectConfig === "object" &&
+          effectConfig.worldBasedOnly === true
+        ) {
           // If a world default exists for this effect, replace the entire effect block
           if (worldDefaults[effectKey]) {
-            baseConfig[effectKey] = foundry.utils.deepClone(worldDefaults[effectKey]);
-            console.log(`MapShine | Applied world default for effect: ${effectKey}`);
+            baseConfig[effectKey] = foundry.utils.deepClone(
+              worldDefaults[effectKey]
+            );
+            console.log(
+              `MapShine | Applied world default for effect: ${effectKey}`
+            );
           }
         }
       }
@@ -14903,16 +14986,19 @@ class LightningLayer extends CanvasLayer {
           y: lastPoint.y + (Math.random() - 0.5) * 2 * endPointVariationY,
         };
 
-        // Generate lightning path
+        // Generate lightning path with optional displacement
+        const displacementEnabled = config?.displacement?.enabled ?? true;
+        const displacementMagnitude = displacementEnabled ? (config?.displacement?.magnitude ?? 50) : 0;
+        
         const mainPath = this._generateLightningPath(
           firstPoint,
           variedEndPoint,
-          50,
+          displacementMagnitude,
           0.3 + Math.random() * 0.15
         );
 
-        // Generate branches
-        const branches = this._generateBranches(mainPath, 0.12, 1, 5, 0, 2);
+        // Generate branches with optional fine displacement
+        const branches = this._generateBranches(mainPath, 0.12, 1, 5, 0, 2, config);
 
         // Random intensity
         const intensity = 0.7 + Math.random() * 0.3;
@@ -14947,7 +15033,7 @@ class LightningLayer extends CanvasLayer {
         }
 
         // Draw main bolt
-        this._drawLightningBolt(strike.mainPath, 5, strike.intensity, 0);
+        this._drawLightningBolt(strike.mainPath, 5, strike.intensity, 0, config);
 
         // Draw branches
         for (const branch of strike.branches) {
@@ -14955,7 +15041,8 @@ class LightningLayer extends CanvasLayer {
             branch.path,
             branch.width,
             strike.intensity * 0.8,
-            branch.depth
+            branch.depth,
+            config
           );
         }
       }
@@ -15118,6 +15205,7 @@ class LightningLayer extends CanvasLayer {
    * @param {number} parentWidth - Width of parent bolt at this point (for width inheritance)
    * @param {number} currentDepth - Current recursion depth (for limiting recursion)
    * @param {number} maxDepth - Maximum recursion depth allowed
+   * @param {Object} config - Lightning configuration object
    * @returns {Array<{path: Array<{x: number, y: number}>, depth: number, positionRatio: number}>} Array of branch objects
    */
   _generateBranches(
@@ -15126,7 +15214,8 @@ class LightningLayer extends CanvasLayer {
     startIndex = 1,
     parentWidth = 5,
     currentDepth = 0,
-    maxDepth = 3
+    maxDepth = 3,
+    config = null
   ) {
     const branches = [];
 
@@ -15191,10 +15280,16 @@ class LightningLayer extends CanvasLayer {
             (normalizedDir.x * sin + normalizedDir.y * cos) * branchLength,
         };
 
+        // Use fine displacement for branches if enabled
+        const fineDisplacementEnabled = config?.displacementFine?.enabled ?? true;
+        const fineDisplacementMagnitude = fineDisplacementEnabled 
+          ? (config?.displacementFine?.magnitude ?? 20) + positionRatio * 15
+          : 0;
+        
         const branchPath = this._generateLightningPath(
           branchStart,
           branchEnd,
-          20 + positionRatio * 15, // Increased displacement for sharper branches
+          fineDisplacementMagnitude,
           0.3 + Math.random() * 0.2 // Moderate curve for branches (0.3-0.5 range)
         );
 
@@ -15222,7 +15317,8 @@ class LightningLayer extends CanvasLayer {
             Math.floor(branchPath.length * 0.2), // Start earlier (20% instead of 30%)
             inheritedWidth, // Pass inherited width to sub-branches
             currentDepth + 1, // Increment depth
-            maxDepth // Pass max depth limit
+            maxDepth, // Pass max depth limit
+            config // Pass config to sub-branches
           );
           branches.push(
             ...subBranches.map((sb) => ({
@@ -15247,7 +15343,7 @@ class LightningLayer extends CanvasLayer {
    * @param {number} alpha - Opacity
    * @param {number} branchDepth - Branch depth (0 = main bolt, 1+ = branches)
    */
-  _drawLightningBolt(path, baseWidth = 4, alpha = 1.0, branchDepth = 0) {
+  _drawLightningBolt(path, baseWidth = 4, alpha = 1.0, branchDepth = 0, config = null) {
     if (path.length < 2) return;
 
     // Reduce width for branches based on depth
@@ -15264,6 +15360,9 @@ class LightningLayer extends CanvasLayer {
       { widthMult: 1, color: 0xffffff, alpha: alpha },
     ];
 
+    // Check if width variation is enabled
+    const widthVariationEnabled = config?.widthVariation?.enabled ?? true;
+    
     // Draw each layer with proper tapering
     for (const layer of layers) {
       // For branches, use aggressive taper to reach near-invisible by 90%
@@ -15274,7 +15373,8 @@ class LightningLayer extends CanvasLayer {
       // Draw segments with individual tapering for sharp end
       for (let i = 0; i < renderPath.length - 1; i++) {
         const t = i / (renderPath.length - 1);
-        const taper = Math.pow(1 - t, taperExponent);
+        // Apply taper only if width variation is enabled
+        const taper = widthVariationEnabled ? Math.pow(1 - t, taperExponent) : 1.0;
         const segmentWidth =
           startWidth *
           layer.widthMult *
@@ -21401,7 +21501,10 @@ class PhysicsRope {
   }
 
   update(deltaTime) {
-    this.time += deltaTime * this.config.animationSpeed;
+    const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
+    const adjustedDeltaTime = deltaTime * timeFactor;
+    
+    this.time += adjustedDeltaTime * this.config.animationSpeed;
 
     // Verlet integration
     for (let i = 0; i < this.points.length; i++) {
@@ -21470,8 +21573,8 @@ class PhysicsRope {
       // NOTE: Gravity is NOT applied to simulation points - it only affects visual tapering
       // The rope maintains its path, and gravity creates visual sag through vertex manipulation
 
-      point.x += dampedVx + windForceX * deltaTime;
-      point.y += dampedVy + windForceY * deltaTime;
+      point.x += dampedVx + windForceX * adjustedDeltaTime;
+      point.y += dampedVy + windForceY * adjustedDeltaTime;
     }
 
     // Constraint resolution (maintain segment lengths for rope integrity)
@@ -21890,6 +21993,9 @@ export class PhysicsRopeLayer extends CanvasLayer {
    */
   async updateFromConfig(config) {
     if (!config?.physicsRope) return;
+
+    // Check if the layer should be visible based on the enabled flag
+    this.visible = config.physicsRope.enabled;
 
     // Update existing ropes with new physics settings from their type-specific config
     for (const rope of this.ropes) {
@@ -30926,6 +31032,14 @@ class DebuggerUIBuilder {
     return `
                 <div class="main-controls-wrapper">
                     <h3 class="pane-title">Main Controls</h3>
+                    ${DebuggerUIBuilder._createSliderHTML(
+                      "timeControl.globalTime",
+                      "Global Time Speed",
+                      0,
+                      200,
+                      1,
+                      "Controls the speed at which all time-based effects animate (0% = paused, 100% = normal, 200% = double speed)"
+                    )}
                     <div class="map-tools-toolbar" style="margin-bottom: 10px;">
                         <button type="button" class="toolbar-button" data-action="open-map-points-editor" title="Open the editor to create and manage groups of points on the map." style="width: 100%;">
                             <i class="fas fa-drafting-compass"></i> LAUNCH EDITOR
