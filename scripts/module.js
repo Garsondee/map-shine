@@ -2015,10 +2015,6 @@ export const MODULE_DEFAULTS = {
     brightness: 1.2,
     saturation: 1.2,
     invert: false,
-    tokenMasking: {
-      enabled: true,
-      threshold: 0,
-    },
   },
   heatDistortion: {
     enabled: true,
@@ -4388,8 +4384,8 @@ class LayerManager {
       },
       groundGlow: {
         layerClass: GroundGlowLayer,
-        group: "primary",
-        zIndex: 35, // Renders on top of tiles but below tokens.
+        group: "environment",
+        zIndex: 210, // Renders above lighting to avoid being darkened by the scene.
       },
 
       // --- Layers Above Tokens (zIndex > 100) ---
@@ -25580,20 +25576,12 @@ class GroundGlowLayer extends CanvasLayer {
     const resourceManager = game.mapShine.resourceManager;
     if (!resourceManager) return;
 
-    // Update filter uniforms
+    // Update light mask and token mask uniforms
     const u = this.glowFilter.uniforms;
     u.uLightMask = resourceManager.getLightMask() || PIXI.Texture.WHITE;
-    u.uOutdoorsMask = resourceManager.getOutdoorsMask() || PIXI.Texture.WHITE;
-    u.uStructuralMask =
-      resourceManager.getStructuralMask() || PIXI.Texture.WHITE;
     u.uTokenMask = resourceManager.getTokenMask() || PIXI.Texture.BLACK;
 
-    // Pass scene darkness level to shader
-    u.uSceneDarkness =
-      canvas.scene?.environment?.darknessLevel ?? canvas.scene?.darkness ?? 0.0;
-
     // Position and scale the final sprite to cover the screen
-
     this.effectSprite.position.copyFrom(CoordinateManager.getCameraOffset());
     this.effectSprite.width = CoordinateManager.getViewSize().width;
     this.effectSprite.height = CoordinateManager.getViewSize().height;
@@ -25678,8 +25666,6 @@ class GroundGlowLayer extends CanvasLayer {
     u.uBrightness = ggConfig.brightness;
     u.uSaturation = ggConfig.saturation;
     u.uInvert = ggConfig.invert;
-    u.uTokenMaskEnabled = ggConfig.tokenMasking.enabled;
-    u.uTokenMaskThreshold = ggConfig.tokenMasking.threshold;
   }
 
   _onResize() {
@@ -25694,9 +25680,9 @@ class GroundGlowLayer extends CanvasLayer {
 
 /**
  * Ground Glow Filter - Shader that controls visibility of _GroundGlow texture based on darkness.
- *
- * This filter implements mask-based dark area detection to show glow effects only where appropriate.
- * See GroundGlowLayer class documentation for full logic explanation.
+ /**
+ * A procedural filter that generates a glow effect based on scene lighting.
+ * The glow appears in unlit areas (or lit areas if inverted) without requiring any texture input.
  *
  * @extends PIXI.Filter
  */
@@ -25723,106 +25709,59 @@ class GroundGlowFilter extends PIXI.Filter {
 
             uniform sampler2D uSampler;
             uniform sampler2D uLightMask;
-            uniform sampler2D uOutdoorsMask;
-            uniform sampler2D uStructuralMask;
             uniform sampler2D uTokenMask;
-
-            // Effect Controls
             uniform float uIntensity;
             uniform float uBrightness;
             uniform float uSaturation;
             uniform bool uInvert;
             uniform bool uTokenMaskEnabled;
             uniform float uTokenMaskThreshold;
-            uniform float uSceneDarkness; // Scene darkness level (0 = day, 1 = night)
-
-            const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
 
             void main() {
+                // Sample the glow texture
                 vec4 glowColor = texture2D(uSampler, vTextureCoord);
-                if (glowColor.a == 0.0) {
-                    discard;
-                }
-
+                
+                // Sample the light mask (white = light exists, black = no light)
+                float lightValue = texture2D(uLightMask, vScreenCoord).r;
+                
+                // Calculate glow visibility based on lighting
+                float glowVisibility = uInvert ? lightValue : (1.0 - lightValue);
+                
+                // Apply token masking
                 if (uTokenMaskEnabled) {
-                    float tokenMaskValue = texture2D(uTokenMask, vScreenCoord).r;
-                    if (tokenMaskValue > uTokenMaskThreshold) {
-                        discard;
-                        return;
-                    }
+                    float tokenMask = texture2D(uTokenMask, vScreenCoord).r;
+                    // Hide glow where tokens are (tokenMask > threshold)
+                    glowVisibility *= (1.0 - step(uTokenMaskThreshold, tokenMask));
                 }
-
-                // Get mask values
-                float lightValue = texture2D(uLightMask, vScreenCoord).r;  // Local light sources (0 = dark, 1 = bright)
-                float outdoorsValue = texture2D(uOutdoorsMask, vScreenCoord).r;  // 1 = outdoor, 0 = indoor
                 
-                // _Structural is a colored luminance mask (RGB), so calculate proper luminance
-                vec3 structuralColor = texture2D(uStructuralMask, vScreenCoord).rgb;
-                float structuralLuminance = dot(structuralColor, lum_weights); // Bright = window light, Dark = shadows
+                // Calculate visibility factor
+                float visibility = glowVisibility * uIntensity;
                 
-                float lightInfluence;
+                // Apply brightness and saturation to the glow texture
+                // Brightness is applied AFTER visibility to allow it to brighten dark areas
+                vec3 baseColor = glowColor.rgb * visibility;
+                vec3 brightenedColor = baseColor * uBrightness;
                 
-                if (uInvert) {
-                    // Inverted mode: Glow in Light
-                    // Show when there's local light, regardless of indoor/outdoor or scene darkness
-                    lightInfluence = lightValue;
-                } else {
-                    // Normal mode: Glow in the Dark
-                    // Goal: Only show _GroundGlow texture in DARK parts of the scene
-                    
-                    float hasNoLocalLight = 1.0 - lightValue; // High value = no artificial lights nearby
-                    
-                    // OUTDOOR CONTRIBUTION:
-                    // Show in outdoor areas when scene darkness is high (nighttime, > 0.75)
-                    // AND no local light sources
-                    float isOutdoor = outdoorsValue;
-                    float isSceneDark = smoothstep(0.7, 0.8, uSceneDarkness); // Smooth transition around darkness 0.75
-                    float outdoorContribution = isOutdoor * isSceneDark * hasNoLocalLight;
-                    
-                    // INDOOR CONTRIBUTION:
-                    // Show in indoor areas when _Structural luminance is DARK (shadows, away from windows)
-                    // AND no artificial lights
-                    float isIndoor = 1.0 - outdoorsValue;
-                    float hasStructuralShadow = 1.0 - structuralLuminance; // Invert: high where structural is dark
-                    float indoorContribution = isIndoor * hasStructuralShadow * hasNoLocalLight;
-                    
-                    // Combine both: Show in DARK outdoor areas OR DARK indoor areas
-                    lightInfluence = max(outdoorContribution, indoorContribution);
-                }
-
-                vec3 workingColor = glowColor.rgb;
-                workingColor += uBrightness - 1.0; // Brightness is additive, 1.0 is neutral
-                float luminance = dot(workingColor, lum_weights);
-                workingColor = mix(vec3(luminance), workingColor, uSaturation);
-
-                float finalAlpha = glowColor.a * lightInfluence * uIntensity;
+                // Apply saturation
+                float luminance = dot(brightenedColor, vec3(0.299, 0.587, 0.114));
+                vec3 finalColor = mix(vec3(luminance), brightenedColor, uSaturation);
                 
-                gl_FragColor = vec4(clamp(workingColor, 0.0, 1.0), finalAlpha);
+                // Alpha is modulated by visibility and original alpha
+                float finalAlpha = glowColor.a * visibility;
+                
+                gl_FragColor = vec4(finalColor, finalAlpha);
             }
         `;
 
     super(vertexSrc, fragmentSrc, {
-      uLightMask: PIXI.Texture.EMPTY,
-
-      uOutdoorsMask: PIXI.Texture.WHITE,
-
-      uStructuralMask: PIXI.Texture.WHITE,
-
-      uTokenMask: PIXI.Texture.EMPTY,
-
+      uLightMask: PIXI.Texture.WHITE,
+      uTokenMask: PIXI.Texture.BLACK,
       uIntensity: 1.0,
-
       uBrightness: 1.0,
-
       uSaturation: 1.0,
-
       uInvert: false,
-
       uTokenMaskEnabled: true,
-
-      uTokenMaskThreshold: 0.1,
-
-      uSceneDarkness: 0.0,
+      uTokenMaskThreshold: 0.5,
       ...options,
     });
   }
