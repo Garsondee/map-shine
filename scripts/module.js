@@ -5947,6 +5947,30 @@ class SceneChangeManager {
         }
       }
 
+      // 2a. Destroy light mask manager to release GPU resources and event listeners
+      if (game.mapShine.lightMaskManager) {
+        try {
+          console.log("Map Shine | Teardown: Destroying light mask manager...");
+          game.mapShine.lightMaskManager.destroy();
+          game.mapShine.lightMaskManager = null;
+        } catch (error) {
+          console.warn("Map Shine | Error destroying light mask manager:", error);
+          game.mapShine.lightMaskManager = null; // Still nullify to prevent further issues
+        }
+      }
+
+      // 2b. Destroy token mask manager to release GPU resources and event listeners
+      if (game.mapShine.tokenMaskManager) {
+        try {
+          console.log("Map Shine | Teardown: Destroying token mask manager...");
+          game.mapShine.tokenMaskManager.destroy();
+          game.mapShine.tokenMaskManager = null;
+        } catch (error) {
+          console.warn("Map Shine | Error destroying token mask manager:", error);
+          game.mapShine.tokenMaskManager = null; // Still nullify to prevent further issues
+        }
+      }
+
       // 3. Clean up effect target manager
       if (game.mapShine.effectTargetManager) {
         try {
@@ -17666,7 +17690,7 @@ class HeatDistortionNoiseFilter extends PIXI.Filter {
                 uniform float u_risingSpeed;
 
                 // 2D Simplex Noise functions by Ashima Arts.
-                vec3 permute(vec3 x) { return mod(((x*34.0)+1.0)*x, 256.0); }
+                vec3 permute(vec3 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
                 vec3 taylorInvSqrt(vec3 r) { return 1.79284291400159 - 0.85373472095314 * r; }
                 float snoise(vec2 v) {
                     const vec4 C = vec4(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439);
@@ -17675,7 +17699,7 @@ class HeatDistortionNoiseFilter extends PIXI.Filter {
                     vec2 i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
                     vec2 x1 = x0.xy + C.xx - i1;
                     vec2 x2 = x0.xy + C.zz;
-                    i = mod(i, 256.0);
+                    i = mod(i, 289.0);
                     vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 )) + i.x + vec3(0.0, i1.x, 1.0 ));
                     vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x1,x1), dot(x2,x2)), 0.0);
                     m = m*m; m = m*m;
@@ -19858,7 +19882,7 @@ class FoamFilter extends PIXI.Filter {
                 uniform float uCrestBreakupContrast;
 
 
-                vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 256.0);}
+                vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 289.0);}
                 vec4 taylorInvSqrt(vec4 r){return 1.79284291400159 - 0.85373472095314 * r;}
                 float snoise(vec3 v) {
                     const vec2 C = vec2(1.0/6.0, 1.0/3.0);
@@ -19872,7 +19896,7 @@ class FoamFilter extends PIXI.Filter {
                     vec3 x1 = x0 - i1 + C.xxx;
                     vec3 x2 = x0 - i2 + C.yyy;
                     vec3 x3 = x0 - D.yyy;
-                    i = mod(i, 256.0);
+                    i = mod(i, 289.0);
                     vec4 p = permute( permute( i.z + vec4(0.0, i1.z, i2.z, 1.0 ))
                         + i.y + vec4(0.0, i1.y, i2.y, 1.0 ))
                         + i.x + vec4(0.0, i1.x, i2.x, 1.0 );
@@ -26464,7 +26488,7 @@ class WaterEffectsFilter extends PIXI.Filter {
                             uniform float u_sandy_modulation_speed;
                             uniform float u_sandy_modulation_strength;
 
-                            vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 256.0);}
+                            vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 289.0);}
                             vec4 taylorInvSqrt(vec4 r){return 1.79284291400159 - 0.85373472095314 * r;}
                             float snoise(vec3 v) {
                                 const vec2 C = vec2(1.0/6.0, 1.0/3.0);
@@ -26478,7 +26502,7 @@ class WaterEffectsFilter extends PIXI.Filter {
                                 vec3 x1 = x0 - i1 + C.xxx;
                                 vec3 x2 = x0 - i2 + C.yyy; // 2.0*C.x = 1/3 = C.y
                                 vec3 x3 = x0 - D.yyy;      // -1.0+3.0*C.x = -0.5 = -D.y
-                                i = mod(i, 256.0);
+                                i = mod(i, 289.0);
                                 vec4 p = permute( permute( i.z + vec4(0.0, i1.z, i2.z, 1.0 ))
                                     + i.y + vec4(0.0, i1.y, i2.y, 1.0 ))
                                     + i.x + vec4(0.0, i1.x, i2.x, 1.0 );
@@ -28154,7 +28178,7 @@ class WaveDisplacementFilter extends PIXI.Filter {
                             //               Distributed under the MIT License. See LICENSE file.
                             //               https://github.com/ashima/webgl-noise
                             //
-                            vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 256.0);}
+                            vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 289.0);}
                             vec4 taylorInvSqrt(vec4 r){return 1.79284291400159 - 0.85373472095314 * r;}
 
                             float snoise(vec3 v) {
@@ -28176,7 +28200,7 @@ class WaveDisplacementFilter extends PIXI.Filter {
                                 vec3 x3 = x0 - D.yyy;      // -1.0+3.0*C.x = -0.5 = -D.y
 
                                 // Permutations
-                                i = mod(i, 256.0);
+                                i = mod(i, 289.0);
                                 vec4 p = permute( permute( i.z + vec4(0.0, i1.z, i2.z, 1.0 ))
                                     + i.y + vec4(0.0, i1.y, i2.y, 1.0 ))
                                     + i.x + vec4(0.0, i1.x, i2.x, 1.0 );
