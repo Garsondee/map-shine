@@ -505,6 +505,94 @@
   }
   
   /* =============================================================================
+     Point Editing Mode Overlay
+     ========================================================================== */
+  
+  #point-editing-mode-overlay {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 99999;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.95) 0%, rgba(37, 99, 235, 0.95) 100%);
+    color: white;
+    padding: 20px 40px;
+    border-radius: 12px;
+    box-shadow: 
+      0 10px 40px rgba(0, 0, 0, 0.5),
+      0 0 0 3px rgba(255, 255, 255, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    font-family: var(--ms-subheading-font, Inter, system-ui, sans-serif);
+    text-align: center;
+    pointer-events: none;
+    animation: slideDownBounce 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  
+  @keyframes slideDownBounce {
+    0% {
+      transform: translateX(-50%) translateY(-100px);
+      opacity: 0;
+    }
+    100% {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+  }
+  
+  #point-editing-mode-overlay .overlay-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin: 0 0 12px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+  }
+  
+  #point-editing-mode-overlay .overlay-title i {
+    font-size: 1.5rem;
+  }
+  
+  #point-editing-mode-overlay .overlay-instructions {
+    font-size: 1rem;
+    line-height: 1.6;
+    margin: 0;
+    opacity: 0.95;
+    font-weight: 500;
+  }
+  
+  #point-editing-mode-overlay .overlay-instructions strong {
+    font-weight: 700;
+    color: #fef3c7;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  }
+  
+  #point-editing-mode-overlay .instruction-line {
+    display: inline-block;
+    margin: 0 8px;
+  }
+  
+  #point-editing-mode-overlay .instruction-separator {
+    display: inline-block;
+    opacity: 0.6;
+    margin: 0 4px;
+  }
+  
+  /* Crosshair cursor enhancement */
+  #board.point-editing-mode {
+    cursor: crosshair !important;
+  }
+  
+  #board.point-editing-mode * {
+    cursor: crosshair !important;
+  }
+
+  /* =============================================================================
      Map Points Editor (mp-*)
      ========================================================================== */
   

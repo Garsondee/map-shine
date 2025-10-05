@@ -22444,9 +22444,13 @@ class MapPointsInteractionManager {
   }
 
   activate() {
+    console.log("MapPointsInteractionManager.activate() called");
     if (this.isActive || !game.user.isGM) return; // Added GM check
     const layer = this.layer;
-    if (!layer) return;
+    if (!layer) {
+      console.warn("MapPointsInteractionManager: No layer found");
+      return;
+    }
 
     this.isActive = true;
     layer.alpha = 1; // Make the layer visible
@@ -22454,10 +22458,18 @@ class MapPointsInteractionManager {
     canvas.stage.on("pointerdown", this._onPointerDown);
     canvas.stage.on("pointermove", this._onPointerMove);
 
-    document.getElementById("board").style.cursor = "crosshair";
-    ui.notifications.info(
-      "Point Placement Mode Activated. [Esc] to deactivate, [Right-Click] on canvas to remove point."
-    );
+    // Add crosshair cursor class
+    const board = document.getElementById("board");
+    console.log("Board element:", board);
+    if (board) {
+      board.classList.add("point-editing-mode");
+      console.log("Added point-editing-mode class to board");
+    }
+
+    // Show the on-screen overlay indicator
+    console.log("Calling _showOverlay()");
+    this._showOverlay();
+
     game.mapShine.debugger?.eventHandler?._updatePlacementModeUI(true);
   }
 
@@ -22470,7 +22482,14 @@ class MapPointsInteractionManager {
     // In case a drag was interrupted, remove the 'up' listener too
     canvas.stage.off("pointerup", this._onPointerUp);
 
-    document.getElementById("board").style.cursor = "default";
+    // Remove crosshair cursor class
+    const board = document.getElementById("board");
+    if (board) {
+      board.classList.remove("point-editing-mode");
+    }
+
+    // Hide the overlay indicator
+    this._hideOverlay();
 
     // Clear any lingering visual state
     const layer = this.layer;
@@ -22598,6 +22617,46 @@ class MapPointsInteractionManager {
       return true;
     }
     return false;
+  }
+
+  _showOverlay() {
+    console.log("_showOverlay() called");
+    try {
+      // Remove any existing overlay
+      this._hideOverlay();
+
+      // Create the overlay element
+      const overlay = document.createElement('div');
+      overlay.id = 'point-editing-mode-overlay';
+      overlay.innerHTML = `
+        <div class="overlay-title">
+          <i class="fas fa-crosshairs"></i>
+          <span>Point Editing Mode Active</span>
+        </div>
+        <div class="overlay-instructions">
+          <span class="instruction-line"><strong>Left-Click:</strong> Add Point</span>
+          <span class="instruction-separator">•</span>
+          <span class="instruction-line"><strong>Left-Drag:</strong> Move Point</span>
+          <span class="instruction-separator">•</span>
+          <span class="instruction-line"><strong>Right-Click:</strong> Delete Point</span>
+          <span class="instruction-separator">•</span>
+          <span class="instruction-line"><strong>ESC:</strong> Exit Mode</span>
+        </div>
+      `;
+
+      console.log("Appending overlay to body:", overlay);
+      document.body.appendChild(overlay);
+      console.log("Overlay appended successfully. Element in DOM:", document.getElementById('point-editing-mode-overlay'));
+    } catch (error) {
+      console.error("Error in _showOverlay():", error);
+    }
+  }
+
+  _hideOverlay() {
+    const overlay = document.getElementById('point-editing-mode-overlay');
+    if (overlay) {
+      overlay.remove();
+    }
   }
 }
 
