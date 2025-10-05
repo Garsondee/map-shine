@@ -22687,6 +22687,7 @@ class MetallicShineFilter extends PIXI.Filter {
               uniform sampler2D uCloudOcclusionMask;
               uniform sampler2D uStructuralMask;
               uniform sampler2D uOutdoorsMask;
+              uniform sampler2D uBuildingShadowMask; // The pre-blurred outdoors mask
 
               // Control Uniforms
               uniform bool uCloudOcclusionEnabled;
@@ -22699,7 +22700,6 @@ class MetallicShineFilter extends PIXI.Filter {
               uniform bool uBuildingShadowsEnabled;
               uniform float uBuildingShadowIntensity;
               uniform vec2 uBuildingShadowOffset;
-              uniform float uBuildingShadowBlur;
               uniform vec2 uBuildingTexelSize;
               uniform vec2 uBuildingCanvasScale;
 
@@ -22714,15 +22714,6 @@ class MetallicShineFilter extends PIXI.Filter {
               uniform bool uInvert;
 
               const vec3 LUM_WEIGHTS = vec3(0.299, 0.587, 0.114);
-
-              float sampleCaster(vec2 uv) {
-                  vec2 sceneMin = uSceneRectNorm.xy;
-                  vec2 sceneMax = uSceneRectNorm.xy + uSceneRectNorm.zw;
-                  if (uv.x < sceneMin.x || uv.x > sceneMax.x || uv.y < sceneMin.y || uv.y > sceneMax.y) {
-                      return 1.0; // Treat as outdoors (no shadow)
-                  }
-                  return texture2D(uOutdoorsMask, uv).r;
-              }
 
               void main() {
                   vec4 specularColor = texture2D(uSpecularMap, vScreenCoord);
@@ -22757,20 +22748,14 @@ class MetallicShineFilter extends PIXI.Filter {
 
                   if (uBuildingShadowsEnabled && outdoorsMaskValue > 0.5) {
                       vec2 baseSampleCoord = vScreenCoord - (uBuildingShadowOffset * uBuildingCanvasScale) * uBuildingTexelSize;
-                      float shadowFactor = 0.0;
-                      float blurPixels = uBuildingShadowBlur * uBuildingCanvasScale.x;
-                      vec2 blurUv = blurPixels * uBuildingTexelSize;
-
-                      shadowFactor += sampleCaster(baseSampleCoord + vec2(-blurUv.x, -blurUv.y));
-                      shadowFactor += sampleCaster(baseSampleCoord + vec2(0.0, -blurUv.y));
-                      shadowFactor += sampleCaster(baseSampleCoord + vec2(blurUv.x, -blurUv.y));
-                      shadowFactor += sampleCaster(baseSampleCoord + vec2(-blurUv.x, 0.0));
-                      shadowFactor += sampleCaster(baseSampleCoord);
-                      shadowFactor += sampleCaster(baseSampleCoord + vec2(blurUv.x, 0.0));
-                      shadowFactor += sampleCaster(baseSampleCoord + vec2(-blurUv.x, blurUv.y));
-                      shadowFactor += sampleCaster(baseSampleCoord + vec2(0.0, blurUv.y));
-                      shadowFactor += sampleCaster(baseSampleCoord + vec2(blurUv.x, blurUv.y));
-                      shadowFactor /= 9.0;
+                      
+                      // Sample the pre-blurred building shadow mask
+                      float shadowFactor = 1.0;
+                      vec2 sceneMin = uSceneRectNorm.xy;
+                      vec2 sceneMax = uSceneRectNorm.xy + uSceneRectNorm.zw;
+                      if (baseSampleCoord.x >= sceneMin.x && baseSampleCoord.x <= sceneMax.x && baseSampleCoord.y >= sceneMin.y && baseSampleCoord.y <= sceneMax.y) {
+                          shadowFactor = texture2D(uBuildingShadowMask, baseSampleCoord).r;
+                      }
 
                       float shadowAmount = 1.0 - shadowFactor;
                       float adjustedIntensity = pow(uBuildingShadowIntensity, 0.33);
@@ -22780,9 +22765,6 @@ class MetallicShineFilter extends PIXI.Filter {
 
                   if (outdoorsMaskValue < 0.5) {
                       vec4 structuralTex = texture2D(uStructuralMask, vScreenCoord);
-                      // If the structural mask texture is effectively empty (alpha is ~0), it means no _Structural map was found.
-                      // In this case, we should treat it as if it were fully white (a value of 1.0) to let the shine pass through.
-                      // Otherwise, we use its red channel value to modulate the shine as intended.
                       float structuralMaskValue = (structuralTex.a < 0.01) ? 1.0 : structuralTex.r;
                       finalAlpha *= structuralMaskValue;
                   }
@@ -22796,51 +22778,28 @@ class MetallicShineFilter extends PIXI.Filter {
 
     super(vertexSrc, fragmentSrc, {
       uSpecularMap: PIXI.Texture.EMPTY,
-
       uStripePattern: PIXI.Texture.EMPTY,
-
       uCloudOcclusionMask: PIXI.Texture.EMPTY,
-
       uStructuralMask: PIXI.Texture.EMPTY,
-
       uOutdoorsMask: PIXI.Texture.EMPTY,
-
+      uBuildingShadowMask: PIXI.Texture.EMPTY, // Added uniform
       uCloudOcclusionEnabled: false,
-
       uCloudOcclusionIntensity: 1.0,
-
       uGlobalIntensity: 1.0,
-
       uDarkness: 0.0,
-
       uColorCorrectionEnabled: true,
-
       uSaturation: 1.0,
-
       uBrightness: 0.0,
-
       uContrast: 1.0,
-
       uGamma: 1.0,
-
       uTintColor: [1.0, 1.0, 1.0],
-
       uTintAmount: 0.0,
-
       uInvert: false,
-
       uSceneRectNorm: [0, 0, 1, 1],
-
       uBuildingShadowsEnabled: false,
-
       uBuildingShadowIntensity: 0.5,
-
       uBuildingShadowOffset: [0, 0],
-
-      uBuildingShadowBlur: 0.0,
-
       uBuildingTexelSize: [0.001, 0.001],
-
       uBuildingCanvasScale: [1.0, 1.0],
       ...options,
     });
@@ -28315,9 +28274,9 @@ class BuildingShadowsFilter extends PIXI.Filter {
                 varying vec2 vTextureCoord;
 
                 uniform sampler2D uSampler;
-                uniform sampler2D uOutdoorsMask;
+                uniform sampler2D uOutdoorsMask; // This will now be the pre-blurred mask
+                uniform sampler2D uGroundMask;   // This is the original, sharp mask
                 uniform vec2 uShadowOffset; // The shadow offset in WORLD PIXELS
-                uniform float uBlur;        // The blur radius in WORLD PIXELS
                 uniform float uIntensity;
                 uniform vec2 uTexelSize;    // The size of one pixel in UV space (1.0 / screen_resolution)
                 uniform vec2 uCanvasScale;  // The current canvas zoom/scale factor
@@ -28330,13 +28289,15 @@ class BuildingShadowsFilter extends PIXI.Filter {
                     if (uv.x < sceneMin.x || uv.x > sceneMax.x || uv.y < sceneMin.y || uv.y > sceneMax.y) {
                         return 1.0; // Treat as outdoors (no shadow)
                     }
+                    // Sample the pre-blurred mask
                     return texture2D(uOutdoorsMask, uv).r;
                 }
 
                 void main(void) {
                     vec4 originalColor = texture2D(uSampler, vTextureCoord);
 
-                    float groundMask = texture2D(uOutdoorsMask, vTextureCoord).r;
+                    // Check if we are on the ground using the sharp, original mask
+                    float groundMask = texture2D(uGroundMask, vTextureCoord).r;
                     if (groundMask < 0.5) {
                         gl_FragColor = originalColor;
                         return;
@@ -28345,22 +28306,8 @@ class BuildingShadowsFilter extends PIXI.Filter {
                     // Convert world-pixel offset to screen-pixel offset, then to UV offset.
                     vec2 baseSampleCoord = vTextureCoord - (uShadowOffset * uCanvasScale) * uTexelSize;
 
-                    // --- PERFORMANT BLUR ---
-                    float shadowFactor = 0.0;
-                    float blurPixels = uBlur * uCanvasScale.x; // Blur radius in screen pixels
-                    vec2 blurUv = blurPixels * uTexelSize;     // Blur radius in UV space
-
-                    // 9-tap box blur for an efficient soft shadow
-                    shadowFactor += sampleCaster(baseSampleCoord + vec2(-blurUv.x, -blurUv.y));
-                    shadowFactor += sampleCaster(baseSampleCoord + vec2(0.0, -blurUv.y));
-                    shadowFactor += sampleCaster(baseSampleCoord + vec2(blurUv.x, -blurUv.y));
-                    shadowFactor += sampleCaster(baseSampleCoord + vec2(-blurUv.x, 0.0));
-                    shadowFactor += sampleCaster(baseSampleCoord);
-                    shadowFactor += sampleCaster(baseSampleCoord + vec2(blurUv.x, 0.0));
-                    shadowFactor += sampleCaster(baseSampleCoord + vec2(-blurUv.x, blurUv.y));
-                    shadowFactor += sampleCaster(baseSampleCoord + vec2(0.0, blurUv.y));
-                    shadowFactor += sampleCaster(baseSampleCoord + vec2(blurUv.x, blurUv.y));
-                    shadowFactor /= 9.0;
+                    // Sample the pre-blurred texture at the offset coordinate to get the shadow value.
+                    float shadowFactor = sampleCaster(baseSampleCoord);
 
                     float shadowMultiplier = mix(1.0 - uIntensity, 1.0, shadowFactor);
 
@@ -28372,20 +28319,14 @@ class BuildingShadowsFilter extends PIXI.Filter {
 
     super(vertexSrc, fragmentSrc, {
       uOutdoorsMask: PIXI.Texture.EMPTY,
-
+      uGroundMask: PIXI.Texture.EMPTY,
       uShadowOffset: [0, 0],
-
-      uBlur: 1.0,
-
       uIntensity: 0.6,
-
       uTexelSize: [
         1.0 / (window.innerWidth || 1),
         1.0 / (window.innerHeight || 1),
       ],
-
       uCanvasScale: [1.0, 1.0],
-
       uSceneRectNorm: [0, 0, 1, 1],
     });
   }
@@ -28400,6 +28341,13 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
 
     this.currentTime = 12.0; // Default to midday
     this.filter = null;
+
+    // Properties for Kawase Blur
+    this.blurredMaskTexture = null;
+    this.intermediateBlurTexture = null;
+    this.kawaseBlurFilter1 = null;
+    this.kawaseBlurFilter2 = null;
+    this.blurSourceSprite = null;
   }
 
   static getSettingsHTML() {
@@ -28448,6 +28396,14 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
   }
 
   /**
+   * Provides the final blurred mask texture to other systems via the ResourceManager.
+   * @returns {PIXI.RenderTexture} The blurred texture.
+   */
+  getBlurredOutdoorsMask() {
+    return this.blurredMaskTexture;
+  }
+
+  /**
    * Performs a full teardown and setup of the entire layer, including its base class components.
    * This is used to recover the effect after a scene appearance transition by mimicking a fresh load.
    */
@@ -28478,6 +28434,25 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
   async _draw(options) {
     // This calls the base class _draw, which sets up the mask container and texture discovery.
     await super._draw(options);
+
+    const renderer = canvas.app.renderer;
+    const screen = renderer.screen;
+
+    // Initialize blur resources
+    const textureOptions = {
+      width: screen.width,
+      height: screen.height,
+      scaleMode: PIXI.SCALE_MODES.LINEAR,
+    };
+    this.intermediateBlurTexture = PIXI.RenderTexture.create(textureOptions);
+    this.blurredMaskTexture = PIXI.RenderTexture.create(textureOptions);
+
+    this.kawaseBlurFilter1 = new PIXI.filters.KawaseBlurFilter(15, 2, true);
+    this.kawaseBlurFilter2 = new PIXI.filters.KawaseBlurFilter(15, 2, true);
+
+    this.blurSourceSprite = new PIXI.Sprite();
+    this.blurSourceSprite.width = screen.width;
+    this.blurSourceSprite.height = screen.height;
 
     try {
       this.filter = new BuildingShadowsFilter();
@@ -28512,8 +28487,16 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
   _onResize() {
     // This is the MaskedEffectLayer's resize, which handles the mask texture
     super._onResize();
+
+    const screen = canvas.app.renderer.screen;
+    this.intermediateBlurTexture?.resize(screen.width, screen.height);
+    this.blurredMaskTexture?.resize(screen.width, screen.height);
+    if (this.blurSourceSprite) {
+      this.blurSourceSprite.width = screen.width;
+      this.blurSourceSprite.height = screen.height;
+    }
+
     if (this.filter) {
-      const screen = canvas.app.renderer.screen;
       this.filter.uniforms.uTexelSize = [
         1.0 / screen.width,
         1.0 / screen.height,
@@ -28524,8 +28507,11 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
   _onAnimate(deltaTime) {
     // If a transition is active, skip all animation calculations for this layer.
     if (game.mapShine.transitionActive) return;
+    this.renderEffectNow(deltaTime);
+  }
 
-    // This calls the base class _onAnimate, which re-renders the mask if needed.
+  renderEffectNow(deltaTime) {
+    // This calls the base class _onAnimate, which re-renders the combinedMaskTexture if needed.
     super._onAnimate(deltaTime);
 
     if (this._destroyed || !this.filter) return;
@@ -28540,67 +28526,72 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
     const outdoorsMask = this.getMaskTexture();
     const scale = CoordinateManager.getCanvasScale();
 
-    // If the canvas is in a transitional state or required textures are not ready,
-    // temporarily disable the filter to prevent rendering with invalid data.
     if (isDefaultTransform || !outdoorsMask?.valid || scale === 0) {
       if (this.filter) this.filter.enabled = false;
       return;
     }
-    // --- End Robustness Checks ---
 
     const config = game.mapShine.profileManager.activeConfig;
     const shadowConfig = config.buildingShadows;
     const hasActiveSources = this.maskSprites.size > 0;
 
-    // The filter's enabled state controls the effect's visibility.
     this.filter.enabled =
       config.enabled && shadowConfig.enabled && hasActiveSources;
 
     if (!this.filter.enabled) return;
 
-    // --- Calculate Shadow Parameters based on Time ---
     const time = this.currentTime; // 0-23.99
-
-    // Don't show shadows at night
     if (time < 6 || time >= 18) {
       this.filter.enabled = false;
       return;
     }
 
-    // This creates a curve from 0 (at 6 & 18) to 1 (at 12)
     const effectiveDaylight = 1.0 - Math.abs(time - 12) / 6.0;
-
-    // Represents sun position for magnitude: -1.0 (east at 6am) to +1.0 (west at 6pm)
+    const blurPixels = shadowConfig.maxBlur * (1.0 - effectiveDaylight);
     const sunPos = (time - 12) / 6.0;
-
-    // Calculate the raw pixel offset magnitude in world space.
     const offsetMagnitude = shadowConfig.maxOffset * sunPos;
-
-    // Get the direction from the sun angle
     const sunAngleRad = (shadowConfig.sunAngle ?? 45) * (Math.PI / 180.0);
-
-    // Calculate the final offset vector
     const shadowOffset = [
       Math.cos(sunAngleRad) * offsetMagnitude,
       Math.sin(sunAngleRad) * offsetMagnitude,
     ];
 
-    // Blur is max at sunrise/sunset, min at midday
-    const blurPixels = shadowConfig.maxBlur * (1.0 - effectiveDaylight);
+    if (
+      this.kawaseBlurFilter1 &&
+      this.kawaseBlurFilter2 &&
+      this.combinedMaskTexture?.valid
+    ) {
+      const blurAmount = Math.max(0.1, blurPixels) / 4.0;
+      this.kawaseBlurFilter1.blur = blurAmount;
+      this.kawaseBlurFilter2.blur = blurAmount;
 
-    // --- Update Filter Uniforms ---
+      const renderer = canvas.app.renderer;
+
+      // First pass
+      this.blurSourceSprite.texture = this.combinedMaskTexture;
+      this.blurSourceSprite.filters = [this.kawaseBlurFilter1];
+      renderer.render(this.blurSourceSprite, {
+        renderTexture: this.intermediateBlurTexture,
+        clear: true,
+      });
+
+      // Second pass
+      this.blurSourceSprite.texture = this.intermediateBlurTexture;
+      this.blurSourceSprite.filters = [this.kawaseBlurFilter2];
+      renderer.render(this.blurSourceSprite, {
+        renderTexture: this.blurredMaskTexture,
+        clear: true,
+      });
+    }
+
     const u = this.filter.uniforms;
-
-    // Get all coordinate data from the centralized manager.
     u.uSceneRectNorm = CoordinateManager.getSceneRectNormalizedArray();
     const canvasScale = CoordinateManager.getCanvasScale();
     u.uCanvasScale = [canvasScale, canvasScale];
 
-    // Update all uniforms
-    u.uOutdoorsMask = outdoorsMask; // Use the checked texture from the start of the function
+    u.uGroundMask = this.combinedMaskTexture;
+    u.uOutdoorsMask = this.blurredMaskTexture;
     u.uShadowOffset = shadowOffset;
-    u.uBlur = Math.max(0.1, blurPixels);
-    // Intensity is now constant throughout the day.
     u.uIntensity = shadowConfig.intensity;
   }
 
@@ -28615,7 +28606,18 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
       this.filter = null;
     }
 
-    // The base class teardown will handle destroying the mask textures and containers.
+    // Destroy blur resources
+    this.intermediateBlurTexture?.destroy(true);
+    this.blurredMaskTexture?.destroy(true);
+    this.kawaseBlurFilter1?.destroy();
+    this.kawaseBlurFilter2?.destroy();
+    this.blurSourceSprite?.destroy();
+    this.intermediateBlurTexture = null;
+    this.blurredMaskTexture = null;
+    this.kawaseBlurFilter1 = null;
+    this.kawaseBlurFilter2 = null;
+    this.blurSourceSprite = null;
+
     await super._tearDown(options);
   }
 }
