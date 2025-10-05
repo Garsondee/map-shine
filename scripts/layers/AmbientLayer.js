@@ -50,10 +50,10 @@ function getBlendModeOptions() {
  * - Blend mode management for visual composition
  * 
  * @class AmbientLayer
- * @extends CanvasLayer
+ * @extends foundry.canvas.layers.CanvasLayer
  * @since 1.0.0
  */
-class AmbientLayer extends CanvasLayer {
+class AmbientLayer extends foundry.canvas.layers.CanvasLayer {
 	constructor() {
 		super();
 		this.effectSprites = new Map();
@@ -311,18 +311,18 @@ class AmbientLayer extends CanvasLayer {
 	}
 
 	async updateEffectTargets(targets) {
-		console.log(
-			"AmbientLayer DEBUG | updateEffectTargets: Called. (Visibility check removed)"
-		);
+		// console.log(
+		// 	"AmbientLayer DEBUG | updateEffectTargets: Called. (Visibility check removed)"
+		// );
 
 		const validTargetIds = new Set();
 		const allTargets = new Map([
 			["background", targets.background],
 			...targets.tiles.entries(),
 		]);
-		console.log(
-			`AmbientLayer DEBUG | updateEffectTargets: Processing ${allTargets.size} potential targets.`
-		);
+		// console.log(
+		// 	`AmbientLayer DEBUG | updateEffectTargets: Processing ${allTargets.size} potential targets.`
+		// );
 
 		for (const [id, targetData] of allTargets.entries()) {
 			if (!targetData?.ambient) continue;
@@ -366,9 +366,9 @@ class AmbientLayer extends CanvasLayer {
 			}
 		}
 
-		console.log(
-			`AmbientLayer DEBUG | updateEffectTargets: Finished. Active sprites: ${this.effectSprites.size}. Triggering updateFromConfig.`
-		);
+		// console.log(
+		// 	`AmbientLayer DEBUG | updateEffectTargets: Finished. Active sprites: ${this.effectSprites.size}. Triggering updateFromConfig.`
+		// );
 		await this.updateFromConfig(game.mapShine.profileManager.activeConfig);
 	}
 

@@ -26,6 +26,7 @@ const CONFIG_SYSTEM_MAP = {
   dust: { type: 'particle', effectKey: 'dust' },
   fire: { type: 'particle', effectKey: 'fire' },
   biofilm: { type: 'particle', effectKey: 'biofilm' },
+  metallicGlints: { type: 'particle', effectKey: 'metallicGlints' },
   smellyFlies: { type: 'particle', effectKey: 'smellyFlies' },
   
   // Time control affects multiple systems

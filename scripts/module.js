@@ -3722,7 +3722,7 @@ class MapShineInitialiser {
         tiles: new Map(),
       },
       async refresh() {
-        console.log("MapShine | Refreshing effect targets...");
+        // console.log("MapShine | Refreshing effect targets...");
         const FLAG_NAME = "mapShineTargets";
 
         if (game.user.isGM) {
@@ -3746,14 +3746,14 @@ class MapShineInitialiser {
           if (
             JSON.stringify(serializableTargets) === JSON.stringify(oldFlagData)
           ) {
-            console.log(
-              "MapShine | Discovered targets are unchanged. No flag update needed."
-            );
+            // console.log(
+            //   "MapShine | Discovered targets are unchanged. No flag update needed."
+            // );
             this.targets = discoveredTargets;
           } else {
-            console.log(
-              "MapShine | New effect targets discovered. Updating scene flag."
-            );
+            // console.log(
+            //   "MapShine | New effect targets discovered. Updating scene flag."
+            // );
             // Update the local state immediately to resolve the race condition for the GM.
             this.targets = discoveredTargets;
             await canvas.scene.setFlag(
@@ -9531,9 +9531,9 @@ class SystemStatusManager {
       this._state[category][key] = statusObject;
       this.emit("statusChanged", category, key, statusObject);
     } else {
-      console.warn(
-        `SystemStatusManager | Attempted to update non-existent status: ${category}.${key}`
-      );
+      // console.warn(
+      //   `SystemStatusManager | Attempted to update non-existent status: ${category}.${key}`
+      // );
     }
   }
 
@@ -9575,10 +9575,10 @@ class MapPointsManager {
     // Debug: Log the raw groups data to detect duplicates or corruption
     if (groupsData) {
       const groupIds = Object.keys(groupsData);
-      console.log(`MapShine | getGroups() returning ${groupIds.length} groups:`, groupIds.map(id => {
-        const g = groupsData[id];
-        return `[${id}] ${g.label} (${g.points?.length ?? 0} pts)`;
-      }).join(', '));
+      // console.log(`MapShine | getGroups() returning ${groupIds.length} groups:`, groupIds.map(id => {
+      //   const g = groupsData[id];
+      //   return `[${id}] ${g.label} (${g.points?.length ?? 0} pts)`;
+      // }).join(', '));
     }
 
     // Return the data if it exists, otherwise return an empty object.
@@ -10010,17 +10010,17 @@ class GeometryMaskManager {
     this._changedGroupId = null; // Clear after capturing
     requestAnimationFrame(() => {
       if (this._destroyed) return;
-      console.log(
-        "Map Shine | GeometryMaskManager: Masks rendered, notifying particle systems.",
-        changedGroupId ? `Changed group: ${changedGroupId}` : "(no specific group)"
-      );
+      // console.log(
+      //   "Map Shine | GeometryMaskManager: Masks rendered, notifying particle systems.",
+      //   changedGroupId ? `Changed group: ${changedGroupId}` : "(no specific group)"
+      // );
       // @ts-expect-error - Custom hook type augmentation not working with foundry-vtt-types package
       Hooks.callAll("mapShine:masksRendered", { changedGroupId });
     });
   }
 
   _renderAllMasks() {
-    console.log("Map Shine | GeometryMaskManager: Rendering all masks...");
+    // console.log("Map Shine | GeometryMaskManager: Rendering all masks...");
     // Clear all graphics objects first
     for (const { graphics } of this.masks.values()) {
       graphics.clear();
@@ -10028,9 +10028,9 @@ class GeometryMaskManager {
 
     const groups = MapPointsManager.getGroups();
     if (foundry.utils.isEmpty(groups)) {
-      console.log(
-        "Map Shine | GeometryMaskManager: No groups found, skipping render."
-      );
+      // console.log(
+      //   "Map Shine | GeometryMaskManager: No groups found, skipping render."
+      // );
       return;
     }
 
@@ -10043,9 +10043,9 @@ class GeometryMaskManager {
         !this.masks.has(group.effectTarget)
       ) {
         if (group.isEffectSource) {
-          console.log(
-            `Map Shine | GeometryMaskManager: Skipping group "${group.label}" (effectTarget: ${group.effectTarget}, has mask: ${this.masks.has(group.effectTarget)})`
-          );
+          // console.log(
+          //   `Map Shine | GeometryMaskManager: Skipping group "${group.label}" (effectTarget: ${group.effectTarget}, has mask: ${this.masks.has(group.effectTarget)})`
+          // );
         }
         continue;
       }
@@ -10080,17 +10080,17 @@ class GeometryMaskManager {
           break;
         case "area":
           if (group.points.length > 2 && !group.isBroken) {
-            console.log(
-              `Map Shine | GeometryMaskManager: Rendering area "${group.label}" → ${group.effectTarget} (${group.points.length} pts, broken: ${group.isBroken})`
-            );
+            // console.log(
+            //   `Map Shine | GeometryMaskManager: Rendering area "${group.label}" → ${group.effectTarget} (${group.points.length} pts, broken: ${group.isBroken})`
+            // );
             graphics.beginFill(0xffffff);
             graphics.drawPolygon(group.points);
             graphics.endFill();
             renderedCount++;
           } else {
-            console.log(
-              `Map Shine | GeometryMaskManager: Skipping area "${group.label}" (${group.points.length} pts, broken: ${group.isBroken})`
-            );
+            // console.log(
+            //   `Map Shine | GeometryMaskManager: Skipping area "${group.label}" (${group.points.length} pts, broken: ${group.isBroken})`
+            // );
           }
           break;
       }
@@ -10116,9 +10116,9 @@ class GeometryMaskManager {
       renderContainer.removeChild(graphics);
       renderContainer.destroy();
     }
-    console.log(
-      `Map Shine | GeometryMaskManager: Rendered ${renderedCount} effect groups to masks.`
-    );
+    // console.log(
+    //   `Map Shine | GeometryMaskManager: Rendered ${renderedCount} effect groups to masks.`
+    // );
   }
 
   /**
@@ -10536,7 +10536,7 @@ class TextureAutoLoader {
         results.tiles.set(tile.id, tileTarget);
       }
     }
-    console.log("MapShine | Full Texture Discovery Results:", results);
+    // console.log("MapShine | Full Texture Discovery Results:", results);
     return results;
   }
 
@@ -14896,10 +14896,10 @@ export class ParticleLayer extends CanvasLayer {
    */
   async _onMasksRendered(data) {
     const changedGroupId = data?.changedGroupId;
-    console.log(
-      "Map Shine | ParticleLayer detected masks rendered. Refreshing particle targets.",
-      changedGroupId ? `Changed group: ${changedGroupId}` : ""
-    );
+    // console.log(
+    //   "Map Shine | ParticleLayer detected masks rendered. Refreshing particle targets.",
+    //   changedGroupId ? `Changed group: ${changedGroupId}` : ""
+    // );
     if (game.mapShine.effectTargetManager) {
       // Refresh targets to pick up any new map point groups that were just added
       await game.mapShine.effectTargetManager.refresh();
