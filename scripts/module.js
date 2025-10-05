@@ -2389,6 +2389,8 @@ export const MODULE_DEFAULTS = {
       min: 0.4,
       max: 1.5,
     },
+    // Note: Color values are ignored - metallicGlints get their color from the _Specular map.
+    // Only the alpha channel is used from this gradient.
     colorAlphaGradient: [
       {
         time: 0,
@@ -2406,6 +2408,8 @@ export const MODULE_DEFAULTS = {
         alpha: 0,
       },
     ],
+    // Note: emissiveGradient is not used for metallicGlints.
+    // Brightness comes from the _Specular map texture.
     emissiveGradient: [
       {
         time: 0,
@@ -8232,7 +8236,7 @@ class CombatEffectManager {
   }
 }
 
-class OverheadEffectLayer extends CanvasLayer {
+class OverheadEffectLayer extends foundry.canvas.layers.CanvasLayer {
   constructor() {
     super();
     this.overheadSprites = new Map();
@@ -12263,15 +12267,19 @@ class ParticleEffectController {
                           </div>
                         </details>
 
-                        ${DebuggerUIBuilder._createGradientEditorHTML(
-                          `${path}.colorAlphaGradient`,
-                          "Color & Alpha Over Life"
-                        )}
-                        ${DebuggerUIBuilder._createGradientEditorHTML(
-                          `${path}.emissiveGradient`,
-                          "Emissive Color Over Life",
-                          "color"
-                        )}
+                        ${
+                          effectKey === "metallicGlints"
+                            ? '<p class="description-text" style="font-style: italic; color: #999; margin: 8px 0;">Metallic glints get their color from the _Specular map texture at spawn location.</p>'
+                            : `${DebuggerUIBuilder._createGradientEditorHTML(
+                                `${path}.colorAlphaGradient`,
+                                "Color & Alpha Over Life"
+                              )}
+                              ${DebuggerUIBuilder._createGradientEditorHTML(
+                                `${path}.emissiveGradient`,
+                                "Emissive Color Over Life",
+                                "color"
+                              )}`
+                        }
 
                         <details>
                           <summary><span class="accordion-toggle"></span><strong>Scale / Size</strong></summary>
@@ -13603,7 +13611,8 @@ const buildParticleEmitterConfig = (
   const lifetimeConfig = config.lifetime ?? {};
 
   // Add the new lighting behavior
-  if (config.emissiveGradient) {
+  // Skip emissive for specular-based effects (metallicGlints) since they get color from spawn
+  if (config.emissiveGradient && maskKey !== "specular") {
     const emissiveLists = _generateEmissiveColorListFromGradient(
       config.emissiveGradient
     );
@@ -14811,7 +14820,7 @@ class GeometryMaskShape {
   }
 }
 
-export class ParticleLayer extends CanvasLayer {
+export class ParticleLayer extends foundry.canvas.layers.CanvasLayer {
   constructor() {
     super();
     this._onAnimateBound = null;
@@ -15006,7 +15015,7 @@ export class ParticleLayer extends CanvasLayer {
  * - Multi-layer glow effect (outer blue glow, middle bright glow, core white)
  * - Animated flickering and intensity variation
  */
-class LightningLayer extends CanvasLayer {
+class LightningLayer extends foundry.canvas.layers.CanvasLayer {
   constructor() {
     super();
     this.graphics = null;
@@ -17275,7 +17284,7 @@ const buildSmellyFliesEmitterConfig = (effectConfig, targetData, group) => {
   };
 };
 
-export class SmellyFliesLayer extends CanvasLayer {
+export class SmellyFliesLayer extends foundry.canvas.layers.CanvasLayer {
   constructor() {
     super();
     this.controller = null; // Will hold the ParticleEffectController for smellyFlies
@@ -20106,7 +20115,7 @@ class FoamFilter extends PIXI.Filter {
   }
 }
 
-class FoamLayer extends CanvasLayer {
+class FoamLayer extends foundry.canvas.layers.CanvasLayer {
   constructor() {
     super();
 
@@ -20667,7 +20676,7 @@ class FoamLayer extends CanvasLayer {
 //              heat haze, iridescence, and glow effects.
 // ---------------------------------------------------------------------------------
 
-class BackgroundEffectTileLayer extends CanvasLayer {
+class BackgroundEffectTileLayer extends foundry.canvas.layers.CanvasLayer {
   constructor() {
     super();
     this.backgroundSprites = new Map();
@@ -20766,7 +20775,7 @@ class BackgroundEffectTileLayer extends CanvasLayer {
   }
 }
 
-class MaskedEffectLayer extends CanvasLayer {
+class MaskedEffectLayer extends foundry.canvas.layers.CanvasLayer {
   constructor(options) {
     super();
     this.options = options;
@@ -21005,7 +21014,7 @@ class MaskedEffectLayer extends CanvasLayer {
   }
 }
 
-class DiagnosticLayer extends CanvasLayer {
+class DiagnosticLayer extends foundry.canvas.layers.CanvasLayer {
   constructor() {
     super();
     this.diagnosticContainer = null;
@@ -21433,7 +21442,7 @@ class DiagnosticLayer extends CanvasLayer {
   }
 }
 
-class MapPointsLayer extends CanvasLayer {
+class MapPointsLayer extends foundry.canvas.layers.CanvasLayer {
   constructor() {
     super();
     this.mapPointsContainer = null;
@@ -22234,7 +22243,7 @@ class PhysicsRope {
 /**
  * Canvas layer that renders physics-based ropes
  */
-export class PhysicsRopeLayer extends CanvasLayer {
+export class PhysicsRopeLayer extends foundry.canvas.layers.CanvasLayer {
   constructor() {
     super();
     this.ropes = [];
@@ -22921,7 +22930,7 @@ class MetallicStripePatternFilter extends PIXI.Filter {
   }
 }
 
-class MetallicShineLayer extends CanvasLayer {
+class MetallicShineLayer extends foundry.canvas.layers.CanvasLayer {
   constructor() {
     super();
     // For compositing _Specular maps
@@ -25342,7 +25351,7 @@ class IridescenceLayer extends MaskedEffectLayer {
  *
  * @extends CanvasLayer
  */
-class GroundGlowLayer extends CanvasLayer {
+class GroundGlowLayer extends foundry.canvas.layers.CanvasLayer {
   constructor() {
     super();
     this.glowSpritesContainer = null;
@@ -25684,7 +25693,7 @@ class GroundGlowFilter extends PIXI.Filter {
   }
 }
 
-class HeatDistortionLayer extends CanvasLayer {
+class HeatDistortionLayer extends foundry.canvas.layers.CanvasLayer {
   constructor() {
     super();
     this.heatSourceContainer = null;
@@ -36384,7 +36393,7 @@ Hooks.on("getSceneControlButtons", (controls) => {
       icon: "fas fa-sliders-h",
       toggle: true,
       active: !!game.mapShine?.activeEditor,
-      onClick: (toggled) => {
+      onChange: (toggled) => {
         if (toggled) {
           game.mapShine?.showEditor();
         } else {
@@ -36401,7 +36410,7 @@ Hooks.on("getSceneControlButtons", (controls) => {
       toggle: true,
       active: !!game.mapShine?.dayNightClock,
 
-      onClick: (_toggled) => {
+      onChange: (_toggled) => {
         game.mapShine?.showDayNightClock();
       },
     };
