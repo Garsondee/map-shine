@@ -19,15 +19,18 @@
  * - Real-time shader-based visual enhancements
  *
  * @author Mythica Machina - Ingram Blakelock
- * @version 1.0.45
+ * @version 1.0.47
+ *
  * @requires foundry ^13+
  * @requires pixi.js ^7.4.3
  *
- *
- *
+ * @TODO: FUN IDEA - Horror world vision. Basically the ability to quickly swap the appearance of the background with a different background for a horror vibe.
+ * @TODO: Screen Overlay effects, should be able to happen on only one player or something like that.
+ * 
  *
  *
  */
+
 import { ProfileManager } from "./managers/ProfileManager.js";
 import { CoordinateManager } from "./managers/CoordinateManager.js";
 import { TokenManager } from "./managers/TokenManager.js";
@@ -603,7 +606,11 @@ const ROPE_TYPE_PRESETS = {
     animationSpeed: 1,
     damping: 0.99,
     windForce: 1.0,
+    springConstant: 0.8,
     tapering: 0.5,
+    ropeEndTexturePath: null,
+    ropeEndScale: 1.0,
+    ropeEndStiffness: 0.3,
     indoorWindShielding: 0.9,
     endpointFade: 0.0,
     fadeStartDistance: 0.2,
@@ -616,7 +623,11 @@ const ROPE_TYPE_PRESETS = {
     animationSpeed: 0.8,
     damping: 0.95,
     windForce: 0.3,
+    springConstant: 0.8,
     tapering: 0.2,
+    ropeEndTexturePath: null,
+    ropeEndScale: 1.0,
+    ropeEndStiffness: 0.5,
     indoorWindShielding: 0.7,
     endpointFade: 0.0,
     fadeStartDistance: 0.2,
@@ -629,7 +640,11 @@ const ROPE_TYPE_PRESETS = {
     animationSpeed: 1.2,
     damping: 0.98,
     windForce: 1.5,
+    springConstant: 0.8,
     tapering: 0.7,
+    ropeEndTexturePath: null,
+    ropeEndScale: 1.0,
+    ropeEndStiffness: 0.2,
     indoorWindShielding: 0.95,
     endpointFade: 0.0,
     fadeStartDistance: 0.2,
@@ -3209,7 +3224,10 @@ export const MODULE_DEFAULTS = {
       animationSpeed: 1,
       damping: 0.99,
       windForce: 1.0,
+      springConstant: 0.8,
       tapering: 0.5,
+      ropeEndTexturePath: null,
+      ropeEndScale: 1.0,
       indoorWindShielding: 0.9,
       endpointFade: 0.0,
       fadeStartDistance: 0.2,
@@ -3221,7 +3239,10 @@ export const MODULE_DEFAULTS = {
       animationSpeed: 0.8,
       damping: 0.95,
       windForce: 0.3,
+      springConstant: 0.8,
       tapering: 0.2,
+      ropeEndTexturePath: null,
+      ropeEndScale: 1.0,
       indoorWindShielding: 0.7,
       endpointFade: 0.0,
       fadeStartDistance: 0.2,
@@ -3233,7 +3254,10 @@ export const MODULE_DEFAULTS = {
       animationSpeed: 1.2,
       damping: 0.98,
       windForce: 1.5,
+      springConstant: 0.8,
       tapering: 0.7,
+      ropeEndTexturePath: null,
+      ropeEndScale: 1.0,
       indoorWindShielding: 0.95,
       endpointFade: 0.0,
       fadeStartDistance: 0.2,
@@ -3642,7 +3666,6 @@ class MapShineInitialiser {
       lightMaskManager: null,
       mapPointsManager: MapPointsManager,
       mapPointsInteractionManager: new MapPointsInteractionManager(),
-      mapPointsEditor: null,
       geometryMaskManager: null,
       activeMapPointGroup: null,
       mapPointsInitialized: false,
@@ -4418,7 +4441,7 @@ class LayerManager {
       // --- High-Level Layers & Filters (zIndex > 200) ---
       ambient: {
         layerClass: AmbientLayer,
-        group: "primary",
+        group: "environment",
         zIndex: ambientZIndex, // Uses setting, defaults to 250.
       },
       prism: {
@@ -9225,6 +9248,9 @@ class MapShineLifecycle {
       metallicGlints: "specular",
       fire: "fire",
       sparks: "sparks",
+      water: "water", // Maps to _Water texture
+      pressurisedSteam: "steam", // Maps to _Steam texture
+      // Note: candleFlame, smellyFlies, lightning are map-point-only (no textures)
     };
 
     const targets = game.mapShine.effectTargetManager.targets;
@@ -9234,34 +9260,58 @@ class MapShineLifecycle {
     const config = game.mapShine.profileManager.activeConfig;
     const handler = game.mapShine.debugger?.eventHandler;
 
-    // --- Adjust effect enablement based on texture availability ---
-    for (const [effectKey, textureKey] of Object.entries(EFFECT_TEXTURE_MAP)) {
-      const hasTexture = allTargets.some((target) => target[textureKey]);
+    // --- Adjust effect enablement based on texture AND map point availability ---
+    const groups = MapPointsManager.getGroups();
+    
+    // Build a comprehensive set of all effects that can have sources (texture or map point)
+    const allEffectKeys = new Set([
+      ...Object.keys(EFFECT_TEXTURE_MAP),
+      ...Object.keys(EFFECT_SOURCE_OPTIONS).filter(key => key !== "") // Exclude empty "None" option
+    ]);
+    
+    for (const effectKey of allEffectKeys) {
+      // Check for texture source
+      const textureKey = EFFECT_TEXTURE_MAP[effectKey];
+      const hasTexture = textureKey ? allTargets.some((target) => target[textureKey]) : false;
+      
+      // Check if any map point groups are configured for this effect
+      const hasMapPoint = Object.values(groups).some(
+        (group) =>
+          group.isEffectSource &&
+          group.effectTarget === effectKey &&
+          group.points?.length > 0 &&
+          !group.isBroken
+      );
+      
+      // Effect is available if either texture OR map point exists
+      const hasEffectSource = hasTexture || hasMapPoint;
+      
       const path = `${effectKey}.enabled`;
       const currentSetting = foundry.utils.getProperty(config, path);
       const defaultSetting = foundry.utils.getProperty(MODULE_DEFAULTS, path); // Get original default from MODULE_DEFAULTS
 
       let newSetting = currentSetting; // Start with the current state
 
-      if (hasTexture && defaultSetting === false && currentSetting === false) {
-        // Scenario: Texture found, default is OFF, and it's currently OFF.
+      if (hasEffectSource && defaultSetting === false && currentSetting === false) {
+        // Scenario: Effect source found (texture or map point), default is OFF, and it's currently OFF.
         // Action: Automatically ENABLE the effect.
         newSetting = true;
+        const sourceType = hasTexture && hasMapPoint ? 'texture and map point' : hasTexture ? 'texture' : 'map point';
         console.log(
-          `Map Shine | Effect '${effectKey}' auto-enabled: '${textureKey}' texture found.`
+          `Map Shine | Effect '${effectKey}' auto-enabled: ${sourceType} found.`
         );
-      } else if (!hasTexture && currentSetting === true) {
-        // Scenario: Texture is missing AND the effect is currently enabled.
+      } else if (!hasEffectSource && currentSetting === true) {
+        // Scenario: No effect source (texture or map point) AND the effect is currently enabled.
         // Action: Automatically DISABLE the effect.
         newSetting = false;
         console.log(
-          `Map Shine | Effect '${effectKey}' auto-disabled: No '${textureKey}' texture found.`
+          `Map Shine | Effect '${effectKey}' auto-disabled: No texture or map point found.`
         );
       }
       // Other scenarios:
-      // - hasTexture && defaultSetting === true && currentSetting === true (no change, already enabled)
-      // - hasTexture && defaultSetting === false && currentSetting === true (user enabled it, keep it enabled)
-      // - !hasTexture && defaultSetting === false && currentSetting === false (no change, already disabled)
+      // - hasEffectSource && defaultSetting === true && currentSetting === true (no change, already enabled)
+      // - hasEffectSource && defaultSetting === false && currentSetting === true (user enabled it, keep it enabled)
+      // - !hasEffectSource && defaultSetting === false && currentSetting === false (no change, already disabled)
 
       // Only update the config if the setting has actually changed
       if (newSetting !== currentSetting) {
@@ -9269,8 +9319,8 @@ class MapShineLifecycle {
       }
 
       // Update the UI availability regardless of the config setting.
-      // This ensures the UI accurately reflects whether a texture exists to power the effect.
-      handler?.setEffectAvailability(effectKey, hasTexture);
+      // This ensures the UI accurately reflects whether an effect source exists to power the effect.
+      handler?.setEffectAvailability(effectKey, hasEffectSource);
     }
   }
   /**
@@ -9522,6 +9572,15 @@ class MapPointsManager {
     // This call might return 'undefined' on initial load before flags are ready.
     const groupsData = canvas.scene.getFlag(MODULE_ID, this.FLAG_NAME);
 
+    // Debug: Log the raw groups data to detect duplicates or corruption
+    if (groupsData) {
+      const groupIds = Object.keys(groupsData);
+      console.log(`MapShine | getGroups() returning ${groupIds.length} groups:`, groupIds.map(id => {
+        const g = groupsData[id];
+        return `[${id}] ${g.label} (${g.points?.length ?? 0} pts)`;
+      }).join(', '));
+    }
+
     // Return the data if it exists, otherwise return an empty object.
     // This prevents the system from crashing if the data isn't ready yet.
     return groupsData ?? {};
@@ -9653,10 +9712,14 @@ class MapPointsManager {
       );
       return;
     }
+    
+    console.log(`MapShine | MapPointsManager: Attempting to delete group "${groupId}"`);
     const path = `flags.${MODULE_ID}.${this.FLAG_NAME}.-=${groupId}`;
+    console.log(`MapShine | MapPointsManager: Deleting group with path "${path}"`);
     await canvas.scene.update({
       [path]: null,
     });
+    console.log(`MapShine | MapPointsManager: Group "${groupId}" deleted successfully.`);
 
     // If the deleted group was the active one, clear it
     if (game.mapShine.activeMapPointGroup === groupId) {
@@ -9762,6 +9825,7 @@ class MapPointsManager {
     if (group.type !== "area" || group.points.length < 4) {
       group.isBroken = false;
       group.reason = "";
+      console.log(`MapShine | Validate: Group "${group.label}" (${group.type}, ${group.points.length} pts) → isBroken = false (< 4 points)`);
       return group;
     }
 
@@ -9783,6 +9847,7 @@ class MapPointsManager {
           group.reason = `Segment ${i + 1}-${i + 2} intersects segment ${
             j + 1
           }-${j + 2}.`;
+          console.log(`MapShine | Validate: Group "${group.label}" (${group.type}, ${group.points.length} pts) → isBroken = true (${group.reason})`);
           return group;
         }
       }
@@ -9790,6 +9855,7 @@ class MapPointsManager {
 
     group.isBroken = false;
     group.reason = "";
+    console.log(`MapShine | Validate: Group "${group.label}" (${group.type}, ${group.points.length} pts) → isBroken = false (no intersections)`);
     return group;
   }
 
@@ -9821,8 +9887,9 @@ class GeometryMaskManager {
     this._needsUpdate = true;
     this._destroyed = false;
     this._mapPointsInitialized = false; // Flag to ensure the initial point discovery runs only once.
+    this._changedGroupId = null; // Track which group changed to enable targeted emitter rebuild
 
-    this._boundOnMapPointsUpdated = this.requestUpdate.bind(this);
+    this._boundOnMapPointsUpdated = this._onMapPointsUpdated.bind(this);
     this._boundOnPan = this.requestUpdate.bind(this);
     this._boundOnResize = this._onResize.bind(this);
   }
@@ -9881,6 +9948,19 @@ class GeometryMaskManager {
     console.log("Map Shine | GeometryMaskManager destroyed.");
   }
 
+  /**
+   * Handler for map points updated hook. Captures which group changed for targeted emitter rebuild.
+   */
+  _onMapPointsUpdated(data) {
+    // Store which group changed (created, updated, or deleted)
+    this._changedGroupId = data?.created || data?.updated || data?.deleted || null;
+    this.requestUpdate();
+  }
+
+  /**
+   * Flags that the masks need to be re-rendered on the next animation frame.
+   * This is the single, consolidated entry point for requesting an update.
+   */
   requestUpdate() {
     this._needsUpdate = true;
   }
@@ -9894,71 +9974,79 @@ class GeometryMaskManager {
     this.requestUpdate();
   }
 
+  /**
+   * This method is called by the main animation loop (ParticleLayer._onAnimate).
+   * It is the single source of truth for deciding when to render masks and notify other systems.
+   */
   update() {
     // --- ROBUST INITIALIZATION POLLING ---
-    // This block runs on every frame until it can confirm that the scene's flag data for map points has been loaded.
+    // This block handles the initial discovery of map points when a scene loads.
     if (!this._mapPointsInitialized) {
       const groupsData = canvas.scene.getFlag(
         MODULE_ID,
         MapPointsManager.FLAG_NAME
       );
-
-      // The condition to proceed is that the flag data is no longer `undefined`.
-      // `undefined` means the data hasn't been loaded from the DB yet.
-      // An empty object `{}` means it has loaded, and there are no points.
       if (groupsData !== undefined) {
-        // We have a definitive answer from the database, so we can stop polling.
         this._mapPointsInitialized = true;
-
-        // Now, check if there are actually any points to render.
+        // If groups exist on first load, flag an update to render them.
         if (!foundry.utils.isEmpty(groupsData)) {
-          console.log(
-            `Map Shine | GeometryMaskManager has detected Map Points data. Scheduling initial render and particle notification.`
-          );
-
-          // 1. Render the masks with the new data.
-          this._renderAllMasks();
-          this._needsUpdate = false; // We just updated.
-
-          // 2. Defer the notification to the next animation frame to ensure the GPU has processed the render.
-          requestAnimationFrame(() => {
-            if (this._destroyed) return; // Don't notify if the manager was torn down during the frame.
-
-            console.log(
-              `Map Shine | Post-render frame: Notifying particle systems that masks are ready.`
-            );
-            // Notify the particle system so it can create the emitters.
-            // @ts-expect-error - Custom hook type augmentation not working with foundry-vtt-types package
-            Hooks.callAll("mapShine:mapPointsUpdated");
-          });
+          this._needsUpdate = true;
         }
       }
     }
     // --- END POLLING ---
 
-    // This is the standard update path for subsequent changes (e.g., panning, resizing, editing points).
+    // If no update has been requested and the manager is not destroyed, do nothing.
     if (!this._needsUpdate || this._destroyed) return;
 
+    // Perform the render.
     this._renderAllMasks();
+    // Reset the flag so we don't re-render unnecessarily on the next frame.
     this._needsUpdate = false;
+
+    // Defer the notification to the next animation frame.
+    // This ensures the GPU has processed the render command before other systems try to use the texture.
+    const changedGroupId = this._changedGroupId;
+    this._changedGroupId = null; // Clear after capturing
+    requestAnimationFrame(() => {
+      if (this._destroyed) return;
+      console.log(
+        "Map Shine | GeometryMaskManager: Masks rendered, notifying particle systems.",
+        changedGroupId ? `Changed group: ${changedGroupId}` : "(no specific group)"
+      );
+      // @ts-expect-error - Custom hook type augmentation not working with foundry-vtt-types package
+      Hooks.callAll("mapShine:masksRendered", { changedGroupId });
+    });
   }
 
   _renderAllMasks() {
+    console.log("Map Shine | GeometryMaskManager: Rendering all masks...");
     // Clear all graphics objects first
     for (const { graphics } of this.masks.values()) {
       graphics.clear();
     }
 
     const groups = MapPointsManager.getGroups();
-    if (foundry.utils.isEmpty(groups)) return;
+    if (foundry.utils.isEmpty(groups)) {
+      console.log(
+        "Map Shine | GeometryMaskManager: No groups found, skipping render."
+      );
+      return;
+    }
 
     // Populate graphics objects based on point groups
+    let renderedCount = 0;
     for (const group of Object.values(groups)) {
       if (
         !group.isEffectSource ||
         !group.effectTarget ||
         !this.masks.has(group.effectTarget)
       ) {
+        if (group.isEffectSource) {
+          console.log(
+            `Map Shine | GeometryMaskManager: Skipping group "${group.label}" (effectTarget: ${group.effectTarget}, has mask: ${this.masks.has(group.effectTarget)})`
+          );
+        }
         continue;
       }
 
@@ -9992,9 +10080,17 @@ class GeometryMaskManager {
           break;
         case "area":
           if (group.points.length > 2 && !group.isBroken) {
+            console.log(
+              `Map Shine | GeometryMaskManager: Rendering area "${group.label}" → ${group.effectTarget} (${group.points.length} pts, broken: ${group.isBroken})`
+            );
             graphics.beginFill(0xffffff);
             graphics.drawPolygon(group.points);
             graphics.endFill();
+            renderedCount++;
+          } else {
+            console.log(
+              `Map Shine | GeometryMaskManager: Skipping area "${group.label}" (${group.points.length} pts, broken: ${group.isBroken})`
+            );
           }
           break;
       }
@@ -10006,13 +10102,11 @@ class GeometryMaskManager {
       renderContainer.addChild(graphics);
 
       // Apply the world-to-screen transformation directly to the container.
-      // This pre-transforms our world-space geometry for the renderer.
-
       renderContainer.transform.setFromMatrix(
         canvas.stage.transform.worldTransform
       );
 
-      // Render the pre-transformed container without a separate transform option.
+      // Render the pre-transformed container.
       this.renderer.render(renderContainer, {
         renderTexture: texture,
         clear: true,
@@ -10022,6 +10116,9 @@ class GeometryMaskManager {
       renderContainer.removeChild(graphics);
       renderContainer.destroy();
     }
+    console.log(
+      `Map Shine | GeometryMaskManager: Rendered ${renderedCount} effect groups to masks.`
+    );
   }
 
   /**
@@ -11434,6 +11531,12 @@ class ParticleEffectController {
                         </details>
                       </div>
                     </details>
+                    
+                    ${DebuggerUIBuilder._createEffectPointGroupsHTML('sparks', {
+                      effectName: 'Sparks',
+                      defaultGroupType: 'area',
+                      description: 'Create spark particle spawn areas. Draw areas or lines where sparks should emit.'
+                    })}
                   `;
       const headerExtra = `<button type="button" class="create-effect-from-ui" data-action="create-particle-effect-area" data-effect-key="${effectKey}" title="Create new area for this particle effect" style="width: 24px; height: 24px; min-width: 24px; min-height: 24px; box-sizing: border-box; padding: 0; margin: 0; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid rgba(76, 250, 64, 0.5); background: rgba(76, 250, 64, 0.15); border-radius: 3px; cursor: pointer; transition: all 0.2s;"><i class="fas fa-plus-square" style="font-size: 12px; pointer-events: none; color: #6fdd73;"></i></button>`;
       return DebuggerUIBuilder._createAccordionHTML(
@@ -11720,6 +11823,12 @@ class ParticleEffectController {
               )}
             </div>
           </details>
+          
+          ${DebuggerUIBuilder._createEffectPointGroupsHTML('fire', {
+            effectName: 'Fire Particles',
+            defaultGroupType: 'area',
+            description: 'Create fire particle spawn areas. Draw areas or lines where fire should emit.'
+          })}
         `;
       return DebuggerUIBuilder._createAccordionHTML(
         effectKey,
@@ -11847,6 +11956,12 @@ class ParticleEffectController {
               )}
             </div>
           </details>
+          
+          ${DebuggerUIBuilder._createEffectPointGroupsHTML('candleFlame', {
+            effectName: 'Candle Flame',
+            defaultGroupType: 'point',
+            description: 'Create candle flame spawn points. Each point will emit flame particles.'
+          })}
         `;
       return DebuggerUIBuilder._createAccordionHTML(
         effectKey,
@@ -12065,6 +12180,12 @@ class ParticleEffectController {
                   </details>
               </div>
           </details>
+          
+          ${DebuggerUIBuilder._createEffectPointGroupsHTML('pressurisedSteam', {
+            effectName: 'Pressurised Steam',
+            defaultGroupType: 'area',
+            description: 'Create steam emission areas. Draw areas or lines where steam should burst from.'
+          })}
       `;
       const headerExtra = `<button type="button" class="create-effect-from-ui" data-action="create-particle-effect-area" data-effect-key="${effectKey}" title="Create new area for this particle effect" style="width: 24px; height: 24px; min-width: 24px; min-height: 24px; box-sizing: border-box; padding: 0; margin: 0; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid rgba(76, 250, 64, 0.5); background: rgba(76, 250, 64, 0.15); border-radius: 3px; cursor: pointer; transition: all 0.2s;"><i class="fas fa-plus-square" style="font-size: 12px; pointer-events: none; color: #6fdd73;"></i></button>`;
       return DebuggerUIBuilder._createAccordionHTML(
@@ -12382,6 +12503,15 @@ class ParticleEffectController {
                     `;
     }
 
+    // Add point group controls if this effect supports map points
+    if (EFFECT_SOURCE_OPTIONS[effectKey]) {
+      content += DebuggerUIBuilder._createEffectPointGroupsHTML(effectKey, {
+        effectName: definition.title,
+        defaultGroupType: 'area',
+        description: `Create areas where ${definition.title.toLowerCase()} particles will emit.`
+      });
+    }
+
     const mainAccordionPath =
       effectKey === "fire" ? "fire.particles.enabled" : `${path}.enabled`;
     const mainAccordionId =
@@ -12618,6 +12748,12 @@ class ParticleEffectController {
               )}
             </div>
           </details>
+          
+          ${DebuggerUIBuilder._createEffectPointGroupsHTML('smellyFlies', {
+            effectName: 'Smelly Flies',
+            defaultGroupType: 'area',
+            description: 'Create areas where flies will spawn and wander. Flies will land on and walk around these areas.'
+          })}
           `;
     return DebuggerUIBuilder._createAccordionHTML(
       effectKey,
@@ -12627,7 +12763,7 @@ class ParticleEffectController {
     );
   }
 
-  updateTargets(targets, fullConfig) {
+  updateTargets(targets, fullConfig, options = {}) {
     // NON-DESTRUCTIVE UPDATE: Only destroy/create emitters that have actually changed
 
     this.config = foundry.utils.getProperty(
@@ -12639,6 +12775,29 @@ class ParticleEffectController {
     if (!fullConfig.enabled || !this.config?.enabled) {
       this.destroyAllEmitters();
       return;
+    }
+
+    // TARGETED REBUILD: If a specific map point group changed, destroy its emitter first
+    // This forces a clean recreation with the new geometry
+    const changedGroupId = options?.changedGroupId;
+    if (changedGroupId) {
+      const changedTargetId = `geometry-${changedGroupId}`;
+      if (this.emitters.has(changedTargetId)) {
+        console.log(
+          `Map Shine | ${this.key}: Destroying emitter for changed group '${changedGroupId}' to force rebuild`
+        );
+        const emitterData = this.emitters.get(changedTargetId);
+        if (emitterData?.emitter) {
+          if (emitterData.emitter._customMaskTexture) {
+            emitterData.emitter._customMaskTexture.destroy(true);
+            emitterData.emitter._customMaskTexture = null;
+          }
+          emitterData.emitter.destroy();
+        }
+        this.emitters.delete(changedTargetId);
+      }
+      // Also remove from pending if it exists
+      this.pendingTargets.delete(changedTargetId);
     }
 
     // Build a set of target IDs that SHOULD exist based on current configuration
@@ -12786,6 +12945,9 @@ class ParticleEffectController {
         return true;
       }
 
+      // Do not start emitting immediately to prevent a race condition with shape compilation.
+      emitterConfig.emit = false;
+
       const textureBehavior = emitterConfig.behaviors.find(
         (b) => b.type === "textureSingle"
       );
@@ -12793,6 +12955,18 @@ class ParticleEffectController {
 
       const emitterParent = this.particleOnlyContainer || this.parentContainer;
       const emitter = new PIXI.particles.Emitter(emitterParent, emitterConfig);
+
+      // Await the shape compilation before starting emission.
+      const spawnBehavior = emitter.initBehaviors?.find(
+        (b) => b.constructor.type === "spawnShape"
+      );
+      if (spawnBehavior?.shape?.compilePoints) {
+        await spawnBehavior.shape.compilePoints();
+      }
+
+      // Now that the shape is ready, start the emitter.
+      emitter.emit = true;
+
 
       if (spawnMaskSource instanceof PIXI.Texture) {
         emitter._customMaskTexture = spawnMaskSource;
@@ -12894,6 +13068,9 @@ class ParticleEffectController {
 
       if (emitterConfig.maxParticles === 0) return true;
 
+      // Do not start emitting immediately to prevent a race condition with shape compilation.
+      emitterConfig.emit = false;
+
       const textureBehavior = emitterConfig.behaviors.find(
         (b) => b.type === "textureSingle"
       );
@@ -12901,6 +13078,18 @@ class ParticleEffectController {
 
       const emitterParent = this.particleOnlyContainer || this.parentContainer;
       const emitter = new PIXI.particles.Emitter(emitterParent, emitterConfig);
+
+      // Await the shape compilation before starting emission.
+      const spawnBehavior = emitter.initBehaviors?.find(
+        (b) => b.constructor.type === "spawnShape"
+      );
+      if (spawnBehavior?.shape?.compilePoints) {
+        await spawnBehavior.shape.compilePoints();
+      }
+
+      // Now that the shape is ready, start the emitter.
+      emitter.emit = true;
+      
       emitter.autoUpdate = false;
 
       // CRITICAL FIX: Override the particle initialization to force blend mode on sprites
@@ -13968,6 +14157,7 @@ class ParticleManager {
   constructor() {
     this.masterContainer = new PIXI.Container();
     this.controllers = new Map();
+    this._processingPending = false;
   }
 
   get totalParticleCount() {
@@ -14001,11 +14191,17 @@ class ParticleManager {
     );
   }
 
-  updateEffectTargets(targets) {
+  updateEffectTargets(targets, options = {}) {
     if (!this.controllers.size) return;
     const config = game.mapShine.profileManager.activeConfig;
+    const changedGroupId = options?.changedGroupId;
+    
+    if (changedGroupId) {
+      console.log(`Map Shine | ParticleManager: Targeting rebuild for changed group: ${changedGroupId}`);
+    }
+    
     for (const controller of this.controllers.values()) {
-      controller.updateTargets(targets, config);
+      controller.updateTargets(targets, config, { changedGroupId });
     }
   }
 
@@ -14016,11 +14212,17 @@ class ParticleManager {
   }
 
   async processAllPendingTargets() {
-    const promises = [];
-    for (const controller of this.controllers.values()) {
-      promises.push(controller.processAllPendingTargets());
+    if (this._processingPending) return; // Already processing
+    this._processingPending = true;
+    try {
+      const promises = [];
+      for (const controller of this.controllers.values()) {
+        promises.push(controller.processAllPendingTargets());
+      }
+      await Promise.all(promises);
+    } finally {
+      this._processingPending = false;
     }
-    await Promise.all(promises);
   }
 
   update(deltaTime) {
@@ -14633,10 +14835,11 @@ export class ParticleLayer extends CanvasLayer {
     this._onAnimateBound = this._onAnimate.bind(this);
     canvas.app.ticker.add(this._onAnimateBound);
 
-    // Bind and register the listener for map point updates.
-    this._onMapPointsUpdatedBound = this._onMapPointsUpdated.bind(this);
+    // Bind and register the listener for mask rendering completion.
+    // This fires AFTER GeometryMaskManager has rendered masks, preventing race conditions.
+    this._onMasksRenderedBound = this._onMasksRendered.bind(this);
 
-    Hooks.on("mapShine:mapPointsUpdated", this._onMapPointsUpdatedBound);
+    Hooks.on("mapShine:masksRendered", this._onMasksRenderedBound);
 
     // This new hook will listen for camera pans to trigger a recompilation
     // of particle spawn points for dynamic screen-space masks.
@@ -14668,9 +14871,9 @@ export class ParticleLayer extends CanvasLayer {
       canvas.app.ticker.remove(this._onAnimateBound);
     }
 
-    // Unregister the map point listener to prevent memory leaks.
-    if (this._onMapPointsUpdatedBound) {
-      Hooks.off("mapShine:mapPointsUpdated", this._onMapPointsUpdatedBound);
+    // Unregister the mask rendering listener to prevent memory leaks.
+    if (this._onMasksRenderedBound) {
+      Hooks.off("mapShine:masksRendered", this._onMasksRenderedBound);
     }
 
     // Unregister the new pan listener.
@@ -14687,15 +14890,24 @@ export class ParticleLayer extends CanvasLayer {
   }
 
   /**
-   * Handler for when map point geometry is changed. This triggers a full refresh
+   * Handler for when geometry masks have finished rendering. This triggers a full refresh
    * of all particle emitters to ensure they use the latest mask data.
+   * This is called AFTER GeometryMaskManager completes rendering, preventing race conditions.
    */
-  _onMapPointsUpdated() {
+  async _onMasksRendered(data) {
+    const changedGroupId = data?.changedGroupId;
     console.log(
-      "Map Shine | ParticleLayer detected map point update. Refreshing particle targets."
+      "Map Shine | ParticleLayer detected masks rendered. Refreshing particle targets.",
+      changedGroupId ? `Changed group: ${changedGroupId}` : ""
     );
-    if (game.mapShine.effectTargetManager?.targets) {
-      this.updateEffectTargets(game.mapShine.effectTargetManager.targets);
+    if (game.mapShine.effectTargetManager) {
+      // Refresh targets to pick up any new map point groups that were just added
+      await game.mapShine.effectTargetManager.refresh();
+      if (game.mapShine.effectTargetManager.targets) {
+        this.updateEffectTargets(game.mapShine.effectTargetManager.targets, { changedGroupId });
+        // Don't process pending targets here - let the animation loop handle it
+        // This avoids race conditions with mask rendering
+      }
     }
   }
 
@@ -14720,6 +14932,14 @@ export class ParticleLayer extends CanvasLayer {
     // If it finds new data, it will fire the `mapShine:mapPointsUpdated` hook, which
     // will trigger another call to `updateEffectTargets` to correctly rebuild the emitters.
     game.mapShine.geometryMaskManager?.update();
+
+    // Process any pending particle emitter targets (async but non-blocking)
+    // This happens after mask rendering to ensure masks are ready
+    if (game.mapShine.particleManager) {
+      game.mapShine.particleManager.processAllPendingTargets().catch(err => {
+        console.warn("Map Shine | Error processing pending particle targets:", err);
+      });
+    }
 
     // Tick the particle simulation forward.
     const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
@@ -14753,10 +14973,10 @@ export class ParticleLayer extends CanvasLayer {
     }
   }
 
-  async updateEffectTargets(targets) {
+  async updateEffectTargets(targets, options = {}) {
     if (game.mapShine.particleManager) {
       // This method internally fetches the latest config to decide what to create.
-      game.mapShine.particleManager.updateEffectTargets(targets);
+      game.mapShine.particleManager.updateEffectTargets(targets, options);
     }
   }
 
@@ -15501,6 +15721,12 @@ class LightningLayer extends CanvasLayer {
                     )}
                 </div>
             </details>
+            
+            ${DebuggerUIBuilder._createEffectPointGroupsHTML('lightning', {
+              effectName: 'Lightning',
+              defaultGroupType: 'line',
+              description: 'Create lightning bolt paths. Draw lines where lightning bolts should appear.'
+            })}
           `;
 
     return DebuggerUIBuilder._createAccordionHTML(
@@ -17079,9 +17305,10 @@ export class SmellyFliesLayer extends CanvasLayer {
     this._onAnimateBound = this._onAnimate.bind(this);
     canvas.app.ticker.add(this._onAnimateBound);
 
-    this._onMapPointsUpdatedBound = this._onMapPointsUpdated.bind(this);
+    // Bind and register listener for mask rendering completion to prevent race conditions.
+    this._onMasksRenderedBound = this._onMasksRendered.bind(this);
 
-    Hooks.on("mapShine:mapPointsUpdated", this._onMapPointsUpdatedBound);
+    Hooks.on("mapShine:masksRendered", this._onMasksRenderedBound);
   }
 
   async _tearDown(options) {
@@ -17091,8 +17318,8 @@ export class SmellyFliesLayer extends CanvasLayer {
     if (this._onAnimateBound) {
       canvas.app.ticker.remove(this._onAnimateBound);
     }
-    if (this._onMapPointsUpdatedBound) {
-      Hooks.off("mapShine:mapPointsUpdated", this._onMapPointsUpdatedBound);
+    if (this._onMasksRenderedBound) {
+      Hooks.off("mapShine:masksRendered", this._onMasksRenderedBound);
     }
 
     this.controller?.destroy();
@@ -17101,9 +17328,18 @@ export class SmellyFliesLayer extends CanvasLayer {
     return super._tearDown(options);
   }
 
-  _onMapPointsUpdated() {
-    if (game.mapShine.effectTargetManager?.targets) {
-      this.updateEffectTargets(game.mapShine.effectTargetManager.targets);
+  /**
+   * Handler for when geometry masks have finished rendering.
+   * Called AFTER GeometryMaskManager completes rendering to prevent race conditions.
+   */
+  async _onMasksRendered(data) {
+    const changedGroupId = data?.changedGroupId;
+    if (game.mapShine.effectTargetManager) {
+      // Refresh targets to pick up any new map point groups that were just added
+      await game.mapShine.effectTargetManager.refresh();
+      if (game.mapShine.effectTargetManager.targets) {
+        this.updateEffectTargets(game.mapShine.effectTargetManager.targets, { changedGroupId });
+      }
     }
   }
 
@@ -17122,10 +17358,11 @@ export class SmellyFliesLayer extends CanvasLayer {
     this.controller.update(deltaInSeconds);
   }
 
-  async updateEffectTargets(targets) {
+  async updateEffectTargets(targets, options = {}) {
     this.controller?.updateTargets(
       targets,
-      game.mapShine.profileManager.activeConfig
+      game.mapShine.profileManager.activeConfig,
+      options
     );
   }
 
@@ -21218,10 +21455,7 @@ class MapPointsLayer extends CanvasLayer {
   async _draw() {
     this.mapPointsContainer = this.addChild(new PIXI.Container());
     this.eventMode = "none";
-    this.alpha =
-      game.mapShine.mapPointsEditor && game.mapShine.mapPointsEditor.rendered
-        ? 1
-        : 0;
+    this.alpha = game.mapShine.mapPointsInteractionManager?.isActive ? 1 : 0;
 
     Hooks.on("mapShine:mapPointsUpdated", this._boundDrawMapPoints);
     this._drawMapPoints();
@@ -21350,6 +21584,27 @@ class MapPointsLayer extends CanvasLayer {
           .beginFill(color, alpha);
         graphics.drawCircle(p.x, p.y, radius);
         graphics.endFill();
+        
+        // Draw delete indicator when hovering
+        if (isHovered && !isDragged) {
+          const deleteIconSize = 14 / canvas.stage.scale.x;
+          const deleteX = p.x + radius * 1.5;
+          const deleteY = p.y - radius * 1.5;
+          
+          // Red circle background
+          graphics.lineStyle(0);
+          graphics.beginFill(0xff0000, 0.9);
+          graphics.drawCircle(deleteX, deleteY, deleteIconSize);
+          graphics.endFill();
+          
+          // White X
+          const xSize = deleteIconSize * 0.5;
+          graphics.lineStyle(lineThickness / 2, 0xffffff, 1.0);
+          graphics.moveTo(deleteX - xSize, deleteY - xSize);
+          graphics.lineTo(deleteX + xSize, deleteY + xSize);
+          graphics.moveTo(deleteX + xSize, deleteY - xSize);
+          graphics.lineTo(deleteX - xSize, deleteY + xSize);
+        }
       }
 
       // Draw labels (only for non-dragged groups)
@@ -21385,8 +21640,12 @@ class PhysicsRope {
         animationSpeed: 1,
         damping: 0.95, // Increased damping for quicker return to rest (was 0.99)
         windForce: 2.0, // Strong wind influence (was 1.0)
+        springConstant: 0.8, // Restoring force strength - pulls rope back to straight line
         tapering: 0.5, // 0 = no taper, 1 = max taper (70% reduction at center) - creates visual sag
         texturePath: "modules/map-shine/assets/rope.webp",
+        ropeEndTexturePath: null, // Optional texture for rope end decorations
+        ropeEndScale: 1.0, // Scale multiplier for rope end sprites
+        ropeEndStiffness: 0.3, // 0 = flexible ends, 1 = rigid ends - prevents crushing at anchor points
         indoorWindShielding: 0.9, // Default 90% wind reduction indoors
         endpointFade: 0.0, // 0 = no fade, 1 = maximum fade at endpoints to hide seams
         fadeStartDistance: 0.2, // Distance from start (0-1) where fade begins
@@ -21417,6 +21676,9 @@ class PhysicsRope {
       this.points[this.points.length - 1].locked = true;
     }
 
+    // Store rest positions (straight line between anchors) for restoring force
+    this._calculateRestPositions();
+
     this.time = 0;
 
     // Create PIXI.Point array for the mesh (centerline)
@@ -21439,6 +21701,11 @@ class PhysicsRope {
     // Initialize fade mask (will be created when fade is enabled)
     this.fadeMask = null;
     this.fadeMaskGraphics = null;
+
+    // Initialize rope end sprites (will be created if texture is provided)
+    this.startEndSprite = null;
+    this.endEndSprite = null;
+    this.ropeEndTexture = null;
   }
 
   /**
@@ -21494,6 +21761,26 @@ class PhysicsRope {
     // Gravity affects only visual appearance through tapering, not physics simulation
 
     return subdivided;
+  }
+
+  /**
+   * Calculate rest positions for each point (straight line between anchors)
+   * Used for restoring force to pull rope back to natural hanging position
+   */
+  _calculateRestPositions() {
+    if (this.points.length < 2) return;
+
+    const start = this.points[0];
+    const end = this.points[this.points.length - 1];
+
+    this.restPositions = [];
+    for (let i = 0; i < this.points.length; i++) {
+      const t = i / (this.points.length - 1);
+      this.restPositions.push({
+        x: start.x + (end.x - start.x) * t,
+        y: start.y + (end.y - start.y) * t
+      });
+    }
   }
 
   update(deltaTime) {
@@ -21566,11 +21853,29 @@ class PhysicsRope {
       const dampedVx = vx * this.config.damping;
       const dampedVy = vy * this.config.damping;
 
+      // Apply restoring force to pull rope back toward rest position (straight line)
+      // This creates the "bounce back" behavior after wind displacement
+      let restoringForceX = 0;
+      let restoringForceY = 0;
+      
+      if (this.restPositions && this.restPositions[i]) {
+        const restPos = this.restPositions[i];
+        const displacementX = restPos.x - point.x;
+        const displacementY = restPos.y - point.y;
+        
+        // Spring constant - how strongly the rope wants to return to rest
+        // Higher values = stiffer rope, lower values = more elastic/bouncy
+        const springConstant = this.config.springConstant ?? 0.15;
+        
+        restoringForceX = displacementX * springConstant;
+        restoringForceY = displacementY * springConstant;
+      }
+
       // NOTE: Gravity is NOT applied to simulation points - it only affects visual tapering
       // The rope maintains its path, and gravity creates visual sag through vertex manipulation
 
-      point.x += dampedVx + windForceX * adjustedDeltaTime;
-      point.y += dampedVy + windForceY * adjustedDeltaTime;
+      point.x += dampedVx + windForceX * adjustedDeltaTime + restoringForceX * adjustedDeltaTime;
+      point.y += dampedVy + windForceY * adjustedDeltaTime + restoringForceY * adjustedDeltaTime;
     }
 
     // Constraint resolution (maintain segment lengths for rope integrity)
@@ -21591,10 +21896,21 @@ class PhysicsRope {
         const targetLength = this.segmentLengths[i];
         const diff = targetLength - dist;
 
+        // Calculate distance from nearest end (0 at ends, 1 at center)
+        const normalizedPos = i / (this.points.length - 2); // Normalize to segment count
+        const distFromStart = normalizedPos;
+        const distFromEnd = 1.0 - normalizedPos;
+        const distFromNearestEnd = Math.min(distFromStart, distFromEnd);
+        
+        // Apply end stiffness - segments near ends get much stronger correction
+        // This prevents crushing/bunching at anchor points
+        const endStiffness = this.config.ropeEndStiffness ?? 0.3;
+        const stiffnessFactor = 1.0 + endStiffness * (1.0 - Math.min(1.0, distFromNearestEnd * 3.0));
+        
         // Stronger correction for both compression and stretching to minimize stretch
         // Allows only minimal realistic stretch (< 2% of segment length)
         const compressionMultiplier = diff > 0 ? 1.0 : 0.9; // Strong correction for both
-        const correctionStrength = 0.7 * compressionMultiplier; // Increased from 0.5
+        const correctionStrength = 0.7 * compressionMultiplier * stiffnessFactor; // Apply stiffness multiplier
 
         const offsetX = (dx / dist) * diff * correctionStrength;
         const offsetY = (dy / dist) * diff * correctionStrength;
@@ -21725,7 +22041,10 @@ class PhysicsRope {
     // 4. Update fade mask if endpoint fade is enabled
     this._updateFadeMask();
 
-    // 5. Apply scene darkness tint to the rope
+    // 5. Update rope end sprites if they exist
+    this._updateRopeEnds();
+
+    // 6. Apply scene darkness tint to the rope
     this._applyDarknessTint();
   }
 
@@ -21838,9 +22157,73 @@ class PhysicsRope {
     }
   }
 
+  /**
+   * Creates or updates rope end sprites at anchor points
+   * @param {PIXI.Texture} texture - The texture to use for rope ends
+   */
+  async _createRopeEnds(texture) {
+    if (!texture) return;
+
+    this.ropeEndTexture = texture;
+
+    // Create start end sprite
+    if (!this.startEndSprite) {
+      this.startEndSprite = new PIXI.Sprite(texture);
+      this.startEndSprite.anchor.set(0.5, 0.5);
+      this.startEndSprite.scale.set(this.config.ropeEndScale);
+      this.container.addChild(this.startEndSprite);
+    }
+
+    // Create end end sprite
+    if (!this.endEndSprite) {
+      this.endEndSprite = new PIXI.Sprite(texture);
+      this.endEndSprite.anchor.set(0.5, 0.5);
+      this.endEndSprite.scale.set(this.config.ropeEndScale);
+      this.container.addChild(this.endEndSprite);
+    }
+
+    // Initial positioning and rotation
+    this._updateRopeEnds();
+  }
+
+  /**
+   * Updates rope end sprite positions and rotations based on rope physics
+   */
+  _updateRopeEnds() {
+    if (!this.startEndSprite || !this.endEndSprite || this.points.length < 2) return;
+
+    // Update start end sprite
+    const startPoint = this.points[0];
+    const startNextPoint = this.points[1];
+    this.startEndSprite.position.set(startPoint.x, startPoint.y);
+    
+    // Calculate rotation to face along the rope from start
+    const startDx = startNextPoint.x - startPoint.x;
+    const startDy = startNextPoint.y - startPoint.y;
+    this.startEndSprite.rotation = Math.atan2(startDy, startDx);
+
+    // Update end end sprite
+    const endPoint = this.points[this.points.length - 1];
+    const endPrevPoint = this.points[this.points.length - 2];
+    this.endEndSprite.position.set(endPoint.x, endPoint.y);
+    
+    // Calculate rotation to face along the rope from end (pointing back toward rope)
+    const endDx = endPoint.x - endPrevPoint.x;
+    const endDy = endPoint.y - endPrevPoint.y;
+    this.endEndSprite.rotation = Math.atan2(endDy, endDx);
+  }
+
   destroy() {
     if (this.fadeMaskGraphics) {
       this.fadeMaskGraphics.destroy();
+    }
+    if (this.startEndSprite) {
+      this.startEndSprite.destroy();
+      this.startEndSprite = null;
+    }
+    if (this.endEndSprite) {
+      this.endEndSprite.destroy();
+      this.endEndSprite = null;
     }
     if (this.container) {
       this.container.destroy({ children: true });
@@ -21902,7 +22285,10 @@ export class PhysicsRopeLayer extends CanvasLayer {
             animationSpeed: group.animationSpeed,
             damping: group.damping,
             windForce: group.windForce ?? 1.0,
+            springConstant: group.springConstant ?? 0.8,
             tapering: group.tapering,
+            ropeEndTexturePath: group.ropeEndTexturePath ?? null,
+            ropeEndScale: group.ropeEndScale ?? 1.0,
             indoorWindShielding:
               group.indoorWindShielding ??
               game.mapShine.profileManager.activeConfig.physicsRope
@@ -21936,6 +22322,20 @@ export class PhysicsRopeLayer extends CanvasLayer {
           );
           rope.id = group.id; // Store the group ID for updates
           rope.ropeType = group.ropeType || "rope"; // Store the rope type for live updates
+          
+          // Load and apply rope end texture if specified
+          if (ropeConfig.ropeEndTexturePath) {
+            try {
+              const ropeEndTexture = await foundry.canvas.loadTexture(ropeConfig.ropeEndTexturePath);
+              await rope._createRopeEnds(ropeEndTexture);
+            } catch (err) {
+              console.warn(
+                `Map Shine | Could not load rope end texture: ${ropeConfig.ropeEndTexturePath}`,
+                err
+              );
+            }
+          }
+          
           this.ropeContainer.addChild(rope.container);
           this.ropes.push(rope);
         } catch (err) {
@@ -22012,6 +22412,9 @@ export class PhysicsRopeLayer extends CanvasLayer {
       if (typeConfig.windForce !== undefined) {
         rope.config.windForce = typeConfig.windForce;
       }
+      if (typeConfig.springConstant !== undefined) {
+        rope.config.springConstant = typeConfig.springConstant;
+      }
       if (typeConfig.animationSpeed !== undefined) {
         rope.config.animationSpeed = typeConfig.animationSpeed;
       }
@@ -22022,506 +22425,6 @@ export class PhysicsRopeLayer extends CanvasLayer {
         rope.config.indoorWindShielding = typeConfig.indoorWindShielding;
       }
     }
-  }
-}
-
-class MapPointsEditor extends FormApplication {
-  constructor(options = {}) {
-    super(options);
-    this._selectedGroupId =
-      game.user.getFlag(MODULE_ID, "lastSelectedMapPointGroup") || null;
-    game.mapShine.activeMapPointGroup = this._selectedGroupId;
-
-    // Hook to re-render this UI if the underlying data changes elsewhere.
-
-    this._hookId = Hooks.on("mapShine:mapPointsUpdated", (context = {}) => {
-      if (!this.rendered) return;
-
-      if (context.created) {
-        this._selectedGroupId = context.created;
-        game.user.setFlag(
-          MODULE_ID,
-
-          "lastSelectedMapPointGroup",
-          this._selectedGroupId
-        );
-        game.mapShine.activeMapPointGroup = this._selectedGroupId;
-      } else if (context.deleted && context.deleted === this._selectedGroupId) {
-        this._selectedGroupId = null;
-
-        game.user.unsetFlag(MODULE_ID, "lastSelectedMapPointGroup");
-        game.mapShine.activeMapPointGroup = null;
-      }
-      this.render(false);
-    });
-  }
-
-  /**
-   * @override
-   * The form element is the root of this application's template. We override the
-   * default `form` property to ensure it correctly references our root element.
-   * The base `FormApplication` constructor attempts to set this property to `null`,
-   * so we must provide both a getter and a setter.
-   */
-
-  get form() {
-    // The `element` is a jQuery object; `[0]` gets the raw DOM element.
-    return this.element?.find("form")?.[0];
-  }
-
-  set form(value) {
-    // This setter intentionally does nothing. The base class's constructor
-    // will attempt to set `this.form = null`, which would throw an error if this
-    // setter did not exist. By providing an empty setter, we allow the
-    // constructor to complete without error, while our getter continues to
-    // provide the correct, dynamically-retrieved form element.
-  }
-
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      id: "map-shine-points-editor",
-      title: "Map Shine: Point Group Editor",
-      template: null, // We build the HTML in code.
-      width: 550,
-      height: "auto",
-      resizable: true,
-      closeOnSubmit: false,
-      submitOnChange: false,
-      zIndex: 10001,
-    });
-  }
-
-  async getData(_options) {
-    const allGroups = MapPointsManager.getGroups();
-    // Ensure the selected group ID still exists, otherwise reset it.
-    if (this._selectedGroupId && !allGroups[this._selectedGroupId]) {
-      this._selectedGroupId = null;
-      game.mapShine.activeMapPointGroup = null;
-
-      game.user.unsetFlag(MODULE_ID, "lastSelectedMapPointGroup");
-    }
-    return {
-      groups: allGroups,
-    };
-  }
-
-  async render(force, options) {
-    await super.render(force, options);
-    const layer = canvas.layers.find((l) => l instanceof MapPointsLayer);
-    if (layer) {
-      layer.alpha = 1;
-    }
-    return this;
-  }
-
-  /**
-   * @override
-   * This method is responsible for building and returning the HTML content of the application.
-   */
-  async _renderInner(data) {
-    const html = this._buildHTML(data);
-    // We are building the HTML content programmatically, so we do not call super._renderInner,
-    // which would attempt to load a template file. Instead, we wrap our generated HTML string
-    // in a jQuery object, which is what the render workflow expects.
-    return $(html);
-  }
-
-  /**
-   * Generates the complete inner HTML for the form.
-   * @param {object} data - The data from the getData method.
-   * @returns {string} The HTML string for the form.
-   */
-  _buildHTML(data) {
-    const groups = Object.values(data.groups);
-    const selectedGroup = this._selectedGroupId
-      ? data.groups[this._selectedGroupId]
-      : null;
-
-    // Details Panel HTML
-    let detailsHTML;
-    if (selectedGroup) {
-      const effectOptions = Object.entries(EFFECT_SOURCE_OPTIONS)
-        .map(
-          ([key, name]) =>
-            `<option value="${key}" ${
-              selectedGroup.effectTarget === key ? "selected" : ""
-            }>${name}</option>`
-        )
-        .join("");
-
-      // Ensure emission data exists with defaults for robustness
-      const emission = foundry.utils.mergeObject(
-        {
-          intensity: 1.0,
-          falloff: {
-            enabled: false,
-            strength: 0.5,
-          },
-        },
-        selectedGroup.emission
-      );
-
-      detailsHTML = `
-          <div class="mp-details-header">
-              <h4>${Handlebars.escapeExpression(selectedGroup.label)}</h4>
-              <button type="button" data-action="delete-group" class="delete-btn" title="Delete Group"><i class="fas fa-trash"></i> Delete Group</button>
-          </div>
-          <div class="mp-group-properties">
-              <div class="control-row">
-                  <label for="mp-group-label">Label</label>
-                  <input type="text" name="label" id="mp-group-label" value="${Handlebars.escapeExpression(
-                    selectedGroup.label
-                  )}">
-              </div>
-              <div class="control-row">
-                  <label for="mp-group-type">Type</label>
-                  <select name="type" id="mp-group-type">
-                      <option value="point" ${
-                        selectedGroup.type === "point" ? "selected" : ""
-                      }>Points</option>
-                      <option value="line" ${
-                        selectedGroup.type === "line" ? "selected" : ""
-                      }>Line</option>
-                      <option value="area" ${
-                        selectedGroup.type === "area" ? "selected" : ""
-                      }>Area</option>
-                      <option value="rope" ${
-                        selectedGroup.type === "rope" ? "selected" : ""
-                      }>Physics Rope</option>
-                  </select>
-              </div>
-          </div>
-          <ul class="mp-points-list">
-              ${selectedGroup.points
-                .map(
-                  (p, i) => `
-                  <li>
-                      <span>#${i + 1}</span>
-                      <span>X: ${Math.round(p.x)}</span>
-                      <span>Y: ${Math.round(p.y)}</span>
-                      <button type="button" data-action="delete-point" data-point-index="${i}" title="Delete Point"><i class="fas fa-times"></i></button>
-                  </li>`
-                )
-                .join("")}
-          </ul>
-          <div class="mp-effect-source-settings">
-              <h4><i class="fas fa-magic"></i> Effect Source</h4>
-              <div class="control-row">
-                  <label for="mp-isEffectSource" title="If checked, this group's geometry will be used to generate the selected effect.">Use as Effect Source</label>
-                  <input type="checkbox" name="isEffectSource" id="mp-isEffectSource" ${
-                    selectedGroup.isEffectSource ? "checked" : ""
-                  }>
-              </div>
-              <div class="control-row" id="mp-effectTarget-wrapper" style="display: ${
-                selectedGroup.isEffectSource ? "flex" : "none"
-              };">
-                  <label for="mp-effectTarget">Target Effect</label>
-                  <select name="effectTarget" id="mp-effectTarget">
-                      ${effectOptions}
-                  </select>
-              </div>
-              <div id="mp-emission-settings-wrapper" style="margin-top: 8px; display: ${
-                selectedGroup.isEffectSource ? "block" : "none"
-              }; border-top: 1px solid #555; padding-top: 8px;">
-                  <h5 class="mp-sub-header">Custom Emission</h5>
-                  <div class="control-row control-row-slider">
-                      <label for="mp-emission-intensity" title="A multiplier for particle density and spawn rate.">Intensity</label>
-                      <input type="range" name="emission.intensity" id="mp-emission-intensity" min="0.1" max="15" step="0.1" value="${
-                        emission.intensity
-                      }">
-                      <span class="value-span">${emission.intensity.toFixed(
-                        1
-                      )}</span>
-                  </div>
-                  <div id="mp-emission-falloff-wrapper" style="margin-top: 5px; display: ${
-                    selectedGroup.type === "point" ? "none" : "block"
-                  };">
-                      <div class="control-row">
-                          <label for="mp-emission-falloff-enabled" title="Concentrate particle spawns towards the center of lines and areas.">Emission Falloff</label>
-                          <input type="checkbox" name="emission.falloff.enabled" id="mp-emission-falloff-enabled" ${
-                            emission.falloff.enabled ? "checked" : ""
-                          }>
-                      </div>
-                      <div class="control-row control-row-slider" style="display: ${
-                        emission.falloff.enabled ? "grid" : "none"
-                      };">
-                          <label for="mp-emission-falloff-strength" title="How strongly spawns are biased towards the center. 0=uniform, 1=max bias.">Strength</label>
-                          <input type="range" name="emission.falloff.strength" id="mp-emission-falloff-strength" min="0" max="0.99" step="0.01" value="${
-                            emission.falloff.strength
-                          }">
-                          <span class="value-span">${emission.falloff.strength.toFixed(
-                            2
-                          )}</span>
-                      </div>
-                  </div>
-              </div>
-          </div>
-        `;
-    } else {
-      detailsHTML = `<div class="mp-details-placeholder">Select a group to view its details.</div>`;
-    }
-
-    // Determine button state and text for the placement tool
-    const isPlacementActive =
-      game.mapShine.mapPointsInteractionManager.isActive;
-    const placementButtonText = isPlacementActive
-      ? "Deactivate Point Placement Mode"
-      : "Activate Point Placement Mode";
-    const placementButtonClass = isPlacementActive ? "active" : "";
-
-    // Main Template
-    return `
-        <form class="mp-editor">
-            <div class="mp-main-content">
-                <div class="mp-panel mp-panel-groups">
-                    <h3>Groups</h3>
-                    <ul class="mp-group-list">
-                        ${groups
-                          .map(
-                            (g) => `
-                            <li class="mp-group-item ${
-                              g.id === this._selectedGroupId ? "selected" : ""
-                            }" data-group-id="${
-                              g.id
-                            }" data-action="select-group">
-                                <span class="mp-group-item-status ${
-                                  g.isBroken ? "broken" : "valid"
-                                }" title="${
-                              g.isBroken ? g.reason : "Valid"
-                            }"></span>
-                                <span class="mp-group-item-label">${Handlebars.escapeExpression(
-                                  g.label
-                                )}</span>
-                                <span class="mp-group-item-type">${
-                                  g.type
-                                }</span>
-                            </li>`
-                          )
-                          .join("")}
-                    </ul>
-                    <div class="mp-create-group-form">
-                        <input type="text" name="newGroupName" placeholder="New Group Name">
-                        <div class="create-controls">
-                            <select name="newGroupType">
-                                <option value="point">Points</option>
-                                <option value="line">Line</option>
-                                <option value="area">Area</option>
-                                <option value="rope">Physics Rope</option>
-                            </select>
-                        </div>
-                        <button type="button" data-action="create-group">Create Group</button>
-                    </div>
-                </div>
-                <div class="mp-panel mp-panel-details">
-                    ${detailsHTML}
-                </div>
-            </div>
-            <div class="mp-editor-footer">
-                <button type="button" data-action="toggle-placement" class="${placementButtonClass}" style="width: 100%;">${placementButtonText}</button>
-            </div>
-        </form>
-      `;
-  }
-
-  activateListeners(html) {
-    super.activateListeners(html);
-    const form = this.form;
-    if (form) {
-      form.addEventListener("click", this._onClick.bind(this));
-      // Add the 'input' event listener to capture dropdown and slider changes instantly.
-      form.addEventListener("input", this._onPropertyChange.bind(this));
-      form.addEventListener("change", this._onPropertyChange.bind(this));
-    }
-  }
-
-  async _onPropertyChange(event) {
-    const target = event.target;
-    const path = target.name;
-
-    // Guard against acting on the create form elements, which was causing the dropdown bug.
-    if (path === "newGroupName" || path === "newGroupType") return;
-
-    if (!path || !this._selectedGroupId) return;
-
-    const form = this.form;
-    const value =
-      target.type === "checkbox"
-        ? target.checked
-        : target.type === "range"
-        ? parseFloat(target.value)
-        : target.value;
-
-    // --- Live UI Updates without a full re-render ---
-    // These happen on 'input' and 'change'
-    if (path === "isEffectSource") {
-      form.querySelector("#mp-effectTarget-wrapper").style.display = value
-        ? "flex"
-        : "none";
-
-      form.querySelector("#mp-emission-settings-wrapper").style.display = value
-        ? "block"
-        : "none";
-    }
-    if (path === "type") {
-      const selectedGroup = MapPointsManager.getGroup(this._selectedGroupId);
-      if (selectedGroup) {
-        const falloffWrapper = form.querySelector(
-          "#mp-emission-falloff-wrapper"
-        );
-        if (falloffWrapper) {
-          falloffWrapper.style.display = value === "point" ? "none" : "block";
-        }
-      }
-    }
-    if (path === "emission.falloff.enabled") {
-      const strengthSliderRow = form
-        .querySelector('input[name="emission.falloff.strength"]')
-        ?.closest(".control-row-slider");
-      if (strengthSliderRow) {
-        strengthSliderRow.style.display = value ? "grid" : "none";
-      }
-    }
-    if (target.type === "range" && event.type === "input") {
-      const valueSpan = target.nextElementSibling;
-      if (valueSpan && valueSpan.classList.contains("value-span")) {
-        const stepString = String(target.step);
-        const decimals = stepString.includes(".")
-          ? stepString.split(".")[1].length
-          : 0;
-        valueSpan.textContent = value.toFixed(decimals);
-      }
-    }
-
-    // --- Save Data on 'change' events ---
-    // This is more efficient than saving on every 'input' from a slider.
-    if (event.type === "change") {
-      await MapPointsManager.updateGroupProperties(this._selectedGroupId, {
-        [path]: value,
-      });
-    }
-  }
-
-  async _onClick(event) {
-    // Find the closest element with a data-action attribute
-    const target = event.target.closest("[data-action]");
-    if (!target) return;
-
-    const action = target.dataset.action;
-    event.preventDefault();
-
-    switch (action) {
-      case "select-group": {
-        const groupId = target.dataset.groupId;
-        if (groupId) {
-          this._selectedGroupId = groupId;
-          game.user.setFlag(MODULE_ID, "lastSelectedMapPointGroup", groupId);
-          game.mapShine.activeMapPointGroup = groupId;
-          this.render(false);
-        }
-        break;
-      }
-      case "create-physics-rope": {
-        const ropeType = target.dataset.ropeType || "rope";
-        this._createPhysicsRope(ropeType);
-        break;
-      }
-      case "toggle-placement": {
-        // Toggle the interactive placement mode
-        const mgr = game.mapShine.mapPointsInteractionManager;
-        if (!mgr) break;
-        if (mgr.isActive) {
-          mgr.deactivate();
-        } else {
-          // Ensure a group is selected for placement
-          if (!this._selectedGroupId) {
-            ui.notifications.warn(
-              "Map Shine | Select a group first to place points."
-            );
-          } else {
-            game.mapShine.activeMapPointGroup = this._selectedGroupId;
-            mgr.activate();
-          }
-        }
-        // Re-render footer to update button label/state
-        this.render(false);
-        break;
-      }
-      case "create-group": {
-        const nameInput = this.form.querySelector('[name="newGroupName"]');
-        const typeInput = this.form.querySelector('[name="newGroupType"]');
-        await MapPointsManager.createGroup({
-          label: nameInput.value || "New Group",
-          type: typeInput.value,
-        });
-        nameInput.value = "";
-        break;
-      }
-      case "delete-group": {
-        if (this._selectedGroupId) {
-          const group = MapPointsManager.getGroup(this._selectedGroupId);
-          Dialog.confirm({
-            title: "Delete Group",
-            content: `<p>Are you sure you want to delete the group "<strong>${Handlebars.escapeExpression(
-              group.label
-            )}</strong>"?</p>`,
-            yes: async () => {
-              await MapPointsManager.deleteGroup(this._selectedGroupId);
-            },
-            defaultYes: false,
-          });
-        }
-        break;
-      }
-      case "delete-point": {
-        const pointIndex = parseInt(target.dataset.pointIndex, 10);
-        if (this._selectedGroupId && !isNaN(pointIndex)) {
-          await MapPointsManager.removePoint(this._selectedGroupId, pointIndex);
-        }
-        break;
-      }
-      case "pick-rope-texture": {
-        // Open a FilePicker to choose a texture for the rope.
-        const input = this.form.querySelector("#mp-rope-texturePath");
-        const current = input?.value || "";
-        const fp = new FilePicker({
-          type: "image",
-          current: current,
-          callback: async (path) => {
-            try {
-              if (input) input.value = path;
-              if (this._selectedGroupId) {
-                await MapPointsManager.updateGroupProperties(
-                  this._selectedGroupId,
-                  {
-                    texturePath: path,
-                  }
-                );
-              }
-            } catch (err) {
-              console.error("MapShine | Failed to set rope texture path", err);
-            }
-          },
-        });
-        // Render the picker so it attaches to the DOM correctly
-        fp.render(true);
-        break;
-      }
-    }
-  }
-
-  async close(options) {
-    // Deactivate placement mode when the editor is closed.
-    game.mapShine.mapPointsInteractionManager?.deactivate();
-
-    Hooks.off("mapShine:mapPointsUpdated", this._hookId);
-    game.mapShine.mapPointsEditor = null;
-
-    const layer = canvas.layers.find((l) => l instanceof MapPointsLayer);
-    if (layer) {
-      layer.alpha = 0;
-    }
-
-    return super.close(options);
   }
 }
 
@@ -22540,26 +22443,22 @@ class MapPointsInteractionManager {
     return canvas.layers.find((l) => l instanceof MapPointsLayer);
   }
 
-  get editor() {
-    return game.mapShine.mapPointsEditor;
-  }
-
   activate() {
     if (this.isActive || !game.user.isGM) return; // Added GM check
     const layer = this.layer;
     if (!layer) return;
 
     this.isActive = true;
+    layer.alpha = 1; // Make the layer visible
     canvas.stage.interactive = true; // Ensure the main stage is listening
     canvas.stage.on("pointerdown", this._onPointerDown);
     canvas.stage.on("pointermove", this._onPointerMove);
 
     document.getElementById("board").style.cursor = "crosshair";
     ui.notifications.info(
-      "Point Placement Mode Activated. [Esc] to deactivate."
+      "Point Placement Mode Activated. [Esc] to deactivate, [Right-Click] on canvas to remove point."
     );
-    this.editor?.render(false);
-    game.mapShine.debugger?.eventHandler?.updatePlacementStatus();
+    game.mapShine.debugger?.eventHandler?._updatePlacementModeUI(true);
   }
 
   deactivate() {
@@ -22580,11 +22479,11 @@ class MapPointsInteractionManager {
       layer._draggedPoint = null;
       layer._liveDragGroup = null;
       layer._drawMapPoints();
+      layer.alpha = 0; // Hide the layer
     }
 
     ui.notifications.info("Point Placement Mode Deactivated.");
-    this.editor?.render(false);
-    game.mapShine.debugger?.eventHandler?.updatePlacementStatus();
+    game.mapShine.debugger?.eventHandler?._updatePlacementModeUI(false);
   }
 
   _onPointerDown(event) {
@@ -30979,14 +30878,6 @@ class DebuggerUIBuilder {
                       1,
                       "Controls the speed at which all time-based effects animate (0% = paused, 100% = normal, 200% = double speed)"
                     )}
-                    <div class="map-tools-toolbar" style="margin-bottom: 10px;">
-                        <button type="button" class="toolbar-button" data-action="open-map-points-editor" title="Open the editor to create and manage groups of points on the map." style="width: 100%;">
-                            <i class="fas fa-drafting-compass"></i> LAUNCH EDITOR
-                        </button>
-                        <div class="toolbar-status">
-                            Placement Mode: <span id="map-placement-status" class="status-inactive">INACTIVE</span>
-                        </div>
-                    </div>
                     ${contentHTML}
                 </div>
             `;
@@ -31066,20 +30957,6 @@ class DebuggerUIBuilder {
                                 <button id="output-config-btn" title="Log the current full config object to the console for copy/pasting." style="width: 100%; margin-top: 8px;">Log Full Config to Console</button>
                             </div>
                         </details>
-                    `;
-  }
-
-  _buildMapToolsSection() {
-    return `
-                        <div class="map-tools-toolbar">
-                            <div class="toolbar-title">MAP TOOLS</div>
-                            <button type="button" class="toolbar-button" data-action="open-map-points-editor" title="Open the editor to create and manage groups of points on the map.">
-                                <i class="fas fa-drafting-compass"></i> LAUNCH EDITOR
-                            </button>
-                            <div class="toolbar-status">
-                                Placement Mode: <span id="map-placement-status" class="status-inactive">INACTIVE</span>
-                            </div>
-                        </div>
                     `;
   }
 
@@ -31375,10 +31252,11 @@ class DebuggerUIBuilder {
     return `<div class="control-row">${labelHtml}${checkbox}</div>`;
   }
 
-  static _createSliderHTML(path, label, min, max, step, title = "") {
+  static _createSliderHTML(path, label, min, max, step, title = "", initialValue = null) {
     const id = this._createSafeId(path);
     const titleAttr = title ? `title="${title}"` : "";
-    return `<div class="control-row control-row-slider"><label for="${id}" ${titleAttr}>${label}</label><input type="range" name="${path}" id="${id}" data-path="${path}" min="${min}" max="${max}" step="${step}"><input type="number" id="${id}-value" class="value-span" data-slider-id="${id}" min="${min}" max="${max}" step="${step}"></div>`;
+    const valueAttr = initialValue !== null ? `value="${initialValue}"` : "";
+    return `<div class="control-row control-row-slider"><label for="${id}" ${titleAttr}>${label}</label><input type="range" name="${path}" id="${id}" data-path="${path}" min="${min}" max="${max}" step="${step}" ${valueAttr}><input type="number" id="${id}-value" class="value-span" data-slider-id="${id}" min="${min}" max="${max}" step="${step}" ${valueAttr}></div>`;
   }
 
   static _createReadOnlyDisplayHTML(path, label, title = "") {
@@ -31479,6 +31357,164 @@ class DebuggerUIBuilder {
         `;
   }
 
+  /**
+   * Creates point/line/area group controls for a specific effect.
+   * @param {string} effectKey - The effect identifier (e.g., 'candleFlame', 'fire', 'lightning')
+   * @param {object} options - Configuration options
+   * @param {string} options.effectName - Display name for the effect
+   * @param {string} options.defaultGroupType - Default type for new groups ('point', 'line', 'area')
+   * @param {string} options.description - Description text for the section
+   * @returns {string} HTML string for the point group controls
+   */
+  static _createEffectPointGroupsHTML(effectKey, options = {}) {
+    const {
+      effectName = EFFECT_SOURCE_OPTIONS[effectKey] || effectKey,
+      defaultGroupType = 'area',
+      description = `Create and manage point groups for ${effectName} effects. These points are placed directly on the canvas.`
+    } = options;
+
+    // Get all groups from the current scene that target this effect
+    const allGroups = MapPointsManager.getGroups();
+    const effectGroups = Object.values(allGroups).filter(
+      g => g.isEffectSource && g.effectTarget === effectKey
+    );
+
+    // Helper to create group list items
+    const createGroupItemHTML = (group) => `
+      <details class="group-list-item" style="background: rgba(0,0,0,0.2); border-radius: 3px; margin-bottom: 4px;">
+        <summary style="display: flex; align-items: center; gap: 8px; padding: 4px 8px; cursor: pointer;">
+          <span class="accordion-toggle" style="font-size: 0.8em;"></span>
+          <span class="mp-group-item-status ${group.isBroken ? 'broken' : 'valid'}" 
+                title="${group.isBroken ? group.reason : 'Valid'}" 
+                style="width: 8px; height: 8px; border-radius: 50%; background: ${group.isBroken ? '#c44' : '#4c4'}; flex-shrink: 0;"></span>
+          <span style="flex: 1; overflow: hidden; text-overflow: ellipsis;">${Handlebars.escapeExpression(group.label)}</span>
+          <span style="color: #999; font-size: 0.9em;">${group.type} • ${group.points.length} pts</span>
+          <button type="button" class="group-delete-btn" data-action="delete-group" data-group-id="${group.id}" 
+                  title="Delete this group" style="padding: 2px 6px; background: #c44; border: none; border-radius: 3px; cursor: pointer;">
+            <i class="fas fa-trash"></i>
+          </button>
+        </summary>
+        <div style="padding: 8px 12px; border-top: 1px solid rgba(255,255,255,0.1);">
+          
+          <!-- Group Properties -->
+          <div class="control-row">
+            <label>Label:</label>
+            <input type="text" data-path="group.${group.id}.label" value="${Handlebars.escapeExpression(group.label)}" style="flex: 1;">
+          </div>
+          
+          <div class="control-row">
+            <label>Type:</label>
+            <select data-path="group.${group.id}.type" style="flex: 1;">
+              <option value="point" ${group.type === 'point' ? 'selected' : ''}>Points</option>
+              <option value="line" ${group.type === 'line' ? 'selected' : ''}>Line</option>
+              <option value="area" ${group.type === 'area' ? 'selected' : ''}>Area</option>
+            </select>
+          </div>
+          
+          <!-- Point List -->
+          <details style="margin-top: 8px;">
+            <summary style="cursor: pointer; padding: 4px 0; font-weight: bold; color: #aaa;">
+              <span class="accordion-toggle" style="font-size: 0.8em;"></span>
+              Points (${group.points.length})
+            </summary>
+            <div style="padding: 8px 0 8px 12px; border-left: 2px solid rgba(255,255,255,0.1); max-height: 200px; overflow-y: auto;">
+              ${group.points.map((p, i) => `
+                <div style="display: flex; align-items: center; gap: 8px; padding: 2px 0; font-size: 0.9em;">
+                  <span style="color: #999;">#${i + 1}</span>
+                  <span style="font-family: monospace;">X: ${Math.round(p.x)}</span>
+                  <span style="font-family: monospace;">Y: ${Math.round(p.y)}</span>
+                  <button type="button" data-action="delete-point" data-group-id="${group.id}" data-point-index="${i}" 
+                          style="padding: 1px 4px; background: #c44; border: none; border-radius: 2px; cursor: pointer; font-size: 0.85em;"
+                          title="Delete point">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+              `).join('')}
+            </div>
+          </details>
+          
+          <!-- Emission Settings -->
+          <details style="margin-top: 8px;" open>
+            <summary style="cursor: pointer; padding: 4px 0; font-weight: bold; color: #aaa;">
+              <span class="accordion-toggle" style="font-size: 0.8em;"></span>
+              Emission Settings
+            </summary>
+            <div style="padding: 8px 0 8px 12px; border-left: 2px solid rgba(255,255,255,0.1);">
+              ${DebuggerUIBuilder._createSliderHTML(
+                `group.${group.id}.emission.intensity`,
+                "Intensity",
+                0.1,
+                15,
+                0.1,
+                "Multiplier for particle density and spawn rate",
+                group.emission?.intensity ?? 1.0
+              )}
+              
+              <div class="control-row" style="display: ${group.type === 'point' ? 'none' : 'flex'};">
+                <label>Emission Falloff:</label>
+                <input type="checkbox" data-path="group.${group.id}.emission.falloff.enabled" ${group.emission?.falloff?.enabled ? 'checked' : ''}>
+              </div>
+              
+              <div style="display: ${group.emission?.falloff?.enabled ? 'block' : 'none'};" data-visibility-target="group.${group.id}.emission.falloff.enabled">
+                ${DebuggerUIBuilder._createSliderHTML(
+                  `group.${group.id}.emission.falloff.strength`,
+                  "Falloff Strength",
+                  0,
+                  0.99,
+                  0.01,
+                  "Bias towards center - 0=uniform, 1=max bias",
+                  group.emission?.falloff?.strength ?? 0.5
+                )}
+              </div>
+            </div>
+          </details>
+          
+          <!-- Point Placement Actions -->
+          <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
+            <button type="button" data-action="select-and-activate-placement" data-group-id="${group.id}" 
+                    style="width: 100%; padding: 6px; background: #4a9eff; border: none; border-radius: 3px; cursor: pointer; font-weight: bold;">
+              <i class="fas fa-crosshairs"></i> Edit Points on Canvas
+            </button>
+          </div>
+          
+        </div>
+      </details>
+    `;
+
+    const groupsListHTML = effectGroups.length > 0 
+      ? effectGroups.map(createGroupItemHTML).join('')
+      : '<p class="description-text" style="font-style: italic; color: #999; margin: 5px 0;">No point groups for this effect yet.</p>';
+
+    return `
+      <details style="background: rgba(76, 158, 255, 0.1); border: 1px solid rgba(76, 158, 255, 0.3); border-radius: 4px; padding: 8px; margin-top: 8px;">
+        <summary style="cursor: pointer; font-weight: bold; color: #4a9eff; margin-bottom: 8px;">
+          <span class="accordion-toggle"></span>
+          Point Groups (${effectGroups.length})
+        </summary>
+        <div style="padding-left: 10px;">
+          <p class="description-text" style="margin-bottom: 8px;">${description}</p>
+          
+          <!-- Quick Create Button -->
+          <button type="button" class="create-effect-from-ui" data-action="create-particle-effect-area" data-effect-key="${effectKey}" 
+                  style="width: 100%; padding: 8px; background: #4cfa40; border: none; border-radius: 3px; cursor: pointer; font-weight: bold; margin-bottom: 12px;">
+            <i class="fas fa-plus-square"></i> Create New ${effectName} Group
+          </button>
+          
+          <!-- Existing Groups -->
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            ${groupsListHTML}
+          </div>
+          
+          <!-- Placement Mode Info -->
+          <div style="margin-top: 12px; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 3px; font-size: 0.85em; color: #999;">
+            <strong>Tip:</strong> Use the "Edit Points on Canvas" button to add/move/delete points visually.<br>
+            <strong>Left-Click:</strong> Add point • <strong>Left-Drag:</strong> Move • <strong>Right-Click:</strong> Delete
+          </div>
+        </div>
+      </details>
+    `;
+  }
+
   _getLightingHTML() {
     const effectKey = "lighting";
     const content = `
@@ -31501,6 +31537,225 @@ class DebuggerUIBuilder {
     return DebuggerUIBuilder._createAccordionHTML(
       effectKey,
       "Lighting",
+      content
+    );
+  }
+
+  _getPointGroupsHTML() {
+    // Get all groups from the current scene
+    const allGroups = MapPointsManager.getGroups();
+    const groupsArray = Object.values(allGroups);
+    
+    // Separate groups by type
+    const groupsByType = {
+      point: groupsArray.filter(g => g.type === 'point'),
+      line: groupsArray.filter(g => g.type === 'line'),
+      area: groupsArray.filter(g => g.type === 'area'),
+      rope: groupsArray.filter(g => g.type === 'rope')
+    };
+    
+    // Helper to create group list items
+    const createGroupListHTML = (groups, typeName) => {
+      if (groups.length === 0) {
+        return '<p class="description-text" style="font-style: italic; color: #999; margin: 5px 0;">No groups of this type</p>';
+      }
+      return groups.map(group => `
+        <details class="group-list-item" style="background: rgba(0,0,0,0.2); border-radius: 3px; margin-bottom: 4px;">
+          <summary style="display: flex; align-items: center; gap: 8px; padding: 4px 8px; cursor: pointer;">
+            <span class="accordion-toggle" style="font-size: 0.8em;"></span>
+            <span class="mp-group-item-status ${group.isBroken ? 'broken' : 'valid'}" 
+                  title="${group.isBroken ? group.reason : 'Valid'}" 
+                  style="width: 8px; height: 8px; border-radius: 50%; background: ${group.isBroken ? '#c44' : '#4c4'}; flex-shrink: 0;"></span>
+            <span style="flex: 1; overflow: hidden; text-overflow: ellipsis;">${Handlebars.escapeExpression(group.label)}</span>
+            <span style="color: #999; font-size: 0.9em;">${group.points.length} pts</span>
+            <button type="button" class="group-delete-btn" data-action="delete-group" data-group-id="${group.id}" 
+                    title="Delete this group" style="padding: 2px 6px; background: #c44; border: none; border-radius: 3px; cursor: pointer;">
+              <i class="fas fa-trash"></i>
+            </button>
+          </summary>
+          <div style="padding: 8px 12px; border-top: 1px solid rgba(255,255,255,0.1);">
+            
+            <!-- Group Properties -->
+            <div class="control-row">
+              <label>Label:</label>
+              <input type="text" data-path="group.${group.id}.label" value="${Handlebars.escapeExpression(group.label)}" style="flex: 1;">
+            </div>
+            
+            <div class="control-row">
+              <label>Type:</label>
+              <select data-path="group.${group.id}.type" style="flex: 1;">
+                <option value="point" ${group.type === 'point' ? 'selected' : ''}>Points</option>
+                <option value="line" ${group.type === 'line' ? 'selected' : ''}>Line</option>
+                <option value="area" ${group.type === 'area' ? 'selected' : ''}>Area</option>
+                <option value="rope" ${group.type === 'rope' ? 'selected' : ''}>Physics Rope</option>
+              </select>
+            </div>
+            
+            <!-- Point List -->
+            <details style="margin-top: 8px;">
+              <summary style="cursor: pointer; padding: 4px 0; font-weight: bold; color: #aaa;">
+                <span class="accordion-toggle" style="font-size: 0.8em;"></span>
+                Points (${group.points.length})
+              </summary>
+              <div style="padding: 8px 0 8px 12px; border-left: 2px solid rgba(255,255,255,0.1); max-height: 200px; overflow-y: auto;">
+                ${group.points.map((p, i) => `
+                  <div style="display: flex; align-items: center; gap: 8px; padding: 2px 0; font-size: 0.9em;">
+                    <span style="color: #999;">#${i + 1}</span>
+                    <span style="font-family: monospace;">X: ${Math.round(p.x)}</span>
+                    <span style="font-family: monospace;">Y: ${Math.round(p.y)}</span>
+                    <button type="button" data-action="delete-point" data-group-id="${group.id}" data-point-index="${i}" 
+                            style="padding: 1px 4px; background: #c44; border: none; border-radius: 2px; cursor: pointer; font-size: 0.85em;"
+                            title="Delete point">
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </div>
+                `).join('')}
+              </div>
+            </details>
+            
+            <!-- Effect Source Configuration -->
+            <details style="margin-top: 8px;">
+              <summary style="cursor: pointer; padding: 4px 0; font-weight: bold; color: #aaa;">
+                <span class="accordion-toggle" style="font-size: 0.8em;"></span>
+                Effect Source
+              </summary>
+              <div style="padding: 8px 0 8px 12px; border-left: 2px solid rgba(255,255,255,0.1);">
+                <div class="control-row">
+                  <label>Use as Effect Source:</label>
+                  <input type="checkbox" data-path="group.${group.id}.isEffectSource" ${group.isEffectSource ? 'checked' : ''}>
+                </div>
+                
+                <div class="control-row" style="display: ${group.isEffectSource ? 'flex' : 'none'};" data-visibility-target="group.${group.id}.isEffectSource">
+                  <label>Target Effect:</label>
+                  <select data-path="group.${group.id}.effectTarget" style="flex: 1;">
+                    ${Object.entries(EFFECT_SOURCE_OPTIONS).map(([key, name]) => 
+                      `<option value="${key}" ${group.effectTarget === key ? 'selected' : ''}>${name}</option>`
+                    ).join('')}
+                  </select>
+                </div>
+                
+                <div style="margin-top: 8px; display: ${group.isEffectSource ? 'block' : 'none'};" data-visibility-target="group.${group.id}.isEffectSource">
+                  <p class="description-text" style="font-size: 0.9em; margin-bottom: 4px;">Emission Settings</p>
+                  
+                  ${DebuggerUIBuilder._createSliderHTML(
+                    `group.${group.id}.emission.intensity`,
+                    "Intensity",
+                    0.1,
+                    15,
+                    0.1,
+                    "Multiplier for particle density and spawn rate",
+                    group.emission?.intensity ?? 1.0
+                  )}
+                  
+                  <div class="control-row" style="display: ${group.type === 'point' ? 'none' : 'flex'};">
+                    <label>Emission Falloff:</label>
+                    <input type="checkbox" data-path="group.${group.id}.emission.falloff.enabled" ${group.emission?.falloff?.enabled ? 'checked' : ''}>
+                  </div>
+                  
+                  <div style="display: ${group.emission?.falloff?.enabled ? 'block' : 'none'};" data-visibility-target="group.${group.id}.emission.falloff.enabled">
+                    ${DebuggerUIBuilder._createSliderHTML(
+                      `group.${group.id}.emission.falloff.strength`,
+                      "Falloff Strength",
+                      0,
+                      0.99,
+                      0.01,
+                      "Bias towards center - 0=uniform, 1=max bias",
+                      group.emission?.falloff?.strength ?? 0.5
+                    )}
+                  </div>
+                </div>
+              </div>
+            </details>
+            
+            <!-- Point Placement Actions -->
+            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
+              <button type="button" data-action="select-and-activate-placement" data-group-id="${group.id}" 
+                      style="width: 100%; padding: 6px; background: #4a9eff; border: none; border-radius: 3px; cursor: pointer; font-weight: bold;">
+                <i class="fas fa-crosshairs"></i> Edit Points on Canvas
+              </button>
+            </div>
+            
+          </div>
+        </details>
+      `).join('');
+    };
+    
+    const content = `
+      <p class="description-text">Manage point groups for particle effects, lightning, and physics ropes. Points are placed directly on the canvas.</p>
+      
+      <!-- Point Placement Mode Toggle -->
+      <div style="background: rgba(74, 158, 255, 0.15); border: 1px solid #4a9eff; border-radius: 4px; padding: 8px; margin-bottom: 12px;">
+        <button type="button" data-action="toggle-placement-mode" id="placement-mode-toggle-btn" 
+                style="width: 100%; padding: 8px; background: #4a9eff; border: none; border-radius: 3px; cursor: pointer; font-weight: bold; font-size: 1.05em;">
+          <i class="fas fa-crosshairs"></i> <span id="placement-mode-label">Activate Point Placement Mode</span>
+        </button>
+        <p class="description-text" style="margin: 6px 0 0 0; font-size: 0.85em; text-align: center;">
+          <strong>Left-Click:</strong> Add point • <strong>Left-Drag:</strong> Move point • <strong>Right-Click:</strong> Delete point<br>
+          Use delete buttons below for precise point/group removal
+        </p>
+      </div>
+      
+      <!-- Create New Group -->
+      <details open style="background: rgba(76, 250, 64, 0.1); border: 1px solid #4cfa40; border-radius: 4px; padding: 8px; margin-bottom: 12px;">
+        <summary style="cursor: pointer; font-weight: bold; color: #4cfa40; margin-bottom: 8px;">
+          <span class="accordion-toggle"></span>
+          Create New Group
+        </summary>
+        <div style="padding-left: 10px;">
+          <div class="control-row">
+            <label>Name:</label>
+            <input type="text" id="new-group-name-input" placeholder="New Group Name" style="flex: 1;">
+          </div>
+          <div class="control-row">
+            <label>Type:</label>
+            <select id="new-group-type-select" style="flex: 1;">
+              <option value="point">Points</option>
+              <option value="line">Line</option>
+              <option value="area">Area</option>
+              <option value="rope">Physics Rope</option>
+            </select>
+          </div>
+          <button type="button" data-action="create-group-from-ui" 
+                  style="width: 100%; padding: 6px; background: #4cfa40; border: none; border-radius: 3px; cursor: pointer; font-weight: bold; margin-top: 4px;">
+            <i class="fas fa-plus-square"></i> Create Group
+          </button>
+        </div>
+      </details>
+      
+      <!-- Groups by Type -->
+      <details open>
+        <summary><span class="accordion-toggle"></span><strong>Point Groups</strong></summary>
+        <div style="padding-left: 10px; margin-top: 8px;">
+          ${createGroupListHTML(groupsByType.point, 'Point')}
+        </div>
+      </details>
+      
+      <details>
+        <summary><span class="accordion-toggle"></span><strong>Line Groups</strong></summary>
+        <div style="padding-left: 10px; margin-top: 8px;">
+          ${createGroupListHTML(groupsByType.line, 'Line')}
+        </div>
+      </details>
+      
+      <details>
+        <summary><span class="accordion-toggle"></span><strong>Area Groups</strong></summary>
+        <div style="padding-left: 10px; margin-top: 8px;">
+          ${createGroupListHTML(groupsByType.area, 'Area')}
+        </div>
+      </details>
+      
+      <details>
+        <summary><span class="accordion-toggle"></span><strong>Rope Groups</strong></summary>
+        <div style="padding-left: 10px; margin-top: 8px;">
+          <p class="description-text" style="font-size: 0.9em; color: #999;">For detailed rope physics settings, see the "Physics Rope" accordion below.</p>
+          ${createGroupListHTML(groupsByType.rope, 'Rope')}
+        </div>
+      </details>
+    `;
+    
+    return DebuggerUIBuilder._createAccordionHTML(
+      'pointGroups',
+      'Point Groups',
       content
     );
   }
@@ -31568,6 +31823,42 @@ class DebuggerUIBuilder {
                 </button>
               </div>
               
+              <details style="margin: 8px 0;">
+                <summary style="cursor: pointer; padding: 4px 0; font-weight: bold; color: #aaa;">
+                  <span class="accordion-toggle" style="font-size: 0.8em;"></span>
+                  Rope Ends
+                </summary>
+                <div style="padding: 8px 0 8px 12px; border-left: 2px solid rgba(255,255,255,0.1);">
+                  <p class="description-text" style="margin-bottom: 8px; font-size: 0.85em; color: #999;">Add decorative sprites at rope anchor points</p>
+                  
+                  <div class="control-row">
+                    <label>End Texture:</label>
+                    <input type="text" id="rope-instance-end-texture-${
+                      rope.id
+                    }" data-path="rope-instance.${
+              rope.id
+            }.ropeEndTexturePath" value="${Handlebars.escapeExpression(
+              rope.ropeEndTexturePath || ""
+            )}" placeholder="Leave empty to disable" style="flex: 1; font-family: monospace; font-size: 10px;">
+                    <button type="button" class="file-picker-btn" data-fp-target="rope-instance-end-texture-${
+                      rope.id
+                    }" data-fp-type="image" title="Browse for rope end texture">
+                      <i class="fas fa-file-image"></i>
+                    </button>
+                  </div>
+                  
+                  ${DebuggerUIBuilder._createSliderHTML(
+                    `rope-instance.${rope.id}.ropeEndScale`,
+                    "End Scale",
+                    0.1,
+                    5.0,
+                    0.1,
+                    "Scale of rope end sprites - 1.0 = original size",
+                    rope.ropeEndScale ?? 1.0
+                  )}
+                </div>
+              </details>
+              
               ${DebuggerUIBuilder._createSliderHTML(
                 `rope-instance.${rope.id}.tapering`,
                 "Tapering (Visual Sag)",
@@ -31576,6 +31867,36 @@ class DebuggerUIBuilder {
                 0.05,
                 "Controls visual sag/droop - 0 = straight, 1 = maximum sag",
                 rope.tapering ?? 0.5
+              )}
+              
+              ${DebuggerUIBuilder._createSliderHTML(
+                `rope-instance.${rope.id}.segmentLength`,
+                "Segment Length",
+                5,
+                50,
+                1,
+                "Distance between rope segments - lower = smoother but more expensive",
+                rope.segmentLength ?? 10
+              )}
+              
+              ${DebuggerUIBuilder._createSliderHTML(
+                `rope-instance.${rope.id}.springConstant`,
+                "Spring Constant",
+                0.1,
+                2.0,
+                0.1,
+                "Restoring force strength - higher = stiffer rope that resists wind more",
+                rope.springConstant ?? 0.8
+              )}
+              
+              ${DebuggerUIBuilder._createSliderHTML(
+                `rope-instance.${rope.id}.ropeEndStiffness`,
+                "End Stiffness",
+                0,
+                1,
+                0.05,
+                "Prevents crushing at anchor points - 0 = flexible ends, 1 = rigid ends",
+                rope.ropeEndStiffness ?? 0.3
               )}
               
               ${DebuggerUIBuilder._createSliderHTML(
@@ -31702,6 +32023,15 @@ class DebuggerUIBuilder {
                 )}
                 
                 ${DebuggerUIBuilder._createSliderHTML(
+                  `physicsRope.${type}.ropeEndStiffness`,
+                  "End Stiffness",
+                  0,
+                  1,
+                  0.05,
+                  "Prevents crushing at anchor points - 0 = flexible ends, 1 = rigid ends"
+                )}
+                
+                ${DebuggerUIBuilder._createSliderHTML(
                   `physicsRope.${type}.segmentLength`,
                   "Segment Length",
                   5,
@@ -31726,6 +32056,15 @@ class DebuggerUIBuilder {
                   3,
                   0.1,
                   "Wind force multiplier - 0 = no wind, 1 = normal, >1 = stronger"
+                )}
+                
+                ${DebuggerUIBuilder._createSliderHTML(
+                  `physicsRope.${type}.springConstant`,
+                  "Spring Constant",
+                  0.1,
+                  2.0,
+                  0.1,
+                  "Restoring force strength - higher = stiffer rope that resists wind more"
                 )}
                 
                 ${DebuggerUIBuilder._createSliderHTML(
@@ -31771,6 +32110,32 @@ class DebuggerUIBuilder {
                   0.5,
                   0.01,
                   "Distance from rope end where fade begins (0.01-0.5, where 1.0 = full rope length)"
+                )}
+              </div>
+            </details>
+            
+            <details>
+              <summary><span class="accordion-toggle"></span><strong>Rope Ends</strong></summary>
+              <div style="padding-left: 10px; margin-top: 8px;">
+                <p class="description-text">Add decorative sprites at rope anchor points to cover ugly ends.</p>
+                
+                <div class="control-row">
+                  <label>Rope End Texture:</label>
+                  <input type="text" id="rope-end-texture-${type}" data-path="physicsRope.${type}.ropeEndTexturePath" value="${
+        config.ropeEndTexturePath || ""
+      }" placeholder="Leave empty to disable" style="flex: 1;">
+                  <button type="button" class="file-picker-btn" data-fp-target="rope-end-texture-${type}" data-fp-type="image" title="Browse for rope end texture">
+                    <i class="fas fa-file-image"></i>
+                  </button>
+                </div>
+                
+                ${DebuggerUIBuilder._createSliderHTML(
+                  `physicsRope.${type}.ropeEndScale`,
+                  "Rope End Scale",
+                  0.1,
+                  5,
+                  0.1,
+                  "Scale multiplier for rope end sprites"
                 )}
               </div>
             </details>
@@ -31900,6 +32265,7 @@ class DebuggerUIBuilder {
     return [
       this._getLightingHTML(),
       this._getWindHTML(),
+      this._getPointGroupsHTML(),
       this._getPhysicsRopeHTML(),
       MetallicShineLayer.getSettingsHTML(),
       TimeOfDayLayer.getSettingsHTML(),
@@ -32637,6 +33003,24 @@ class DebuggerEventHandler {
               ui.notifications.error(`Failed to load texture: ${value}`);
               return; // Don't save if texture failed to load
             }
+          } else if (property === "ropeEndTexturePath") {
+            // Handle rope end texture changes
+            rope.ropeEndTexturePath = value;
+            await rope.updateRopeEndSprites();
+            console.log(
+              `MapShine | Updated rope ${ropeId} end texture to: ${value}`
+            );
+          } else if (property === "ropeEndScale") {
+            // Handle rope end scale changes
+            rope.ropeEndScale = value;
+            if (rope.ropeEndSprites) {
+              rope.ropeEndSprites.forEach(sprite => {
+                if (sprite) sprite.scale.set(value);
+              });
+            }
+            console.log(
+              `MapShine | Updated rope ${ropeId} end scale to: ${value}`
+            );
           } else if (rope.config) {
             rope.config[property] = value;
           }
@@ -32652,6 +33036,59 @@ class DebuggerEventHandler {
       });
 
       return; // Don't save rope-instance changes to profile
+    }
+
+    // Handle group property changes (for the new unified group manager)
+    if (path.startsWith("group.")) {
+      const parts = path.split(".");
+      const groupId = parts[1];
+      const property = parts.slice(2).join("."); // Support nested properties like "emission.intensity"
+      
+      // Update the group data via MapPointsManager
+      const updateData = {};
+      // Handle nested property paths
+      if (property.includes(".")) {
+        const propParts = property.split(".");
+        let current = updateData;
+        for (let i = 0; i < propParts.length - 1; i++) {
+          current[propParts[i]] = {};
+          current = current[propParts[i]];
+        }
+        current[propParts[propParts.length - 1]] = value;
+      } else {
+        updateData[property] = value;
+      }
+      
+      await MapPointsManager.updateGroupProperties(groupId, updateData);
+      
+      // Handle visibility toggles for effect source UI
+      if (property === "isEffectSource") {
+        const visibilityTargets = this.element.querySelectorAll(
+          `[data-visibility-target="group.${groupId}.isEffectSource"]`
+        );
+        visibilityTargets.forEach(el => {
+          el.style.display = value ? (el.classList.contains('control-row') ? 'flex' : 'block') : 'none';
+        });
+      }
+      
+      if (property === "emission.falloff.enabled") {
+        const visibilityTargets = this.element.querySelectorAll(
+          `[data-visibility-target="group.${groupId}.emission.falloff.enabled"]`
+        );
+        visibilityTargets.forEach(el => {
+          el.style.display = value ? 'block' : 'none';
+        });
+      }
+      
+      // If type changed, trigger a re-render to show/hide type-specific controls
+      if (property === "type") {
+        if (game.mapShine.debugger) {
+          game.mapShine.debugger.render(false);
+        }
+      }
+      
+      console.log(`MapShine | Updated group ${groupId}.${property} = ${JSON.stringify(value)}`);
+      return; // Don't save group changes to profile
     }
 
     const isGameSetting =
@@ -32828,21 +33265,7 @@ class DebuggerEventHandler {
   }
 
   async _createParticleEffectArea(effectKey) {
-    // 1. Ensure map points editor is open.
-    if (
-      !game.mapShine.mapPointsEditor ||
-      game.mapShine.mapPointsEditor.closing
-    ) {
-      const editor = new MapPointsEditor();
-      game.mapShine.mapPointsEditor = editor;
-      editor.render(true);
-      // Wait a moment for the editor to render and initialize
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    } else {
-      game.mapShine.mapPointsEditor.bringToTop();
-    }
-
-    // 2. Create a new group.
+    // 1. Create a new group.
     // Use the comprehensive EFFECT_SOURCE_OPTIONS for names
     const effectName = EFFECT_SOURCE_OPTIONS[effectKey] || "New Effect";
 
@@ -32861,14 +33284,14 @@ class DebuggerEventHandler {
       return;
     }
 
-    // 3. Configure the new group for the effect.
+    // 2. Configure the new group for the effect.
     await MapPointsManager.updateGroupProperties(newGroupId, {
       isEffectSource: true,
       effectTarget: effectKey,
     });
-    // The MapPointsEditor hook will automatically select the new group when it re-renders.
 
-    // 4. Activate placement mode.
+    // 3. Set as active group and activate placement mode.
+    game.mapShine.activeMapPointGroup = newGroupId;
     const manager = game.mapShine.mapPointsInteractionManager;
     if (!manager.isActive) {
       manager.activate();
@@ -32880,20 +33303,7 @@ class DebuggerEventHandler {
   }
 
   async _createPhysicsRope(ropeType = "rope") {
-    // 1. Ensure map points editor is open
-    if (
-      !game.mapShine.mapPointsEditor ||
-      game.mapShine.mapPointsEditor.closing
-    ) {
-      const editor = new MapPointsEditor();
-      game.mapShine.mapPointsEditor = editor;
-      editor.render(true);
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    } else {
-      game.mapShine.mapPointsEditor.bringToTop();
-    }
-
-    // 2. Create a new rope group
+    // 1. Create a new rope group
     const preset = ROPE_TYPE_PRESETS[ropeType];
 
     // Get all settings from config for this rope type, falling back to preset
@@ -32906,7 +33316,10 @@ class DebuggerEventHandler {
       animationSpeed: typeConfig.animationSpeed ?? preset.animationSpeed,
       damping: typeConfig.damping ?? preset.damping,
       windForce: typeConfig.windForce ?? preset.windForce,
+      springConstant: typeConfig.springConstant ?? preset.springConstant,
       tapering: typeConfig.tapering ?? preset.tapering,
+      ropeEndTexturePath: typeConfig.ropeEndTexturePath ?? preset.ropeEndTexturePath,
+      ropeEndScale: typeConfig.ropeEndScale ?? preset.ropeEndScale,
       indoorWindShielding:
         typeConfig.indoorWindShielding ?? preset.indoorWindShielding,
       endpointFade: typeConfig.endpointFade ?? preset.endpointFade,
@@ -32932,7 +33345,10 @@ class DebuggerEventHandler {
         animationSpeed: ropeSettings.animationSpeed,
         damping: ropeSettings.damping,
         windForce: ropeSettings.windForce,
+        springConstant: ropeSettings.springConstant,
         tapering: ropeSettings.tapering,
+        ropeEndTexturePath: ropeSettings.ropeEndTexturePath,
+        ropeEndScale: ropeSettings.ropeEndScale,
         indoorWindShielding: ropeSettings.indoorWindShielding,
         endpointFade: ropeSettings.endpointFade,
         fadeStartDistance: ropeSettings.fadeStartDistance,
@@ -32943,6 +33359,13 @@ class DebuggerEventHandler {
     if (!newGroupId) {
       ui.notifications.error("Failed to create a new rope group.");
       return;
+    }
+
+    // 2. Set as active group and activate placement mode.
+    game.mapShine.activeMapPointGroup = newGroupId;
+    const manager = game.mapShine.mapPointsInteractionManager;
+    if (!manager.isActive) {
+      manager.activate();
     }
 
     ui.notifications.info(
@@ -33057,7 +33480,6 @@ class DebuggerEventHandler {
     this.updateAllControls();
     this._updateFavoritesList();
     this._initializeCurveEditor();
-    this.updatePlacementStatus();
     this._initializeGradientEditors();
 
     // Instantiate the clock in the bottom bar
@@ -33478,6 +33900,11 @@ class DebuggerEventHandler {
 
     const action = target.dataset.action;
     console.log("MapShine | Delegated click detected, action:", action);
+    
+    // Stop propagation for button actions inside accordions to prevent toggling
+    if (action === "delete-group" || action === "delete-rope-group" || action === "delete-point") {
+      e.stopPropagation();
+    }
 
     if (action === "add-list-item" || action === "remove-list-item") {
       console.log("MapShine | Routing to list manager handler");
@@ -33536,12 +33963,8 @@ class DebuggerEventHandler {
           };
 
           // Update the group with default values
-          await MapPointsManager.updateGroup(groupId, defaults);
-
-          // Re-render the debugger to show updated values
-          if (game.mapShine.debugger) {
-            game.mapShine.debugger.render(false);
-          }
+          await MapPointsManager.updateGroupProperties(groupId, defaults);
+          // UI will auto-refresh via mapShine:mapPointsUpdated hook
 
           ui.notifications.info(`Reset "${group.label}" to default settings.`);
         }
@@ -33562,13 +33985,109 @@ class DebuggerEventHandler {
             )}</strong>"?</p>`,
             yes: async () => {
               await MapPointsManager.deleteGroup(groupId);
-              // Re-render the debugger to update the rope lists
-              if (game.mapShine.debugger) {
-                game.mapShine.debugger.render(false);
-              }
+              // UI will auto-refresh via mapShine:mapPointsUpdated hook
             },
             defaultYes: false,
           });
+        }
+        break;
+      }
+      case "create-group-from-ui": {
+        const nameInput = document.getElementById("new-group-name-input");
+        const typeSelect = document.getElementById("new-group-type-select");
+        if (!nameInput || !typeSelect) break;
+        
+        const groupName = nameInput.value.trim() || "New Group";
+        const groupType = typeSelect.value;
+        
+        const newGroupId = await MapPointsManager.createGroup({
+          label: groupName,
+          type: groupType,
+        });
+        
+        if (newGroupId) {
+          nameInput.value = "";
+          // UI will auto-refresh via mapShine:mapPointsUpdated hook
+          // Open the Point Groups section after render completes
+          setTimeout(() => {
+            const pointGroupsDetails = game.mapShine.debugger?.element?.[0]?.querySelector('#details-pointGroups');
+            if (pointGroupsDetails) {
+              pointGroupsDetails.open = true;
+            }
+          }, 50);
+          ui.notifications.info(`Created group "${groupName}". Click "Edit Points on Canvas" to place points.`);
+        }
+        break;
+      }
+      case "delete-group": {
+        const groupId = target.dataset.groupId;
+        if (groupId) {
+          const group = MapPointsManager.getGroup(groupId);
+          if (!group) {
+            ui.notifications.warn("Group not found.");
+            break;
+          }
+          Dialog.confirm({
+            title: "Delete Group",
+            content: `<p>Are you sure you want to delete the group "<strong>${Handlebars.escapeExpression(
+              group.label
+            )}</strong>"?</p>`,
+            yes: async () => {
+              await MapPointsManager.deleteGroup(groupId);
+              // If this was the active group, deactivate placement mode
+              if (game.mapShine.activeMapPointGroup === groupId) {
+                game.mapShine.activeMapPointGroup = null;
+                game.mapShine.mapPointsInteractionManager?.deactivate();
+              }
+              // UI will auto-refresh via mapShine:mapPointsUpdated hook
+            },
+            defaultYes: false,
+          });
+        }
+        break;
+      }
+      case "delete-point": {
+        const groupId = target.dataset.groupId;
+        const pointIndex = parseInt(target.dataset.pointIndex, 10);
+        if (groupId && !isNaN(pointIndex)) {
+          await MapPointsManager.removePoint(groupId, pointIndex);
+          // UI will auto-refresh via mapShine:mapPointsUpdated hook
+        }
+        break;
+      }
+      case "select-and-activate-placement": {
+        const groupId = target.dataset.groupId;
+        if (groupId) {
+          game.mapShine.activeMapPointGroup = groupId;
+          const mgr = game.mapShine.mapPointsInteractionManager;
+          if (mgr && !mgr.isActive) {
+            mgr.activate();
+            // Update the toggle button state
+            this._updatePlacementModeUI(true);
+            const group = MapPointsManager.getGroup(groupId);
+            ui.notifications.info(`Editing "${group?.label || 'Unknown'}". Click on the canvas to add/move points.`);
+          }
+        }
+        break;
+      }
+      case "toggle-placement-mode": {
+        const mgr = game.mapShine.mapPointsInteractionManager;
+        if (!mgr) break;
+        
+        if (mgr.isActive) {
+          mgr.deactivate();
+          game.mapShine.activeMapPointGroup = null;
+          this._updatePlacementModeUI(false);
+          ui.notifications.info("Point placement mode deactivated.");
+        } else {
+          if (!game.mapShine.activeMapPointGroup) {
+            ui.notifications.warn("Select a group first by clicking 'Edit Points on Canvas' on any group.");
+          } else {
+            mgr.activate();
+            this._updatePlacementModeUI(true);
+            const group = MapPointsManager.getGroup(game.mapShine.activeMapPointGroup);
+            ui.notifications.info(`Editing "${group?.label || 'Unknown'}". Click on the canvas to add/move points.`);
+          }
         }
         break;
       }
@@ -33629,19 +34148,6 @@ class DebuggerEventHandler {
         });
         break;
       }
-      case "open-map-points-editor":
-        e.preventDefault();
-        if (
-          !game.mapShine.mapPointsEditor ||
-          game.mapShine.mapPointsEditor.closing
-        ) {
-          const editor = new MapPointsEditor();
-          game.mapShine.mapPointsEditor = editor;
-          editor.render(true);
-        } else {
-          game.mapShine.mapPointsEditor.bringToTop();
-        }
-        break;
       case "debugger-adjust-time":
         this._onDebuggerClockButtonClick(e);
         break;
@@ -33809,6 +34315,7 @@ class DebuggerEventHandler {
       const isGameSetting =
         path.startsWith("universal.") || path.startsWith("loading-screen-");
       const isRopeInstance = path.startsWith("rope-instance.");
+      const isGroupProperty = path.startsWith("group.");
       let value;
 
       if (isGameSetting) {
@@ -33822,6 +34329,15 @@ class DebuggerEventHandler {
         const ropeGroup = allGroups[ropeId];
         if (ropeGroup) {
           value = ropeGroup[property];
+        }
+      } else if (isGroupProperty) {
+        // Handle group properties from MapPointsManager (e.g., "group.{id}.emission.intensity")
+        const parts = path.split(".");
+        const groupId = parts[1];
+        const property = parts.slice(2).join("."); // Support nested properties
+        const group = MapPointsManager.getGroup(groupId);
+        if (group) {
+          value = this._getPathValue(group, property);
         }
       } else {
         value = this._getPathValue(this.config, path);
@@ -34094,21 +34610,6 @@ class DebuggerEventHandler {
       }
 
       this._updateCurveEditorView();
-    }
-  }
-
-  updatePlacementStatus() {
-    if (!this.element) return;
-    const statusEl = this.element.querySelector("#map-placement-status");
-    if (!statusEl) return;
-
-    const isActive = game.mapShine.mapPointsInteractionManager?.isActive;
-    if (isActive) {
-      statusEl.textContent = "ACTIVE";
-      statusEl.className = "status-active";
-    } else {
-      statusEl.textContent = "INACTIVE";
-      statusEl.className = "status-inactive";
     }
   }
 
@@ -34695,6 +35196,25 @@ class DebuggerEventHandler {
     );
     if (customPathWrapper) {
       customPathWrapper.style.display = preset === "custom" ? "block" : "none";
+    }
+  }
+
+  _updatePlacementModeUI(isActive) {
+    const toggleBtn = this.element.querySelector("#placement-mode-toggle-btn");
+    const label = this.element.querySelector("#placement-mode-label");
+    
+    if (toggleBtn) {
+      if (isActive) {
+        toggleBtn.style.background = "#c44";
+        toggleBtn.style.borderColor = "#c44";
+      } else {
+        toggleBtn.style.background = "#4a9eff";
+        toggleBtn.style.borderColor = "#4a9eff";
+      }
+    }
+    
+    if (label) {
+      label.textContent = isActive ? "Deactivate Point Placement Mode" : "Activate Point Placement Mode";
     }
   }
 
@@ -35293,6 +35813,7 @@ class MaterialEditorDebugger {
     this.resizeObserver = null;
     this.resizeTimeout = null;
     this._updateSceneHookId = null; // To store the hook ID for cleanup
+    this._mapPointsHookId = null; // To store the map points hook ID for cleanup
     this.preMinimizeSize = null;
   }
 
@@ -35303,6 +35824,14 @@ class MaterialEditorDebugger {
   render() {
     if (!this.element || !this.eventHandler || !this.uiBuilder) return;
 
+    // Save the state of all <details> elements (accordion open/closed state)
+    const accordionStates = new Map();
+    this.element.querySelectorAll('details').forEach(details => {
+      if (details.id) {
+        accordionStates.set(details.id, details.open);
+      }
+    });
+
     // Rebuild and inject the HTML for the main controls and profile sections
     const mainControlsHTML = this.uiBuilder._buildMainControlsSection();
     this.element.querySelector("#main-controls-section").innerHTML =
@@ -35311,6 +35840,25 @@ class MaterialEditorDebugger {
     const profileSectionHTML = this.uiBuilder._buildProfileSection();
     this.element.querySelector("#material-editor-profiles-section").innerHTML =
       profileSectionHTML;
+
+    // Rebuild effect sections (including Point Groups) in columns 2 & 3
+    const otherEffectSections = this.uiBuilder._getEffectSections();
+    const midPoint = Math.ceil(otherEffectSections.length / 2);
+    const column2Effects = otherEffectSections.slice(0, midPoint);
+    const column3Effects = otherEffectSections.slice(midPoint);
+
+    const column2 = this.element.querySelector("#fx-column-2");
+    const column3 = this.element.querySelector("#fx-column-3");
+    
+    if (column2) column2.innerHTML = column2Effects.join("");
+    if (column3) column3.innerHTML = column3Effects.join("");
+
+    // Restore accordion states
+    this.element.querySelectorAll('details').forEach(details => {
+      if (details.id && accordionStates.has(details.id)) {
+        details.open = accordionStates.get(details.id);
+      }
+    });
 
     // Re-attach listeners and update all control values for the newly created elements
     this.eventHandler.rebindDynamicControls();
@@ -35383,6 +35931,13 @@ class MaterialEditorDebugger {
         }
       }
     );
+
+    // Listen for map points updates to refresh point group displays
+    this._mapPointsHookId = Hooks.on("mapShine:mapPointsUpdated", () => {
+      if (this.element && this.eventHandler) {
+        this.render();
+      }
+    });
 
     this.resizeObserver = new ResizeObserver((entries) => {
       if (this.resizeTimeout) clearTimeout(this.resizeTimeout);
@@ -35458,6 +36013,12 @@ class MaterialEditorDebugger {
     if (this._updateSceneHookId) {
       Hooks.off("updateScene", this._updateSceneHookId);
       this._updateSceneHookId = null;
+    }
+
+    // Unregister the map points update hook
+    if (this._mapPointsHookId) {
+      Hooks.off("mapShine:mapPointsUpdated", this._mapPointsHookId);
+      this._mapPointsHookId = null;
     }
 
     // Destroy the event handler and its components
