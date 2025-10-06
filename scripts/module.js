@@ -26,7 +26,7 @@
  *
  * @TODO: FUN IDEA - Horror world vision. Basically the ability to quickly swap the appearance of the background with a different background for a horror vibe.
  * @TODO: Screen Overlay effects, should be able to happen on only one player or something like that.
- * 
+ *
  *
  *
  */
@@ -3580,7 +3580,8 @@ class MapShineInitialiser {
       timeControl: {
         timeFactor: 1.0,
       },
-      systemsReady: false,      loadingScreen: null,
+      systemsReady: false,
+      loadingScreen: null,
       loadingManager: {
         screen: null,
         waypoints: {
@@ -3921,7 +3922,7 @@ class MapShineInitialiser {
  * @class SettingsManager
  * @static
  * @since 1.0.0
-*/
+ */
 class SettingsManager {
   /**
    * Registers all module settings with Foundry's settings system.
@@ -3930,7 +3931,7 @@ class SettingsManager {
     // ========================================================
     // COMPATIBILITY SETTINGS - At the top for easy access
     // ========================================================
-    
+
     game.settings.register(MODULE_ID, "enable-scene-transitions", {
       name: "⚙️ Enable Scene Transitions",
       hint: "Shows animated loading screens when changing between scenes. DISABLE THIS if you experience black / grey screens, freezing, or conflicts with other modules or hosting platforms like The Forge.",
@@ -4611,7 +4612,7 @@ class HooksManager {
         console.log(
           "Map Shine | Scene transitions enabled - registering Scene.prototype.view wrapper"
         );
-        
+
         // Scene Transition Wrapper - Enhanced with robust error handling
         try {
           libWrapper.register(
@@ -4657,21 +4658,87 @@ class HooksManager {
                 let transitionConfig;
                 try {
                   transitionConfig = {
-                    enabled: game.settings.get(MODULE_ID, "universal.sceneTransition.enabled") ?? true,
-                    fadeOutDuration: game.settings.get(MODULE_ID, "universal.sceneTransition.fadeOutDuration") ?? 1500,
-                    fadeInDuration: game.settings.get(MODULE_ID, "universal.sceneTransition.fadeInDuration") ?? 1500,
-                    logoPath: game.settings.get(MODULE_ID, "universal.sceneTransition.logoPath") ?? "",
-                    heading: game.settings.get(MODULE_ID, "universal.sceneTransition.heading") ?? "Loading...",
-                    subheading: game.settings.get(MODULE_ID, "universal.sceneTransition.subheading") ?? "",
-                    staticDescription: game.settings.get(MODULE_ID, "universal.sceneTransition.staticDescription") ?? "",
-                    showSceneName: game.settings.get(MODULE_ID, "universal.sceneTransition.showSceneName") ?? true,
-                    useRandomHint: game.settings.get(MODULE_ID, "universal.sceneTransition.useRandomHint") ?? false,
-                    randomHints: (game.settings.get(MODULE_ID, "universal.sceneTransition.randomHints") || "").split(/\r?\n/).filter((h) => h.trim() !== ""),
-                    staticBackgroundImage: game.settings.get(MODULE_ID, "loading-screen-static-background") ?? "",
-                    useRandomBackgroundImage: game.settings.get(MODULE_ID, "loading-screen-use-random-background") ?? false,
-                    backgroundImages: (game.settings.get(MODULE_ID, "loading-screen-random-backgrounds") || "").split(/\r?\n/).filter((h) => h.trim() !== ""),
-                    backgroundOverlayEnabled: game.settings.get(MODULE_ID, "loading-screen-background-overlay-enabled") ?? true,
-                    backgroundOverlayOpacity: game.settings.get(MODULE_ID, "loading-screen-background-overlay-opacity") ?? 0.7,
+                    enabled:
+                      game.settings.get(
+                        MODULE_ID,
+                        "universal.sceneTransition.enabled"
+                      ) ?? true,
+                    fadeOutDuration:
+                      game.settings.get(
+                        MODULE_ID,
+                        "universal.sceneTransition.fadeOutDuration"
+                      ) ?? 1500,
+                    fadeInDuration:
+                      game.settings.get(
+                        MODULE_ID,
+                        "universal.sceneTransition.fadeInDuration"
+                      ) ?? 1500,
+                    logoPath:
+                      game.settings.get(
+                        MODULE_ID,
+                        "universal.sceneTransition.logoPath"
+                      ) ?? "",
+                    heading:
+                      game.settings.get(
+                        MODULE_ID,
+                        "universal.sceneTransition.heading"
+                      ) ?? "Loading...",
+                    subheading:
+                      game.settings.get(
+                        MODULE_ID,
+                        "universal.sceneTransition.subheading"
+                      ) ?? "",
+                    staticDescription:
+                      game.settings.get(
+                        MODULE_ID,
+                        "universal.sceneTransition.staticDescription"
+                      ) ?? "",
+                    showSceneName:
+                      game.settings.get(
+                        MODULE_ID,
+                        "universal.sceneTransition.showSceneName"
+                      ) ?? true,
+                    useRandomHint:
+                      game.settings.get(
+                        MODULE_ID,
+                        "universal.sceneTransition.useRandomHint"
+                      ) ?? false,
+                    randomHints: (
+                      game.settings.get(
+                        MODULE_ID,
+                        "universal.sceneTransition.randomHints"
+                      ) || ""
+                    )
+                      .split(/\r?\n/)
+                      .filter((h) => h.trim() !== ""),
+                    staticBackgroundImage:
+                      game.settings.get(
+                        MODULE_ID,
+                        "loading-screen-static-background"
+                      ) ?? "",
+                    useRandomBackgroundImage:
+                      game.settings.get(
+                        MODULE_ID,
+                        "loading-screen-use-random-background"
+                      ) ?? false,
+                    backgroundImages: (
+                      game.settings.get(
+                        MODULE_ID,
+                        "loading-screen-random-backgrounds"
+                      ) || ""
+                    )
+                      .split(/\r?\n/)
+                      .filter((h) => h.trim() !== ""),
+                    backgroundOverlayEnabled:
+                      game.settings.get(
+                        MODULE_ID,
+                        "loading-screen-background-overlay-enabled"
+                      ) ?? true,
+                    backgroundOverlayOpacity:
+                      game.settings.get(
+                        MODULE_ID,
+                        "loading-screen-background-overlay-opacity"
+                      ) ?? 0.7,
                   };
                 } catch (configError) {
                   console.error(
@@ -4696,7 +4763,10 @@ class HooksManager {
                 try {
                   await game.scenes.preload(sceneToView.id);
                 } catch (preloadError) {
-                  console.warn("[MapShine Transition] Scene preload failed, continuing anyway:", preloadError);
+                  console.warn(
+                    "[MapShine Transition] Scene preload failed, continuing anyway:",
+                    preloadError
+                  );
                 }
 
                 // Create and fade out overlay
@@ -4704,22 +4774,29 @@ class HooksManager {
                   sceneManager._createOverlay();
                   await sceneManager.fadeOut(transitionConfig, sceneToView);
                 } catch (overlayError) {
-                  console.error("[MapShine Transition] Overlay creation/fadeOut failed:", overlayError);
+                  console.error(
+                    "[MapShine Transition] Overlay creation/fadeOut failed:",
+                    overlayError
+                  );
                   // Continue with transition even if overlay fails
                 }
 
                 // Set up completion promise for lifecycle coordination
                 let resolveSetup;
-                game.mapShine.setupCompletionPromise = new Promise((resolve) => {
-                  resolveSetup = resolve;
-                });
+                game.mapShine.setupCompletionPromise = new Promise(
+                  (resolve) => {
+                    resolveSetup = resolve;
+                  }
+                );
                 game.mapShine.resolveSetupCompletion = resolveSetup;
 
                 // Execute the actual scene transition
                 const result = await wrapped(...args);
 
                 // Wait for setup with timeout
-                const timeoutDuration = game.settings.get(MODULE_ID, "scene-transition-timeout") ?? 10000;
+                const timeoutDuration =
+                  game.settings.get(MODULE_ID, "scene-transition-timeout") ??
+                  10000;
                 const timeoutPromise = new Promise((resolve) =>
                   setTimeout(() => {
                     console.warn(
@@ -4733,7 +4810,7 @@ class HooksManager {
                   game.mapShine.setupCompletionPromise,
                   timeoutPromise,
                 ]);
-                
+
                 // Clean up promises
                 game.mapShine.setupCompletionPromise = null;
                 game.mapShine.resolveSetupCompletion = null;
@@ -4745,13 +4822,19 @@ class HooksManager {
                 try {
                   await sceneManager.fadeIn(transitionConfig);
                 } catch (fadeInError) {
-                  console.error("[MapShine Transition] Fade-in failed:", fadeInError);
+                  console.error(
+                    "[MapShine Transition] Fade-in failed:",
+                    fadeInError
+                  );
                 } finally {
                   // Always destroy overlay
                   try {
                     sceneManager._destroyOverlay();
                   } catch (destroyError) {
-                    console.error("[MapShine Transition] Overlay destruction failed:", destroyError);
+                    console.error(
+                      "[MapShine Transition] Overlay destruction failed:",
+                      destroyError
+                    );
                   }
                 }
 
@@ -4760,14 +4843,16 @@ class HooksManager {
                   "font-weight: bold; color: #10b981;"
                 );
                 return result;
-
               } catch (error) {
                 console.error(
                   "[MapShine Transition] CRITICAL ERROR in wrapper:",
                   error
                 );
-                console.error("[MapShine Transition] Stack trace:", error.stack);
-                
+                console.error(
+                  "[MapShine Transition] Stack trace:",
+                  error.stack
+                );
+
                 // Emergency cleanup
                 try {
                   game.mapShine?.sceneChangeManager?._destroyOverlay();
@@ -4776,14 +4861,14 @@ class HooksManager {
                 } catch (cleanupError) {
                   // Ignore cleanup errors
                 }
-                
+
                 // Fall back to default behavior
                 return wrapped(...args);
               }
             },
             "WRAPPER"
           );
-          
+
           console.log(
             "Map Shine | Scene.prototype.view wrapper registered successfully"
           );
@@ -4798,9 +4883,7 @@ class HooksManager {
           );
         }
       } else {
-        console.log(
-          "Map Shine | Scene transitions disabled by setting"
-        );
+        console.log("Map Shine | Scene transitions disabled by setting");
       }
     } else {
       console.warn(
@@ -5924,7 +6007,10 @@ class SceneChangeManager {
           game.mapShine.lightMaskManager.destroy();
           game.mapShine.lightMaskManager = null;
         } catch (error) {
-          console.warn("Map Shine | Error destroying light mask manager:", error);
+          console.warn(
+            "Map Shine | Error destroying light mask manager:",
+            error
+          );
           game.mapShine.lightMaskManager = null; // Still nullify to prevent further issues
         }
       }
@@ -5936,7 +6022,10 @@ class SceneChangeManager {
           game.mapShine.tokenMaskManager.destroy();
           game.mapShine.tokenMaskManager = null;
         } catch (error) {
-          console.warn("Map Shine | Error destroying token mask manager:", error);
+          console.warn(
+            "Map Shine | Error destroying token mask manager:",
+            error
+          );
           game.mapShine.tokenMaskManager = null; // Still nullify to prevent further issues
         }
       }
@@ -5983,7 +6072,6 @@ class SceneChangeManager {
           game.mapShine.dynamicExposureManager = null; // Still nullify to prevent further issues
         }
       }
-
 
       if (game.mapShine.combatEffectManager) {
         try {
@@ -7394,7 +7482,7 @@ class PauseManager {
     const isChanging = wasPaused !== pause;
 
     if (isChanging) {
-      PauseManager._triggerStateChange(pause);  // ✅ Use class name directly
+      PauseManager._triggerStateChange(pause); // ✅ Use class name directly
     }
 
     // Call the original togglePause function to maintain core functionality
@@ -7600,19 +7688,25 @@ class PauseManager {
                 .map-shine-pause-title {
                     font-family: "${settings.headingFont}", sans-serif;
                     font-size: 4.5rem; font-weight: 700; margin: 0; letter-spacing: -0.025em; text-transform: uppercase;
-                    background: linear-gradient(135deg, ${settings.headingColor} 0%, #3b82f6 100%);
+                    background: linear-gradient(135deg, ${
+                      settings.headingColor
+                    } 0%, #3b82f6 100%);
                     -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
                     filter: drop-shadow(0 0 30px rgba(0,0,0,0.9)) drop-shadow(0 0 60px rgba(0,0,0,0.7));
                     line-height: 1.1;
                 }
                 .map-shine-pause-subtitle {
                     font-family: "${settings.subheadingFont}", sans-serif;
-                    font-size: 1.5rem; font-weight: 400; margin: 0; color: ${settings.subheadingColor};
+                    font-size: 1.5rem; font-weight: 400; margin: 0; color: ${
+                      settings.subheadingColor
+                    };
                     font-style: italic; letter-spacing: 0.025em;
                     text-shadow: 0 0 20px rgba(0,0,0,0.9), 0 0 40px rgba(0,0,0,0.8), 0 2px 8px rgba(0,0,0,0.7);
                 }
                 .map-shine-pause-logo {
-                    width: 100px; height: 100px; background-image: url('${settings.logoPath}');
+                    width: 100px; height: 100px; background-image: url('${
+                      settings.logoPath
+                    }');
                     background-size: contain; background-repeat: no-repeat; background-position: center;
                     margin: 0.5rem auto; opacity: ${settings.logoOpacity};
                     animation: pulseLogo 4s ease-in-out infinite;
@@ -7622,13 +7716,20 @@ class PauseManager {
                     font-family: "${settings.hintFont}", serif;
                     margin-top: 1.5rem; padding-top: 1.5rem;
                     border-top: 1px solid rgba(59, 130, 246, 0.2);
-                    font-size: 1rem; font-style: italic; color: ${settings.hintColor}; max-width: 50ch;
+                    font-size: 1rem; font-style: italic; color: ${
+                      settings.hintColor
+                    }; max-width: 50ch;
                     margin-left: auto; margin-right: auto; letter-spacing: 0.025em;
                     text-shadow: 0 0 20px rgba(0,0,0,0.9), 0 2px 8px rgba(0,0,0,0.7);
                 }
                 @keyframes fadeInContent { from { opacity: 0; transform: translateY(30px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
                 @keyframes fadeOutContent { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(-20px) scale(0.98); } }
-                @keyframes pulseLogo { 0%, 100% { transform: scale(1); opacity: ${settings.logoOpacity}; } 50% { transform: scale(1.08); opacity: ${Math.min(1, settings.logoOpacity + 0.2)}; } }
+                @keyframes pulseLogo { 0%, 100% { transform: scale(1); opacity: ${
+                  settings.logoOpacity
+                }; } 50% { transform: scale(1.08); opacity: ${Math.min(
+      1,
+      settings.logoOpacity + 0.2
+    )}; } }
             </style>
             <div class="map-shine-pause-wrapper">
                 <h1 class="map-shine-pause-title">${settings.heading}</h1>
@@ -7703,7 +7804,6 @@ class PauseManager {
     };
   }
 }
-
 
 class AppearanceTransitionManager {
   constructor(profileManager) {
@@ -8159,7 +8259,6 @@ class DynamicExposureManager {
     this.activeTokenId = null;
   }
 }
-
 
 class CombatEffectManager {
   constructor() {
@@ -9273,7 +9372,6 @@ class MapShineLifecycle {
     game.mapShine.dynamicExposureManager.initialize();
     await loadingManager?.tick("DYNAMIC_EXPOSURE_INIT");
 
-
     if (game.mapShine.combatEffectManager) {
       game.mapShine.combatEffectManager.initialize();
     }
@@ -9411,18 +9509,20 @@ class MapShineLifecycle {
 
     // --- Adjust effect enablement based on texture AND map point availability ---
     const groups = MapPointsManager.getGroups();
-    
+
     // Build a comprehensive set of all effects that can have sources (texture or map point)
     const allEffectKeys = new Set([
       ...Object.keys(EFFECT_TEXTURE_MAP),
-      ...Object.keys(EFFECT_SOURCE_OPTIONS).filter(key => key !== "") // Exclude empty "None" option
+      ...Object.keys(EFFECT_SOURCE_OPTIONS).filter((key) => key !== ""), // Exclude empty "None" option
     ]);
-    
+
     for (const effectKey of allEffectKeys) {
       // Check for texture source
       const textureKey = EFFECT_TEXTURE_MAP[effectKey];
-      const hasTexture = textureKey ? allTargets.some((target) => target[textureKey]) : false;
-      
+      const hasTexture = textureKey
+        ? allTargets.some((target) => target[textureKey])
+        : false;
+
       // Check if any map point groups are configured for this effect
       const hasMapPoint = Object.values(groups).some(
         (group) =>
@@ -9431,21 +9531,30 @@ class MapShineLifecycle {
           group.points?.length > 0 &&
           !group.isBroken
       );
-      
+
       // Effect is available if either texture OR map point exists
       const hasEffectSource = hasTexture || hasMapPoint;
-      
+
       const path = `${effectKey}.enabled`;
       const currentSetting = foundry.utils.getProperty(config, path);
       const defaultSetting = foundry.utils.getProperty(MODULE_DEFAULTS, path); // Get original default from MODULE_DEFAULTS
 
       let newSetting = currentSetting; // Start with the current state
 
-      if (hasEffectSource && defaultSetting === false && currentSetting === false) {
+      if (
+        hasEffectSource &&
+        defaultSetting === false &&
+        currentSetting === false
+      ) {
         // Scenario: Effect source found (texture or map point), default is OFF, and it's currently OFF.
         // Action: Automatically ENABLE the effect.
         newSetting = true;
-        const sourceType = hasTexture && hasMapPoint ? 'texture and map point' : hasTexture ? 'texture' : 'map point';
+        const sourceType =
+          hasTexture && hasMapPoint
+            ? "texture and map point"
+            : hasTexture
+            ? "texture"
+            : "map point";
         console.log(
           `Map Shine | Effect '${effectKey}' auto-enabled: ${sourceType} found.`
         );
@@ -9861,14 +9970,20 @@ class MapPointsManager {
       );
       return;
     }
-    
-    console.log(`MapShine | MapPointsManager: Attempting to delete group "${groupId}"`);
+
+    console.log(
+      `MapShine | MapPointsManager: Attempting to delete group "${groupId}"`
+    );
     const path = `flags.${MODULE_ID}.${this.FLAG_NAME}.-=${groupId}`;
-    console.log(`MapShine | MapPointsManager: Deleting group with path "${path}"`);
+    console.log(
+      `MapShine | MapPointsManager: Deleting group with path "${path}"`
+    );
     await canvas.scene.update({
       [path]: null,
     });
-    console.log(`MapShine | MapPointsManager: Group "${groupId}" deleted successfully.`);
+    console.log(
+      `MapShine | MapPointsManager: Group "${groupId}" deleted successfully.`
+    );
 
     // If the deleted group was the active one, clear it
     if (game.mapShine.activeMapPointGroup === groupId) {
@@ -9974,7 +10089,9 @@ class MapPointsManager {
     if (group.type !== "area" || group.points.length < 4) {
       group.isBroken = false;
       group.reason = "";
-      console.log(`MapShine | Validate: Group "${group.label}" (${group.type}, ${group.points.length} pts) → isBroken = false (< 4 points)`);
+      console.log(
+        `MapShine | Validate: Group "${group.label}" (${group.type}, ${group.points.length} pts) → isBroken = false (< 4 points)`
+      );
       return group;
     }
 
@@ -9996,7 +10113,9 @@ class MapPointsManager {
           group.reason = `Segment ${i + 1}-${i + 2} intersects segment ${
             j + 1
           }-${j + 2}.`;
-          console.log(`MapShine | Validate: Group "${group.label}" (${group.type}, ${group.points.length} pts) → isBroken = true (${group.reason})`);
+          console.log(
+            `MapShine | Validate: Group "${group.label}" (${group.type}, ${group.points.length} pts) → isBroken = true (${group.reason})`
+          );
           return group;
         }
       }
@@ -10004,7 +10123,9 @@ class MapPointsManager {
 
     group.isBroken = false;
     group.reason = "";
-    console.log(`MapShine | Validate: Group "${group.label}" (${group.type}, ${group.points.length} pts) → isBroken = false (no intersections)`);
+    console.log(
+      `MapShine | Validate: Group "${group.label}" (${group.type}, ${group.points.length} pts) → isBroken = false (no intersections)`
+    );
     return group;
   }
 
@@ -10109,7 +10230,8 @@ class GeometryMaskManager {
    */
   _onMapPointsUpdated(data) {
     // Store which group changed (created, updated, or deleted)
-    this._changedGroupId = data?.created || data?.updated || data?.deleted || null;
+    this._changedGroupId =
+      data?.created || data?.updated || data?.deleted || null;
     this.requestUpdate();
   }
 
@@ -10194,13 +10316,10 @@ class GeometryMaskManager {
     // Populate graphics objects based on point groups
     let renderedCount = 0;
     for (const group of Object.values(groups)) {
-      if (
-        !group.isEffectSource ||
-        !group.effectTarget
-      ) {
+      if (!group.isEffectSource || !group.effectTarget) {
         continue;
       }
-      
+
       // LAZY INSTANTIATION: Ensure mask exists for this effect before drawing
       this._ensureMaskExists(group.effectTarget);
 
@@ -10288,8 +10407,6 @@ class GeometryMaskManager {
 }
 
 // lerp function moved to utils/ColorUtils.js
-
-
 
 const systemStatus = new SystemStatusManager();
 
@@ -10618,9 +10735,14 @@ class DynamicTokenMaskManager {
 
     const screen = CoordinateManager.getScreenDimensions();
 
+    // PERFORMANCE OPTIMIZATION: Use half-resolution for token mask
+    // Soft-edged effects don't need full resolution
+    const halfWidth = Math.floor(screen.width / 2);
+    const halfHeight = Math.floor(screen.height / 2);
+
     this.renderTexture = PIXI.RenderTexture.create({
-      width: screen.width,
-      height: screen.height,
+      width: halfWidth,
+      height: halfHeight,
     });
 
     this.tokenContainer = new PIXI.Container();
@@ -10649,6 +10771,10 @@ class DynamicTokenMaskManager {
       }
     };
     this.canvas.app.ticker.add(this._boundOnAnimate);
+
+    // Register resize handler
+    this._boundOnResize = this._onResize.bind(this);
+    window.addEventListener("resize", this._boundOnResize);
 
     this.renderMask();
   }
@@ -10716,6 +10842,16 @@ class DynamicTokenMaskManager {
     return this.renderTexture;
   }
 
+  _onResize() {
+    if (this._destroyed) return;
+    const screen = CoordinateManager.getScreenDimensions();
+    const halfWidth = Math.floor(screen.width / 2);
+    const halfHeight = Math.floor(screen.height / 2);
+
+    this.renderTexture?.resize(halfWidth, halfHeight);
+    this._needsUpdate = true;
+  }
+
   destroy() {
     if (this._destroyed) return;
     this._destroyed = true;
@@ -10724,6 +10860,7 @@ class DynamicTokenMaskManager {
     Hooks.off("deleteToken", this._boundOnTokenChange);
     Hooks.off("canvasPan", this._boundOnTokenChange);
     this.canvas.app.ticker.remove(this._boundOnAnimate);
+    window.removeEventListener("resize", this._boundOnResize);
 
     this.renderTexture?.destroy(true);
     for (const sprite of this.tokenSprites.values()) {
@@ -11324,10 +11461,11 @@ class ParticleEffectController {
                       </div>
                     </details>
                     
-                    ${DebuggerUIBuilder._createEffectPointGroupsHTML('sparks', {
-                      effectName: 'Sparks',
-                      defaultGroupType: 'area',
-                      description: 'Create spark particle spawn areas. Draw areas or lines where sparks should emit.'
+                    ${DebuggerUIBuilder._createEffectPointGroupsHTML("sparks", {
+                      effectName: "Sparks",
+                      defaultGroupType: "area",
+                      description:
+                        "Create spark particle spawn areas. Draw areas or lines where sparks should emit.",
                     })}
                   `;
       const headerExtra = `<button type="button" class="create-effect-from-ui" data-action="create-particle-effect-area" data-effect-key="${effectKey}" title="Create new area for this particle effect" style="width: 24px; height: 24px; min-width: 24px; min-height: 24px; box-sizing: border-box; padding: 0; margin: 0; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid rgba(76, 250, 64, 0.5); background: rgba(76, 250, 64, 0.15); border-radius: 3px; cursor: pointer; transition: all 0.2s;"><i class="fas fa-plus-square" style="font-size: 12px; pointer-events: none; color: #6fdd73;"></i></button>`;
@@ -11616,10 +11754,11 @@ class ParticleEffectController {
             </div>
           </details>
           
-          ${DebuggerUIBuilder._createEffectPointGroupsHTML('fire', {
-            effectName: 'Fire Particles',
-            defaultGroupType: 'area',
-            description: 'Create fire particle spawn areas. Draw areas or lines where fire should emit.'
+          ${DebuggerUIBuilder._createEffectPointGroupsHTML("fire", {
+            effectName: "Fire Particles",
+            defaultGroupType: "area",
+            description:
+              "Create fire particle spawn areas. Draw areas or lines where fire should emit.",
           })}
         `;
       return DebuggerUIBuilder._createAccordionHTML(
@@ -11749,10 +11888,11 @@ class ParticleEffectController {
             </div>
           </details>
           
-          ${DebuggerUIBuilder._createEffectPointGroupsHTML('candleFlame', {
-            effectName: 'Candle Flame',
-            defaultGroupType: 'point',
-            description: 'Create candle flame spawn points. Each point will emit flame particles.'
+          ${DebuggerUIBuilder._createEffectPointGroupsHTML("candleFlame", {
+            effectName: "Candle Flame",
+            defaultGroupType: "point",
+            description:
+              "Create candle flame spawn points. Each point will emit flame particles.",
           })}
         `;
       return DebuggerUIBuilder._createAccordionHTML(
@@ -11973,10 +12113,11 @@ class ParticleEffectController {
               </div>
           </details>
           
-          ${DebuggerUIBuilder._createEffectPointGroupsHTML('pressurisedSteam', {
-            effectName: 'Pressurised Steam',
-            defaultGroupType: 'area',
-            description: 'Create steam emission areas. Draw areas or lines where steam should burst from.'
+          ${DebuggerUIBuilder._createEffectPointGroupsHTML("pressurisedSteam", {
+            effectName: "Pressurised Steam",
+            defaultGroupType: "area",
+            description:
+              "Create steam emission areas. Draw areas or lines where steam should burst from.",
           })}
       `;
       const headerExtra = `<button type="button" class="create-effect-from-ui" data-action="create-particle-effect-area" data-effect-key="${effectKey}" title="Create new area for this particle effect" style="width: 24px; height: 24px; min-width: 24px; min-height: 24px; box-sizing: border-box; padding: 0; margin: 0; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid rgba(76, 250, 64, 0.5); background: rgba(76, 250, 64, 0.15); border-radius: 3px; cursor: pointer; transition: all 0.2s;"><i class="fas fa-plus-square" style="font-size: 12px; pointer-events: none; color: #6fdd73;"></i></button>`;
@@ -12303,8 +12444,8 @@ class ParticleEffectController {
     if (EFFECT_SOURCE_OPTIONS[effectKey]) {
       content += DebuggerUIBuilder._createEffectPointGroupsHTML(effectKey, {
         effectName: definition.title,
-        defaultGroupType: 'area',
-        description: `Create areas where ${definition.title.toLowerCase()} particles will emit.`
+        defaultGroupType: "area",
+        description: `Create areas where ${definition.title.toLowerCase()} particles will emit.`,
       });
     }
 
@@ -12545,10 +12686,11 @@ class ParticleEffectController {
             </div>
           </details>
           
-          ${DebuggerUIBuilder._createEffectPointGroupsHTML('smellyFlies', {
-            effectName: 'Smelly Flies',
-            defaultGroupType: 'area',
-            description: 'Create areas where flies will spawn and wander. Flies will land on and walk around these areas.'
+          ${DebuggerUIBuilder._createEffectPointGroupsHTML("smellyFlies", {
+            effectName: "Smelly Flies",
+            defaultGroupType: "area",
+            description:
+              "Create areas where flies will spawn and wander. Flies will land on and walk around these areas.",
           })}
           `;
     return DebuggerUIBuilder._createAccordionHTML(
@@ -12763,7 +12905,6 @@ class ParticleEffectController {
       // Now that the shape is ready, start the emitter.
       emitter.emit = true;
 
-
       if (spawnMaskSource instanceof PIXI.Texture) {
         emitter._customMaskTexture = spawnMaskSource;
       }
@@ -12885,7 +13026,7 @@ class ParticleEffectController {
 
       // Now that the shape is ready, start the emitter.
       emitter.emit = true;
-      
+
       emitter.autoUpdate = false;
 
       // CRITICAL FIX: Override the particle initialization to force blend mode on sprites
@@ -13992,11 +14133,13 @@ class ParticleManager {
     if (!this.controllers.size) return;
     const config = game.mapShine.profileManager.activeConfig;
     const changedGroupId = options?.changedGroupId;
-    
+
     if (changedGroupId) {
-      console.log(`Map Shine | ParticleManager: Targeting rebuild for changed group: ${changedGroupId}`);
+      console.log(
+        `Map Shine | ParticleManager: Targeting rebuild for changed group: ${changedGroupId}`
+      );
     }
-    
+
     for (const controller of this.controllers.values()) {
       controller.updateTargets(targets, config, { changedGroupId });
     }
@@ -14701,7 +14844,9 @@ export class ParticleLayer extends foundry.canvas.layers.CanvasLayer {
       // Refresh targets to pick up any new map point groups that were just added
       await game.mapShine.effectTargetManager.refresh();
       if (game.mapShine.effectTargetManager.targets) {
-        this.updateEffectTargets(game.mapShine.effectTargetManager.targets, { changedGroupId });
+        this.updateEffectTargets(game.mapShine.effectTargetManager.targets, {
+          changedGroupId,
+        });
         // Don't process pending targets here - let the animation loop handle it
         // This avoids race conditions with mask rendering
       }
@@ -14733,8 +14878,11 @@ export class ParticleLayer extends foundry.canvas.layers.CanvasLayer {
     // Process any pending particle emitter targets (async but non-blocking)
     // This happens after mask rendering to ensure masks are ready
     if (game.mapShine.particleManager) {
-      game.mapShine.particleManager.processAllPendingTargets().catch(err => {
-        console.warn("Map Shine | Error processing pending particle targets:", err);
+      game.mapShine.particleManager.processAllPendingTargets().catch((err) => {
+        console.warn(
+          "Map Shine | Error processing pending particle targets:",
+          err
+        );
       });
     }
 
@@ -15001,8 +15149,10 @@ class LightningLayer extends foundry.canvas.layers.CanvasLayer {
 
         // Generate lightning path with optional displacement
         const displacementEnabled = config?.displacement?.enabled ?? true;
-        const displacementMagnitude = displacementEnabled ? (config?.displacement?.magnitude ?? 50) : 0;
-        
+        const displacementMagnitude = displacementEnabled
+          ? config?.displacement?.magnitude ?? 50
+          : 0;
+
         const mainPath = this._generateLightningPath(
           firstPoint,
           variedEndPoint,
@@ -15011,7 +15161,15 @@ class LightningLayer extends foundry.canvas.layers.CanvasLayer {
         );
 
         // Generate branches with optional fine displacement
-        const branches = this._generateBranches(mainPath, 0.12, 1, 5, 0, 2, config);
+        const branches = this._generateBranches(
+          mainPath,
+          0.12,
+          1,
+          5,
+          0,
+          2,
+          config
+        );
 
         // Random intensity
         const intensity = 0.7 + Math.random() * 0.3;
@@ -15046,7 +15204,13 @@ class LightningLayer extends foundry.canvas.layers.CanvasLayer {
         }
 
         // Draw main bolt
-        this._drawLightningBolt(strike.mainPath, 5, strike.intensity, 0, config);
+        this._drawLightningBolt(
+          strike.mainPath,
+          5,
+          strike.intensity,
+          0,
+          config
+        );
 
         // Draw branches
         for (const branch of strike.branches) {
@@ -15294,11 +15458,12 @@ class LightningLayer extends foundry.canvas.layers.CanvasLayer {
         };
 
         // Use fine displacement for branches if enabled
-        const fineDisplacementEnabled = config?.displacementFine?.enabled ?? true;
-        const fineDisplacementMagnitude = fineDisplacementEnabled 
+        const fineDisplacementEnabled =
+          config?.displacementFine?.enabled ?? true;
+        const fineDisplacementMagnitude = fineDisplacementEnabled
           ? (config?.displacementFine?.magnitude ?? 20) + positionRatio * 15
           : 0;
-        
+
         const branchPath = this._generateLightningPath(
           branchStart,
           branchEnd,
@@ -15356,7 +15521,13 @@ class LightningLayer extends foundry.canvas.layers.CanvasLayer {
    * @param {number} alpha - Opacity
    * @param {number} branchDepth - Branch depth (0 = main bolt, 1+ = branches)
    */
-  _drawLightningBolt(path, baseWidth = 4, alpha = 1.0, branchDepth = 0, config = null) {
+  _drawLightningBolt(
+    path,
+    baseWidth = 4,
+    alpha = 1.0,
+    branchDepth = 0,
+    config = null
+  ) {
     if (path.length < 2) return;
 
     // Reduce width for branches based on depth
@@ -15375,7 +15546,7 @@ class LightningLayer extends foundry.canvas.layers.CanvasLayer {
 
     // Check if width variation is enabled
     const widthVariationEnabled = config?.widthVariation?.enabled ?? true;
-    
+
     // Draw each layer with proper tapering
     for (const layer of layers) {
       // For branches, use aggressive taper to reach near-invisible by 90%
@@ -15387,7 +15558,9 @@ class LightningLayer extends foundry.canvas.layers.CanvasLayer {
       for (let i = 0; i < renderPath.length - 1; i++) {
         const t = i / (renderPath.length - 1);
         // Apply taper only if width variation is enabled
-        const taper = widthVariationEnabled ? Math.pow(1 - t, taperExponent) : 1.0;
+        const taper = widthVariationEnabled
+          ? Math.pow(1 - t, taperExponent)
+          : 1.0;
         const segmentWidth =
           startWidth *
           layer.widthMult *
@@ -15519,10 +15692,11 @@ class LightningLayer extends foundry.canvas.layers.CanvasLayer {
                 </div>
             </details>
             
-            ${DebuggerUIBuilder._createEffectPointGroupsHTML('lightning', {
-              effectName: 'Lightning',
-              defaultGroupType: 'line',
-              description: 'Create lightning bolt paths. Draw lines where lightning bolts should appear.'
+            ${DebuggerUIBuilder._createEffectPointGroupsHTML("lightning", {
+              effectName: "Lightning",
+              defaultGroupType: "line",
+              description:
+                "Create lightning bolt paths. Draw lines where lightning bolts should appear.",
             })}
           `;
 
@@ -16188,7 +16362,7 @@ class GPUMaskSpawnBehavior {
     this._maskPixelData = null;
     this._colorPixelData = null;
     this._needsRefresh = true;
-    
+
     // Maximum attempts per particle to find valid spawn position
     this.maxAttemptsPerParticle = 25;
   }
@@ -16232,64 +16406,65 @@ class GPUMaskSpawnBehavior {
     if (this._needsRefresh) {
       this._refreshPixelData();
     }
-    
+
     // If we don't have pixel data, we can't do anything.
     if (!this._maskPixelData) {
-        particle.kill(); // Kill the particle if the mask can't be read.
-        return;
+      particle.kill(); // Kill the particle if the mask can't be read.
+      return;
     }
 
     // Attempt to find a valid position for this particle.
     // Loop for a few attempts to increase the chance of finding a valid spot per frame.
-    for (let i = 0; i < 3; i++) { // Try up to 3 times per frame
-        if (particle.spawnAttempts >= this.maxAttemptsPerParticle) {
-            particle.kill(); // Give up after max attempts
-            return;
-        }
+    for (let i = 0; i < 3; i++) {
+      // Try up to 3 times per frame
+      if (particle.spawnAttempts >= this.maxAttemptsPerParticle) {
+        particle.kill(); // Give up after max attempts
+        return;
+      }
 
-        particle.spawnAttempts++;
-        
-        // Use the particle's current random UV
-        const u = particle.spawnCheckUV.u;
-        const v = particle.spawnCheckUV.v;
+      particle.spawnAttempts++;
 
-        const texWidth = this.maskTexture.width;
-        const texHeight = this.maskTexture.height;
+      // Use the particle's current random UV
+      const u = particle.spawnCheckUV.u;
+      const v = particle.spawnCheckUV.v;
 
-        const x = Math.floor(u * (texWidth - 1));
-        const y = Math.floor(v * (texHeight - 1));
-        const index = (y * texWidth + x) * 4;
+      const texWidth = this.maskTexture.width;
+      const texHeight = this.maskTexture.height;
 
-        const pixelValue = this._maskPixelData[index];
+      const x = Math.floor(u * (texWidth - 1));
+      const y = Math.floor(v * (texHeight - 1));
+      const index = (y * texWidth + x) * 4;
 
-        // Check if pixel passes threshold test
-        let isValid = false;
-        if (this.spawnMode === "range") {
-            isValid =
-            pixelValue >= this.threshold && pixelValue <= this.upperThreshold;
+      const pixelValue = this._maskPixelData[index];
+
+      // Check if pixel passes threshold test
+      let isValid = false;
+      if (this.spawnMode === "range") {
+        isValid =
+          pixelValue >= this.threshold && pixelValue <= this.upperThreshold;
+      } else {
+        isValid = pixelValue >= this.threshold;
+      }
+
+      if (isValid) {
+        // Valid spawn position found - place particle and exit the loop
+        this._placeParticle(particle, u, v, x, y, texWidth, texHeight);
+        particle.spawnValidated = true;
+        // Restore alpha/scale to what it should be at age 0. This is handled by other behaviors.
+        // We just need to make sure our overrides are gone.
+        particle.alpha = 1;
+        // The scale behavior will set the correct initial scale. We reset it from 0.
+        if (particle.config.scaleBehavior) {
+          particle.config.scaleBehavior.updateParticle(particle, 0);
         } else {
-            isValid = pixelValue >= this.threshold;
+          particle.scale.set(1);
         }
-
-        if (isValid) {
-            // Valid spawn position found - place particle and exit the loop
-            this._placeParticle(particle, u, v, x, y, texWidth, texHeight);
-            particle.spawnValidated = true;
-            // Restore alpha/scale to what it should be at age 0. This is handled by other behaviors.
-            // We just need to make sure our overrides are gone.
-            particle.alpha = 1; 
-            // The scale behavior will set the correct initial scale. We reset it from 0.
-            if (particle.config.scaleBehavior) {
-                particle.config.scaleBehavior.updateParticle(particle, 0);
-            } else {
-                particle.scale.set(1);
-            }
-            return;
-        } else {
-            // Invalid position - generate new random UV for the next attempt (on this frame or next)
-            particle.spawnCheckUV.u = Math.random();
-            particle.spawnCheckUV.v = Math.random();
-        }
+        return;
+      } else {
+        // Invalid position - generate new random UV for the next attempt (on this frame or next)
+        particle.spawnCheckUV.u = Math.random();
+        particle.spawnCheckUV.v = Math.random();
+      }
     }
   }
 
@@ -16309,7 +16484,6 @@ class GPUMaskSpawnBehavior {
 
       particle.position.x = worldX;
       particle.position.y = worldY;
-
     } else {
       // For static masks, use bounds directly
       particle.position.x = this.bounds.x + u * this.bounds.width;
@@ -16318,8 +16492,12 @@ class GPUMaskSpawnBehavior {
 
     // Sample color if color texture is available
     if (this._colorPixelData && this.colorTexture?.valid) {
-      const colorX = Math.floor((texX / texWidth) * (this.colorTexture.width - 1));
-      const colorY = Math.floor((texY / texHeight) * (this.colorTexture.height - 1));
+      const colorX = Math.floor(
+        (texX / texWidth) * (this.colorTexture.width - 1)
+      );
+      const colorY = Math.floor(
+        (texY / texHeight) * (this.colorTexture.height - 1)
+      );
       const colorIndex = (colorY * this.colorTexture.width + colorX) * 4;
 
       particle.spawnColor = [
@@ -16348,32 +16526,32 @@ class GPUMaskSpawnBehavior {
     }
 
     try {
-        // Since this is a very expensive operation, only do it if the texture has actually changed.
-        // This check is a bit simplistic but better than nothing.
-        const requiresNewRender = !this._maskRenderTexture ||
-            this._maskRenderTexture.width !== this.maskTexture.width ||
-            this._maskRenderTexture.height !== this.maskTexture.height;
+      // Since this is a very expensive operation, only do it if the texture has actually changed.
+      // This check is a bit simplistic but better than nothing.
+      const requiresNewRender =
+        !this._maskRenderTexture ||
+        this._maskRenderTexture.width !== this.maskTexture.width ||
+        this._maskRenderTexture.height !== this.maskTexture.height;
 
-        if (requiresNewRender) {
-            this._maskRenderTexture?.destroy(true);
-            this._maskRenderTexture = PIXI.RenderTexture.create({
-                width: this.maskTexture.width,
-                height: this.maskTexture.height,
-            });
-        }
-        
-        const sprite = new PIXI.Sprite(this.maskTexture);
-        this.renderer.render(sprite, {
-            renderTexture: this._maskRenderTexture,
-            clear: true,
+      if (requiresNewRender) {
+        this._maskRenderTexture?.destroy(true);
+        this._maskRenderTexture = PIXI.RenderTexture.create({
+          width: this.maskTexture.width,
+          height: this.maskTexture.height,
         });
-        this._maskPixelData = this.renderer.extract.pixels(
-            this._maskRenderTexture
-        );
-        sprite.destroy();
-        
-        this._needsRefresh = false;
-        
+      }
+
+      const sprite = new PIXI.Sprite(this.maskTexture);
+      this.renderer.render(sprite, {
+        renderTexture: this._maskRenderTexture,
+        clear: true,
+      });
+      this._maskPixelData = this.renderer.extract.pixels(
+        this._maskRenderTexture
+      );
+      sprite.destroy();
+
+      this._needsRefresh = false;
     } catch (e) {
       console.error("GPUMaskSpawnBehavior | Error refreshing pixel data:", e);
       this._maskPixelData = null;
@@ -17133,7 +17311,9 @@ export class SmellyFliesLayer extends foundry.canvas.layers.CanvasLayer {
       // Refresh targets to pick up any new map point groups that were just added
       await game.mapShine.effectTargetManager.refresh();
       if (game.mapShine.effectTargetManager.targets) {
-        this.updateEffectTargets(game.mapShine.effectTargetManager.targets, { changedGroupId });
+        this.updateEffectTargets(game.mapShine.effectTargetManager.targets, {
+          changedGroupId,
+        });
       }
     }
   }
@@ -21379,19 +21559,19 @@ class MapPointsLayer extends foundry.canvas.layers.CanvasLayer {
           .beginFill(color, alpha);
         graphics.drawCircle(p.x, p.y, radius);
         graphics.endFill();
-        
+
         // Draw delete indicator when hovering
         if (isHovered && !isDragged) {
           const deleteIconSize = 14 / canvas.stage.scale.x;
           const deleteX = p.x + radius * 1.5;
           const deleteY = p.y - radius * 1.5;
-          
+
           // Red circle background
           graphics.lineStyle(0);
           graphics.beginFill(0xff0000, 0.9);
           graphics.drawCircle(deleteX, deleteY, deleteIconSize);
           graphics.endFill();
-          
+
           // White X
           const xSize = deleteIconSize * 0.5;
           graphics.lineStyle(lineThickness / 2, 0xffffff, 1.0);
@@ -21573,7 +21753,7 @@ class PhysicsRope {
       const t = i / (this.points.length - 1);
       this.restPositions.push({
         x: start.x + (end.x - start.x) * t,
-        y: start.y + (end.y - start.y) * t
+        y: start.y + (end.y - start.y) * t,
       });
     }
   }
@@ -21581,7 +21761,7 @@ class PhysicsRope {
   update(deltaTime) {
     const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
     const adjustedDeltaTime = deltaTime * timeFactor;
-    
+
     this.time += adjustedDeltaTime * this.config.animationSpeed;
 
     // Verlet integration
@@ -21652,16 +21832,16 @@ class PhysicsRope {
       // This creates the "bounce back" behavior after wind displacement
       let restoringForceX = 0;
       let restoringForceY = 0;
-      
+
       if (this.restPositions && this.restPositions[i]) {
         const restPos = this.restPositions[i];
         const displacementX = restPos.x - point.x;
         const displacementY = restPos.y - point.y;
-        
+
         // Spring constant - how strongly the rope wants to return to rest
         // Higher values = stiffer rope, lower values = more elastic/bouncy
         const springConstant = this.config.springConstant ?? 0.15;
-        
+
         restoringForceX = displacementX * springConstant;
         restoringForceY = displacementY * springConstant;
       }
@@ -21669,8 +21849,14 @@ class PhysicsRope {
       // NOTE: Gravity is NOT applied to simulation points - it only affects visual tapering
       // The rope maintains its path, and gravity creates visual sag through vertex manipulation
 
-      point.x += dampedVx + windForceX * adjustedDeltaTime + restoringForceX * adjustedDeltaTime;
-      point.y += dampedVy + windForceY * adjustedDeltaTime + restoringForceY * adjustedDeltaTime;
+      point.x +=
+        dampedVx +
+        windForceX * adjustedDeltaTime +
+        restoringForceX * adjustedDeltaTime;
+      point.y +=
+        dampedVy +
+        windForceY * adjustedDeltaTime +
+        restoringForceY * adjustedDeltaTime;
     }
 
     // Constraint resolution (maintain segment lengths for rope integrity)
@@ -21696,16 +21882,18 @@ class PhysicsRope {
         const distFromStart = normalizedPos;
         const distFromEnd = 1.0 - normalizedPos;
         const distFromNearestEnd = Math.min(distFromStart, distFromEnd);
-        
+
         // Apply end stiffness - segments near ends get much stronger correction
         // This prevents crushing/bunching at anchor points
         const endStiffness = this.config.ropeEndStiffness ?? 0.3;
-        const stiffnessFactor = 1.0 + endStiffness * (1.0 - Math.min(1.0, distFromNearestEnd * 3.0));
-        
+        const stiffnessFactor =
+          1.0 + endStiffness * (1.0 - Math.min(1.0, distFromNearestEnd * 3.0));
+
         // Stronger correction for both compression and stretching to minimize stretch
         // Allows only minimal realistic stretch (< 2% of segment length)
         const compressionMultiplier = diff > 0 ? 1.0 : 0.9; // Strong correction for both
-        const correctionStrength = 0.7 * compressionMultiplier * stiffnessFactor; // Apply stiffness multiplier
+        const correctionStrength =
+          0.7 * compressionMultiplier * stiffnessFactor; // Apply stiffness multiplier
 
         const offsetX = (dx / dist) * diff * correctionStrength;
         const offsetY = (dy / dist) * diff * correctionStrength;
@@ -21985,13 +22173,14 @@ class PhysicsRope {
    * Updates rope end sprite positions and rotations based on rope physics
    */
   _updateRopeEnds() {
-    if (!this.startEndSprite || !this.endEndSprite || this.points.length < 2) return;
+    if (!this.startEndSprite || !this.endEndSprite || this.points.length < 2)
+      return;
 
     // Update start end sprite
     const startPoint = this.points[0];
     const startNextPoint = this.points[1];
     this.startEndSprite.position.set(startPoint.x, startPoint.y);
-    
+
     // Calculate rotation to face along the rope from start
     const startDx = startNextPoint.x - startPoint.x;
     const startDy = startNextPoint.y - startPoint.y;
@@ -22001,7 +22190,7 @@ class PhysicsRope {
     const endPoint = this.points[this.points.length - 1];
     const endPrevPoint = this.points[this.points.length - 2];
     this.endEndSprite.position.set(endPoint.x, endPoint.y);
-    
+
     // Calculate rotation to face along the rope from end (pointing back toward rope)
     const endDx = endPoint.x - endPrevPoint.x;
     const endDy = endPoint.y - endPrevPoint.y;
@@ -22117,11 +22306,13 @@ export class PhysicsRopeLayer extends foundry.canvas.layers.CanvasLayer {
           );
           rope.id = group.id; // Store the group ID for updates
           rope.ropeType = group.ropeType || "rope"; // Store the rope type for live updates
-          
+
           // Load and apply rope end texture if specified
           if (ropeConfig.ropeEndTexturePath) {
             try {
-              const ropeEndTexture = await foundry.canvas.loadTexture(ropeConfig.ropeEndTexturePath);
+              const ropeEndTexture = await foundry.canvas.loadTexture(
+                ropeConfig.ropeEndTexturePath
+              );
               await rope._createRopeEnds(ropeEndTexture);
             } catch (err) {
               console.warn(
@@ -22130,7 +22321,7 @@ export class PhysicsRopeLayer extends foundry.canvas.layers.CanvasLayer {
               );
             }
           }
-          
+
           this.ropeContainer.addChild(rope.container);
           this.ropes.push(rope);
         } catch (err) {
@@ -22421,8 +22612,8 @@ class MapPointsInteractionManager {
       this._hideOverlay();
 
       // Create the overlay element
-      const overlay = document.createElement('div');
-      overlay.id = 'point-editing-mode-overlay';
+      const overlay = document.createElement("div");
+      overlay.id = "point-editing-mode-overlay";
       overlay.innerHTML = `
         <div class="overlay-title">
           <i class="fas fa-crosshairs"></i>
@@ -22441,14 +22632,17 @@ class MapPointsInteractionManager {
 
       console.log("Appending overlay to body:", overlay);
       document.body.appendChild(overlay);
-      console.log("Overlay appended successfully. Element in DOM:", document.getElementById('point-editing-mode-overlay'));
+      console.log(
+        "Overlay appended successfully. Element in DOM:",
+        document.getElementById("point-editing-mode-overlay")
+      );
     } catch (error) {
       console.error("Error in _showOverlay():", error);
     }
   }
 
   _hideOverlay() {
-    const overlay = document.getElementById('point-editing-mode-overlay');
+    const overlay = document.getElementById("point-editing-mode-overlay");
     if (overlay) {
       overlay.remove();
     }
@@ -27464,15 +27658,20 @@ class WaterFXLayer extends MaskedEffectLayer {
     }
 
     // --- Shared Resources ---
+    // PERFORMANCE OPTIMIZATION: Use half-resolution for displacement and blur textures
+    const halfWidth = Math.floor(renderer.screen.width / 2);
+    const halfHeight = Math.floor(renderer.screen.height / 2);
+
     this.displacementFilter = new WaveDisplacementFilter();
     this.displacementSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
-    this.displacementSprite.width = renderer.screen.width;
-    this.displacementSprite.height = renderer.screen.height;
+    this.displacementSprite.width = halfWidth;
+    this.displacementSprite.height = halfHeight;
     this.displacementSprite.filters = [this.displacementFilter];
 
+    // Displacement texture at half resolution - distortion is imperceptible at lower res
     this.displacementTexture = PIXI.RenderTexture.create({
-      width: renderer.screen.width,
-      height: renderer.screen.height,
+      width: halfWidth,
+      height: halfHeight,
     });
 
     const initialBlur =
@@ -27480,9 +27679,10 @@ class WaterFXLayer extends MaskedEffectLayer {
 
     this.blurFilter = new PIXI.BlurFilter(initialBlur, 4);
 
+    // Blurred water mask at half resolution - blur is faster on smaller textures
     this.blurredWaterMaskTexture = PIXI.RenderTexture.create({
-      width: renderer.screen.width,
-      height: renderer.screen.height,
+      width: halfWidth,
+      height: halfHeight,
     });
     this.blurSourceSprite = new PIXI.Sprite(this.getMaskTexture());
     this.blurSourceSprite.filters = [this.blurFilter];
@@ -27776,14 +27976,14 @@ class WaterFXLayer extends MaskedEffectLayer {
   _onResize() {
     super._onResize();
     const renderer = canvas.app.renderer;
-    this.displacementTexture?.resize(
-      renderer.screen.width,
-      renderer.screen.height
-    );
-    this.blurredWaterMaskTexture?.resize(
-      renderer.screen.width,
-      renderer.screen.height
-    );
+    const halfWidth = Math.floor(renderer.screen.width / 2);
+    const halfHeight = Math.floor(renderer.screen.height / 2);
+
+    // Resize half-resolution textures
+    this.displacementTexture?.resize(halfWidth, halfHeight);
+    this.blurredWaterMaskTexture?.resize(halfWidth, halfHeight);
+
+    // Full-resolution textures
     this.shorelineMaskTexture?.resize(
       renderer.screen.width,
       renderer.screen.height
@@ -27794,8 +27994,8 @@ class WaterFXLayer extends MaskedEffectLayer {
     );
 
     if (this.displacementSprite) {
-      this.displacementSprite.width = renderer.screen.width;
-      this.displacementSprite.height = renderer.screen.height;
+      this.displacementSprite.width = halfWidth;
+      this.displacementSprite.height = halfHeight;
     }
 
     this._needsShorelineMaskUpdate = true;
@@ -28239,21 +28439,26 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
     const renderer = canvas.app.renderer;
     const screen = renderer.screen;
 
-    // Initialize blur resources
-    const textureOptions = {
-      width: screen.width,
-      height: screen.height,
+    // PERFORMANCE OPTIMIZATION: Use half-resolution textures for blur passes
+    const halfWidth = Math.floor(screen.width / 2);
+    const halfHeight = Math.floor(screen.height / 2);
+
+    // Initialize blur resources at half resolution
+    const halfResTextureOptions = {
+      width: halfWidth,
+      height: halfHeight,
       scaleMode: PIXI.SCALE_MODES.LINEAR,
     };
-    this.intermediateBlurTexture = PIXI.RenderTexture.create(textureOptions);
-    this.blurredMaskTexture = PIXI.RenderTexture.create(textureOptions);
+    this.intermediateBlurTexture = PIXI.RenderTexture.create(halfResTextureOptions);
+    this.blurredMaskTexture = PIXI.RenderTexture.create(halfResTextureOptions);
 
     this.kawaseBlurFilter1 = new PIXI.filters.KawaseBlurFilter(15, 2, true);
     this.kawaseBlurFilter2 = new PIXI.filters.KawaseBlurFilter(15, 2, true);
 
+    // Sprite sized for half-resolution rendering
     this.blurSourceSprite = new PIXI.Sprite();
-    this.blurSourceSprite.width = screen.width;
-    this.blurSourceSprite.height = screen.height;
+    this.blurSourceSprite.width = halfWidth;
+    this.blurSourceSprite.height = halfHeight;
 
     try {
       this.filter = new BuildingShadowsFilter();
@@ -28290,11 +28495,15 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
     super._onResize();
 
     const screen = canvas.app.renderer.screen;
-    this.intermediateBlurTexture?.resize(screen.width, screen.height);
-    this.blurredMaskTexture?.resize(screen.width, screen.height);
+    const halfWidth = Math.floor(screen.width / 2);
+    const halfHeight = Math.floor(screen.height / 2);
+
+    // Resize blur textures to half resolution
+    this.intermediateBlurTexture?.resize(halfWidth, halfHeight);
+    this.blurredMaskTexture?.resize(halfWidth, halfHeight);
     if (this.blurSourceSprite) {
-      this.blurSourceSprite.width = screen.width;
-      this.blurSourceSprite.height = screen.height;
+      this.blurSourceSprite.width = halfWidth;
+      this.blurSourceSprite.height = halfHeight;
     }
 
     if (this.filter) {
@@ -28362,13 +28571,14 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
       this.kawaseBlurFilter2 &&
       this.combinedMaskTexture?.valid
     ) {
-      const blurAmount = Math.max(0.1, blurPixels) / 4.0;
+      // Adjust blur amount for half-resolution rendering
+      const blurAmount = Math.max(0.1, blurPixels) / 4.0 / 2.0;
       this.kawaseBlurFilter1.blur = blurAmount;
       this.kawaseBlurFilter2.blur = blurAmount;
 
       const renderer = canvas.app.renderer;
 
-      // First pass
+      // First pass (Full-res -> Half-res)
       this.blurSourceSprite.texture = this.combinedMaskTexture;
       this.blurSourceSprite.filters = [this.kawaseBlurFilter1];
       renderer.render(this.blurSourceSprite, {
@@ -28376,7 +28586,7 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
         clear: true,
       });
 
-      // Second pass
+      // Second pass (Half-res -> Half-res)
       this.blurSourceSprite.texture = this.intermediateBlurTexture;
       this.blurSourceSprite.filters = [this.kawaseBlurFilter2];
       renderer.render(this.blurSourceSprite, {
@@ -31114,7 +31324,15 @@ class DebuggerUIBuilder {
     return `<div class="control-row">${labelHtml}${checkbox}</div>`;
   }
 
-  static _createSliderHTML(path, label, min, max, step, title = "", initialValue = null) {
+  static _createSliderHTML(
+    path,
+    label,
+    min,
+    max,
+    step,
+    title = "",
+    initialValue = null
+  ) {
     const id = this._createSafeId(path);
     const titleAttr = title ? `title="${title}"` : "";
     const valueAttr = initialValue !== null ? `value="${initialValue}"` : "";
@@ -31231,14 +31449,14 @@ class DebuggerUIBuilder {
   static _createEffectPointGroupsHTML(effectKey, options = {}) {
     const {
       effectName = EFFECT_SOURCE_OPTIONS[effectKey] || effectKey,
-      defaultGroupType = 'area',
-      description = `Create and manage point groups for ${effectName} effects. These points are placed directly on the canvas.`
+      defaultGroupType = "area",
+      description = `Create and manage point groups for ${effectName} effects. These points are placed directly on the canvas.`,
     } = options;
 
     // Get all groups from the current scene that target this effect
     const allGroups = MapPointsManager.getGroups();
     const effectGroups = Object.values(allGroups).filter(
-      g => g.isEffectSource && g.effectTarget === effectKey
+      (g) => g.isEffectSource && g.effectTarget === effectKey
     );
 
     // Helper to create group list items
@@ -31246,12 +31464,22 @@ class DebuggerUIBuilder {
       <details class="group-list-item" style="background: rgba(0,0,0,0.2); border-radius: 3px; margin-bottom: 4px;">
         <summary style="display: flex; align-items: center; gap: 8px; padding: 4px 8px; cursor: pointer;">
           <span class="accordion-toggle" style="font-size: 0.8em;"></span>
-          <span class="mp-group-item-status ${group.isBroken ? 'broken' : 'valid'}" 
-                title="${group.isBroken ? group.reason : 'Valid'}" 
-                style="width: 8px; height: 8px; border-radius: 50%; background: ${group.isBroken ? '#c44' : '#4c4'}; flex-shrink: 0;"></span>
-          <span style="flex: 1; overflow: hidden; text-overflow: ellipsis;">${Handlebars.escapeExpression(group.label)}</span>
-          <span style="color: #999; font-size: 0.9em;">${group.type} • ${group.points.length} pts</span>
-          <button type="button" class="group-delete-btn" data-action="delete-group" data-group-id="${group.id}" 
+          <span class="mp-group-item-status ${
+            group.isBroken ? "broken" : "valid"
+          }" 
+                title="${group.isBroken ? group.reason : "Valid"}" 
+                style="width: 8px; height: 8px; border-radius: 50%; background: ${
+                  group.isBroken ? "#c44" : "#4c4"
+                }; flex-shrink: 0;"></span>
+          <span style="flex: 1; overflow: hidden; text-overflow: ellipsis;">${Handlebars.escapeExpression(
+            group.label
+          )}</span>
+          <span style="color: #999; font-size: 0.9em;">${group.type} • ${
+      group.points.length
+    } pts</span>
+          <button type="button" class="group-delete-btn" data-action="delete-group" data-group-id="${
+            group.id
+          }" 
                   title="Delete this group" style="padding: 2px 6px; background: #c44; border: none; border-radius: 3px; cursor: pointer;">
             <i class="fas fa-trash"></i>
           </button>
@@ -31261,15 +31489,25 @@ class DebuggerUIBuilder {
           <!-- Group Properties -->
           <div class="control-row">
             <label>Label:</label>
-            <input type="text" data-path="group.${group.id}.label" value="${Handlebars.escapeExpression(group.label)}" style="flex: 1;">
+            <input type="text" data-path="group.${
+              group.id
+            }.label" value="${Handlebars.escapeExpression(
+      group.label
+    )}" style="flex: 1;">
           </div>
           
           <div class="control-row">
             <label>Type:</label>
             <select data-path="group.${group.id}.type" style="flex: 1;">
-              <option value="point" ${group.type === 'point' ? 'selected' : ''}>Points</option>
-              <option value="line" ${group.type === 'line' ? 'selected' : ''}>Line</option>
-              <option value="area" ${group.type === 'area' ? 'selected' : ''}>Area</option>
+              <option value="point" ${
+                group.type === "point" ? "selected" : ""
+              }>Points</option>
+              <option value="line" ${
+                group.type === "line" ? "selected" : ""
+              }>Line</option>
+              <option value="area" ${
+                group.type === "area" ? "selected" : ""
+              }>Area</option>
             </select>
           </div>
           
@@ -31280,18 +31518,28 @@ class DebuggerUIBuilder {
               Points (${group.points.length})
             </summary>
             <div style="padding: 8px 0 8px 12px; border-left: 2px solid rgba(255,255,255,0.1); max-height: 200px; overflow-y: auto;">
-              ${group.points.map((p, i) => `
+              ${group.points
+                .map(
+                  (p, i) => `
                 <div style="display: flex; align-items: center; gap: 8px; padding: 2px 0; font-size: 0.9em;">
                   <span style="color: #999;">#${i + 1}</span>
-                  <span style="font-family: monospace;">X: ${Math.round(p.x)}</span>
-                  <span style="font-family: monospace;">Y: ${Math.round(p.y)}</span>
-                  <button type="button" data-action="delete-point" data-group-id="${group.id}" data-point-index="${i}" 
+                  <span style="font-family: monospace;">X: ${Math.round(
+                    p.x
+                  )}</span>
+                  <span style="font-family: monospace;">Y: ${Math.round(
+                    p.y
+                  )}</span>
+                  <button type="button" data-action="delete-point" data-group-id="${
+                    group.id
+                  }" data-point-index="${i}" 
                           style="padding: 1px 4px; background: #c44; border: none; border-radius: 2px; cursor: pointer; font-size: 0.85em;"
                           title="Delete point">
                     <i class="fas fa-times"></i>
                   </button>
                 </div>
-              `).join('')}
+              `
+                )
+                .join("")}
             </div>
           </details>
           
@@ -31312,12 +31560,22 @@ class DebuggerUIBuilder {
                 group.emission?.intensity ?? 1.0
               )}
               
-              <div class="control-row" style="display: ${group.type === 'point' ? 'none' : 'flex'};">
+              <div class="control-row" style="display: ${
+                group.type === "point" ? "none" : "flex"
+              };">
                 <label>Emission Falloff:</label>
-                <input type="checkbox" data-path="group.${group.id}.emission.falloff.enabled" ${group.emission?.falloff?.enabled ? 'checked' : ''}>
+                <input type="checkbox" data-path="group.${
+                  group.id
+                }.emission.falloff.enabled" ${
+      group.emission?.falloff?.enabled ? "checked" : ""
+    }>
               </div>
               
-              <div style="display: ${group.emission?.falloff?.enabled ? 'block' : 'none'};" data-visibility-target="group.${group.id}.emission.falloff.enabled">
+              <div style="display: ${
+                group.emission?.falloff?.enabled ? "block" : "none"
+              };" data-visibility-target="group.${
+      group.id
+    }.emission.falloff.enabled">
                 ${DebuggerUIBuilder._createSliderHTML(
                   `group.${group.id}.emission.falloff.strength`,
                   "Falloff Strength",
@@ -31333,7 +31591,9 @@ class DebuggerUIBuilder {
           
           <!-- Point Placement Actions -->
           <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
-            <button type="button" data-action="select-and-activate-placement" data-group-id="${group.id}" 
+            <button type="button" data-action="select-and-activate-placement" data-group-id="${
+              group.id
+            }" 
                     style="width: 100%; padding: 6px; background: #4a9eff; border: none; border-radius: 3px; cursor: pointer; font-weight: bold;">
               <i class="fas fa-crosshairs"></i> Edit Points on Canvas
             </button>
@@ -31343,9 +31603,10 @@ class DebuggerUIBuilder {
       </details>
     `;
 
-    const groupsListHTML = effectGroups.length > 0 
-      ? effectGroups.map(createGroupItemHTML).join('')
-      : '<p class="description-text" style="font-style: italic; color: #999; margin: 5px 0;">No point groups for this effect yet.</p>';
+    const groupsListHTML =
+      effectGroups.length > 0
+        ? effectGroups.map(createGroupItemHTML).join("")
+        : '<p class="description-text" style="font-style: italic; color: #999; margin: 5px 0;">No point groups for this effect yet.</p>';
 
     return `
       <details style="background: rgba(76, 158, 255, 0.1); border: 1px solid rgba(76, 158, 255, 0.3); border-radius: 4px; padding: 8px; margin-top: 8px;">
@@ -31407,30 +31668,42 @@ class DebuggerUIBuilder {
     // Get all groups from the current scene
     const allGroups = MapPointsManager.getGroups();
     const groupsArray = Object.values(allGroups);
-    
+
     // Separate groups by type
     const groupsByType = {
-      point: groupsArray.filter(g => g.type === 'point'),
-      line: groupsArray.filter(g => g.type === 'line'),
-      area: groupsArray.filter(g => g.type === 'area'),
-      rope: groupsArray.filter(g => g.type === 'rope')
+      point: groupsArray.filter((g) => g.type === "point"),
+      line: groupsArray.filter((g) => g.type === "line"),
+      area: groupsArray.filter((g) => g.type === "area"),
+      rope: groupsArray.filter((g) => g.type === "rope"),
     };
-    
+
     // Helper to create group list items
     const createGroupListHTML = (groups, typeName) => {
       if (groups.length === 0) {
         return '<p class="description-text" style="font-style: italic; color: #999; margin: 5px 0;">No groups of this type</p>';
       }
-      return groups.map(group => `
+      return groups
+        .map(
+          (group) => `
         <details class="group-list-item" style="background: rgba(0,0,0,0.2); border-radius: 3px; margin-bottom: 4px;">
           <summary style="display: flex; align-items: center; gap: 8px; padding: 4px 8px; cursor: pointer;">
             <span class="accordion-toggle" style="font-size: 0.8em;"></span>
-            <span class="mp-group-item-status ${group.isBroken ? 'broken' : 'valid'}" 
-                  title="${group.isBroken ? group.reason : 'Valid'}" 
-                  style="width: 8px; height: 8px; border-radius: 50%; background: ${group.isBroken ? '#c44' : '#4c4'}; flex-shrink: 0;"></span>
-            <span style="flex: 1; overflow: hidden; text-overflow: ellipsis;">${Handlebars.escapeExpression(group.label)}</span>
-            <span style="color: #999; font-size: 0.9em;">${group.points.length} pts</span>
-            <button type="button" class="group-delete-btn" data-action="delete-group" data-group-id="${group.id}" 
+            <span class="mp-group-item-status ${
+              group.isBroken ? "broken" : "valid"
+            }" 
+                  title="${group.isBroken ? group.reason : "Valid"}" 
+                  style="width: 8px; height: 8px; border-radius: 50%; background: ${
+                    group.isBroken ? "#c44" : "#4c4"
+                  }; flex-shrink: 0;"></span>
+            <span style="flex: 1; overflow: hidden; text-overflow: ellipsis;">${Handlebars.escapeExpression(
+              group.label
+            )}</span>
+            <span style="color: #999; font-size: 0.9em;">${
+              group.points.length
+            } pts</span>
+            <button type="button" class="group-delete-btn" data-action="delete-group" data-group-id="${
+              group.id
+            }" 
                     title="Delete this group" style="padding: 2px 6px; background: #c44; border: none; border-radius: 3px; cursor: pointer;">
               <i class="fas fa-trash"></i>
             </button>
@@ -31440,16 +31713,28 @@ class DebuggerUIBuilder {
             <!-- Group Properties -->
             <div class="control-row">
               <label>Label:</label>
-              <input type="text" data-path="group.${group.id}.label" value="${Handlebars.escapeExpression(group.label)}" style="flex: 1;">
+              <input type="text" data-path="group.${
+                group.id
+              }.label" value="${Handlebars.escapeExpression(
+            group.label
+          )}" style="flex: 1;">
             </div>
             
             <div class="control-row">
               <label>Type:</label>
               <select data-path="group.${group.id}.type" style="flex: 1;">
-                <option value="point" ${group.type === 'point' ? 'selected' : ''}>Points</option>
-                <option value="line" ${group.type === 'line' ? 'selected' : ''}>Line</option>
-                <option value="area" ${group.type === 'area' ? 'selected' : ''}>Area</option>
-                <option value="rope" ${group.type === 'rope' ? 'selected' : ''}>Physics Rope</option>
+                <option value="point" ${
+                  group.type === "point" ? "selected" : ""
+                }>Points</option>
+                <option value="line" ${
+                  group.type === "line" ? "selected" : ""
+                }>Line</option>
+                <option value="area" ${
+                  group.type === "area" ? "selected" : ""
+                }>Area</option>
+                <option value="rope" ${
+                  group.type === "rope" ? "selected" : ""
+                }>Physics Rope</option>
               </select>
             </div>
             
@@ -31460,18 +31745,28 @@ class DebuggerUIBuilder {
                 Points (${group.points.length})
               </summary>
               <div style="padding: 8px 0 8px 12px; border-left: 2px solid rgba(255,255,255,0.1); max-height: 200px; overflow-y: auto;">
-                ${group.points.map((p, i) => `
+                ${group.points
+                  .map(
+                    (p, i) => `
                   <div style="display: flex; align-items: center; gap: 8px; padding: 2px 0; font-size: 0.9em;">
                     <span style="color: #999;">#${i + 1}</span>
-                    <span style="font-family: monospace;">X: ${Math.round(p.x)}</span>
-                    <span style="font-family: monospace;">Y: ${Math.round(p.y)}</span>
-                    <button type="button" data-action="delete-point" data-group-id="${group.id}" data-point-index="${i}" 
+                    <span style="font-family: monospace;">X: ${Math.round(
+                      p.x
+                    )}</span>
+                    <span style="font-family: monospace;">Y: ${Math.round(
+                      p.y
+                    )}</span>
+                    <button type="button" data-action="delete-point" data-group-id="${
+                      group.id
+                    }" data-point-index="${i}" 
                             style="padding: 1px 4px; background: #c44; border: none; border-radius: 2px; cursor: pointer; font-size: 0.85em;"
                             title="Delete point">
                       <i class="fas fa-times"></i>
                     </button>
                   </div>
-                `).join('')}
+                `
+                  )
+                  .join("")}
               </div>
             </details>
             
@@ -31484,19 +31779,32 @@ class DebuggerUIBuilder {
               <div style="padding: 8px 0 8px 12px; border-left: 2px solid rgba(255,255,255,0.1);">
                 <div class="control-row">
                   <label>Use as Effect Source:</label>
-                  <input type="checkbox" data-path="group.${group.id}.isEffectSource" ${group.isEffectSource ? 'checked' : ''}>
+                  <input type="checkbox" data-path="group.${
+                    group.id
+                  }.isEffectSource" ${group.isEffectSource ? "checked" : ""}>
                 </div>
                 
-                <div class="control-row" style="display: ${group.isEffectSource ? 'flex' : 'none'};" data-visibility-target="group.${group.id}.isEffectSource">
+                <div class="control-row" style="display: ${
+                  group.isEffectSource ? "flex" : "none"
+                };" data-visibility-target="group.${group.id}.isEffectSource">
                   <label>Target Effect:</label>
-                  <select data-path="group.${group.id}.effectTarget" style="flex: 1;">
-                    ${Object.entries(EFFECT_SOURCE_OPTIONS).map(([key, name]) => 
-                      `<option value="${key}" ${group.effectTarget === key ? 'selected' : ''}>${name}</option>`
-                    ).join('')}
+                  <select data-path="group.${
+                    group.id
+                  }.effectTarget" style="flex: 1;">
+                    ${Object.entries(EFFECT_SOURCE_OPTIONS)
+                      .map(
+                        ([key, name]) =>
+                          `<option value="${key}" ${
+                            group.effectTarget === key ? "selected" : ""
+                          }>${name}</option>`
+                      )
+                      .join("")}
                   </select>
                 </div>
                 
-                <div style="margin-top: 8px; display: ${group.isEffectSource ? 'block' : 'none'};" data-visibility-target="group.${group.id}.isEffectSource">
+                <div style="margin-top: 8px; display: ${
+                  group.isEffectSource ? "block" : "none"
+                };" data-visibility-target="group.${group.id}.isEffectSource">
                   <p class="description-text" style="font-size: 0.9em; margin-bottom: 4px;">Emission Settings</p>
                   
                   ${DebuggerUIBuilder._createSliderHTML(
@@ -31509,12 +31817,22 @@ class DebuggerUIBuilder {
                     group.emission?.intensity ?? 1.0
                   )}
                   
-                  <div class="control-row" style="display: ${group.type === 'point' ? 'none' : 'flex'};">
+                  <div class="control-row" style="display: ${
+                    group.type === "point" ? "none" : "flex"
+                  };">
                     <label>Emission Falloff:</label>
-                    <input type="checkbox" data-path="group.${group.id}.emission.falloff.enabled" ${group.emission?.falloff?.enabled ? 'checked' : ''}>
+                    <input type="checkbox" data-path="group.${
+                      group.id
+                    }.emission.falloff.enabled" ${
+            group.emission?.falloff?.enabled ? "checked" : ""
+          }>
                   </div>
                   
-                  <div style="display: ${group.emission?.falloff?.enabled ? 'block' : 'none'};" data-visibility-target="group.${group.id}.emission.falloff.enabled">
+                  <div style="display: ${
+                    group.emission?.falloff?.enabled ? "block" : "none"
+                  };" data-visibility-target="group.${
+            group.id
+          }.emission.falloff.enabled">
                     ${DebuggerUIBuilder._createSliderHTML(
                       `group.${group.id}.emission.falloff.strength`,
                       "Falloff Strength",
@@ -31531,7 +31849,9 @@ class DebuggerUIBuilder {
             
             <!-- Point Placement Actions -->
             <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
-              <button type="button" data-action="select-and-activate-placement" data-group-id="${group.id}" 
+              <button type="button" data-action="select-and-activate-placement" data-group-id="${
+                group.id
+              }" 
                       style="width: 100%; padding: 6px; background: #4a9eff; border: none; border-radius: 3px; cursor: pointer; font-weight: bold;">
                 <i class="fas fa-crosshairs"></i> Edit Points on Canvas
               </button>
@@ -31539,9 +31859,11 @@ class DebuggerUIBuilder {
             
           </div>
         </details>
-      `).join('');
+      `
+        )
+        .join("");
     };
-    
+
     const content = `
       <p class="description-text">Manage point groups for particle effects, lightning, and physics ropes. Points are placed directly on the canvas.</p>
       
@@ -31588,21 +31910,21 @@ class DebuggerUIBuilder {
       <details open>
         <summary><span class="accordion-toggle"></span><strong>Point Groups</strong></summary>
         <div style="padding-left: 10px; margin-top: 8px;">
-          ${createGroupListHTML(groupsByType.point, 'Point')}
+          ${createGroupListHTML(groupsByType.point, "Point")}
         </div>
       </details>
       
       <details>
         <summary><span class="accordion-toggle"></span><strong>Line Groups</strong></summary>
         <div style="padding-left: 10px; margin-top: 8px;">
-          ${createGroupListHTML(groupsByType.line, 'Line')}
+          ${createGroupListHTML(groupsByType.line, "Line")}
         </div>
       </details>
       
       <details>
         <summary><span class="accordion-toggle"></span><strong>Area Groups</strong></summary>
         <div style="padding-left: 10px; margin-top: 8px;">
-          ${createGroupListHTML(groupsByType.area, 'Area')}
+          ${createGroupListHTML(groupsByType.area, "Area")}
         </div>
       </details>
       
@@ -31610,14 +31932,14 @@ class DebuggerUIBuilder {
         <summary><span class="accordion-toggle"></span><strong>Rope Groups</strong></summary>
         <div style="padding-left: 10px; margin-top: 8px;">
           <p class="description-text" style="font-size: 0.9em; color: #999;">For detailed rope physics settings, see the "Physics Rope" accordion below.</p>
-          ${createGroupListHTML(groupsByType.rope, 'Rope')}
+          ${createGroupListHTML(groupsByType.rope, "Rope")}
         </div>
       </details>
     `;
-    
+
     return DebuggerUIBuilder._createAccordionHTML(
-      'pointGroups',
-      'Point Groups',
+      "pointGroups",
+      "Point Groups",
       content
     );
   }
@@ -31698,10 +32020,10 @@ class DebuggerUIBuilder {
                     <input type="text" id="rope-instance-end-texture-${
                       rope.id
                     }" data-path="rope-instance.${
-              rope.id
-            }.ropeEndTexturePath" value="${Handlebars.escapeExpression(
-              rope.ropeEndTexturePath || ""
-            )}" placeholder="Leave empty to disable" style="flex: 1; font-family: monospace; font-size: 10px;">
+            rope.id
+          }.ropeEndTexturePath" value="${Handlebars.escapeExpression(
+            rope.ropeEndTexturePath || ""
+          )}" placeholder="Leave empty to disable" style="flex: 1; font-family: monospace; font-size: 10px;">
                     <button type="button" class="file-picker-btn" data-fp-target="rope-instance-end-texture-${
                       rope.id
                     }" data-fp-type="image" title="Browse for rope end texture">
@@ -32876,7 +33198,7 @@ class DebuggerEventHandler {
             // Handle rope end scale changes
             rope.ropeEndScale = value;
             if (rope.ropeEndSprites) {
-              rope.ropeEndSprites.forEach(sprite => {
+              rope.ropeEndSprites.forEach((sprite) => {
                 if (sprite) sprite.scale.set(value);
               });
             }
@@ -32905,7 +33227,7 @@ class DebuggerEventHandler {
       const parts = path.split(".");
       const groupId = parts[1];
       const property = parts.slice(2).join("."); // Support nested properties like "emission.intensity"
-      
+
       // Update the group data via MapPointsManager
       const updateData = {};
       // Handle nested property paths
@@ -32920,36 +33242,44 @@ class DebuggerEventHandler {
       } else {
         updateData[property] = value;
       }
-      
+
       await MapPointsManager.updateGroupProperties(groupId, updateData);
-      
+
       // Handle visibility toggles for effect source UI
       if (property === "isEffectSource") {
         const visibilityTargets = this.element.querySelectorAll(
           `[data-visibility-target="group.${groupId}.isEffectSource"]`
         );
-        visibilityTargets.forEach(el => {
-          el.style.display = value ? (el.classList.contains('control-row') ? 'flex' : 'block') : 'none';
+        visibilityTargets.forEach((el) => {
+          el.style.display = value
+            ? el.classList.contains("control-row")
+              ? "flex"
+              : "block"
+            : "none";
         });
       }
-      
+
       if (property === "emission.falloff.enabled") {
         const visibilityTargets = this.element.querySelectorAll(
           `[data-visibility-target="group.${groupId}.emission.falloff.enabled"]`
         );
-        visibilityTargets.forEach(el => {
-          el.style.display = value ? 'block' : 'none';
+        visibilityTargets.forEach((el) => {
+          el.style.display = value ? "block" : "none";
         });
       }
-      
+
       // If type changed, trigger a re-render to show/hide type-specific controls
       if (property === "type") {
         if (game.mapShine.debugger) {
           game.mapShine.debugger.render(false);
         }
       }
-      
-      console.log(`MapShine | Updated group ${groupId}.${property} = ${JSON.stringify(value)}`);
+
+      console.log(
+        `MapShine | Updated group ${groupId}.${property} = ${JSON.stringify(
+          value
+        )}`
+      );
       return; // Don't save group changes to profile
     }
 
@@ -33180,7 +33510,8 @@ class DebuggerEventHandler {
       windForce: typeConfig.windForce ?? preset.windForce,
       springConstant: typeConfig.springConstant ?? preset.springConstant,
       tapering: typeConfig.tapering ?? preset.tapering,
-      ropeEndTexturePath: typeConfig.ropeEndTexturePath ?? preset.ropeEndTexturePath,
+      ropeEndTexturePath:
+        typeConfig.ropeEndTexturePath ?? preset.ropeEndTexturePath,
       ropeEndScale: typeConfig.ropeEndScale ?? preset.ropeEndScale,
       indoorWindShielding:
         typeConfig.indoorWindShielding ?? preset.indoorWindShielding,
@@ -33762,9 +34093,13 @@ class DebuggerEventHandler {
 
     const action = target.dataset.action;
     console.log("MapShine | Delegated click detected, action:", action);
-    
+
     // Stop propagation for button actions inside accordions to prevent toggling
-    if (action === "delete-group" || action === "delete-rope-group" || action === "delete-point") {
+    if (
+      action === "delete-group" ||
+      action === "delete-rope-group" ||
+      action === "delete-point"
+    ) {
       e.stopPropagation();
     }
 
@@ -33858,26 +34193,31 @@ class DebuggerEventHandler {
         const nameInput = document.getElementById("new-group-name-input");
         const typeSelect = document.getElementById("new-group-type-select");
         if (!nameInput || !typeSelect) break;
-        
+
         const groupName = nameInput.value.trim() || "New Group";
         const groupType = typeSelect.value;
-        
+
         const newGroupId = await MapPointsManager.createGroup({
           label: groupName,
           type: groupType,
         });
-        
+
         if (newGroupId) {
           nameInput.value = "";
           // UI will auto-refresh via mapShine:mapPointsUpdated hook
           // Open the Point Groups section after render completes
           setTimeout(() => {
-            const pointGroupsDetails = game.mapShine.debugger?.element?.[0]?.querySelector('#details-pointGroups');
+            const pointGroupsDetails =
+              game.mapShine.debugger?.element?.[0]?.querySelector(
+                "#details-pointGroups"
+              );
             if (pointGroupsDetails) {
               pointGroupsDetails.open = true;
             }
           }, 50);
-          ui.notifications.info(`Created group "${groupName}". Click "Edit Points on Canvas" to place points.`);
+          ui.notifications.info(
+            `Created group "${groupName}". Click "Edit Points on Canvas" to place points.`
+          );
         }
         break;
       }
@@ -33927,7 +34267,11 @@ class DebuggerEventHandler {
             // Update the toggle button state
             this._updatePlacementModeUI(true);
             const group = MapPointsManager.getGroup(groupId);
-            ui.notifications.info(`Editing "${group?.label || 'Unknown'}". Click on the canvas to add/move points.`);
+            ui.notifications.info(
+              `Editing "${
+                group?.label || "Unknown"
+              }". Click on the canvas to add/move points.`
+            );
           }
         }
         break;
@@ -33935,7 +34279,7 @@ class DebuggerEventHandler {
       case "toggle-placement-mode": {
         const mgr = game.mapShine.mapPointsInteractionManager;
         if (!mgr) break;
-        
+
         if (mgr.isActive) {
           mgr.deactivate();
           game.mapShine.activeMapPointGroup = null;
@@ -33943,12 +34287,20 @@ class DebuggerEventHandler {
           ui.notifications.info("Point placement mode deactivated.");
         } else {
           if (!game.mapShine.activeMapPointGroup) {
-            ui.notifications.warn("Select a group first by clicking 'Edit Points on Canvas' on any group.");
+            ui.notifications.warn(
+              "Select a group first by clicking 'Edit Points on Canvas' on any group."
+            );
           } else {
             mgr.activate();
             this._updatePlacementModeUI(true);
-            const group = MapPointsManager.getGroup(game.mapShine.activeMapPointGroup);
-            ui.notifications.info(`Editing "${group?.label || 'Unknown'}". Click on the canvas to add/move points.`);
+            const group = MapPointsManager.getGroup(
+              game.mapShine.activeMapPointGroup
+            );
+            ui.notifications.info(
+              `Editing "${
+                group?.label || "Unknown"
+              }". Click on the canvas to add/move points.`
+            );
           }
         }
         break;
@@ -35064,7 +35416,7 @@ class DebuggerEventHandler {
   _updatePlacementModeUI(isActive) {
     const toggleBtn = this.element.querySelector("#placement-mode-toggle-btn");
     const label = this.element.querySelector("#placement-mode-label");
-    
+
     if (toggleBtn) {
       if (isActive) {
         toggleBtn.style.background = "#c44";
@@ -35074,9 +35426,11 @@ class DebuggerEventHandler {
         toggleBtn.style.borderColor = "#4a9eff";
       }
     }
-    
+
     if (label) {
-      label.textContent = isActive ? "Deactivate Point Placement Mode" : "Activate Point Placement Mode";
+      label.textContent = isActive
+        ? "Deactivate Point Placement Mode"
+        : "Activate Point Placement Mode";
     }
   }
 
@@ -35688,7 +36042,7 @@ class MaterialEditorDebugger {
 
     // Save the state of all <details> elements (accordion open/closed state)
     const accordionStates = new Map();
-    this.element.querySelectorAll('details').forEach(details => {
+    this.element.querySelectorAll("details").forEach((details) => {
       if (details.id) {
         accordionStates.set(details.id, details.open);
       }
@@ -35711,12 +36065,12 @@ class MaterialEditorDebugger {
 
     const column2 = this.element.querySelector("#fx-column-2");
     const column3 = this.element.querySelector("#fx-column-3");
-    
+
     if (column2) column2.innerHTML = column2Effects.join("");
     if (column3) column3.innerHTML = column3Effects.join("");
 
     // Restore accordion states
-    this.element.querySelectorAll('details').forEach(details => {
+    this.element.querySelectorAll("details").forEach((details) => {
       if (details.id && accordionStates.has(details.id)) {
         details.open = accordionStates.get(details.id);
       }
