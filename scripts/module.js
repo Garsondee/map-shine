@@ -7394,7 +7394,7 @@ class PauseManager {
     const isChanging = wasPaused !== pause;
 
     if (isChanging) {
-      PauseManager._triggerStateChange(pause);  // Use class name directly
+      PauseManager._triggerStateChange(pause);  // ✅ Use class name directly
     }
 
     // Call the original togglePause function to maintain core functionality
