@@ -3843,7 +3843,7 @@ class MapShineInitialiser {
 
           const isTargetWithEffects =
             this.targets.tiles.has(tile.id) && config.enabled;
-          if (isTargetWithEffects && !tile.document.overhead) {
+          if (isTargetWithEffects && !tile.document.restrictions?.weather) {
             tile.mesh.alpha = config.tileOpacity;
           } else if (!isTargetWithEffects) {
             tile.mesh.alpha = 1.0;
@@ -8509,7 +8509,7 @@ class OverheadEffectLayer extends foundry.canvas.layers.CanvasLayer {
 
     const currentOverheadIds = new Set();
     for (const tile of canvas.tiles.placeables) {
-      if (tile.document.overhead) {
+      if (tile.document.restrictions?.weather) {
         currentOverheadIds.add(tile.id);
         if (!this.overheadSprites.has(tile.id)) {
           const sprite = new PIXI.Sprite(tile.texture);
@@ -9933,22 +9933,7 @@ class GeometryMaskManager {
     // Reset the flag for each new scene to allow the initialization poll to run again.
     this._mapPointsInitialized = false;
 
-    const screen = CoordinateManager.getScreenDimensions();
-
-    for (const effectKey of Object.keys(EFFECT_SOURCE_OPTIONS)) {
-      if (!effectKey) continue; // Skip the "None" option
-
-      const renderTexture = PIXI.RenderTexture.create({
-        width: screen.width,
-        height: screen.height,
-      });
-      const graphics = new PIXI.Graphics();
-
-      this.masks.set(effectKey, {
-        texture: renderTexture,
-        graphics,
-      });
-    }
+    // Do NOT create any textures here. They will be created on-demand.
 
     Hooks.on("mapShine:mapPointsUpdated", this._boundOnMapPointsUpdated);
     Hooks.on("canvasPan", this._boundOnPan);
@@ -9956,7 +9941,7 @@ class GeometryMaskManager {
 
     this.requestUpdate();
     console.log(
-      `Map Shine | GeometryMaskManager initialized with ${this.masks.size} mask targets.`
+      `Map Shine | GeometryMaskManager initialized (Lazy Texture Allocation).`
     );
   }
 
@@ -9974,6 +9959,28 @@ class GeometryMaskManager {
     }
     this.masks.clear();
     console.log("Map Shine | GeometryMaskManager destroyed.");
+  }
+
+  /**
+   * Ensures a mask texture and graphics object exist for a given effect key.
+   * Creates them on-demand if they do not.
+   * @param {string} effectKey The effect identifier (e.g., 'sparks').
+   * @private
+   */
+  _ensureMaskExists(effectKey) {
+    if (!this.masks.has(effectKey)) {
+      const screen = CoordinateManager.getScreenDimensions();
+      const renderTexture = PIXI.RenderTexture.create({
+        width: screen.width,
+        height: screen.height,
+      });
+      const graphics = new PIXI.Graphics();
+
+      this.masks.set(effectKey, {
+        texture: renderTexture,
+        graphics,
+      });
+    }
   }
 
   /**
@@ -9996,6 +10003,7 @@ class GeometryMaskManager {
   _onResize() {
     if (!this.renderer) return;
     const screen = CoordinateManager.getScreenDimensions();
+    // Only resize textures that have already been created.
     for (const { texture } of this.masks.values()) {
       texture.resize(screen.width, screen.height);
     }
@@ -10049,7 +10057,7 @@ class GeometryMaskManager {
 
   _renderAllMasks() {
     // console.log("Map Shine | GeometryMaskManager: Rendering all masks...");
-    // Clear all graphics objects first
+    // Clear all existing graphics objects first
     for (const { graphics } of this.masks.values()) {
       graphics.clear();
     }
@@ -10067,16 +10075,13 @@ class GeometryMaskManager {
     for (const group of Object.values(groups)) {
       if (
         !group.isEffectSource ||
-        !group.effectTarget ||
-        !this.masks.has(group.effectTarget)
+        !group.effectTarget
       ) {
-        if (group.isEffectSource) {
-          // console.log(
-          //   `Map Shine | GeometryMaskManager: Skipping group "${group.label}" (effectTarget: ${group.effectTarget}, has mask: ${this.masks.has(group.effectTarget)})`
-          // );
-        }
         continue;
       }
+      
+      // LAZY INSTANTIATION: Ensure mask exists for this effect before drawing
+      this._ensureMaskExists(group.effectTarget);
 
       const { graphics } = this.masks.get(group.effectTarget);
       const pointRadius = 16; // World-space radius for point sources
@@ -10151,10 +10156,12 @@ class GeometryMaskManager {
 
   /**
    * Retrieves a generated mask for a specific effect.
+   * Creates the texture on-demand if it doesn't exist.
    * @param {string} effectKey The key of the effect (e.g., 'sparks').
    * @returns {PIXI.RenderTexture | null} The mask texture, or null if not found.
    */
   getMask(effectKey) {
+    this._ensureMaskExists(effectKey);
     return this.masks.get(effectKey)?.texture || null;
   }
 }
@@ -16394,8 +16401,6 @@ class ColorFromSpawnBehavior {
  * This distributes the workload across frames and keeps all data on GPU.
  */
 class GPUMaskSpawnBehavior {
-  static type = "gpuMaskSpawn";
-
   constructor(config) {
     this.order = PIXI.particles.behaviors.BehaviorOrder.Spawn;
 
@@ -16426,9 +16431,9 @@ class GPUMaskSpawnBehavior {
     this._maskPixelData = null;
     this._colorPixelData = null;
     this._needsRefresh = true;
-
-    // Maximum attempts per frame to find valid spawn position
-    this.maxAttemptsPerFrame = 3;
+    
+    // Maximum attempts per particle to find valid spawn position
+    this.maxAttemptsPerParticle = 25;
   }
 
   /**
@@ -16449,6 +16454,7 @@ class GPUMaskSpawnBehavior {
 
       // Start particle invisible until valid position found
       next.alpha = 0;
+      next.scale.set(0);
 
       next = next.next;
     }
@@ -16463,51 +16469,70 @@ class GPUMaskSpawnBehavior {
       return;
     }
 
-    // Limit attempts per frame to avoid stalling
-    if (particle.spawnAttempts >= this.maxAttemptsPerFrame) {
-      return;
-    }
-
-    particle.spawnAttempts++;
-
     // Refresh pixel data if needed (for dynamic masks or first time)
+    // This is now done once per frame for all particles, not per particle.
+    // The ParticleLayer's animation loop should call forceRefresh() on pan.
     if (this._needsRefresh) {
       this._refreshPixelData();
     }
+    
+    // If we don't have pixel data, we can't do anything.
+    if (!this._maskPixelData) {
+        particle.kill(); // Kill the particle if the mask can't be read.
+        return;
+    }
 
-    // Sample mask at particle's UV coordinates
-    if (this._maskPixelData && this.maskTexture?.valid) {
-      const u = particle.spawnCheckUV.u;
-      const v = particle.spawnCheckUV.v;
+    // Attempt to find a valid position for this particle.
+    // Loop for a few attempts to increase the chance of finding a valid spot per frame.
+    for (let i = 0; i < 3; i++) { // Try up to 3 times per frame
+        if (particle.spawnAttempts >= this.maxAttemptsPerParticle) {
+            particle.kill(); // Give up after max attempts
+            return;
+        }
 
-      const texWidth = this.maskTexture.width;
-      const texHeight = this.maskTexture.height;
+        particle.spawnAttempts++;
+        
+        // Use the particle's current random UV
+        const u = particle.spawnCheckUV.u;
+        const v = particle.spawnCheckUV.v;
 
-      const x = Math.floor(u * texWidth);
-      const y = Math.floor(v * texHeight);
-      const index = (y * texWidth + x) * 4;
+        const texWidth = this.maskTexture.width;
+        const texHeight = this.maskTexture.height;
 
-      const pixelValue = this._maskPixelData[index];
+        const x = Math.floor(u * (texWidth - 1));
+        const y = Math.floor(v * (texHeight - 1));
+        const index = (y * texWidth + x) * 4;
 
-      // Check if pixel passes threshold test
-      let isValid = false;
-      if (this.spawnMode === "range") {
-        isValid =
-          pixelValue >= this.threshold && pixelValue <= this.upperThreshold;
-      } else {
-        isValid = pixelValue >= this.threshold;
-      }
+        const pixelValue = this._maskPixelData[index];
 
-      if (isValid) {
-        // Valid spawn position found - place particle
-        this._placeParticle(particle, u, v, x, y, texWidth, texHeight);
-        particle.spawnValidated = true;
-        particle.alpha = 1; // Make particle visible
-      } else {
-        // Invalid position - generate new random UV for next attempt
-        particle.spawnCheckUV.u = Math.random();
-        particle.spawnCheckUV.v = Math.random();
-      }
+        // Check if pixel passes threshold test
+        let isValid = false;
+        if (this.spawnMode === "range") {
+            isValid =
+            pixelValue >= this.threshold && pixelValue <= this.upperThreshold;
+        } else {
+            isValid = pixelValue >= this.threshold;
+        }
+
+        if (isValid) {
+            // Valid spawn position found - place particle and exit the loop
+            this._placeParticle(particle, u, v, x, y, texWidth, texHeight);
+            particle.spawnValidated = true;
+            // Restore alpha/scale to what it should be at age 0. This is handled by other behaviors.
+            // We just need to make sure our overrides are gone.
+            particle.alpha = 1; 
+            // The scale behavior will set the correct initial scale. We reset it from 0.
+            if (particle.config.scaleBehavior) {
+                particle.config.scaleBehavior.updateParticle(particle, 0);
+            } else {
+                particle.scale.set(1);
+            }
+            return;
+        } else {
+            // Invalid position - generate new random UV for the next attempt (on this frame or next)
+            particle.spawnCheckUV.u = Math.random();
+            particle.spawnCheckUV.v = Math.random();
+        }
     }
   }
 
@@ -16520,11 +16545,14 @@ class GPUMaskSpawnBehavior {
       const cameraOffset = CoordinateManager.getCameraOffset();
       const canvasScale = CoordinateManager.getCanvasScale();
 
-      const worldX = cameraOffset.x + (u * this.bounds.width) / canvasScale;
-      const worldY = cameraOffset.y + (v * this.bounds.height) / canvasScale;
+      // The UVs (u,v) map to the full screen, not the view size.
+      const screen = CoordinateManager.getScreenDimensions();
+      const worldX = cameraOffset.x + (u * screen.width) / canvasScale;
+      const worldY = cameraOffset.y + (v * screen.height) / canvasScale;
 
       particle.position.x = worldX;
       particle.position.y = worldY;
+
     } else {
       // For static masks, use bounds directly
       particle.position.x = this.bounds.x + u * this.bounds.width;
@@ -16533,8 +16561,8 @@ class GPUMaskSpawnBehavior {
 
     // Sample color if color texture is available
     if (this._colorPixelData && this.colorTexture?.valid) {
-      const colorX = Math.floor((texX / texWidth) * this.colorTexture.width);
-      const colorY = Math.floor((texY / texHeight) * this.colorTexture.height);
+      const colorX = Math.floor((texX / texWidth) * (this.colorTexture.width - 1));
+      const colorY = Math.floor((texY / texHeight) * (this.colorTexture.height - 1));
       const colorIndex = (colorY * this.colorTexture.width + colorX) * 4;
 
       particle.spawnColor = [
@@ -16558,63 +16586,40 @@ class GPUMaskSpawnBehavior {
    */
   _refreshPixelData() {
     if (!this.renderer || !this.maskTexture?.valid) {
+      this._maskPixelData = null; // Ensure data is null if mask is invalid
       return;
     }
 
     try {
-      // Extract mask texture pixels
-      if (
-        !this._maskRenderTexture ||
-        this._maskRenderTexture.width !== this.maskTexture.width
-      ) {
-        if (this._maskRenderTexture) {
-          this._maskRenderTexture.destroy(true);
+        // Since this is a very expensive operation, only do it if the texture has actually changed.
+        // This check is a bit simplistic but better than nothing.
+        const requiresNewRender = !this._maskRenderTexture ||
+            this._maskRenderTexture.width !== this.maskTexture.width ||
+            this._maskRenderTexture.height !== this.maskTexture.height;
+
+        if (requiresNewRender) {
+            this._maskRenderTexture?.destroy(true);
+            this._maskRenderTexture = PIXI.RenderTexture.create({
+                width: this.maskTexture.width,
+                height: this.maskTexture.height,
+            });
         }
-        this._maskRenderTexture = PIXI.RenderTexture.create({
-          width: this.maskTexture.width,
-          height: this.maskTexture.height,
+        
+        const sprite = new PIXI.Sprite(this.maskTexture);
+        this.renderer.render(sprite, {
+            renderTexture: this._maskRenderTexture,
+            clear: true,
         });
-      }
-
-      const sprite = new PIXI.Sprite(this.maskTexture);
-      this.renderer.render(sprite, {
-        renderTexture: this._maskRenderTexture,
-        clear: true,
-      });
-      this._maskPixelData = this.renderer.extract.pixels(
-        this._maskRenderTexture
-      );
-      sprite.destroy();
-
-      // Extract color texture pixels if available
-      if (this.colorTexture?.valid) {
-        if (
-          !this._colorRenderTexture ||
-          this._colorRenderTexture.width !== this.colorTexture.width
-        ) {
-          if (this._colorRenderTexture) {
-            this._colorRenderTexture.destroy(true);
-          }
-          this._colorRenderTexture = PIXI.RenderTexture.create({
-            width: this.colorTexture.width,
-            height: this.colorTexture.height,
-          });
-        }
-
-        const colorSprite = new PIXI.Sprite(this.colorTexture);
-        this.renderer.render(colorSprite, {
-          renderTexture: this._colorRenderTexture,
-          clear: true,
-        });
-        this._colorPixelData = this.renderer.extract.pixels(
-          this._colorRenderTexture
+        this._maskPixelData = this.renderer.extract.pixels(
+            this._maskRenderTexture
         );
-        colorSprite.destroy();
-      }
-
-      this._needsRefresh = false;
+        sprite.destroy();
+        
+        this._needsRefresh = false;
+        
     } catch (e) {
       console.error("GPUMaskSpawnBehavior | Error refreshing pixel data:", e);
+      this._maskPixelData = null;
     }
   }
 
@@ -20773,7 +20778,7 @@ class BackgroundEffectTileLayer extends foundry.canvas.layers.CanvasLayer {
     for (const tileId of currentTargetIds) {
       const tile = canvas.tiles.get(tileId);
       // Ensure the tile exists and is not an overhead tile to avoid conflicts
-      if (tile && !tile.document.overhead) {
+      if (tile && !tile.document.restrictions?.weather) {
         if (!this.backgroundSprites.has(tileId)) {
           const sprite = new PIXI.Sprite(tile.texture);
           this.backgroundSprites.set(tileId, sprite);
@@ -22744,7 +22749,8 @@ class MetallicShineFilter extends PIXI.Filter {
               uniform float uGamma;
               uniform vec3 uTintColor;
               uniform float uTintAmount;
-              uniform bool uInvert;
+                            uniform bool uInvert;
+              uniform float uBrightnessBoost;
 
               const vec3 LUM_WEIGHTS = vec3(0.299, 0.587, 0.114);
 
@@ -22802,10 +22808,14 @@ class MetallicShineFilter extends PIXI.Filter {
                       finalAlpha *= structuralMaskValue;
                   }
 
-                  finalAlpha *= uGlobalIntensity;
+                                    finalAlpha *= uGlobalIntensity;
                   finalAlpha *= (1.0 - uDarkness * 0.75);
 
-                  gl_FragColor = vec4(clamp(workingColor, 0.0, 1.0) * finalAlpha, finalAlpha);
+                  // Apply brightness boost to allow HDR values for brighter shine
+                  vec3 boostedColor = workingColor * uBrightnessBoost;
+                  
+                  // Premultiply alpha but don't clamp to allow values > 1.0 for bloom
+                  gl_FragColor = vec4(boostedColor * finalAlpha, finalAlpha);
               }
           `;
 
@@ -22828,6 +22838,7 @@ class MetallicShineFilter extends PIXI.Filter {
       uTintColor: [1.0, 1.0, 1.0],
       uTintAmount: 0.0,
       uInvert: false,
+      uBrightnessBoost: 2.5,
       uSceneRectNorm: [0, 0, 1, 1],
       uBuildingShadowsEnabled: false,
       uBuildingShadowIntensity: 0.5,
