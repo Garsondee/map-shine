@@ -3576,13 +3576,11 @@ class MapShineInitialiser {
       initialized: true,
       isCustomPaused: false,
       transitionActive: false,
-      pauseEffectManager: new PauseEffectManager(),
       combatEffectManager: new CombatEffectManager(),
       timeControl: {
         timeFactor: 1.0,
       },
-      systemsReady: false,
-      loadingScreen: null,
+      systemsReady: false,      loadingScreen: null,
       loadingManager: {
         screen: null,
         waypoints: {
@@ -3923,12 +3921,40 @@ class MapShineInitialiser {
  * @class SettingsManager
  * @static
  * @since 1.0.0
- */
+*/
 class SettingsManager {
   /**
    * Registers all module settings with Foundry's settings system.
    */
   static registerSettings() {
+    // ========================================================
+    // COMPATIBILITY SETTINGS - At the top for easy access
+    // ========================================================
+    
+    game.settings.register(MODULE_ID, "enable-scene-transitions", {
+      name: "⚙️ Enable Scene Transitions",
+      hint: "Shows animated loading screens when changing between scenes. DISABLE THIS if you experience black / grey screens, freezing, or conflicts with other modules or hosting platforms like The Forge.",
+      scope: "world",
+      config: true,
+      type: Boolean,
+      default: true,
+      requiresReload: true,
+    });
+
+    game.settings.register(MODULE_ID, "enable-pause-screen", {
+      name: "⚙️ Enable Custom Pause Screen",
+      hint: "Shows a custom visual overlay when the game is paused. DISABLE THIS if you experience conflicts with other modules or game systems that modify the pause screen.",
+      scope: "world",
+      config: true,
+      type: Boolean,
+      default: true,
+      requiresReload: true,
+    });
+
+    // ========================================================
+    // LOADING SCREEN SETTINGS
+    // ========================================================
+
     game.settings.register(MODULE_ID, "disable-loading-screen", {
       name: "Disable Loading Screen",
       hint: "Completely disables the loading screen feature. Disabling this may cause some effects and layers to pop into existence a moment after the scene has finished loading, which can be jarring. Recommended to keep enabled unless it causes issues.",
@@ -4575,263 +4601,207 @@ class HooksManager {
 
     // --- libWrapper Patches ---
     if (game.modules.get("lib-wrapper")?.active) {
-      // Scene Transition Wrapper
-      libWrapper.register(
+      // Check if scene transitions are enabled
+      const sceneTransitionsEnabled = game.settings.get(
         MODULE_ID,
-        "Scene.prototype.view",
-        async function (wrapped, ...args) {
-          console.log(
-            "[MapShine Transition] Scene.prototype.view wrapper called"
-          );
-          try {
-            console.log("STEP 1");
-            console.log("STEP 2");
-            console.log("STEP 3");
-            console.log("STEP 4");
-            console.log("STEP 5");
+        "enable-scene-transitions"
+      );
 
-            // Add a stack trace to see where this is being called from
-            console.log(`[MapShine Transition] Call stack:`, new Error().stack);
+      if (sceneTransitionsEnabled) {
+        console.log(
+          "Map Shine | Scene transitions enabled - registering Scene.prototype.view wrapper"
+        );
+        
+        // Scene Transition Wrapper - Enhanced with robust error handling
+        try {
+          libWrapper.register(
+            MODULE_ID,
+            "Scene.prototype.view",
+            async function (wrapped, ...args) {
+              try {
+                // === PHASE 1: VALIDATION ===
+                // Validate critical dependencies before proceeding
+                if (!game?.mapShine?.sceneChangeManager) {
+                  console.warn(
+                    "[MapShine Transition] sceneChangeManager not available, using default scene transition"
+                  );
+                  return wrapped(...args);
+                }
 
-            const sceneManager = game.mapShine?.sceneChangeManager;
+                if (!canvas?.scene) {
+                  console.warn(
+                    "[MapShine Transition] Canvas not initialized, using default scene transition"
+                  );
+                  return wrapped(...args);
+                }
 
-            if (!sceneManager) {
-              console.warn(
-                `[MapShine Transition] No sceneChangeManager found, skipping transition`
-              );
-              return wrapped(...args);
-            }
+                const sceneManager = game.mapShine.sceneChangeManager;
+                const sceneToView = this;
+                const currentScene = canvas.scene;
 
-            console.log(
-              `[MapShine Transition] SceneManager found, constructing transition config`
-            );
+                // Validate scene objects
+                if (!sceneToView?.id || !currentScene?.id) {
+                  console.warn(
+                    "[MapShine Transition] Invalid scene data, using default scene transition"
+                  );
+                  return wrapped(...args);
+                }
 
-            // Construct the transition config from individual game settings
-            let transitionConfig;
-            try {
-              transitionConfig = {
-                enabled: game.settings.get(
-                  MODULE_ID,
-                  "universal.sceneTransition.enabled"
-                ),
-                fadeOutDuration: game.settings.get(
-                  MODULE_ID,
-                  "universal.sceneTransition.fadeOutDuration"
-                ),
-                fadeInDuration: game.settings.get(
-                  MODULE_ID,
-                  "universal.sceneTransition.fadeInDuration"
-                ),
-                logoPath: game.settings.get(
-                  MODULE_ID,
-                  "universal.sceneTransition.logoPath"
-                ),
-                heading: game.settings.get(
-                  MODULE_ID,
-                  "universal.sceneTransition.heading"
-                ),
-                subheading: game.settings.get(
-                  MODULE_ID,
-                  "universal.sceneTransition.subheading"
-                ),
-                staticDescription: game.settings.get(
-                  MODULE_ID,
-                  "universal.sceneTransition.staticDescription"
-                ),
-                showSceneName: game.settings.get(
-                  MODULE_ID,
-                  "universal.sceneTransition.showSceneName"
-                ),
-                useRandomHint: game.settings.get(
-                  MODULE_ID,
-                  "universal.sceneTransition.useRandomHint"
-                ),
-                randomHints: (
-                  game.settings.get(
-                    MODULE_ID,
-                    "universal.sceneTransition.randomHints"
-                  ) || ""
-                )
-                  .split(/\r?\n/)
-                  .filter((h) => h.trim() !== ""),
-                // --- MODIFIED SECTION ---
-                // Point to the consolidated loading screen settings.
-                staticBackgroundImage: game.settings.get(
-                  MODULE_ID,
-                  "loading-screen-static-background"
-                ),
-                useRandomBackgroundImage: game.settings.get(
-                  MODULE_ID,
-                  "loading-screen-use-random-background"
-                ),
-                backgroundImages: (
-                  game.settings.get(
-                    MODULE_ID,
-                    "loading-screen-random-backgrounds"
-                  ) || ""
-                )
-                  .split(/\r?\n/)
-                  .filter((h) => h.trim() !== ""),
-                backgroundOverlayEnabled: game.settings.get(
-                  MODULE_ID,
-                  "loading-screen-background-overlay-enabled"
-                ),
-                backgroundOverlayOpacity: game.settings.get(
-                  MODULE_ID,
-                  "loading-screen-background-overlay-opacity"
-                ),
-                // --- END MODIFIED SECTION ---
-              };
-              console.log(
-                `[MapShine Transition] Transition config created successfully`
-              );
-            } catch (configError) {
-              console.error(
-                `[MapShine Transition] Error creating transition config:`,
-                configError
-              );
-              return wrapped(...args);
-            }
+                // Skip if same scene
+                if (sceneToView.id === currentScene.id) {
+                  return wrapped(...args);
+                }
 
-            const sceneToView = this;
-            const currentScene = canvas.scene;
+                // === PHASE 2: CONFIGURATION ===
+                // Build transition config with defensive fallbacks
+                let transitionConfig;
+                try {
+                  transitionConfig = {
+                    enabled: game.settings.get(MODULE_ID, "universal.sceneTransition.enabled") ?? true,
+                    fadeOutDuration: game.settings.get(MODULE_ID, "universal.sceneTransition.fadeOutDuration") ?? 1500,
+                    fadeInDuration: game.settings.get(MODULE_ID, "universal.sceneTransition.fadeInDuration") ?? 1500,
+                    logoPath: game.settings.get(MODULE_ID, "universal.sceneTransition.logoPath") ?? "",
+                    heading: game.settings.get(MODULE_ID, "universal.sceneTransition.heading") ?? "Loading...",
+                    subheading: game.settings.get(MODULE_ID, "universal.sceneTransition.subheading") ?? "",
+                    staticDescription: game.settings.get(MODULE_ID, "universal.sceneTransition.staticDescription") ?? "",
+                    showSceneName: game.settings.get(MODULE_ID, "universal.sceneTransition.showSceneName") ?? true,
+                    useRandomHint: game.settings.get(MODULE_ID, "universal.sceneTransition.useRandomHint") ?? false,
+                    randomHints: (game.settings.get(MODULE_ID, "universal.sceneTransition.randomHints") || "").split(/\r?\n/).filter((h) => h.trim() !== ""),
+                    staticBackgroundImage: game.settings.get(MODULE_ID, "loading-screen-static-background") ?? "",
+                    useRandomBackgroundImage: game.settings.get(MODULE_ID, "loading-screen-use-random-background") ?? false,
+                    backgroundImages: (game.settings.get(MODULE_ID, "loading-screen-random-backgrounds") || "").split(/\r?\n/).filter((h) => h.trim() !== ""),
+                    backgroundOverlayEnabled: game.settings.get(MODULE_ID, "loading-screen-background-overlay-enabled") ?? true,
+                    backgroundOverlayOpacity: game.settings.get(MODULE_ID, "loading-screen-background-overlay-opacity") ?? 0.7,
+                  };
+                } catch (configError) {
+                  console.error(
+                    "[MapShine Transition] Failed to load settings, using default scene transition:",
+                    configError
+                  );
+                  return wrapped(...args);
+                }
 
-            console.log(
-              `[MapShine Transition] Transition config:`,
-              transitionConfig
-            );
-            console.log(
-              `[MapShine Transition] Current scene:`,
-              currentScene?.name,
-              currentScene?.id
-            );
-            console.log(
-              `[MapShine Transition] Target scene:`,
-              sceneToView?.name,
-              sceneToView?.id
-            );
+                // Skip if disabled
+                if (!transitionConfig.enabled) {
+                  return wrapped(...args);
+                }
 
-            if (
-              !transitionConfig.enabled ||
-              !currentScene ||
-              sceneToView.id === currentScene.id
-            ) {
-              console.log(
-                `[MapShine Transition] Skipping transition - enabled: ${
-                  transitionConfig.enabled
-                }, currentScene: ${!!currentScene}, sameScene: ${
-                  sceneToView.id === currentScene?.id
-                }`
-              );
-              return wrapped(...args);
-            }
-
-            console.log(
-              `%c[MapShine Transition] Beginning transition to '${sceneToView.name}'.`,
-              "font-weight: bold; color: #40a0fa;"
-            );
-            await game.scenes.preload(sceneToView.id);
-
-            try {
-              console.log(`[MapShine Transition] About to create overlay`);
-              sceneManager._createOverlay();
-              console.log(`[MapShine Transition] Overlay created successfully`);
-              console.log(
-                `[MapShine Transition] Overlay element:`,
-                sceneManager.transitionOverlay
-              );
-              console.log(`[MapShine Transition] Starting fadeOut`);
-              // Fade out using the universal settings, pass the scene object for navigation name access
-              await sceneManager.fadeOut(transitionConfig, sceneToView);
-              console.log(`[MapShine Transition] FadeOut completed`);
-            } catch (error) {
-              console.error(
-                `[MapShine Transition] Error during overlay creation or fadeOut:`,
-                error
-              );
-              console.error(`[MapShine Transition] Error stack:`, error.stack);
-              // Continue with transition even if overlay fails
-            }
-
-            let resolveSetup;
-            game.mapShine.setupCompletionPromise = new Promise((resolve) => {
-              resolveSetup = resolve;
-            });
-            game.mapShine.resolveSetupCompletion = resolveSetup;
-
-            // This triggers the scene change, canvas teardown, and canvas ready hooks.
-            const result = await wrapped(...args);
-
-            const timeoutDuration = game.settings.get(
-              MODULE_ID,
-              "scene-transition-timeout"
-            );
-            const timeoutPromise = new Promise((resolve) =>
-              setTimeout(() => {
-                console.warn(
-                  `[MapShine Transition] Timed out waiting for systems ready signal after ${timeoutDuration}ms. Fading in anyway.`
+                // === PHASE 3: TRANSITION EXECUTION ===
+                console.log(
+                  `%c[MapShine Transition] Starting transition: ${currentScene.name} → ${sceneToView.name}`,
+                  "font-weight: bold; color: #40a0fa;"
                 );
-                resolve();
-              }, timeoutDuration)
-            );
 
-            await Promise.race([
-              game.mapShine.setupCompletionPromise,
-              timeoutPromise,
-            ]);
-            game.mapShine.setupCompletionPromise = null;
-            game.mapShine.resolveSetupCompletion = null;
+                // Preload scene assets
+                try {
+                  await game.scenes.preload(sceneToView.id);
+                } catch (preloadError) {
+                  console.warn("[MapShine Transition] Scene preload failed, continuing anyway:", preloadError);
+                }
 
-            // The config is universal, so we use the same one for fade-in.
-            await new Promise((resolve) => setTimeout(resolve, 2000));
+                // Create and fade out overlay
+                try {
+                  sceneManager._createOverlay();
+                  await sceneManager.fadeOut(transitionConfig, sceneToView);
+                } catch (overlayError) {
+                  console.error("[MapShine Transition] Overlay creation/fadeOut failed:", overlayError);
+                  // Continue with transition even if overlay fails
+                }
 
-            try {
-              console.log(`[MapShine Transition] Starting fadeIn`);
-              await sceneManager.fadeIn(transitionConfig);
-              console.log(`[MapShine Transition] FadeIn completed`);
-              sceneManager._destroyOverlay();
-            } catch (error) {
-              console.error(
-                `[MapShine Transition] Error during fadeIn:`,
-                error
-              );
-              // Clean up overlay even if fadeIn fails
-              sceneManager._destroyOverlay();
-            }
+                // Set up completion promise for lifecycle coordination
+                let resolveSetup;
+                game.mapShine.setupCompletionPromise = new Promise((resolve) => {
+                  resolveSetup = resolve;
+                });
+                game.mapShine.resolveSetupCompletion = resolveSetup;
 
-            console.log(
-              `%c[MapShine Transition] Transition finished.`,
-              "font-weight: bold; color: #40a0fa;"
-            );
-            return result;
-          } catch (error) {
-            console.error(
-              `[MapShine Transition] CRITICAL ERROR in Scene.prototype.view wrapper:`,
-              error
-            );
-            console.error(`[MapShine Transition] Error stack:`, error.stack);
-            console.error(
-              `[MapShine Transition] Falling back to original scene.view`
-            );
-            return wrapped(...args);
-          } finally {
-            console.log(
-              `[MapShine Transition] Wrapper execution completed (try/catch/finally)`
-            );
-          }
-        },
-        "WRAPPER"
-      );
-      console.log(
-        "Map Shine | Successfully registered Scene.prototype.view wrapper for transitions."
-      );
+                // Execute the actual scene transition
+                const result = await wrapped(...args);
 
-      // Verify the wrapper was actually registered
-      console.log(
-        "Map Shine | Checking if Scene.prototype.view is wrapped:",
-        typeof Scene.prototype.view
-      );
-      console.log("Map Shine | libWrapper registration completed successfully");
+                // Wait for setup with timeout
+                const timeoutDuration = game.settings.get(MODULE_ID, "scene-transition-timeout") ?? 10000;
+                const timeoutPromise = new Promise((resolve) =>
+                  setTimeout(() => {
+                    console.warn(
+                      `[MapShine Transition] Setup timeout after ${timeoutDuration}ms, proceeding with fade-in`
+                    );
+                    resolve();
+                  }, timeoutDuration)
+                );
+
+                await Promise.race([
+                  game.mapShine.setupCompletionPromise,
+                  timeoutPromise,
+                ]);
+                
+                // Clean up promises
+                game.mapShine.setupCompletionPromise = null;
+                game.mapShine.resolveSetupCompletion = null;
+
+                // Additional delay for systems to stabilize
+                await new Promise((resolve) => setTimeout(resolve, 2000));
+
+                // Fade in new scene
+                try {
+                  await sceneManager.fadeIn(transitionConfig);
+                } catch (fadeInError) {
+                  console.error("[MapShine Transition] Fade-in failed:", fadeInError);
+                } finally {
+                  // Always destroy overlay
+                  try {
+                    sceneManager._destroyOverlay();
+                  } catch (destroyError) {
+                    console.error("[MapShine Transition] Overlay destruction failed:", destroyError);
+                  }
+                }
+
+                console.log(
+                  `%c[MapShine Transition] Transition complete: ${sceneToView.name}`,
+                  "font-weight: bold; color: #10b981;"
+                );
+                return result;
+
+              } catch (error) {
+                console.error(
+                  "[MapShine Transition] CRITICAL ERROR in wrapper:",
+                  error
+                );
+                console.error("[MapShine Transition] Stack trace:", error.stack);
+                
+                // Emergency cleanup
+                try {
+                  game.mapShine?.sceneChangeManager?._destroyOverlay();
+                  game.mapShine.setupCompletionPromise = null;
+                  game.mapShine.resolveSetupCompletion = null;
+                } catch (cleanupError) {
+                  // Ignore cleanup errors
+                }
+                
+                // Fall back to default behavior
+                return wrapped(...args);
+              }
+            },
+            "WRAPPER"
+          );
+          
+          console.log(
+            "Map Shine | Scene.prototype.view wrapper registered successfully"
+          );
+        } catch (registrationError) {
+          console.error(
+            "Map Shine | FAILED to register Scene.prototype.view wrapper:",
+            registrationError
+          );
+          console.error(
+            "Map Shine | Scene transitions will be disabled. Stack:",
+            registrationError.stack
+          );
+        }
+      } else {
+        console.log(
+          "Map Shine | Scene transitions disabled by setting"
+        );
+      }
     } else {
       console.warn(
         "Map Shine | libWrapper is not active. Elegant scene transitions will be disabled."
@@ -4876,8 +4846,8 @@ class HooksManager {
 
     // --- Standard Hooks ---
 
-    // Initialize the self-contained manager for the custom pause screen.
-    PauseScreenManager.initialize();
+    // Initialize the new unified and robust pause manager.
+    PauseManager.initialize();
 
     Hooks.on("createTile", () => game.mapShine?.effectTargetManager.refresh());
     Hooks.on("updateTile", () => game.mapShine?.effectTargetManager.refresh());
@@ -6014,19 +5984,6 @@ class SceneChangeManager {
         }
       }
 
-      if (game.mapShine.pauseEffectManager) {
-        try {
-          console.log(
-            "Map Shine | Teardown: Destroying pause effect manager..."
-          );
-          game.mapShine.pauseEffectManager.destroy();
-        } catch (error) {
-          console.warn(
-            "Map Shine | Error destroying pause effect manager:",
-            error
-          );
-        }
-      }
 
       if (game.mapShine.combatEffectManager) {
         try {
@@ -7367,6 +7324,387 @@ class NoiseFilter extends PIXI.Filter {
 //              and dynamic exposure. These coordinate visual feedback for game state.
 // ---------------------------------------------------------------------------------
 
+/**
+ * A unified manager for handling all pause-related effects, including the canvas
+ * filter and the HTML overlay. This system is designed to be robust and avoid
+ * conflicts with other modules by using libWrapper and an isolated DOM element.
+ */
+class PauseManager {
+  static _isInitialized = false;
+  static _animation = null;
+  static _animationState = { progress: 0 };
+  static _pauseFilter = null;
+  static _overlayElement = null;
+  static _originalTimeFactor = 1.0;
+
+  /**
+   * The single entry point to initialize the pause system.
+   * It registers the libWrapper hook. This should be called once.
+   */
+  static initialize() {
+    if (this._isInitialized) return;
+
+    // The new system requires libWrapper. If it's not active, do not proceed.
+    if (!game.modules.get("lib-wrapper")?.active) {
+      console.warn(
+        "Map Shine | libWrapper is not active. The custom pause effect will be disabled."
+      );
+      return;
+    }
+
+    libWrapper.register(
+      MODULE_ID,
+      "Game.prototype.togglePause",
+      this._onTogglePause,
+      "WRAPPER"
+    );
+
+    // On first load, if the game is already paused, apply the effects immediately without animation.
+    Hooks.once("canvasReady", () => {
+      if (game.paused) {
+        // Check settings before applying on ready
+        const pauseScreenEnabled = game.settings.get(
+          MODULE_ID,
+          "enable-pause-screen"
+        );
+        const pauseEffectEnabled = game.settings.get(
+          MODULE_ID,
+          "universal.pauseEffect.enabled"
+        );
+        if (pauseScreenEnabled && pauseEffectEnabled) {
+          this._animationState.progress = 1;
+          this._updateEffects(1);
+          this._applyCustomPauseScreen();
+        }
+      }
+    });
+
+    this._isInitialized = true;
+    console.log("Map Shine | Unified Pause Manager Initialized.");
+  }
+
+  /**
+   * The libWrapper function for Game.prototype.togglePause.
+   * @param {Function} wrapped The original function.
+   * @param {boolean} pause The desired pause state.
+   * @param {boolean} push A flag to push the pause state to other clients.
+   */
+  static _onTogglePause(wrapped, pause, push) {
+    const wasPaused = game.paused;
+    const isChanging = wasPaused !== pause;
+
+    if (isChanging) {
+      PauseManager._triggerStateChange(pause);  // Use class name directly
+    }
+
+    // Call the original togglePause function to maintain core functionality
+    // and allow other modules' wrappers/hooks to run.
+    return wrapped(pause, push);
+  }
+
+  /**
+   * Triggers the animations and DOM changes for a pause state change.
+   * @param {boolean} isPausing The new pause state.
+   * @private
+   */
+  static _triggerStateChange(isPausing) {
+    const pauseScreenEnabled = game.settings.get(
+      MODULE_ID,
+      "enable-pause-screen"
+    );
+    const pauseEffectEnabled = game.settings.get(
+      MODULE_ID,
+      "universal.pauseEffect.enabled"
+    );
+
+    if (!pauseScreenEnabled || !pauseEffectEnabled) {
+      this._updateEffects(0);
+      this._revertCustomPauseScreen();
+      return;
+    }
+
+    if (isPausing) {
+      this._applyCustomPauseScreen();
+    } else {
+      this._revertCustomPauseScreen();
+    }
+
+    if (this._animation) {
+      this._animation.kill();
+    }
+
+    if (!this._pauseFilter) {
+      this._pauseFilter = ScreenEffectsManager.getFilter("pauseEffect");
+      if (!this._pauseFilter) {
+        console.error(
+          "Map Shine | PauseManager could not find its dedicated filter."
+        );
+        return;
+      }
+    }
+
+    if (isPausing && this._animationState.progress < 1) {
+      this._originalTimeFactor = game.mapShine.timeControl.timeFactor;
+    }
+
+    const duration = game.settings.get(
+      MODULE_ID,
+      "universal.pauseEffect.duration"
+    );
+    const targetProgress = isPausing ? 1 : 0;
+
+    this._animation = NativeAnimation.to(this._animationState, {
+      progress: targetProgress,
+      duration: duration / 1000,
+      ease: "power2.inOut",
+      onUpdate: () => this._updateEffects(this._animationState.progress),
+      onComplete: () => {
+        this._animation = null;
+        this._updateEffects(targetProgress);
+        // If unpausing is complete, restore the original time factor.
+        if (!isPausing) {
+          game.mapShine.timeControl.timeFactor = this._originalTimeFactor;
+        }
+      },
+    });
+  }
+
+  /**
+   * Linearly interpolates between two numbers.
+   * @param {number} start The start value.
+   * @param {number} end The end value.
+   * @param {number} amount The interpolation factor (0 to 1).
+   * @returns {number} The interpolated value.
+   * @private
+   */
+  static _lerp(start, end, amount) {
+    return (1 - amount) * start + amount * end;
+  }
+
+  /**
+   * Updates the canvas filter and time factor based on the animation progress.
+   * @param {number} progress The animation progress (0 to 1).
+   * @private
+   */
+  static _updateEffects(progress) {
+    if (!this._pauseFilter) return;
+
+    const peConfig = {
+      colorCorrection: {
+        ...UNIVERSAL_EFFECT_DEFAULTS.pauseEffect.colorCorrection,
+        enabled: game.settings.get(
+          MODULE_ID,
+          "universal.pauseEffect.colorCorrection.enabled"
+        ),
+        saturation: game.settings.get(
+          MODULE_ID,
+          "universal.pauseEffect.colorCorrection.saturation"
+        ),
+        brightness: game.settings.get(
+          MODULE_ID,
+          "universal.pauseEffect.colorCorrection.brightness"
+        ),
+        contrast: game.settings.get(
+          MODULE_ID,
+          "universal.pauseEffect.colorCorrection.contrast"
+        ),
+      },
+    };
+
+    // Directly control the global time factor for animations without altering saved config.
+    game.mapShine.timeControl.timeFactor = this._lerp(
+      this._originalTimeFactor,
+      0.0,
+      progress
+    );
+
+    // Update the debugger UI if it's open
+    if (game.mapShine.debugger) {
+      const timeValue = game.mapShine.timeControl.timeFactor * 100;
+      const slider = game.mapShine.debugger.element.querySelector(
+        "#control-timeControl-globalTime"
+      );
+      if (slider) {
+        slider.value = timeValue;
+        game.mapShine.debugger.eventHandler._updateSliderValue(
+          slider.id,
+          timeValue,
+          slider.step
+        );
+      }
+    }
+
+    const u = this._pauseFilter.uniforms;
+    const cc = peConfig.colorCorrection;
+    this._pauseFilter.enabled = progress > 0.001 && cc.enabled;
+    u.uIntensity = progress;
+    u.uSaturation = cc.saturation;
+    u.uBrightness = cc.brightness;
+    u.uContrast = cc.contrast;
+  }
+
+  /**
+   * Creates and displays the custom HTML pause overlay.
+   * @private
+   */
+  static _applyCustomPauseScreen() {
+    if (document.getElementById("map-shine-pause-overlay")) return;
+
+    const settings = this._getPauseScreenSettings();
+    FontLoader.load([
+      settings.headingFont,
+      settings.subheadingFont,
+      settings.hintFont,
+    ]);
+
+    this._overlayElement = document.createElement("div");
+    this._overlayElement.id = "map-shine-pause-overlay";
+
+    let hintHTML = "";
+    if (settings.useRandomHint && settings.randomHints.length > 0) {
+      const hint =
+        settings.randomHints[
+          Math.floor(Math.random() * settings.randomHints.length)
+        ];
+      hintHTML = `<p class="map-shine-pause-hint">${hint}</p>`;
+    }
+
+    const logoHTML = settings.logoPath
+      ? `<div class="map-shine-pause-logo"></div>`
+      : "";
+
+    this._overlayElement.innerHTML = `
+            <style>
+                #map-shine-pause-overlay {
+                    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+                    z-index: 10000;
+                    pointer-events: none;
+                    opacity: 0;
+                    transition: opacity 0.5s ease-in-out;
+                    background: ${settings.backgroundColor};
+                    backdrop-filter: blur(12px) saturate(0.8);
+                    -webkit-backdrop-filter: blur(12px) saturate(0.8);
+                    display: flex; justify-content: center; align-items: center;
+                }
+                #map-shine-pause-overlay.visible { opacity: 1; }
+                .map-shine-pause-wrapper {
+                    position: relative; padding: 3.5rem 4rem;
+                    background: rgba(15, 23, 42, 0.5);
+                    border: 1px solid rgba(59, 130, 246, 0.15);
+                    border-radius: 1.5rem;
+                    display: flex; flex-direction: column; align-items: center; justify-content: center;
+                    gap: 1.25rem; animation: fadeInContent 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+                    text-align: center; max-width: 85vw; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+                    box-shadow: 0 0 60px rgba(0,0,0,0.6), 0 0 120px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+                }
+                .map-shine-pause-title {
+                    font-family: "${settings.headingFont}", sans-serif;
+                    font-size: 4.5rem; font-weight: 700; margin: 0; letter-spacing: -0.025em; text-transform: uppercase;
+                    background: linear-gradient(135deg, ${settings.headingColor} 0%, #3b82f6 100%);
+                    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+                    filter: drop-shadow(0 0 30px rgba(0,0,0,0.9)) drop-shadow(0 0 60px rgba(0,0,0,0.7));
+                    line-height: 1.1;
+                }
+                .map-shine-pause-subtitle {
+                    font-family: "${settings.subheadingFont}", sans-serif;
+                    font-size: 1.5rem; font-weight: 400; margin: 0; color: ${settings.subheadingColor};
+                    font-style: italic; letter-spacing: 0.025em;
+                    text-shadow: 0 0 20px rgba(0,0,0,0.9), 0 0 40px rgba(0,0,0,0.8), 0 2px 8px rgba(0,0,0,0.7);
+                }
+                .map-shine-pause-logo {
+                    width: 100px; height: 100px; background-image: url('${settings.logoPath}');
+                    background-size: contain; background-repeat: no-repeat; background-position: center;
+                    margin: 0.5rem auto; opacity: ${settings.logoOpacity};
+                    animation: pulseLogo 4s ease-in-out infinite;
+                    filter: drop-shadow(0 0 30px rgba(59,130,246,0.3));
+                }
+                .map-shine-pause-hint {
+                    font-family: "${settings.hintFont}", serif;
+                    margin-top: 1.5rem; padding-top: 1.5rem;
+                    border-top: 1px solid rgba(59, 130, 246, 0.2);
+                    font-size: 1rem; font-style: italic; color: ${settings.hintColor}; max-width: 50ch;
+                    margin-left: auto; margin-right: auto; letter-spacing: 0.025em;
+                    text-shadow: 0 0 20px rgba(0,0,0,0.9), 0 2px 8px rgba(0,0,0,0.7);
+                }
+                @keyframes fadeInContent { from { opacity: 0; transform: translateY(30px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+                @keyframes fadeOutContent { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(-20px) scale(0.98); } }
+                @keyframes pulseLogo { 0%, 100% { transform: scale(1); opacity: ${settings.logoOpacity}; } 50% { transform: scale(1.08); opacity: ${Math.min(1, settings.logoOpacity + 0.2)}; } }
+            </style>
+            <div class="map-shine-pause-wrapper">
+                <h1 class="map-shine-pause-title">${settings.heading}</h1>
+                <p class="map-shine-pause-subtitle">${settings.subheading}</p>
+                ${logoHTML}
+                ${hintHTML}
+            </div>
+        `;
+
+    document.body.appendChild(this._overlayElement);
+
+    requestAnimationFrame(() => {
+      if (this._overlayElement) {
+        this._overlayElement.classList.add("visible");
+      }
+    });
+  }
+
+  /**
+   * Hides and removes the custom HTML pause overlay.
+   * @private
+   */
+  static _revertCustomPauseScreen() {
+    if (!this._overlayElement) return;
+
+    const wrapper = this._overlayElement.querySelector(
+      ".map-shine-pause-wrapper"
+    );
+    if (wrapper) {
+      wrapper.style.animation =
+        "fadeOutContent 0.8s cubic-bezier(0.4, 0, 0.6, 1) forwards";
+    }
+
+    this._overlayElement.classList.remove("visible");
+
+    setTimeout(() => {
+      if (this._overlayElement) {
+        this._overlayElement.remove();
+        this._overlayElement = null;
+      }
+    }, 800);
+  }
+
+  /**
+   * Retrieves all settings for the pause screen overlay.
+   * @private
+   */
+  static _getPauseScreenSettings() {
+    const getSetting = (key) =>
+      game.settings.get(MODULE_ID, `universal.pauseEffect.${key}`);
+    const getFont = (style) =>
+      game.settings.get(
+        MODULE_ID,
+        `universal.fontManager.styles.${style}.fontFamily`
+      );
+    return {
+      heading: getSetting("heading"),
+      subheading: getSetting("subheading"),
+      logoPath: getSetting("logoPath"),
+      logoOpacity: getSetting("logoOpacity"),
+      backgroundColor: getSetting("backgroundColor"),
+      headingColor: getSetting("headingColor"),
+      subheadingColor: getSetting("subheadingColor"),
+      hintColor: getSetting("hintColor"),
+      useRandomHint: getSetting("useRandomHint"),
+      randomHints: (getSetting("randomHints") || "")
+        .split(/\r?\n/)
+        .filter((h) => h.trim() !== ""),
+      headingFont: getFont("heading1"),
+      subheadingFont: getFont("heading2"),
+      hintFont: getFont("hint"),
+    };
+  }
+}
+
+
 class AppearanceTransitionManager {
   constructor(profileManager) {
     this.profileManager = profileManager;
@@ -7822,220 +8160,6 @@ class DynamicExposureManager {
   }
 }
 
-class PauseEffectManager {
-  constructor() {
-    this._animationState = {
-      progress: game.paused ? 1 : 0,
-    };
-    this._animation = null;
-    this._pauseFilter = null;
-    this._originalGlobalTime = 100;
-    this._isInitialized = false;
-    this._boundOnPauseChange = this._onPauseChange.bind(this);
-  }
-
-  initialize() {
-    if (this._isInitialized) return;
-    this._pauseFilter = ScreenEffectsManager.getFilter("pauseEffect");
-    if (!this._pauseFilter) {
-      console.error(
-        "Map Shine | PauseEffectManager could not find its dedicated filter."
-      );
-      return;
-    }
-
-    const config = game.mapShine.profileManager.activeConfig;
-    this._originalGlobalTime = config.timeControl.globalTime;
-
-    this._updateEffects(this._animationState.progress);
-
-    Hooks.on("pauseGame", this._boundOnPauseChange);
-    this._isInitialized = true;
-    console.log("Map Shine | Pause Effect Manager Initialized.");
-  }
-
-  destroy() {
-    if (!this._isInitialized) return;
-
-    Hooks.off("pauseGame", this._boundOnPauseChange);
-    if (this._animation) {
-      this._animation.kill();
-    }
-    this._animation = null;
-    this._pauseFilter = null;
-    this._isInitialized = false;
-    console.log("Map Shine | Pause Effect Manager Destroyed.");
-  }
-
-  _onPauseChange(paused) {
-    if (!this._pauseFilter) return;
-
-    console.log(
-      `[PauseEffect] Pause state changed: ${paused}, current progress: ${this._animationState.progress}`
-    );
-
-    const peConfig = {
-      enabled: game.settings.get(MODULE_ID, "universal.pauseEffect.enabled"),
-      duration: game.settings.get(MODULE_ID, "universal.pauseEffect.duration"),
-      colorCorrection: {
-        enabled: game.settings.get(
-          MODULE_ID,
-          "universal.pauseEffect.colorCorrection.enabled"
-        ),
-        saturation: game.settings.get(
-          MODULE_ID,
-          "universal.pauseEffect.colorCorrection.saturation"
-        ),
-        brightness: game.settings.get(
-          MODULE_ID,
-          "universal.pauseEffect.colorCorrection.brightness"
-        ),
-        contrast: game.settings.get(
-          MODULE_ID,
-          "universal.pauseEffect.colorCorrection.contrast"
-        ),
-      },
-    };
-
-    if (!peConfig.enabled) {
-      this._updateEffects(0);
-      const activeConfig = game.mapShine.profileManager.activeConfig;
-      if (activeConfig.timeControl.globalTime < this._originalGlobalTime) {
-        foundry.utils.setProperty(
-          activeConfig,
-          "timeControl.globalTime",
-          this._originalGlobalTime
-        );
-        game.mapShine.profileManager.updateAllSystemsFromConfig();
-        if (game.mapShine.debugger) {
-          game.mapShine.debugger.eventHandler.updateAllControls();
-        }
-      }
-      return;
-    }
-
-    if (this._animation) {
-      console.log(`[PauseEffect] Killing existing animation`);
-      this._animation.kill();
-    }
-
-    const targetProgress = paused ? 1 : 0;
-
-    if (paused && this._animationState.progress < 1) {
-      this._originalGlobalTime =
-        game.mapShine.profileManager.activeConfig.timeControl.globalTime;
-    }
-
-    console.log(
-      `[PauseEffect] Starting animation from ${this._animationState.progress} to ${targetProgress} over ${peConfig.duration}ms`
-    );
-
-    // @ts-expect-error - progress property not in type definitions but is valid
-    this._animation = NativeAnimation.to(this._animationState, {
-      progress: targetProgress,
-      duration: peConfig.duration / 1000,
-      ease: "power2.inOut",
-      onUpdate: () => {
-        console.log(
-          `[PauseEffect] Animation update: progress=${this._animationState.progress.toFixed(
-            3
-          )}`
-        );
-        this._updateEffects(this._animationState.progress);
-      },
-      onComplete: () => {
-        console.log(
-          `[PauseEffect] Animation complete at progress=${targetProgress}`
-        );
-        this._animation = null;
-        this._updateEffects(targetProgress);
-      },
-    });
-  }
-
-  _updateEffects(progress) {
-    if (!this._pauseFilter) return;
-
-    // Construct the config object from individual game settings
-    const peConfig = {
-      colorCorrection: {
-        ...UNIVERSAL_EFFECT_DEFAULTS.pauseEffect.colorCorrection, // Start with defaults
-        enabled: game.settings.get(
-          MODULE_ID,
-          "universal.pauseEffect.colorCorrection.enabled"
-        ),
-        saturation: game.settings.get(
-          MODULE_ID,
-          "universal.pauseEffect.colorCorrection.saturation"
-        ),
-        brightness: game.settings.get(
-          MODULE_ID,
-          "universal.pauseEffect.colorCorrection.brightness"
-        ),
-        contrast: game.settings.get(
-          MODULE_ID,
-          "universal.pauseEffect.colorCorrection.contrast"
-        ),
-      },
-    };
-
-    const activeConfig = game.mapShine.profileManager.activeConfig;
-    const timeControlPath = "timeControl.globalTime";
-
-    const newTime = this._originalGlobalTime * (1 - progress);
-
-    game.mapShine.timeControl.timeFactor = newTime / 100.0;
-    foundry.utils.setProperty(activeConfig, timeControlPath, newTime);
-
-    game.mapShine.profileManager.updateAllSystemsFromConfig({
-      timeOnly: true,
-    });
-
-    if (game.mapShine.debugger) {
-      const slider = game.mapShine.debugger.element.querySelector(
-        "#control-timeControl-globalTime"
-      );
-      if (slider) {
-        slider.value = newTime;
-        game.mapShine.debugger.eventHandler._updateSliderValue(
-          slider.id,
-          newTime,
-          slider.step
-        );
-      }
-    }
-
-    const u = this._pauseFilter.uniforms;
-    const cc = peConfig.colorCorrection;
-    // Keep filter enabled during entire animation (even during fade-out)
-    // Only disable when progress is exactly 0 (animation complete)
-    this._pauseFilter.enabled = progress > 0 && cc.enabled;
-    u.uIntensity = progress;
-    u.uSaturation = cc.saturation;
-    u.uBrightness = cc.brightness;
-    u.uContrast = cc.contrast;
-    u.uExposure = cc.exposure;
-    u.uGamma = cc.gamma;
-    u.uInBlack = cc.levels.inBlack;
-    u.uInWhite = cc.levels.inWhite;
-    u.uTemperature = cc.whiteBalance.temperature;
-    u.uWbTint = cc.whiteBalance.tint;
-    u.uTintAmount = cc.tint.amount;
-    u.uTintColor = hexToRgbArray(cc.tint.color);
-    u.uInvert = cc.invert;
-    u.uSelectiveEnabled = cc.selective.enabled;
-    u.uSelectiveColor = hexToRgbArray(cc.selective.color);
-    u.uSelectiveHueRange = cc.selective.hueRange;
-    u.uSelectiveSatRange = cc.selective.saturationRange;
-    u.uSelectiveLumRange = cc.selective.luminanceRange;
-    u.uSelectiveTargetLum = cc.selective.targetLuminance;
-    u.uSelectiveSoftness = cc.selective.softness;
-    u.uSelectiveInvert = cc.selective.invert;
-    u.uSelectiveDesaturation = cc.selective.desaturation;
-    u.uSelectiveTargetSaturation = cc.selective.targetSaturation;
-    u.uSelectiveTargetBrightness = cc.selective.targetBrightness;
-  }
-}
 
 class CombatEffectManager {
   constructor() {
@@ -9149,9 +9273,6 @@ class MapShineLifecycle {
     game.mapShine.dynamicExposureManager.initialize();
     await loadingManager?.tick("DYNAMIC_EXPOSURE_INIT");
 
-    if (game.mapShine.pauseEffectManager) {
-      game.mapShine.pauseEffectManager.initialize();
-    }
 
     if (game.mapShine.combatEffectManager) {
       game.mapShine.combatEffectManager.initialize();
@@ -10168,371 +10289,7 @@ class GeometryMaskManager {
 
 // lerp function moved to utils/ColorUtils.js
 
-class PauseScreenManager {
-  /**
-   * Registers the necessary hooks to manage the custom pause screen.
-   * This is the single entry point for this system.
-   */
-  static initialize() {
-    Hooks.on("pauseGame", (paused) => {
-      // Only apply the custom screen if the pause effect is enabled in settings.
-      const isEnabled = game.settings.get(
-        MODULE_ID,
-        "universal.pauseEffect.enabled"
-      );
-      if (!isEnabled) {
-        // If our effect is disabled, ensure we clean up just in case.
-        this._revertCustomPauseScreen();
-        return;
-      }
 
-      if (paused) {
-        this._applyCustomPauseScreen();
-      } else {
-        this._revertCustomPauseScreen();
-      }
-    });
-
-    // This hook handles the case where a user reloads into an already-paused game.
-    Hooks.once("ready", () => {
-      const isEnabled = game.settings.get(
-        MODULE_ID,
-        "universal.pauseEffect.enabled"
-      );
-      if (game.paused && isEnabled) {
-        this._applyCustomPauseScreen();
-      }
-    });
-  }
-
-  /**
-   * Retrieves all necessary settings for the pause screen from the game settings.
-   * @returns {object} An object containing all the configured values.
-   * @private
-   */
-  static _getSettings() {
-    const getSetting = (key) =>
-      game.settings.get(MODULE_ID, `universal.pauseEffect.${key}`);
-    const getFont = (style) =>
-      game.settings.get(
-        MODULE_ID,
-        `universal.fontManager.styles.${style}.fontFamily`
-      );
-    return {
-      heading: getSetting("heading"),
-      subheading: getSetting("subheading"),
-      logoPath: getSetting("logoPath"),
-      logoOpacity: getSetting("logoOpacity"),
-      backgroundColor: getSetting("backgroundColor"),
-      gradientColor1: getSetting("gradientColor1"),
-      gradientColor2: getSetting("gradientColor2"),
-      gradientShadowColor: getSetting("gradientShadowColor"),
-      headingColor: getSetting("headingColor"),
-      subheadingColor: getSetting("subheadingColor"),
-      hintColor: getSetting("hintColor"),
-      useRandomHint: getSetting("useRandomHint"),
-      randomHints: (getSetting("randomHints") || "")
-        .split(/\r?\n/)
-        .filter((h) => h.trim() !== ""),
-      headingFont: getFont("heading1"),
-      subheadingFont: getFont("heading2"),
-      hintFont: getFont("hint"),
-    };
-  }
-
-  /**
-   * Finds the #pause element, clears it, and injects our fully custom content and styles.
-   * @private
-   */
-  static _applyCustomPauseScreen() {
-    const MAX_ATTEMPTS = 120; // Try for ~2 seconds
-    let attempts = 0;
-
-    const findAndModify = () => {
-      const pauseElement = document.getElementById("pause");
-      if (pauseElement) {
-        // Clear any default content (like the Foundry logo and "Game Paused" text)
-        pauseElement.innerHTML = "";
-
-        const settings = this._getSettings();
-
-        // Load the selected fonts from Google Fonts
-        FontLoader.load([
-          settings.headingFont,
-          settings.subheadingFont,
-          settings.hintFont,
-        ]);
-
-        let hintHTML = "";
-        if (settings.useRandomHint && settings.randomHints.length > 0) {
-          const hint =
-            settings.randomHints[
-              Math.floor(Math.random() * settings.randomHints.length)
-            ];
-          hintHTML = `<p class="map-shine-pause-hint">${hint}</p>`;
-        }
-
-        const logoHTML = settings.logoPath
-          ? `<div class="map-shine-pause-logo"></div>`
-          : "";
-
-        const customHTML = `
-              <div class="map-shine-pause-wrapper">
-                <h1 class="map-shine-pause-title">${settings.heading}</h1>
-                <p class="map-shine-pause-subtitle">${settings.subheading}</p>
-                ${logoHTML}
-                ${hintHTML}
-              </div>
-            `;
-
-        const customCSS = `
-              <style>
-                /* CSS Variables for consistent theming */
-                :root {
-                  --pause-primary: #3b82f6;
-                  --pause-success: #10b981;
-                  --pause-bg-dark: #0f172a;
-                  --pause-bg-slate: #1e293b;
-                  --pause-text-light: #f8fafc;
-                  --pause-text-muted: #94a3b8;
-                  --pause-glow-blue: rgba(59, 130, 246, 0.3);
-                  --pause-glass: rgba(30, 41, 59, 0.9);
-                }
-
-                #pause.custom-pause-screen {
-                  /* Override Foundry defaults with modern backdrop */
-                  position: fixed !important;
-                  top: 0 !important;
-                  left: 0 !important;
-                  width: 100vw !important;
-                  height: 100vh !important;
-                  background: ${settings.backgroundColor} !important;
-                  backdrop-filter: blur(12px) saturate(0.8);
-                  -webkit-backdrop-filter: blur(12px) saturate(0.8);
-                  border: none !important;
-                  animation: none !important;
-                  padding: 0;
-                  margin: 0;
-                  display: flex;
-                  justify-content: center;
-                  align-items: center;
-                }
-
-                /* Add subtle radial glow to the pause screen background */
-                #pause.custom-pause-screen::before {
-                  content: '';
-                  position: absolute;
-                  inset: 0;
-                  background: 
-                    radial-gradient(circle at 30% 20%, var(--pause-glow-blue) 0%, transparent 50%),
-                    radial-gradient(circle at 70% 80%, rgba(16, 185, 129, 0.1) 0%, transparent 50%);
-                  pointer-events: none;
-                  opacity: 0.6;
-                }
-
-                @layer applications {
-                  #pause {
-                    height: 100vh;
-                    width: 100%;
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    background: transparent;
-                    display: none;
-                    flex-direction: column;
-                    justify-content: center;
-                    align-items: center;
-                    pointer-events: none;
-                    z-index: calc(var(--z-index-canvas) + 1);
-                  }
-                }
-
-                .map-shine-pause-wrapper {
-                  position: relative;
-                  padding: 3.5rem 4rem;
-                  background: rgba(15, 23, 42, 0.5);
-                  border: 1px solid rgba(59, 130, 246, 0.15);
-                  border-radius: 1.5rem;
-                  display: flex;
-                  flex-direction: column;
-                  align-items: center;
-                  justify-content: center;
-                  gap: 1.25rem;
-                  animation: fadeInContent 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-                  text-align: center;
-                  max-width: 85vw;
-                  backdrop-filter: blur(16px);
-                  -webkit-backdrop-filter: blur(16px);
-                  box-shadow: 
-                    0 0 60px rgba(0, 0, 0, 0.6),
-                    0 0 120px rgba(0, 0, 0, 0.4),
-                    inset 0 1px 0 rgba(255, 255, 255, 0.05);
-                }
-
-                /* Subtle top shimmer effect */
-                .map-shine-pause-wrapper::before {
-                  content: '';
-                  position: absolute;
-                  top: 0;
-                  left: 10%;
-                  right: 10%;
-                  height: 1px;
-                  background: linear-gradient(90deg, 
-                    transparent 0%, 
-                    rgba(59, 130, 246, 0.3) 20%, 
-                    rgba(16, 185, 129, 0.3) 50%,
-                    rgba(59, 130, 246, 0.3) 80%, 
-                    transparent 100%);
-                  opacity: 0.8;
-                }
-
-                .map-shine-pause-title {
-                  font-family: "${settings.headingFont}", sans-serif;
-                  font-size: 4.5rem;
-                  font-weight: 700;
-                  margin: 0;
-                  letter-spacing: -0.025em;
-                  text-transform: uppercase;
-                  background: linear-gradient(135deg, ${
-                    settings.headingColor
-                  } 0%, var(--pause-primary) 100%);
-                  -webkit-background-clip: text;
-                  -webkit-text-fill-color: transparent;
-                  background-clip: text;
-                  filter: drop-shadow(0 0 30px rgba(0,0,0,0.9)) drop-shadow(0 0 60px rgba(0,0,0,0.7));
-                  line-height: 1.1;
-                }
-
-                .map-shine-pause-subtitle {
-                  font-family: "${settings.subheadingFont}", sans-serif;
-                  font-size: 1.5rem;
-                  font-weight: 400;
-                  margin: 0;
-                  color: ${settings.subheadingColor};
-                  font-style: italic;
-                  letter-spacing: 0.025em;
-                  text-shadow: 
-                    0 0 20px rgba(0,0,0,0.9),
-                    0 0 40px rgba(0,0,0,0.8),
-                    0 2px 8px rgba(0,0,0,0.7);
-                }
-
-                .map-shine-pause-logo {
-                  width: 100px;
-                  height: 100px;
-                  background-image: url('${settings.logoPath}');
-                  background-size: contain;
-                  background-repeat: no-repeat;
-                  background-position: center;
-                  margin: 0.5rem auto;
-                  opacity: ${settings.logoOpacity};
-                  animation: pulseLogo 4s ease-in-out infinite;
-                  filter: drop-shadow(0 0 30px var(--pause-glow-blue));
-                }
-
-                .map-shine-pause-hint {
-                  font-family: "${settings.hintFont}", serif;
-                  margin-top: 1.5rem;
-                  padding-top: 1.5rem;
-                  border-top: 1px solid rgba(59, 130, 246, 0.2);
-                  font-size: 1rem;
-                  font-style: italic;
-                  color: ${settings.hintColor};
-                  max-width: 50ch;
-                  margin-left: auto;
-                  margin-right: auto;
-                  letter-spacing: 0.025em;
-                  text-shadow: 
-                    0 0 20px rgba(0,0,0,0.9),
-                    0 2px 8px rgba(0,0,0,0.7);
-                }
-
-                @keyframes fadeInContent {
-                  from { 
-                    opacity: 0; 
-                    transform: translateY(30px) scale(0.95); 
-                  }
-                  to { 
-                    opacity: 1; 
-                    transform: translateY(0) scale(1); 
-                  }
-                }
-
-                @keyframes fadeOutContent {
-                  from { 
-                    opacity: 1; 
-                    transform: translateY(0) scale(1); 
-                  }
-                  to { 
-                    opacity: 0; 
-                    transform: translateY(-20px) scale(0.98); 
-                  }
-                }
-
-                .map-shine-pause-wrapper.fade-out {
-                  animation: fadeOutContent 0.8s cubic-bezier(0.4, 0, 0.6, 1) forwards;
-                }
-
-                @keyframes pulseLogo {
-                  0%, 100% { 
-                    transform: scale(1); 
-                    opacity: ${settings.logoOpacity};
-                  }
-                  50% { 
-                    transform: scale(1.08); 
-                    opacity: ${Math.min(1, settings.logoOpacity + 0.2)};
-                  }
-                }
-              </style>
-            `;
-
-        pauseElement.classList.add("custom-pause-screen");
-        pauseElement.innerHTML = customCSS + customHTML;
-        return;
-      }
-
-      attempts++;
-      if (attempts < MAX_ATTEMPTS) {
-        requestAnimationFrame(findAndModify);
-      } else {
-        console.warn(
-          "Map Shine | Timed out waiting for the #pause element to be added to the DOM."
-        );
-      }
-    };
-    requestAnimationFrame(findAndModify);
-  }
-
-  /**
-   * Resets the #pause element by removing our custom class and content.
-   * Animates the fade-out before cleanup.
-   * @private
-   */
-  static _revertCustomPauseScreen() {
-    const pauseElement = document.getElementById("pause");
-    if (
-      pauseElement &&
-      pauseElement.classList.contains("custom-pause-screen")
-    ) {
-      const wrapper = pauseElement.querySelector(".map-shine-pause-wrapper");
-      if (wrapper) {
-        // Add fade-out class to trigger animation
-        wrapper.classList.add("fade-out");
-
-        // Wait for animation to complete before cleanup
-        setTimeout(() => {
-          pauseElement.classList.remove("custom-pause-screen");
-          pauseElement.innerHTML = "";
-        }, 800); // Match the fadeOutContent animation duration
-      } else {
-        // If wrapper doesn't exist, clean up immediately
-        pauseElement.classList.remove("custom-pause-screen");
-        pauseElement.innerHTML = "";
-      }
-    }
-    // The font stylesheet is no longer removed here to prevent conflicts with the debugger UI.
-  }
-}
 
 const systemStatus = new SystemStatusManager();
 
