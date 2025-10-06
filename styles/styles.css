@@ -1447,10 +1447,17 @@
     }
 
     .add-item-btn {
-      background-color: #2a552a;
-      border-color: #6aaa6a;
-      color: #ccffcc;
-      &:hover { background-color: #3a753a; }
+      border: 1px solid rgba(76, 250, 64, 0.5);
+      background: rgba(76, 250, 64, 0.15);
+      border-radius: 3px;
+      color: rgba(76, 250, 64, 0.9);
+      transition: all 0.2s;
+      
+      &:hover {
+        background: rgba(76, 250, 64, 0.3);
+        border-color: #6fdd73;
+        color: #fff;
+      }
     }
   }
 
@@ -1566,4 +1573,495 @@
       background: #e55;
       box-shadow: 0 0 8px rgba(204, 68, 68, 0.5);
     }
+  }
+
+  /* =============================================================================
+     Point Groups Styling
+     ========================================================================== */
+
+  /* Main Point Groups Accordion */
+  .point-groups-main-accordion {
+    background: rgba(76, 158, 255, 0.1) !important;
+    border: 1px solid rgba(76, 158, 255, 0.3) !important;
+    border-radius: 4px;
+    padding: 8px;
+    margin-top: 8px;
+
+    > summary {
+      font-weight: bold;
+      color: #4a9eff;
+      margin-bottom: 8px;
+    }
+  }
+
+  .point-groups-content {
+    padding-left: 10px;
+  }
+
+  /* Point Groups Header Section */
+  .point-groups-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+
+    .point-groups-description {
+      flex: 1;
+      font-size: 0.9em;
+      color: #cbd5e1;
+      line-height: 1.4;
+    }
+  }
+
+  /* Point Placement Mode Section */
+  .point-placement-mode-section {
+    background: rgba(74, 158, 255, 0.15);
+    border: 1px solid #4a9eff;
+    border-radius: 4px;
+    padding: 8px;
+    margin-bottom: 12px;
+
+    .placement-mode-btn {
+      width: 100%;
+      padding: 8px;
+      background: #4a9eff;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 1.05em;
+      color: #ffffff;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+
+      &:hover {
+        background: #6bb0ff;
+        box-shadow: 0 4px 8px rgba(74, 158, 255, 0.4);
+        transform: translateY(-1px);
+      }
+
+      &:active {
+        transform: translateY(0);
+      }
+
+      i {
+        margin-right: 6px;
+      }
+    }
+
+    .placement-mode-instructions {
+      margin: 6px 0 0 0;
+      font-size: 0.85em;
+      text-align: center;
+      color: #cbd5e1;
+      line-height: 1.4;
+
+      strong {
+        color: #e5e7eb;
+        font-weight: 600;
+      }
+    }
+  }
+
+  /* Create New Group Section */
+  .create-group-accordion {
+    background: rgba(76, 250, 64, 0.1) !important;
+    border: 1px solid #4cfa40 !important;
+    border-radius: 4px;
+    padding: 8px;
+    margin-bottom: 12px;
+
+    > summary {
+      font-weight: bold;
+      color: #4cfa40;
+      margin-bottom: 8px;
+    }
+
+    .create-group-content {
+      padding-left: 10px;
+    }
+
+    .create-group-btn {
+      width: 100%;
+      padding: 6px;
+      border: 1px solid rgba(76, 250, 64, 0.5);
+      background: rgba(76, 250, 64, 0.15);
+      border-radius: 3px;
+      cursor: pointer;
+      margin-top: 4px;
+      color: rgba(76, 250, 64, 0.9);
+      transition: all 0.2s;
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 6px !important;
+
+      &:hover {
+        background: rgba(76, 250, 64, 0.3);
+        border-color: #6fdd73;
+        color: #fff;
+      }
+
+      i {
+        font-size: 14px;
+      }
+    }
+  }
+
+  /* Group Type Accordions */
+  .group-type-accordion {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 3px;
+    margin-bottom: 6px;
+    transition: all 0.2s ease;
+
+    &[open] {
+      background: rgba(255, 255, 255, 0.08);
+      padding-bottom: 5px;
+    }
+
+    > summary {
+      font-weight: 600;
+      color: #e5e7eb;
+      padding: 4px 6px;
+
+      strong {
+        font-size: 1.05em;
+      }
+    }
+
+    .group-type-content {
+      padding-left: 10px;
+      margin-top: 8px;
+    }
+  }
+
+  /* Individual Group List Items */
+  .group-list-item {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    margin-bottom: 6px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.3);
+      border-color: rgba(74, 158, 255, 0.3);
+    }
+
+    &[open] {
+      background: rgba(0, 0, 0, 0.35);
+      border-color: rgba(74, 158, 255, 0.4);
+    }
+
+    > summary {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      cursor: pointer;
+      color: #e5e7eb;
+
+      .group-item-label {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-weight: 500;
+      }
+
+      .group-item-meta {
+        color: #94a3b8;
+        font-size: 0.9em;
+        font-weight: 500;
+        white-space: nowrap;
+      }
+    }
+
+    .group-item-content {
+      padding: 8px 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  /* Group Status Indicator */
+  .mp-group-item-status {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 6px currentColor;
+
+    &.valid {
+      background: #10b981;
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+    }
+
+    &.broken {
+      background: #ef4444;
+      box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+    }
+  }
+
+  /* Group Delete Button */
+  .group-delete-btn {
+    padding: 3px 8px;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    border: 1px solid #dc2626;
+    border-radius: 3px;
+    cursor: pointer;
+    color: #ffffff;
+    font-size: 0.9em;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+
+    &:hover {
+      background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+      box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
+      transform: translateY(-1px);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+
+    i {
+      pointer-events: none;
+    }
+  }
+
+  /* Point List Sub-Accordion */
+  .point-list-accordion {
+    margin-top: 8px;
+    background: rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 3px;
+    padding: 3px;
+
+    > summary {
+      cursor: pointer;
+      padding: 4px 6px;
+      font-weight: bold;
+      color: #94a3b8;
+      font-size: 0.95em;
+    }
+
+    .point-list-content {
+      padding: 8px 0 8px 12px;
+      border-left: 2px solid rgba(74, 158, 255, 0.3);
+      max-height: 200px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.2) rgba(0, 0, 0, 0.2);
+
+      &::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      &::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 3px;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 3px;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.3);
+        }
+      }
+    }
+
+    .point-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 3px 0;
+      font-size: 0.9em;
+      color: #cbd5e1;
+
+      .point-index {
+        color: #94a3b8;
+        font-weight: 500;
+        min-width: 24px;
+      }
+
+      .point-coord {
+        font-family: 'Consolas', 'Monaco', monospace;
+        font-size: 0.95em;
+      }
+
+      .point-delete-btn {
+        padding: 2px 6px;
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        border: 1px solid #dc2626;
+        border-radius: 2px;
+        cursor: pointer;
+        font-size: 0.85em;
+        color: #ffffff;
+        transition: all 0.15s ease;
+        margin-left: auto;
+
+        &:hover {
+          background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+          box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);
+        }
+
+        i {
+          pointer-events: none;
+        }
+      }
+    }
+  }
+
+  /* Emission Settings Sub-Accordion */
+  .emission-settings-accordion {
+    margin-top: 8px;
+    background: rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 3px;
+    padding: 3px;
+
+    > summary {
+      cursor: pointer;
+      padding: 4px 6px;
+      font-weight: bold;
+      color: #94a3b8;
+      font-size: 0.95em;
+    }
+
+    .emission-settings-content {
+      padding: 8px 0 8px 12px;
+      border-left: 2px solid rgba(74, 158, 255, 0.3);
+    }
+  }
+
+  /* Effect Source Sub-Accordion */
+  .effect-source-accordion {
+    margin-top: 8px;
+    background: rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 3px;
+    padding: 3px;
+
+    > summary {
+      cursor: pointer;
+      padding: 4px 6px;
+      font-weight: bold;
+      color: #94a3b8;
+      font-size: 0.95em;
+    }
+
+    .effect-source-content {
+      padding: 8px 0 8px 12px;
+      border-left: 2px solid rgba(74, 158, 255, 0.3);
+    }
+  }
+
+  /* Edit Points Button */
+  .edit-points-section {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+
+    .edit-points-btn {
+      width: 100%;
+      padding: 6px;
+      background: linear-gradient(135deg, #4a9eff 0%, #3b82f6 100%);
+      border: 1px solid #3b82f6;
+      border-radius: 3px;
+      cursor: pointer;
+      font-weight: bold;
+      color: #ffffff;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+
+      &:hover {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        box-shadow: 0 4px 8px rgba(74, 158, 255, 0.4);
+        transform: translateY(-1px);
+      }
+
+      &:active {
+        transform: translateY(0);
+      }
+
+      i {
+        margin-right: 6px;
+      }
+    }
+  }
+
+  /* Placement Mode Tip */
+  .placement-mode-tip {
+    margin-top: 12px;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 3px;
+    font-size: 0.85em;
+    color: #94a3b8;
+    line-height: 1.5;
+
+    strong {
+      color: #cbd5e1;
+      font-weight: 600;
+    }
+  }
+
+  /* No Groups Placeholder */
+  .no-groups-placeholder {
+    font-style: italic;
+    color: #64748b;
+    margin: 8px 0;
+    padding: 12px;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 3px;
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+  }
+
+  /* Quick Create Button (for effect-specific point groups) */
+  .quick-create-effect-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 1px solid rgba(76, 250, 64, 0.5);
+    background: rgba(76, 250, 64, 0.15);
+    border-radius: 3px;
+    cursor: pointer;
+    color: rgba(76, 250, 64, 0.9);
+    transition: all 0.2s;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &:hover {
+      background: rgba(76, 250, 64, 0.3);
+      border-color: #6fdd73;
+      color: #fff;
+    }
+
+    i {
+      font-size: 16px;
+    }
+  }
+
+  /* Groups List Container */
+  .groups-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
   }

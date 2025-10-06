@@ -19,7 +19,7 @@
  * - Real-time shader-based visual enhancements
  *
  * @author Mythica Machina - Ingram Blakelock
- * @version 1.0.47
+ * @version 1.0.51
  *
  * @requires foundry ^13+
  * @requires pixi.js ^7.4.3
@@ -4890,6 +4890,19 @@ class HooksManager {
         "Map Shine | libWrapper is not active. Elegant scene transitions will be disabled."
       );
     }
+
+    // --- Edge Case: Worlds with No Scenes ---
+    // If a world has no scenes, the canvasReady hook will never fire, causing the
+    // loading screen to hang indefinitely. This ready hook detects that condition
+    // and manually hides the loading screen so the GM can create a scene.
+    Hooks.once("ready", () => {
+      if (game.scenes.size === 0 && game.mapShine?.loadingScreen) {
+        console.log(
+          "Map Shine | No scenes detected in world - hiding loading screen to allow scene creation"
+        );
+        game.mapShine.loadingScreen.hide();
+      }
+    });
 
     // This hook ensures settings that should be textareas are rendered as such.
 
@@ -30351,16 +30364,16 @@ class DebuggerUIBuilder {
         padding: 0;
         line-height: 18px;
         border-radius: 3px;
-        background: transparent;
-        border: 1px solid #4CAF50;
-        color: #4CAF50;
+        border: 1px solid rgba(76, 250, 64, 0.5);
+        background: rgba(76, 250, 64, 0.15);
+        color: rgba(76, 250, 64, 0.9);
         transition: all 0.2s;
         flex-shrink: 0;
     }
     .create-effect-from-ui:hover {
-        background: rgba(76, 250, 64, 0.2);
-        color: #fff;
+        background: rgba(76, 250, 64, 0.3);
         border-color: #6fdd73;
+        color: #fff;
     }
     
     /* --- World Based & Clock Based Badges --- */
@@ -31461,30 +31474,27 @@ class DebuggerUIBuilder {
 
     // Helper to create group list items
     const createGroupItemHTML = (group) => `
-      <details class="group-list-item" style="background: rgba(0,0,0,0.2); border-radius: 3px; margin-bottom: 4px;">
-        <summary style="display: flex; align-items: center; gap: 8px; padding: 4px 8px; cursor: pointer;">
-          <span class="accordion-toggle" style="font-size: 0.8em;"></span>
+      <details class="group-list-item">
+        <summary>
+          <span class="accordion-toggle"></span>
           <span class="mp-group-item-status ${
             group.isBroken ? "broken" : "valid"
           }" 
-                title="${group.isBroken ? group.reason : "Valid"}" 
-                style="width: 8px; height: 8px; border-radius: 50%; background: ${
-                  group.isBroken ? "#c44" : "#4c4"
-                }; flex-shrink: 0;"></span>
-          <span style="flex: 1; overflow: hidden; text-overflow: ellipsis;">${Handlebars.escapeExpression(
+                title="${group.isBroken ? group.reason : "Valid"}"></span>
+          <span class="group-item-label">${Handlebars.escapeExpression(
             group.label
           )}</span>
-          <span style="color: #999; font-size: 0.9em;">${group.type} • ${
+          <span class="group-item-meta">${group.type} • ${
       group.points.length
     } pts</span>
           <button type="button" class="group-delete-btn" data-action="delete-group" data-group-id="${
             group.id
           }" 
-                  title="Delete this group" style="padding: 2px 6px; background: #c44; border: none; border-radius: 3px; cursor: pointer;">
+                  title="Delete this group">
             <i class="fas fa-trash"></i>
           </button>
         </summary>
-        <div style="padding: 8px 12px; border-top: 1px solid rgba(255,255,255,0.1);">
+        <div class="group-item-content">
           
           <!-- Group Properties -->
           <div class="control-row">
@@ -31512,27 +31522,22 @@ class DebuggerUIBuilder {
           </div>
           
           <!-- Point List -->
-          <details style="margin-top: 8px;">
-            <summary style="cursor: pointer; padding: 4px 0; font-weight: bold; color: #aaa;">
-              <span class="accordion-toggle" style="font-size: 0.8em;"></span>
+          <details class="point-list-accordion">
+            <summary>
+              <span class="accordion-toggle"></span>
               Points (${group.points.length})
             </summary>
-            <div style="padding: 8px 0 8px 12px; border-left: 2px solid rgba(255,255,255,0.1); max-height: 200px; overflow-y: auto;">
+            <div class="point-list-content">
               ${group.points
                 .map(
                   (p, i) => `
-                <div style="display: flex; align-items: center; gap: 8px; padding: 2px 0; font-size: 0.9em;">
-                  <span style="color: #999;">#${i + 1}</span>
-                  <span style="font-family: monospace;">X: ${Math.round(
-                    p.x
-                  )}</span>
-                  <span style="font-family: monospace;">Y: ${Math.round(
-                    p.y
-                  )}</span>
-                  <button type="button" data-action="delete-point" data-group-id="${
+                <div class="point-item">
+                  <span class="point-index">#${i + 1}</span>
+                  <span class="point-coord">X: ${Math.round(p.x)}</span>
+                  <span class="point-coord">Y: ${Math.round(p.y)}</span>
+                  <button type="button" class="point-delete-btn" data-action="delete-point" data-group-id="${
                     group.id
                   }" data-point-index="${i}" 
-                          style="padding: 1px 4px; background: #c44; border: none; border-radius: 2px; cursor: pointer; font-size: 0.85em;"
                           title="Delete point">
                     <i class="fas fa-times"></i>
                   </button>
@@ -31544,12 +31549,12 @@ class DebuggerUIBuilder {
           </details>
           
           <!-- Emission Settings -->
-          <details style="margin-top: 8px;" open>
-            <summary style="cursor: pointer; padding: 4px 0; font-weight: bold; color: #aaa;">
-              <span class="accordion-toggle" style="font-size: 0.8em;"></span>
+          <details class="emission-settings-accordion" open>
+            <summary>
+              <span class="accordion-toggle"></span>
               Emission Settings
             </summary>
-            <div style="padding: 8px 0 8px 12px; border-left: 2px solid rgba(255,255,255,0.1);">
+            <div class="emission-settings-content">
               ${DebuggerUIBuilder._createSliderHTML(
                 `group.${group.id}.emission.intensity`,
                 "Intensity",
@@ -31590,11 +31595,10 @@ class DebuggerUIBuilder {
           </details>
           
           <!-- Point Placement Actions -->
-          <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
-            <button type="button" data-action="select-and-activate-placement" data-group-id="${
+          <div class="edit-points-section">
+            <button type="button" class="edit-points-btn" data-action="select-and-activate-placement" data-group-id="${
               group.id
-            }" 
-                    style="width: 100%; padding: 6px; background: #4a9eff; border: none; border-radius: 3px; cursor: pointer; font-weight: bold;">
+            }">
               <i class="fas fa-crosshairs"></i> Edit Points on Canvas
             </button>
           </div>
@@ -31606,30 +31610,31 @@ class DebuggerUIBuilder {
     const groupsListHTML =
       effectGroups.length > 0
         ? effectGroups.map(createGroupItemHTML).join("")
-        : '<p class="description-text" style="font-style: italic; color: #999; margin: 5px 0;">No point groups for this effect yet.</p>';
+        : '<p class="no-groups-placeholder">No point groups for this effect yet.</p>';
 
     return `
-      <details style="background: rgba(76, 158, 255, 0.1); border: 1px solid rgba(76, 158, 255, 0.3); border-radius: 4px; padding: 8px; margin-top: 8px;">
-        <summary style="cursor: pointer; font-weight: bold; color: #4a9eff; margin-bottom: 8px;">
+      <details class="point-groups-main-accordion">
+        <summary>
           <span class="accordion-toggle"></span>
           Point Groups (${effectGroups.length})
         </summary>
-        <div style="padding-left: 10px;">
-          <p class="description-text" style="margin-bottom: 8px;">${description}</p>
+        <div class="point-groups-content">
           
-          <!-- Quick Create Button -->
-          <button type="button" class="create-effect-from-ui" data-action="create-particle-effect-area" data-effect-key="${effectKey}" 
-                  style="width: 100%; padding: 8px; background: #4cfa40; border: none; border-radius: 3px; cursor: pointer; font-weight: bold; margin-bottom: 12px;">
-            <i class="fas fa-plus-square"></i> Create New ${effectName} Group
-          </button>
+          <!-- Header with Description and Create Button -->
+          <div class="point-groups-header">
+            <div class="point-groups-description">${description}</div>
+            <button type="button" class="quick-create-effect-btn create-effect-from-ui" data-action="create-particle-effect-area" data-effect-key="${effectKey}" title="Create new ${effectName} group">
+              <i class="fas fa-plus-square"></i>
+            </button>
+          </div>
           
           <!-- Existing Groups -->
-          <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div class="groups-list-container">
             ${groupsListHTML}
           </div>
           
           <!-- Placement Mode Info -->
-          <div style="margin-top: 12px; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 3px; font-size: 0.85em; color: #999;">
+          <div class="placement-mode-tip">
             <strong>Tip:</strong> Use the "Edit Points on Canvas" button to add/move/delete points visually.<br>
             <strong>Left-Click:</strong> Add point • <strong>Left-Drag:</strong> Move • <strong>Right-Click:</strong> Delete
           </div>
@@ -31680,35 +31685,32 @@ class DebuggerUIBuilder {
     // Helper to create group list items
     const createGroupListHTML = (groups, typeName) => {
       if (groups.length === 0) {
-        return '<p class="description-text" style="font-style: italic; color: #999; margin: 5px 0;">No groups of this type</p>';
+        return '<p class="no-groups-placeholder">No groups of this type</p>';
       }
       return groups
         .map(
           (group) => `
-        <details class="group-list-item" style="background: rgba(0,0,0,0.2); border-radius: 3px; margin-bottom: 4px;">
-          <summary style="display: flex; align-items: center; gap: 8px; padding: 4px 8px; cursor: pointer;">
-            <span class="accordion-toggle" style="font-size: 0.8em;"></span>
+        <details class="group-list-item">
+          <summary>
+            <span class="accordion-toggle"></span>
             <span class="mp-group-item-status ${
               group.isBroken ? "broken" : "valid"
             }" 
-                  title="${group.isBroken ? group.reason : "Valid"}" 
-                  style="width: 8px; height: 8px; border-radius: 50%; background: ${
-                    group.isBroken ? "#c44" : "#4c4"
-                  }; flex-shrink: 0;"></span>
-            <span style="flex: 1; overflow: hidden; text-overflow: ellipsis;">${Handlebars.escapeExpression(
+                  title="${group.isBroken ? group.reason : "Valid"}"></span>
+            <span class="group-item-label">${Handlebars.escapeExpression(
               group.label
             )}</span>
-            <span style="color: #999; font-size: 0.9em;">${
+            <span class="group-item-meta">${
               group.points.length
             } pts</span>
             <button type="button" class="group-delete-btn" data-action="delete-group" data-group-id="${
               group.id
             }" 
-                    title="Delete this group" style="padding: 2px 6px; background: #c44; border: none; border-radius: 3px; cursor: pointer;">
+                    title="Delete this group">
               <i class="fas fa-trash"></i>
             </button>
           </summary>
-          <div style="padding: 8px 12px; border-top: 1px solid rgba(255,255,255,0.1);">
+          <div class="group-item-content">
             
             <!-- Group Properties -->
             <div class="control-row">
@@ -31739,27 +31741,22 @@ class DebuggerUIBuilder {
             </div>
             
             <!-- Point List -->
-            <details style="margin-top: 8px;">
-              <summary style="cursor: pointer; padding: 4px 0; font-weight: bold; color: #aaa;">
-                <span class="accordion-toggle" style="font-size: 0.8em;"></span>
+            <details class="point-list-accordion">
+              <summary>
+                <span class="accordion-toggle"></span>
                 Points (${group.points.length})
               </summary>
-              <div style="padding: 8px 0 8px 12px; border-left: 2px solid rgba(255,255,255,0.1); max-height: 200px; overflow-y: auto;">
+              <div class="point-list-content">
                 ${group.points
                   .map(
                     (p, i) => `
-                  <div style="display: flex; align-items: center; gap: 8px; padding: 2px 0; font-size: 0.9em;">
-                    <span style="color: #999;">#${i + 1}</span>
-                    <span style="font-family: monospace;">X: ${Math.round(
-                      p.x
-                    )}</span>
-                    <span style="font-family: monospace;">Y: ${Math.round(
-                      p.y
-                    )}</span>
-                    <button type="button" data-action="delete-point" data-group-id="${
+                  <div class="point-item">
+                    <span class="point-index">#${i + 1}</span>
+                    <span class="point-coord">X: ${Math.round(p.x)}</span>
+                    <span class="point-coord">Y: ${Math.round(p.y)}</span>
+                    <button type="button" class="point-delete-btn" data-action="delete-point" data-group-id="${
                       group.id
                     }" data-point-index="${i}" 
-                            style="padding: 1px 4px; background: #c44; border: none; border-radius: 2px; cursor: pointer; font-size: 0.85em;"
                             title="Delete point">
                       <i class="fas fa-times"></i>
                     </button>
@@ -31771,12 +31768,12 @@ class DebuggerUIBuilder {
             </details>
             
             <!-- Effect Source Configuration -->
-            <details style="margin-top: 8px;">
-              <summary style="cursor: pointer; padding: 4px 0; font-weight: bold; color: #aaa;">
-                <span class="accordion-toggle" style="font-size: 0.8em;"></span>
+            <details class="effect-source-accordion">
+              <summary>
+                <span class="accordion-toggle"></span>
                 Effect Source
               </summary>
-              <div style="padding: 8px 0 8px 12px; border-left: 2px solid rgba(255,255,255,0.1);">
+              <div class="effect-source-content">
                 <div class="control-row">
                   <label>Use as Effect Source:</label>
                   <input type="checkbox" data-path="group.${
@@ -31848,11 +31845,10 @@ class DebuggerUIBuilder {
             </details>
             
             <!-- Point Placement Actions -->
-            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
-              <button type="button" data-action="select-and-activate-placement" data-group-id="${
+            <div class="edit-points-section">
+              <button type="button" class="edit-points-btn" data-action="select-and-activate-placement" data-group-id="${
                 group.id
-              }" 
-                      style="width: 100%; padding: 6px; background: #4a9eff; border: none; border-radius: 3px; cursor: pointer; font-weight: bold;">
+              }">
                 <i class="fas fa-crosshairs"></i> Edit Points on Canvas
               </button>
             </div>
@@ -31868,24 +31864,23 @@ class DebuggerUIBuilder {
       <p class="description-text">Manage point groups for particle effects, lightning, and physics ropes. Points are placed directly on the canvas.</p>
       
       <!-- Point Placement Mode Toggle -->
-      <div style="background: rgba(74, 158, 255, 0.15); border: 1px solid #4a9eff; border-radius: 4px; padding: 8px; margin-bottom: 12px;">
-        <button type="button" data-action="toggle-placement-mode" id="placement-mode-toggle-btn" 
-                style="width: 100%; padding: 8px; background: #4a9eff; border: none; border-radius: 3px; cursor: pointer; font-weight: bold; font-size: 1.05em;">
+      <div class="point-placement-mode-section">
+        <button type="button" class="placement-mode-btn" data-action="toggle-placement-mode" id="placement-mode-toggle-btn">
           <i class="fas fa-crosshairs"></i> <span id="placement-mode-label">Activate Point Placement Mode</span>
         </button>
-        <p class="description-text" style="margin: 6px 0 0 0; font-size: 0.85em; text-align: center;">
+        <p class="placement-mode-instructions">
           <strong>Left-Click:</strong> Add point • <strong>Left-Drag:</strong> Move point • <strong>Right-Click:</strong> Delete point<br>
           Use delete buttons below for precise point/group removal
         </p>
       </div>
       
       <!-- Create New Group -->
-      <details open style="background: rgba(76, 250, 64, 0.1); border: 1px solid #4cfa40; border-radius: 4px; padding: 8px; margin-bottom: 12px;">
-        <summary style="cursor: pointer; font-weight: bold; color: #4cfa40; margin-bottom: 8px;">
+      <details open class="create-group-accordion">
+        <summary>
           <span class="accordion-toggle"></span>
           Create New Group
         </summary>
-        <div style="padding-left: 10px;">
+        <div class="create-group-content">
           <div class="control-row">
             <label>Name:</label>
             <input type="text" id="new-group-name-input" placeholder="New Group Name" style="flex: 1;">
@@ -31899,38 +31894,37 @@ class DebuggerUIBuilder {
               <option value="rope">Physics Rope</option>
             </select>
           </div>
-          <button type="button" data-action="create-group-from-ui" 
-                  style="width: 100%; padding: 6px; background: #4cfa40; border: none; border-radius: 3px; cursor: pointer; font-weight: bold; margin-top: 4px;">
+          <button type="button" class="create-group-btn" data-action="create-group-from-ui">
             <i class="fas fa-plus-square"></i> Create Group
           </button>
         </div>
       </details>
       
       <!-- Groups by Type -->
-      <details open>
+      <details open class="group-type-accordion">
         <summary><span class="accordion-toggle"></span><strong>Point Groups</strong></summary>
-        <div style="padding-left: 10px; margin-top: 8px;">
+        <div class="group-type-content">
           ${createGroupListHTML(groupsByType.point, "Point")}
         </div>
       </details>
       
-      <details>
+      <details class="group-type-accordion">
         <summary><span class="accordion-toggle"></span><strong>Line Groups</strong></summary>
-        <div style="padding-left: 10px; margin-top: 8px;">
+        <div class="group-type-content">
           ${createGroupListHTML(groupsByType.line, "Line")}
         </div>
       </details>
       
-      <details>
+      <details class="group-type-accordion">
         <summary><span class="accordion-toggle"></span><strong>Area Groups</strong></summary>
-        <div style="padding-left: 10px; margin-top: 8px;">
+        <div class="group-type-content">
           ${createGroupListHTML(groupsByType.area, "Area")}
         </div>
       </details>
       
-      <details>
+      <details class="group-type-accordion">
         <summary><span class="accordion-toggle"></span><strong>Rope Groups</strong></summary>
-        <div style="padding-left: 10px; margin-top: 8px;">
+        <div class="group-type-content">
           <p class="description-text" style="font-size: 0.9em; color: #999;">For detailed rope physics settings, see the "Physics Rope" accordion below.</p>
           ${createGroupListHTML(groupsByType.rope, "Rope")}
         </div>
