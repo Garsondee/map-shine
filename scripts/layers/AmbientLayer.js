@@ -11,6 +11,7 @@
  */
 
 import { hexToRgbArray } from "../utils/ColorUtils.js";
+import { TextureLoader } from "../utils/TextureLoader.js";
 
 // TODO: These dependencies need to be extracted and imported properly
 // For now, we'll access them lazily from globalThis when needed
@@ -380,7 +381,7 @@ class AmbientLayer extends foundry.canvas.layers.CanvasLayer {
 		if (texturePath !== currentPath) {
 			// console.log(`AmbientLayer DEBUG | _updateSpriteTransform: Loading new texture. Old: ${currentPath}, New: ${texturePath}`);
 			try {
-				sprite.texture = await foundry.canvas.loadTexture(texturePath);
+				sprite.texture = await TextureLoader.loadTexture(texturePath);
 			} catch (e) {
 				console.error(
 					`AmbientLayer DEBUG | _updateSpriteTransform: FAILED to load texture: ${texturePath}`,

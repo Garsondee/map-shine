@@ -38,6 +38,8 @@ import { AmbientLayer } from "./layers/AmbientLayer.js";
 import { FireToneCurveFilter } from "./filters/FireToneCurveFilter.js";
 import { hexToRgbArray, lerp } from "./utils/ColorUtils.js";
 import { LoadingUI } from "./ui/LoadingUI.js";
+import { MemoryProfiler } from "./utils/MemoryProfiler.js";
+import { TextureLoader } from "./utils/TextureLoader.js";
 
 /***************************************************************************************
  *
@@ -5643,6 +5645,9 @@ class SceneChangeManager {
     // Mark canvas as inactive to prevent race conditions with async discovery
     tornDownCanvas.mapShine.isModuleActive = false;
 
+    // Clear downscaled texture cache to free VRAM
+    TextureLoader.clearCache();
+
     try {
       // 1. Destroy particle systems first to prevent animation errors
       if (game.mapShine.particleManager) {
@@ -8945,7 +8950,7 @@ class MapShineLifecycle {
         `Map Shine | Pre-loading ${allPaths.size} discovered textures...`
       );
       const promises = Array.from(allPaths).map((path) =>
-        foundry.canvas.loadTexture(path)
+        TextureLoader.loadTexture(path)
       );
       try {
         await Promise.all(promises);
@@ -10275,8 +10280,8 @@ class CompositeMaskGenerator {
 
     try {
       const [baseTex, overlayTex] = await Promise.all([
-        foundry.canvas.loadTexture(baseTexturePath),
-        foundry.canvas.loadTexture(overlayTexturePath),
+        TextureLoader.loadTexture(baseTexturePath),
+        TextureLoader.loadTexture(overlayTexturePath),
       ]);
 
       const container = new PIXI.Container();
@@ -12249,10 +12254,10 @@ class ParticleEffectController {
     try {
       // Asynchronously load both the particle texture and the spawn mask texture.
       const [particleTexture, spawnMaskTexture] = await Promise.all([
-        foundry.canvas.loadTexture(particleTexPath),
+        TextureLoader.loadTexture(particleTexPath),
         spawnMaskSource instanceof PIXI.Texture
           ? Promise.resolve(spawnMaskSource)
-          : foundry.canvas.loadTexture(spawnMaskSource),
+          : TextureLoader.loadTexture(spawnMaskSource),
       ]);
 
       localTargetData[maskKey] = spawnMaskTexture;
@@ -12339,7 +12344,7 @@ class ParticleEffectController {
     if (!particleTexPath || typeof particleTexPath !== "string") return true; // Nothing to do, so count as "success".
 
     try {
-      const texture = await foundry.canvas.loadTexture(particleTexPath);
+      const texture = await TextureLoader.loadTexture(particleTexPath);
       const currentFullConfig = game.mapShine.profileManager.activeConfig;
       const currentEffectConfig = foundry.utils.getProperty(
         currentFullConfig,
@@ -13788,7 +13793,7 @@ class TextureMaskShape {
       // Load color texture if a path is provided (for metallic glints)
       if (this.colorTexturePath && !this.colorTexture) {
         try {
-          this.colorTexture = await foundry.canvas.loadTexture(
+          this.colorTexture = await TextureLoader.loadTexture(
             this.colorTexturePath
           );
         } catch (e) {
@@ -20079,7 +20084,7 @@ class MaskedEffectLayer extends foundry.canvas.layers.CanvasLayer {
     const currentPath = sprite.texture?.baseTexture?.resource?.src;
     if (texturePath !== currentPath) {
       try {
-        sprite.texture = await foundry.canvas.loadTexture(texturePath);
+        sprite.texture = await TextureLoader.loadTexture(texturePath);
       } catch (e) {
         console.warn(
           `MapShine | Failed to load texture "${texturePath}":`,
@@ -20501,7 +20506,7 @@ class DiagnosticLayer extends foundry.canvas.layers.CanvasLayer {
     const currentPath = sprite.texture?.baseTexture?.resource?.src;
     if (texturePath !== currentPath) {
       try {
-        sprite.texture = await foundry.canvas.loadTexture(texturePath);
+        sprite.texture = await TextureLoader.loadTexture(texturePath);
       } catch (e) {
         console.warn(
           `MapShine | Failed to load texture "${texturePath}":`,
@@ -21387,7 +21392,7 @@ export class PhysicsRopeLayer extends foundry.canvas.layers.CanvasLayer {
         try {
           const path =
             group.texturePath || "modules/map-shine/assets/rope.webp";
-          const texture = await foundry.canvas.loadTexture(path);
+          const texture = await TextureLoader.loadTexture(path);
           texture.baseTexture.wrapMode = PIXI.WRAP_MODES.REPEAT;
 
           const ropeConfig = {
@@ -21436,7 +21441,7 @@ export class PhysicsRopeLayer extends foundry.canvas.layers.CanvasLayer {
           // Load and apply rope end texture if specified
           if (ropeConfig.ropeEndTexturePath) {
             try {
-              const ropeEndTexture = await foundry.canvas.loadTexture(
+              const ropeEndTexture = await TextureLoader.loadTexture(
                 ropeConfig.ropeEndTexturePath
               );
               await rope._createRopeEnds(ropeEndTexture);
@@ -22478,7 +22483,7 @@ class MetallicShineLayer extends foundry.canvas.layers.CanvasLayer {
     const currentPath = sprite.texture?.baseTexture?.resource?.src;
     if (texturePath !== currentPath) {
       try {
-        sprite.texture = await foundry.canvas.loadTexture(texturePath);
+        sprite.texture = await TextureLoader.loadTexture(texturePath);
       } catch (e) {
         console.warn(
           `MapShine | Failed to load texture "${texturePath}":`,
@@ -24673,7 +24678,7 @@ class GroundGlowLayer extends foundry.canvas.layers.CanvasLayer {
     const currentPath = sprite.texture?.baseTexture?.resource?.src;
     if (texturePath !== currentPath) {
       try {
-        sprite.texture = await foundry.canvas.loadTexture(texturePath);
+        sprite.texture = await TextureLoader.loadTexture(texturePath);
       } catch (e) {
         console.warn(
           `MapShine | Failed to load texture "${texturePath}":`,
@@ -25054,7 +25059,7 @@ class HeatDistortionLayer extends foundry.canvas.layers.CanvasLayer {
     const currentPath = sprite.texture?.baseTexture?.resource?.src;
     if (texturePath !== currentPath) {
       try {
-        sprite.texture = await foundry.canvas.loadTexture(texturePath);
+        sprite.texture = await TextureLoader.loadTexture(texturePath);
       } catch (_e) {
         sprite.texture = PIXI.Texture.EMPTY;
       }
@@ -32329,7 +32334,7 @@ class DebuggerEventHandler {
           } else if (property === "texturePath") {
             // Special handling for texture changes - need to reload texture
             try {
-              const newTexture = await foundry.canvas.loadTexture(value);
+              const newTexture = await TextureLoader.loadTexture(value);
               newTexture.baseTexture.wrapMode = PIXI.WRAP_MODES.REPEAT;
 
               // Update the mesh texture
@@ -35786,6 +35791,14 @@ Hooks.on("getSceneControlButtons", (controls) => {
 
 Hooks.once("init", () => {
   MapShineInitialiser.initialize();
+  
+  // Register memory profiling console commands
+  console.log("%c🔍 MapShine Memory Profiler available!", "color: #4CAF50; font-weight: bold;");
+  console.log("%cCommands:", "font-weight: bold;");
+  console.log("  • MapShineMemoryProfiler.printStats() - Show current memory usage");
+  console.log("  • MapShineMemoryProfiler.startMonitoring(intervalMs) - Start continuous monitoring");
+  console.log("  • MapShineMemoryProfiler.stopMonitoring() - Stop monitoring");
+  console.log("  • MapShineMemoryProfiler.collectStats() - Get raw stats object");
 });
 
 Hooks.once("ready", () => {
