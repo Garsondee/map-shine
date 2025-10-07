@@ -18,6 +18,14 @@ export class TextureLoader {
     static _textureCache = new Map();
 
     /**
+     * Progress tracking for loading bar
+     */
+    static _optimizationStats = {
+        total: 0,
+        completed: 0
+    };
+
+    /**
      * Load a texture with automatic resolution scaling for _Suffixed textures
      * @param {string} src - Texture path
      * @param {object} options - Loading options
@@ -34,10 +42,11 @@ export class TextureLoader {
                 return this._textureCache.get(src);
             }
 
-            // Check if already in PIXI cache - if so, just return it
-            if (PIXI.utils.TextureCache[src]) {
+            // Check if already in PIXI cache - if so, just return it (unless it's destroyed)
+            const cachedTexture = PIXI.utils.TextureCache[src];
+            if (cachedTexture && cachedTexture.baseTexture && cachedTexture.baseTexture.valid) {
                 // console.log(`Map Shine | Texture already loaded (using existing): ${src.split('/').pop()}`);
-                return PIXI.utils.TextureCache[src];
+                return cachedTexture;
             }
 
             // NEW APPROACH: Force a clean load with downsampling
@@ -71,6 +80,9 @@ export class TextureLoader {
             // The memory will be freed when nothing references it anymore
             
             console.log(`Map Shine | Loaded & downsampled texture (-> ${scaledTexture.width}x${scaledTexture.height}) with ${cacheIds.length} cache keys: ${src.split('/').pop()}`);
+            
+            // Report progress to loading manager
+            await this.reportOptimizationProgress();
             
             return scaledTexture;
         }
@@ -149,13 +161,52 @@ export class TextureLoader {
     }
 
     /**
+     * Initialize optimization progress tracking
+     * @param {number} total - Total number of textures to optimize
+     */
+    static startOptimizationTracking(total) {
+        this._optimizationStats.total = total;
+        this._optimizationStats.completed = 0;
+    }
+
+    /**
+     * Report progress for a completed optimization
+     */
+    static async reportOptimizationProgress() {
+        this._optimizationStats.completed++;
+        
+        const progress = this._optimizationStats.completed / this._optimizationStats.total;
+        const loadingManager = game.mapShine?.loadingManager;
+        
+        if (loadingManager) {
+            const startWaypoint = loadingManager.waypoints.TEXTURE_OPTIMIZATION_START;
+            const endWaypoint = loadingManager.waypoints.TEXTURE_OPTIMIZATION_END;
+            const currentWaypoint = startWaypoint + (progress * (endWaypoint - startWaypoint));
+            
+            await loadingManager.updateProgress(currentWaypoint, 
+                `Optimizing textures... (${this._optimizationStats.completed}/${this._optimizationStats.total})`);
+        }
+    }
+
+    /**
      * Clear the texture cache (useful when changing scenes)
      */
     static clearCache() {
-        for (const texture of this._textureCache.values()) {
+        for (const [src, texture] of this._textureCache.entries()) {
+            // Remove from PIXI's cache before destroying to prevent returning destroyed textures
+            const baseTexture = texture.baseTexture;
+            if (baseTexture && baseTexture.textureCacheIds) {
+                for (const cacheId of baseTexture.textureCacheIds) {
+                    delete PIXI.utils.TextureCache[cacheId];
+                    delete PIXI.utils.BaseTextureCache[cacheId];
+                }
+            }
+            
+            // Now safe to destroy
             texture.destroy(true);
         }
         this._textureCache.clear();
+        this._optimizationStats = { total: 0, completed: 0 };
         console.log("Map Shine | Texture cache cleared");
     }
 }

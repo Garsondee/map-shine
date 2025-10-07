@@ -3595,6 +3595,8 @@ class MapShineInitialiser {
           DISCOVERY_END: 40,
           TEXTURE_PRELOAD_START: 41,
           TEXTURE_PRELOAD_END: 44,
+          TEXTURE_OPTIMIZATION_START: 44.2,
+          TEXTURE_OPTIMIZATION_END: 44.8,
           SETUP_START: 45,
           RESOURCE_MANAGER_INIT: 48,
           PROFILES_INIT: 50,
@@ -3621,6 +3623,8 @@ class MapShineInitialiser {
           DISCOVERY_END: "Effect maps found.",
           TEXTURE_PRELOAD_START: "Pre-loading textures...",
           TEXTURE_PRELOAD_END: "Textures ready.",
+          TEXTURE_OPTIMIZATION_START: "Optimizing textures...",
+          TEXTURE_OPTIMIZATION_END: "Textures optimized.",
           SETUP_START: "Configuring effects...",
           RESOURCE_MANAGER_INIT: "Initializing resource manager...",
           PROFILES_INIT: "Loading profiles...",
@@ -8949,7 +8953,22 @@ class MapShineLifecycle {
       console.log(
         `Map Shine | Pre-loading ${allPaths.size} discovered textures...`
       );
-      const promises = Array.from(allPaths).map((path) =>
+      
+      // Count textures that will be optimized (downsampled)
+      const pathsArray = Array.from(allPaths);
+      const optimizableTextures = pathsArray.filter(path => 
+        TextureLoader.shouldDownscale(path)
+      ).length;
+      
+      // Initialize optimization tracking
+      if (optimizableTextures > 0) {
+        TextureLoader.startOptimizationTracking(optimizableTextures);
+        console.log(
+          `Map Shine | ${optimizableTextures} textures will be optimized for memory savings.`
+        );
+      }
+      
+      const promises = pathsArray.map((path) =>
         TextureLoader.loadTexture(path)
       );
       try {
@@ -8964,6 +8983,9 @@ class MapShineLifecycle {
     }
 
     await loadingManager?.tick("TEXTURE_PRELOAD_END");
+    
+    // Texture optimization happens during loading, mark completion
+    await loadingManager?.tick("TEXTURE_OPTIMIZATION_END");
   }
 }
 
