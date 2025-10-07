@@ -19,7 +19,7 @@
  * - Real-time shader-based visual enhancements
  *
  * @author Mythica Machina - Ingram Blakelock
- * @version 1.0.51
+ * @version 1.0.55
  *
  * @requires foundry ^13+
  * @requires pixi.js ^7.4.3
@@ -3597,6 +3597,8 @@ class MapShineInitialiser {
           TEXTURE_PRELOAD_END: 44,
           TEXTURE_OPTIMIZATION_START: 44.2,
           TEXTURE_OPTIMIZATION_END: 44.8,
+          SHADER_PREWARM_START: 44.85,
+          SHADER_PREWARM_END: 44.95,
           SETUP_START: 45,
           RESOURCE_MANAGER_INIT: 48,
           PROFILES_INIT: 50,
@@ -3625,6 +3627,8 @@ class MapShineInitialiser {
           TEXTURE_PRELOAD_END: "Textures ready.",
           TEXTURE_OPTIMIZATION_START: "Optimizing textures...",
           TEXTURE_OPTIMIZATION_END: "Textures optimized.",
+          SHADER_PREWARM_START: "Pre-warming shaders...",
+          SHADER_PREWARM_END: "Shaders ready.",
           SETUP_START: "Configuring effects...",
           RESOURCE_MANAGER_INIT: "Initializing resource manager...",
           PROFILES_INIT: "Loading profiles...",
@@ -8601,6 +8605,9 @@ class MapShineLifecycle {
         // Pre-load all discovered textures before proceeding to setup.
         await this._preloadDiscoveredTextures();
 
+        // Pre-warm shaders to eliminate compilation stutter on first frame
+        await this._prewarmShaders();
+
         await this.runFullSetup(canvas);
         return; // Success, exit the loop and the function.
       } else {
@@ -8986,6 +8993,121 @@ class MapShineLifecycle {
     
     // Texture optimization happens during loading, mark completion
     await loadingManager?.tick("TEXTURE_OPTIMIZATION_END");
+  }
+
+  /**
+   * Pre-warms GPU shader compilation by creating temporary sprites with all complex filters.
+   * This eliminates "compilation stutter" on the first frame when effects are actually used.
+   * 
+   * TECHNIQUE:
+   * - Creates tiny (1x1 pixel) temporary sprites/containers
+   * - Applies each complex filter to force GPU driver compilation
+   * - Performs a minimal render operation
+   * - Cleans up temporary objects immediately
+   * 
+   * This runs during the loading screen to ensure smooth first-frame performance.
+   */
+  static async _prewarmShaders() {
+    const loadingManager = game.mapShine.loadingManager;
+    await loadingManager?.tick("SHADER_PREWARM_START");
+
+    console.log("Map Shine | Pre-warming shaders for smooth first-frame performance...");
+
+    try {
+      // Create a temporary container to hold our test sprites
+      const tempContainer = new PIXI.Container();
+      canvas.app.stage.addChild(tempContainer);
+
+      // Create a tiny 1x1 white texture for testing
+      const tinyTexture = PIXI.Texture.WHITE;
+      
+      // List of all complex filters that need pre-warming
+      // These are the filters most likely to cause compilation stutter
+      const filtersToPrewarm = [
+        // Water effects
+        { name: "WaterEffectsFilter", create: () => new WaterEffectsFilter({}) },
+        { name: "WaveDisplacementFilter", create: () => new WaveDisplacementFilter({}) },
+        { name: "FoamFilter", create: () => new FoamFilter({}) },
+        { name: "BiofilmMaskFilter", create: () => new BiofilmMaskFilter({}) },
+        
+        // Metallic and shine effects
+        { name: "MetallicShineFilter", create: () => new MetallicShineFilter({}) },
+        { name: "MetallicStripePatternFilter", create: () => new MetallicStripePatternFilter({}) },
+        { name: "IridescenceFilter", create: () => new IridescenceFilter({}) },
+        { name: "GroundGlowFilter", create: () => new GroundGlowFilter({}) },
+        
+        // Shadow and lighting effects
+        { name: "CloudShadowsFilter", create: () => new CloudShadowsFilter({}) },
+        { name: "CanopyFilter", create: () => new CanopyFilter({}) },
+        { name: "StructuralFilter", create: () => new StructuralFilter({}) },
+        { name: "BuildingShadowsFilter", create: () => new BuildingShadowsFilter({}) },
+        
+        // Distortion and atmospheric effects
+        { name: "HeatDistortionFilter", create: () => new HeatDistortionFilter({}) },
+        { name: "HeatDistortionNoiseFilter", create: () => new HeatDistortionNoiseFilter({}) },
+        { name: "LensDistortionFilter", create: () => new LensDistortionFilter({}) },
+        { name: "ChromaticAberrationFilter", create: () => new ChromaticAberrationFilter({}) },
+        
+        // Color and post-processing
+        { name: "ColorCorrectionFilter", create: () => new ColorCorrectionFilter({}) },
+        { name: "AmbientColorFilter", create: () => new AmbientColorFilter({}) },
+        { name: "TimeOfDayColorFilter", create: () => new TimeOfDayColorFilter({}) },
+        { name: "OverheadRecolorFilter", create: () => new OverheadRecolorFilter({}) },
+        
+        // Noise and grain effects
+        { name: "NoisePatternFilter", create: () => new NoisePatternFilter({}) },
+        { name: "FilmGrainFilter", create: () => new FilmGrainFilter({}) },
+        { name: "NoiseFilter", create: () => new NoiseFilter({}) },
+        
+        // Particle and special effects
+        { name: "ParticleRgbSplitFilter", create: () => new ParticleRgbSplitFilter({}) },
+        { name: "CloudSuppressorFilter", create: () => new CloudSuppressorFilter({}) },
+        { name: "PrismFilter", create: () => new PrismFilter({}) },
+        { name: "VignetteFilter", create: () => new VignetteFilter({}) },
+      ];
+
+      // Pre-warm each filter
+      for (const filterDef of filtersToPrewarm) {
+        try {
+          // Create a tiny sprite for this filter
+          const sprite = new PIXI.Sprite(tinyTexture);
+          sprite.width = 1;
+          sprite.height = 1;
+          sprite.visible = true;
+          
+          // Create and apply the filter
+          const filter = filterDef.create();
+          sprite.filters = [filter];
+          
+          // Add to container
+          tempContainer.addChild(sprite);
+          
+          // Force a render by accessing the transform (this triggers the filter pipeline)
+          tempContainer.updateTransform();
+          
+          // Clean up immediately
+          sprite.destroy();
+          
+        } catch (error) {
+          console.warn(`Map Shine | Failed to pre-warm ${filterDef.name}:`, error);
+          // Continue with other filters even if one fails
+        }
+      }
+
+      // Force a final render to ensure all shaders are compiled
+      canvas.app.renderer.render(tempContainer);
+
+      // Clean up the temporary container
+      tempContainer.destroy({ children: true });
+
+      console.log(`Map Shine | Successfully pre-warmed ${filtersToPrewarm.length} shaders.`);
+      
+    } catch (error) {
+      console.warn("Map Shine | Error during shader pre-warming:", error);
+      // Don't halt the loading process if pre-warming fails
+    }
+
+    await loadingManager?.tick("SHADER_PREWARM_END");
   }
 }
 
