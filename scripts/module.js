@@ -37,6 +37,7 @@ import { TokenManager } from "./managers/TokenManager.js";
 import { AmbientLayer } from "./layers/AmbientLayer.js";
 import { FireToneCurveFilter } from "./filters/FireToneCurveFilter.js";
 import { hexToRgbArray, lerp } from "./utils/ColorUtils.js";
+import { LoadingUI } from "./ui/LoadingUI.js";
 
 /***************************************************************************************
  *
@@ -3658,8 +3659,6 @@ class MapShineInitialiser {
       profileManager: new ProfileManager(),
       transitionManager: null, // Initialized below
       sceneChangeManager: new SceneChangeManager(),
-      setupCompletionPromise: null,
-      resolveSetupCompletion: null,
       debugger: null,
       particleManager: null,
       windManager: null,
@@ -4581,7 +4580,6 @@ class HooksManager {
       PIXI.particles.Emitter.registerBehavior(PressurisedSteamBehavior);
       PIXI.particles.Emitter.registerBehavior(SmellyFliesBehavior);
       PIXI.particles.Emitter.registerBehavior(ColorFromSpawnBehavior);
-      PIXI.particles.Emitter.registerBehavior(GPUMaskSpawnBehavior);
       PIXI.particles.Emitter.registerBehavior(MapShineLightingBehavior);
     } else {
       console.error(
@@ -4613,7 +4611,28 @@ class HooksManager {
           "Map Shine | Scene transitions enabled - registering Scene.prototype.view wrapper"
         );
 
-        // Scene Transition Wrapper - Enhanced with robust error handling
+        /**
+         * Scene Transition Wrapper - Event-Driven Lifecycle Coordination
+         * 
+         * ARCHITECTURE:
+         * This wrapper uses a Hook-based coordination system to synchronize the
+         * scene transition overlay with the MapShine lifecycle. Instead of relying
+         * on global promise resolvers (fragile) or hardcoded delays (unreliable),
+         * it listens for the 'mapShine:setupComplete' Hook event.
+         * 
+         * FLOW:
+         * 1. Create and fade in the transition overlay
+         * 2. Execute the scene change (calls wrapped function)
+         * 3. Wait for 'mapShine:setupComplete' Hook OR timeout
+         * 4. Fade out the overlay to reveal the new scene
+         * 5. Clean up (always happens via finally block)
+         * 
+         * ERROR HANDLING:
+         * - Comprehensive try-catch blocks at each phase
+         * - Overlay cleanup guaranteed via finally block
+         * - Hook cleanup in both success and error paths
+         * - Graceful fallback to default behavior on critical errors
+         */
         try {
           libWrapper.register(
             MODULE_ID,
@@ -4781,14 +4800,17 @@ class HooksManager {
                   // Continue with transition even if overlay fails
                 }
 
-                // Set up completion promise for lifecycle coordination
-                let resolveSetup;
-                game.mapShine.setupCompletionPromise = new Promise(
-                  (resolve) => {
-                    resolveSetup = resolve;
-                  }
-                );
-                game.mapShine.resolveSetupCompletion = resolveSetup;
+                // Create a promise that resolves when the mapShine:setupComplete Hook fires
+                const setupCompletePromise = new Promise((resolve) => {
+                  const hookId = Hooks.once("mapShine:setupComplete", (data) => {
+                    console.log(
+                      `[MapShine Transition] Setup complete (${data.type}), proceeding with fade-in`
+                    );
+                    resolve();
+                  });
+                  // Store hookId for cleanup if needed
+                  game.mapShine._transitionHookId = hookId;
+                });
 
                 // Execute the actual scene transition
                 const result = await wrapped(...args);
@@ -4802,21 +4824,19 @@ class HooksManager {
                     console.warn(
                       `[MapShine Transition] Setup timeout after ${timeoutDuration}ms, proceeding with fade-in`
                     );
+                    // Clean up the hook if timeout occurs
+                    if (game.mapShine._transitionHookId !== undefined) {
+                      Hooks.off("mapShine:setupComplete", game.mapShine._transitionHookId);
+                      game.mapShine._transitionHookId = undefined;
+                    }
                     resolve();
                   }, timeoutDuration)
                 );
 
-                await Promise.race([
-                  game.mapShine.setupCompletionPromise,
-                  timeoutPromise,
-                ]);
+                await Promise.race([setupCompletePromise, timeoutPromise]);
 
-                // Clean up promises
-                game.mapShine.setupCompletionPromise = null;
-                game.mapShine.resolveSetupCompletion = null;
-
-                // Additional delay for systems to stabilize
-                await new Promise((resolve) => setTimeout(resolve, 2000));
+                // Clean up hook reference
+                game.mapShine._transitionHookId = undefined;
 
                 // Fade in new scene
                 try {
@@ -4856,8 +4876,11 @@ class HooksManager {
                 // Emergency cleanup
                 try {
                   game.mapShine?.sceneChangeManager?._destroyOverlay();
-                  game.mapShine.setupCompletionPromise = null;
-                  game.mapShine.resolveSetupCompletion = null;
+                  // Clean up hook if it exists
+                  if (game.mapShine?._transitionHookId !== undefined) {
+                    Hooks.off("mapShine:setupComplete", game.mapShine._transitionHookId);
+                    game.mapShine._transitionHookId = undefined;
+                  }
                 } catch (cleanupError) {
                   // Ignore cleanup errors
                 }
@@ -5093,18 +5116,19 @@ class SceneChangeManager {
     this._currentState = SceneChangeManager.STATES.IDLE;
     this._teardownPromise = Promise.resolve(); // Start with a resolved promise for the initial load.
     this._resolveTeardown = null;
-    this.transitionOverlay = null;
-
-    // State for the hint cycling system
-    this._hintInterval = null;
-    this._shuffledHints = [];
-    this._currentHintIndex = 0;
-    this._hintAnimation = null; // To hold the animation controller
+    
+    // Unified LoadingUI instance
+    this.ui = null;
 
     // Preview mode state
     this.previewActive = false;
     this._previewToolbar = null;
     this._previewSnapshot = null; // store settings snapshot to allow cancel
+  }
+
+  // Proxy property for backward compatibility
+  get transitionOverlay() {
+    return this.ui?.element || null;
   }
 
   initialize() {
@@ -5119,189 +5143,22 @@ class SceneChangeManager {
   _createOverlay() {
     if (this.transitionOverlay) return;
 
-    // Add error handling for font settings
-    const getFont = (style) => {
-      try {
-        return game.settings.get(
-          MODULE_ID,
-          `universal.fontManager.styles.${style}.fontFamily`
-        );
-      } catch (error) {
-        console.warn(
-          `[MapShine Transition] Could not get font for ${style}, using fallback:`,
-          error
-        );
-        return "Signika"; // Fallback font
-      }
-    };
-
-    const _headingFont = getFont("heading1");
-    const _subheadingFont = getFont("heading2");
-    const _hintFont = getFont("hint");
-
     console.log(`[MapShine Transition] Creating overlay element.`);
-    this.transitionOverlay = document.createElement("div");
-    this.transitionOverlay.id = "map-shine-scene-transition";
-    this.transitionOverlay.style.opacity = "0";
+    
+    // Create unified LoadingUI instance
+    this.ui = new LoadingUI({
+      elementId: "map-shine-scene-transition",
+      title: "Loading Scene...",
+      fadeOutDuration: 1500,
+      defaults: {
+        randomHints: UNIVERSAL_EFFECT_DEFAULTS.sceneTransition.randomHints
+      }
+    });
 
-    // Background Image Logic (same as LoadingScreen)
-    const useRandom = game.settings.get(
-      MODULE_ID,
-      "loading-screen-use-random-background"
-    );
-    const staticBg = game.settings.get(
-      MODULE_ID,
-      "loading-screen-static-background"
-    );
-    const randomBgs = (
-      game.settings.get(MODULE_ID, "loading-screen-random-backgrounds") || ""
-    )
-      .split(/\r?\n/)
-      .filter((l) => l.trim());
-    const overlayEnabled = game.settings.get(
-      MODULE_ID,
-      "loading-screen-background-overlay-enabled"
-    );
-    const overlayOpacity = game.settings.get(
-      MODULE_ID,
-      "loading-screen-background-overlay-opacity"
-    );
-
-    let bgPath = "";
-    if (useRandom && randomBgs.length > 0) {
-      bgPath = randomBgs[Math.floor(Math.random() * randomBgs.length)];
-    } else if (staticBg) {
-      bgPath = staticBg;
-    }
-
-    if (bgPath) {
-      this.transitionOverlay.style.backgroundImage = `url('${bgPath}')`;
-      this.transitionOverlay.style.backgroundSize = "cover";
-      this.transitionOverlay.style.backgroundPosition = "center center";
-    }
-
-    const subheading = game.settings.get(
-      MODULE_ID,
-      "loading-screen-subheading"
-    );
-
-    const maxOpacity = overlayOpacity;
-    const minOpacity = maxOpacity * 0.4;
-    const backgroundStyle =
-      overlayEnabled && bgPath
-        ? `display: block; background: linear-gradient(to bottom, rgba(0,0,0,${maxOpacity}) 0%, rgba(0,0,0,${minOpacity}) 35%, rgba(0,0,0,${minOpacity}) 65%, rgba(0,0,0,${maxOpacity}) 100%);`
-        : "display: none;";
-
-    const fadeOutDuration = 1500; // Match LoadingScreen fade duration
-
-    const inlineCSS = `
-        <style>
-        /* Inline styles scoped to #map-shine-scene-transition to restore visuals without external CSS */
-        #map-shine-scene-transition {
-          position: fixed;
-          top: 0; left: 0; width: 100vw; height: 100vh;
-          background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
-          z-index: 100000; display: flex; justify-content: center; align-items: center;
-          color: #f8fafc; font-family: ${JSON.stringify(
-            _subheadingFont || "Inter, system-ui, sans-serif"
-          )};
-          transition: opacity ${
-            fadeOutDuration / 1000
-          }s cubic-bezier(0.4, 0, 0.2, 1);
-          overflow: hidden;
-        }
-        #map-shine-scene-transition::before {
-          content: '';
-          position: absolute; inset: 0;
-          background:
-            radial-gradient(circle at 30% 20%, rgba(59,130,246,0.3) 0%, transparent 50%),
-            radial-gradient(circle at 70% 80%, rgba(16,185,129,0.1) 0%, transparent 50%);
-          pointer-events: none;
-        }
-        #map-shine-scene-transition .loading-background-overlay {
-          position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; display: none;
-        }
-        #map-shine-scene-transition .loading-content {
-          text-align: center; position: relative; z-index: 2; background: transparent;
-          padding: 4rem 5rem; width: 80vw; max-width: 80vw; aspect-ratio: 16 / 9;
-          display: flex; flex-direction: column; justify-content: center;
-          filter: drop-shadow(0 0 40px rgba(0,0,0,0.9)) drop-shadow(0 0 80px rgba(0,0,0,0.8)) drop-shadow(0 0 120px rgba(0,0,0,0.6));
-        }
-        #map-shine-scene-transition .loading-logo { width: 160px; height: auto; margin: 0 auto 1.25rem auto; display: block; filter: drop-shadow(0 0 30px rgba(59,130,246,0.3)); transition: transform 0.3s ease; }
-        #map-shine-scene-transition .loading-subhead { font-family: ${JSON.stringify(
-          _subheadingFont || "Inter, system-ui, sans-serif"
-        )}; font-size: 1.5rem; font-weight: 400; color: #cbd5e1; margin: 0 0 0.75rem 0; text-shadow: 0 0 20px rgba(0,0,0,0.9), 0 0 40px rgba(0,0,0,0.8), 0 2px 8px rgba(0,0,0,0.7); letter-spacing: 0.025em; }
-        #map-shine-scene-transition .loading-title {
-          font-family: ${JSON.stringify(
-            _headingFont || "Inter, system-ui, sans-serif"
-          )};
-          font-size: 4.5rem; font-weight: 700; margin: 0 0 2rem 0;
-          background: linear-gradient(135deg, #f8fafc 0%, #3b82f6 100%);
-          -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-          filter: drop-shadow(0 0 30px rgba(0,0,0,0.9)) drop-shadow(0 0 60px rgba(0,0,0,0.7)); letter-spacing: -0.025em; line-height: 1.1;
-        }
-        #map-shine-scene-transition .loading-bar-container { width: 60%; max-width: 550px; height: 0.75rem; margin: 0 auto; background: rgba(15,23,42,0.8); border-radius: 9999px; overflow: hidden; position: relative; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
-        #map-shine-scene-transition .loading-bar-fill { width: 0%; height: 100%; background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%); transform-origin: left; transition: width 0.4s cubic-bezier(0.4,0,0.2,1); box-shadow: 0 0 20px rgba(59,130,246,0.3); border-radius: 9999px; position: relative; }
-        #map-shine-scene-transition .loading-bar-fill::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%); border-radius: inherit; }
-        #map-shine-scene-transition .loading-status { margin-top: 1.5rem; font-size: 1rem; color: #cbd5e1; height: 1.25rem; line-height: 1.25rem; opacity: 1; transition: opacity 0.3s cubic-bezier(0.4,0,0.2,1); text-shadow: 0 0 20px rgba(0,0,0,0.9), 0 0 40px rgba(0,0,0,0.8), 0 2px 8px rgba(0,0,0,0.7); font-weight: 500; letter-spacing: 0.025em; }
-        #map-shine-scene-transition .loading-hint { font-family: ${JSON.stringify(
-          _hintFont || "serif"
-        )}; margin-top: 2rem; font-size: 1rem; color: #94a3b8; font-style: italic; max-width: 55ch; margin-left: auto; margin-right: auto; min-height: 3rem; opacity: 0; text-shadow: 0 0 20px rgba(0,0,0,0.9), 0 0 40px rgba(0,0,0,0.8), 0 2px 8px rgba(0,0,0,0.7); line-height: 1.6; font-weight: 400; }
-        /* Slide animations and delays */
-        #map-shine-scene-transition .slide-from-above { transform: translateY(-3rem); opacity: 0; animation: slideInFromAbove 1s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
-        #map-shine-scene-transition .slide-from-below { transform: translateY(3rem); opacity: 0; animation: slideInFromBelow 1s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
-        #map-shine-scene-transition .loading-logo { animation-delay: 0.1s; }
-        #map-shine-scene-transition .loading-subhead { animation-delay: 0.2s; }
-        #map-shine-scene-transition .loading-title { animation-delay: 0.35s; }
-        #map-shine-scene-transition .loading-bar-container { animation-delay: 0.5s; }
-        #map-shine-scene-transition .loading-status { animation-delay: 0.65s; }
-        #map-shine-scene-transition .loading-hint { animation-delay: 0.8s; }
-        @keyframes slideInFromAbove { to { transform: translateY(0); opacity: 1; } }
-        @keyframes slideInFromBelow { to { transform: translateY(0); opacity: 1; } }
-        @media (max-width: 768px) {
-          #map-shine-scene-transition .loading-content { padding: 2.5rem 2rem; margin: 1rem; }
-          #map-shine-scene-transition .loading-title { font-size: 3rem; }
-          #map-shine-scene-transition .loading-logo { width: 120px; }
-          #map-shine-scene-transition .loading-bar-container { width: 300px; }
-        }
-        </style>
-      `;
-
-    // Create the same HTML structure as LoadingScreen with animation classes
-    this.transitionOverlay.innerHTML = `
-        ${inlineCSS}
-        <div class="loading-background-overlay"></div>
-        <div class="loading-content">
-          <img src="modules/map-shine/assets/fvtt.png" class="loading-logo slide-from-above" alt="Foundry VTT Logo">
-          <h2 class="loading-subhead slide-from-above">${subheading}</h2>
-          <h1 class="loading-title slide-from-above">Loading Scene...</h1>
-          <div class="loading-bar-container slide-from-below">
-            <div class="loading-bar-fill"></div>
-          </div>
-            <div id="loading-status-text" class="loading-status slide-from-below">Preparing scene...</div>
-          <p id="loading-hint-text" class="loading-hint slide-from-below"></p>
-        </div>
-
-      `;
-
-    document.body.appendChild(this.transitionOverlay);
+    // Show the UI
+    this.ui.show();
+    
     console.log(`[MapShine Transition] Overlay appended to DOM successfully`);
-
-    // Apply dynamic background style to overlay gradient element
-    try {
-      const bgEl = this.transitionOverlay.querySelector(
-        ".loading-background-overlay"
-      );
-      if (bgEl && backgroundStyle) bgEl.setAttribute("style", backgroundStyle);
-    } catch (e) {
-      console.warn(
-        "[MapShine Transition] Failed to apply overlay background style",
-        e
-      );
-    }
-
-    // Start hint cycling (same as LoadingScreen)
-    this._cycleHints();
   }
 
   /**
@@ -5640,181 +5497,11 @@ class SceneChangeManager {
     }
   }
 
-  _cycleHints() {
-    console.log("[MapShine SceneChangeManager] _cycleHints called");
-    if (!this.transitionOverlay) {
-      console.warn(
-        "[MapShine SceneChangeManager] No transition overlay found, cannot cycle hints"
-      );
-      return;
-    }
-
-    const hintElement = this.transitionOverlay.querySelector(".loading-hint");
-    console.log(
-      "[MapShine SceneChangeManager] Hint element found:",
-      hintElement
-    );
-
-    const rawHints = game.settings.get(
-      MODULE_ID,
-      "universal.sceneTransition.randomHints"
-    );
-    console.log(
-      "[MapShine SceneChangeManager] Raw hints from settings:",
-      rawHints
-    );
-
-    const config = {
-      useRandomHint: game.settings.get(
-        MODULE_ID,
-        "universal.sceneTransition.useRandomHint"
-      ),
-      randomHints: (rawHints || "")
-        .split(/\r?\n/)
-        .filter((h) => h.trim() !== ""),
-    };
-
-    // If no hints are configured, fall back to defaults
-    if (config.randomHints.length === 0) {
-      console.log(
-        "[MapShine SceneChangeManager] No hints found in settings, using defaults"
-      );
-      // Use hardcoded defaults since we can't import in a non-async function
-      config.randomHints = [
-        "Press 'C' to quickly open your character sheet.",
-        "Hold the Shift key while using the arrow keys to rotate tokens.",
-        "You can assign a keyboard shortcut to toggle a token's visibility, saving you right-clicks.",
-        'To manage a group of player characters more easily, place them all in a "Party" folder and drag the folder onto the canvas to create a single party token.',
-        "Double-click the right mouse button to quickly end a measurement template.",
-        "You can lock the position of tokens and tiles to prevent them from being accidentally moved.",
-        "Use the search bar in the sidebars to quickly find actors, items, and journal entries.",
-        "The 'Tab' key can be used to target the next token on the canvas.",
-        "Remember that many actions have consequences in the game world.",
-        "Running away is a valid and often wise alternative to a character's death.",
-        "You can pop out character sheets and journal entries into their own windows.",
-        'The "Ping" tool (left-click and hold) can be used to draw your players\' attention to a specific location.',
-        "Don't forget that your action can be used for more than just attacking; consider options like Dash, Dodge, and Help.",
-        "If you're unsure about a rule, it's often best to make a quick ruling and look it up later to keep the game moving.",
-        "Communication is key; keep your fellow players and the Game Master informed of your character's intentions.",
-      ];
-    }
-
-    console.log("[MapShine SceneChangeManager] Hint config:", {
-      useRandomHint: config.useRandomHint,
-      hintCount: config.randomHints.length,
-      firstHint: config.randomHints[0],
-    });
-
-    if (!hintElement || !config.useRandomHint || !config.randomHints.length) {
-      console.warn("[MapShine SceneChangeManager] Hint cycling aborted:", {
-        hintElement: !!hintElement,
-        useRandomHint: config.useRandomHint,
-        hintCount: config.randomHints.length,
-      });
-      return;
-    }
-
-    // Fisher-Yates shuffle algorithm
-    this._shuffledHints = [...config.randomHints];
-    for (let i = this._shuffledHints.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [this._shuffledHints[i], this._shuffledHints[j]] = [
-        this._shuffledHints[j],
-        this._shuffledHints[i],
-      ];
-    }
-
-    this._currentHintIndex = 0;
-
-    if (this._shuffledHints.length <= 1) {
-      if (this._shuffledHints.length === 1) {
-        hintElement.innerText = this._shuffledHints[0];
-        console.log(
-          "[MapShine SceneChangeManager] Single hint displayed:",
-          this._shuffledHints[0]
-        );
-        hintElement.animate([{ opacity: 0 }, { opacity: 1 }], {
-          duration: 1000,
-          fill: "forwards",
-        });
-      }
-      return;
-    }
-
-    const HINT_FADE_DURATION = 1000;
-    const HINT_PAUSE_DURATION = 5000;
-
-    const showNextHint = () => {
-      if (
-        !this.transitionOverlay ||
-        !hintElement ||
-        this._hintInterval === null
-      ) {
-        this._stopHintCycle();
-        return;
-      }
-
-      this._hintAnimation = hintElement.animate(
-        [{ opacity: 1 }, { opacity: 0 }],
-        {
-          duration: HINT_FADE_DURATION,
-          easing: "ease-in",
-        }
-      );
-
-      this._hintAnimation.finished
-        .then(() => {
-          if (!this.transitionOverlay) return;
-          this._currentHintIndex =
-            (this._currentHintIndex + 1) % this._shuffledHints.length;
-          hintElement.innerText = this._shuffledHints[this._currentHintIndex];
-
-          hintElement.animate([{ opacity: 0 }, { opacity: 1 }], {
-            duration: HINT_FADE_DURATION,
-            easing: "ease-out",
-            fill: "forwards",
-          });
-
-          this._hintInterval = setTimeout(showNextHint, HINT_PAUSE_DURATION);
-        })
-        .catch(() => {});
-    };
-
-    hintElement.innerText = this._shuffledHints[this._currentHintIndex];
-    console.log(
-      "[MapShine SceneChangeManager] First hint displayed:",
-      this._shuffledHints[this._currentHintIndex]
-    );
-    const initialAnimation = hintElement.animate(
-      [{ opacity: 0 }, { opacity: 1 }],
-      { duration: 1000, fill: "forwards" }
-    );
-    initialAnimation.finished.then(() => {
-      if (!this.transitionOverlay) return;
-      this._hintInterval = setTimeout(showNextHint, HINT_PAUSE_DURATION);
-    });
-  }
-
-  _stopHintCycle() {
-    // Clear the hint cycling interval if it exists
-    if (this._hintInterval) {
-      clearTimeout(this._hintInterval);
-      this._hintInterval = null;
-    }
-
-    // Cancel any ongoing hint animation
-    if (this._hintAnimation) {
-      this._hintAnimation.cancel?.();
-      this._hintAnimation = null;
-    }
-  }
-
   _destroyOverlay() {
-    this._stopHintCycle(); // Stop the hint animation when the overlay is removed.
-    if (!this.transitionOverlay) return;
+    if (!this.ui) return;
     console.log(`[MapShine Transition] Destroying overlay element.`);
-    this.transitionOverlay.remove();
-    this.transitionOverlay = null;
+    this.ui.destroy();
+    this.ui = null;
   }
 
   /**
@@ -5838,29 +5525,14 @@ class SceneChangeManager {
       }, actual name: ${scene?.name})`
     );
 
-    // Set the scene name in the overlay if it exists
-    const titleElement = this.transitionOverlay.querySelector(".loading-title");
-    if (titleElement) {
-      titleElement.textContent = displayName;
-    }
+    // Update the title
+    this.ui.setTitle(displayName);
 
-    // Start from completely black (opacity 0 means invisible overlay, showing scene)
-    // We want to start with overlay visible (black screen)
-    this.transitionOverlay.style.opacity = "0";
-    this.transitionOverlay.style.pointerEvents = "auto";
+    // Set initial progress with quick animation
+    this.ui.setProgress(30, "Preparing scene...", { duration: 400 });
 
-    // Force a reflow to ensure the initial state is applied
-    void this.transitionOverlay.offsetHeight;
-
-    // Now fade in the overlay (fade to black)
-    this.transitionOverlay.style.opacity = "1";
-
-    // Animate the loading bar
-    const loadingBar =
-      this.transitionOverlay.querySelector(".loading-bar-fill");
-    if (loadingBar) {
-      loadingBar.style.width = "30%"; // Show some initial progress
-    }
+    // Fade in the overlay (show black screen)
+    await this.ui.fadeIn();
 
     // Wait for the fade duration
     const fadeDuration = transitionConfig.fadeOutDuration || 1500;
@@ -5881,26 +5553,14 @@ class SceneChangeManager {
 
     console.log(`[MapShine Transition] Fading in to reveal new scene`);
 
-    // Complete the loading bar animation with smooth transition
-    const loadingBar =
-      this.transitionOverlay.querySelector(".loading-bar-fill");
-    const statusText = this.transitionOverlay.querySelector(".loading-status");
+    // Complete the loading bar with smooth animation
+    this.ui.setProgress(100, "Scene ready!", { duration: 600, easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)' });
 
-    if (loadingBar) {
-      loadingBar.style.transition = "width 0.5s ease-out";
-      loadingBar.style.width = "100%"; // Complete the loading
-    }
-    if (statusText) {
-      statusText.style.transition = "opacity 0.3s ease-in-out";
-      statusText.textContent = "Scene ready!";
-    }
-
-    // Brief pause to show completion and let animations finish
+    // Brief pause to show completion
     await new Promise((resolve) => setTimeout(resolve, 800));
 
-    // Fade out the overlay (fade in the scene from black)
-    this.transitionOverlay.style.opacity = "0";
-    this.transitionOverlay.style.pointerEvents = "none";
+    // Fade out the overlay (reveal the scene)
+    await this.ui.fadeOut();
 
     // Wait for the fade duration
     const fadeDuration = transitionConfig.fadeInDuration || 1500;
@@ -8801,440 +8461,81 @@ class OverheadEffectLayer extends foundry.canvas.layers.CanvasLayer {
   }
 }
 
+/**
+ * LoadingScreen wrapper class that uses the unified LoadingUI component
+ * Maintains the same API as the original LoadingScreen for compatibility
+ */
 class LoadingScreen {
   constructor() {
-    this.element = null;
     this.fadeOutDuration = 500;
     this.minDisplayTime = 1500;
     this.startTime = 0;
-    this.fillElement = null;
-    this.statusTextElement = null;
-    this.statusFadeDuration = 200; // Faster text fade
+    
+    // Create the unified LoadingUI instance
+    this.ui = new LoadingUI({
+      elementId: "map-shine-loading-screen",
+      title: game.world?.title || "Loading...",
+      fadeOutDuration: this.fadeOutDuration,
+      defaults: {
+        randomHints: UNIVERSAL_EFFECT_DEFAULTS.sceneTransition.randomHints
+      }
+    });
+  }
 
-    // Properties for hint cycling
-    this._hintInterval = null;
-    this._shuffledHints = [];
-    this._currentHintIndex = 0;
-    this._hintAnimation = null; // To hold the animation controller
+  // Proxy property for backward compatibility
+  get element() {
+    return this.ui.element;
+  }
+
+  get fillElement() {
+    return this.ui.fillElement;
+  }
+
+  get statusTextElement() {
+    return this.ui.statusTextElement;
   }
 
   show() {
     if (this.element) return;
     this.startTime = Date.now();
 
-    const getFont = (style) =>
-      game.settings.get(
-        MODULE_ID,
-        `universal.fontManager.styles.${style}.fontFamily`
-      );
-    const headingFont = getFont("heading1");
-    const subheadingFont = getFont("heading2");
-    const hintFont = getFont("hint");
+    // Use the unified LoadingUI to show the screen
+    this.ui.show();
 
-    FontLoader.load([headingFont, subheadingFont, hintFont]);
-
-    this.element = document.createElement("div");
-    this.element.id = "map-shine-loading-screen";
-    this.element.style.opacity = "1"; // Start from black immediately
-    // Provide CSS variables expected by styles/styles.css
-    try {
-      if (headingFont)
-        this.element.style.setProperty(
-          "--ms-heading-font",
-          `"${headingFont}", sans-serif`
-        );
-      if (subheadingFont)
-        this.element.style.setProperty(
-          "--ms-subheading-font",
-          `"${subheadingFont}", sans-serif`
-        );
-      if (hintFont)
-        this.element.style.setProperty(
-          "--ms-hint-font",
-          `"${hintFont}", serif`
-        );
-      if (this.fadeOutDuration)
-        this.element.style.setProperty(
-          "--ms-fade-duration",
-          `${this.fadeOutDuration / 1000}s`
-        );
-    } catch (e) {
-      console.warn(
-        "Map Shine | Failed to set CSS variables for loading screen",
-        e
-      );
+    // Set initial opacity to 1 (visible immediately)
+    if (this.element) {
+      this.element.style.opacity = "1";
     }
-    const useRandom = game.settings.get(
-      MODULE_ID,
-      "loading-screen-use-random-background"
-    );
-    const staticBg = game.settings.get(
-      MODULE_ID,
-      "loading-screen-static-background"
-    );
-    const randomBgs = (
-      game.settings.get(MODULE_ID, "loading-screen-random-backgrounds") || ""
-    )
-      .split(/\r?\n/)
-      .filter((l) => l.trim());
-    const overlayEnabled = game.settings.get(
-      MODULE_ID,
-      "loading-screen-background-overlay-enabled"
-    );
-    const overlayOpacity = game.settings.get(
-      MODULE_ID,
-      "loading-screen-background-overlay-opacity"
-    );
-
-    let bgPath = "";
-    if (useRandom && randomBgs.length > 0) {
-      bgPath = randomBgs[Math.floor(Math.random() * randomBgs.length)];
-    } else if (staticBg) {
-      bgPath = staticBg;
-    }
-
-    if (bgPath) {
-      this.element.style.backgroundImage = `url('${bgPath}')`;
-      this.element.style.backgroundSize = "cover";
-      this.element.style.backgroundPosition = "center center";
-    }
-
-    const subheading = game.settings.get(
-      MODULE_ID,
-      "loading-screen-subheading"
-    );
-
-    const maxOpacity = overlayOpacity;
-    const minOpacity = maxOpacity * 0.4;
-    const backgroundStyle =
-      overlayEnabled && bgPath
-        ? `display: block; background: linear-gradient(to bottom, rgba(0,0,0,${maxOpacity}) 0%, rgba(0,0,0,${minOpacity}) 35%, rgba(0,0,0,${minOpacity}) 65%, rgba(0,0,0,${maxOpacity}) 100%);`
-        : "display: none;";
-
-    const inlineCSS = `
-        <style>
-        /* Inline styles scoped to #map-shine-loading-screen to restore visuals without external CSS */
-        #map-shine-loading-screen {
-          position: fixed;
-          top: 0; left: 0; width: 100vw; height: 100vh;
-          background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
-          z-index: 100000; display: flex; justify-content: center; align-items: center;
-          color: #f8fafc; font-family: ${JSON.stringify(
-            subheadingFont || "Inter, system-ui, sans-serif"
-          )};
-          transition: opacity ${
-            this.fadeOutDuration / 1000
-          }s cubic-bezier(0.4, 0, 0.2, 1);
-          overflow: hidden;
-        }
-        #map-shine-loading-screen::before {
-          content: '';
-          position: absolute; inset: 0;
-          background:
-            radial-gradient(circle at 30% 20%, rgba(59,130,246,0.3) 0%, transparent 50%),
-            radial-gradient(circle at 70% 80%, rgba(16,185,129,0.1) 0%, transparent 50%);
-          pointer-events: none;
-        }
-        #map-shine-loading-screen .loading-background-overlay {
-          position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; display: none;
-        }
-        #map-shine-loading-screen .loading-content {
-          text-align: center; position: relative; z-index: 2; background: transparent;
-          padding: 4rem 5rem; width: 80vw; max-width: 80vw; aspect-ratio: 16 / 9;
-          display: flex; flex-direction: column; justify-content: center;
-          filter: drop-shadow(0 0 40px rgba(0,0,0,0.9)) drop-shadow(0 0 80px rgba(0,0,0,0.8)) drop-shadow(0 0 120px rgba(0,0,0,0.6));
-        }
-        #map-shine-loading-screen .loading-logo { width: 160px; height: auto; margin: 0 auto 1.25rem auto; display: block; filter: drop-shadow(0 0 30px rgba(59,130,246,0.3)); transition: transform 0.3s ease; }
-        #map-shine-loading-screen .loading-subhead { font-family: ${JSON.stringify(
-          subheadingFont || "Inter, system-ui, sans-serif"
-        )}; font-size: 1.5rem; font-weight: 400; color: #cbd5e1; margin: 0 0 0.75rem 0; text-shadow: 0 0 20px rgba(0,0,0,0.9), 0 0 40px rgba(0,0,0,0.8), 0 2px 8px rgba(0,0,0,0.7); letter-spacing: 0.025em; }
-        #map-shine-loading-screen .loading-title {
-          font-family: ${JSON.stringify(
-            headingFont || "Inter, system-ui, sans-serif"
-          )};
-          font-size: 4.5rem; font-weight: 700; margin: 0 0 2rem 0;
-          background: linear-gradient(135deg, #f8fafc 0%, #3b82f6 100%);
-          -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-          filter: drop-shadow(0 0 30px rgba(0,0,0,0.9)) drop-shadow(0 0 60px rgba(0,0,0,0.7)); letter-spacing: -0.025em; line-height: 1.1;
-        }
-        #map-shine-loading-screen .loading-bar-container { width: 60%; max-width: 550px; height: 0.75rem; margin: 0 auto; background: rgba(15,23,42,0.8); border-radius: 9999px; overflow: hidden; position: relative; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
-        #map-shine-loading-screen .loading-bar-fill { width: 0%; height: 100%; background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%); transform-origin: left; transition: width 0.4s cubic-bezier(0.4,0,0.2,1); box-shadow: 0 0 20px rgba(59,130,246,0.3); border-radius: 9999px; position: relative; }
-        #map-shine-loading-screen .loading-bar-fill::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%); border-radius: inherit; }
-        #map-shine-loading-screen .loading-status { margin-top: 1.5rem; font-size: 1rem; color: #cbd5e1; height: 1.25rem; line-height: 1.25rem; opacity: 1; transition: opacity 0.3s cubic-bezier(0.4,0,0.2,1); text-shadow: 0 0 20px rgba(0,0,0,0.9), 0 0 40px rgba(0,0,0,0.8), 0 2px 8px rgba(0,0,0,0.7); font-weight: 500; letter-spacing: 0.025em; }
-        #map-shine-loading-screen .loading-hint { font-family: ${JSON.stringify(
-          hintFont || "serif"
-        )}; margin-top: 2rem; font-size: 1rem; color: #94a3b8; font-style: italic; max-width: 55ch; margin-left: auto; margin-right: auto; min-height: 3rem; opacity: 0; text-shadow: 0 0 20px rgba(0,0,0,0.9), 0 0 40px rgba(0,0,0,0.8), 0 2px 8px rgba(0,0,0,0.7); line-height: 1.6; font-weight: 400; }
-        /* Slide animations and delays */
-        #map-shine-loading-screen .slide-from-above { transform: translateY(-3rem); opacity: 0; animation: slideInFromAbove 1s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
-        #map-shine-loading-screen .slide-from-below { transform: translateY(3rem); opacity: 0; animation: slideInFromBelow 1s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
-        #map-shine-loading-screen .loading-logo { animation-delay: 0.1s; }
-        #map-shine-loading-screen .loading-subhead { animation-delay: 0.2s; }
-        #map-shine-loading-screen .loading-title { animation-delay: 0.35s; }
-        #map-shine-loading-screen .loading-bar-container { animation-delay: 0.5s; }
-        #map-shine-loading-screen .loading-status { animation-delay: 0.65s; }
-        #map-shine-loading-screen .loading-hint { animation-delay: 0.8s; }
-        @keyframes slideInFromAbove { to { transform: translateY(0); opacity: 1; } }
-        @keyframes slideInFromBelow { to { transform: translateY(0); opacity: 1; } }
-        @media (max-width: 768px) {
-          #map-shine-loading-screen .loading-content { padding: 2.5rem 2rem; margin: 1rem; }
-          #map-shine-loading-screen .loading-title { font-size: 3rem; }
-          #map-shine-loading-screen .loading-logo { width: 120px; }
-          #map-shine-loading-screen .loading-bar-container { width: 300px; }
-        }
-        </style>
-      `;
-
-    this.element.innerHTML = `
-        ${inlineCSS}
-        <div class="loading-background-overlay"></div>
-        <div class="loading-content">
-          <img src="modules/map-shine/assets/fvtt.png" class="loading-logo slide-from-above" alt="Foundry VTT Logo">
-          <h2 class="loading-subhead slide-from-above">${subheading}</h2>
-          <h1 class="loading-title slide-from-above">${game.world.title}</h1>
-          <div class="loading-bar-container slide-from-below">
-            <div class="loading-bar-fill"></div>
-          </div>
-          <div id="loading-status-text" class="loading-status slide-from-below">Initializing...</div>
-        <p id="loading-hint-text" class="loading-hint slide-from-below"></p>
-      </div>
-
-      `;
-
-    document.body.appendChild(this.element);
-    // Apply dynamic background style via inline style to the background overlay (fixes unused variable lint)
-    try {
-      const bgEl = this.element.querySelector(".loading-background-overlay");
-      if (bgEl && backgroundStyle) bgEl.setAttribute("style", backgroundStyle);
-    } catch (e) {
-      console.warn("Map Shine | Failed to apply loading background style", e);
-    }
-    this.fillElement = this.element.querySelector(".loading-bar-fill");
-    this.statusTextElement = this.element.querySelector("#loading-status-text");
-
-    this.statusTextElement.innerText = "Initializing...";
-
-    this.statusTextElement.style.opacity = "1";
-
-    // Force a reflow to ensure animations start properly
-    void this.element.offsetHeight;
 
     // Hide the default Foundry VTT loading element
     const foundryLoading = document.getElementById("loading");
     if (foundryLoading) {
       foundryLoading.style.display = "none";
     }
-
-    // Start the hint cycle
-    this._cycleHints();
-  }
-
-  /**
-   * Manages the hint cycling animation using Web Animation API.
-   * @private
-   */
-  _cycleHints() {
-    console.log("[MapShine LoadingScreen] _cycleHints called");
-    if (!this.element) {
-      console.warn(
-        "[MapShine LoadingScreen] No element found, cannot cycle hints"
-      );
-      return;
-    }
-
-    const hintElement = this.element.querySelector("#loading-hint-text");
-    console.log("[MapShine LoadingScreen] Hint element found:", hintElement);
-
-    const rawHints = game.settings.get(
-      MODULE_ID,
-      "universal.sceneTransition.randomHints"
-    );
-    console.log("[MapShine LoadingScreen] Raw hints from settings:", rawHints);
-
-    const config = {
-      useRandomHint: game.settings.get(
-        MODULE_ID,
-        "universal.sceneTransition.useRandomHint"
-      ),
-      randomHints: (rawHints || "")
-        .split(/\r?\n/)
-        .filter((h) => h.trim() !== ""),
-    };
-
-    // If no hints are configured, fall back to defaults
-    if (config.randomHints.length === 0) {
-      console.log(
-        "[MapShine LoadingScreen] No hints found in settings, using defaults"
-      );
-      config.randomHints =
-        UNIVERSAL_EFFECT_DEFAULTS.sceneTransition.randomHints;
-    }
-
-    console.log("[MapShine LoadingScreen] Hint config:", {
-      useRandomHint: config.useRandomHint,
-      hintCount: config.randomHints.length,
-      firstHint: config.randomHints[0],
-    });
-
-    if (
-      !hintElement ||
-      !config.useRandomHint ||
-      config.randomHints.length === 0
-    ) {
-      console.warn("[MapShine LoadingScreen] Hint cycling aborted:", {
-        hintElement: !!hintElement,
-        useRandomHint: config.useRandomHint,
-        hintCount: config.randomHints.length,
-      });
-      return;
-    }
-
-    // Fisher-Yates shuffle algorithm
-    this._shuffledHints = [...config.randomHints];
-    for (let i = this._shuffledHints.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [this._shuffledHints[i], this._shuffledHints[j]] = [
-        this._shuffledHints[j],
-        this._shuffledHints[i],
-      ];
-    }
-
-    this._currentHintIndex = 0;
-
-    if (this._shuffledHints.length <= 1) {
-      if (this._shuffledHints.length === 1) {
-        hintElement.innerText = this._shuffledHints[0];
-        console.log(
-          "[MapShine LoadingScreen] Single hint displayed:",
-          this._shuffledHints[0]
-        );
-        hintElement.animate([{ opacity: 0 }, { opacity: 1 }], {
-          duration: 1000,
-          fill: "forwards",
-        });
-      }
-      return;
-    }
-
-    const HINT_FADE_DURATION = 1000;
-    const HINT_PAUSE_DURATION = 5000;
-
-    const showNextHint = () => {
-      if (!this.element || !hintElement || this._hintInterval === null) {
-        this._stopHintCycle();
-        return;
-      }
-
-      this._hintAnimation = hintElement.animate(
-        [{ opacity: 1 }, { opacity: 0 }],
-        {
-          duration: HINT_FADE_DURATION,
-          easing: "ease-in",
-        }
-      );
-
-      this._hintAnimation.finished
-        .then(() => {
-          if (!this.element) return;
-          this._currentHintIndex =
-            (this._currentHintIndex + 1) % this._shuffledHints.length;
-          hintElement.innerText = this._shuffledHints[this._currentHintIndex];
-
-          hintElement.animate([{ opacity: 0 }, { opacity: 1 }], {
-            duration: HINT_FADE_DURATION,
-            easing: "ease-out",
-            fill: "forwards",
-          });
-
-          this._hintInterval = setTimeout(showNextHint, HINT_PAUSE_DURATION);
-        })
-        .catch(() => {});
-    };
-
-    hintElement.innerText = this._shuffledHints[this._currentHintIndex];
-    console.log(
-      "[MapShine LoadingScreen] First hint displayed:",
-      this._shuffledHints[this._currentHintIndex]
-    );
-    const initialAnimation = hintElement.animate(
-      [{ opacity: 0 }, { opacity: 1 }],
-      { duration: 1000, fill: "forwards" }
-    );
-    initialAnimation.finished.then(() => {
-      if (!this.element) return;
-      this._hintInterval = setTimeout(showNextHint, HINT_PAUSE_DURATION);
-    });
-  }
-
-  /**
-   * Clears the hint cycling interval and animation.
-   * @private
-   */
-  _stopHintCycle() {
-    // Clear the hint cycling interval if it exists
-    if (this._hintInterval) {
-      clearTimeout(this._hintInterval);
-      this._hintInterval = null;
-    }
-
-    // Cancel any ongoing hint animation
-    if (this._hintAnimation) {
-      this._hintAnimation.cancel?.();
-      this._hintAnimation = null;
-    }
   }
 
   setProgress(progress, message) {
-    if (!this.fillElement) return;
-    const p = Math.min(100, Math.max(0, progress));
-
-    this.fillElement.style.width = `${p}%`;
-
-    if (
-      message &&
-      this.statusTextElement &&
-      this.statusTextElement.innerText !== message
-    ) {
-      this.statusTextElement.style.opacity = "0";
-      setTimeout(() => {
-        if (this.statusTextElement) {
-          this.statusTextElement.innerText = message;
-
-          this.statusTextElement.style.opacity = "1";
-        }
-      }, this.statusFadeDuration);
-    }
+    this.ui.setProgress(progress, message);
   }
 
   setStatus(message) {
-    if (this.statusTextElement) {
-      this.statusTextElement.innerText = message;
-
-      if (this.statusTextElement.style.opacity !== "1") {
-        this.statusTextElement.style.opacity = "1";
-      }
-    }
+    this.ui.setStatus(message);
   }
 
   async hide() {
-    this._stopHintCycle();
     if (!this.element) return;
 
     const elapsed = Date.now() - this.startTime;
     const remainingTime = Math.max(0, this.minDisplayTime - elapsed);
     await new Promise((resolve) => setTimeout(resolve, remainingTime));
 
-    if (this.element) {
-      this.element.style.opacity = "0";
-      await new Promise((resolve) =>
-        setTimeout(resolve, this.fadeOutDuration + 50)
-      );
-    }
+    // Fade out the UI
+    await this.ui.fadeOut();
 
-    this.element?.remove();
-    this.element = null;
-    this.fillElement = null;
-    this.statusTextElement = null;
+    // Destroy the UI
+    this.ui.destroy();
 
+    // Restore Foundry loading element
     const foundryLoading = document.getElementById("loading");
     if (foundryLoading) {
       foundryLoading.style.display = "";
@@ -9307,6 +8608,26 @@ class MapShineLifecycle {
     await this.runMinimalSetup(canvas);
   }
 
+  /**
+   * Performs a full setup of all MapShine systems for the current scene.
+   * 
+   * LIFECYCLE ARCHITECTURE:
+   * This method is designed to be self-contained and event-driven. It performs
+   * all initialization tasks and emits a 'mapShine:setupComplete' Hook when done.
+   * 
+   * The Scene.prototype.view wrapper listens for this Hook to know when it's safe
+   * to proceed with the fade-in animation. This eliminates the need for:
+   * - Global promise resolvers (fragile, error-prone)
+   * - Hardcoded delays (unreliable across different performance profiles)
+   * - Manual coordination between lifecycle and transition systems
+   * 
+   * If any layer or manager requires additional time to stabilize, it should
+   * be awaited within this method before the Hook is emitted. This ensures
+   * a deterministic and reliable setup sequence.
+   * 
+   * @param {Canvas} canvas - The Foundry VTT canvas instance
+   * @returns {Promise<void>} Resolves when all systems are initialized and ready
+   */
   static async runFullSetup(canvas) {
     const loadingScreen = game.mapShine.loadingScreen;
     const loadingManager = game.mapShine.loadingManager;
@@ -9428,21 +8749,19 @@ class MapShineLifecycle {
 
     game.mapShine.systemsReady = true;
 
-    // Signal to the scene transition manager that the main setup is complete.
-    // This is the true 'end point' of the loading process. Resolving this promise
-    // allows the Scene.view wrapper to proceed with the final fade-in animation.
-    if (game.mapShine.resolveSetupCompletion) {
-      console.log(
-        "Map Shine | Signaling full setup completion to scene transition."
-      );
-      game.mapShine.resolveSetupCompletion();
-    }
-
     // KILL SWITCH DISENGAGED: Re-enable illumination-dependent systems.
     game.mapShine.transitionActive = false;
     console.log(
       `%cMap Shine | Setup complete. TRANSITION INACTIVE.`,
       "color: #4CAF50; font-weight: bold;"
+    );
+
+    // Emit custom Hook event to signal that all systems are ready
+    // This allows the scene transition system and other listeners to know
+    // when it's safe to proceed with fade-in animations
+    Hooks.callAll("mapShine:setupComplete", { type: "full" });
+    console.log(
+      "Map Shine | Emitted mapShine:setupComplete hook (full setup)"
     );
   }
 
@@ -9472,19 +8791,17 @@ class MapShineLifecycle {
         game.mapShine.loadingManager.screen = null;
     }
 
-    // Signal to the scene transition manager that setup is complete.
-    if (game.mapShine.resolveSetupCompletion) {
-      console.log(
-        "Map Shine | Signaling minimal setup completion to scene transition."
-      );
-      game.mapShine.resolveSetupCompletion();
-    }
-
     // KILL SWITCH DISENGAGED (also for minimal setup)
     game.mapShine.transitionActive = false;
     console.log(
       `%cMap Shine | Minimal setup complete. TRANSITION INACTIVE.`,
       "color: #4CAF50; font-weight: bold;"
+    );
+
+    // Emit custom Hook event to signal that minimal setup is ready
+    Hooks.callAll("mapShine:setupComplete", { type: "minimal" });
+    console.log(
+      "Map Shine | Emitted mapShine:setupComplete hook (minimal setup)"
     );
   }
 
@@ -10443,7 +9760,34 @@ class TextureAutoLoader {
     steam: "_Steam",
   };
 
+  // Cache for FilePicker.browse results to avoid redundant network requests
+  // Key: directory path, Value: array of file paths
+  static _directoryCache = new Map();
+  
+  // Cache statistics for performance monitoring
+  static _cacheStats = { hits: 0, misses: 0 };
+
+  /**
+   * Clears the directory cache. Should be called when the scene changes
+   * or when file system changes are expected.
+   */
+  static clearDirectoryCache() {
+    TextureAutoLoader._directoryCache.clear();
+    TextureAutoLoader._cacheStats = { hits: 0, misses: 0 };
+  }
+  
+  /**
+   * Gets cache statistics for performance monitoring.
+   * @returns {Object} Object with hits and misses counts
+   */
+  static getCacheStats() {
+    return { ...TextureAutoLoader._cacheStats };
+  }
+
   async discoverAllTargets() {
+    // Clear cache at the start of discovery to ensure fresh results for the current scene
+    TextureAutoLoader.clearDirectoryCache();
+    
     const results = {
       background: null,
       tiles: new Map(),
@@ -10458,6 +9802,18 @@ class TextureAutoLoader {
         results.tiles.set(tile.id, tileTarget);
       }
     }
+    
+    // Log cache performance statistics
+    const stats = TextureAutoLoader.getCacheStats();
+    const totalRequests = stats.hits + stats.misses;
+    if (totalRequests > 0) {
+      const hitRate = ((stats.hits / totalRequests) * 100).toFixed(1);
+      // console.log(
+      //   `Map Shine | Directory Cache Performance: ${stats.hits} hits, ${stats.misses} misses ` +
+      //   `(${hitRate}% hit rate, avoided ${stats.hits} redundant network requests)`
+      // );
+    }
+    
     // console.log("MapShine | Full Texture Discovery Results:", results);
     return results;
   }
@@ -10509,12 +9865,12 @@ class TextureAutoLoader {
 
     // --- DIAGNOSTIC LOGGING ---
     const isWaterTile = baseTexturePath.toLowerCase().includes("water");
-    if (isWaterTile) {
-      console.log(
-        `--- Map Shine | DIAGNOSTIC: Auto-discovery for water-related tile ---`
-      );
-      console.log(`Base Texture Path: ${baseTexturePath}`);
-    }
+    // if (isWaterTile) {
+    //   console.log(
+    //     `--- Map Shine | DIAGNOSTIC: Auto-discovery for water-related tile ---`
+    //   );
+    //   console.log(`Base Texture Path: ${baseTexturePath}`);
+    // }
 
     const lastSlash = baseTexturePath.lastIndexOf("/");
     if (lastSlash === -1) return discoveredPaths;
@@ -10535,39 +9891,55 @@ class TextureAutoLoader {
     const baseName = decodedFilename.substring(0, lastDot);
     const extension = decodedFilename.substring(lastDot);
 
-    if (isWaterTile) {
-      console.log(`Parsed Directory: ${directoryPath}`);
-      console.log(`Parsed Base Name: ${baseName}`);
-      console.log(`Parsed Extension: ${extension}`);
-    }
+    // if (isWaterTile) {
+    //   console.log(`Parsed Directory: ${directoryPath}`);
+    //   console.log(`Parsed Base Name: ${baseName}`);
+    //   console.log(`Parsed Extension: ${extension}`);
+    // }
 
     if (!baseName || !directoryPath) return discoveredPaths;
 
-    let filesInDir = [];
-    try {
-      const source = game.settings.get("core", "noCanvas") ? "public" : "data";
-      filesInDir = (
-        await foundry.applications.apps.FilePicker.implementation.browse(
-          source,
-          directoryPath
-        )
-      ).files;
-      if (isWaterTile) {
-        console.log(`Files found in directory:`, filesInDir);
+    // Check cache first before making network request
+    let filesInDir = TextureAutoLoader._directoryCache.get(directoryPath);
+    
+    if (!filesInDir) {
+      // Cache miss - fetch from file system and cache the result
+      TextureAutoLoader._cacheStats.misses++;
+      try {
+        const source = game.settings.get("core", "noCanvas") ? "public" : "data";
+        filesInDir = (
+          await foundry.applications.apps.FilePicker.implementation.browse(
+            source,
+            directoryPath
+          )
+        ).files;
+        
+        // Store in cache for future lookups
+        TextureAutoLoader._directoryCache.set(directoryPath, filesInDir);
+        
+        // if (isWaterTile) {
+        //   console.log(`Files found in directory (CACHE MISS):`, filesInDir);
+        // }
+      } catch {
+        // Failed to browse directory
+        return discoveredPaths;
       }
-    } catch {
-      // This part is unchanged
-      return discoveredPaths;
+    } else {
+      // Cache hit - using cached directory listing
+      TextureAutoLoader._cacheStats.hits++;
+      // if (isWaterTile) {
+      //   console.log(`Files found in directory (CACHE HIT):`, filesInDir);
+      // }
     }
 
     for (const [key, suffix] of Object.entries(TextureAutoLoader.SUFFIX_MAP)) {
       const expectedFilename = `${baseName}${suffix}${extension}`;
 
       // --- DIAGNOSTIC LOGGING for the shoreline ---
-      if (isWaterTile && key === "shoreline") {
-        console.log(`Searching for key '${key}' with suffix '${suffix}'`);
-        console.log(`Constructed Expected Filename: ${expectedFilename}`);
-      }
+      // if (isWaterTile && key === "shoreline") {
+      //   console.log(`Searching for key '${key}' with suffix '${suffix}'`);
+      //   console.log(`Constructed Expected Filename: ${expectedFilename}`);
+      // }
 
       const foundFile = filesInDir.find((fullPath) => {
         const fNameOnly = fullPath.substring(fullPath.lastIndexOf("/") + 1);
@@ -10583,17 +9955,17 @@ class TextureAutoLoader {
       });
 
       if (foundFile) {
-        if (isWaterTile && key === "shoreline") {
-          console.log(`SUCCESS: Found matching file path: ${foundFile}`);
-        }
+        // if (isWaterTile && key === "shoreline") {
+        //   console.log(`SUCCESS: Found matching file path: ${foundFile}`);
+        // }
         discoveredPaths[key] = foundFile;
       } else {
-        if (isWaterTile && key === "shoreline") {
-          console.log(`FAILURE: No match found for '${expectedFilename}'.`);
-        }
+        // if (isWaterTile && key === "shoreline") {
+        //   console.log(`FAILURE: No match found for '${expectedFilename}'.`);
+        // }
       }
     }
-    if (isWaterTile) console.log(`--- END DIAGNOSTIC ---`);
+    // if (isWaterTile) console.log(`--- END DIAGNOSTIC ---`);
     return discoveredPaths;
   }
 }
@@ -16335,265 +15707,6 @@ class ColorFromSpawnBehavior {
   }
 }
 
-/**
- * GPU-based mask spawn behavior that eliminates expensive GPU-to-CPU readback.
- * Instead of pre-computing all valid spawn points, this behavior:
- * 1. Assigns random UV coordinates to particles on init
- * 2. Samples the mask texture on GPU during particle update
- * 3. Repositions particles that fail the threshold test
- *
- * This distributes the workload across frames and keeps all data on GPU.
- */
-class GPUMaskSpawnBehavior {
-  constructor(config) {
-    this.order = PIXI.particles.behaviors.BehaviorOrder.Spawn;
-
-    // Mask texture and configuration
-    this.maskTexture = config.maskTexture;
-    this.colorTexture = config.colorTexture || null;
-    this.threshold = config.threshold ?? 128;
-    this.upperThreshold = config.upperThreshold ?? 255;
-    this.spawnMode = config.spawnMode || "threshold";
-
-    // Bounds for spawn area
-    this.bounds = config.bounds || {
-      x: 0,
-      y: 0,
-      width: this.maskTexture?.width || 100,
-      height: this.maskTexture?.height || 100,
-    };
-
-    // Dynamic screen mask flag
-    this.isDynamicScreenMask = config.isDynamicScreenMask ?? false;
-
-    // Renderer reference for pixel sampling
-    this.renderer = canvas.app?.renderer;
-
-    // Cache for render textures to avoid recreating each frame
-    this._maskRenderTexture = null;
-    this._colorRenderTexture = null;
-    this._maskPixelData = null;
-    this._colorPixelData = null;
-    this._needsRefresh = true;
-
-    // Maximum attempts per particle to find valid spawn position
-    this.maxAttemptsPerParticle = 25;
-  }
-
-  /**
-   * Initialize particles with random UV coordinates
-   */
-  initParticles(first) {
-    let next = first;
-    while (next) {
-      // Assign random UV coordinates for mask sampling
-      next.spawnCheckUV = {
-        u: Math.random(),
-        v: Math.random(),
-      };
-
-      // Mark particle as not yet validated
-      next.spawnValidated = false;
-      next.spawnAttempts = 0;
-
-      // Start particle invisible until valid position found
-      next.alpha = 0;
-      next.scale.set(0);
-
-      next = next.next;
-    }
-  }
-
-  /**
-   * Update particle - check mask and reposition if needed
-   */
-  updateParticle(particle, deltaSec) {
-    // Skip if particle is already validated
-    if (particle.spawnValidated) {
-      return;
-    }
-
-    // Refresh pixel data if needed (for dynamic masks or first time)
-    // This is now done once per frame for all particles, not per particle.
-    // The ParticleLayer's animation loop should call forceRefresh() on pan.
-    if (this._needsRefresh) {
-      this._refreshPixelData();
-    }
-
-    // If we don't have pixel data, we can't do anything.
-    if (!this._maskPixelData) {
-      particle.kill(); // Kill the particle if the mask can't be read.
-      return;
-    }
-
-    // Attempt to find a valid position for this particle.
-    // Loop for a few attempts to increase the chance of finding a valid spot per frame.
-    for (let i = 0; i < 3; i++) {
-      // Try up to 3 times per frame
-      if (particle.spawnAttempts >= this.maxAttemptsPerParticle) {
-        particle.kill(); // Give up after max attempts
-        return;
-      }
-
-      particle.spawnAttempts++;
-
-      // Use the particle's current random UV
-      const u = particle.spawnCheckUV.u;
-      const v = particle.spawnCheckUV.v;
-
-      const texWidth = this.maskTexture.width;
-      const texHeight = this.maskTexture.height;
-
-      const x = Math.floor(u * (texWidth - 1));
-      const y = Math.floor(v * (texHeight - 1));
-      const index = (y * texWidth + x) * 4;
-
-      const pixelValue = this._maskPixelData[index];
-
-      // Check if pixel passes threshold test
-      let isValid = false;
-      if (this.spawnMode === "range") {
-        isValid =
-          pixelValue >= this.threshold && pixelValue <= this.upperThreshold;
-      } else {
-        isValid = pixelValue >= this.threshold;
-      }
-
-      if (isValid) {
-        // Valid spawn position found - place particle and exit the loop
-        this._placeParticle(particle, u, v, x, y, texWidth, texHeight);
-        particle.spawnValidated = true;
-        // Restore alpha/scale to what it should be at age 0. This is handled by other behaviors.
-        // We just need to make sure our overrides are gone.
-        particle.alpha = 1;
-        // The scale behavior will set the correct initial scale. We reset it from 0.
-        if (particle.config.scaleBehavior) {
-          particle.config.scaleBehavior.updateParticle(particle, 0);
-        } else {
-          particle.scale.set(1);
-        }
-        return;
-      } else {
-        // Invalid position - generate new random UV for the next attempt (on this frame or next)
-        particle.spawnCheckUV.u = Math.random();
-        particle.spawnCheckUV.v = Math.random();
-      }
-    }
-  }
-
-  /**
-   * Place particle at validated spawn position
-   */
-  _placeParticle(particle, u, v, texX, texY, texWidth, texHeight) {
-    if (this.isDynamicScreenMask) {
-      // For dynamic screen masks, convert screen coordinates to world coordinates
-      const cameraOffset = CoordinateManager.getCameraOffset();
-      const canvasScale = CoordinateManager.getCanvasScale();
-
-      // The UVs (u,v) map to the full screen, not the view size.
-      const screen = CoordinateManager.getScreenDimensions();
-      const worldX = cameraOffset.x + (u * screen.width) / canvasScale;
-      const worldY = cameraOffset.y + (v * screen.height) / canvasScale;
-
-      particle.position.x = worldX;
-      particle.position.y = worldY;
-    } else {
-      // For static masks, use bounds directly
-      particle.position.x = this.bounds.x + u * this.bounds.width;
-      particle.position.y = this.bounds.y + v * this.bounds.height;
-    }
-
-    // Sample color if color texture is available
-    if (this._colorPixelData && this.colorTexture?.valid) {
-      const colorX = Math.floor(
-        (texX / texWidth) * (this.colorTexture.width - 1)
-      );
-      const colorY = Math.floor(
-        (texY / texHeight) * (this.colorTexture.height - 1)
-      );
-      const colorIndex = (colorY * this.colorTexture.width + colorX) * 4;
-
-      particle.spawnColor = [
-        this._colorPixelData[colorIndex],
-        this._colorPixelData[colorIndex + 1],
-        this._colorPixelData[colorIndex + 2],
-      ];
-    } else if (this._maskPixelData) {
-      // Fallback to mask texture color
-      const index = (texY * texWidth + texX) * 4;
-      particle.spawnColor = [
-        this._maskPixelData[index],
-        this._maskPixelData[index + 1],
-        this._maskPixelData[index + 2],
-      ];
-    }
-  }
-
-  /**
-   * Refresh pixel data from GPU (only when needed)
-   */
-  _refreshPixelData() {
-    if (!this.renderer || !this.maskTexture?.valid) {
-      this._maskPixelData = null; // Ensure data is null if mask is invalid
-      return;
-    }
-
-    try {
-      // Since this is a very expensive operation, only do it if the texture has actually changed.
-      // This check is a bit simplistic but better than nothing.
-      const requiresNewRender =
-        !this._maskRenderTexture ||
-        this._maskRenderTexture.width !== this.maskTexture.width ||
-        this._maskRenderTexture.height !== this.maskTexture.height;
-
-      if (requiresNewRender) {
-        this._maskRenderTexture?.destroy(true);
-        this._maskRenderTexture = PIXI.RenderTexture.create({
-          width: this.maskTexture.width,
-          height: this.maskTexture.height,
-        });
-      }
-
-      const sprite = new PIXI.Sprite(this.maskTexture);
-      this.renderer.render(sprite, {
-        renderTexture: this._maskRenderTexture,
-        clear: true,
-      });
-      this._maskPixelData = this.renderer.extract.pixels(
-        this._maskRenderTexture
-      );
-      sprite.destroy();
-
-      this._needsRefresh = false;
-    } catch (e) {
-      console.error("GPUMaskSpawnBehavior | Error refreshing pixel data:", e);
-      this._maskPixelData = null;
-    }
-  }
-
-  /**
-   * Force refresh of pixel data (for dynamic masks on camera pan)
-   */
-  forceRefresh() {
-    this._needsRefresh = true;
-  }
-
-  /**
-   * Cleanup
-   */
-  destroy() {
-    if (this._maskRenderTexture) {
-      this._maskRenderTexture.destroy(true);
-      this._maskRenderTexture = null;
-    }
-    if (this._colorRenderTexture) {
-      this._colorRenderTexture.destroy(true);
-      this._colorRenderTexture = null;
-    }
-    this._maskPixelData = null;
-    this._colorPixelData = null;
-  }
-}
 
 class SmellyFliesBehavior {
   static type = "smellyFlies";
@@ -30133,9 +29246,21 @@ class DebuggerUIBuilder {
           </div>
           
           <details id="details-loadingScreen-initial">
+            <summary><span class="accordion-toggle"></span><strong>Initial Loading Screen</strong></summary>
+            <div style="padding-left: 10px;">
+              <p class="description-text">Content displayed on the initial world loading screen.</p>
+              ${DebuggerUIBuilder._createTextInputHTML(
+                "loading-screen-subheading",
+                "Subheading Text",
+                "Text displayed above the world title"
+              )}
+            </div>
+          </details>
+          
+          <details id="details-loadingScreen-backgrounds">
             <summary><span class="accordion-toggle"></span><strong>Backgrounds &amp; Overlays</strong></summary>
             <div style="padding-left: 10px;">
-              <p class="description-text">Settings for the background image and overlay for both the initial loading screen and scene transitions.</p>
+              <p class="description-text">Background images and overlays for both the initial loading screen and scene transitions.</p>
               ${DebuggerUIBuilder._createTextInputWithPickerHTML(
                 "loading-screen-static-background",
                 "Static Background"
@@ -30175,7 +29300,7 @@ class DebuggerUIBuilder {
           <details id="details-loadingScreen-transition">
             <summary><span class="accordion-toggle"></span><strong>Scene Transition Content</strong></summary>
             <div style="padding-left: 10px;">
-              <p class="description-text">Settings for the text, logo, and timing of the animated transition between scenes.</p>
+              <p class="description-text">Text, logo, and timing for animated transitions between scenes.</p>
               ${DebuggerUIBuilder._createCheckboxHTML(
                 "universal.sceneTransition.enabled",
                 "Enable Scene Transitions"
@@ -30227,6 +29352,34 @@ class DebuggerUIBuilder {
                   "text"
                 )}
               </div>
+            </div>
+          </details>
+          
+          <details id="details-loadingScreen-fonts">
+            <summary><span class="accordion-toggle"></span><strong>Typography</strong></summary>
+            <div style="padding-left: 10px;">
+              <p class="description-text">Font assignments for loading screen elements. These settings are shared with the Pause Screen in the Font Manager section.</p>
+              ${DebuggerUIBuilder._createSelectHTML(
+                "universal.fontManager.styles.heading1.fontFamily",
+                "Title Font",
+                FONT_CHOICES,
+                "Font for the main title (world name or scene name).",
+                "font-selector-dropdown"
+              )}
+              ${DebuggerUIBuilder._createSelectHTML(
+                "universal.fontManager.styles.heading2.fontFamily",
+                "Subheading Font",
+                FONT_CHOICES,
+                "Font for subheadings and secondary text.",
+                "font-selector-dropdown"
+              )}
+              ${DebuggerUIBuilder._createSelectHTML(
+                "universal.fontManager.styles.hint.fontFamily",
+                "Hint Font",
+                FONT_CHOICES,
+                "Font for hint text at the bottom of the screen.",
+                "font-selector-dropdown"
+              )}
             </div>
           </details>
         `;
@@ -32947,6 +32100,7 @@ class DebuggerEventHandler {
   }
 
   async _onCopyAccordion(effectKey) {
+    console.log("MapShine | _onCopyAccordion called with effectKey:", effectKey);
     let settingsToCopy;
     const isGameSettingAccordion = [
       "loadingScreen",
@@ -33008,39 +32162,53 @@ class DebuggerEventHandler {
   }
 
   async _onPasteAccordion(effectKey) {
+    console.log("MapShine | _onPasteAccordion called with effectKey:", effectKey);
     try {
-      // Try to read from clipboard with permission handling
+      // Try to read from clipboard
       let clipboardText;
       try {
-        // Request permission first (if needed)
-        const permission = await navigator.permissions.query({
-          name: "clipboard-read",
-        });
-        if (permission.state === "denied") {
-          throw new Error("Clipboard permission denied");
-        }
+        // Try modern Clipboard API directly (Firefox supports readText without permission query)
         clipboardText = await navigator.clipboard.readText();
-      } catch (permErr) {
-        // Fallback: Create a temporary textarea and use execCommand
+      } catch (clipErr) {
         console.warn(
-          "Map Shine | Clipboard API failed, using fallback method:",
-          permErr
+          "Map Shine | Clipboard API failed, trying manual paste:",
+          clipErr
         );
-        const textarea = document.createElement("textarea");
-        textarea.style.position = "fixed";
-        textarea.style.opacity = "0";
-        document.body.appendChild(textarea);
-        textarea.focus();
+        
+        // Prompt user to paste manually
+        clipboardText = await new Promise((resolve) => {
+          const dialog = new Dialog({
+            title: "Paste Settings",
+            content: `
+              <p>Please paste the copied settings JSON below:</p>
+              <textarea id="paste-input" style="width: 100%; height: 200px; font-family: monospace; font-size: 12px;"></textarea>
+            `,
+            buttons: {
+              paste: {
+                icon: '<i class="fas fa-check"></i>',
+                label: "Apply",
+                callback: (html) => {
+                  const text = html.find("#paste-input").val();
+                  resolve(text);
+                }
+              },
+              cancel: {
+                icon: '<i class="fas fa-times"></i>',
+                label: "Cancel",
+                callback: () => resolve(null)
+              }
+            },
+            default: "paste",
+            render: (html) => {
+              // Auto-focus the textarea
+              html.find("#paste-input").focus();
+            }
+          });
+          dialog.render(true);
+        });
 
-        const success = document.execCommand("paste");
-        clipboardText = textarea.value;
-        document.body.removeChild(textarea);
-
-        if (!success || !clipboardText) {
-          ui.notifications.error(
-            "Unable to access clipboard. Please copy again and ensure your browser allows clipboard access."
-          );
-          return;
+        if (!clipboardText) {
+          return; // User cancelled
         }
       }
 
@@ -33448,6 +32616,45 @@ class DebuggerEventHandler {
       hintsWrapper.addEventListener("change", refreshHints);
       hintsWrapper.dataset.msBound_input = "1";
     }
+
+    // Font changes: update overlay styles when fonts are changed
+    const heading1FontEl = this.element.querySelector(
+      '[data-path="universal.fontManager.styles.heading1.fontFamily"]'
+    );
+    const heading2FontEl = this.element.querySelector(
+      '[data-path="universal.fontManager.styles.heading2.fontFamily"]'
+    );
+    const hintFontEl = this.element.querySelector(
+      '[data-path="universal.fontManager.styles.hint.fontFamily"]'
+    );
+
+    bindIfNeeded(heading1FontEl, "change", () => {
+      const title = mgr.transitionOverlay?.querySelector(".loading-title");
+      if (title && heading1FontEl.value) {
+        title.style.fontFamily = `"${heading1FontEl.value}", sans-serif`;
+      }
+    });
+    bindIfNeeded(heading2FontEl, "change", () => {
+      const subhead = mgr.transitionOverlay?.querySelector(".loading-subhead");
+      if (subhead && heading2FontEl.value) {
+        subhead.style.fontFamily = `"${heading2FontEl.value}", sans-serif`;
+      }
+    });
+    bindIfNeeded(hintFontEl, "change", () => {
+      const hint = mgr.transitionOverlay?.querySelector(".loading-hint");
+      if (hint && hintFontEl.value) {
+        hint.style.fontFamily = `"${hintFontEl.value}", serif`;
+      }
+    });
+
+    // Initial loading screen subheading
+    const initialSubheadingEl = this.element.querySelector(
+      '[data-path="loading-screen-subheading"]'
+    );
+    bindIfNeeded(initialSubheadingEl, "input", () => {
+      const sub = mgr.transitionOverlay?.querySelector(".loading-subhead");
+      if (sub) sub.textContent = initialSubheadingEl.value;
+    });
   }
 
   async _createParticleEffectArea(effectKey) {
@@ -34092,7 +33299,10 @@ class DebuggerEventHandler {
     if (
       action === "delete-group" ||
       action === "delete-rope-group" ||
-      action === "delete-point"
+      action === "delete-point" ||
+      action === "copy-accordion" ||
+      action === "paste-accordion" ||
+      action === "reset-accordion"
     ) {
       e.stopPropagation();
     }
@@ -34111,13 +33321,25 @@ class DebuggerEventHandler {
     // All other actions
     switch (action) {
       case "copy-accordion": {
+        console.log("MapShine | copy-accordion case triggered");
         const effectKey = target.dataset.effectKey;
-        if (effectKey) this._onCopyAccordion(effectKey);
+        console.log("MapShine | effectKey from dataset:", effectKey);
+        if (effectKey) {
+          await this._onCopyAccordion(effectKey);
+        } else {
+          console.warn("MapShine | No effectKey found on copy button");
+        }
         break;
       }
       case "paste-accordion": {
+        console.log("MapShine | paste-accordion case triggered");
         const effectKey = target.dataset.effectKey;
-        if (effectKey) this._onPasteAccordion(effectKey);
+        console.log("MapShine | effectKey from dataset:", effectKey);
+        if (effectKey) {
+          await this._onPasteAccordion(effectKey);
+        } else {
+          console.warn("MapShine | No effectKey found on paste button");
+        }
         break;
       }
       case "create-particle-effect-area": {
@@ -35339,6 +34561,11 @@ class DebuggerEventHandler {
       }
       if (path === "tileOpacity")
         game.mapShine.effectTargetManager.applyTileOpacities();
+      
+      // Load font when font settings change
+      if (path.startsWith("universal.fontManager.styles.") && path.endsWith(".fontFamily")) {
+        FontLoader.load([processedValue]);
+      }
     }
   }
 
