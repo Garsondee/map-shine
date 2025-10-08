@@ -4472,11 +4472,7 @@ class LayerManager {
         group: "environment",
         zIndex: 120, // Environment effect, appears over tokens.
       },
-      cloudDepth: {
-        layerClass: CloudDepthLayer,
-        group: "environment",
-        zIndex: 125, // Cloud tops render above shadows for depth parallax effect
-      },
+
       particleLayer: {
         layerClass: ParticleLayer,
         group: "environment",
@@ -4539,6 +4535,11 @@ class LayerManager {
         layerClass: OverheadEffectLayer,
         group: "environment",
         zIndex: 700,
+      },
+      cloudDepth: {
+        layerClass: CloudDepthLayer,
+        group: "environment",
+        zIndex: 720, // Cloud tops render above shadows for depth parallax effect
       },
 
       // --- UI & Debugging Layers (Highest zIndex) ---
@@ -8428,7 +8429,7 @@ class OverheadEffectLayer extends foundry.canvas.layers.CanvasLayer {
     /** @type {string} */
     this.eventMode = "auto";
 
-    const screen = CoordinateManager.getScreenDimensions();
+    const screen = canvas.app.renderer.screen;
 
     this.spritesContainer = new PIXI.Container();
 
@@ -8457,10 +8458,8 @@ class OverheadEffectLayer extends foundry.canvas.layers.CanvasLayer {
     canvas.app.ticker.add(this._boundOnAnimate);
     window.addEventListener("resize", this._boundOnResize);
 
-    this.updateFromConfig(game.mapShine.profileManager.activeConfig);
-    
-    // Populate layer with existing tiles
-    this._refreshOverheadTiles();
+    // The calls to updateFromConfig and _refreshOverheadTiles have been removed from here.
+    // They are now correctly handled by the main lifecycle manager and the canvasReady hook respectively.
   }
 
   async _tearDown(options) {
