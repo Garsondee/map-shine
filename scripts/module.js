@@ -19,7 +19,7 @@
  * - Real-time shader-based visual enhancements
  *
  * @author Mythica Machina - Ingram Blakelock
- * @version 1.0.55
+ * @version 1.0.60
  *
  * @requires foundry ^13+
  * @requires pixi.js ^7.4.3
@@ -1900,6 +1900,16 @@ export const MODULE_DEFAULTS = {
       brightness: 0.14,
       contrast: 5,
       gamma: 1.6,
+    },
+    depth: {
+      enabled: false,
+      color: "#CCCCCC",
+      brightness: 2.5,
+      opacity: 0.6,
+      offsetX: -30,
+      offsetY: -30,
+      zoomThresholdMin: 0.2,   // Fully visible when zoomed out to 0.2 or less
+      zoomThresholdMax: 0.8,   // Completely faded when zoomed in to 0.8 or more
     },
   },
   iridescence: {
@@ -4462,6 +4472,11 @@ class LayerManager {
         group: "environment",
         zIndex: 120, // Environment effect, appears over tokens.
       },
+      cloudDepth: {
+        layerClass: CloudDepthLayer,
+        group: "environment",
+        zIndex: 125, // Cloud tops render above shadows for depth parallax effect
+      },
       particleLayer: {
         layerClass: ParticleLayer,
         group: "environment",
@@ -5165,6 +5180,12 @@ class SceneChangeManager {
       }
     });
 
+    // Connect this UI to the loading manager for progress updates
+    if (game.mapShine.loadingManager) {
+      game.mapShine.loadingManager.screen = this.ui;
+      console.log(`[MapShine Transition] Connected overlay to loading manager for progress updates`);
+    }
+
     // Show the UI
     this.ui.show();
     
@@ -5510,6 +5531,13 @@ class SceneChangeManager {
   _destroyOverlay() {
     if (!this.ui) return;
     console.log(`[MapShine Transition] Destroying overlay element.`);
+    
+    // Disconnect from loading manager
+    if (game.mapShine.loadingManager && game.mapShine.loadingManager.screen === this.ui) {
+      game.mapShine.loadingManager.screen = null;
+      console.log(`[MapShine Transition] Disconnected overlay from loading manager`);
+    }
+    
     this.ui.destroy();
     this.ui = null;
   }
@@ -5538,10 +5566,8 @@ class SceneChangeManager {
     // Update the title
     this.ui.setTitle(displayName);
 
-    // Set initial progress with quick animation
-    this.ui.setProgress(30, "Preparing scene...", { duration: 400 });
-
     // Fade in the overlay (show black screen)
+    // Progress will be managed by the loading manager during setup
     await this.ui.fadeIn();
 
     // Wait for the fade duration
@@ -5818,9 +5844,10 @@ class SceneChangeManager {
       isModuleActive: true,
     };
 
-    // Start the loading progress
+    // Start the loading progress - the overlay is already connected to the loading manager
     if (game.mapShine.loadingManager) {
       game.mapShine.loadingManager.setProgress("START");
+      console.log("Map Shine | SceneChangeManager: Starting loading progress updates");
     }
 
     // Import the MapShineLifecycle class and begin the discovery process
@@ -6757,6 +6784,10 @@ class LightMaskManager {
     this.blurSourceSprite = null; // Sprite for full-res operations
     this.downscaledBlurSprite = null; // Sprite for half-res operations
 
+    // Mesh caching for performance
+    this._cachedMeshContainer = null;
+    this._cachedLightState = null;
+
     this._needsUpdate = true;
     this._destroyed = false;
 
@@ -6889,6 +6920,9 @@ class LightMaskManager {
     this.blurSourceSprite?.destroy();
     this.downscaledBlurSprite?.destroy();
 
+    // Destroy cached meshes
+    this._destroyCachedMeshes();
+
     // Nullify references
     this.lightMaskGraphics = null;
     this.lightPolygonMaskTexture = null;
@@ -6972,28 +7006,66 @@ class LightMaskManager {
     const lights = canvas.scene.lights;
     const worldTransform = canvas.stage.transform.worldTransform;
 
-    // --- Stage 1: Render Hard Mask (Full Resolution) ---
-    this.lightMaskGraphics.clear();
-    this.lightMaskGraphics.beginFill(0xffffff);
-    for (const light of lights) {
-      if (
-        !light.object?.visible ||
-        !light.object.lightSource?.active ||
-        light.object.lightSource.radius <= 0 ||
-        !light.object.lightSource.shape?.points ||
-        light.object.lightSource.shape.points.length < 6
-      ) {
-        continue;
+    // --- Stage 1: Render Gradient Masks Using Meshes (Full Resolution) ---
+    // Check if we need to rebuild meshes
+    const currentLightState = this._computeLightState(lights);
+    const needsRebuild = !this._cachedLightState || 
+                         this._cachedLightState !== currentLightState;
+    
+    if (needsRebuild) {
+      // Destroy old cached meshes
+      this._destroyCachedMeshes();
+      
+      // Create new mesh container
+      const meshContainer = new PIXI.Container();
+      
+      for (const light of lights) {
+        if (
+          !light.object?.visible ||
+          !light.object.lightSource?.active ||
+          light.object.lightSource.radius <= 0 ||
+          !light.object.lightSource.shape?.points ||
+          light.object.lightSource.shape.points.length < 6
+        ) {
+          continue;
+        }
+        
+        // Get light properties
+        const luminosity = light.object.lightSource.data?.luminosity ?? 0.5;
+        const attenuation = light.object.lightSource.data?.attenuation ?? 0.5;
+        const points = light.object.lightSource.shape.points;
+        const centerX = light.object.center?.x ?? light.x;
+        const centerY = light.object.center?.y ?? light.y;
+        const radius = light.object.lightSource.radius;
+        
+        // Create mesh with gradient from center to edge
+        const mesh = this._createGradientMesh(
+          points,
+          centerX,
+          centerY,
+          radius,
+          luminosity,
+          attenuation
+        );
+        
+        if (mesh) {
+          meshContainer.addChild(mesh);
+        }
       }
-      this.lightMaskGraphics.drawPolygon(light.object.lightSource.shape.points);
+      
+      // Cache the container and state
+      this._cachedMeshContainer = meshContainer;
+      this._cachedLightState = currentLightState;
     }
-    this.lightMaskGraphics.endFill();
-
-    renderer.render(this.lightMaskGraphics, {
-      renderTexture: this.lightPolygonMaskTexture,
-      transform: worldTransform,
-      clear: true,
-    });
+    
+    // Render cached mesh container
+    if (this._cachedMeshContainer) {
+      renderer.render(this._cachedMeshContainer, {
+        renderTexture: this.lightPolygonMaskTexture,
+        transform: worldTransform,
+        clear: true,
+      });
+    }
 
     // --- Stage 2: Three-Pass Kawase Blur & Noise (Using Downscaling) ---
     // Pass 1 (Full-res -> Half-res)
@@ -7022,6 +7094,154 @@ class LightMaskManager {
     });
   }
 
+  /**
+   * Computes a hash of the current light state for cache invalidation
+   * @private
+   */
+  _computeLightState(lights) {
+    const parts = [];
+    for (const light of lights) {
+      if (
+        !light.object?.visible ||
+        !light.object.lightSource?.active ||
+        light.object.lightSource.radius <= 0 ||
+        !light.object.lightSource.shape?.points ||
+        light.object.lightSource.shape.points.length < 6
+      ) {
+        continue;
+      }
+      
+      const luminosity = light.object.lightSource.data?.luminosity ?? 0.5;
+      const attenuation = light.object.lightSource.data?.attenuation ?? 0.5;
+      const centerX = light.object.center?.x ?? light.x;
+      const centerY = light.object.center?.y ?? light.y;
+      const radius = light.object.lightSource.radius;
+      const pointsHash = light.object.lightSource.shape.points.join(',');
+      
+      parts.push(`${light.id}:${centerX},${centerY},${radius},${luminosity},${attenuation},${pointsHash}`);
+    }
+    return parts.join('|');
+  }
+
+  /**
+   * Destroys cached meshes to free up GPU memory
+   * @private
+   */
+  _destroyCachedMeshes() {
+    if (this._cachedMeshContainer) {
+      for (const mesh of this._cachedMeshContainer.children) {
+        mesh.geometry?.destroy();
+        mesh.shader?.destroy();
+        mesh.destroy();
+      }
+      this._cachedMeshContainer.destroy();
+      this._cachedMeshContainer = null;
+    }
+    this._cachedLightState = null;
+  }
+
+  /**
+   * Creates a PIXI.Mesh with vertex colors for smooth gradient rendering
+   * @private
+   */
+  _createGradientMesh(points, centerX, centerY, radius, luminosity, attenuation) {
+    // Convert polygon points to vertices array (x, y pairs)
+    const numVertices = points.length / 2;
+    if (numVertices < 3) return null;
+    
+    // Build geometry: center vertex + edge vertices
+    const vertices = [];
+    const uvs = [];
+    const colors = [];
+    const indices = [];
+    
+    // Add center vertex
+    vertices.push(centerX, centerY);
+    uvs.push(0.5, 0.5);
+    
+    // Center brightness based on attenuation curve
+    // At attenuation=0: edge and center same brightness (hard edge via uniform color)
+    // At attenuation=1: center at full luminosity, edge near zero
+    const centerBrightness = luminosity;
+    colors.push(centerBrightness, centerBrightness, centerBrightness, 1);
+    
+    // Add edge vertices with calculated brightness
+    for (let i = 0; i < numVertices; i++) {
+      const x = points[i * 2];
+      const y = points[i * 2 + 1];
+      vertices.push(x, y);
+      uvs.push(0, 0); // UVs don't matter for solid color
+      
+      // Calculate distance ratio from center
+      const dx = x - centerX;
+      const dy = y - centerY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const distRatio = Math.min(1, dist / radius);
+      
+      // Apply attenuation curve
+      // Low attenuation = flat brightness (hard edge)
+      // High attenuation = steep falloff from center
+      const edgeBrightness = luminosity * Math.pow(1 - distRatio, 1 + attenuation * 4);
+      colors.push(edgeBrightness, edgeBrightness, edgeBrightness, 1);
+    }
+    
+    // Create triangle fan indices (center to all edge vertices)
+    for (let i = 1; i <= numVertices; i++) {
+      indices.push(0); // Center vertex
+      indices.push(i); // Current edge vertex
+      indices.push(i === numVertices ? 1 : i + 1); // Next edge vertex (wrap around)
+    }
+    
+    // Create mesh geometry
+    const geometry = new PIXI.Geometry();
+    geometry.addAttribute('aVertexPosition', vertices, 2);
+    geometry.addAttribute('aColor', colors, 4);
+    geometry.addAttribute('aTextureCoord', uvs, 2);
+    geometry.addIndex(indices);
+    
+    // Create shader program that uses vertex colors
+    const program = PIXI.Program.from(`
+      attribute vec2 aVertexPosition;
+      attribute vec4 aColor;
+      attribute vec2 aTextureCoord;
+      
+      uniform mat3 projectionMatrix;
+      uniform mat3 translationMatrix;
+      uniform mat3 uTextureMatrix;
+      
+      varying vec4 vColor;
+      varying vec2 vTextureCoord;
+      
+      void main() {
+        vColor = aColor;
+        vTextureCoord = (uTextureMatrix * vec3(aTextureCoord, 1.0)).xy;
+        gl_Position = vec4((projectionMatrix * translationMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
+      }
+    `,
+    `
+      precision mediump float;
+      
+      varying vec4 vColor;
+      varying vec2 vTextureCoord;
+      
+      uniform sampler2D uSampler;
+      
+      void main() {
+        vec4 texColor = texture2D(uSampler, vTextureCoord);
+        gl_FragColor = texColor * vColor;
+      }
+    `);
+    
+    const shader = new PIXI.Shader(program, {
+      uSampler: PIXI.Texture.WHITE,
+      uTextureMatrix: PIXI.Matrix.IDENTITY
+    });
+    
+    const mesh = new PIXI.Mesh(geometry, shader);
+    
+    return mesh;
+  }
+
   getTexture() {
     return this.blurredLightMaskTexture;
   }
@@ -7038,16 +7258,19 @@ class NoiseFilter extends PIXI.Filter {
               attribute vec2 aTextureCoord;
               uniform mat3 projectionMatrix;
               varying vec2 vTextureCoord;
+              varying vec2 vScreenCoord;
 
               void main(void) {
                   gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
                   vTextureCoord = aTextureCoord;
+                  vScreenCoord = gl_Position.xy * 0.5 + 0.5;
               }
           `;
 
     const fragmentSrc = `
               precision mediump float;
               varying vec2 vTextureCoord;
+              varying vec2 vScreenCoord;
 
               uniform sampler2D uSampler;
               uniform float uNoiseAmount;
@@ -7063,7 +7286,8 @@ class NoiseFilter extends PIXI.Filter {
                   
                   // Only apply noise if there is some color to begin with
                   if (color.a > 0.0) {
-                      float noise = (random(vTextureCoord) - 0.5) * uNoiseAmount;
+                      // Generate noise based on screen coordinates to avoid stretching
+                      float noise = (random(vScreenCoord) - 0.5) * uNoiseAmount;
                       color.rgb += noise;
                   }
 
@@ -8234,6 +8458,9 @@ class OverheadEffectLayer extends foundry.canvas.layers.CanvasLayer {
     window.addEventListener("resize", this._boundOnResize);
 
     this.updateFromConfig(game.mapShine.profileManager.activeConfig);
+    
+    // Populate layer with existing tiles
+    this._refreshOverheadTiles();
   }
 
   async _tearDown(options) {
@@ -8763,14 +8990,16 @@ class MapShineLifecycle {
       "color: #4CAF50; font-weight: bold;"
     );
 
-    // Emit custom Hook event to signal that all systems are ready
+    // Wait for effects to stabilize (give filters time to render first frame)
+    // Increased delay for scene transitions to ensure smooth reveal
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    // Emit custom Hook event AFTER effects are stable
+    // This ensures scene transition overlays don't fade in prematurely
     Hooks.callAll("mapShine:setupComplete", { type: "full" });
     console.log(
       "Map Shine | Emitted mapShine:setupComplete hook (full setup)"
     );
-
-    // Wait for effects to stabilize (give filters time to render first frame)
-    await new Promise(resolve => setTimeout(resolve, 100));
 
     // 8. Hide the loading screen AFTER all effects are enabled and stable
     if (loadingScreen) {
@@ -8805,11 +9034,15 @@ class MapShineLifecycle {
       "color: #4CAF50; font-weight: bold;"
     );
 
-    // Emit custom Hook event to signal that minimal setup is ready
-    Hooks.callAll("mapShine:setupComplete", { type: "minimal" });
-
     // Wait for effects to stabilize
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // Increased delay for scene transitions to ensure smooth reveal
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    // Emit custom Hook event AFTER effects are stable
+    Hooks.callAll("mapShine:setupComplete", { type: "minimal" });
+    console.log(
+      "Map Shine | Emitted mapShine:setupComplete hook (minimal setup)"
+    );
 
     // Hide the loading screen AFTER effects are enabled and stable
     if (loadingScreen) {
@@ -8820,9 +9053,6 @@ class MapShineLifecycle {
       if (game.mapShine.loadingManager)
         game.mapShine.loadingManager.screen = null;
     }
-    console.log(
-      "Map Shine | Emitted mapShine:setupComplete hook (minimal setup)"
-    );
   }
 
   static finalizeConfigurationAndUI() {
@@ -23134,6 +23364,70 @@ class CloudShadowsLayer extends MaskedEffectLayer {
                                     )}
                                 </div>
                             </details>
+                            <details id="details-cloudShadows-depth">
+                                <summary><span class="accordion-toggle"></span>
+                                    <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                                      "cloudShadows.depth.enabled",
+                                      "Depth Parallax Effect",
+                                      false
+                                    )}</div>
+                                </summary>
+                                <div style="padding-left: 10px;">
+                                    <p class="description-text">When zoomed out, renders an offset white/grey version of the clouds above everything to create a parallax depth illusion.</p>
+                                    ${DebuggerUIBuilder._createColorPickerHTML(
+                                      "cloudShadows.depth.color",
+                                      "Cloud Color"
+                                    )}
+                                    ${DebuggerUIBuilder._createSliderHTML(
+                                      "cloudShadows.depth.brightness",
+                                      "Brightness",
+                                      0,
+                                      5,
+                                      0.1,
+                                      "Brightness multiplier for the depth layer clouds."
+                                    )}
+                                    ${DebuggerUIBuilder._createSliderHTML(
+                                      "cloudShadows.depth.opacity",
+                                      "Opacity",
+                                      0,
+                                      1,
+                                      0.05,
+                                      "Overall opacity of the depth layer."
+                                    )}
+                                    ${DebuggerUIBuilder._createSliderHTML(
+                                      "cloudShadows.depth.offsetX",
+                                      "Offset X",
+                                      -200,
+                                      200,
+                                      1,
+                                      "Horizontal offset in pixels. Negative values shift left."
+                                    )}
+                                    ${DebuggerUIBuilder._createSliderHTML(
+                                      "cloudShadows.depth.offsetY",
+                                      "Offset Y",
+                                      -200,
+                                      200,
+                                      1,
+                                      "Vertical offset in pixels. Negative values shift up."
+                                    )}
+                                    ${DebuggerUIBuilder._createSliderHTML(
+                                      "cloudShadows.depth.zoomThresholdMin",
+                                      "Fully Visible (Zoomed Out)",
+                                      0.01,
+                                      2,
+                                      0.01,
+                                      "When zoomed out to this level or beyond, clouds are fully visible. Lower = more zoomed out."
+                                    )}
+                                    ${DebuggerUIBuilder._createSliderHTML(
+                                      "cloudShadows.depth.zoomThresholdMax",
+                                      "Fade Out (Zooming In)",
+                                      0.01,
+                                      2,
+                                      0.01,
+                                      "When zoomed in to this level, clouds completely fade out. Must be higher than 'Fully Visible'."
+                                    )}
+                                </div>
+                            </details>
                         `;
     return DebuggerUIBuilder._createAccordionHTML(
       effectKey,
@@ -23330,6 +23624,212 @@ class CloudShadowsLayer extends MaskedEffectLayer {
     this.rawCloudTexture = null;
 
     await super._tearDown(options);
+  }
+}
+
+class CloudDepthRecolorFilter extends PIXI.Filter {
+  constructor() {
+    const vertexSrc = `
+      attribute vec2 aVertexPosition;
+      attribute vec2 aTextureCoord;
+      uniform mat3 projectionMatrix;
+      varying vec2 vTextureCoord;
+
+      void main(void) {
+        gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
+        vTextureCoord = aTextureCoord;
+      }
+    `;
+
+    const fragmentSrc = `
+      precision mediump float;
+      varying vec2 vTextureCoord;
+      uniform sampler2D uSampler;
+      uniform vec3 u_cloudColor;
+      uniform float u_brightness;
+      uniform float u_threshold;
+      uniform float u_softness;
+
+      void main() {
+        vec4 texColor = texture2D(uSampler, vTextureCoord);
+        
+        // Raw cloud texture has bright areas where clouds are present
+        // We want to show the same shape: bright clouds where the pattern is bright
+        float cloudIntensity = texColor.r; // Grayscale cloud pattern (bright = cloud present)
+        
+        // Apply threshold with soft edges to isolate clouds
+        // No inversion - we want clouds to appear where the pattern is bright
+        float alpha = smoothstep(u_threshold - u_softness, u_threshold + u_softness, cloudIntensity);
+        
+        // Apply color tint and brightness, modulated by the cloud pattern
+        // This ensures brightness only affects visible cloud parts, not transparent areas
+        vec3 finalColor = u_cloudColor * u_brightness * cloudIntensity;
+        
+        gl_FragColor = vec4(finalColor, alpha);
+      }
+    `;
+
+    super(vertexSrc, fragmentSrc, {
+      u_cloudColor: [1.0, 1.0, 1.0], // White by default
+      u_brightness: 1.0,
+      u_threshold: 0.3, // Threshold for cloud detection
+      u_softness: 0.2,  // Soft edge falloff
+    });
+  }
+}
+
+class CloudDepthLayer extends foundry.canvas.layers.CanvasLayer {
+  constructor() {
+    super();
+    this.depthSprite = null;
+    this.recolorFilter = null;
+    
+    // Zoom properties (defaults, will be overwritten by config)
+    this.zoomThresholdMin = 0.2;  // Fully visible when zoomed out
+    this.zoomThresholdMax = 0.8;  // Fades out when zooming in
+    
+    // Bound listeners
+    this._boundOnAnimate = this._onAnimate.bind(this);
+  }
+
+  async _draw() {
+    this._destroyed = false;
+    this.eventMode = "none"; // No interaction needed
+    this.interactiveChildren = false;
+
+    // Create the recolor filter
+    this.recolorFilter = new CloudDepthRecolorFilter();
+
+    // Create sprite to display the raw cloud texture
+    this.depthSprite = new PIXI.Sprite(PIXI.Texture.EMPTY);
+    this.depthSprite.anchor.set(0, 0);
+    this.depthSprite.filters = [this.recolorFilter];
+    this.depthSprite.alpha = 0;
+    this.addChild(this.depthSprite);
+
+    // Start animation loop
+    canvas.app.ticker.add(this._boundOnAnimate);
+
+    this.updateFromConfig(game.mapShine.profileManager.activeConfig);
+  }
+
+  async _tearDown(options) {
+    this._destroyed = true;
+
+    canvas.app.ticker.remove(this._boundOnAnimate);
+
+    this.recolorFilter?.destroy();
+    this.depthSprite?.destroy();
+
+    this.recolorFilter = null;
+    this.depthSprite = null;
+
+    return super._tearDown(options);
+  }
+
+  _onAnimate(deltaTime) {
+    if (this._destroyed || !this.visible || !this.depthSprite) {
+      if (this.depthSprite) this.depthSprite.visible = false;
+      return;
+    }
+
+    const config = game.mapShine.profileManager.activeConfig.cloudShadows.depth;
+    
+    // Check if depth effect is enabled
+    if (!config.enabled) {
+      this.depthSprite.visible = false;
+      return;
+    }
+
+    // Get the raw cloud texture from ResourceManager, which ensures proper rendering coordination
+    const resourceManager = game.mapShine.resourceManager;
+    if (!resourceManager) {
+      this.depthSprite.visible = false;
+      return;
+    }
+
+    const rawCloudTexture = resourceManager.getRawCloudTexture(deltaTime);
+    if (!rawCloudTexture || !rawCloudTexture.valid) {
+      this.depthSprite.visible = false;
+      return;
+    }
+
+    // Update sprite texture
+    this.depthSprite.texture = rawCloudTexture;
+
+    // Get camera position and current zoom level
+    const cameraOffset = CoordinateManager.getCameraOffset();
+    const currentZoom = CoordinateManager.getCanvasScale();
+    
+    // The rawCloudTexture is a screen-space render texture.
+    // To display it correctly in world space, we scale by 1/canvasScale
+    // (same approach as OverheadEffectLayer)
+    if (currentZoom > 0) {
+      this.depthSprite.scale.set(1 / currentZoom);
+    }
+
+    // Position at camera location with user-defined parallax offset
+    const offsetX = config.offsetX || 0;
+    const offsetY = config.offsetY || 0;
+    this.depthSprite.position.set(
+      cameraOffset.x + offsetX,
+      cameraOffset.y + offsetY
+    );
+
+    // Calculate zoom-based alpha
+    // When zoomed OUT (low values like 0.1), show the cloud tops
+    // When zoomed IN (high values like 1.0+), hide them
+    let alpha = 0;
+
+    if (currentZoom <= this.zoomThresholdMin) {
+      // Fully zoomed out = full cloud visibility
+      alpha = 1.0;
+    } else if (currentZoom <= this.zoomThresholdMax) {
+      // Fading out as we zoom in
+      const range = this.zoomThresholdMax - this.zoomThresholdMin;
+      const progress = (currentZoom - this.zoomThresholdMin) / (range > 0 ? range : 1);
+      alpha = 1.0 - progress; // Inverted: closer to min = more visible
+    }
+    // else: currentZoom > zoomThresholdMax, alpha stays 0 (invisible)
+
+    // Apply alpha with intensity multiplier
+    this.depthSprite.alpha = alpha * (config.opacity || 1.0);
+    this.depthSprite.visible = alpha > 0.01;
+
+    // Update filter uniforms
+    if (this.recolorFilter) {
+      const u = this.recolorFilter.uniforms;
+      
+      // Parse color (assuming hex format)
+      const color = config.color || "#FFFFFF";
+      const rgb = this._hexToRgb(color);
+      u.u_cloudColor = [rgb.r / 255, rgb.g / 255, rgb.b / 255];
+      u.u_brightness = config.brightness || 1.0;
+      u.u_threshold = config.threshold || 0.3;
+      u.u_softness = config.softness || 0.2;
+    }
+  }
+
+  _hexToRgb(hex) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : { r: 255, g: 255, b: 255 };
+  }
+
+  async updateFromConfig(config) {
+    const depthConfig = config.cloudShadows.depth;
+    this.visible = config.enabled && config.cloudShadows.enabled && depthConfig.enabled;
+    
+    // Update zoom thresholds from config
+    this.zoomThresholdMin = depthConfig.zoomThresholdMin || 0.2;
+    this.zoomThresholdMax = depthConfig.zoomThresholdMax || 0.8;
+  }
+
+  _onResize() {
+    // Will be handled in _onAnimate
   }
 }
 
