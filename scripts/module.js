@@ -23397,35 +23397,20 @@ class CloudShadowsLayer extends MaskedEffectLayer {
                                     ${DebuggerUIBuilder._createSliderHTML(
                                       "cloudShadows.depth.offsetX",
                                       "Offset X",
-                                      -200,
-                                      200,
-                                      1,
+                                      -1000,
+                                      1000,
+                                      10,
                                       "Horizontal offset in pixels. Negative values shift left."
                                     )}
                                     ${DebuggerUIBuilder._createSliderHTML(
                                       "cloudShadows.depth.offsetY",
                                       "Offset Y",
-                                      -200,
-                                      200,
-                                      1,
+                                      -1000,
+                                      1000,
+                                      10,
                                       "Vertical offset in pixels. Negative values shift up."
                                     )}
-                                    ${DebuggerUIBuilder._createSliderHTML(
-                                      "cloudShadows.depth.zoomThresholdMin",
-                                      "Fully Visible (Zoomed Out)",
-                                      0.01,
-                                      2,
-                                      0.01,
-                                      "When zoomed out to this level or beyond, clouds are fully visible. Lower = more zoomed out."
-                                    )}
-                                    ${DebuggerUIBuilder._createSliderHTML(
-                                      "cloudShadows.depth.zoomThresholdMax",
-                                      "Fade Out (Zooming In)",
-                                      0.01,
-                                      2,
-                                      0.01,
-                                      "When zoomed in to this level, clouds completely fade out. Must be higher than 'Fully Visible'."
-                                    )}
+                                  
                                 </div>
                             </details>
                         `;
@@ -23776,24 +23761,23 @@ class CloudDepthLayer extends foundry.canvas.layers.CanvasLayer {
       cameraOffset.y + offsetY
     );
 
-    // Calculate zoom-based alpha
-    // When zoomed OUT (low values like 0.1), show the cloud tops
-    // When zoomed IN (high values like 1.0+), hide them
-    let alpha = 0;
+    // Hardcoded zoom-based alpha:
+    // - Zoom <= 0.35: 100% opacity
+    // - 0.35 < Zoom < 0.50: linearly fade from 100% to 0%
+    // - Zoom >= 0.50: 0%
+    let alpha = 0.0;
 
-    if (currentZoom <= this.zoomThresholdMin) {
-      // Fully zoomed out = full cloud visibility
+    if (currentZoom <= 0.35) {
       alpha = 1.0;
-    } else if (currentZoom <= this.zoomThresholdMax) {
-      // Fading out as we zoom in
-      const range = this.zoomThresholdMax - this.zoomThresholdMin;
-      const progress = (currentZoom - this.zoomThresholdMin) / (range > 0 ? range : 1);
-      alpha = 1.0 - progress; // Inverted: closer to min = more visible
+    } else if (currentZoom < 0.50) {
+      const t = (currentZoom - 0.35) / 0.15; // 0..1 over [0.35, 0.50)
+      alpha = 1.0 - Math.min(Math.max(t, 0.0), 1.0);
+    } else {
+      alpha = 0.0;
     }
-    // else: currentZoom > zoomThresholdMax, alpha stays 0 (invisible)
 
-    // Apply alpha with intensity multiplier
-    this.depthSprite.alpha = alpha * (config.opacity || 1.0);
+    // Apply alpha directly (no config multiplier)
+    this.depthSprite.alpha = alpha;
     this.depthSprite.visible = alpha > 0.01;
 
     // Update filter uniforms
