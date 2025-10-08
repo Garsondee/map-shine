@@ -4526,11 +4526,7 @@ class LayerManager {
         group: "primary",
         zIndex: 253,
       },
-      timeOfDay: {
-        layerClass: TimeOfDayLayer,
-        group: "primary",
-        zIndex: 254,
-      },
+
       overheadEffect: {
         layerClass: OverheadEffectLayer,
         group: "environment",
@@ -4540,6 +4536,11 @@ class LayerManager {
         layerClass: CloudDepthLayer,
         group: "environment",
         zIndex: 720, // Cloud tops render above shadows for depth parallax effect
+      },
+      timeOfDay: {
+        layerClass: TimeOfDayLayer,
+        group: "primary",
+        zIndex: 730,
       },
 
       // --- UI & Debugging Layers (Highest zIndex) ---
@@ -23633,6 +23634,7 @@ class CloudDepthRecolorFilter extends PIXI.Filter {
       uniform float u_brightness;
       uniform float u_threshold;
       uniform float u_softness;
+      uniform float u_darkness;
 
       void main() {
         vec4 texColor = texture2D(uSampler, vTextureCoord);
@@ -23645,9 +23647,12 @@ class CloudDepthRecolorFilter extends PIXI.Filter {
         // No inversion - we want clouds to appear where the pattern is bright
         float alpha = smoothstep(u_threshold - u_softness, u_threshold + u_softness, cloudIntensity);
         
-        // Apply color tint and brightness, modulated by the cloud pattern
+        // Calculate darkness factor: 0.25 at full darkness (75% darker), 1.0 at no darkness
+        float darknessFactor = 1.0 - (u_darkness * 0.75);
+        
+        // Apply color tint, brightness, and darkness, modulated by the cloud pattern
         // This ensures brightness only affects visible cloud parts, not transparent areas
-        vec3 finalColor = u_cloudColor * u_brightness * cloudIntensity;
+        vec3 finalColor = u_cloudColor * u_brightness * cloudIntensity * darknessFactor;
         
         gl_FragColor = vec4(finalColor, alpha);
       }
@@ -23658,6 +23663,7 @@ class CloudDepthRecolorFilter extends PIXI.Filter {
       u_brightness: 1.0,
       u_threshold: 0.3, // Threshold for cloud detection
       u_softness: 0.2,  // Soft edge falloff
+      u_darkness: 0.0,  // Scene darkness level (0 = day, 1 = night)
     });
   }
 }
@@ -23790,6 +23796,9 @@ class CloudDepthLayer extends foundry.canvas.layers.CanvasLayer {
       u.u_brightness = config.brightness || 1.0;
       u.u_threshold = config.threshold || 0.3;
       u.u_softness = config.softness || 0.2;
+      
+      // Update darkness level from scene
+      u.u_darkness = canvas.scene?.environment?.darknessLevel ?? 0;
     }
   }
 
