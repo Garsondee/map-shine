@@ -8753,16 +8753,7 @@ class MapShineLifecycle {
       structuralLayer.renderEffectNow(0);
     }
 
-    // After
-    // 8. Hide the loading screen.
-    if (loadingScreen) {
-      await loadingManager?.tick("SETUP_COMPLETE");
-      await loadingScreen.hide();
-      game.mapShine.loadingScreen = null;
-      if (game.mapShine.loadingManager)
-        game.mapShine.loadingManager.screen = null;
-    }
-
+    // Mark systems as ready BEFORE hiding the loading screen
     game.mapShine.systemsReady = true;
 
     // KILL SWITCH DISENGAGED: Re-enable illumination-dependent systems.
@@ -8773,12 +8764,22 @@ class MapShineLifecycle {
     );
 
     // Emit custom Hook event to signal that all systems are ready
-    // This allows the scene transition system and other listeners to know
-    // when it's safe to proceed with fade-in animations
     Hooks.callAll("mapShine:setupComplete", { type: "full" });
     console.log(
       "Map Shine | Emitted mapShine:setupComplete hook (full setup)"
     );
+
+    // Wait for effects to stabilize (give filters time to render first frame)
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // 8. Hide the loading screen AFTER all effects are enabled and stable
+    if (loadingScreen) {
+      await loadingManager?.tick("SETUP_COMPLETE");
+      await loadingScreen.hide();
+      game.mapShine.loadingScreen = null;
+      if (game.mapShine.loadingManager)
+        game.mapShine.loadingManager.screen = null;
+    }
   }
 
   static async runMinimalSetup(_canvas) {
@@ -8797,16 +8798,6 @@ class MapShineLifecycle {
       );
     }
 
-    // Hide the loading screen as setup is complete
-    if (loadingScreen) {
-      // Visually complete the loading bar for user feedback before hiding.
-      await loadingManager?.tick("SETUP_COMPLETE");
-      await loadingScreen.hide();
-      game.mapShine.loadingScreen = null;
-      if (game.mapShine.loadingManager)
-        game.mapShine.loadingManager.screen = null;
-    }
-
     // KILL SWITCH DISENGAGED (also for minimal setup)
     game.mapShine.transitionActive = false;
     console.log(
@@ -8816,6 +8807,19 @@ class MapShineLifecycle {
 
     // Emit custom Hook event to signal that minimal setup is ready
     Hooks.callAll("mapShine:setupComplete", { type: "minimal" });
+
+    // Wait for effects to stabilize
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Hide the loading screen AFTER effects are enabled and stable
+    if (loadingScreen) {
+      // Visually complete the loading bar for user feedback before hiding.
+      await loadingManager?.tick("SETUP_COMPLETE");
+      await loadingScreen.hide();
+      game.mapShine.loadingScreen = null;
+      if (game.mapShine.loadingManager)
+        game.mapShine.loadingManager.screen = null;
+    }
     console.log(
       "Map Shine | Emitted mapShine:setupComplete hook (minimal setup)"
     );
@@ -9970,7 +9974,7 @@ class TextureAutoLoader {
   async _processSceneBackground() {
     const bgSrc = canvas.scene?.background.src;
     if (!bgSrc) {
-      console.info("MapShine | No scene background texture found.");
+      // No background texture - this is normal for some scenes
       return null;
     }
     const targetData = await this._findSuffixesForBaseTexture(bgSrc);
