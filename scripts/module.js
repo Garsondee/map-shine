@@ -24,6 +24,11 @@
  * @requires foundry ^13+
  * @requires pixi.js ^7.4.3
  *
+ * @TODO: Building Shadows leaves a line on one side of the screen. I bet it's something to do with kawase blurs trying to access information outside the bounds of the screen.
+ * 
+ * 
+ * 
+ * 
  * @TODO: FUN IDEA - Horror world vision. Basically the ability to quickly swap the appearance of the background with a different background for a horror vibe.
  * @TODO: Screen Overlay effects, should be able to happen on only one player or something like that.
  *
@@ -3292,6 +3297,7 @@ export const MODULE_DEFAULTS = {
     zoomPointMin: 0.2,
     zoomPointMid: 0.65,
     zoomPointMax: 1.5,
+    timeOfDayStrength: 0.5,
     recolor: {
       enabled: false,
       intensity: 2,
@@ -6850,6 +6856,12 @@ class LightMaskManager {
       fullResTextureOptions
     );
 
+    // CRITICAL: Set texture wrap mode to CLAMP to prevent edge artifacts from Kawase blur
+    // Kawase blur samples outside texture bounds at screen edges, causing visible lines
+    this.intermediateBlurTexture.baseTexture.wrapMode = PIXI.WRAP_MODES.CLAMP;
+    this.intermediateBlurTexture2.baseTexture.wrapMode = PIXI.WRAP_MODES.CLAMP;
+    this.blurredLightMaskTexture.baseTexture.wrapMode = PIXI.WRAP_MODES.CLAMP;
+
     this.kawaseBlurFilter1 = new PIXI.filters.KawaseBlurFilter(15, 2, true);
 
     this.kawaseBlurFilter2 = new PIXI.filters.KawaseBlurFilter(15, 2, true);
@@ -8568,13 +8580,57 @@ class OverheadEffectLayer extends foundry.canvas.layers.CanvasLayer {
       const resourceManager = game.mapShine.resourceManager;
       if (resourceManager) {
         this.recolorFilter.uniforms.uStructuralMask =
-          resourceManager.getStructuralMask() ?? PIXI.Texture.WHITE;
+          resourceManager.getStructuralMask() ?? PIXI.Texture.white;
         this.recolorFilter.uniforms.uCloudShadows =
-          resourceManager.getRawCloudTexture(deltaTime) ?? PIXI.Texture.WHITE;
+          resourceManager.getRawCloudTexture(deltaTime) ?? PIXI.Texture.white;
       }
-      // Pass the scene darkness level to the filter
+      // Pass the scene  level to the filter
       this.recolorFilter.uniforms.uDarkness =
         canvas.scene?.environment.darknessLevel ?? 0;
+
+      // Copy Time of Day color correction uniforms from TimeOfDayLayer
+      const todLayer = canvas.timeOfDay;
+      if (todLayer?.filter?.uniforms) {
+        const todUniforms = todLayer.filter.uniforms;
+        this.recolorFilter.uniforms.uToDIntensity = todUniforms.uIntensity ?? 0.0;
+        this.recolorFilter.uniforms.uToDBlendFactor = todUniforms.uBlendFactor ?? 0.0;
+        this.recolorFilter.uniforms.uToDFromSaturation = todUniforms.uFromSaturation ?? 1.0;
+        this.recolorFilter.uniforms.uToDFromBrightness = todUniforms.uFromBrightness ?? 0.0;
+        this.recolorFilter.uniforms.uToDFromContrast = todUniforms.uFromContrast ?? 1.0;
+        this.recolorFilter.uniforms.uToDFromExposure = todUniforms.uFromExposure ?? 0.0;
+        this.recolorFilter.uniforms.uToDFromGamma = todUniforms.uFromGamma ?? 1.0;
+        this.recolorFilter.uniforms.uToDFromTemperature = todUniforms.uFromTemperature ?? 0.0;
+        this.recolorFilter.uniforms.uToDFromTint = todUniforms.uFromTint ?? 0.0;
+        this.recolorFilter.uniforms.uToDToSaturation = todUniforms.uToSaturation ?? 1.0;
+        this.recolorFilter.uniforms.uToDToBrightness = todUniforms.uToBrightness ?? 0.0;
+        this.recolorFilter.uniforms.uToDToContrast = todUniforms.uToContrast ?? 1.0;
+        this.recolorFilter.uniforms.uToDToExposure = todUniforms.uToExposure ?? 0.0;
+        this.recolorFilter.uniforms.uToDToGamma = todUniforms.uToGamma ?? 1.0;
+        this.recolorFilter.uniforms.uToDToTemperature = todUniforms.uToTemperature ?? 0.0;
+        this.recolorFilter.uniforms.uToDToTint = todUniforms.uToTint ?? 0.0;
+      }
+
+      // Set ToD strength and outdoors mask
+      const config = game.mapShine.profileManager.activeConfig;
+      const oeConfig = config.overheadEffect;
+      this.recolorFilter.uniforms.uToDOverheadStrength = oeConfig.timeOfDayStrength ?? 0.5;
+      
+      // CRITICAL: Ensure Building Shadows layer updates its mask BEFORE we sample it
+      // This prevents a one-frame lag when the camera moves
+      const buildingShadowsLayer = canvas.buildingShadows;
+      if (buildingShadowsLayer && typeof buildingShadowsLayer.renderEffectNow === 'function') {
+        buildingShadowsLayer.renderEffectNow(deltaTime);
+      }
+      
+      // Get outdoors mask from building shadows layer
+      if (buildingShadowsLayer?.blurredMaskTexture?.valid) {
+        this.recolorFilter.uniforms.uOutdoorsMask = buildingShadowsLayer.blurredMaskTexture;
+        // BlurredMaskTexture is half-resolution, so set scale to 0.5
+        this.recolorFilter.uniforms.uOutdoorsMaskScale = [0.5, 0.5];
+      } else {
+        this.recolorFilter.uniforms.uOutdoorsMask = PIXI.Texture.WHITE;
+        this.recolorFilter.uniforms.uOutdoorsMaskScale = [1.0, 1.0];
+      }
     }
 
     const renderer = canvas.app.renderer;
@@ -8645,7 +8701,11 @@ class OverheadEffectLayer extends foundry.canvas.layers.CanvasLayer {
 
     const currentOverheadIds = new Set();
     for (const tile of canvas.tiles.placeables) {
-      if (tile.document.restrictions?.weather) {
+      // Check if tile is overhead/roof using occlusion mode
+      const isOverhead = tile.document.overhead || tile.document.roof || 
+                        tile.document.occlusion?.mode === CONST.TILE_OCCLUSION_MODES.ROOF;
+      
+      if (isOverhead) {
         currentOverheadIds.add(tile.id);
         if (!this.overheadSprites.has(tile.id)) {
           const sprite = new PIXI.Sprite(tile.texture);
@@ -20316,6 +20376,9 @@ class MaskedEffectLayer extends foundry.canvas.layers.CanvasLayer {
       width: renderer.screen.width,
       height: renderer.screen.height,
     });
+    
+    // Set CLAMP wrap mode to prevent edge artifacts when sampling
+    this.combinedMaskTexture.baseTexture.wrapMode = PIXI.WRAP_MODES.CLAMP;
 
     // Add listeners
     canvas.app.ticker.add(this._onAnimateBound);
@@ -27455,6 +27518,10 @@ class WaterFXLayer extends MaskedEffectLayer {
       width: halfWidth,
       height: halfHeight,
     });
+    
+    // Set texture wrap mode to CLAMP to prevent edge artifacts from blur operations
+    this.blurredWaterMaskTexture.baseTexture.wrapMode = PIXI.WRAP_MODES.CLAMP;
+    
     this.blurSourceSprite = new PIXI.Sprite(this.getMaskTexture());
     this.blurSourceSprite.filters = [this.blurFilter];
     this.shorelineMaskContainer = new PIXI.Container();
@@ -28054,6 +28121,7 @@ class BuildingShadowsFilter extends PIXI.Filter {
                 uniform vec2 uCanvasScale;  // The current canvas zoom/scale factor
                 uniform vec4 uSceneRectNorm; // The scene boundaries in normalized screen coordinates [x, y, width, height]
 
+                // Sample the shadow caster with bounds checking and erosion
                 float sampleCaster(vec2 uv) {
                     vec2 sceneMin = uSceneRectNorm.xy;
                     vec2 sceneMax = uSceneRectNorm.xy + uSceneRectNorm.zw;
@@ -28062,7 +28130,23 @@ class BuildingShadowsFilter extends PIXI.Filter {
                         return 1.0; // Treat as outdoors (no shadow)
                     }
                     // Sample the pre-blurred mask
-                    return texture2D(uOutdoorsMask, uv).r;
+                    float shadowValue = texture2D(uOutdoorsMask, uv).r;
+                    
+                    // Apply erosion: sample neighboring pixels to ensure this is a solid shadow area
+                    // This prevents thin line artifacts from being rendered
+                    vec2 texelSize = uTexelSize * 2.0; // Check 2-pixel radius
+                    float neighborSum = 0.0;
+                    neighborSum += texture2D(uOutdoorsMask, uv + vec2(-texelSize.x, 0.0)).r;
+                    neighborSum += texture2D(uOutdoorsMask, uv + vec2(texelSize.x, 0.0)).r;
+                    neighborSum += texture2D(uOutdoorsMask, uv + vec2(0.0, -texelSize.y)).r;
+                    neighborSum += texture2D(uOutdoorsMask, uv + vec2(0.0, texelSize.y)).r;
+                    float avgNeighbor = neighborSum / 4.0;
+                    
+                    // Only allow shadow if the center value AND average neighbors are solid
+                    // This erodes thin lines and isolated pixels
+                    shadowValue = min(shadowValue, avgNeighbor);
+                    
+                    return shadowValue;
                 }
 
                 void main(void) {
@@ -28076,10 +28160,40 @@ class BuildingShadowsFilter extends PIXI.Filter {
                     }
 
                     // Convert world-pixel offset to screen-pixel offset, then to UV offset.
-                    vec2 baseSampleCoord = vTextureCoord - (uShadowOffset * uCanvasScale) * uTexelSize;
+                    vec2 uvOffset = (uShadowOffset * uCanvasScale) * uTexelSize;
+                    vec2 baseSampleCoord = vTextureCoord - uvOffset;
+                    
+                    // CRITICAL: Check if the current pixel or the offset sample is near/outside scene bounds
+                    // If either is outside, skip shadow calculation to prevent edge artifacts
+                    vec2 sceneMin = uSceneRectNorm.xy;
+                    vec2 sceneMax = uSceneRectNorm.xy + uSceneRectNorm.zw;
+                    
+                    // Add a small margin (in UV space) to prevent artifacts at the very edge
+                    vec2 margin = vec2(abs(uvOffset.x) + 0.001, abs(uvOffset.y) + 0.001);
+                    vec2 safeMin = sceneMin + margin;
+                    vec2 safeMax = sceneMax - margin;
+                    
+                    // Check if current pixel is in the safe zone (far enough from edges)
+                    bool isInSafeZone = vTextureCoord.x >= safeMin.x && vTextureCoord.x <= safeMax.x &&
+                                        vTextureCoord.y >= safeMin.y && vTextureCoord.y <= safeMax.y;
+                    
+                    if (!isInSafeZone) {
+                        // Too close to edge - skip shadow to prevent artifacts
+                        gl_FragColor = originalColor;
+                        return;
+                    }
 
                     // Sample the pre-blurred texture at the offset coordinate to get the shadow value.
                     float shadowFactor = sampleCaster(baseSampleCoord);
+                    
+                    // CRITICAL THRESHOLD: Discard shadows below a minimum threshold
+                    // This prevents faint artifacts and thin lines from appearing
+                    const float MIN_SHADOW_THRESHOLD = 0.15;
+                    if (shadowFactor > (1.0 - MIN_SHADOW_THRESHOLD)) {
+                        // Shadow too faint - skip rendering to prevent artifacts
+                        gl_FragColor = originalColor;
+                        return;
+                    }
 
                     float shadowMultiplier = mix(1.0 - uIntensity, 1.0, shadowFactor);
 
@@ -28209,7 +28323,6 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
 
     const renderer = canvas.app.renderer;
     const screen = renderer.screen;
-
     // PERFORMANCE OPTIMIZATION: Use half-resolution textures for blur passes
     const halfWidth = Math.floor(screen.width / 2);
     const halfHeight = Math.floor(screen.height / 2);
@@ -28222,6 +28335,11 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
     };
     this.intermediateBlurTexture = PIXI.RenderTexture.create(halfResTextureOptions);
     this.blurredMaskTexture = PIXI.RenderTexture.create(halfResTextureOptions);
+
+    // CRITICAL: Set texture wrap mode to CLAMP to prevent edge artifacts from Kawase blur
+    // Kawase blur samples outside texture bounds at screen edges, causing visible lines
+    this.intermediateBlurTexture.baseTexture.wrapMode = PIXI.WRAP_MODES.CLAMP;
+    this.blurredMaskTexture.baseTexture.wrapMode = PIXI.WRAP_MODES.CLAMP;
 
     this.kawaseBlurFilter1 = new PIXI.filters.KawaseBlurFilter(15, 2, true);
     this.kawaseBlurFilter2 = new PIXI.filters.KawaseBlurFilter(15, 2, true);
@@ -28441,6 +28559,37 @@ class OverheadRecolorFilter extends PIXI.Filter {
                 // Scene darkness uniform
                 uniform float uDarkness;
 
+                // Time of Day uniforms
+                uniform float uToDIntensity;
+                uniform float uToDBlendFactor;
+                uniform float uToDFromSaturation;
+                uniform float uToDFromBrightness;
+                uniform float uToDFromContrast;
+                uniform float uToDFromExposure;
+                uniform float uToDFromGamma;
+                uniform float uToDFromTemperature;
+                uniform float uToDFromTint;
+                uniform float uToDToSaturation;
+                uniform float uToDToBrightness;
+                uniform float uToDToContrast;
+                uniform float uToDToExposure;
+                uniform float uToDToGamma;
+                uniform float uToDToTemperature;
+                uniform float uToDToTint;
+                uniform float uToDOverheadStrength;
+
+                const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
+
+                vec3 applyWhiteBalance(vec3 color, float temperature, float tint) {
+                    color.r += temperature * 0.15;
+                    color.g += temperature * 0.075;
+                    color.b -= temperature * 0.15;
+                    color.g += tint * 0.15;
+                    color.r -= tint * 0.075;
+                    color.b -= tint * 0.075;
+                    return color;
+                }
+
                 void main() {
                     vec4 originalColor = texture2D(uSampler, vTextureCoord);
                     if (originalColor.a == 0.0) {
@@ -28450,13 +28599,13 @@ class OverheadRecolorFilter extends PIXI.Filter {
                     vec3 workingColor = originalColor.rgb;
 
                     if (uRecolorEnabled) {
-                        float structuralMask = texture2D(uStructuralMask, vScreenCoord).r;
+                        float structuralMask = texture2D(uStructuralMask, vTextureCoord).r;
                         workingColor = mix(workingColor, uRecolorTint, structuralMask * uRecolorIntensity);
                     }
 
                     if (uCloudShadowDarkenEnabled) {
                         // uCloudShadows texture has high values (near 1.0) for clouds and low values (near 0.0) for clear sky.
-                        float cloudValue = texture2D(uCloudShadows, vScreenCoord).r;
+                        float cloudValue = texture2D(uCloudShadows, vTextureCoord).r;
 
                         // We want to darken the color where cloudValue is high.
                         // A darkeningFactor of 1.0 means no change. A factor of 0.0 is fully black.
@@ -28468,9 +28617,40 @@ class OverheadRecolorFilter extends PIXI.Filter {
                     }
 
                     // Apply scene darkness. A darkness of 1.0 will make the color black.
-                    workingColor *= (1.0 - uDarkness * 0.75);
+                    workingColor *= (1.0 - uDarkness * 0.875);
 
-                    gl_FragColor = vec4(workingColor, originalColor.a);
+                    // Apply Time of Day color correction uniformly to all overhead tiles
+                    if (uToDIntensity > 0.0 && uToDOverheadStrength > 0.0) {
+                        // Store original color for blending
+                        vec3 colorBeforeToD = workingColor;
+                        
+                        // Interpolate all ToD parameters
+                        float saturation = mix(uToDFromSaturation, uToDToSaturation, uToDBlendFactor);
+                        float brightness = mix(uToDFromBrightness, uToDToBrightness, uToDBlendFactor);
+                        float contrast = mix(uToDFromContrast, uToDToContrast, uToDBlendFactor);
+                        float exposure = mix(uToDFromExposure, uToDToExposure, uToDBlendFactor);
+                        float gamma = mix(uToDFromGamma, uToDToGamma, uToDBlendFactor);
+                        float temperature = mix(uToDFromTemperature, uToDToTemperature, uToDBlendFactor);
+                        float tint = mix(uToDFromTint, uToDToTint, uToDBlendFactor);
+
+                        // Apply tonal corrections
+                        workingColor *= pow(2.0, exposure);
+                        if (gamma > 0.0) workingColor = pow(max(workingColor, 0.0), vec3(1.0 / gamma));
+                        workingColor += brightness;
+                        workingColor = (workingColor - 0.5) * contrast + 0.5;
+
+                        // Apply saturation
+                        float luminance = dot(workingColor, lum_weights);
+                        workingColor = mix(vec3(luminance), workingColor, saturation);
+
+                        // Apply white balance
+                        workingColor = applyWhiteBalance(workingColor, temperature, tint);
+                        
+                        // Blend with original color based on strength
+                        workingColor = mix(colorBeforeToD, workingColor, uToDOverheadStrength);
+                    }
+
+                    gl_FragColor = vec4(clamp(workingColor, 0.0, 1.0), originalColor.a);
                 }
             `;
 
@@ -28492,6 +28672,42 @@ class OverheadRecolorFilter extends PIXI.Filter {
       // Darkness uniform
 
       uDarkness: 0.0,
+      // Time of Day uniforms
+
+      uToDIntensity: 0.0,
+
+      uToDBlendFactor: 0.0,
+
+      uToDFromSaturation: 1.0,
+
+      uToDFromBrightness: 0.0,
+
+      uToDFromContrast: 1.0,
+
+      uToDFromExposure: 0.0,
+
+      uToDFromGamma: 1.0,
+
+      uToDFromTemperature: 0.0,
+
+      uToDFromTint: 0.0,
+
+      uToDToSaturation: 1.0,
+
+      uToDToBrightness: 0.0,
+
+      uToDToContrast: 1.0,
+
+      uToDToExposure: 0.0,
+
+      uToDToGamma: 1.0,
+
+      uToDToTemperature: 0.0,
+
+      uToDToTint: 0.0,
+
+      uToDOverheadStrength: 0.5,
+
     });
   }
 }
@@ -32372,6 +32588,14 @@ class DebuggerUIBuilder {
               50,
               "How long it takes for the overhead tile to fade in/out on hover."
             )}
+            ${DebuggerUIBuilder._createSliderHTML(
+              "overheadEffect.timeOfDayStrength",
+              "Time of Day Strength",
+              0,
+              1,
+              0.01,
+              "Controls how strongly Time of Day color corrections affect overhead tiles in outdoor areas. Requires Time of Day effect and Building Shadows (for outdoors mask) to be active."
+            )}
             <details id="details-overheadEffect-recolor">
                 <summary><span class="accordion-toggle"></span><strong>Recoloration</strong></summary>
                 <div style="padding-left: 10px;">
@@ -32408,8 +32632,8 @@ class DebuggerUIBuilder {
                               "overheadEffect.recolor.cloudShadowDarken.intensity",
                               "Intensity",
                               0,
-                              1,
-                              0.01
+                              3,
+                              0.1
                             )}
                         </div>
                     </details>
