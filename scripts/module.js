@@ -1906,6 +1906,35 @@ export const MODULE_DEFAULTS = {
       contrast: 5,
       gamma: 1.6,
     },
+    layers: {
+      layer1: {
+        enabled: true,
+        scale: 4.0,
+        speed: 2.5,
+        stretchX: 3.0,
+        stretchY: 1.0,
+        octaves: 3,
+        opacity: 0.3,
+      },
+      layer2: {
+        enabled: true,
+        scale: 1.5,
+        speed: 1.3,
+        stretchX: 1.5,
+        stretchY: 1.0,
+        octaves: 5,
+        opacity: 0.5,
+      },
+      layer3: {
+        enabled: true,
+        scale: 0.7,
+        speed: 0.7,
+        stretchX: 1.0,
+        stretchY: 1.0,
+        octaves: 6,
+        opacity: 0.6,
+      },
+    },
     depth: {
       enabled: false,
       color: "#CCCCCC",
@@ -1913,14 +1942,12 @@ export const MODULE_DEFAULTS = {
       opacity: 0.6,
       offsetX: -30,
       offsetY: -30,
-      zoomThresholdMin: 0.2,   // Fully visible when zoomed out to 0.2 or less
-      zoomThresholdMax: 0.8,   // Completely faded when zoomed in to 0.8 or more
+      zoomThresholdMin: 0.2,
+      zoomThresholdMax: 0.8,
     },
   },
   iridescence: {
     enabled: true,
-    texturePath: "",
-    blendMode: 1,
     intensity: 0.9,
     speed: 0.01,
     scale: 0.7,
@@ -23120,6 +23147,30 @@ class CloudShadowsFilter extends PIXI.Filter {
         uniform bool u_occlusionEnabled;
         uniform float u_occlusionIntensity;
 
+        // Layer 1 (High Altitude - Fast, Large, Wispy)
+        uniform bool u_layer1_enabled;
+        uniform float u_layer1_scale;
+        uniform float u_layer1_speed;
+        uniform vec2 u_layer1_stretch;
+        uniform int u_layer1_octaves;
+        uniform float u_layer1_opacity;
+
+        // Layer 2 (Mid Altitude - Medium Speed, Medium Scale)
+        uniform bool u_layer2_enabled;
+        uniform float u_layer2_scale;
+        uniform float u_layer2_speed;
+        uniform vec2 u_layer2_stretch;
+        uniform int u_layer2_octaves;
+        uniform float u_layer2_opacity;
+
+        // Layer 3 (low Altitude - Slow, Small, Dense)
+        uniform bool u_layer3_enabled;
+        uniform float u_layer3_scale;
+        uniform float u_layer3_speed;
+        uniform vec2 u_layer3_stretch;
+        uniform int u_layer3_octaves;
+        uniform float u_layer3_opacity;
+
         float random(vec2 st) { return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123); }
         float noise(vec2 st) {
             vec2 i = floor(st); vec2 f = fract(st);
@@ -23128,13 +23179,13 @@ class CloudShadowsFilter extends PIXI.Filter {
             vec2 u = f * f * (3.0 - 2.0 * f);
             return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.y * u.x;
         }
-        float fbm(vec2 st) {
+        float fbm(vec2 st, int octaves, float persistence, float lacunarity) {
             float value = 0.0; float amplitude = 0.5;
             for (int i = 0; i < 10; i++) {
-                if (i >= u_noise_octaves) break;
+                if (i >= octaves) break;
                 value += amplitude * noise(st);
-                st *= u_noise_lacunarity;
-                amplitude *= u_noise_persistence;
+                st *= lacunarity;
+                amplitude *= persistence;
             }
             return value;
         }
@@ -23157,12 +23208,43 @@ class CloudShadowsFilter extends PIXI.Filter {
 
             float maskValue = texture2D(uOutdoorsMask, vScreenCoord).r;
             float shadedCloudValue = 0.0;
+            
             if (maskValue > 0.01 || u_outputRawCloud) {
                 vec2 world_coord = u_camera_offset + (vScreenCoord * u_view_size);
-                vec2 noise_uv = world_coord / 100.0 * u_noise_scale;
-                noise_uv += u_time * u_windDirection;
-                float rawCloudValue = fbm(noise_uv);
-                shadedCloudValue = applyShadingControls(rawCloudValue);
+                vec2 base_uv = world_coord / 100.0 * u_noise_scale;
+                
+                // Layered cloud accumulation - each layer blocks some light
+                float shadow = 1.0;
+                
+                // Layer 1: High altitude (fast, large, wispy)
+                if (u_layer1_enabled) {
+                    vec2 layer1_uv = base_uv * u_layer1_scale * u_layer1_stretch;
+                    layer1_uv += u_time * u_windDirection * u_layer1_speed;
+                    float layer1_raw = fbm(layer1_uv, u_layer1_octaves, u_noise_persistence, u_noise_lacunarity);
+                    float layer1_shaded = applyShadingControls(layer1_raw);
+                    shadow *= (1.0 - layer1_shaded * u_layer1_opacity);
+                }
+                
+                // Layer 2: Mid altitude (medium speed, medium scale)
+                if (u_layer2_enabled) {
+                    vec2 layer2_uv = base_uv * u_layer2_scale * u_layer2_stretch;
+                    layer2_uv += u_time * u_windDirection * u_layer2_speed;
+                    float layer2_raw = fbm(layer2_uv, u_layer2_octaves, u_noise_persistence, u_noise_lacunarity);
+                    float layer2_shaded = applyShadingControls(layer2_raw);
+                    shadow *= (1.0 - layer2_shaded * u_layer2_opacity);
+                }
+                
+                // Layer 3: Low altitude (slow, small, dense)
+                if (u_layer3_enabled) {
+                    vec2 layer3_uv = base_uv * u_layer3_scale * u_layer3_stretch;
+                    layer3_uv += u_time * u_windDirection * u_layer3_speed;
+                    float layer3_raw = fbm(layer3_uv, u_layer3_octaves, u_noise_persistence, u_noise_lacunarity);
+                    float layer3_shaded = applyShadingControls(layer3_raw);
+                    shadow *= (1.0 - layer3_shaded * u_layer3_opacity);
+                }
+                
+                // Convert shadow (light transmission) to cloud value (shadow amount)
+                shadedCloudValue = 1.0 - shadow;
             }
 
             if (u_outputRawCloud) {
@@ -23229,6 +23311,30 @@ class CloudShadowsFilter extends PIXI.Filter {
       u_occlusionEnabled: true,
 
       u_occlusionIntensity: 1.0,
+
+      // Layer 1: High altitude (fast, large, wispy)
+      u_layer1_enabled: true,
+      u_layer1_scale: 4.0,
+      u_layer1_speed: 2.5,
+      u_layer1_stretch: [3.0, 1.0],
+      u_layer1_octaves: 3,
+      u_layer1_opacity: 0.3,
+
+      // Layer 2: Mid altitude (medium speed, medium scale)
+      u_layer2_enabled: true,
+      u_layer2_scale: 1.5,
+      u_layer2_speed: 1.3,
+      u_layer2_stretch: [1.5, 1.0],
+      u_layer2_octaves: 5,
+      u_layer2_opacity: 0.5,
+
+      // Layer 3: Low altitude (slow, small, dense)
+      u_layer3_enabled: true,
+      u_layer3_scale: 0.7,
+      u_layer3_speed: 0.7,
+      u_layer3_stretch: [1.0, 1.0],
+      u_layer3_octaves: 6,
+      u_layer3_opacity: 0.6,
     });
   }
 }
@@ -23308,8 +23414,8 @@ class CloudShadowsLayer extends MaskedEffectLayer {
                           "cloudShadows.wind.linkedWindForce",
                           "Wind Force",
                           0,
-                          0.005,
-                          0.0001,
+                          0.01,
+                          0.00001,
                           "How strongly the wind accelerates the clouds."
                         )}
                         ${DebuggerUIBuilder._createSliderHTML(
@@ -23587,10 +23693,9 @@ class CloudShadowsLayer extends MaskedEffectLayer {
       const simpleSpeed = windConfig.speed ?? 0.01;
       this._cloudVelocity.x = Math.cos(simpleAngleRad) * simpleSpeed;
       this._cloudVelocity.y = Math.sin(simpleAngleRad) * simpleSpeed;
-      u.u_windDirection = [this._cloudVelocity.x, this._cloudVelocity.y];
     }
 
-    const finalLightMask = resourceManager.getLightMask() || PIXI.Texture.WHITE;
+    const finalLightMask = resourceManager.getLightMask() || PIXI.Texture.white;
 
     u.uOutdoorsMask = mainOutdoorsMask;
     u.uLightPolygonMask = finalLightMask;
@@ -23642,6 +23747,43 @@ class CloudShadowsLayer extends MaskedEffectLayer {
 
     u.u_occlusionEnabled = occ.enabled;
     u.u_occlusionIntensity = occ.intensity;
+
+    // Layer configuration
+    const layers = csConfig.layers;
+    if (layers) {
+      // Layer 1
+      u.u_layer1_enabled = layers.layer1?.enabled ?? true;
+      u.u_layer1_scale = layers.layer1?.scale ?? 4.0;
+      u.u_layer1_speed = layers.layer1?.speed ?? 2.5;
+      u.u_layer1_stretch = [
+        layers.layer1?.stretchX ?? 3.0,
+        layers.layer1?.stretchY ?? 1.0,
+      ];
+      u.u_layer1_octaves = layers.layer1?.octaves ?? 3;
+      u.u_layer1_opacity = layers.layer1?.opacity ?? 0.3;
+
+      // Layer 2
+      u.u_layer2_enabled = layers.layer2?.enabled ?? true;
+      u.u_layer2_scale = layers.layer2?.scale ?? 1.5;
+      u.u_layer2_speed = layers.layer2?.speed ?? 1.3;
+      u.u_layer2_stretch = [
+        layers.layer2?.stretchX ?? 1.5,
+        layers.layer2?.stretchY ?? 1.0,
+      ];
+      u.u_layer2_octaves = layers.layer2?.octaves ?? 5;
+      u.u_layer2_opacity = layers.layer2?.opacity ?? 0.5;
+
+      // Layer 3
+      u.u_layer3_enabled = layers.layer3?.enabled ?? true;
+      u.u_layer3_scale = layers.layer3?.scale ?? 0.7;
+      u.u_layer3_speed = layers.layer3?.speed ?? 0.7;
+      u.u_layer3_stretch = [
+        layers.layer3?.stretchX ?? 1.0,
+        layers.layer3?.stretchY ?? 1.0,
+      ];
+      u.u_layer3_octaves = layers.layer3?.octaves ?? 6;
+      u.u_layer3_opacity = layers.layer3?.opacity ?? 0.6;
+    }
   }
 
   _onResize() {
