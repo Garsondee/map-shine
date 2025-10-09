@@ -25,10 +25,10 @@
  * @requires pixi.js ^7.4.3
  *
  * @TODO: Building Shadows leaves a line on one side of the screen. I bet it's something to do with kawase blurs trying to access information outside the bounds of the screen.
- * 
- * 
- * 
- * 
+ *
+ *
+ *
+ *
  * @TODO: FUN IDEA - Horror world vision. Basically the ability to quickly swap the appearance of the background with a different background for a horror vibe.
  * @TODO: Screen Overlay effects, should be able to happen on only one player or something like that.
  *
@@ -1818,1529 +1818,1580 @@ const COLOR_CORRECTION_PRESETS = {
 };
 
 export const MODULE_DEFAULTS = {
-  timeControl: {
-    globalTime: 100,
+  "timeControl": {
+    "globalTime": 100
   },
-  wind: {
-    angle: 0,
-    speed: 0.1,
-    strength: 100,
-    gustiness: 0.2,
-    gustFrequency: 0.5,
+  "wind": {
+    "angle": 0,
+    "speed": 0.1,
+    "strength": 100,
+    "gustiness": 0.2,
+    "gustFrequency": 0.5
   },
-  enabled: true,
-  debug: true,
-  showTokenMask: false,
-  showDustMaskDebug: false,
-  showGlintMaskDebug: false,
-  tileOpacity: 0,
-  lightMask: {
-    blur: 50,
-    noise: 0.05,
+  "enabled": true,
+  "debug": true,
+  "showTokenMask": false,
+  "showDustMaskDebug": false,
+  "showGlintMaskDebug": false,
+  "tileOpacity": 0,
+  "lightMask": {
+    "blur": 50,
+    "noise": 0.05
   },
-  baseShine: {
-    enabled: true,
-    compositing: {
-      layerBlendMode: 1,
+  "baseShine": {
+    "enabled": true,
+    "compositing": {
+      "layerBlendMode": 1
     },
-    animation: {
-      globalIntensity: 1.2,
+    "animation": {
+      "globalIntensity": 0.1
     },
-    pattern: {
-      stripes: {
-        enabled: true,
-        speed: 0,
-        angle: 140,
-        scale: 1,
-        parallax: 1,
-        width: 1,
-        softness: 0.26,
-        randomWidth: 0.49,
-        randomIntensity: 1,
+    "pattern": {
+      "stripes": {
+        "enabled": true,
+        "speed": 0.001,
+        "angle": 38,
+        "scale": 0.08,
+        "parallax": 1,
+        "width": 1,
+        "softness": 0.5,
+        "randomWidth": 0.49,
+        "randomIntensity": 1
+      }
+    },
+    "colorCorrection": {
+      "enabled": true,
+      "saturation": 1.5,
+      "brightness": 0.53,
+      "contrast": 3.25,
+      "gamma": 1,
+      "tint": {
+        "color": "#FFFFFF",
+        "amount": 0
       },
+      "invert": false
     },
-    colorCorrection: {
-      enabled: true,
-      saturation: 1.25,
-      brightness: 0.74,
-      contrast: 3.25,
-      gamma: 0.85,
-      tint: {
-        color: "#FFFFFF",
-        amount: 0,
-      },
-      invert: false,
-    },
-    cloudOcclusion: {
-      enabled: true,
-      intensity: 0.81,
-    },
+    "cloudOcclusion": {
+      "enabled": true,
+      "intensity": 0.81
+    }
   },
-  cloudShadows: {
-    enabled: true,
-    blendMode: 0,
-    shadowIntensity: 0.25,
-    maskBlur: 0,
-    lightOcclusion: {
-      enabled: true,
-      intensity: 1.0,
+  "cloudShadows": {
+    "enabled": true,
+    "blendMode": 0,
+    "shadowIntensity": 0.9,
+    "maskBlur": 0,
+    "lightOcclusion": {
+      "enabled": true,
+      "intensity": 1
     },
-    wind: {
-      angle: 45,
-      speed: 0.05,
-      linkToWind: false,
-      linkedWindForce: 0.001,
-      linkedMaxSpeed: 0.005,
-      linkedDrag: 0.5,
+    "wind": {
+      "angle": 45,
+      "speed": 1.5868,
+      "linkToWind": true,
+      "linkedWindForce": 0.0001,
+      "linkedMaxSpeed": 0.0002,
+      "linkedDrag": 1
     },
-    noise: {
-      scale: 0.06,
-      octaves: 7,
-      persistence: 0.5,
-      lacunarity: 1.9,
+    "noise": {
+      "scale": 0.03,
+      "octaves": 7,
+      "persistence": 0.25,
+      "lacunarity": 3.1
     },
-    shading: {
-      threshold: 1,
-      softness: 0.71,
-      brightness: 0.14,
-      contrast: 5,
-      gamma: 1.6,
+    "shading": {
+      "threshold": 0.86,
+      "softness": 1,
+      "brightness": 0.17,
+      "contrast": 5,
+      "gamma": 1.6
     },
-    layers: {
-      layer1: {
-        enabled: true,
-        scale: 4.0,
-        speed: 2.5,
-        stretchX: 3.0,
-        stretchY: 1.0,
-        octaves: 3,
-        opacity: 0.3,
+    "layers": {
+      "layer1": {
+        "enabled": true,
+        "scale": 4,
+        "speed": 2.5,
+        "stretchX": 3,
+        "stretchY": 1,
+        "octaves": 3,
+        "opacity": 0.3
       },
-      layer2: {
-        enabled: true,
-        scale: 1.5,
-        speed: 1.3,
-        stretchX: 1.5,
-        stretchY: 1.0,
-        octaves: 5,
-        opacity: 0.5,
+      "layer2": {
+        "enabled": true,
+        "scale": 1.5,
+        "speed": 1.3,
+        "stretchX": 1.5,
+        "stretchY": 1,
+        "octaves": 5,
+        "opacity": 0.5
       },
-      layer3: {
-        enabled: true,
-        scale: 0.7,
-        speed: 0.7,
-        stretchX: 1.0,
-        stretchY: 1.0,
-        octaves: 6,
-        opacity: 0.6,
-      },
+      "layer3": {
+        "enabled": true,
+        "scale": 0.7,
+        "speed": 0.7,
+        "stretchX": 1,
+        "stretchY": 1,
+        "octaves": 6,
+        "opacity": 0.6
+      }
     },
-    depth: {
-      enabled: false,
-      color: "#CCCCCC",
-      brightness: 2.5,
-      opacity: 0.6,
-      offsetX: -30,
-      offsetY: -30,
-      zoomThresholdMin: 0.2,
-      zoomThresholdMax: 0.8,
-    },
+    "depth": {
+      "enabled": true,
+      "color": "#CCCCCC",
+      "threshold": 0.5,
+      "softness": 0.5,
+      "offsetX": 0,
+      "offsetY": 0,
+      "zoomThresholdMin": 1.57,
+      "zoomThresholdMax": 1.9,
+      "saturation": 1,
+      "brightness": 0,
+      "contrast": 1,
+      "exposure": 0,
+      "gamma": 1,
+      "temperature": 0,
+      "tint": 0
+    }
   },
-  iridescence: {
-    enabled: true,
-    intensity: 0.9,
-    speed: 0.01,
-    scale: 0.7,
-    parallax: 0,
-    fbm: {
-      octaves: 5,
-      persistence: 0.33,
-      lacunarity: 1.9,
-      evolution: 0,
-      brightness: 0.45,
-      contrast: 0.8,
+  "iridescence": {
+    "enabled": false,
+    "intensity": 0.9,
+    "speed": 0.01,
+    "scale": 0.7,
+    "parallax": 0,
+    "fbm": {
+      "octaves": 5,
+      "persistence": 0.33,
+      "lacunarity": 1.9,
+      "evolution": 0,
+      "brightness": 0.45,
+      "contrast": 0.8
     },
-    distortion: {
-      enabled: true,
-      strength: 5.26,
+    "distortion": {
+      "enabled": true,
+      "strength": 5.26
     },
-    noise: {
-      enabled: true,
-      speed: 0.042,
-      scale: 9.7,
-      threshold: 0.47,
-      brightness: 0.74,
-      contrast: 2.45,
-      softness: 0.5,
+    "noise": {
+      "enabled": true,
+      "speed": 0.042,
+      "scale": 9.7,
+      "threshold": 0.47,
+      "brightness": 0.74,
+      "contrast": 2.45,
+      "softness": 0.5
     },
-    gradient: {
-      name: "rainbow",
-      hueShift: 0,
-      brightness: 0.04,
-      contrast: 0.5,
-    },
+    "gradient": {
+      "name": "rainbow",
+      "hueShift": 0,
+      "brightness": 0.04,
+      "contrast": 0.5
+    }
   },
-  canopy: {
-    enabled: true,
-    shadowIntensity: 0.3,
-    tint: "#050805",
-    distortion: {
-      enabled: true,
-      strength: 0.004,
-      speed: 0.005,
-      scale: 0.01,
-      evolution: 0.01,
-      threshold: 0,
-      brightness: -0.37,
-      contrast: 1,
-      softness: 1,
+  "canopy": {
+    "enabled": false,
+    "shadowIntensity": 0.41,
+    "tint": "#050805",
+    "distortion": {
+      "enabled": true,
+      "strength": 0.0079,
+      "speed": 0.07,
+      "scale": 1.4,
+      "evolution": 0.34,
+      "threshold": 0,
+      "brightness": 0,
+      "contrast": 0.45,
+      "softness": 1
     },
-    postScale: 1,
+    "postScale": 1
   },
-  structuralShadows: {
-    enabled: true,
-    intensity: 0.55,
-    blendMode: 9,
-    colorCorrection: {
-      enabled: true,
-      saturation: 1,
-      brightness: 0,
-      contrast: 1,
-      gamma: 1,
-      tint: {
-        color: "#FFFFFF",
-        amount: 0,
-      },
+  "structuralShadows": {
+    "enabled": true,
+    "intensity": 0.8,
+    "blendMode": 2,
+    "colorCorrection": {
+      "enabled": true,
+      "saturation": 1,
+      "brightness": -0.01,
+      "contrast": 0.6,
+      "gamma": 1.2,
+      "tint": {
+        "color": "#FFFFFF",
+        "amount": 0
+      }
     },
-    cloudOcclusion: {
-      enabled: true,
-      intensity: 0.8,
-      threshold: 0.75,
-      softness: 0.1,
+    "cloudOcclusion": {
+      "enabled": true,
+      "intensity": 0.88,
+      "threshold": 0.94,
+      "softness": 1
     },
-    lightOcclusion: {
-      enabled: true,
-      intensity: 1.0,
-    },
+    "lightOcclusion": {
+      "enabled": true,
+      "intensity": 1
+    }
   },
-  prism: {
-    enabled: true,
-    intensity: 1,
-    angle: 218,
-    threshold: 0.1,
-    softness: 0.5,
-    distortionStrength: 1.9,
-    distortionNoise: {
-      enabled: true,
-      speed: 0,
-      scale: 3.83,
-      evolution: 0,
-      threshold: 0,
-      brightness: 0.11,
-      contrast: 1.85,
-      softness: 1,
-    },
+  "prism": {
+    "enabled": false,
+    "intensity": 2.5,
+    "angle": 92,
+    "threshold": 0.11,
+    "softness": 0.29,
+    "distortionStrength": 1,
+    "distortionNoise": {
+      "enabled": true,
+      "speed": 0.1,
+      "scale": 3.76,
+      "evolution": 0.15,
+      "threshold": 0,
+      "brightness": 0.11,
+      "contrast": 1.85,
+      "softness": 1
+    }
   },
-  ambient: {
-    enabled: false,
-    texturePath: "",
-    blendMode: 1,
-    intensity: 1,
-    masking: {
-      enabled: true,
-      threshold: 0,
-      softness: 0.25,
+  "ambient": {
+    "enabled": false,
+    "texturePath": "",
+    "blendMode": 1,
+    "intensity": 1,
+    "masking": {
+      "enabled": true,
+      "threshold": 0,
+      "softness": 0.25
     },
-    tokenMasking: {
-      enabled: true,
-      threshold: 0,
+    "tokenMasking": {
+      "enabled": true,
+      "threshold": 0
     },
-    colorCorrection: {
-      enabled: true,
-      saturation: 1.2,
-      brightness: 0,
-      contrast: 1,
-      gamma: 1,
-      tint: {
-        color: "#ff0209",
-        amount: 0,
-      },
-    },
+    "colorCorrection": {
+      "enabled": true,
+      "saturation": 1.2,
+      "brightness": 0,
+      "contrast": 1,
+      "gamma": 1,
+      "tint": {
+        "color": "#ff0209",
+        "amount": 0
+      }
+    }
   },
-  groundGlow: {
-    enabled: true,
-    texturePath: "",
-    blendMode: 1,
-    intensity: 1.05,
-    brightness: 1.2,
-    saturation: 1.2,
-    invert: false,
+  "groundGlow": {
+    "enabled": false,
+    "texturePath": "",
+    "blendMode": 1,
+    "intensity": 1.05,
+    "brightness": 1.2,
+    "saturation": 1.2,
+    "invert": false
   },
-  heatDistortion: {
-    enabled: true,
-    texturePath: "",
-    intensity: 0.0005,
-    noise: {
-      primary: {
-        speed: 97,
-        scale: 0.5,
-        octaves: 2,
-        lacunarity: 2.2,
-        persistence: 0.45,
+  "heatDistortion": {
+    "enabled": false,
+    "texturePath": "",
+    "intensity": 0.0015,
+    "noise": {
+      "primary": {
+        "speed": 0.002,
+        "scale": 0.5,
+        "octaves": 3,
+        "lacunarity": 2.2,
+        "persistence": 0.45
       },
-      secondary: {
-        speed: 79,
-        scale: 3.5,
-        octaves: 3,
-        lacunarity: 3.8,
-        persistence: 0.3,
+      "secondary": {
+        "speed": 0.08,
+        "scale": 3,
+        "octaves": 7,
+        "lacunarity": 3.8,
+        "persistence": 0.3
       },
-      rising: {
-        speed: 0.077,
-        intensity: 0.4,
-      },
-    },
+      "rising": {
+        "speed": 0.02,
+        "intensity": 0.4
+      }
+    }
   },
-  sceneAppearance: {
-    transitionDuration: 3500,
+  "sceneAppearance": {
+    "transitionDuration": 3500
   },
-  postProcessing: {
-    enabled: true,
-    colorCorrection: {
-      enabled: true,
-      saturation: 0.9,
-      brightness: 0,
-      contrast: 1.05,
-      invert: false,
-      tint: {
-        color: "#FFFFFF",
-        amount: 0,
+  "postProcessing": {
+    "enabled": true,
+    "colorCorrection": {
+      "enabled": true,
+      "saturation": 1,
+      "brightness": 0,
+      "contrast": 1,
+      "invert": false,
+      "tint": {
+        "color": "#FFFFFF",
+        "amount": 0
       },
-      exposure: 0.05,
-      gamma: 1.05,
-      levels: {
-        inBlack: 0,
-        inWhite: 1,
+      "exposure": 1,
+      "gamma": 0.9,
+      "levels": {
+        "inBlack": 0,
+        "inWhite": 1
       },
-      whiteBalance: {
-        temperature: 0.24,
-        tint: -0.17,
+      "whiteBalance": {
+        "temperature": 0,
+        "tint": 0
       },
-      selective: {
-        enabled: false,
-        color: "#fb0045",
-        hueRange: 0.09,
-        saturationRange: 0.5,
-        luminanceRange: 0.5,
-        targetLuminance: 0.04,
-        softness: 0.1,
-        invert: false,
-        desaturation: 1,
-        targetSaturation: 1,
-        targetBrightness: 0,
+      "selective": {
+        "enabled": false,
+        "color": "#fb0045",
+        "hueRange": 0.09,
+        "saturationRange": 0.5,
+        "luminanceRange": 0.5,
+        "targetLuminance": 0.04,
+        "softness": 0.1,
+        "invert": false,
+        "desaturation": 1,
+        "targetSaturation": 1,
+        "targetBrightness": 0
       },
-      curves: {
-        enabled: false,
-        activeChannel: "rgb",
-        rgb: {
-          points: [
+      "curves": {
+        "enabled": false,
+        "activeChannel": "rgb",
+        "rgb": {
+          "points": [
             {
-              x: 0,
-              y: 0,
+              "x": 0,
+              "y": 0
             },
             {
-              x: 0.25,
-              y: 0.25,
+              "x": 0.25,
+              "y": 0.25
             },
             {
-              x: 0.75,
-              y: 0.75,
+              "x": 0.75,
+              "y": 0.75
             },
             {
-              x: 1,
-              y: 1,
-            },
-          ],
+              "x": 1,
+              "y": 1
+            }
+          ]
         },
-        red: {
-          points: [
+        "red": {
+          "points": [
             {
-              x: 0,
-              y: 0,
+              "x": 0,
+              "y": 0
             },
             {
-              x: 0.25,
-              y: 0.25,
+              "x": 0.25,
+              "y": 0.25
             },
             {
-              x: 0.75,
-              y: 0.75,
+              "x": 0.75,
+              "y": 0.75
             },
             {
-              x: 1,
-              y: 1,
-            },
-          ],
+              "x": 1,
+              "y": 1
+            }
+          ]
         },
-        green: {
-          points: [
+        "green": {
+          "points": [
             {
-              x: 0,
-              y: 0,
+              "x": 0,
+              "y": 0
             },
             {
-              x: 0.25,
-              y: 0.25,
+              "x": 0.25,
+              "y": 0.25
             },
             {
-              x: 0.75,
-              y: 0.75,
+              "x": 0.75,
+              "y": 0.75
             },
             {
-              x: 1,
-              y: 1,
-            },
-          ],
+              "x": 1,
+              "y": 1
+            }
+          ]
         },
-        blue: {
-          points: [
+        "blue": {
+          "points": [
             {
-              x: 0,
-              y: 0,
+              "x": 0,
+              "y": 0
             },
             {
-              x: 0.25,
-              y: 0.25,
+              "x": 0.25,
+              "y": 0.25
             },
             {
-              x: 0.75,
-              y: 0.75,
+              "x": 0.75,
+              "y": 0.75
             },
             {
-              x: 1,
-              y: 1,
-            },
-          ],
-        },
+              "x": 1,
+              "y": 1
+            }
+          ]
+        }
       },
-      dynamicExposure: {
-        enabled: true,
-        intensity: 1.5,
-        duration: 8000,
-        resetPeriod: 60000,
+      "dynamicExposure": {
+        "enabled": false,
+        "intensity": 1.5,
+        "duration": 8000,
+        "resetPeriod": 60000
+      }
+    },
+    "vignette": {
+      "enabled": false,
+      "amount": 0.24,
+      "softness": 0.36
+    },
+    "lensDistortion": {
+      "enabled": false,
+      "amount": 0.03,
+      "centerX": 0.5,
+      "centerY": 0.5
+    },
+    "chromaticAberration": {
+      "enabled": false,
+      "amount": 0.003,
+      "centerX": 0.5,
+      "centerY": 0.5
+    },
+    "tiltShift": {
+      "enabled": false,
+      "blur": 12,
+      "gradientBlur": 2190,
+      "startX": 0,
+      "startY": 1,
+      "endX": 0.4,
+      "endY": 0.56
+    },
+    "grain": {
+      "enabled": false,
+      "intensity": 0.05,
+      "size": 5,
+      "monochromatic": true,
+      "luminanceResponse": {
+        "shadows": 0.81,
+        "highlights": 0
+      }
+    },
+    "lut": {
+      "enabled": true,
+      "texturePath": "",
+      "intensity": 1,
+      "presetName": "custom",
+      "diagnosticMode": 0,
+      "diagnosticSlice": 1,
+      "domainMin": {
+        "r": 0,
+        "g": 0,
+        "b": 0
       },
-    },
-    vignette: {
-      enabled: true,
-      amount: 0.24,
-      softness: 0.36,
-    },
-    lensDistortion: {
-      enabled: true,
-      amount: 0.015,
-      centerX: 0.5,
-      centerY: 0.5,
-    },
-    chromaticAberration: {
-      enabled: true,
-      amount: 0.001,
-      centerX: 0.5,
-      centerY: 0.5,
-    },
-    tiltShift: {
-      enabled: false,
-      blur: 23,
-      gradientBlur: 3610,
-      startX: 0,
-      startY: 0.5,
-      endX: 1,
-      endY: 0.5,
-    },
-    grain: {
-      enabled: false,
-      intensity: 0.1,
-      size: 1.5,
-      monochromatic: true,
-      luminanceResponse: {
-        shadows: 0.8,
-        highlights: 0.2,
+      "domainMax": {
+        "r": 1,
+        "g": 1,
+        "b": 1
       },
-    },
-    lut: {
-      enabled: true,
-      texturePath: "",
-      intensity: 1,
-      presetName: "custom",
-      diagnosticMode: 0,
-      diagnosticSlice: 1,
-      domainMin: {
-        r: 0,
-        g: 0,
-        b: 0,
+      "preLutBlur": {
+        "enabled": false,
+        "amount": 0
       },
-      domainMax: {
-        r: 1,
-        g: 1,
-        b: 1,
-      },
-      preLutBlur: {
-        enabled: false,
-        amount: 0,
-      },
-      inputProcessing: {
-        enabled: false,
-        saturation: 1,
-        brightness: 0,
-        contrast: 1,
-        gamma: 0.9,
-        hue: 0,
-      },
-    },
+      "inputProcessing": {
+        "enabled": false,
+        "saturation": 1,
+        "brightness": 0,
+        "contrast": 1,
+        "gamma": 0.9,
+        "hue": 0
+      }
+    }
   },
-  dust: {
-    enabled: true,
-    blendMode: 0,
-    maskThreshold: 0.39,
-    maskInfluence: 5,
-    particleTexture: "modules/map-shine/assets/particle.webp",
-    frequency: 0.097,
-    lifetime: {
-      min: 4,
-      max: 12,
+  "dust": {
+    "enabled": false,
+    "blendMode": 0,
+    "maskThreshold": 0.39,
+    "maskInfluence": 5,
+    "particleTexture": "modules/map-shine/assets/particle.webp",
+    "frequency": 0.097,
+    "lifetime": {
+      "min": 4,
+      "max": 12
     },
-    colorAlphaGradient: [
+    "colorAlphaGradient": [
       {
-        time: 0,
-        color: "#ffbc40",
-        alpha: 0,
+        "time": 0,
+        "color": "#ffbc40",
+        "alpha": 0
       },
       {
-        time: 0.1,
-        color: "#ffc242",
-        alpha: 0.69,
+        "time": 0.1,
+        "color": "#ffc242",
+        "alpha": 0.69
       },
       {
-        time: 0.97,
-        color: "#fff955",
-        alpha: 0.69,
+        "time": 0.97,
+        "color": "#fff955",
+        "alpha": 0.69
       },
       {
-        time: 1,
-        color: "#fffb55",
-        alpha: 0,
-      },
+        "time": 1,
+        "color": "#fffb55",
+        "alpha": 0
+      }
     ],
-    emissiveGradient: [
+    "emissiveGradient": [
       {
-        time: 0,
-        color: "#ffbc40",
-        alpha: 1,
+        "time": 0,
+        "color": "#ffbc40",
+        "alpha": 1
       },
       {
-        time: 1,
-        color: "#fffb55",
-        alpha: 1,
-      },
+        "time": 1,
+        "color": "#fffb55",
+        "alpha": 1
+      }
     ],
-    scale: {
-      sizeMultiplier: 0.6,
-      start: 0.9,
-      end: 1.09,
-      minMult: 0.86,
+    "scale": {
+      "sizeMultiplier": 0.6,
+      "start": 0.9,
+      "end": 1.09,
+      "minMult": 0.86
     },
-    speed: {
-      start: 3,
-      end: 6,
-      minMult: 0.5,
+    "speed": {
+      "start": 3,
+      "end": 6,
+      "minMult": 0.5
     },
-    rotation: {
-      enabled: false,
-      minSpeed: 0,
-      maxSpeed: 20,
-      accel: 0,
-    },
+    "rotation": {
+      "enabled": false,
+      "minSpeed": 0,
+      "maxSpeed": 20,
+      "accel": 0
+    }
   },
-  glint: {
-    enabled: true,
-    darknessAffectsIntensity: true,
-    blendMode: 0,
-    maskThreshold: 0.9,
-    maskInfluence: 0.09,
-    particleTexture: "modules/map-shine/assets/glint.webp",
-    frequency: 0.932,
-    lifetime: {
-      min: 0.8,
-      max: 2.9,
+  "glint": {
+    "enabled": true,
+    "darknessAffectsIntensity": true,
+    "blendMode": 0,
+    "maskThreshold": 0.9,
+    "maskInfluence": 0.09,
+    "particleTexture": "modules/map-shine/assets/glint.webp",
+    "frequency": 0.932,
+    "lifetime": {
+      "min": 0.8,
+      "max": 2.9
     },
-    colorAlphaGradient: [
+    "colorAlphaGradient": [
       {
-        time: 0,
-        color: "#FFFFFF",
-        alpha: 0,
+        "time": 0,
+        "color": "#FFFFFF",
+        "alpha": 0
       },
       {
-        time: 0.055,
-        color: "#FFFFFF",
-        alpha: 0.95,
+        "time": 0.055,
+        "color": "#FFFFFF",
+        "alpha": 0.95
       },
       {
-        time: 1,
-        color: "#FFFFFF",
-        alpha: 0,
-      },
+        "time": 1,
+        "color": "#FFFFFF",
+        "alpha": 0
+      }
     ],
-    emissiveGradient: [
+    "emissiveGradient": [
       {
-        time: 0,
-        color: "#000000",
-        alpha: 1,
+        "time": 0,
+        "color": "#000000",
+        "alpha": 1
       },
       {
-        time: 1,
-        color: "#000000",
-        alpha: 1,
-      },
+        "time": 1,
+        "color": "#000000",
+        "alpha": 1
+      }
     ],
-    scale: {
-      sizeMultiplier: 9,
-      start: 1.5,
-      end: 0.61,
-      minMult: 0.9,
+    "scale": {
+      "sizeMultiplier": 9,
+      "start": 1.5,
+      "end": 0.61,
+      "minMult": 0.9
     },
-    speed: {
-      start: 0,
-      end: 0,
-      minMult: 0.5,
+    "speed": {
+      "start": 0,
+      "end": 0,
+      "minMult": 0.5
     },
-    rotation: {
-      enabled: false,
-      minSpeed: 0,
-      maxSpeed: 20,
-      accel: 0,
+    "rotation": {
+      "enabled": false,
+      "minSpeed": 0,
+      "maxSpeed": 20,
+      "accel": 0
     },
-    rgbSplit: {
-      enabled: true,
-      amount: 8.2,
-    },
+    "rgbSplit": {
+      "enabled": true,
+      "amount": 8.2
+    }
   },
-  metallicGlints: {
-    enabled: true,
-    blendMode: 1,
-    maskThreshold: 0.93,
-    maskInfluence: 3.92,
-    particleTexture: "modules/map-shine/assets/glint.webp",
-    frequency: 0.031,
-    lifetime: {
-      min: 0.4,
-      max: 1.5,
+  "metallicGlints": {
+    "enabled": true,
+    "blendMode": 1,
+    "maskThreshold": 0.9,
+    "maskInfluence": 1.9,
+    "particleTexture": "modules/map-shine/assets/glint.webp",
+    "frequency": 0.231,
+    "lifetime": {
+      "min": 0.4,
+      "max": 1.2
     },
-    // Note: Color values are ignored - metallicGlints get their color from the _Specular map.
-    // Only the alpha channel is used from this gradient.
-    colorAlphaGradient: [
+    "colorAlphaGradient": [
       {
-        time: 0,
-        color: "#FFFFFF",
-        alpha: 0,
+        "time": 0,
+        "color": "#FFFFFF",
+        "alpha": 0
       },
       {
-        time: 0.1,
-        color: "#FFFFFF",
-        alpha: 0.75,
+        "time": 0.1,
+        "color": "#FFFFFF",
+        "alpha": 0.75
       },
       {
-        time: 1,
-        color: "#FFFFFF",
-        alpha: 0,
-      },
+        "time": 1,
+        "color": "#FFFFFF",
+        "alpha": 0
+      }
     ],
-    // Note: emissiveGradient is not used for metallicGlints.
-    // Brightness comes from the _Specular map texture.
-    emissiveGradient: [
+    "emissiveGradient": [
       {
-        time: 0,
-        color: "#000000",
-        alpha: 1,
+        "time": 0,
+        "color": "#000000",
+        "alpha": 1
       },
       {
-        time: 1,
-        color: "#000000",
-        alpha: 1,
-      },
+        "time": 1,
+        "color": "#000000",
+        "alpha": 1
+      }
     ],
-    scale: {
-      sizeMultiplier: 4.1,
-      start: 0.52,
-      end: 1.8,
-      minMult: 0.7,
+    "scale": {
+      "sizeMultiplier": 4,
+      "start": 1,
+      "end": 0.1,
+      "minMult": 0.7
     },
-    speed: {
-      start: 0,
-      end: 0,
-      minMult: 0.1,
+    "speed": {
+      "start": 0,
+      "end": 0,
+      "minMult": 0.5
     },
-    rotation: {
-      enabled: true,
-      minSpeed: -39,
-      maxSpeed: 44,
-      accel: 0,
-    },
+    "rotation": {
+      "enabled": false,
+      "minSpeed": 0,
+      "maxSpeed": 0,
+      "accel": 0
+    }
   },
-  biofilm: {
-    enabled: true,
-    blendMode: 0,
-    maskThreshold: 0.2,
-    maskUpperThreshold: 0.6,
-    maskInfluence: 5,
-    particleTexture: "modules/map-shine/assets/particle.webp",
-    frequency: 0.097,
-    lifetime: {
-      min: 4,
-      max: 12,
+  "biofilm": {
+    "enabled": true,
+    "blendMode": 1,
+    "maskThreshold": 0.49,
+    "maskUpperThreshold": 0.6,
+    "maskInfluence": 2.09,
+    "particleTexture": "modules/map-shine/assets/foam.webp",
+    "frequency": 0.112,
+    "lifetime": {
+      "min": 3.2,
+      "max": 5.4
     },
-    colorAlphaGradient: [
+    "colorAlphaGradient": [
       {
-        time: 0,
-        color: "#d1d1d1",
-        alpha: 0,
+        "time": 0,
+        "color": "#d1d1d1",
+        "alpha": 0
       },
       {
-        time: 0.04,
-        color: "#c9c9c8",
-        alpha: 0.92,
+        "time": 0.11096689802832989,
+        "color": "#ffffff",
+        "alpha": 0.39
       },
       {
-        time: 1,
-        color: "#232e1f",
-        alpha: 0,
-      },
+        "time": 1,
+        "color": "#232e1f",
+        "alpha": 0
+      }
     ],
-    emissiveGradient: [
+    "emissiveGradient": [
       {
-        time: 0,
-        color: "#000000",
-        alpha: 1,
+        "time": 0,
+        "color": "#000000",
+        "alpha": 0
       },
       {
-        time: 1,
-        color: "#000000",
-        alpha: 1,
+        "time": 0.11189533804346265,
+        "color": "#959595",
+        "alpha": 0.22
       },
+      {
+        "time": 1,
+        "color": "#000000",
+        "alpha": 0
+      }
     ],
-    scale: {
-      sizeMultiplier: 0.6,
-      start: 0.9,
-      end: 1.09,
-      minMult: 0.3,
+    "scale": {
+      "sizeMultiplier": 3.1,
+      "start": 0.1,
+      "end": 1.41,
+      "minMult": 1
     },
-    speed: {
-      start: 3,
-      end: 6,
-      minMult: 0.5,
+    "speed": {
+      "start": 21,
+      "end": -29,
+      "minMult": 0.86
     },
-    rotation: {
-      enabled: false,
-      minSpeed: 0,
-      maxSpeed: 20,
-      accel: 0,
-    },
+    "rotation": {
+      "enabled": true,
+      "minSpeed": -33,
+      "maxSpeed": 36,
+      "accel": 0
+    }
   },
-  water: {
-    enabled: true,
-    depthDisplacement: {
-      enabled: true,
-      strength: 0.005,
-      darken: 0.15,
-      wallColor: "#0d1a26",
-      wallIntensity: 0.8,
-      wallSmearBlend: 0.3,
+  "water": {
+    "enabled": true,
+    "depthDisplacement": {
+      "enabled": false,
+      "strength": 0.003,
+      "darken": 0.06,
+      "wallColor": "#0d1a26",
+      "wallIntensity": 1,
+      "wallSmearBlend": 1
     },
-    flow: {
-      enabled: false,
-      angle: 45,
-      speed: 5,
+    "flow": {
+      "enabled": true,
+      "angle": 95,
+      "speed": 50
     },
-    wave: {
-      enabled: true,
-      speed: 0.5,
-      scale: 4.2,
-      intensity: 0.0025,
+    "wave": {
+      "enabled": true,
+      "speed": 1.5,
+      "scale": 0.5,
+      "intensity": 0.0027
     },
-    murkiness: {
-      enabled: false,
-      color: "#1a2c22",
-      wavyNoise: {
-        strength: 0.8,
-        scale: 2,
-        speed: 0.005,
+    "murkiness": {
+      "enabled": true,
+      "color": "#112825",
+      "wavyNoise": {
+        "strength": 0.46,
+        "scale": 0.05,
+        "speed": 0.75
       },
-      sandyNoise: {
-        strength: 0.3,
-        scale: 15,
-        speed: 0.02,
-        modulationScale: 3,
-        modulationSpeed: 0.01,
-        modulationStrength: 0.5,
-      },
+      "sandyNoise": {
+        "strength": 0.67,
+        "scale": 49.5,
+        "speed": 5.5,
+        "modulationScale": 0.1,
+        "modulationSpeed": 0.21,
+        "modulationStrength": 0.91
+      }
     },
-    surface: {
-      enabled: true,
-      foamColor: "#33adff",
-      foamIntensity: 0,
-      foamCoverage: 0,
-      foamSharpness: 0.13,
-      fbmScale: 15.196,
-      fbmSpeed: 0.01,
-      fbmEvolution: 0.03,
-      fbmOctaves: 5,
-      fbmLacunarity: 4,
-      fbmPersistence: 0.1,
-      specularity: {
-        enabled: true,
-        color: "#FFFFFF",
-        intensity: 0.5,
-        shininess: 512,
-        lightAngle: 45,
-        lightElevation: 60,
-        cloudOcclusion: {
-          enabled: true,
-          intensity: 1.0,
-        },
-      },
+    "surface": {
+      "enabled": true,
+      "foamColor": "#ffffff",
+      "foamIntensity": 2,
+      "foamCoverage": 0.39,
+      "foamSharpness": 0.97,
+      "fbmScale": 0.1278,
+      "fbmSpeed": 0.5,
+      "fbmEvolution": 0.5,
+      "fbmOctaves": 8,
+      "fbmLacunarity": 3.35,
+      "fbmPersistence": 0.65,
+      "specularity": {
+        "enabled": true,
+        "color": "#f0ffca",
+        "intensity": 0.15,
+        "shininess": 14,
+        "lightAngle": 0,
+        "lightElevation": 90,
+        "cloudOcclusion": {
+          "enabled": true,
+          "intensity": 0.75
+        }
+      }
     },
-    caustics: {
-      enabled: true,
-      intensity: 0.033,
-      scale: 1,
-      speed: 0.14,
-      color: "#87CEFA",
-      lineSharpness: 5,
-      bloomIntensity: 1,
-      lineDistortion: 0.1,
-      lineDistortionScale: 5,
-      intersectionBoost: 20,
-      roughnessScale: 4.2,
-      roughnessIntensity: 0.83,
-      cloudOcclusion: {
-        enabled: true,
-        intensity: 1,
-      },
+    "caustics": {
+      "enabled": true,
+      "intensity": 0.008,
+      "scale": 0.3,
+      "speed": 3.6,
+      "color": "#73ffc4",
+      "lineSharpness": 3,
+      "bloomIntensity": 0,
+      "lineDistortion": 0.04,
+      "lineDistortionScale": 5,
+      "intersectionBoost": 20,
+      "roughnessScale": 0.7,
+      "roughnessIntensity": 1,
+      "cloudOcclusion": {
+        "enabled": true,
+        "intensity": 1
+      }
     },
-    shoreline: {
-      enabled: false,
-      detectionBlur: 1,
-      foamColor: "#FFFFFF",
-      foamIntensity: 0.5,
-      foamPattern: {
-        scale: 1,
-        speed: 0,
-        evolution: 0.01,
-        octaves: 4,
-        lacunarity: 2.05,
-        persistence: 0.15,
-        brightness: 0.5,
-        contrast: 1,
+    "shoreline": {
+      "enabled": false,
+      "detectionBlur": 25,
+      "foamColor": "#FFFFFF",
+      "foamIntensity": 1.7,
+      "foamPattern": {
+        "scale": 18,
+        "speed": 9.9,
+        "evolution": 12.5,
+        "octaves": 4,
+        "lacunarity": 2.05,
+        "persistence": 0.15,
+        "brightness": 0.5,
+        "contrast": 5
       },
-      displacement: {
-        enabled: false,
-        scale: 0.4,
-        speed: 0.011,
-        strength: 0.0025,
-      },
+      "displacement": {
+        "enabled": true,
+        "scale": 1.8,
+        "speed": 2.5,
+        "strength": 0.0475
+      }
     },
-    glintParticles: {
-      enabled: true,
-      blendMode: 9,
-      maskThreshold: 0.17,
-      maskInfluence: 1.95,
-      particleTexture: "modules/map-shine/assets/glint.webp",
-      frequency: 0.99,
-      lifetime: {
-        min: 0.8,
-        max: 0.8,
+    "glintParticles": {
+      "enabled": false,
+      "blendMode": 10,
+      "maskThreshold": 0.17,
+      "maskInfluence": 2.18,
+      "particleTexture": "modules/map-shine/assets/glint.webp",
+      "frequency": 0.273,
+      "lifetime": {
+        "min": 0.2,
+        "max": 1.4
       },
-      colorAlphaGradient: [
+      "colorAlphaGradient": [
         {
-          time: 0,
-          color: "#FFFFFF",
-          alpha: 0,
+          "time": 0,
+          "color": "#FFFFFF",
+          "alpha": 0
         },
         {
-          time: 0.1,
-          color: "#FFFFFF",
-          alpha: 0.8,
+          "time": 0.13706370891150219,
+          "color": "#FFFFFF",
+          "alpha": 0.72
         },
         {
-          time: 1,
-          color: "#FFFFFF",
-          alpha: 0,
-        },
+          "time": 1,
+          "color": "#FFFFFF",
+          "alpha": 0
+        }
       ],
-      emissiveGradient: [
+      "emissiveGradient": [
         {
-          time: 0,
-          color: "#000000",
-          alpha: 1,
+          "time": 0,
+          "color": "#000000",
+          "alpha": 0
         },
         {
-          time: 1,
-          color: "#000000",
-          alpha: 1,
+          "time": 0.13238472913549085,
+          "color": "#ffffff",
+          "alpha": 0.85
         },
+        {
+          "time": 1,
+          "color": "#000000",
+          "alpha": 0
+        }
       ],
-      scale: {
-        sizeMultiplier: 1.9,
-        start: 0.76,
-        end: 0.82,
-        minMult: 0.95,
+      "scale": {
+        "sizeMultiplier": 2,
+        "start": 0.76,
+        "end": 0.82,
+        "minMult": 0.95
       },
-      speed: {
-        start: 5,
-        end: 11,
-        minMult: 0.47,
+      "speed": {
+        "start": 5,
+        "end": 11,
+        "minMult": 0.47
       },
-      rotation: {
-        enabled: true,
-        minSpeed: 116,
-        maxSpeed: 123,
-        accel: 52,
-      },
-    },
+      "rotation": {
+        "enabled": true,
+        "minSpeed": -20,
+        "maxSpeed": 11,
+        "accel": -1
+      }
+    }
   },
-  foam: {
-    enabled: true,
-    blendMode: 1,
-    smallBlur: 2,
-    largeBlur: 10,
-    intensity: 1.5,
-    threshold: 0.2,
-    softness: 0.1,
-    color: "#FFFFFF",
-    noise: {
-      scale: 15,
-      speed: 0.02,
-      evolution: 0.05,
-      octaves: 4,
-      lacunarity: 2.2,
-      persistence: 0.45,
+  "foam": {
+    "enabled": true,
+    "blendMode": 0,
+    "smallBlur": 1,
+    "largeBlur": 64,
+    "intensity": 3.75,
+    "threshold": 0.01,
+    "softness": 0.79,
+    "color": "#edf1eb",
+    "noise": {
+      "scale": 23,
+      "speed": 0.5,
+      "evolution": 0.5,
+      "octaves": 3,
+      "lacunarity": 1.9,
+      "persistence": 0.2
     },
-    breakupNoise: {
-      enabled: true,
-      scale: 2.5,
-      evolution: 0.01,
-      octaves: 5,
-      lacunarity: 2.8,
-      persistence: 0.35,
-      brightness: 0.4,
-      contrast: 1.2,
+    "breakupNoise": {
+      "enabled": true,
+      "scale": 0.7,
+      "evolution": 0.1,
+      "octaves": 2,
+      "lacunarity": 3.75,
+      "persistence": 0.1,
+      "brightness": 0.04,
+      "contrast": 0.1
     },
-    suppressionNoise: {
-      enabled: true,
-      scale: 2.5,
-      speed: 0.005,
-      evolution: 0.01,
-      octaves: 4,
-      lacunarity: 2,
-      persistence: 0.5,
-      brightness: 0.5,
-      contrast: 1,
+    "suppressionNoise": {
+      "enabled": true,
+      "scale": 0.011,
+      "speed": 0.043,
+      "evolution": 0.069,
+      "octaves": 4,
+      "lacunarity": 1.5,
+      "persistence": 0.5,
+      "brightness": 0.5,
+      "contrast": 1
     },
-    blurTurbulence: {
-      strength: 8,
-      scale: 0.5,
-      speed: 0.01,
+    "blurTurbulence": {
+      "strength": 3,
+      "scale": 4.3,
+      "speed": 0.05
     },
-    crestFoam: {
-      enabled: false,
-      intensity: 1.8,
-      frequency: 35,
-      speed: 0.03,
-      angle: 15,
-      sharpness: 12,
-      perturbStrength: 35,
-      perturbScale: 0.04,
-      perturbSpeed: 0.01,
-      perturbOctaves: 4,
-      crestBreakup: {
-        scale: 0.35,
-        speed: 0.08,
-        octaves: 3,
-        brightness: 0.45,
-        contrast: 1.8,
-      },
-    },
+    "crestFoam": {
+      "enabled": true,
+      "intensity": 0.35,
+      "frequency": 4,
+      "speed": 0.2,
+      "angle": 16,
+      "sharpness": 39,
+      "perturbStrength": 100,
+      "perturbScale": 0.01,
+      "perturbSpeed": 0.074,
+      "perturbOctaves": 1,
+      "crestBreakup": {
+        "scale": 0.24,
+        "speed": 0.174,
+        "octaves": 1,
+        "brightness": 0.06,
+        "contrast": 3.9
+      }
+    }
   },
-  fire: {
-    enabled: true,
-    particles: {
-      enabled: true,
-      blendMode: 0,
-      maskThreshold: 0.06,
-      maskInfluence: 1.01,
-      particleTexture: "modules/map-shine/assets/flame.webp",
-      frequency: 0.033,
-      lifetime: {
-        min: 0.1,
-        max: 3.4,
+  "fire": {
+    "enabled": true,
+    "particles": {
+      "enabled": true,
+      "blendMode": 1,
+      "maskThreshold": 0.51,
+      "maskInfluence": 0.97,
+      "particleTexture": "modules/map-shine/assets/flame.webp",
+      "frequency": 0.006,
+      "lifetime": {
+        "min": 0.5,
+        "max": 2.6
       },
-      // Fire Tone Curve Filter defaults
-      toneCurve: {
-        enabled: false,
-        contrast: 1.4,
-        gamma: 0.9,
-        knee: 0.2,
-        coreClamp: 1.2,
+      "toneCurve": {
+        "enabled": true,
+        "contrast": 0.79,
+        "gamma": 1.8,
+        "knee": 0.54,
+        "coreClamp": 0.78
       },
-      colorAlphaGradient: [
+      "colorAlphaGradient": [
         {
-          time: 0,
-          color: "#FFFFFF",
-          alpha: 0,
+          "time": 0,
+          "color": "#FFDD88",
+          "alpha": 0
         },
         {
-          time: 0.1,
-          color: "#FFDD88",
-          alpha: 1,
+          "time": 0.08643451575062551,
+          "color": "#ffd782",
+          "alpha": 0.29
         },
         {
-          time: 0.35,
-          color: "#FF7700",
-          alpha: 1,
+          "time": 0.18309957418463563,
+          "color": "#ff731e",
+          "alpha": 0.37
         },
         {
-          time: 0.6,
-          color: "#444444",
-          alpha: 0.7,
+          "time": 0.46143798828125,
+          "color": "#9e4712",
+          "alpha": 0.25
         },
         {
-          time: 1,
-          color: "#111111",
-          alpha: 0,
+          "time": 0.671140900715665,
+          "color": "#000000",
+          "alpha": 0.04
         },
+        {
+          "time": 0.840843686122106,
+          "color": "#000000",
+          "alpha": 0.02
+        },
+        {
+          "time": 1,
+          "color": "#000000",
+          "alpha": 0
+        }
       ],
-      emissiveGradient: [
+      "emissiveGradient": [
         {
-          time: 0,
-          color: "#FFFFFF",
-          alpha: 1,
+          "time": 0,
+          "color": "#ffffff",
+          "alpha": 0
         },
         {
-          time: 0.25,
-          color: "#FFDD88",
-          alpha: 0.8,
+          "time": 0.16216202884097997,
+          "color": "#fff3e1",
+          "alpha": 0.92
         },
         {
-          time: 1,
-          color: "#000000",
-          alpha: 0,
+          "time": 0.22994685295145176,
+          "color": "#ffb340",
+          "alpha": 0.96
         },
+        {
+          "time": 0.32901698049752587,
+          "color": "#ff6a11",
+          "alpha": 0.78
+        },
+        {
+          "time": 0.69401218724622,
+          "color": "#000000",
+          "alpha": 0
+        },
+        {
+          "time": 1,
+          "color": "#000000",
+          "alpha": 0
+        }
       ],
-      scale: {
-        sizeMultiplier: 1.1,
-        start: 0.05,
-        end: 0.9,
-        minMult: 1,
+      "scale": {
+        "sizeMultiplier": 3.1,
+        "start": 0,
+        "end": 0.58,
+        "minMult": 1
       },
-      speed: {
-        start: 1,
-        end: 2,
-        minMult: 0.5,
+      "speed": {
+        "start": 1,
+        "end": 2,
+        "minMult": 0.5
       },
-      rotation: {
-        enabled: true,
-        minSpeed: -180,
-        maxSpeed: 180,
-        accel: 75,
+      "rotation": {
+        "enabled": true,
+        "minSpeed": -42,
+        "maxSpeed": 42,
+        "accel": -2
       },
-      wind: {
-        enabled: false,
-        force: 75,
-        baseSpeed: 41,
-        gustSpeed: 145,
-        gustFrequencyMin: 3,
-        gustFrequencyMax: 8,
-        gustDurationMin: 0.2,
-        gustDurationMax: 0.8,
-        angleChangeFrequencyMin: 5,
-        angleChangeFrequencyMax: 15,
-        angleChangeRange: 20,
+      "wind": {
+        "enabled": true,
+        "force": 3,
+        "baseSpeed": 3,
+        "gustSpeed": 4,
+        "gustFrequencyMin": 0.1,
+        "gustFrequencyMax": 30,
+        "gustDurationMin": 0.1,
+        "gustDurationMax": 5,
+        "angleChangeFrequencyMin": 1,
+        "angleChangeFrequencyMax": 60,
+        "angleChangeRange": 6
       },
-      colorCorrection: {
-        enabled: false,
-        saturation: 1.0,
-        brightness: 0.0,
-        contrast: 1.0,
-        exposure: 0.0,
-        gamma: 1.0,
-      },
-    },
+      "colorCorrection": {
+        "enabled": true,
+        "saturation": 2,
+        "brightness": -0.92,
+        "contrast": 0.1,
+        "exposure": 0.7,
+        "gamma": 0.3
+      }
+    }
   },
-  candleFlame: {
-    enabled: true,
-    blendMode: 1,
-    particleTexture: "modules/map-shine/assets/particle.webp",
-    frequency: 0.01,
-    lifetime: {
-      min: 0.8,
-      max: 1.5,
+  "candleFlame": {
+    "enabled": true,
+    "blendMode": 1,
+    "particleTexture": "modules/map-shine/assets/particle.webp",
+    "frequency": 0.054,
+    "lifetime": {
+      "min": 0.8,
+      "max": 1.2
     },
-    colorAlphaGradient: [
+    "colorAlphaGradient": [
       {
-        time: 0,
-        color: "#FFEFD5",
-        alpha: 1.0,
+        "time": 0,
+        "color": "#FFEFD5",
+        "alpha": 0
       },
       {
-        time: 0.3,
-        color: "#FFD700",
-        alpha: 0.8,
+        "time": 0.08516129702946203,
+        "color": "#FFD700",
+        "alpha": 0.49
       },
       {
-        time: 1.0,
-        color: "#FFA500",
-        alpha: 0.0,
+        "time": 0.16321849401205915,
+        "color": "#ff6000",
+        "alpha": 0.4481915080797534
       },
+      {
+        "time": 1,
+        "color": "#FFA500",
+        "alpha": 0
+      }
     ],
-    emissiveGradient: [
+    "emissiveGradient": [
       {
-        time: 0,
-        color: "#FFFFFF",
-        alpha: 1,
+        "time": 0,
+        "color": "#FFFFFF",
+        "alpha": 0
       },
       {
-        time: 1,
-        color: "#FFD700",
-        alpha: 0.5,
+        "time": 0.08903226507625575,
+        "color": "#ffa94a",
+        "alpha": 0.82
       },
+      {
+        "time": 1,
+        "color": "#FFD700",
+        "alpha": 0
+      }
     ],
-    scale: {
-      sizeMultiplier: 0.2,
-      start: 0.5,
-      end: 1.2,
-      minMult: 0.8,
+    "scale": {
+      "sizeMultiplier": 0.84,
+      "start": 2,
+      "end": 0.92,
+      "minMult": 0.8
     },
-    jiggle: {
-      upwardVelocity: -50,
-      amplitude: 20.0,
-      frequency: 5.0,
-      risingFactor: 1.5,
-    },
+    "jiggle": {
+      "upwardVelocity": -20,
+      "amplitude": 51,
+      "frequency": 0.6,
+      "risingFactor": 4.2
+    }
   },
-  pressurisedSteam: {
-    enabled: true,
-    blendMode: 0,
-    maskThreshold: 0.5,
-    maskInfluence: 1.5,
-    particleTexture: "modules/map-shine/assets/steam.webp",
-    lifetime: {
-      min: 0.5,
-      max: 2.0,
+  "pressurisedSteam": {
+    "enabled": false,
+    "blendMode": 0,
+    "maskThreshold": 0.5,
+    "maskInfluence": 3.46,
+    "particleTexture": "modules/map-shine/assets/steam.webp",
+    "lifetime": {
+      "min": 0.5,
+      "max": 2
     },
-    colorAlphaGradient: [
+    "colorAlphaGradient": [
       {
-        time: 0,
-        color: "#ffffff",
-        alpha: 0,
+        "time": 0,
+        "color": "#ffffff",
+        "alpha": 0
       },
       {
-        time: 0.1,
-        color: "#eeeeee",
-        alpha: 0.8,
+        "time": 0.106384358403457,
+        "color": "#eeeeee",
+        "alpha": 0.1
       },
       {
-        time: 0.7,
-        color: "#dddddd",
-        alpha: 0.4,
+        "time": 0.6928370313600106,
+        "color": "#dddddd",
+        "alpha": 0.02
       },
       {
-        time: 1,
-        color: "#cccccc",
-        alpha: 0,
-      },
+        "time": 1,
+        "color": "#cccccc",
+        "alpha": 0
+      }
     ],
-    emissiveGradient: [
+    "emissiveGradient": [
       {
-        time: 0,
-        color: "#000000",
-        alpha: 1,
+        "time": 0,
+        "color": "#000000",
+        "alpha": 0
       },
       {
-        time: 1,
-        color: "#000000",
-        alpha: 1,
+        "time": 0.12776101565216483,
+        "color": "#ffffff",
+        "alpha": 1
       },
+      {
+        "time": 1,
+        "color": "#000000",
+        "alpha": 0
+      }
     ],
-    scale: {
-      sizeMultiplier: 1.8,
-      start: 0.2,
-      end: 1.5,
-      minMult: 0.7,
+    "scale": {
+      "sizeMultiplier": 0.3,
+      "start": 0.15,
+      "end": 1.95,
+      "minMult": 0.7
     },
-    speed: {
-      start: 250,
-      end: 20,
-      minMult: 0.8,
+    "speed": {
+      "start": 231,
+      "end": 9,
+      "minMult": 0.18
     },
-    rotation: {
-      enabled: true,
-      minSpeed: -60,
-      maxSpeed: 60,
-      accel: 0,
+    "rotation": {
+      "enabled": true,
+      "minSpeed": -141,
+      "maxSpeed": 168,
+      "accel": 0
     },
-    path: {
-      angle: {
-        min: -100,
-        max: -80,
-      },
+    "path": {
+      "angle": {
+        "min": -69,
+        "max": 3
+      }
     },
-    burst: {
-      onDuration: 10.0,
-      offDuration: 10.0,
-      frequency: 0.005,
-    },
+    "burst": {
+      "onDuration": 0.5,
+      "offDuration": 4.6,
+      "frequency": 0.002
+    }
   },
-  sparks: {
-    enabled: true,
-    blendMode: 1,
-    maskThreshold: 0.95,
-    maskInfluence: 1.12,
-    particleTexture: "modules/map-shine/assets/particle.webp",
-    frequency: 0.08,
-    lifetime: {
-      min: 1.5,
-      max: 3,
+  "sparks": {
+    "enabled": false,
+    "blendMode": 1,
+    "maskThreshold": 0.95,
+    "maskInfluence": 1.12,
+    "particleTexture": "modules/map-shine/assets/particle.webp",
+    "frequency": 0.08,
+    "lifetime": {
+      "min": 1.5,
+      "max": 3
     },
-    colorAlphaGradient: [
+    "colorAlphaGradient": [
       {
-        time: 0,
-        color: "#ffbc40",
-        alpha: 0,
+        "time": 0,
+        "color": "#ffbc40",
+        "alpha": 0
       },
       {
-        time: 0.1,
-        color: "#ffc242",
-        alpha: 0.69,
+        "time": 0.1,
+        "color": "#ffc242",
+        "alpha": 0.69
       },
       {
-        time: 0.97,
-        color: "#fff955",
-        alpha: 0.69,
+        "time": 0.97,
+        "color": "#fff955",
+        "alpha": 0.69
       },
       {
-        time: 1,
-        color: "#fffb55",
-        alpha: 0,
-      },
+        "time": 1,
+        "color": "#fffb55",
+        "alpha": 0
+      }
     ],
-    emissiveGradient: [
+    "emissiveGradient": [
       {
-        time: 0,
-        color: "#000000",
-        alpha: 1,
+        "time": 0,
+        "color": "#000000",
+        "alpha": 1
       },
       {
-        time: 1,
-        color: "#000000",
-        alpha: 1,
-      },
+        "time": 1,
+        "color": "#000000",
+        "alpha": 1
+      }
     ],
-    scale: {
-      sizeMultiplier: 1.55,
-      start: 1,
-      end: 0.1,
-      minMult: 0.5,
+    "scale": {
+      "sizeMultiplier": 1.55,
+      "start": 1,
+      "end": 0.1,
+      "minMult": 0.5
     },
-    path: {
-      speed: {
-        start: 114,
-        end: 27,
-        minMult: 0.99,
+    "path": {
+      "speed": {
+        "start": 32,
+        "end": 10,
+        "minMult": 0.6
       },
-      amplitude: {
-        min: 10,
-        max: 100,
+      "amplitude": {
+        "min": 10,
+        "max": 100
       },
-      frequency: {
-        min: 40,
-        max: 189,
+      "frequency": {
+        "min": 40,
+        "max": 189
       },
-      offset: {
-        min: 0,
-        max: 6.28,
+      "offset": {
+        "min": 0,
+        "max": 6.28
       },
-      damping: 0.05,
-      angle: {
-        min: -90,
-        max: 90,
+      "damping": 0.05,
+      "angle": {
+        "min": -90,
+        "max": 90
       },
-      motionBlur: {
-        enabled: true,
-        strength: 0.15,
-        maxLength: 2.4,
-      },
-    },
+      "motionBlur": {
+        "enabled": true,
+        "strength": 0.15,
+        "maxLength": 2.4
+      }
+    }
   },
-  lightning: {
-    enabled: true,
-    minDelay: 100,
-    maxDelay: 500,
-    flickerChance: 0.15,
-    burstMinStrikes: 1,
-    burstMaxStrikes: 5,
-    burstStrikeDuration: 50,
-    burstStrikeDelay: 80,
-    endPointVariationX: 50,
-    endPointVariationY: 50,
-    offPeriodMin: 1,
-    offPeriodMax: 1761,
-    strikeDuration: 50,
-    flickerInterval: 10,
-    flickerIntensity: 0.2,
-    fadeEasePower: 2,
-    color: "#99DDFF",
-    coreColor: "#FFFFFF",
-    brightness: 3,
-    sheathOpacity: 1,
-    coreOpacity: 1,
-    width: {
-      start: 12,
-      end: 2,
-      variationEnabled: true,
-      variationAmount: 0.5,
-      variationScale: 0.1,
-      variationSpeed: 0.1,
+  "lightning": {
+    "enabled": false,
+    "minDelay": 100,
+    "maxDelay": 500,
+    "flickerChance": 0.15,
+    "burstMinStrikes": 1,
+    "burstMaxStrikes": 5,
+    "burstStrikeDuration": 50,
+    "burstStrikeDelay": 80,
+    "endPointVariationX": 50,
+    "endPointVariationY": 50,
+    "offPeriodMin": 1,
+    "offPeriodMax": 1761,
+    "strikeDuration": 50,
+    "flickerInterval": 10,
+    "flickerIntensity": 0.2,
+    "fadeEasePower": 2,
+    "color": "#99DDFF",
+    "coreColor": "#FFFFFF",
+    "brightness": 3,
+    "sheathOpacity": 1,
+    "coreOpacity": 1,
+    "width": {
+      "start": 12,
+      "end": 2,
+      "variationEnabled": true,
+      "variationAmount": 0.5,
+      "variationScale": 0.1,
+      "variationSpeed": 0.1
     },
-    coreWidth: {
-      start: 4,
-      end: 0.5,
+    "coreWidth": {
+      "start": 4,
+      "end": 0.5
     },
-    path: {
-      segments: 100,
-      endPointRandomness: 15,
+    "path": {
+      "segments": 100,
+      "endPointRandomness": 15
     },
-    curve: {
-      startAngleMin: -45,
-      startAngleMax: 45,
-      endAngleMin: 135,
-      endAngleMax: 225,
-      controlPointDistanceMin: 100,
-      controlPointDistanceMax: 160,
+    "curve": {
+      "startAngleMin": -45,
+      "startAngleMax": 45,
+      "endAngleMin": 135,
+      "endAngleMax": 225,
+      "controlPointDistanceMin": 100,
+      "controlPointDistanceMax": 160
     },
-    fork: {
-      maxDepth: 4,
-      chance: 1,
-      angleRange: 168,
-      lengthFalloff: 0.7,
-      widthFalloff: 0.86,
+    "fork": {
+      "maxDepth": 4,
+      "chance": 1,
+      "angleRange": 168,
+      "lengthFalloff": 0.7,
+      "widthFalloff": 0.86
     },
-    displacement: {
-      enabled: true,
-      magnitude: 15,
-      speed: 0.2,
-      scale: 0.05,
+    "displacement": {
+      "enabled": true,
+      "magnitude": 15,
+      "speed": 0.2,
+      "scale": 0.05
     },
-    displacementFine: {
-      enabled: true,
-      magnitude: 5,
-      speed: 0.1,
-      scale: 0.005,
-    },
+    "displacementFine": {
+      "enabled": true,
+      "magnitude": 5,
+      "speed": 0.1,
+      "scale": 0.005
+    }
   },
-  smellyFlies: {
-    enabled: true,
-    blendMode: 0,
-    particleTexture: "modules/map-shine/assets/fly.webp",
-    maxParticles: 10,
-    flying: {
-      takeoffDuration: 0.5,
-      takeoffSpeedMin: 100,
-      takeoffSpeedMax: 200,
-      noiseStrength: 2000,
-      noiseFrequency: 25,
-      tetherStrength: 15.8,
-      maxSpeed: 1000,
-      drag: 0.8,
-      landChance: 0.05,
-      landingDuration: 1,
+  "smellyFlies": {
+    "enabled": false,
+    "blendMode": 0,
+    "particleTexture": "modules/map-shine/assets/fly.webp",
+    "maxParticles": 10,
+    "flying": {
+      "takeoffDuration": 0.5,
+      "takeoffSpeedMin": 100,
+      "takeoffSpeedMax": 200,
+      "noiseStrength": 2000,
+      "noiseFrequency": 25,
+      "tetherStrength": 15.8,
+      "maxSpeed": 1000,
+      "drag": 0.8,
+      "landChance": 0.05,
+      "landingDuration": 1
     },
-    walking: {
-      walkSpeed: 60,
-      minIdleTime: 0.5,
-      maxIdleTime: 2.5,
-      minRotateTime: 0.2,
-      maxRotateTime: 0.7,
-      minMoveTime: 0.3,
-      maxMoveTime: 5.3,
-      minMoveDistance: 5,
-      maxMoveDistance: 95,
-      takeoffChance: 0.05,
+    "walking": {
+      "walkSpeed": 60,
+      "minIdleTime": 0.5,
+      "maxIdleTime": 2.5,
+      "minRotateTime": 0.2,
+      "maxRotateTime": 0.7,
+      "minMoveTime": 0.3,
+      "maxMoveTime": 5.3,
+      "minMoveDistance": 5,
+      "maxMoveDistance": 95,
+      "takeoffChance": 0.05
     },
-    motionBlur: {
-      enabled: true,
-      strength: 0.03,
-      maxLength: 1.6,
-    },
+    "motionBlur": {
+      "enabled": true,
+      "strength": 0.03,
+      "maxLength": 1.6
+    }
   },
-  particleSystems: {
-    enabled: true,
-    globalDensityMultiplier: 0.65,
-    globalParticleLimit: 1000,
+  "particleSystems": {
+    "enabled": true,
+    "globalDensityMultiplier": 0.6,
+    "globalParticleLimit": 1000
   },
-  buildingShadows: {
-    enabled: true,
-    intensity: 0.42,
-    maxOffset: 190,
-    maxBlur: 5,
-    sunAngle: 3,
+  "buildingShadows": {
+    "enabled": false,
+    "intensity": 0.6,
+    "maxOffset": 26,
+    "maxBlur": 23,
+    "sunAngle": 0
   },
-  timeOfDay: {
-    enabled: true,
-    syncToSceneDarkness: true,
-    intensity: 0.2,
-    currentTime: 6.100495717251661,
-    keyframes: {
-      midnight: {
-        time: 0,
-        temperature: -0.2,
-        tint: -0.05,
-        saturation: 0.8,
-        brightness: 0,
-        contrast: 1.1,
-        exposure: -0.62,
-        gamma: 1.1,
+  "timeOfDay": {
+    "enabled": true,
+    "syncToSceneDarkness": true,
+    "intensity": 1,
+    "currentTime": 15.11364792325071,
+    "keyframes": {
+      "midnight": {
+        "time": 0,
+        "temperature": -0.2,
+        "tint": -0.05,
+        "saturation": 0.8,
+        "brightness": 0,
+        "contrast": 1.1,
+        "exposure": -0.62,
+        "gamma": 1.1
       },
-      dawn: {
-        time: 6,
-        temperature: 0.3,
-        tint: -0.09,
-        saturation: 0.7,
-        brightness: -0.02,
-        contrast: 1.05,
-        exposure: -0.31,
-        gamma: 0.98,
+      "dawn": {
+        "time": 6,
+        "temperature": 0.3,
+        "tint": -0.09,
+        "saturation": 0.7,
+        "brightness": -0.02,
+        "contrast": 1.05,
+        "exposure": -0.31,
+        "gamma": 0.98
       },
-      midday: {
-        time: 12,
-        temperature: 0,
-        tint: 0,
-        saturation: 1,
-        brightness: 0,
-        contrast: 1,
-        exposure: 0.21,
-        gamma: 1,
+      "midday": {
+        "time": 12,
+        "temperature": 0,
+        "tint": 0,
+        "saturation": 1,
+        "brightness": 0,
+        "contrast": 1,
+        "exposure": 0.35,
+        "gamma": 1
       },
-      dusk: {
-        time: 18,
-        temperature: 0.4,
-        tint: -0.1,
-        saturation: 0.74,
-        brightness: -0.05,
-        contrast: 1.1,
-        exposure: -0.44,
-        gamma: 1,
+      "dusk": {
+        "time": 18,
+        "temperature": 0.4,
+        "tint": -0.1,
+        "saturation": 0.74,
+        "brightness": -0.05,
+        "contrast": 1.1,
+        "exposure": -0.44,
+        "gamma": 1
       },
-      twilight: {
-        time: 21,
-        temperature: -0.44,
-        tint: -0.42,
-        saturation: 0.55,
-        brightness: 0,
-        contrast: 1,
-        exposure: -0.55,
-        gamma: 1,
-      },
-    },
+      "twilight": {
+        "time": 21,
+        "temperature": -0.44,
+        "tint": -0.42,
+        "saturation": 0.55,
+        "brightness": 0,
+        "contrast": 1,
+        "exposure": -0.55,
+        "gamma": 1
+      }
+    }
   },
-  diagnostic: {
-    enabled: false,
-    showMasks: true,
-    pixelInspector: false,
-    displaySuffix: "specular",
+  "diagnostic": {
+    "enabled": false,
+    "showMasks": false,
+    "pixelInspector": false,
+    "displaySuffix": "generated_lightMask"
   },
-  physicsRope: {
-    enabled: true,
-    segmentLength: 10,
-    animationSpeed: 1,
-    damping: 0.95,
-    windForce: 1.0,
-    tapering: 0.5,
-    texturePath: "modules/map-shine/assets/rope.webp",
-    indoorWindShielding: 0.9, // 0.0 = no shielding, 1.0 = 100% shielding
-    isIndoors: false,
-    // Type-specific defaults
-    rope: {
-      texturePath: "modules/map-shine/assets/rope.webp",
-      segmentLength: 10,
-      animationSpeed: 1,
-      damping: 0.99,
-      windForce: 1.0,
-      springConstant: 0.8,
-      tapering: 0.5,
-      ropeEndTexturePath: null,
-      ropeEndScale: 1.0,
-      indoorWindShielding: 0.9,
-      endpointFade: 0.0,
-      fadeStartDistance: 0.2,
-      fadeEndDistance: 0.2,
+  "physicsRope": {
+    "enabled": true,
+    "segmentLength": 13,
+    "animationSpeed": 1.2,
+    "damping": 0.995,
+    "windForce": 1,
+    "tapering": 0.5,
+    "texturePath": "modules/mythica-machina-flooded-river-prison/assets/rope.png",
+    "indoorWindShielding": 0.95,
+    "isIndoors": false,
+    "rope": {
+      "texturePath": "modules/mythica-machina-flooded-river-prison/assets/rope.png",
+      "segmentLength": 8,
+      "animationSpeed": 3,
+      "damping": 0.95,
+      "windForce": 2.7,
+      "springConstant": 0.8,
+      "tapering": 0.55,
+      "ropeEndTexturePath": "modules/mythica-machina-flooded-river-prison/assets/rope_end_01.png",
+      "ropeEndScale": 1,
+      "indoorWindShielding": 0.8,
+      "endpointFade": 0.85,
+      "fadeStartDistance": 0.01,
+      "fadeEndDistance": 0.01
     },
-    chain: {
-      texturePath: "modules/map-shine/assets/rope.webp",
-      segmentLength: 15,
-      animationSpeed: 0.8,
-      damping: 0.95,
-      windForce: 0.3,
-      springConstant: 0.8,
-      tapering: 0.2,
-      ropeEndTexturePath: null,
-      ropeEndScale: 1.0,
-      indoorWindShielding: 0.7,
-      endpointFade: 0.0,
-      fadeStartDistance: 0.2,
-      fadeEndDistance: 0.2,
+    "chain": {
+      "texturePath": "modules/map-shine/assets/rope.webp",
+      "segmentLength": 15,
+      "animationSpeed": 0.8,
+      "damping": 0.95,
+      "windForce": 0.3,
+      "springConstant": 0.8,
+      "tapering": 0.2,
+      "ropeEndTexturePath": null,
+      "ropeEndScale": 1,
+      "indoorWindShielding": 0.7,
+      "endpointFade": 0,
+      "fadeStartDistance": 0.2,
+      "fadeEndDistance": 0.2
     },
-    elastic: {
-      texturePath: "modules/map-shine/assets/rope.webp",
-      segmentLength: 8,
-      animationSpeed: 1.2,
-      damping: 0.98,
-      windForce: 1.5,
-      springConstant: 0.8,
-      tapering: 0.7,
-      ropeEndTexturePath: null,
-      ropeEndScale: 1.0,
-      indoorWindShielding: 0.95,
-      endpointFade: 0.0,
-      fadeStartDistance: 0.2,
-      fadeEndDistance: 0.2,
-    },
+    "elastic": {
+      "texturePath": "modules/map-shine/assets/rope.webp",
+      "segmentLength": 8,
+      "animationSpeed": 1.2,
+      "damping": 0.98,
+      "windForce": 1.5,
+      "springConstant": 0.8,
+      "tapering": 0.7,
+      "ropeEndTexturePath": null,
+      "ropeEndScale": 1,
+      "indoorWindShielding": 0.95,
+      "endpointFade": 0,
+      "fadeStartDistance": 0.2,
+      "fadeEndDistance": 0.2
+    }
   },
-  overheadEffect: {
-    enabled: true,
-    blurMinZoom: 0,
-    blurMidZoom: 1.5,
-    blurMaxZoom: 18,
-    opacityMinZoom: 1,
-    opacityMidZoom: 0.5,
-    opacityMaxZoom: 0.08,
-    zoomPointMin: 0.2,
-    zoomPointMid: 0.65,
-    zoomPointMax: 1.5,
-    timeOfDayStrength: 0.5,
-    recolor: {
-      enabled: false,
-      intensity: 2,
-      tint: "#80DEEA",
-      cloudShadowDarken: {
-        enabled: true,
-        intensity: 0.25,
-      },
+  "overheadEffect": {
+    "enabled": true,
+    "blurMinZoom": 0,
+    "blurMidZoom": 7.5,
+    "blurMaxZoom": 37,
+    "opacityMinZoom": 1,
+    "opacityMidZoom": 0.24,
+    "opacityMaxZoom": 0.07,
+    "zoomPointMin": 0.2,
+    "zoomPointMid": 1.75,
+    "zoomPointMax": 2.8,
+    "timeOfDayStrength": 0.5,
+    "recolor": {
+      "enabled": false,
+      "intensity": 2,
+      "tint": "#80DEEA",
+      "cloudShadowDarken": {
+        "enabled": true,
+        "intensity": 0.3
+      }
     },
-    hoverFadeDuration: 500,
-    tokenMasking: {
-      enabled: true,
-      blurAmount: 10,
-    },
+    "hoverFadeDuration": 500,
+    "tokenMasking": {
+      "enabled": true,
+      "blurAmount": 10
+    }
   },
-  ambientLayerZIndex: 250,
+  "ambientLayerZIndex": 250
 };
 
 // Establish the global namespace for Map Shine to satisfy type checkers.
@@ -3909,7 +3960,10 @@ class MapShineInitialiser {
       if (game.mapShine.activeEditor) {
         await game.mapShine.activeEditor.close();
       }
-      const isAdvancedMode = game.settings.get(MODULE_ID, "advanced-ui-mode");
+      // Only GMs can access advanced mode; non-GMs always get Simple UI
+      const isGM = game.user.isGM;
+      const isAdvancedMode =
+        isGM && game.settings.get(MODULE_ID, "advanced-ui-mode");
       const editor = isAdvancedMode
         ? new MaterialEditorDebugger()
         : new SimpleUIPanel();
@@ -4673,20 +4727,20 @@ class HooksManager {
 
         /**
          * Scene Transition Wrapper - Event-Driven Lifecycle Coordination
-         * 
+         *
          * ARCHITECTURE:
          * This wrapper uses a Hook-based coordination system to synchronize the
          * scene transition overlay with the MapShine lifecycle. Instead of relying
          * on global promise resolvers (fragile) or hardcoded delays (unreliable),
          * it listens for the 'mapShine:setupComplete' Hook event.
-         * 
+         *
          * FLOW:
          * 1. Create and fade in the transition overlay
          * 2. Execute the scene change (calls wrapped function)
          * 3. Wait for 'mapShine:setupComplete' Hook OR timeout
          * 4. Fade out the overlay to reveal the new scene
          * 5. Clean up (always happens via finally block)
-         * 
+         *
          * ERROR HANDLING:
          * - Comprehensive try-catch blocks at each phase
          * - Overlay cleanup guaranteed via finally block
@@ -4862,12 +4916,15 @@ class HooksManager {
 
                 // Create a promise that resolves when the mapShine:setupComplete Hook fires
                 const setupCompletePromise = new Promise((resolve) => {
-                  const hookId = Hooks.once("mapShine:setupComplete", (data) => {
-                    console.log(
-                      `[MapShine Transition] Setup complete (${data.type}), proceeding with fade-in`
-                    );
-                    resolve();
-                  });
+                  const hookId = Hooks.once(
+                    "mapShine:setupComplete",
+                    (data) => {
+                      console.log(
+                        `[MapShine Transition] Setup complete (${data.type}), proceeding with fade-in`
+                      );
+                      resolve();
+                    }
+                  );
                   // Store hookId for cleanup if needed
                   game.mapShine._transitionHookId = hookId;
                 });
@@ -4886,7 +4943,10 @@ class HooksManager {
                     );
                     // Clean up the hook if timeout occurs
                     if (game.mapShine._transitionHookId !== undefined) {
-                      Hooks.off("mapShine:setupComplete", game.mapShine._transitionHookId);
+                      Hooks.off(
+                        "mapShine:setupComplete",
+                        game.mapShine._transitionHookId
+                      );
                       game.mapShine._transitionHookId = undefined;
                     }
                     resolve();
@@ -4938,7 +4998,10 @@ class HooksManager {
                   game.mapShine?.sceneChangeManager?._destroyOverlay();
                   // Clean up hook if it exists
                   if (game.mapShine?._transitionHookId !== undefined) {
-                    Hooks.off("mapShine:setupComplete", game.mapShine._transitionHookId);
+                    Hooks.off(
+                      "mapShine:setupComplete",
+                      game.mapShine._transitionHookId
+                    );
                     game.mapShine._transitionHookId = undefined;
                   }
                 } catch (cleanupError) {
@@ -5176,7 +5239,7 @@ class SceneChangeManager {
     this._currentState = SceneChangeManager.STATES.IDLE;
     this._teardownPromise = Promise.resolve(); // Start with a resolved promise for the initial load.
     this._resolveTeardown = null;
-    
+
     // Unified LoadingUI instance
     this.ui = null;
 
@@ -5204,26 +5267,28 @@ class SceneChangeManager {
     if (this.transitionOverlay) return;
 
     console.log(`[MapShine Transition] Creating overlay element.`);
-    
+
     // Create unified LoadingUI instance
     this.ui = new LoadingUI({
       elementId: "map-shine-scene-transition",
       title: "Loading Scene...",
       fadeOutDuration: 1500,
       defaults: {
-        randomHints: UNIVERSAL_EFFECT_DEFAULTS.sceneTransition.randomHints
-      }
+        randomHints: UNIVERSAL_EFFECT_DEFAULTS.sceneTransition.randomHints,
+      },
     });
 
     // Connect this UI to the loading manager for progress updates
     if (game.mapShine.loadingManager) {
       game.mapShine.loadingManager.screen = this.ui;
-      console.log(`[MapShine Transition] Connected overlay to loading manager for progress updates`);
+      console.log(
+        `[MapShine Transition] Connected overlay to loading manager for progress updates`
+      );
     }
 
     // Show the UI
     this.ui.show();
-    
+
     console.log(`[MapShine Transition] Overlay appended to DOM successfully`);
   }
 
@@ -5566,13 +5631,18 @@ class SceneChangeManager {
   _destroyOverlay() {
     if (!this.ui) return;
     console.log(`[MapShine Transition] Destroying overlay element.`);
-    
+
     // Disconnect from loading manager
-    if (game.mapShine.loadingManager && game.mapShine.loadingManager.screen === this.ui) {
+    if (
+      game.mapShine.loadingManager &&
+      game.mapShine.loadingManager.screen === this.ui
+    ) {
       game.mapShine.loadingManager.screen = null;
-      console.log(`[MapShine Transition] Disconnected overlay from loading manager`);
+      console.log(
+        `[MapShine Transition] Disconnected overlay from loading manager`
+      );
     }
-    
+
     this.ui.destroy();
     this.ui = null;
   }
@@ -5625,7 +5695,10 @@ class SceneChangeManager {
     console.log(`[MapShine Transition] Fading in to reveal new scene`);
 
     // Complete the loading bar with smooth animation
-    this.ui.setProgress(100, "Scene ready!", { duration: 600, easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)' });
+    this.ui.setProgress(100, "Scene ready!", {
+      duration: 600,
+      easing: "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+    });
 
     // Brief pause to show completion
     await new Promise((resolve) => setTimeout(resolve, 800));
@@ -5882,7 +5955,9 @@ class SceneChangeManager {
     // Start the loading progress - the overlay is already connected to the loading manager
     if (game.mapShine.loadingManager) {
       game.mapShine.loadingManager.setProgress("START");
-      console.log("Map Shine | SceneChangeManager: Starting loading progress updates");
+      console.log(
+        "Map Shine | SceneChangeManager: Starting loading progress updates"
+      );
     }
 
     // Import the MapShineLifecycle class and begin the discovery process
@@ -7050,16 +7125,16 @@ class LightMaskManager {
     // --- Stage 1: Render Gradient Masks Using Meshes (Full Resolution) ---
     // Check if we need to rebuild meshes
     const currentLightState = this._computeLightState(lights);
-    const needsRebuild = !this._cachedLightState || 
-                         this._cachedLightState !== currentLightState;
-    
+    const needsRebuild =
+      !this._cachedLightState || this._cachedLightState !== currentLightState;
+
     if (needsRebuild) {
       // Destroy old cached meshes
       this._destroyCachedMeshes();
-      
+
       // Create new mesh container
       const meshContainer = new PIXI.Container();
-      
+
       for (const light of lights) {
         if (
           !light.object?.visible ||
@@ -7070,7 +7145,7 @@ class LightMaskManager {
         ) {
           continue;
         }
-        
+
         // Get light properties
         const luminosity = light.object.lightSource.data?.luminosity ?? 0.5;
         const attenuation = light.object.lightSource.data?.attenuation ?? 0.5;
@@ -7078,7 +7153,7 @@ class LightMaskManager {
         const centerX = light.object.center?.x ?? light.x;
         const centerY = light.object.center?.y ?? light.y;
         const radius = light.object.lightSource.radius;
-        
+
         // Create mesh with gradient from center to edge
         const mesh = this._createGradientMesh(
           points,
@@ -7088,17 +7163,17 @@ class LightMaskManager {
           luminosity,
           attenuation
         );
-        
+
         if (mesh) {
           meshContainer.addChild(mesh);
         }
       }
-      
+
       // Cache the container and state
       this._cachedMeshContainer = meshContainer;
       this._cachedLightState = currentLightState;
     }
-    
+
     // Render cached mesh container
     if (this._cachedMeshContainer) {
       renderer.render(this._cachedMeshContainer, {
@@ -7151,17 +7226,19 @@ class LightMaskManager {
       ) {
         continue;
       }
-      
+
       const luminosity = light.object.lightSource.data?.luminosity ?? 0.5;
       const attenuation = light.object.lightSource.data?.attenuation ?? 0.5;
       const centerX = light.object.center?.x ?? light.x;
       const centerY = light.object.center?.y ?? light.y;
       const radius = light.object.lightSource.radius;
-      const pointsHash = light.object.lightSource.shape.points.join(',');
-      
-      parts.push(`${light.id}:${centerX},${centerY},${radius},${luminosity},${attenuation},${pointsHash}`);
+      const pointsHash = light.object.lightSource.shape.points.join(",");
+
+      parts.push(
+        `${light.id}:${centerX},${centerY},${radius},${luminosity},${attenuation},${pointsHash}`
+      );
     }
-    return parts.join('|');
+    return parts.join("|");
   }
 
   /**
@@ -7185,63 +7262,72 @@ class LightMaskManager {
    * Creates a PIXI.Mesh with vertex colors for smooth gradient rendering
    * @private
    */
-  _createGradientMesh(points, centerX, centerY, radius, luminosity, attenuation) {
+  _createGradientMesh(
+    points,
+    centerX,
+    centerY,
+    radius,
+    luminosity,
+    attenuation
+  ) {
     // Convert polygon points to vertices array (x, y pairs)
     const numVertices = points.length / 2;
     if (numVertices < 3) return null;
-    
+
     // Build geometry: center vertex + edge vertices
     const vertices = [];
     const uvs = [];
     const colors = [];
     const indices = [];
-    
+
     // Add center vertex
     vertices.push(centerX, centerY);
     uvs.push(0.5, 0.5);
-    
+
     // Center brightness based on attenuation curve
     // At attenuation=0: edge and center same brightness (hard edge via uniform color)
     // At attenuation=1: center at full luminosity, edge near zero
     const centerBrightness = luminosity;
     colors.push(centerBrightness, centerBrightness, centerBrightness, 1);
-    
+
     // Add edge vertices with calculated brightness
     for (let i = 0; i < numVertices; i++) {
       const x = points[i * 2];
       const y = points[i * 2 + 1];
       vertices.push(x, y);
       uvs.push(0, 0); // UVs don't matter for solid color
-      
+
       // Calculate distance ratio from center
       const dx = x - centerX;
       const dy = y - centerY;
       const dist = Math.sqrt(dx * dx + dy * dy);
       const distRatio = Math.min(1, dist / radius);
-      
+
       // Apply attenuation curve
       // Low attenuation = flat brightness (hard edge)
       // High attenuation = steep falloff from center
-      const edgeBrightness = luminosity * Math.pow(1 - distRatio, 1 + attenuation * 4);
+      const edgeBrightness =
+        luminosity * Math.pow(1 - distRatio, 1 + attenuation * 4);
       colors.push(edgeBrightness, edgeBrightness, edgeBrightness, 1);
     }
-    
+
     // Create triangle fan indices (center to all edge vertices)
     for (let i = 1; i <= numVertices; i++) {
       indices.push(0); // Center vertex
       indices.push(i); // Current edge vertex
       indices.push(i === numVertices ? 1 : i + 1); // Next edge vertex (wrap around)
     }
-    
+
     // Create mesh geometry
     const geometry = new PIXI.Geometry();
-    geometry.addAttribute('aVertexPosition', vertices, 2);
-    geometry.addAttribute('aColor', colors, 4);
-    geometry.addAttribute('aTextureCoord', uvs, 2);
+    geometry.addAttribute("aVertexPosition", vertices, 2);
+    geometry.addAttribute("aColor", colors, 4);
+    geometry.addAttribute("aTextureCoord", uvs, 2);
     geometry.addIndex(indices);
-    
+
     // Create shader program that uses vertex colors
-    const program = PIXI.Program.from(`
+    const program = PIXI.Program.from(
+      `
       attribute vec2 aVertexPosition;
       attribute vec4 aColor;
       attribute vec2 aTextureCoord;
@@ -7259,7 +7345,7 @@ class LightMaskManager {
         gl_Position = vec4((projectionMatrix * translationMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
       }
     `,
-    `
+      `
       precision mediump float;
       
       varying vec4 vColor;
@@ -7271,15 +7357,16 @@ class LightMaskManager {
         vec4 texColor = texture2D(uSampler, vTextureCoord);
         gl_FragColor = texColor * vColor;
       }
-    `);
-    
+    `
+    );
+
     const shader = new PIXI.Shader(program, {
       uSampler: PIXI.Texture.WHITE,
-      uTextureMatrix: PIXI.Matrix.IDENTITY
+      uTextureMatrix: PIXI.Matrix.IDENTITY,
     });
-    
+
     const mesh = new PIXI.Mesh(geometry, shader);
-    
+
     return mesh;
   }
 
@@ -8619,39 +8706,57 @@ class OverheadEffectLayer extends foundry.canvas.layers.CanvasLayer {
       const todLayer = canvas.timeOfDay;
       if (todLayer?.filter?.uniforms) {
         const todUniforms = todLayer.filter.uniforms;
-        this.recolorFilter.uniforms.uToDIntensity = todUniforms.uIntensity ?? 0.0;
-        this.recolorFilter.uniforms.uToDBlendFactor = todUniforms.uBlendFactor ?? 0.0;
-        this.recolorFilter.uniforms.uToDFromSaturation = todUniforms.uFromSaturation ?? 1.0;
-        this.recolorFilter.uniforms.uToDFromBrightness = todUniforms.uFromBrightness ?? 0.0;
-        this.recolorFilter.uniforms.uToDFromContrast = todUniforms.uFromContrast ?? 1.0;
-        this.recolorFilter.uniforms.uToDFromExposure = todUniforms.uFromExposure ?? 0.0;
-        this.recolorFilter.uniforms.uToDFromGamma = todUniforms.uFromGamma ?? 1.0;
-        this.recolorFilter.uniforms.uToDFromTemperature = todUniforms.uFromTemperature ?? 0.0;
+        this.recolorFilter.uniforms.uToDIntensity =
+          todUniforms.uIntensity ?? 0.0;
+        this.recolorFilter.uniforms.uToDBlendFactor =
+          todUniforms.uBlendFactor ?? 0.0;
+        this.recolorFilter.uniforms.uToDFromSaturation =
+          todUniforms.uFromSaturation ?? 1.0;
+        this.recolorFilter.uniforms.uToDFromBrightness =
+          todUniforms.uFromBrightness ?? 0.0;
+        this.recolorFilter.uniforms.uToDFromContrast =
+          todUniforms.uFromContrast ?? 1.0;
+        this.recolorFilter.uniforms.uToDFromExposure =
+          todUniforms.uFromExposure ?? 0.0;
+        this.recolorFilter.uniforms.uToDFromGamma =
+          todUniforms.uFromGamma ?? 1.0;
+        this.recolorFilter.uniforms.uToDFromTemperature =
+          todUniforms.uFromTemperature ?? 0.0;
         this.recolorFilter.uniforms.uToDFromTint = todUniforms.uFromTint ?? 0.0;
-        this.recolorFilter.uniforms.uToDToSaturation = todUniforms.uToSaturation ?? 1.0;
-        this.recolorFilter.uniforms.uToDToBrightness = todUniforms.uToBrightness ?? 0.0;
-        this.recolorFilter.uniforms.uToDToContrast = todUniforms.uToContrast ?? 1.0;
-        this.recolorFilter.uniforms.uToDToExposure = todUniforms.uToExposure ?? 0.0;
+        this.recolorFilter.uniforms.uToDToSaturation =
+          todUniforms.uToSaturation ?? 1.0;
+        this.recolorFilter.uniforms.uToDToBrightness =
+          todUniforms.uToBrightness ?? 0.0;
+        this.recolorFilter.uniforms.uToDToContrast =
+          todUniforms.uToContrast ?? 1.0;
+        this.recolorFilter.uniforms.uToDToExposure =
+          todUniforms.uToExposure ?? 0.0;
         this.recolorFilter.uniforms.uToDToGamma = todUniforms.uToGamma ?? 1.0;
-        this.recolorFilter.uniforms.uToDToTemperature = todUniforms.uToTemperature ?? 0.0;
+        this.recolorFilter.uniforms.uToDToTemperature =
+          todUniforms.uToTemperature ?? 0.0;
         this.recolorFilter.uniforms.uToDToTint = todUniforms.uToTint ?? 0.0;
       }
 
       // Set ToD strength and outdoors mask
       const config = game.mapShine.profileManager.activeConfig;
       const oeConfig = config.overheadEffect;
-      this.recolorFilter.uniforms.uToDOverheadStrength = oeConfig.timeOfDayStrength ?? 0.5;
-      
+      this.recolorFilter.uniforms.uToDOverheadStrength =
+        oeConfig.timeOfDayStrength ?? 0.5;
+
       // CRITICAL: Ensure Building Shadows layer updates its mask BEFORE we sample it
       // This prevents a one-frame lag when the camera moves
       const buildingShadowsLayer = canvas.buildingShadows;
-      if (buildingShadowsLayer && typeof buildingShadowsLayer.renderEffectNow === 'function') {
+      if (
+        buildingShadowsLayer &&
+        typeof buildingShadowsLayer.renderEffectNow === "function"
+      ) {
         buildingShadowsLayer.renderEffectNow(deltaTime);
       }
-      
+
       // Get outdoors mask from building shadows layer
       if (buildingShadowsLayer?.blurredMaskTexture?.valid) {
-        this.recolorFilter.uniforms.uOutdoorsMask = buildingShadowsLayer.blurredMaskTexture;
+        this.recolorFilter.uniforms.uOutdoorsMask =
+          buildingShadowsLayer.blurredMaskTexture;
         // BlurredMaskTexture is half-resolution, so set scale to 0.5
         this.recolorFilter.uniforms.uOutdoorsMaskScale = [0.5, 0.5];
       } else {
@@ -8729,9 +8834,11 @@ class OverheadEffectLayer extends foundry.canvas.layers.CanvasLayer {
     const currentOverheadIds = new Set();
     for (const tile of canvas.tiles.placeables) {
       // Check if tile is overhead/roof using occlusion mode
-      const isOverhead = tile.document.overhead || tile.document.roof || 
-                        tile.document.occlusion?.mode === CONST.TILE_OCCLUSION_MODES.ROOF;
-      
+      const isOverhead =
+        tile.document.overhead ||
+        tile.document.roof ||
+        tile.document.occlusion?.mode === CONST.TILE_OCCLUSION_MODES.ROOF;
+
       if (isOverhead) {
         currentOverheadIds.add(tile.id);
         if (!this.overheadSprites.has(tile.id)) {
@@ -8797,15 +8904,15 @@ class LoadingScreen {
     this.fadeOutDuration = 500;
     this.minDisplayTime = 1500;
     this.startTime = 0;
-    
+
     // Create the unified LoadingUI instance
     this.ui = new LoadingUI({
       elementId: "map-shine-loading-screen",
       title: game.world?.title || "Loading...",
       fadeOutDuration: this.fadeOutDuration,
       defaults: {
-        randomHints: UNIVERSAL_EFFECT_DEFAULTS.sceneTransition.randomHints
-      }
+        randomHints: UNIVERSAL_EFFECT_DEFAULTS.sceneTransition.randomHints,
+      },
     });
   }
 
@@ -8940,21 +9047,21 @@ class MapShineLifecycle {
 
   /**
    * Performs a full setup of all MapShine systems for the current scene.
-   * 
+   *
    * LIFECYCLE ARCHITECTURE:
    * This method is designed to be self-contained and event-driven. It performs
    * all initialization tasks and emits a 'mapShine:setupComplete' Hook when done.
-   * 
+   *
    * The Scene.prototype.view wrapper listens for this Hook to know when it's safe
    * to proceed with the fade-in animation. This eliminates the need for:
    * - Global promise resolvers (fragile, error-prone)
    * - Hardcoded delays (unreliable across different performance profiles)
    * - Manual coordination between lifecycle and transition systems
-   * 
+   *
    * If any layer or manager requires additional time to stabilize, it should
    * be awaited within this method before the Hook is emitted. This ensures
    * a deterministic and reliable setup sequence.
-   * 
+   *
    * @param {Canvas} canvas - The Foundry VTT canvas instance
    * @returns {Promise<void>} Resolves when all systems are initialized and ready
    */
@@ -9079,14 +9186,12 @@ class MapShineLifecycle {
 
     // Wait for effects to stabilize (give filters time to render first frame)
     // Increased delay for scene transitions to ensure smooth reveal
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise((resolve) => setTimeout(resolve, 300));
 
     // Emit custom Hook event AFTER effects are stable
     // This ensures scene transition overlays don't fade in prematurely
     Hooks.callAll("mapShine:setupComplete", { type: "full" });
-    console.log(
-      "Map Shine | Emitted mapShine:setupComplete hook (full setup)"
-    );
+    console.log("Map Shine | Emitted mapShine:setupComplete hook (full setup)");
 
     // 8. Hide the loading screen AFTER all effects are enabled and stable
     if (loadingScreen) {
@@ -9123,7 +9228,7 @@ class MapShineLifecycle {
 
     // Wait for effects to stabilize
     // Increased delay for scene transitions to ensure smooth reveal
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise((resolve) => setTimeout(resolve, 300));
 
     // Emit custom Hook event AFTER effects are stable
     Hooks.callAll("mapShine:setupComplete", { type: "minimal" });
@@ -9281,13 +9386,13 @@ class MapShineLifecycle {
       console.log(
         `Map Shine | Pre-loading ${allPaths.size} discovered textures...`
       );
-      
+
       // Count textures that will be optimized (downsampled)
       const pathsArray = Array.from(allPaths);
-      const optimizableTextures = pathsArray.filter(path => 
+      const optimizableTextures = pathsArray.filter((path) =>
         TextureLoader.shouldDownscale(path)
       ).length;
-      
+
       // Initialize optimization tracking
       if (optimizableTextures > 0) {
         TextureLoader.startOptimizationTracking(optimizableTextures);
@@ -9295,7 +9400,7 @@ class MapShineLifecycle {
           `Map Shine | ${optimizableTextures} textures will be optimized for memory savings.`
         );
       }
-      
+
       const promises = pathsArray.map((path) =>
         TextureLoader.loadTexture(path)
       );
@@ -9311,7 +9416,7 @@ class MapShineLifecycle {
     }
 
     await loadingManager?.tick("TEXTURE_PRELOAD_END");
-    
+
     // Texture optimization happens during loading, mark completion
     await loadingManager?.tick("TEXTURE_OPTIMIZATION_END");
   }
@@ -9319,20 +9424,22 @@ class MapShineLifecycle {
   /**
    * Pre-warms GPU shader compilation by creating temporary sprites with all complex filters.
    * This eliminates "compilation stutter" on the first frame when effects are actually used.
-   * 
+   *
    * TECHNIQUE:
    * - Creates tiny (1x1 pixel) temporary sprites/containers
    * - Applies each complex filter to force GPU driver compilation
    * - Performs a minimal render operation
    * - Cleans up temporary objects immediately
-   * 
+   *
    * This runs during the loading screen to ensure smooth first-frame performance.
    */
   static async _prewarmShaders() {
     const loadingManager = game.mapShine.loadingManager;
     await loadingManager?.tick("SHADER_PREWARM_START");
 
-    console.log("Map Shine | Pre-warming shaders for smooth first-frame performance...");
+    console.log(
+      "Map Shine | Pre-warming shaders for smooth first-frame performance..."
+    );
 
     try {
       // Create a temporary container to hold our test sprites
@@ -9341,48 +9448,99 @@ class MapShineLifecycle {
 
       // Create a tiny 1x1 white texture for testing
       const tinyTexture = PIXI.Texture.WHITE;
-      
+
       // List of all complex filters that need pre-warming
       // These are the filters most likely to cause compilation stutter
       const filtersToPrewarm = [
         // Water effects
-        { name: "WaterEffectsFilter", create: () => new WaterEffectsFilter({}) },
-        { name: "WaveDisplacementFilter", create: () => new WaveDisplacementFilter({}) },
+        {
+          name: "WaterEffectsFilter",
+          create: () => new WaterEffectsFilter({}),
+        },
+        {
+          name: "WaveDisplacementFilter",
+          create: () => new WaveDisplacementFilter({}),
+        },
         { name: "FoamFilter", create: () => new FoamFilter({}) },
         { name: "BiofilmMaskFilter", create: () => new BiofilmMaskFilter({}) },
-        
+
         // Metallic and shine effects
-        { name: "MetallicShineFilter", create: () => new MetallicShineFilter({}) },
-        { name: "MetallicStripePatternFilter", create: () => new MetallicStripePatternFilter({}) },
+        {
+          name: "MetallicShineFilter",
+          create: () => new MetallicShineFilter({}),
+        },
+        {
+          name: "MetallicStripePatternFilter",
+          create: () => new MetallicStripePatternFilter({}),
+        },
         { name: "IridescenceFilter", create: () => new IridescenceFilter({}) },
         { name: "GroundGlowFilter", create: () => new GroundGlowFilter({}) },
-        
+
         // Shadow and lighting effects
-        { name: "CloudShadowsFilter", create: () => new CloudShadowsFilter({}) },
+        {
+          name: "CloudShadowsFilter",
+          create: () => new CloudShadowsFilter({}),
+        },
         { name: "CanopyFilter", create: () => new CanopyFilter({}) },
         { name: "StructuralFilter", create: () => new StructuralFilter({}) },
-        { name: "BuildingShadowsFilter", create: () => new BuildingShadowsFilter({}) },
-        
+        {
+          name: "BuildingShadowsFilter",
+          create: () => new BuildingShadowsFilter({}),
+        },
+
         // Distortion and atmospheric effects
-        { name: "HeatDistortionFilter", create: () => new HeatDistortionFilter({}) },
-        { name: "HeatDistortionNoiseFilter", create: () => new HeatDistortionNoiseFilter({}) },
-        { name: "LensDistortionFilter", create: () => new LensDistortionFilter({}) },
-        { name: "ChromaticAberrationFilter", create: () => new ChromaticAberrationFilter({}) },
-        
+        {
+          name: "HeatDistortionFilter",
+          create: () => new HeatDistortionFilter({}),
+        },
+        {
+          name: "HeatDistortionNoiseFilter",
+          create: () => new HeatDistortionNoiseFilter({}),
+        },
+        {
+          name: "LensDistortionFilter",
+          create: () => new LensDistortionFilter({}),
+        },
+        {
+          name: "ChromaticAberrationFilter",
+          create: () => new ChromaticAberrationFilter({}),
+        },
+
         // Color and post-processing
-        { name: "ColorCorrectionFilter", create: () => new ColorCorrectionFilter({}) },
-        { name: "AmbientColorFilter", create: () => new AmbientColorFilter({}) },
-        { name: "TimeOfDayColorFilter", create: () => new TimeOfDayColorFilter({}) },
-        { name: "OverheadRecolorFilter", create: () => new OverheadRecolorFilter({}) },
-        
+        {
+          name: "ColorCorrectionFilter",
+          create: () => new ColorCorrectionFilter({}),
+        },
+        {
+          name: "AmbientColorFilter",
+          create: () => new AmbientColorFilter({}),
+        },
+        {
+          name: "TimeOfDayColorFilter",
+          create: () => new TimeOfDayColorFilter({}),
+        },
+        {
+          name: "OverheadRecolorFilter",
+          create: () => new OverheadRecolorFilter({}),
+        },
+
         // Noise and grain effects
-        { name: "NoisePatternFilter", create: () => new NoisePatternFilter({}) },
+        {
+          name: "NoisePatternFilter",
+          create: () => new NoisePatternFilter({}),
+        },
         { name: "FilmGrainFilter", create: () => new FilmGrainFilter({}) },
         { name: "NoiseFilter", create: () => new NoiseFilter({}) },
-        
+
         // Particle and special effects
-        { name: "ParticleRgbSplitFilter", create: () => new ParticleRgbSplitFilter({}) },
-        { name: "CloudSuppressorFilter", create: () => new CloudSuppressorFilter({}) },
+        {
+          name: "ParticleRgbSplitFilter",
+          create: () => new ParticleRgbSplitFilter({}),
+        },
+        {
+          name: "CloudSuppressorFilter",
+          create: () => new CloudSuppressorFilter({}),
+        },
         { name: "PrismFilter", create: () => new PrismFilter({}) },
         { name: "VignetteFilter", create: () => new VignetteFilter({}) },
       ];
@@ -9395,22 +9553,24 @@ class MapShineLifecycle {
           sprite.width = 1;
           sprite.height = 1;
           sprite.visible = true;
-          
+
           // Create and apply the filter
           const filter = filterDef.create();
           sprite.filters = [filter];
-          
+
           // Add to container
           tempContainer.addChild(sprite);
-          
+
           // Force a render by accessing the transform (this triggers the filter pipeline)
           tempContainer.updateTransform();
-          
+
           // Clean up immediately
           sprite.destroy();
-          
         } catch (error) {
-          console.warn(`Map Shine | Failed to pre-warm ${filterDef.name}:`, error);
+          console.warn(
+            `Map Shine | Failed to pre-warm ${filterDef.name}:`,
+            error
+          );
           // Continue with other filters even if one fails
         }
       }
@@ -9421,8 +9581,9 @@ class MapShineLifecycle {
       // Clean up the temporary container
       tempContainer.destroy({ children: true });
 
-      console.log(`Map Shine | Successfully pre-warmed ${filtersToPrewarm.length} shaders.`);
-      
+      console.log(
+        `Map Shine | Successfully pre-warmed ${filtersToPrewarm.length} shaders.`
+      );
     } catch (error) {
       console.warn("Map Shine | Error during shader pre-warming:", error);
       // Don't halt the loading process if pre-warming fails
@@ -10233,7 +10394,7 @@ class TextureAutoLoader {
   // Cache for FilePicker.browse results to avoid redundant network requests
   // Key: directory path, Value: array of file paths
   static _directoryCache = new Map();
-  
+
   // Cache statistics for performance monitoring
   static _cacheStats = { hits: 0, misses: 0 };
 
@@ -10245,7 +10406,7 @@ class TextureAutoLoader {
     TextureAutoLoader._directoryCache.clear();
     TextureAutoLoader._cacheStats = { hits: 0, misses: 0 };
   }
-  
+
   /**
    * Gets cache statistics for performance monitoring.
    * @returns {Object} Object with hits and misses counts
@@ -10257,7 +10418,7 @@ class TextureAutoLoader {
   async discoverAllTargets() {
     // Clear cache at the start of discovery to ensure fresh results for the current scene
     TextureAutoLoader.clearDirectoryCache();
-    
+
     const results = {
       background: null,
       tiles: new Map(),
@@ -10272,7 +10433,7 @@ class TextureAutoLoader {
         results.tiles.set(tile.id, tileTarget);
       }
     }
-    
+
     // Log cache performance statistics
     const stats = TextureAutoLoader.getCacheStats();
     const totalRequests = stats.hits + stats.misses;
@@ -10283,7 +10444,7 @@ class TextureAutoLoader {
       //   `(${hitRate}% hit rate, avoided ${stats.hits} redundant network requests)`
       // );
     }
-    
+
     // console.log("MapShine | Full Texture Discovery Results:", results);
     return results;
   }
@@ -10371,22 +10532,24 @@ class TextureAutoLoader {
 
     // Check cache first before making network request
     let filesInDir = TextureAutoLoader._directoryCache.get(directoryPath);
-    
+
     if (!filesInDir) {
       // Cache miss - fetch from file system and cache the result
       TextureAutoLoader._cacheStats.misses++;
       try {
-        const source = game.settings.get("core", "noCanvas") ? "public" : "data";
+        const source = game.settings.get("core", "noCanvas")
+          ? "public"
+          : "data";
         filesInDir = (
           await foundry.applications.apps.FilePicker.implementation.browse(
             source,
             directoryPath
           )
         ).files;
-        
+
         // Store in cache for future lookups
         TextureAutoLoader._directoryCache.set(directoryPath, filesInDir);
-        
+
         // if (isWaterTile) {
         //   console.log(`Files found in directory (CACHE MISS):`, filesInDir);
         // }
@@ -14616,6 +14779,10 @@ export class ParticleLayer extends foundry.canvas.layers.CanvasLayer {
     this._uiUpdateCounter = 0; // Frame counter for UI throttling
     this._uiUpdateFrequency = 15; // Update UI every 15 frames (approx. 4 times per second)
     this._onPanBoundForParticles = null; // To hold the bound pan listener
+    
+    // Particle update rate limiting (60 FPS cap)
+    this._particleUpdateAccumulator = 0;
+    this._particleUpdateInterval = 1 / 60; // Target 60 updates per second
   }
 
   async _draw() {
@@ -14741,15 +14908,22 @@ export class ParticleLayer extends foundry.canvas.layers.CanvasLayer {
       });
     }
 
-    // Tick the particle simulation forward.
+    // Cap particle updates to 60 FPS using fixed timestep accumulator
     const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
     const deltaInSeconds = clampedDeltaTime * timeFactor;
-
-    if (game.mapShine.windManager) {
-      game.mapShine.windManager.update(deltaInSeconds);
+    
+    this._particleUpdateAccumulator += deltaInSeconds;
+    
+    // Update particles at fixed intervals (60 FPS cap)
+    while (this._particleUpdateAccumulator >= this._particleUpdateInterval) {
+      if (game.mapShine.windManager) {
+        game.mapShine.windManager.update(this._particleUpdateInterval);
+      }
+      
+      game.mapShine.particleManager.update(this._particleUpdateInterval);
+      
+      this._particleUpdateAccumulator -= this._particleUpdateInterval;
     }
-
-    game.mapShine.particleManager.update(deltaInSeconds);
 
     // Throttle UI updates for performance.
     this._uiUpdateCounter++;
@@ -16176,7 +16350,6 @@ class ColorFromSpawnBehavior {
     // Nothing to destroy.
   }
 }
-
 
 class SmellyFliesBehavior {
   static type = "smellyFlies";
@@ -20403,7 +20576,7 @@ class MaskedEffectLayer extends foundry.canvas.layers.CanvasLayer {
       width: renderer.screen.width,
       height: renderer.screen.height,
     });
-    
+
     // Set CLAMP wrap mode to prevent edge artifacts when sampling
     this.combinedMaskTexture.baseTexture.wrapMode = PIXI.WRAP_MODES.CLAMP;
 
@@ -22738,7 +22911,7 @@ class MetallicShineLayer extends foundry.canvas.layers.CanvasLayer {
       `;
     return DebuggerUIBuilder._createAccordionHTML(
       effectKey,
-      "Base Shine",
+      "Metallic / Reflective / Specular Shine",
       content,
       badgeHTML
     );
@@ -23543,48 +23716,121 @@ class CloudShadowsLayer extends MaskedEffectLayer {
                                 <summary><span class="accordion-toggle"></span>
                                     <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
                                       "cloudShadows.depth.enabled",
-                                      "Depth Parallax Effect",
+                                      "Cloud Top Surface Rendering",
                                       false
                                     )}</div>
                                 </summary>
                                 <div style="padding-left: 10px;">
-                                    <p class="description-text">When zoomed out, renders an offset white/grey version of the clouds above everything to create a parallax depth illusion.</p>
-                                    ${DebuggerUIBuilder._createColorPickerHTML(
-                                      "cloudShadows.depth.color",
-                                      "Cloud Color"
-                                    )}
+                                    <p class="description-text">When zoomed out, renders an offset white/grey version of the clouds above everything to create the actual clouds to go above the shadows.</p>
+                                    
                                     ${DebuggerUIBuilder._createSliderHTML(
-                                      "cloudShadows.depth.brightness",
-                                      "Brightness",
-                                      0,
-                                      5,
-                                      0.1,
-                                      "Brightness multiplier for the depth layer clouds."
-                                    )}
-                                    ${DebuggerUIBuilder._createSliderHTML(
-                                      "cloudShadows.depth.opacity",
-                                      "Opacity",
+                                      "cloudShadows.depth.threshold",
+                                      "Cloud Threshold",
                                       0,
                                       1,
-                                      0.05,
-                                      "Overall opacity of the depth layer."
+                                      0.01,
+                                      "Determines where clouds appear in the pattern."
                                     )}
                                     ${DebuggerUIBuilder._createSliderHTML(
-                                      "cloudShadows.depth.offsetX",
-                                      "Offset X",
-                                      -1000,
-                                      1000,
-                                      10,
-                                      "Horizontal offset in pixels. Negative values shift left."
+                                      "cloudShadows.depth.softness",
+                                      "Edge Softness",
+                                      0.01,
+                                      1,
+                                      0.01,
+                                      "Softness of cloud edges."
                                     )}
-                                    ${DebuggerUIBuilder._createSliderHTML(
-                                      "cloudShadows.depth.offsetY",
-                                      "Offset Y",
-                                      -1000,
-                                      1000,
-                                      10,
-                                      "Vertical offset in pixels. Negative values shift up."
-                                    )}
+                                    
+                                    <details><summary><span class="accordion-toggle"></span><strong>Color Correction</strong></summary>
+                                      <div style="padding-left: 10px;">
+                                        ${DebuggerUIBuilder._createColorPickerHTML(
+                                          "cloudShadows.depth.color",
+                                          "Base Color"
+                                        )}
+                                        
+                                        <h4 style="margin-top: 10px; margin-bottom: 5px; font-size: 0.9em;">Exposure & Tone</h4>
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "cloudShadows.depth.exposure",
+                                          "Exposure",
+                                          -3,
+                                          3,
+                                          0.01
+                                        )}
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "cloudShadows.depth.brightness",
+                                          "Brightness",
+                                          -1,
+                                          1,
+                                          0.01
+                                        )}
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "cloudShadows.depth.contrast",
+                                          "Contrast",
+                                          0.1,
+                                          3,
+                                          0.01
+                                        )}
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "cloudShadows.depth.gamma",
+                                          "Gamma",
+                                          0.1,
+                                          3,
+                                          0.01
+                                        )}
+                                        
+                                        <h4 style="margin-top: 10px; margin-bottom: 5px; font-size: 0.9em;">Color</h4>
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "cloudShadows.depth.saturation",
+                                          "Saturation",
+                                          0,
+                                          2,
+                                          0.01
+                                        )}
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "cloudShadows.depth.temperature",
+                                          "Temperature",
+                                          -1,
+                                          1,
+                                          0.01,
+                                          "Warm (positive) or cool (negative) color temperature."
+                                        )}
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "cloudShadows.depth.tint",
+                                          "Tint",
+                                          -1,
+                                          1,
+                                          0.01,
+                                          "Green (positive) or magenta (negative) tint."
+                                        )}
+                                      </div>
+                                    </details>
+                                    
+                                    <details><summary><span class="accordion-toggle"></span><strong>Position & Offset</strong></summary>
+                                      <div style="padding-left: 10px;">
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "cloudShadows.depth.offsetX",
+                                          "X Offset",
+                                          -1000,
+                                          1000,
+                                          10,
+                                          "Horizontal offset in pixels. Negative values shift left."
+                                        )}
+                                        ${DebuggerUIBuilder._createSliderHTML(
+                                          "cloudShadows.depth.offsetY",
+                                          "Offset Y",
+                                          -1000,
+                                          1000,
+                                          10,
+                                          "Vertical offset in pixels. Negative values shift up."
+                                        )}
+                                      </div>
+                                    </details>
+                                    
+                                    <details><summary><span class="accordion-toggle"></span><strong>Per-Tile Visibility</strong></summary>
+                                      <div style="padding-left: 10px;">
+                                        <p class="description-text">Control which tiles and backgrounds show cloud tops. Unchecked items will not display clouds above them.</p>
+                                        ${DebuggerUIBuilder._createTileVisibilityHTML("cloudShadows.depth")}
+                                      </div>
+                                    </details>
                                   
                                 </div>
                             </details>
@@ -23842,28 +24088,76 @@ class CloudDepthRecolorFilter extends PIXI.Filter {
       varying vec2 vTextureCoord;
       uniform sampler2D uSampler;
       uniform vec3 u_cloudColor;
-      uniform float u_brightness;
       uniform float u_threshold;
       uniform float u_softness;
       uniform float u_darkness;
+      
+      // Full Color Correction Suite
+      uniform float u_saturation;
+      uniform float u_brightness;
+      uniform float u_contrast;
+      uniform float u_exposure;
+      uniform float u_gamma;
+      uniform float u_temperature;
+      uniform float u_tint;
+      
+      const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
+      
+      vec3 applyWhiteBalance(vec3 color, float temp, float tint) {
+        const float STRENGTH = 0.5;
+        color.r += temp * (color.r * (1.0 - color.r)) * STRENGTH;
+        color.b -= temp * (color.b * (1.0 - color.b)) * STRENGTH;
+        color.g += tint * (color.g * (1.0 - color.g)) * STRENGTH;
+        return color;
+      }
 
       void main() {
         vec4 texColor = texture2D(uSampler, vTextureCoord);
         
         // Raw cloud texture has bright areas where clouds are present
-        // We want to show the same shape: bright clouds where the pattern is bright
-        float cloudIntensity = texColor.r; // Grayscale cloud pattern (bright = cloud present)
+        float cloudIntensity = texColor.r;
         
         // Apply threshold with soft edges to isolate clouds
-        // No inversion - we want clouds to appear where the pattern is bright
         float alpha = smoothstep(u_threshold - u_softness, u_threshold + u_softness, cloudIntensity);
+        
+        // Early exit for fully transparent areas - don't apply color correction
+        if (alpha < 0.001) {
+          gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+          return;
+        }
         
         // Calculate darkness factor: 0.25 at full darkness (75% darker), 1.0 at no darkness
         float darknessFactor = 1.0 - (u_darkness * 0.75);
         
-        // Apply color tint, brightness, and darkness, modulated by the cloud pattern
-        // This ensures brightness only affects visible cloud parts, not transparent areas
-        vec3 finalColor = u_cloudColor * u_brightness * cloudIntensity * darknessFactor;
+        // Start with base cloud color and intensity
+        // IMPORTANT: Use alpha to ensure we only work with cloud areas
+        vec3 workingColor = u_cloudColor * alpha * darknessFactor;
+        
+        // === FULL COLOR CORRECTION PIPELINE ===
+        
+        // 1. Exposure
+        workingColor *= pow(2.0, u_exposure);
+        
+        // 2. White Balance (Temperature & Tint)
+        workingColor = applyWhiteBalance(workingColor, u_temperature, u_tint);
+        
+        // 3. Gamma
+        if (u_gamma > 0.0) {
+          workingColor = pow(max(workingColor, 0.0), vec3(1.0 / u_gamma));
+        }
+        
+        // 4. Brightness (apply proportionally to alpha to avoid affecting transparent areas)
+        workingColor += u_brightness * alpha;
+        
+        // 5. Contrast (apply around cloud intensity, not midpoint)
+        workingColor = (workingColor - alpha * 0.5) * u_contrast + alpha * 0.5;
+        
+        // 6. Saturation
+        float luminance = dot(workingColor, lum_weights);
+        workingColor = mix(vec3(luminance), workingColor, u_saturation);
+        
+        // Clamp final color
+        vec3 finalColor = clamp(workingColor, 0.0, 1.0);
         
         gl_FragColor = vec4(finalColor, alpha);
       }
@@ -23871,10 +24165,18 @@ class CloudDepthRecolorFilter extends PIXI.Filter {
 
     super(vertexSrc, fragmentSrc, {
       u_cloudColor: [1.0, 1.0, 1.0], // White by default
-      u_brightness: 1.0,
       u_threshold: 0.3, // Threshold for cloud detection
-      u_softness: 0.2,  // Soft edge falloff
-      u_darkness: 0.0,  // Scene darkness level (0 = day, 1 = night)
+      u_softness: 0.2, // Soft edge falloff
+      u_darkness: 0.0, // Scene darkness level (0 = day, 1 = night)
+
+      // Color Correction defaults
+      u_saturation: 1.0,
+      u_brightness: 0.0,
+      u_contrast: 1.0,
+      u_exposure: 0.0,
+      u_gamma: 1.0,
+      u_temperature: 0.0,
+      u_tint: 0.0,
     });
   }
 }
@@ -23884,11 +24186,17 @@ class CloudDepthLayer extends foundry.canvas.layers.CanvasLayer {
     super();
     this.depthSprite = null;
     this.recolorFilter = null;
-    
+
+    // Masking support for per-tile visibility
+    this.maskTexture = null;
+    this.maskGraphics = null;
+    this.maskSprite = null;
+    this._needsMaskUpdate = true;
+
     // Zoom properties (defaults, will be overwritten by config)
-    this.zoomThresholdMin = 0.2;  // Fully visible when zoomed out
-    this.zoomThresholdMax = 0.8;  // Fades out when zooming in
-    
+    this.zoomThresholdMin = 0.2; // Fully visible when zoomed out
+    this.zoomThresholdMax = 0.8; // Fades out when zooming in
+
     // Bound listeners
     this._boundOnAnimate = this._onAnimate.bind(this);
   }
@@ -23901,6 +24209,14 @@ class CloudDepthLayer extends foundry.canvas.layers.CanvasLayer {
     // Create the recolor filter
     this.recolorFilter = new CloudDepthRecolorFilter();
 
+    // Create mask texture and graphics for per-tile visibility
+    const renderer = canvas.app.renderer;
+    this.maskTexture = PIXI.RenderTexture.create({
+      width: renderer.screen.width,
+      height: renderer.screen.height,
+    });
+    this.maskGraphics = new PIXI.Graphics();
+
     // Create sprite to display the raw cloud texture
     this.depthSprite = new PIXI.Sprite(PIXI.Texture.EMPTY);
     this.depthSprite.anchor.set(0, 0);
@@ -23908,22 +24224,45 @@ class CloudDepthLayer extends foundry.canvas.layers.CanvasLayer {
     this.depthSprite.alpha = 0;
     this.addChild(this.depthSprite);
 
+    // Register hooks to trigger mask updates
+    this._flagUpdate = () => { 
+      console.log('MapShine | CloudDepthLayer mask update triggered');
+      this._needsMaskUpdate = true; 
+    };
+    Hooks.on("canvasPan", this._flagUpdate);
+    Hooks.on("updateScene", this._flagUpdate); // Listen for scene flag changes
+
     // Start animation loop
     canvas.app.ticker.add(this._boundOnAnimate);
 
     this.updateFromConfig(game.mapShine.profileManager.activeConfig);
+    
+    // Initial mask update
+    this._needsMaskUpdate = true;
   }
 
   async _tearDown(options) {
     this._destroyed = true;
 
     canvas.app.ticker.remove(this._boundOnAnimate);
+    
+    // Remove hooks
+    if (this._flagUpdate) {
+      Hooks.off("canvasPan", this._flagUpdate);
+      Hooks.off("updateScene", this._flagUpdate);
+    }
 
     this.recolorFilter?.destroy();
     this.depthSprite?.destroy();
+    this.maskTexture?.destroy();
+    this.maskGraphics?.destroy();
+    this.maskSprite?.destroy();
 
     this.recolorFilter = null;
     this.depthSprite = null;
+    this.maskTexture = null;
+    this.maskGraphics = null;
+    this.maskSprite = null;
 
     return super._tearDown(options);
   }
@@ -23935,7 +24274,7 @@ class CloudDepthLayer extends foundry.canvas.layers.CanvasLayer {
     }
 
     const config = game.mapShine.profileManager.activeConfig.cloudShadows.depth;
-    
+
     // Check if depth effect is enabled
     if (!config.enabled) {
       this.depthSprite.visible = false;
@@ -23955,13 +24294,19 @@ class CloudDepthLayer extends foundry.canvas.layers.CanvasLayer {
       return;
     }
 
+    // Render mask if needed
+    if (this._needsMaskUpdate) {
+      this._renderVisibilityMask(config);
+      this._needsMaskUpdate = false;
+    }
+
     // Update sprite texture
     this.depthSprite.texture = rawCloudTexture;
-
+    
     // Get camera position and current zoom level
     const cameraOffset = CoordinateManager.getCameraOffset();
     const currentZoom = CoordinateManager.getCanvasScale();
-    
+
     // The rawCloudTexture is a screen-space render texture.
     // To display it correctly in world space, we scale by 1/canvasScale
     // (same approach as OverheadEffectLayer)
@@ -23977,6 +24322,41 @@ class CloudDepthLayer extends foundry.canvas.layers.CanvasLayer {
       cameraOffset.y + offsetY
     );
 
+    // Apply mask if tileVisibility settings exist (read from scene flags)
+    const tileVisibility = canvas.scene?.getFlag(MODULE_ID, 'cloudTopsTileVisibility') || {};
+    const hasVisibilitySettings = Object.keys(tileVisibility).length > 0;
+    const hasHiddenTiles = Object.values(tileVisibility).some(v => v === false);
+    
+    console.log('MapShine | Cloud Tops Masking - hasVisibilitySettings:', hasVisibilitySettings, 'hasHiddenTiles:', hasHiddenTiles);
+    
+    if (hasVisibilitySettings && hasHiddenTiles) {
+      // Create mask sprite if it doesn't exist
+      if (!this.maskSprite) {
+        console.log('MapShine | Creating mask sprite for cloud tops');
+        this.maskSprite = new PIXI.Sprite(this.maskTexture);
+        this.maskSprite.anchor.set(0, 0);
+        this.addChild(this.maskSprite);
+        this.depthSprite.mask = this.maskSprite;
+      } else {
+        // Update mask texture in case it was regenerated
+        this.maskSprite.texture = this.maskTexture;
+      }
+      
+      // CRITICAL: Mask sprite must match depthSprite's transform
+      // Both use screen-space textures positioned in world space
+      this.maskSprite.position.copyFrom(this.depthSprite.position);
+      this.maskSprite.scale.copyFrom(this.depthSprite.scale);
+    } else {
+      // No visibility restrictions, remove mask
+      if (this.maskSprite) {
+        console.log('MapShine | Removing mask sprite (no hidden tiles)');
+        this.removeChild(this.maskSprite);
+        this.maskSprite.destroy();
+        this.maskSprite = null;
+        this.depthSprite.mask = null;
+      }
+    }
+
     // Hardcoded zoom-based alpha:
     // - Zoom <= 0.35: 100% opacity
     // - 0.35 < Zoom < 0.50: linearly fade from 100% to 0%
@@ -23985,7 +24365,7 @@ class CloudDepthLayer extends foundry.canvas.layers.CanvasLayer {
 
     if (currentZoom <= 0.35) {
       alpha = 1.0;
-    } else if (currentZoom < 0.50) {
+    } else if (currentZoom < 0.5) {
       const t = (currentZoom - 0.35) / 0.15; // 0..1 over [0.35, 0.50)
       alpha = 1.0 - Math.min(Math.max(t, 0.0), 1.0);
     } else {
@@ -23999,36 +24379,123 @@ class CloudDepthLayer extends foundry.canvas.layers.CanvasLayer {
     // Update filter uniforms
     if (this.recolorFilter) {
       const u = this.recolorFilter.uniforms;
-      
+
       // Parse color (assuming hex format)
       const color = config.color || "#FFFFFF";
       const rgb = this._hexToRgb(color);
       u.u_cloudColor = [rgb.r / 255, rgb.g / 255, rgb.b / 255];
-      u.u_brightness = config.brightness || 1.0;
-      u.u_threshold = config.threshold || 0.3;
-      u.u_softness = config.softness || 0.2;
-      
+      u.u_threshold = config.threshold ?? 0.3;
+      u.u_softness = config.softness ?? 0.2;
+
       // Update darkness level from scene
       u.u_darkness = canvas.scene?.environment?.darknessLevel ?? 0;
+
+      // Full Color Correction Suite
+      u.u_saturation = config.saturation ?? 1.0;
+      u.u_brightness = config.brightness ?? 0.0;
+      u.u_contrast = config.contrast ?? 1.0;
+      u.u_exposure = config.exposure ?? 0.0;
+      u.u_gamma = config.gamma ?? 1.0;
+      u.u_temperature = config.temperature ?? 0.0;
+      u.u_tint = config.tint ?? 0.0;
     }
   }
 
   _hexToRgb(hex) {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? {
-      r: parseInt(result[1], 16),
-      g: parseInt(result[2], 16),
-      b: parseInt(result[3], 16)
-    } : { r: 255, g: 255, b: 255 };
+    return result
+      ? {
+          r: parseInt(result[1], 16),
+          g: parseInt(result[2], 16),
+          b: parseInt(result[3], 16),
+        }
+      : { r: 255, g: 255, b: 255 };
   }
 
   async updateFromConfig(config) {
     const depthConfig = config.cloudShadows.depth;
-    this.visible = config.enabled && config.cloudShadows.enabled && depthConfig.enabled;
-    
+    this.visible =
+      config.enabled && config.cloudShadows.enabled && depthConfig.enabled;
+
     // Update zoom thresholds from config
     this.zoomThresholdMin = depthConfig.zoomThresholdMin || 0.2;
     this.zoomThresholdMax = depthConfig.zoomThresholdMax || 0.8;
+    
+    // Flag mask update when config changes
+    this._needsMaskUpdate = true;
+  }
+
+  _renderVisibilityMask(config) {
+    if (!this.maskGraphics || !this.maskTexture) return;
+
+    const renderer = canvas.app.renderer;
+    this.maskGraphics.clear();
+
+    // Get camera offset for proper positioning
+    const cameraOffset = CoordinateManager.getCameraOffset();
+    const currentZoom = CoordinateManager.getCanvasScale();
+
+    // Get tile visibility settings from scene flags (scene-specific data)
+    let tileVisibility = canvas.scene?.getFlag(MODULE_ID, 'cloudTopsTileVisibility') || {};
+    
+    // MIGRATION: Clean up nested structures from old bug (Foundry's setFlag created nested objects)
+    // Convert { "path": { "webp": false } } to { "path::webp": false }
+    const needsMigration = Object.values(tileVisibility).some(v => typeof v === 'object' && v !== null);
+    if (needsMigration) {
+      console.log('MapShine | Migrating old nested tile visibility data');
+      const migratedData = {};
+      for (const [key, value] of Object.entries(tileVisibility)) {
+        if (typeof value === 'object' && value !== null) {
+          // Nested structure - flatten it
+          for (const [subKey, subValue] of Object.entries(value)) {
+            migratedData[`${key}::${subKey}`] = subValue;
+          }
+        } else {
+          // Already flat
+          migratedData[key] = value;
+        }
+      }
+      tileVisibility = migratedData;
+      // Save the cleaned data back
+      canvas.scene?.setFlag(MODULE_ID, 'cloudTopsTileVisibility', migratedData);
+    }
+    
+    console.log('MapShine | Cloud Tops Mask - tileVisibility:', tileVisibility);
+
+    // INVERTED MASK LOGIC:
+    // Start with a WHITE (fully visible) canvas - clouds show everywhere by default
+    this.maskGraphics.beginFill(0xFFFFFF, 1);
+    this.maskGraphics.drawRect(0, 0, renderer.screen.width, renderer.screen.height);
+    this.maskGraphics.endFill();
+
+    // Draw BLACK rectangles where cloud tops should be HIDDEN (unchecked tiles)
+    this.maskGraphics.beginFill(0x000000, 1);
+
+    // Check all tiles and hide clouds on unchecked ones
+    if (canvas.tiles) {
+      for (const tile of canvas.tiles.placeables) {
+        const tilePath = tile.document.texture.src;
+        // CRITICAL: Escape dots to match the escaped keys we saved
+        const escapedPath = tilePath.replace(/\./g, '::');
+        const isVisible = tileVisibility[escapedPath] !== false; // Default to visible
+
+        if (!isVisible) { // INVERTED: Draw black for HIDDEN tiles
+          // Convert world coordinates to screen coordinates
+          const screenX = (tile.document.x - cameraOffset.x) * currentZoom;
+          const screenY = (tile.document.y - cameraOffset.y) * currentZoom;
+          const screenWidth = tile.document.width * currentZoom;
+          const screenHeight = tile.document.height * currentZoom;
+
+          console.log(`MapShine | Masking tile at (${screenX}, ${screenY}) size ${screenWidth}x${screenHeight}`);
+          this.maskGraphics.drawRect(screenX, screenY, screenWidth, screenHeight);
+        }
+      }
+    }
+
+    this.maskGraphics.endFill();
+
+    // Render the graphics to the mask texture
+    renderer.render(this.maskGraphics, { renderTexture: this.maskTexture, clear: true });
   }
 
   _onResize() {
@@ -27666,10 +28133,10 @@ class WaterFXLayer extends MaskedEffectLayer {
       width: halfWidth,
       height: halfHeight,
     });
-    
+
     // Set texture wrap mode to CLAMP to prevent edge artifacts from blur operations
     this.blurredWaterMaskTexture.baseTexture.wrapMode = PIXI.WRAP_MODES.CLAMP;
-    
+
     this.blurSourceSprite = new PIXI.Sprite(this.getMaskTexture());
     this.blurSourceSprite.filters = [this.blurFilter];
     this.shorelineMaskContainer = new PIXI.Container();
@@ -28481,7 +28948,9 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
       height: halfHeight,
       scaleMode: PIXI.SCALE_MODES.LINEAR,
     };
-    this.intermediateBlurTexture = PIXI.RenderTexture.create(halfResTextureOptions);
+    this.intermediateBlurTexture = PIXI.RenderTexture.create(
+      halfResTextureOptions
+    );
     this.blurredMaskTexture = PIXI.RenderTexture.create(halfResTextureOptions);
 
     // CRITICAL: Set texture wrap mode to CLAMP to prevent edge artifacts from Kawase blur
@@ -28855,7 +29324,6 @@ class OverheadRecolorFilter extends PIXI.Filter {
       uToDToTint: 0.0,
 
       uToDOverheadStrength: 0.5,
-
     });
   }
 }
@@ -29861,6 +30329,53 @@ const CLIENT_OVERRIDES_CONFIG = {
     path: "buildingShadows",
     intensitySubPath: "intensity",
     tooltip: "Simulates building shadows based on sun position.",
+  },
+  water: {
+    name: "Water Surface",
+    path: "water",
+    intensitySubPath: "depthDisplacement.strength",
+    tooltip:
+      "A comprehensive water effect with depth displacement, waves, caustics, and surface specularity.",
+  },
+  foam: {
+    name: "Foam",
+    path: "foam",
+    intensitySubPath: "intensity",
+    tooltip:
+      "Creates foam effects on water surfaces, including shoreline foam and wave crests.",
+  },
+  candleFlame: {
+    name: "Candle Flame",
+    path: "candleFlame",
+    intensitySubPath: "frequency",
+    tooltip:
+      "A jiggling flame particle effect suitable for candles, torches, and small fires.",
+  },
+  pressurisedSteam: {
+    name: "Pressurised Steam",
+    path: "pressurisedSteam",
+    intensitySubPath: "maskInfluence",
+    tooltip:
+      "Creates intermittent bursts of steam particles from defined areas on the map.",
+  },
+  smellyFlies: {
+    name: "Smelly Flies",
+    path: "smellyFlies",
+    tooltip:
+      "Simulates a swarm of flies that orbit a point, land, and walk around. Toggle-only control.",
+  },
+  physicsRope: {
+    name: "Physics Rope",
+    path: "physicsRope",
+    intensitySubPath: "animationSpeed",
+    tooltip:
+      "Renders physics-enabled ropes and chains that respond to wind and movement.",
+  },
+  overheadEffect: {
+    name: "Overhead Effect",
+    path: "overheadEffect",
+    tooltip:
+      "Controls overhead tile rendering with zoom-based blur and opacity adjustments. Toggle-only control.",
   },
 };
 
@@ -31612,6 +32127,40 @@ class DebuggerUIBuilder {
         `;
   }
 
+  static _createTileVisibilityHTML(pathPrefix) {
+    if (!canvas.scene) {
+      return '<p class="description-text" style="color: #ffcc00;">No active scene. Load a scene to configure tile visibility.</p>';
+    }
+
+    // Note: Data is stored in scene flags, not in profile config
+    let html = '<div class="tile-visibility-container">';
+    
+    // Scene tiles (no background - clouds show everywhere by default)
+    const tiles = canvas.tiles?.placeables || [];
+    if (tiles.length === 0) {
+      html += '<p class="description-text" style="color: #888;">No tiles in this scene.</p>';
+    } else {
+      html += '<p class="description-text" style="margin-bottom: 8px;">Uncheck tiles where cloud tops should NOT appear:</p>';
+      for (const tile of tiles) {
+        const tilePath = tile.document.texture.src;
+        const tileFilename = tilePath.split('/').pop();
+        const checkboxId = this._createSafeId('cloudTops.' + tilePath);
+        html += `
+          <div class="control-row">
+            <label for="${checkboxId}" title="${tilePath}" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+              <i class="fas fa-layer-group" style="margin-right: 5px; color: #aaa;"></i>${tileFilename}
+            </label>
+            <div class="widget-group">
+              <input type="checkbox" id="${checkboxId}" data-tile-path="${tilePath}" checked>
+            </div>
+          </div>`;
+      }
+    }
+
+    html += '</div>';
+    return html;
+  }
+
   /**
    * Creates point/line/area group controls for a specific effect.
    * @param {string} effectKey - The effect identifier (e.g., 'candleFlame', 'fire', 'lightning')
@@ -31862,9 +32411,7 @@ class DebuggerUIBuilder {
             <span class="group-item-label">${Handlebars.escapeExpression(
               group.label
             )}</span>
-            <span class="group-item-meta">${
-              group.points.length
-            } pts</span>
+            <span class="group-item-meta">${group.points.length} pts</span>
             <button type="button" class="group-delete-btn" data-action="delete-group" data-group-id="${
               group.id
             }" 
@@ -33117,7 +33664,10 @@ class DebuggerEventHandler {
   }
 
   async _onCopyAccordion(effectKey) {
-    console.log("MapShine | _onCopyAccordion called with effectKey:", effectKey);
+    console.log(
+      "MapShine | _onCopyAccordion called with effectKey:",
+      effectKey
+    );
     let settingsToCopy;
     const isGameSettingAccordion = [
       "loadingScreen",
@@ -33179,7 +33729,10 @@ class DebuggerEventHandler {
   }
 
   async _onPasteAccordion(effectKey) {
-    console.log("MapShine | _onPasteAccordion called with effectKey:", effectKey);
+    console.log(
+      "MapShine | _onPasteAccordion called with effectKey:",
+      effectKey
+    );
     try {
       // Try to read from clipboard
       let clipboardText;
@@ -33191,7 +33744,7 @@ class DebuggerEventHandler {
           "Map Shine | Clipboard API failed, trying manual paste:",
           clipErr
         );
-        
+
         // Prompt user to paste manually
         clipboardText = await new Promise((resolve) => {
           const dialog = new Dialog({
@@ -33207,19 +33760,19 @@ class DebuggerEventHandler {
                 callback: (html) => {
                   const text = html.find("#paste-input").val();
                   resolve(text);
-                }
+                },
               },
               cancel: {
                 icon: '<i class="fas fa-times"></i>',
                 label: "Cancel",
-                callback: () => resolve(null)
-              }
+                callback: () => resolve(null),
+              },
             },
             default: "paste",
             render: (html) => {
               // Auto-focus the textarea
               html.find("#paste-input").focus();
-            }
+            },
           });
           dialog.render(true);
         });
@@ -34819,6 +35372,25 @@ class DebuggerEventHandler {
         this._renderListManagerItems(path);
       });
 
+    // Update tile visibility checkboxes (read from scene flags)
+    this.element
+      .querySelectorAll(".tile-visibility-container")
+      .forEach((container) => {
+        // Read from scene flags instead of profile config
+        const tileVisibility = canvas.scene?.getFlag(MODULE_ID, 'cloudTopsTileVisibility') || {};
+        console.log('MapShine | Loading tile visibility from scene flags:', tileVisibility);
+        
+        container.querySelectorAll('input[type="checkbox"][data-tile-path]').forEach((checkbox) => {
+          const tilePath = checkbox.dataset.tilePath;
+          // CRITICAL: Escape dots to match the escaped keys we saved
+          const escapedPath = tilePath.replace(/\./g, '::');
+          // Default to checked (visible) if not explicitly set to false
+          const isChecked = tileVisibility[escapedPath] !== false;
+          checkbox.checked = isChecked;
+          console.log('MapShine | Setting checkbox for', escapedPath, 'to', isChecked);
+        });
+      });
+
     // Update read-only display fields
     this.element.querySelectorAll("[data-readonly-path]").forEach((el) => {
       const path = el.dataset.readonlyPath;
@@ -35507,6 +36079,34 @@ class DebuggerEventHandler {
       return; // Stop further processing for list items
     }
 
+    // Handle tile visibility checkboxes (stored in scene flags, not profile)
+    if (target.closest(".tile-visibility-container")) {
+      const tilePath = target.dataset.tilePath;
+      
+      if (tilePath) {
+        // Get current visibility settings from scene flags
+        const currentVisibility = canvas.scene?.getFlag(MODULE_ID, 'cloudTopsTileVisibility') || {};
+        
+        // CRITICAL: Escape dots in tile path to prevent Foundry from creating nested objects
+        // Foundry's setFlag treats dots as property separators, so "path.webp" becomes nested
+        const escapedPath = tilePath.replace(/\./g, '::');
+        currentVisibility[escapedPath] = target.checked;
+        
+        console.log('MapShine | Saving tile visibility:', escapedPath, '=', target.checked);
+        console.log('MapShine | Full visibility object:', currentVisibility);
+        
+        // Save directly to scene flags (scene-specific, not part of profile)
+        await canvas.scene.setFlag(MODULE_ID, 'cloudTopsTileVisibility', currentVisibility);
+        
+        // Trigger mask update on CloudDepthLayer
+        if (game.mapShine.cloudDepthLayer) {
+          game.mapShine.cloudDepthLayer._needsMaskUpdate = true;
+          console.log('MapShine | Triggered mask update on CloudDepthLayer');
+        }
+        return;
+      }
+    }
+
     // Now, handle all other standard controls
     const path = target.dataset.path;
     if (!path) return;
@@ -35578,9 +36178,12 @@ class DebuggerEventHandler {
       }
       if (path === "tileOpacity")
         game.mapShine.effectTargetManager.applyTileOpacities();
-      
+
       // Load font when font settings change
-      if (path.startsWith("universal.fontManager.styles.") && path.endsWith(".fontFamily")) {
+      if (
+        path.startsWith("universal.fontManager.styles.") &&
+        path.endsWith(".fontFamily")
+      ) {
         FontLoader.load([processedValue]);
       }
     }
@@ -36319,7 +36922,9 @@ class MaterialEditorDebugger {
 
     // Update column widths after re-render
     requestAnimationFrame(() => {
-      this.eventHandler._updateColumnWidths();
+      if (this.eventHandler) {
+        this.eventHandler._updateColumnWidths();
+      }
     });
   }
 
@@ -36341,7 +36946,9 @@ class MaterialEditorDebugger {
 
     // Set initial column widths based on default open accordions
     requestAnimationFrame(() => {
-      this.eventHandler._updateColumnWidths();
+      if (this.eventHandler) {
+        this.eventHandler._updateColumnWidths();
+      }
     });
 
     const savedPosition = game.settings.get(MODULE_ID, "debugger-position");
@@ -36581,6 +37188,11 @@ class SimpleUIPanel extends Application {
     const gammaValue =
       this.profileManager.activeConfig.postProcessing.colorCorrection.gamma;
 
+    // Only show the "Switch to Advanced Mode" button for GMs
+    const advancedModeButton = game.user.isGM
+      ? '<button class="advanced-btn" data-action="switch-to-advanced">Switch to Advanced Mode</button>'
+      : "";
+
     return `
                         <style>
                             .map-shine-simple-panel .window-content { background: rgba(30, 30, 30, 0.9); padding: 10px; color: #eee; font-family: "Signika", sans-serif; }
@@ -36615,7 +37227,7 @@ class SimpleUIPanel extends Application {
                             <hr style="border-color: #555;">
                             ${controlsHTML}
                             <div class="simple-ui-footer">
-                                <button class="advanced-btn" data-action="switch-to-advanced">Switch to Advanced Mode</button>
+                                ${advancedModeButton}
                             </div>
                         </div>
                     `;
@@ -36651,8 +37263,23 @@ class SimpleUIPanel extends Application {
     const type = el.dataset.type;
 
     if (path) {
-      // Gamma slider
-      const value = parseFloat(el.value);
+      // Handle different input types appropriately
+      let value;
+      if (el.type === "checkbox") {
+        value = el.checked;
+      } else if (el.type === "radio") {
+        value = el.value;
+      } else if (el.type === "color" || el.type === "text") {
+        value = el.value;
+      } else if (el.type === "number" || el.type === "range") {
+        value = parseFloat(el.value);
+      } else if (el.tagName === "SELECT") {
+        value = el.value;
+      } else {
+        // Fallback: try to parse as number, otherwise use string
+        const parsed = parseFloat(el.value);
+        value = isNaN(parsed) ? el.value : parsed;
+      }
       await this.profileManager.recordUserChange(path, value);
     } else if (key && type) {
       // Client override controls
@@ -36803,14 +37430,23 @@ Hooks.on("getSceneControlButtons", (controls) => {
 
 Hooks.once("init", () => {
   MapShineInitialiser.initialize();
-  
+
   // Register memory profiling console commands
-  console.log("%c🔍 MapShine Memory Profiler available!", "color: #4CAF50; font-weight: bold;");
+  console.log(
+    "%c🔍 MapShine Memory Profiler available!",
+    "color: #4CAF50; font-weight: bold;"
+  );
   console.log("%cCommands:", "font-weight: bold;");
-  console.log("  • MapShineMemoryProfiler.printStats() - Show current memory usage");
-  console.log("  • MapShineMemoryProfiler.startMonitoring(intervalMs) - Start continuous monitoring");
+  console.log(
+    "  • MapShineMemoryProfiler.printStats() - Show current memory usage"
+  );
+  console.log(
+    "  • MapShineMemoryProfiler.startMonitoring(intervalMs) - Start continuous monitoring"
+  );
   console.log("  • MapShineMemoryProfiler.stopMonitoring() - Stop monitoring");
-  console.log("  • MapShineMemoryProfiler.collectStats() - Get raw stats object");
+  console.log(
+    "  • MapShineMemoryProfiler.collectStats() - Get raw stats object"
+  );
 });
 
 Hooks.once("ready", () => {
