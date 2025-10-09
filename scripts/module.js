@@ -23211,7 +23211,13 @@ class CloudShadowsFilter extends PIXI.Filter {
             
             if (maskValue > 0.01 || u_outputRawCloud) {
                 vec2 world_coord = u_camera_offset + (vScreenCoord * u_view_size);
-                vec2 base_uv = world_coord / 100.0 * u_noise_scale;
+                
+                // Correct for aspect ratio so noise appears square
+                float aspect = u_view_size.x / u_view_size.y;
+                vec2 corrected_coord = world_coord;
+                corrected_coord.x /= aspect;
+                
+                vec2 base_uv = corrected_coord / 100.0 * u_noise_scale;
                 
                 // Layered cloud accumulation - each layer blocks some light
                 float shadow = 1.0;
@@ -23399,7 +23405,7 @@ class CloudShadowsLayer extends MaskedEffectLayer {
                                       "cloudShadows.wind.speed",
                                       "Speed",
                                       0,
-                                      0.01,
+                                      50,
                                       0.0001
                                     )}
                     <details id="details-cloudShadows-wind-link" style="margin-top: 5px;">
@@ -23414,7 +23420,7 @@ class CloudShadowsLayer extends MaskedEffectLayer {
                           "cloudShadows.wind.linkedWindForce",
                           "Wind Force",
                           0,
-                          0.01,
+                          1,
                           0.00001,
                           "How strongly the wind accelerates the clouds."
                         )}
@@ -23422,8 +23428,8 @@ class CloudShadowsLayer extends MaskedEffectLayer {
                           "cloudShadows.wind.linkedMaxSpeed",
                           "Max Speed",
                           0,
-                          0.02,
-                          0.0005,
+                          1,
+                          0.00001,
                           "The maximum speed (terminal velocity) of the clouds."
                         )}
                         ${DebuggerUIBuilder._createSliderHTML(
