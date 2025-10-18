@@ -19,7 +19,7 @@
  * - Real-time shader-based visual enhancements
  *
  * @author Mythica Machina - Ingram Blakelock
- * @version 1.0.60
+ * @version 1.0.62
  *
  * @requires foundry ^13+
  * @requires pixi.js ^7.4.3
@@ -185,6 +185,16 @@ import { TextureLoader } from "./utils/TextureLoader.js";
 export const MODULE_ID = "map-shine";
 
 /**
+ * Temporary storage for copy/paste operations within the module.
+ * Replaces clipboard usage to avoid browser compatibility issues.
+ * @type {Object}
+ */
+const TEMP_CLIPBOARD_STORAGE = {
+  accordion: null,  // For individual accordion copy/paste
+  settings: null    // For whole scene copy/paste
+};
+
+/**
  * The maximum delta time in seconds allowed for a single simulation step.
  * This prevents physics "explosions" or extreme jumps during moments of low frame rate.
  * The value 1/30 corresponds to a minimum of 30 frames per second.
@@ -305,12 +315,6 @@ const UNIVERSAL_EFFECT_DEFAULTS = {
       whiteBalance: {
         temperature: 0,
         tint: 0,
-      },
-      mask: {
-        enabled: false,
-        invert: false,
-        luminanceThreshold: 0.25,
-        softness: 0.1,
       },
       selective: {
         enabled: false,
@@ -1821,22 +1825,13 @@ export const MODULE_DEFAULTS = {
   "timeControl": {
     "globalTime": 100
   },
-  "wind": {
-    "angle": 0,
-    "speed": 0.1,
-    "strength": 100,
-    "gustiness": 0.2,
-    "gustFrequency": 0.5
-  },
   "enabled": true,
   "debug": true,
   "showTokenMask": false,
-  "showDustMaskDebug": false,
-  "showGlintMaskDebug": false,
   "tileOpacity": 0,
   "lightMask": {
     "blur": 50,
-    "noise": 0.05
+    "noise": 0
   },
   "baseShine": {
     "enabled": true,
@@ -1906,13 +1901,14 @@ export const MODULE_DEFAULTS = {
       "contrast": 5,
       "gamma": 1.6
     },
+    "evolutionSpeed": 0.001,
     "layers": {
       "layer1": {
         "enabled": true,
         "scale": 4,
         "speed": 2.5,
-        "stretchX": 3,
-        "stretchY": 1,
+        "stretchX": 1.0,
+        "stretchY": 1.0,
         "octaves": 3,
         "opacity": 0.3
       },
@@ -1920,8 +1916,8 @@ export const MODULE_DEFAULTS = {
         "enabled": true,
         "scale": 1.5,
         "speed": 1.3,
-        "stretchX": 1.5,
-        "stretchY": 1,
+        "stretchX": 1.0,
+        "stretchY": 1.0,
         "octaves": 5,
         "opacity": 0.5
       },
@@ -1929,10 +1925,28 @@ export const MODULE_DEFAULTS = {
         "enabled": true,
         "scale": 0.7,
         "speed": 0.7,
-        "stretchX": 1,
-        "stretchY": 1,
+        "stretchX": 1.0,
+        "stretchY": 1.0,
         "octaves": 6,
         "opacity": 0.6
+      },
+      "layer4": {
+        "enabled": true,
+        "scale": 2.5,
+        "speed": 1.8,
+        "stretchX": 1.0,
+        "stretchY": 1.0,
+        "octaves": 4,
+        "opacity": 0.4
+      },
+      "layer5": {
+        "enabled": true,
+        "scale": 5.0,
+        "speed": 3.0,
+        "stretchX": 1.0,
+        "stretchY": 1.0,
+        "octaves": 2,
+        "opacity": 0.2
       }
     },
     "depth": {
@@ -1950,7 +1964,13 @@ export const MODULE_DEFAULTS = {
       "exposure": 0,
       "gamma": 1,
       "temperature": 0,
-      "tint": 0
+      "tint": 0,
+      "zoomPointMin": 1.0,
+      "zoomPointMid": 2.0,
+      "zoomPointMax": 3.0,
+      "opacityMinZoom": 1.0,
+      "opacityMidZoom": 1.0,
+      "opacityMaxZoom": 1.0
     }
   },
   "iridescence": {
@@ -2001,8 +2021,7 @@ export const MODULE_DEFAULTS = {
       "brightness": 0,
       "contrast": 0.45,
       "softness": 1
-    },
-    "postScale": 1
+    }
   },
   "structuralShadows": {
     "enabled": true,
@@ -2132,6 +2151,12 @@ export const MODULE_DEFAULTS = {
       "whiteBalance": {
         "temperature": 0,
         "tint": 0
+      },
+      "mask": {
+        "enabled": false,
+        "invert": false,
+        "luminanceThreshold": 0.25,
+        "softness": 0.1
       },
       "selective": {
         "enabled": false,
@@ -2277,31 +2302,7 @@ export const MODULE_DEFAULTS = {
       "enabled": true,
       "texturePath": "",
       "intensity": 1,
-      "presetName": "custom",
-      "diagnosticMode": 0,
-      "diagnosticSlice": 1,
-      "domainMin": {
-        "r": 0,
-        "g": 0,
-        "b": 0
-      },
-      "domainMax": {
-        "r": 1,
-        "g": 1,
-        "b": 1
-      },
-      "preLutBlur": {
-        "enabled": false,
-        "amount": 0
-      },
-      "inputProcessing": {
-        "enabled": false,
-        "saturation": 1,
-        "brightness": 0,
-        "contrast": 1,
-        "gamma": 0.9,
-        "hue": 0
-      }
+      "presetName": "custom"
     }
   },
   "dust": {
@@ -2571,7 +2572,11 @@ export const MODULE_DEFAULTS = {
       "enabled": true,
       "speed": 1.5,
       "scale": 0.5,
-      "intensity": 0.0027
+      "intensity": 0.0027,
+      "biofilmDistortion": {
+        "enabled": false,
+        "intensity": 0.5
+      }
     },
     "murkiness": {
       "enabled": true,
@@ -3310,14 +3315,6 @@ export const MODULE_DEFAULTS = {
   },
   "physicsRope": {
     "enabled": true,
-    "segmentLength": 13,
-    "animationSpeed": 1.2,
-    "damping": 0.995,
-    "windForce": 1,
-    "tapering": 0.5,
-    "texturePath": "modules/mythica-machina-flooded-river-prison/assets/rope.png",
-    "indoorWindShielding": 0.95,
-    "isIndoors": false,
     "rope": {
       "texturePath": "modules/mythica-machina-flooded-river-prison/assets/rope.png",
       "segmentLength": 8,
@@ -3377,9 +3374,9 @@ export const MODULE_DEFAULTS = {
     "zoomPointMax": 2.8,
     "timeOfDayStrength": 0.5,
     "recolor": {
-      "enabled": false,
-      "intensity": 2,
-      "tint": "#80DEEA",
+      "enabled": true,
+      "intensity": 0.5,
+      "blendMode": 1,
       "cloudShadowDarken": {
         "enabled": true,
         "intensity": 0.3
@@ -4537,11 +4534,7 @@ class LayerManager {
       },
 
       // --- Layers Above Tiles but Below Tokens (30 < zIndex < 100) ---
-      metallicShine: {
-        layerClass: MetallicShineLayer,
-        group: "primary",
-        zIndex: 35, // Renders on top of tiles, but below tokens.
-      },
+
       groundGlow: {
         layerClass: GroundGlowLayer,
         group: "environment",
@@ -4607,12 +4600,18 @@ class LayerManager {
         group: "environment",
         zIndex: 690, // Above most things, below OverheadEffectLayer
       },
+            metallicShine: {
+        layerClass: MetallicShineLayer,
+        group: "primary",
+        zIndex: 35, // Renders on top of tiles, but below tokens.
+      },
 
       heatDistortion: {
         layerClass: HeatDistortionLayer,
         group: "primary",
         zIndex: 253,
       },
+      
 
       overheadEffect: {
         layerClass: OverheadEffectLayer,
@@ -6690,11 +6689,14 @@ class ResourceManager {
       return null;
 
     // Command the layer to perform the blur operation.
-    layer.blurSourceSprite.texture = this.getWaterMask();
-    canvas.app.renderer.render(layer.blurSourceSprite, {
-      renderTexture: layer.blurredWaterMaskTexture,
-      clear: true,
-    });
+    const waterMask = this.getWaterMask();
+    if (layer.blurSourceSprite && waterMask?.baseTexture?.valid && layer.blurredWaterMaskTexture?.valid) {
+      layer.blurSourceSprite.texture = waterMask;
+      canvas.app.renderer.render(layer.blurSourceSprite, {
+        renderTexture: layer.blurredWaterMaskTexture,
+        clear: true,
+      });
+    }
 
     this._frameCache.blurredWaterMask = layer.blurredWaterMaskTexture;
     return layer.blurredWaterMaskTexture;
@@ -6715,11 +6717,13 @@ class ResourceManager {
       return null;
 
     // Command the layer to render its shoreline mask.
-    canvas.app.renderer.render(layer.shorelineMaskContainer, {
-      renderTexture: layer.shorelineMaskTexture,
-      transform: canvas.stage.transform.worldTransform,
-      clear: true,
-    });
+    if (layer.shorelineMaskContainer && !layer.shorelineMaskContainer.destroyed && layer.shorelineMaskTexture?.valid) {
+      canvas.app.renderer.render(layer.shorelineMaskContainer, {
+        renderTexture: layer.shorelineMaskTexture,
+        transform: canvas.stage.transform.worldTransform,
+        clear: true,
+      });
+    }
 
     this._frameCache.shorelineMask = layer.shorelineMaskTexture;
     return layer.shorelineMaskTexture;
@@ -6748,10 +6752,12 @@ class ResourceManager {
     // Command the layer to render its displacement map.
     const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
     layer.displacementFilter.uniforms.u_time += deltaTime * timeFactor;
-    canvas.app.renderer.render(layer.displacementSprite, {
-      renderTexture: layer.displacementTexture,
-      clear: true,
-    });
+    if (layer.displacementSprite?.texture?.baseTexture?.valid && !layer.displacementSprite.destroyed && layer.displacementTexture?.valid) {
+      canvas.app.renderer.render(layer.displacementSprite, {
+        renderTexture: layer.displacementTexture,
+        clear: true,
+      });
+    }
 
     this._frameCache.waterDisplacementMap = layer.displacementTexture;
     return layer.displacementTexture;
@@ -6969,7 +6975,7 @@ class LightMaskManager {
     this.kawaseBlurFilter2 = new PIXI.filters.KawaseBlurFilter(15, 2, true);
 
     this.kawaseBlurFilter3 = new PIXI.filters.KawaseBlurFilter(15, 2, true);
-    this.noiseFilter = new NoiseFilter({ noiseAmount: 0.05 });
+    this.noiseFilter = new NoiseFilter({ noiseAmount: 0 });
 
     // Sprite for full-resolution rendering (final pass)
     this.blurSourceSprite = new PIXI.Sprite();
@@ -8554,7 +8560,14 @@ class OverheadEffectLayer extends foundry.canvas.layers.CanvasLayer {
   async _draw() {
     this._destroyed = false;
     /** @type {string} */
-    this.eventMode = "auto";
+    this.eventMode = "none"; // Set to "none" initially to avoid EventBoundary issues
+    
+    // Defer setting eventMode to "auto" until after EventSystem is fully initialized
+    setTimeout(() => {
+      if (!this._destroyed) {
+        this.eventMode = "auto";
+      }
+    }, 100);
 
     const screen = canvas.app.renderer.screen;
 
@@ -8693,10 +8706,10 @@ class OverheadEffectLayer extends foundry.canvas.layers.CanvasLayer {
     if (this.recolorFilter) {
       const resourceManager = game.mapShine.resourceManager;
       if (resourceManager) {
-        this.recolorFilter.uniforms.uStructuralMask =
-          resourceManager.getStructuralMask() ?? PIXI.Texture.white;
         this.recolorFilter.uniforms.uCloudShadows =
-          resourceManager.getRawCloudTexture(deltaTime) ?? PIXI.Texture.white;
+          resourceManager.getRawCloudTexture(deltaTime) ?? PIXI.Texture.EMPTY;
+        this.recolorFilter.uniforms.uOutdoorsMask =
+          resourceManager.getOutdoorsMask() ?? PIXI.Texture.WHITE;
       }
       // Pass the scene  level to the filter
       this.recolorFilter.uniforms.uDarkness =
@@ -8737,32 +8750,11 @@ class OverheadEffectLayer extends foundry.canvas.layers.CanvasLayer {
         this.recolorFilter.uniforms.uToDToTint = todUniforms.uToTint ?? 0.0;
       }
 
-      // Set ToD strength and outdoors mask
+      // Set ToD strength
       const config = game.mapShine.profileManager.activeConfig;
       const oeConfig = config.overheadEffect;
       this.recolorFilter.uniforms.uToDOverheadStrength =
         oeConfig.timeOfDayStrength ?? 0.5;
-
-      // CRITICAL: Ensure Building Shadows layer updates its mask BEFORE we sample it
-      // This prevents a one-frame lag when the camera moves
-      const buildingShadowsLayer = canvas.buildingShadows;
-      if (
-        buildingShadowsLayer &&
-        typeof buildingShadowsLayer.renderEffectNow === "function"
-      ) {
-        buildingShadowsLayer.renderEffectNow(deltaTime);
-      }
-
-      // Get outdoors mask from building shadows layer
-      if (buildingShadowsLayer?.blurredMaskTexture?.valid) {
-        this.recolorFilter.uniforms.uOutdoorsMask =
-          buildingShadowsLayer.blurredMaskTexture;
-        // BlurredMaskTexture is half-resolution, so set scale to 0.5
-        this.recolorFilter.uniforms.uOutdoorsMaskScale = [0.5, 0.5];
-      } else {
-        this.recolorFilter.uniforms.uOutdoorsMask = PIXI.Texture.WHITE;
-        this.recolorFilter.uniforms.uOutdoorsMaskScale = [1.0, 1.0];
-      }
     }
 
     const renderer = canvas.app.renderer;
@@ -8787,7 +8779,19 @@ class OverheadEffectLayer extends foundry.canvas.layers.CanvasLayer {
   _onResize() {
     if (this._destroyed) return;
     const screen = CoordinateManager.getScreenDimensions();
+    
+    // Log texture size mismatch for debugging
+    if (this.compositeTexture && 
+        (this.compositeTexture.width !== screen.width || this.compositeTexture.height !== screen.height)) {
+      console.warn(
+        `Map Shine | Overhead composite texture size mismatch detected before resize: ` +
+        `texture=${this.compositeTexture.width}x${this.compositeTexture.height}, ` +
+        `screen=${screen.width}x${screen.height}`
+      );
+    }
+    
     this.compositeTexture?.resize(screen.width, screen.height);
+    
     if (this.compositeSprite) {
       this.compositeSprite.filterArea = new PIXI.Rectangle(
         0,
@@ -8812,18 +8816,16 @@ class OverheadEffectLayer extends foundry.canvas.layers.CanvasLayer {
     this.zoomPointMid = oeConfig.zoomPointMid ?? 0.65;
     this.zoomPointMax = oeConfig.zoomPointMax ?? 1.5;
 
-    if (this.recolorFilter) {
+    if (this.recolorFilter && oeConfig.recolor) {
       const rConfig = oeConfig.recolor;
-      this.recolorFilter.uniforms.uRecolorEnabled = rConfig.enabled;
-      this.recolorFilter.uniforms.uRecolorTint = hexToRgbArray(rConfig.tint);
-      this.recolorFilter.uniforms.uRecolorIntensity = rConfig.intensity;
+      this.recolorFilter.uniforms.uRecolorEnabled = rConfig.enabled ?? false;
 
       const csdConfig = rConfig.cloudShadowDarken;
       if (csdConfig) {
         this.recolorFilter.uniforms.uCloudShadowDarkenEnabled =
-          csdConfig.enabled;
+          csdConfig.enabled ?? false;
         this.recolorFilter.uniforms.uCloudShadowDarkenIntensity =
-          csdConfig.intensity;
+          csdConfig.intensity ?? 0.5;
       }
     }
   }
@@ -10718,10 +10720,15 @@ class NoiseTextureManager {
       ];
     }
 
-    renderer.render(this.sourceSprite, {
-      renderTexture: this.renderTexture,
-      clear: true,
-    });
+    // Validate sprite and textures before rendering
+    if (this.sourceSprite?.texture?.baseTexture?.valid && !this.sourceSprite.destroyed && this.renderTexture?.valid) {
+      renderer.render(this.sourceSprite, {
+        renderTexture: this.renderTexture,
+        clear: true,
+      });
+    } else {
+      console.warn("ScreenEffect | Invalid sourceSprite or renderTexture, skipping render");
+    }
     this._needsUpdate = false;
   }
 
@@ -10809,11 +10816,19 @@ class DynamicTokenMaskManager {
     )
       return;
     const renderer = this.canvas.app.renderer;
+    
+    // Skip rendering if renderer context isn't ready
+    if (!renderer?.gl && !renderer?.context) return;
+    
+    // Skip if BatchRenderer isn't initialized yet
+    const batchRenderer = renderer.plugins?.batch;
+    if (!batchRenderer || !batchRenderer._aIndex) return;
 
     const currentTokenIds = new Set();
 
     for (const token of this.canvas.tokens.placeables) {
-      if (!token.visible || !token.texture?.valid || token.document.hidden) {
+      // Validate token texture and baseTexture before creating sprite
+      if (!token.visible || !token.texture?.valid || !token.texture?.baseTexture?.valid || token.document.hidden) {
         continue;
       }
       currentTokenIds.add(token.id);
@@ -10827,7 +10842,7 @@ class DynamicTokenMaskManager {
         this.tokenContainer.addChild(sprite);
       }
 
-      if (sprite.texture !== token.texture) {
+      if (sprite.texture !== token.texture && token.texture?.baseTexture?.valid) {
         sprite.texture = token.texture;
       }
 
@@ -10849,11 +10864,20 @@ class DynamicTokenMaskManager {
 
     if (!this.canvas?.stage?.transform) return;
 
-    renderer.render(this.tokenContainer, {
-      renderTexture: this.renderTexture,
-      transform: this.canvas.stage.transform.worldTransform,
-      clear: true,
-    });
+    // Validate container, its children's textures, and render texture before rendering
+    const hasValidChildren = this.tokenContainer?.children?.every(
+      child => !child.texture || (child.texture.baseTexture && child.texture.baseTexture.valid)
+    ) ?? false;
+    
+    if (this.tokenContainer && !this.tokenContainer.destroyed && this.renderTexture?.valid && hasValidChildren) {
+      renderer.render(this.tokenContainer, {
+        renderTexture: this.renderTexture,
+        transform: this.canvas.stage.transform.worldTransform,
+        clear: true,
+      });
+    } else if (!hasValidChildren) {
+      console.warn("DynamicTokenMaskManager | Container has children with invalid textures, skipping render");
+    }
   }
 
   getMaskTexture() {
@@ -10905,6 +10929,13 @@ class CompositeMaskGenerator {
     const renderer = canvas.app?.renderer;
     if (!renderer || !rect || !baseTexturePath || !overlayTexturePath)
       return null;
+    
+    // Check if BatchRenderer is ready
+    const batchRenderer = renderer.plugins?.batch;
+    if (!batchRenderer || !batchRenderer._aIndex) {
+      console.warn("CompositeMaskGenerator | BatchRenderer not ready, deferring mask generation");
+      return null;
+    }
 
     try {
       const [baseTex, overlayTex] = await Promise.all([
@@ -12940,8 +12971,11 @@ class ParticleEffectController {
           // Ensure all active particles have the correct blend mode
           let particle = this._activeParticlesFirst;
           while (particle) {
-            if (particle.blendMode !== targetBlendMode) {
-              particle.blendMode = targetBlendMode;
+            // Validate particle and its texture before setting blend mode
+            if (particle && !particle.destroyed && particle.texture?.baseTexture?.valid) {
+              if (particle.blendMode !== targetBlendMode) {
+                particle.blendMode = targetBlendMode;
+              }
             }
             particle = particle.next;
           }
@@ -13058,8 +13092,11 @@ class ParticleEffectController {
           // Ensure all active particles have the correct blend mode
           let particle = this._activeParticlesFirst;
           while (particle) {
-            if (particle.blendMode !== targetBlendMode) {
-              particle.blendMode = targetBlendMode;
+            // Validate particle and its texture before setting blend mode
+            if (particle && !particle.destroyed && particle.texture?.baseTexture?.valid) {
+              if (particle.blendMode !== targetBlendMode) {
+                particle.blendMode = targetBlendMode;
+              }
             }
             particle = particle.next;
           }
@@ -13187,10 +13224,13 @@ class ParticleEffectController {
       this.definition.configPath === "biofilm" &&
       this.particleOutputTexture
     ) {
-      canvas.app.renderer.render(this.parentContainer, {
-        renderTexture: this.particleOutputTexture,
-        clear: true,
-      });
+      // Validate container before rendering biofilm particles
+      if (this.parentContainer && !this.parentContainer.destroyed && this.particleOutputTexture?.valid) {
+        canvas.app.renderer.render(this.parentContainer, {
+          renderTexture: this.particleOutputTexture,
+          clear: true,
+        });
+      }
     }
   }
 
@@ -14201,6 +14241,56 @@ class ParticleManager {
   }
 }
 
+/**
+ * Manages dynamic wind direction and speed for weather effects.
+ * 
+ * ## Wind Direction Convention
+ * This system uses standard compass/meteorological convention:
+ * - **0°** = East (wind blowing toward the right, +X direction)
+ * - **90°** = North (wind blowing upward, -Y in screen coordinates)
+ * - **180°** = West (wind blowing toward the left, -X direction)
+ * - **270°** = South (wind blowing downward, +Y in screen coordinates)
+ * 
+ * ## Screen Coordinate System
+ * Canvas/screen coordinates have Y-axis inverted from mathematical convention:
+ * - X-axis: increases to the right (positive = East)
+ * - Y-axis: increases downward (positive = South, opposite of math convention)
+ * 
+ * ## How to Apply Wind Direction
+ * 
+ * ### For Particle Systems (direct position updates):
+ * ```javascript
+ * const windAngleRad = windManager.angle * (Math.PI / 180);
+ * const velocityX = Math.cos(windAngleRad) * windManager.speed;
+ * const velocityY = -Math.sin(windAngleRad) * windManager.speed;  // Negate for screen coords!
+ * ```
+ * The Y component must be negated because sin() produces positive values for upward angles,
+ * but screen Y increases downward.
+ * 
+ * ### For Shader UV Scrolling (cloud patterns, etc.):
+ * ```javascript
+ * const windAngleRad = windManager.smoothedAngle * (Math.PI / 180);
+ * const velocityX = Math.cos(windAngleRad) * speed;
+ * const velocityY = -Math.sin(windAngleRad) * speed;  // Screen coords
+ * // IMPORTANT: Negate when passing to shader!
+ * uniforms.u_windDirection = [-velocityX, -velocityY];
+ * ```
+ * Shaders that ADD to UV coordinates (`uv += windDirection * time`) cause the pattern to move
+ * in the OPPOSITE direction of the scroll. Therefore, negate the velocity before passing to shader.
+ * 
+ * ### For Visual Indicators (windsock, arrows, etc.):
+ * ```javascript
+ * // For CSS rotation where 0° points up:
+ * element.style.transform = `rotate(${windManager.angle + 90}deg)`;
+ * ```
+ * CSS rotation of 0° points up (north), but our angle=0 means east. Add 90° to align correctly.
+ * 
+ * ## Properties
+ * - `angle`: Current wind angle in degrees (reactive, includes gusts)
+ * - `speed`: Current wind speed (reactive, includes gusts)
+ * - `smoothedAngle`: Long-term averaged angle (for clouds, ignores quick changes)
+ * - `smoothedSpeed`: Long-term averaged speed (for clouds, ignores gusts)
+ */
 class WindManager {
   constructor(config = {}) {
     this.config = config;
@@ -14222,6 +14312,10 @@ class WindManager {
       this.config.gustFrequencyMax
     );
     this._gustDuration = 0;
+
+    // Smoothed wind for clouds - tracks long-term averaged direction
+    this.smoothedAngle = 0; // Long-term averaged wind angle for clouds
+    this.smoothedSpeed = config.baseSpeed || 50; // Long-term averaged speed for clouds
   }
 
   getNormalizedStrength() {
@@ -14296,6 +14390,13 @@ class WindManager {
       ? this.config.gustSpeed
       : this.config.baseSpeed;
     this.speed += (targetSpeed - this.speed) * 0.1;
+
+    // Update smoothed values for clouds (much slower lerp for stable drift)
+    // Only use base speed for smoothed, ignore gusts entirely
+    this.smoothedSpeed += (this.config.baseSpeed - this.smoothedSpeed) * 0.001;
+    
+    // Smoothed angle changes very slowly, giving clouds inertia
+    this.smoothedAngle += (this._targetAngle - this.smoothedAngle) * 0.002;
   }
 
   _getRandom(min, max) {
@@ -14401,9 +14502,29 @@ class TextureMaskShape {
 
   async _performCompilation(resolve, reject) {
     const renderer = canvas.app?.renderer;
+    
+    // Defer compilation if renderer or BatchRenderer isn't initialized
+    if (!renderer?.gl && !renderer?.context) {
+      console.warn("TextureMaskShape | Renderer context not ready, deferring compilation");
+      this.isCompiled = false;
+      this.isCompiling = false;
+      resolve();
+      return;
+    }
+    
+    // Check if BatchRenderer is ready (critical for sprite rendering)
+    const batchRenderer = renderer.plugins?.batch;
+    if (!batchRenderer || !batchRenderer._aIndex) {
+      console.warn("TextureMaskShape | BatchRenderer not ready, deferring compilation");
+      this.isCompiled = false;
+      this.isCompiling = false;
+      resolve();
+      return;
+    }
+    
     if (
-      !renderer ||
       !this.texture?.valid ||
+      !this.texture?.baseTexture?.valid ||
       this.texture.width === 0 ||
       this.texture.height === 0
     ) {
@@ -14430,11 +14551,32 @@ class TextureMaskShape {
         }
       }
 
+      // Validate texture has a valid baseTexture before creating render texture
+      if (!texture.baseTexture || !texture.baseTexture.valid) {
+        console.warn("TextureMaskShape | Texture baseTexture is null or invalid, skipping compilation");
+        this.isCompiled = true;
+        this.isCompiling = false;
+        resolve();
+        return;
+      }
+
       const renderTexture = PIXI.RenderTexture.create({
         width: texture.width,
         height: texture.height,
       });
       const sprite = new PIXI.Sprite(texture);
+      
+      // Validate sprite and texture before rendering
+      if (!sprite.texture?.baseTexture?.valid || sprite.destroyed || !sprite.texture.baseTexture) {
+        console.warn("TextureMaskShape | Invalid sprite or texture, skipping compilation");
+        sprite.destroy();
+        renderTexture.destroy(true);
+        this.isCompiled = true;
+        this.isCompiling = false;
+        resolve();
+        return;
+      }
+      
       renderer.render(sprite, {
         renderTexture: renderTexture,
         clear: true,
@@ -14445,17 +14587,23 @@ class TextureMaskShape {
 
       // Extract color data from the color texture if available
       let colorPixelData = null;
-      if (this.colorTexture?.valid) {
+      if (this.colorTexture?.valid && this.colorTexture?.baseTexture?.valid) {
         const colorRenderTexture = PIXI.RenderTexture.create({
           width: this.colorTexture.width,
           height: this.colorTexture.height,
         });
         const colorSprite = new PIXI.Sprite(this.colorTexture);
-        renderer.render(colorSprite, {
-          renderTexture: colorRenderTexture,
-          clear: true,
-        });
-        colorPixelData = renderer.extract.pixels(colorRenderTexture);
+        
+        // Validate color sprite before rendering
+        if (colorSprite.texture?.baseTexture?.valid && !colorSprite.destroyed) {
+          renderer.render(colorSprite, {
+            renderTexture: colorRenderTexture,
+            clear: true,
+          });
+          colorPixelData = renderer.extract.pixels(colorRenderTexture);
+        } else {
+          console.warn("TextureMaskShape | Invalid color sprite, skipping color extraction");
+        }
         colorSprite.destroy();
         colorRenderTexture.destroy(true);
       }
@@ -16178,7 +16326,8 @@ class WindBehavior {
     const windAngleRad = windManager.angle * (Math.PI / 180.0);
     const windForce = windManager.speed * this.config.force;
     const windAccelX = Math.cos(windAngleRad) * windForce;
-    const windAccelY = Math.sin(windAngleRad) * windForce;
+    // Negate Y for screen coordinates (Y increases downward)
+    const windAccelY = -Math.sin(windAngleRad) * windForce;
 
     // 2. Calculate the total acceleration for this frame (buoyancy + wind).
     const totalAccelX = this.buoyancy.x + windAccelX;
@@ -20665,11 +20814,14 @@ class MaskedEffectLayer extends foundry.canvas.layers.CanvasLayer {
 
     // Render the container of mask sprites onto the now-cleared texture.
     // The `clear` option is set to false to prevent overwriting our manual clear.
-    renderer.render(this.maskContainer, {
-      renderTexture: this.combinedMaskTexture,
-      transform: canvas.stage.transform.worldTransform,
-      clear: false,
-    });
+    // Validate container before rendering
+    if (this.maskContainer && !this.maskContainer.destroyed && this.combinedMaskTexture?.valid) {
+      renderer.render(this.maskContainer, {
+        renderTexture: this.combinedMaskTexture,
+        transform: canvas.stage.transform.worldTransform,
+        clear: false,
+      });
+    }
 
     // It's good practice to unbind the render texture when done.
     renderer.renderTexture.bind(null);
@@ -20725,7 +20877,13 @@ class MaskedEffectLayer extends foundry.canvas.layers.CanvasLayer {
     const currentPath = sprite.texture?.baseTexture?.resource?.src;
     if (texturePath !== currentPath) {
       try {
-        sprite.texture = await TextureLoader.loadTexture(texturePath);
+        const loadedTexture = await TextureLoader.loadTexture(texturePath);
+        if (loadedTexture?.baseTexture?.valid) {
+          sprite.texture = loadedTexture;
+        } else {
+          console.warn(`MapShine | Loaded texture has invalid baseTexture: "${texturePath}"`);
+          sprite.texture = PIXI.Texture.EMPTY;
+        }
       } catch (e) {
         console.warn(
           `MapShine | Failed to load texture "${texturePath}":`,
@@ -20739,7 +20897,8 @@ class MaskedEffectLayer extends foundry.canvas.layers.CanvasLayer {
       !sprite ||
       sprite.destroyed ||
       !sprite.anchor ||
-      !sprite.texture.valid ||
+      !sprite.texture?.valid ||
+      !sprite.texture?.baseTexture?.valid ||
       !rect
     )
       return;
@@ -21147,7 +21306,13 @@ class DiagnosticLayer extends foundry.canvas.layers.CanvasLayer {
     const currentPath = sprite.texture?.baseTexture?.resource?.src;
     if (texturePath !== currentPath) {
       try {
-        sprite.texture = await TextureLoader.loadTexture(texturePath);
+        const loadedTexture = await TextureLoader.loadTexture(texturePath);
+        if (loadedTexture?.baseTexture?.valid) {
+          sprite.texture = loadedTexture;
+        } else {
+          console.warn(`MapShine | Loaded texture has invalid baseTexture: "${texturePath}"`);
+          sprite.texture = PIXI.Texture.EMPTY;
+        }
       } catch (e) {
         console.warn(
           `MapShine | Failed to load texture "${texturePath}":`,
@@ -21161,7 +21326,8 @@ class DiagnosticLayer extends foundry.canvas.layers.CanvasLayer {
       !sprite ||
       sprite.destroyed ||
       !sprite.anchor ||
-      !sprite.texture.valid ||
+      !sprite.texture?.valid ||
+      !sprite.texture?.baseTexture?.valid ||
       !rect
     )
       return;
@@ -23124,7 +23290,13 @@ class MetallicShineLayer extends foundry.canvas.layers.CanvasLayer {
     const currentPath = sprite.texture?.baseTexture?.resource?.src;
     if (texturePath !== currentPath) {
       try {
-        sprite.texture = await TextureLoader.loadTexture(texturePath);
+        const loadedTexture = await TextureLoader.loadTexture(texturePath);
+        if (loadedTexture?.baseTexture?.valid) {
+          sprite.texture = loadedTexture;
+        } else {
+          console.warn(`MapShine | Loaded texture has invalid baseTexture: "${texturePath}"`);
+          sprite.texture = PIXI.Texture.EMPTY;
+        }
       } catch (e) {
         console.warn(
           `MapShine | Failed to load texture "${texturePath}":`,
@@ -23133,7 +23305,7 @@ class MetallicShineLayer extends foundry.canvas.layers.CanvasLayer {
         sprite.texture = PIXI.Texture.EMPTY;
       }
     }
-    if (!sprite.texture.valid || !rect) return;
+    if (!sprite.texture?.valid || !sprite.texture?.baseTexture?.valid || !rect) return;
     sprite.anchor.set(0.5);
     sprite.position.set(rect.x + rect.width / 2, rect.y + rect.height / 2);
     sprite.width = rect.width;
@@ -23344,7 +23516,27 @@ class CloudShadowsFilter extends PIXI.Filter {
         uniform int u_layer3_octaves;
         uniform float u_layer3_opacity;
 
+        // Layer 4 (Extra Altitude)
+        uniform bool u_layer4_enabled;
+        uniform float u_layer4_scale;
+        uniform float u_layer4_speed;
+        uniform vec2 u_layer4_stretch;
+        uniform int u_layer4_octaves;
+        uniform float u_layer4_opacity;
+
+        // Layer 5 (Extra Altitude)
+        uniform bool u_layer5_enabled;
+        uniform float u_layer5_scale;
+        uniform float u_layer5_speed;
+        uniform vec2 u_layer5_stretch;
+        uniform int u_layer5_octaves;
+        uniform float u_layer5_opacity;
+
+        // Evolution (shape morphing over time)
+        uniform float u_evolutionSpeed;
+
         float random(vec2 st) { return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123); }
+        float random3d(vec3 st) { return fract(sin(dot(st.xyz, vec3(12.9898, 78.233, 45.164))) * 43758.5453123); }
         float noise(vec2 st) {
             vec2 i = floor(st); vec2 f = fract(st);
             float a = random(i); float b = random(i + vec2(1.0, 0.0));
@@ -23352,11 +23544,36 @@ class CloudShadowsFilter extends PIXI.Filter {
             vec2 u = f * f * (3.0 - 2.0 * f);
             return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.y * u.x;
         }
+        float noise3d(vec3 st) {
+            vec3 i = floor(st); vec3 f = fract(st);
+            // 8 corners of a cube
+            float a = random3d(i);
+            float b = random3d(i + vec3(1.0, 0.0, 0.0));
+            float c = random3d(i + vec3(0.0, 1.0, 0.0));
+            float d = random3d(i + vec3(1.0, 1.0, 0.0));
+            float e = random3d(i + vec3(0.0, 0.0, 1.0));
+            float f2 = random3d(i + vec3(1.0, 0.0, 1.0));
+            float g = random3d(i + vec3(0.0, 1.0, 1.0));
+            float h = random3d(i + vec3(1.0, 1.0, 1.0));
+            vec3 u = f * f * (3.0 - 2.0 * f);
+            return mix(mix(mix(a, b, u.x), mix(c, d, u.x), u.y),
+                       mix(mix(e, f2, u.x), mix(g, h, u.x), u.y), u.z);
+        }
         float fbm(vec2 st, int octaves, float persistence, float lacunarity) {
             float value = 0.0; float amplitude = 0.5;
             for (int i = 0; i < 10; i++) {
                 if (i >= octaves) break;
                 value += amplitude * noise(st);
+                st *= lacunarity;
+                amplitude *= persistence;
+            }
+            return value;
+        }
+        float fbm3d(vec3 st, int octaves, float persistence, float lacunarity) {
+            float value = 0.0; float amplitude = 0.5;
+            for (int i = 0; i < 10; i++) {
+                if (i >= octaves) break;
+                value += amplitude * noise3d(st);
                 st *= lacunarity;
                 amplitude *= persistence;
             }
@@ -23392,6 +23609,9 @@ class CloudShadowsFilter extends PIXI.Filter {
                 
                 vec2 base_uv = corrected_coord / 100.0 * u_noise_scale;
                 
+                // Evolution z-offset for shape morphing
+                float evolutionZ = u_time * u_evolutionSpeed;
+                
                 // Layered cloud accumulation - each layer blocks some light
                 float shadow = 1.0;
                 
@@ -23399,27 +23619,46 @@ class CloudShadowsFilter extends PIXI.Filter {
                 if (u_layer1_enabled) {
                     vec2 layer1_uv = base_uv * u_layer1_scale * u_layer1_stretch;
                     layer1_uv += u_time * u_windDirection * u_layer1_speed;
-                    float layer1_raw = fbm(layer1_uv, u_layer1_octaves, u_noise_persistence, u_noise_lacunarity);
-                    float layer1_shaded = applyShadingControls(layer1_raw);
-                    shadow *= (1.0 - layer1_shaded * u_layer1_opacity);
+                    float layer1_raw = fbm3d(vec3(layer1_uv, evolutionZ), u_layer1_octaves, u_noise_persistence, u_noise_lacunarity);
+                    // Always apply shading controls to get proper cloud shapes for both display and texture output
+                    float layer1_value = applyShadingControls(layer1_raw);
+                    shadow *= (1.0 - layer1_value * u_layer1_opacity);
                 }
                 
                 // Layer 2: Mid altitude (medium speed, medium scale)
                 if (u_layer2_enabled) {
                     vec2 layer2_uv = base_uv * u_layer2_scale * u_layer2_stretch;
                     layer2_uv += u_time * u_windDirection * u_layer2_speed;
-                    float layer2_raw = fbm(layer2_uv, u_layer2_octaves, u_noise_persistence, u_noise_lacunarity);
-                    float layer2_shaded = applyShadingControls(layer2_raw);
-                    shadow *= (1.0 - layer2_shaded * u_layer2_opacity);
+                    float layer2_raw = fbm3d(vec3(layer2_uv, evolutionZ * 0.8), u_layer2_octaves, u_noise_persistence, u_noise_lacunarity);
+                    float layer2_value = applyShadingControls(layer2_raw);
+                    shadow *= (1.0 - layer2_value * u_layer2_opacity);
                 }
                 
                 // Layer 3: Low altitude (slow, small, dense)
                 if (u_layer3_enabled) {
                     vec2 layer3_uv = base_uv * u_layer3_scale * u_layer3_stretch;
                     layer3_uv += u_time * u_windDirection * u_layer3_speed;
-                    float layer3_raw = fbm(layer3_uv, u_layer3_octaves, u_noise_persistence, u_noise_lacunarity);
-                    float layer3_shaded = applyShadingControls(layer3_raw);
-                    shadow *= (1.0 - layer3_shaded * u_layer3_opacity);
+                    float layer3_raw = fbm3d(vec3(layer3_uv, evolutionZ * 0.6), u_layer3_octaves, u_noise_persistence, u_noise_lacunarity);
+                    float layer3_value = applyShadingControls(layer3_raw);
+                    shadow *= (1.0 - layer3_value * u_layer3_opacity);
+                }
+                
+                // Layer 4: Extra altitude
+                if (u_layer4_enabled) {
+                    vec2 layer4_uv = base_uv * u_layer4_scale * u_layer4_stretch;
+                    layer4_uv += u_time * u_windDirection * u_layer4_speed;
+                    float layer4_raw = fbm3d(vec3(layer4_uv, evolutionZ * 0.4), u_layer4_octaves, u_noise_persistence, u_noise_lacunarity);
+                    float layer4_value = applyShadingControls(layer4_raw);
+                    shadow *= (1.0 - layer4_value * u_layer4_opacity);
+                }
+                
+                // Layer 5: Extra altitude
+                if (u_layer5_enabled) {
+                    vec2 layer5_uv = base_uv * u_layer5_scale * u_layer5_stretch;
+                    layer5_uv += u_time * u_windDirection * u_layer5_speed;
+                    float layer5_raw = fbm3d(vec3(layer5_uv, evolutionZ * 0.2), u_layer5_octaves, u_noise_persistence, u_noise_lacunarity);
+                    float layer5_value = applyShadingControls(layer5_raw);
+                    shadow *= (1.0 - layer5_value * u_layer5_opacity);
                 }
                 
                 // Convert shadow (light transmission) to cloud value (shadow amount)
@@ -23495,7 +23734,7 @@ class CloudShadowsFilter extends PIXI.Filter {
       u_layer1_enabled: true,
       u_layer1_scale: 4.0,
       u_layer1_speed: 2.5,
-      u_layer1_stretch: [3.0, 1.0],
+      u_layer1_stretch: [1.0, 1.0],
       u_layer1_octaves: 3,
       u_layer1_opacity: 0.3,
 
@@ -23503,7 +23742,7 @@ class CloudShadowsFilter extends PIXI.Filter {
       u_layer2_enabled: true,
       u_layer2_scale: 1.5,
       u_layer2_speed: 1.3,
-      u_layer2_stretch: [1.5, 1.0],
+      u_layer2_stretch: [1.0, 1.0],
       u_layer2_octaves: 5,
       u_layer2_opacity: 0.5,
 
@@ -23514,6 +23753,25 @@ class CloudShadowsFilter extends PIXI.Filter {
       u_layer3_stretch: [1.0, 1.0],
       u_layer3_octaves: 6,
       u_layer3_opacity: 0.6,
+
+      // Layer 4: Extra altitude
+      u_layer4_enabled: true,
+      u_layer4_scale: 2.5,
+      u_layer4_speed: 1.8,
+      u_layer4_stretch: [1.0, 1.0],
+      u_layer4_octaves: 4,
+      u_layer4_opacity: 0.4,
+
+      // Layer 5: Extra altitude
+      u_layer5_enabled: true,
+      u_layer5_scale: 5.0,
+      u_layer5_speed: 3.0,
+      u_layer5_stretch: [1.0, 1.0],
+      u_layer5_octaves: 2,
+      u_layer5_opacity: 0.2,
+
+      // Evolution (shape morphing)
+      u_evolutionSpeed: 0.001,
     });
   }
 }
@@ -23530,6 +23788,13 @@ class CloudShadowsLayer extends MaskedEffectLayer {
     this.rawCloudTexture = null;
 
     this._cloudVelocity = { x: 0, y: 0 };
+
+    this.zoomPointMin = 1.0;
+    this.zoomPointMid = 2.0;
+    this.zoomPointMax = 3.0;
+    this.opacityMinZoom = 1.0;
+    this.opacityMidZoom = 1.0;
+    this.opacityMaxZoom = 1.0;
   }
 
   static getSettingsHTML() {
@@ -23649,6 +23914,14 @@ class CloudShadowsLayer extends MaskedEffectLayer {
                                       4,
                                       0.1,
                                       "How much detail is added with each octave. Higher values create finer, more complex noise."
+                                    )}
+                                    ${DebuggerUIBuilder._createSliderHTML(
+                                      "cloudShadows.evolutionSpeed",
+                                      "Evolution Speed",
+                                      0,
+                                      0.01,
+                                      0.00001,
+                                      "How quickly the cloud shapes morph and change over time. 0 = static, higher = faster morphing."
                                     )}
                                 </div>
                             </details>
@@ -23825,6 +24098,72 @@ class CloudShadowsLayer extends MaskedEffectLayer {
                                       </div>
                                     </details>
                                     
+                                    <details><summary><span class="accordion-toggle"></span><strong>Zoom-Based Opacity</strong></summary>
+                                        <div style="padding-left: 10px;">
+                                            <p class="description-text">Define the layer opacity at various zoom levels to fade the cloud tops in or out.</p>
+                                            <div id="cloudshadow-zoom-display" style="text-align: center; padding: 4px; background: rgba(0,0,0,0.3); border-radius: 3px; margin-bottom: 5px; font-family: monospace;">
+                                                Loading zoom data...
+                                            </div>
+                                            <details>
+                                                <summary><span class="accordion-toggle"></span><strong>Zoom Point Configuration</strong></summary>
+                                                <div style="padding-left: 10px;">
+                                                    <p class="description-text">Define the zoom levels used for opacity interpolation.</p>
+                                                    ${DebuggerUIBuilder._createSliderHTML(
+                                                      "cloudShadows.depth.zoomPointMin",
+                                                      "Min Zoom Point",
+                                                      0.1,
+                                                      5,
+                                                      0.05,
+                                                      "The zoom level for the 'Min' settings below."
+                                                    )}
+                                                    ${DebuggerUIBuilder._createSliderHTML(
+                                                      "cloudShadows.depth.zoomPointMid",
+                                                      "Mid Zoom Point",
+                                                      0.1,
+                                                      5,
+                                                      0.05,
+                                                      "The zoom level for the 'Mid' settings below."
+                                                    )}
+                                                    ${DebuggerUIBuilder._createSliderHTML(
+                                                      "cloudShadows.depth.zoomPointMax",
+                                                      "Max Zoom Point",
+                                                      0.1,
+                                                      5,
+                                                      0.05,
+                                                      "The zoom level for the 'Max' settings below."
+                                                    )}
+                                                </div>
+                                            </details>
+                                            <details>
+                                                <summary><span class="accordion-toggle"></span><strong>Opacity Configuration</strong></summary>
+                                                <div style="padding-left: 10px;">
+                                                    <p class="description-text">Define the layer opacity at the configured zoom points.</p>
+                                                    ${DebuggerUIBuilder._createSliderHTML(
+                                                      "cloudShadows.depth.opacityMinZoom",
+                                                      "Opacity (Min Zoom)",
+                                                      0,
+                                                      1,
+                                                      0.01
+                                                    )}
+                                                    ${DebuggerUIBuilder._createSliderHTML(
+                                                      "cloudShadows.depth.opacityMidZoom",
+                                                      "Opacity (Mid Zoom)",
+                                                      0,
+                                                      1,
+                                                      0.01
+                                                    )}
+                                                    ${DebuggerUIBuilder._createSliderHTML(
+                                                      "cloudShadows.depth.opacityMaxZoom",
+                                                      "Opacity (Max Zoom)",
+                                                      0,
+                                                      1,
+                                                      0.01
+                                                    )}
+                                                </div>
+                                            </details>
+                                        </div>
+                                    </details>
+
                                     <details><summary><span class="accordion-toggle"></span><strong>Per-Tile Visibility</strong></summary>
                                       <div style="padding-left: 10px;">
                                         <p class="description-text">Control which tiles and backgrounds show cloud tops. Unchecked items will not display clouds above them.</p>
@@ -23906,6 +24245,10 @@ class CloudShadowsLayer extends MaskedEffectLayer {
 
   renderEffectNow(deltaTime = canvas.app.ticker.deltaTime) {
     if (this._destroyed || !this.cloudFilter) return;
+    
+    // Skip rendering if renderer context isn't ready
+    const renderer = canvas.app?.renderer;
+    if (!renderer?.gl && !renderer?.context) return;
 
     const resourceManager = game.mapShine.resourceManager;
     if (!resourceManager) return; // Safeguard against initialization race condition
@@ -23920,11 +24263,14 @@ class CloudShadowsLayer extends MaskedEffectLayer {
     const deltaInSeconds = deltaTime / 1000;
     if (windConfig.linkToWind && game.mapShine.windManager?.config?.enabled) {
       const windManager = game.mapShine.windManager;
-      const windAngleRad = windManager.angle * (Math.PI / 180.0);
+      // Use smoothedAngle for clouds to give them inertia and steady drift
+      const windAngleRad = windManager.smoothedAngle * (Math.PI / 180.0);
+      // Use smoothedSpeed instead of speed to ignore gusts
       const windForceMagnitude =
-        windManager.speed * (windConfig.linkedWindForce ?? 0.001);
+        windManager.smoothedSpeed * (windConfig.linkedWindForce ?? 0.001);
       const accelX = Math.cos(windAngleRad) * windForceMagnitude;
-      const accelY = Math.sin(windAngleRad) * windForceMagnitude;
+      // Negate Y for screen coordinates (Y increases downward)
+      const accelY = -Math.sin(windAngleRad) * windForceMagnitude;
       this._cloudVelocity.x += accelX * deltaInSeconds;
       this._cloudVelocity.y += accelY * deltaInSeconds;
       const dragFactor = 1.0 - (windConfig.linkedDrag ?? 0.5) * deltaInSeconds;
@@ -23939,15 +24285,19 @@ class CloudShadowsLayer extends MaskedEffectLayer {
         this._cloudVelocity.x *= scale;
         this._cloudVelocity.y *= scale;
       }
-      u.u_windDirection = [this._cloudVelocity.x, this._cloudVelocity.y];
+      // Negate when passing to shader because UV scrolling moves pattern opposite to scroll direction
+      u.u_windDirection = [-this._cloudVelocity.x, -this._cloudVelocity.y];
     } else {
       const simpleAngleRad = (windConfig.angle ?? 45.0) * (Math.PI / 180.0);
       const simpleSpeed = windConfig.speed ?? 0.01;
       this._cloudVelocity.x = Math.cos(simpleAngleRad) * simpleSpeed;
-      this._cloudVelocity.y = Math.sin(simpleAngleRad) * simpleSpeed;
+      // Negate Y for screen coordinates (Y increases downward)
+      this._cloudVelocity.y = -Math.sin(simpleAngleRad) * simpleSpeed;
+      // Negate when passing to shader because UV scrolling moves pattern opposite to scroll direction
+      u.u_windDirection = [-this._cloudVelocity.x, -this._cloudVelocity.y];
     }
 
-    const finalLightMask = resourceManager.getLightMask() || PIXI.Texture.white;
+    const finalLightMask = resourceManager.getLightMask() || PIXI.Texture.WHITE;
 
     u.uOutdoorsMask = mainOutdoorsMask;
     u.uLightPolygonMask = finalLightMask;
@@ -23955,10 +24305,16 @@ class CloudShadowsLayer extends MaskedEffectLayer {
     this._updateUniformPositions();
 
     u.u_outputRawCloud = true;
-    canvas.app.renderer.render(this._patternGeneratorSprite, {
-      renderTexture: this.rawCloudTexture,
-      clear: true,
-    });
+    // Validate sprite and textures before rendering
+    if (this._patternGeneratorSprite?.texture?.baseTexture?.valid && 
+        !this._patternGeneratorSprite.destroyed && 
+        this.rawCloudTexture?.valid) {
+      canvas.app.renderer.render(this._patternGeneratorSprite, {
+        renderTexture: this.rawCloudTexture,
+        clear: true,
+      });
+      // console.log("MapShine | CloudShadows: Generated raw cloud texture with u_outputRawCloud=true, shader should apply applyShadingControls");
+    }
     u.u_outputRawCloud = false;
   }
 
@@ -24008,7 +24364,7 @@ class CloudShadowsLayer extends MaskedEffectLayer {
       u.u_layer1_scale = layers.layer1?.scale ?? 4.0;
       u.u_layer1_speed = layers.layer1?.speed ?? 2.5;
       u.u_layer1_stretch = [
-        layers.layer1?.stretchX ?? 3.0,
+        layers.layer1?.stretchX ?? 1.0,
         layers.layer1?.stretchY ?? 1.0,
       ];
       u.u_layer1_octaves = layers.layer1?.octaves ?? 3;
@@ -24019,7 +24375,7 @@ class CloudShadowsLayer extends MaskedEffectLayer {
       u.u_layer2_scale = layers.layer2?.scale ?? 1.5;
       u.u_layer2_speed = layers.layer2?.speed ?? 1.3;
       u.u_layer2_stretch = [
-        layers.layer2?.stretchX ?? 1.5,
+        layers.layer2?.stretchX ?? 1.0,
         layers.layer2?.stretchY ?? 1.0,
       ];
       u.u_layer2_octaves = layers.layer2?.octaves ?? 5;
@@ -24035,7 +24391,32 @@ class CloudShadowsLayer extends MaskedEffectLayer {
       ];
       u.u_layer3_octaves = layers.layer3?.octaves ?? 6;
       u.u_layer3_opacity = layers.layer3?.opacity ?? 0.6;
+
+      // Layer 4
+      u.u_layer4_enabled = layers.layer4?.enabled ?? true;
+      u.u_layer4_scale = layers.layer4?.scale ?? 2.5;
+      u.u_layer4_speed = layers.layer4?.speed ?? 1.8;
+      u.u_layer4_stretch = [
+        layers.layer4?.stretchX ?? 1.0,
+        layers.layer4?.stretchY ?? 1.0,
+      ];
+      u.u_layer4_octaves = layers.layer4?.octaves ?? 4;
+      u.u_layer4_opacity = layers.layer4?.opacity ?? 0.4;
+
+      // Layer 5
+      u.u_layer5_enabled = layers.layer5?.enabled ?? true;
+      u.u_layer5_scale = layers.layer5?.scale ?? 5.0;
+      u.u_layer5_speed = layers.layer5?.speed ?? 3.0;
+      u.u_layer5_stretch = [
+        layers.layer5?.stretchX ?? 1.0,
+        layers.layer5?.stretchY ?? 1.0,
+      ];
+      u.u_layer5_octaves = layers.layer5?.octaves ?? 2;
+      u.u_layer5_opacity = layers.layer5?.opacity ?? 0.2;
     }
+
+    // Evolution speed
+    u.u_evolutionSpeed = csConfig.evolutionSpeed ?? 0.001;
   }
 
   _onResize() {
@@ -24100,6 +24481,7 @@ class CloudDepthRecolorFilter extends PIXI.Filter {
       uniform float u_gamma;
       uniform float u_temperature;
       uniform float u_tint;
+      uniform float u_zoomOpacity;
       
       const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
       
@@ -24159,7 +24541,9 @@ class CloudDepthRecolorFilter extends PIXI.Filter {
         // Clamp final color
         vec3 finalColor = clamp(workingColor, 0.0, 1.0);
         
-        gl_FragColor = vec4(finalColor, alpha);
+        float outA = clamp(alpha * u_zoomOpacity, 0.0, 1.0);
+        vec3 outRGB = finalColor * outA; // Premultiplied alpha to avoid color bleed
+        gl_FragColor = vec4(outRGB, outA);
       }
     `;
 
@@ -24177,6 +24561,7 @@ class CloudDepthRecolorFilter extends PIXI.Filter {
       u_gamma: 1.0,
       u_temperature: 0.0,
       u_tint: 0.0,
+      u_zoomOpacity: 1.0,
     });
   }
 }
@@ -24193,9 +24578,13 @@ class CloudDepthLayer extends foundry.canvas.layers.CanvasLayer {
     this.maskSprite = null;
     this._needsMaskUpdate = true;
 
-    // Zoom properties (defaults, will be overwritten by config)
-    this.zoomThresholdMin = 0.2; // Fully visible when zoomed out
-    this.zoomThresholdMax = 0.8; // Fades out when zooming in
+    // Zoom-based opacity properties (matching OverheadEffectLayer pattern)
+    this.opacityMinZoom = 1.0;
+    this.opacityMidZoom = 0.0;
+    this.opacityMaxZoom = 0.0;
+    this.zoomPointMin = 0.25;
+    this.zoomPointMid = 0.30;
+    this.zoomPointMax = 2.00;
 
     // Bound listeners
     this._boundOnAnimate = this._onAnimate.bind(this);
@@ -24226,7 +24615,7 @@ class CloudDepthLayer extends foundry.canvas.layers.CanvasLayer {
 
     // Register hooks to trigger mask updates
     this._flagUpdate = () => { 
-      console.log('MapShine | CloudDepthLayer mask update triggered');
+      // console.log('MapShine | CloudDepthLayer mask update triggered');
       this._needsMaskUpdate = true; 
     };
     Hooks.on("canvasPan", this._flagUpdate);
@@ -24357,24 +24746,65 @@ class CloudDepthLayer extends foundry.canvas.layers.CanvasLayer {
       }
     }
 
-    // Hardcoded zoom-based alpha:
-    // - Zoom <= 0.35: 100% opacity
-    // - 0.35 < Zoom < 0.50: linearly fade from 100% to 0%
-    // - Zoom >= 0.50: 0%
-    let alpha = 0.0;
-
-    if (currentZoom <= 0.35) {
-      alpha = 1.0;
-    } else if (currentZoom < 0.5) {
-      const t = (currentZoom - 0.35) / 0.15; // 0..1 over [0.35, 0.50)
-      alpha = 1.0 - Math.min(Math.max(t, 0.0), 1.0);
+    // Apply mask if tileVisibility settings exist (read from scene flags)
+    const tileVisibility = canvas.scene?.getFlag(MODULE_ID, 'cloudTopsTileVisibility') || {};
+    const hasVisibilitySettings = Object.keys(tileVisibility).length > 0;
+    const hasHiddenTiles = Object.values(tileVisibility).some(v => v === false);
+    
+    // console.log('MapShine | Cloud Tops Masking - hasVisibilitySettings:', hasVisibilitySettings, 'hasHiddenTiles:', hasHiddenTiles);
+    
+    if (hasVisibilitySettings && hasHiddenTiles) {
+      // Create mask sprite if it doesn't exist
+      if (!this.maskSprite) {
+        console.log('MapShine | Creating mask sprite for cloud tops');
+        this.maskSprite = new PIXI.Sprite(this.maskTexture);
+        this.maskSprite.anchor.set(0, 0);
+        this.addChild(this.maskSprite);
+        this.depthSprite.mask = this.maskSprite;
+      } else {
+        // Update mask texture in case it was regenerated
+        this.maskSprite.texture = this.maskTexture;
+      }
+      
+      // CRITICAL: Mask sprite must match depthSprite's transform
+      // Both use screen-space textures positioned in world space
+      this.maskSprite.position.copyFrom(this.depthSprite.position);
+      this.maskSprite.scale.copyFrom(this.depthSprite.scale);
     } else {
-      alpha = 0.0;
+      // No visibility restrictions, remove mask
+      if (this.maskSprite) {
+        console.log('MapShine | Removing mask sprite (no hidden tiles)');
+        this.removeChild(this.maskSprite);
+        this.maskSprite.destroy();
+        this.maskSprite = null;
+        this.depthSprite.mask = null;
+      }
     }
 
-    // Apply alpha directly (no config multiplier)
-    this.depthSprite.alpha = alpha;
-    this.depthSprite.visible = alpha > 0.01;
+    // Calculate zoom-based opacity using the same interpolation as OverheadEffectLayer
+    const lerp = (a, b, t) => a * (1 - t) + b * t;
+    let opacity = 1.0;
+
+    if (currentZoom <= this.zoomPointMin) {
+      opacity = this.opacityMinZoom;
+    } else if (currentZoom >= this.zoomPointMax) {
+      opacity = this.opacityMaxZoom;
+    } else if (currentZoom > this.zoomPointMin && currentZoom <= this.zoomPointMid) {
+      // Interpolate between min and mid
+      const range = this.zoomPointMid - this.zoomPointMin;
+      const progress = (currentZoom - this.zoomPointMin) / (range > 0 ? range : 1);
+      opacity = lerp(this.opacityMinZoom, this.opacityMidZoom, progress);
+    } else {
+      // currentZoom > this.zoomPointMid && currentZoom < this.zoomPointMax
+      // Interpolate between mid and max
+      const range = this.zoomPointMax - this.zoomPointMid;
+      const progress = (currentZoom - this.zoomPointMid) / (range > 0 ? range : 1);
+      opacity = lerp(this.opacityMidZoom, this.opacityMaxZoom, progress);
+    }
+
+    // Apply calculated opacity
+    this.depthSprite.alpha = opacity;
+    this.depthSprite.visible = opacity > 0.01;
 
     // Update filter uniforms
     if (this.recolorFilter) {
@@ -24404,7 +24834,7 @@ class CloudDepthLayer extends foundry.canvas.layers.CanvasLayer {
   _hexToRgb(hex) {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     return result
-      ? {
+      ? { 
           r: parseInt(result[1], 16),
           g: parseInt(result[2], 16),
           b: parseInt(result[3], 16),
@@ -24417,9 +24847,13 @@ class CloudDepthLayer extends foundry.canvas.layers.CanvasLayer {
     this.visible =
       config.enabled && config.cloudShadows.enabled && depthConfig.enabled;
 
-    // Update zoom thresholds from config
-    this.zoomThresholdMin = depthConfig.zoomThresholdMin || 0.2;
-    this.zoomThresholdMax = depthConfig.zoomThresholdMax || 0.8;
+    // Update zoom-based opacity settings from config (matching OverheadEffectLayer pattern)
+    this.opacityMinZoom = depthConfig.opacityMinZoom ?? 1.0;
+    this.opacityMidZoom = depthConfig.opacityMidZoom ?? 0.0;
+    this.opacityMaxZoom = depthConfig.opacityMaxZoom ?? 0.0;
+    this.zoomPointMin = depthConfig.zoomPointMin ?? 0.25;
+    this.zoomPointMid = depthConfig.zoomPointMid ?? 0.30;
+    this.zoomPointMax = depthConfig.zoomPointMax ?? 2.00;
     
     // Flag mask update when config changes
     this._needsMaskUpdate = true;
@@ -24460,7 +24894,7 @@ class CloudDepthLayer extends foundry.canvas.layers.CanvasLayer {
       canvas.scene?.setFlag(MODULE_ID, 'cloudTopsTileVisibility', migratedData);
     }
     
-    console.log('MapShine | Cloud Tops Mask - tileVisibility:', tileVisibility);
+    // console.log('MapShine | Cloud Tops Mask - tileVisibility:', tileVisibility);
 
     // INVERTED MASK LOGIC:
     // Start with a WHITE (fully visible) canvas - clouds show everywhere by default
@@ -24678,11 +25112,11 @@ class CanopyFilter extends PIXI.Filter {
 }
 
 /**
- * Structural Filter - Shader that renders natural window light into interior spaces.
+ * Structural Filter - Shader that renders natural window light with cloud occlusion.
  *
- * This filter applies the _Structural colored luminance masks to create dynamic
- * window lighting that can be occluded by clouds and artificial light sources.
- * See StructuralShadowsLayer class documentation for full design intent.
+ * This filter generates clouds internally using the same noise functions and parameters
+ * as CloudShadowsFilter, reading from the cloudShadows config as a single source of truth.
+ * This avoids texture sharing issues and ensures consistent cloud patterns.
  *
  * @extends PIXI.Filter
  */
@@ -24707,13 +25141,11 @@ class StructuralFilter extends PIXI.Filter {
             varying vec2 vTextureCoord;
             varying vec2 vScreenCoord;
 
-            uniform sampler2D uSampler; // Represents canvas.primary's input
+            uniform sampler2D uSampler;
             uniform sampler2D uStructuralMask;
             uniform sampler2D uOutdoorsMask;
-            uniform sampler2D uCloudOcclusionMask;
             uniform sampler2D uLightMask;
 
-            // Uniform for scene boundaries
             uniform vec4 uSceneRectNorm;
 
             // Effect Controls
@@ -24732,12 +25164,156 @@ class StructuralFilter extends PIXI.Filter {
             // Cloud Occlusion
             uniform bool uCloudOcclusionEnabled;
             uniform float uCloudOcclusionIntensity;
+            uniform float uCloudOcclusionThreshold;
+            uniform float uCloudOcclusionSoftness;
+            uniform bool uDebugShowClouds;
+
+            // Cloud Generation (from cloudShadows config)
+            uniform float u_time;
+            uniform vec2 u_camera_offset;
+            uniform vec2 u_view_size;
+            uniform vec2 u_windDirection;
+            uniform float u_noise_scale;
+            uniform int u_noise_octaves;
+            uniform float u_noise_persistence;
+            uniform float u_noise_lacunarity;
+            uniform float u_shading_threshold;
+            uniform float u_shading_softness;
+            uniform float u_shading_brightness;
+            uniform float u_shading_contrast;
+            uniform float u_shading_gamma;
+            uniform float u_evolutionSpeed;
+            
+            // 5 Cloud Layers
+            uniform bool u_layer1_enabled;
+            uniform float u_layer1_scale;
+            uniform float u_layer1_speed;
+            uniform vec2 u_layer1_stretch;
+            uniform int u_layer1_octaves;
+            uniform float u_layer1_opacity;
+            
+            uniform bool u_layer2_enabled;
+            uniform float u_layer2_scale;
+            uniform float u_layer2_speed;
+            uniform vec2 u_layer2_stretch;
+            uniform int u_layer2_octaves;
+            uniform float u_layer2_opacity;
+            
+            uniform bool u_layer3_enabled;
+            uniform float u_layer3_scale;
+            uniform float u_layer3_speed;
+            uniform vec2 u_layer3_stretch;
+            uniform int u_layer3_octaves;
+            uniform float u_layer3_opacity;
+            
+            uniform bool u_layer4_enabled;
+            uniform float u_layer4_scale;
+            uniform float u_layer4_speed;
+            uniform vec2 u_layer4_stretch;
+            uniform int u_layer4_octaves;
+            uniform float u_layer4_opacity;
+            
+            uniform bool u_layer5_enabled;
+            uniform float u_layer5_scale;
+            uniform float u_layer5_speed;
+            uniform vec2 u_layer5_stretch;
+            uniform int u_layer5_octaves;
+            uniform float u_layer5_opacity;
 
             // Light Occlusion
             uniform bool uLightOcclusionEnabled;
             uniform float uLightOcclusionIntensity;
 
             const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
+
+            // Cloud noise functions (copied from CloudShadowsFilter)
+            float random3d(vec3 st) { return fract(sin(dot(st.xyz, vec3(12.9898, 78.233, 45.164))) * 43758.5453123); }
+            
+            float noise3d(vec3 st) {
+                vec3 i = floor(st); vec3 f = fract(st);
+                float a = random3d(i);
+                float b = random3d(i + vec3(1.0, 0.0, 0.0));
+                float c = random3d(i + vec3(0.0, 1.0, 0.0));
+                float d = random3d(i + vec3(1.0, 1.0, 0.0));
+                float e = random3d(i + vec3(0.0, 0.0, 1.0));
+                float f2 = random3d(i + vec3(1.0, 0.0, 1.0));
+                float g = random3d(i + vec3(0.0, 1.0, 1.0));
+                float h = random3d(i + vec3(1.0, 1.0, 1.0));
+                vec3 u = f * f * (3.0 - 2.0 * f);
+                return mix(mix(mix(a, b, u.x), mix(c, d, u.x), u.y),
+                           mix(mix(e, f2, u.x), mix(g, h, u.x), u.y), u.z);
+            }
+            
+            float fbm3d(vec3 st, int octaves, float persistence, float lacunarity) {
+                float value = 0.0; float amplitude = 0.5;
+                for (int i = 0; i < 10; i++) {
+                    if (i >= octaves) break;
+                    value += amplitude * noise3d(st);
+                    st *= lacunarity;
+                    amplitude *= persistence;
+                }
+                return value;
+            }
+            
+            float applyShadingControls(float value) {
+                value += u_shading_brightness;
+                value = (value - 0.5) * u_shading_contrast + 0.5;
+                value = smoothstep(u_shading_threshold, u_shading_threshold + u_shading_softness, value);
+                if (u_shading_gamma > 0.0) { value = pow(value, u_shading_gamma); }
+                return clamp(value, 0.0, 1.0);
+            }
+            
+            float generateCloudValue() {
+                vec2 world_coord = u_camera_offset + (vScreenCoord * u_view_size);
+                float aspect = u_view_size.x / u_view_size.y;
+                vec2 corrected_coord = world_coord;
+                corrected_coord.x /= aspect;
+                vec2 base_uv = corrected_coord / 100.0 * u_noise_scale;
+                float evolutionZ = u_time * u_evolutionSpeed;
+                float shadow = 1.0;
+                
+                if (u_layer1_enabled) {
+                    vec2 layer1_uv = base_uv * u_layer1_scale * u_layer1_stretch;
+                    layer1_uv += u_time * u_windDirection * u_layer1_speed;
+                    float layer1_raw = fbm3d(vec3(layer1_uv, evolutionZ), u_layer1_octaves, u_noise_persistence, u_noise_lacunarity);
+                    float layer1_value = applyShadingControls(layer1_raw);
+                    shadow *= (1.0 - layer1_value * u_layer1_opacity);
+                }
+                
+                if (u_layer2_enabled) {
+                    vec2 layer2_uv = base_uv * u_layer2_scale * u_layer2_stretch;
+                    layer2_uv += u_time * u_windDirection * u_layer2_speed;
+                    float layer2_raw = fbm3d(vec3(layer2_uv, evolutionZ * 0.8), u_layer2_octaves, u_noise_persistence, u_noise_lacunarity);
+                    float layer2_value = applyShadingControls(layer2_raw);
+                    shadow *= (1.0 - layer2_value * u_layer2_opacity);
+                }
+                
+                if (u_layer3_enabled) {
+                    vec2 layer3_uv = base_uv * u_layer3_scale * u_layer3_stretch;
+                    layer3_uv += u_time * u_windDirection * u_layer3_speed;
+                    float layer3_raw = fbm3d(vec3(layer3_uv, evolutionZ * 0.6), u_layer3_octaves, u_noise_persistence, u_noise_lacunarity);
+                    float layer3_value = applyShadingControls(layer3_raw);
+                    shadow *= (1.0 - layer3_value * u_layer3_opacity);
+                }
+                
+                if (u_layer4_enabled) {
+                    vec2 layer4_uv = base_uv * u_layer4_scale * u_layer4_stretch;
+                    layer4_uv += u_time * u_windDirection * u_layer4_speed;
+                    float layer4_raw = fbm3d(vec3(layer4_uv, evolutionZ * 0.4), u_layer4_octaves, u_noise_persistence, u_noise_lacunarity);
+                    float layer4_value = applyShadingControls(layer4_raw);
+                    shadow *= (1.0 - layer4_value * u_layer4_opacity);
+                }
+                
+                if (u_layer5_enabled) {
+                    vec2 layer5_uv = base_uv * u_layer5_scale * u_layer5_stretch;
+                    layer5_uv += u_time * u_windDirection * u_layer5_speed;
+                    float layer5_raw = fbm3d(vec3(layer5_uv, evolutionZ * 0.2), u_layer5_octaves, u_noise_persistence, u_noise_lacunarity);
+                    float layer5_value = applyShadingControls(layer5_raw);
+                    shadow *= (1.0 - layer5_value * u_layer5_opacity);
+                }
+                
+                return 1.0 - shadow;
+            }
 
             vec3 blendOverlay(vec3 base, vec3 blend) {
                 float r = base.r < 0.5 ? (2.0 * base.r * blend.r) : (1.0 - 2.0 * (1.0 - base.r) * (1.0 - blend.r));
@@ -24761,7 +25337,6 @@ class StructuralFilter extends PIXI.Filter {
             void main() {
                 vec4 originalColor = texture2D(uSampler, vTextureCoord);
 
-                // Check if the current pixel is outside the defined scene rectangle.
                 vec2 sceneMin = uSceneRectNorm.xy;
                 vec2 sceneMax = uSceneRectNorm.xy + uSceneRectNorm.zw;
                 if (vScreenCoord.x < sceneMin.x || vScreenCoord.x > sceneMax.x || vScreenCoord.y < sceneMin.y || vScreenCoord.y > sceneMax.y) {
@@ -24778,8 +25353,22 @@ class StructuralFilter extends PIXI.Filter {
                 vec3 structuralColor = texture2D(uStructuralMask, vScreenCoord).rgb;
 
                 if (uCloudOcclusionEnabled) {
-                    float cloudValue = texture2D(uCloudOcclusionMask, vScreenCoord).r; // 0 is clear, 1 is cloud
-                    float darkeningFactor = 1.0 - (cloudValue * uCloudOcclusionIntensity);
+                    float cloudValue = generateCloudValue();
+                    
+                    // Debug: Show raw cloud values
+                    if (uDebugShowClouds) {
+                        gl_FragColor = vec4(vec3(cloudValue), 1.0);
+                        return;
+                    }
+                    
+                    float structuralLuminance = dot(structuralColor, lum_weights);
+                    float brightnessMask = smoothstep(
+                        uCloudOcclusionThreshold - uCloudOcclusionSoftness,
+                        uCloudOcclusionThreshold + uCloudOcclusionSoftness,
+                        structuralLuminance
+                    );
+                    // Apply 2.5x multiplier to make cloud darkening more visible on window light
+                    float darkeningFactor = 1.0 - (cloudValue * uCloudOcclusionIntensity * brightnessMask * 2.5);
                     structuralColor *= darkeningFactor;
                 }
 
@@ -24794,34 +25383,27 @@ class StructuralFilter extends PIXI.Filter {
 
                 vec3 effectLayer = structuralColor;
 
-                // Light Occlusion: Lighten dark parts of the structural map without affecting bright parts.
                 if (uLightOcclusionEnabled) {
                     float lightValue = texture2D(uLightMask, vScreenCoord).r;
                     float occlusionFactor = lightValue * uLightOcclusionIntensity;
-                    // The lightened color is a mix towards white (neutral for darkening blend modes).
                     vec3 lightenedColor = mix(effectLayer, vec3(1.0), occlusionFactor);
-                    // By taking the max, we only apply the change if it makes the color brighter, preserving existing highlights.
                     effectLayer = max(effectLayer, lightenedColor);
                 }
 
                 vec3 effectColor = originalColor.rgb;
-                if (uBlendMode == 5) { // OVERLAY
+                if (uBlendMode == 5) {
                     effectColor = blendOverlay(originalColor.rgb, effectLayer);
-                } else if (uBlendMode == 1) { // ADD
+                } else if (uBlendMode == 1) {
                     effectColor = blendAdd(originalColor.rgb, effectLayer);
-                } else if (uBlendMode == 2) { // MULTIPLY
+                } else if (uBlendMode == 2) {
                     effectColor = blendMultiply(originalColor.rgb, effectLayer);
-                } else if (uBlendMode == 3) { // SCREEN
+                } else if (uBlendMode == 3) {
                     effectColor = blendScreen(originalColor.rgb, effectLayer);
-                }
-                else { // Fallback to overlay
+                } else {
                     effectColor = blendOverlay(originalColor.rgb, effectLayer);
                 }
 
-                // Interpolate between the original color and the full effect color based on intensity.
                 vec3 intensityAdjustedColor = mix(originalColor.rgb, effectColor, uIntensity);
-
-                // Apply this intensity-adjusted color only to the indoor areas.
                 vec3 blendedResult = mix(originalColor.rgb, intensityAdjustedColor, indoorMask);
 
                 gl_FragColor = vec4(clamp(blendedResult, 0.0, 1.0), originalColor.a);
@@ -24830,39 +25412,79 @@ class StructuralFilter extends PIXI.Filter {
 
     super(vertexSrc, fragmentSrc, {
       uStructuralMask: PIXI.Texture.EMPTY,
-
       uOutdoorsMask: PIXI.Texture.EMPTY,
-
-      uCloudOcclusionMask: PIXI.Texture.EMPTY,
-
       uLightMask: PIXI.Texture.EMPTY,
-
       uSceneRectNorm: [0, 0, 1, 1],
-
-      uBlendMode: 5, // Default to OVERLAY
-
+      
+      uBlendMode: 5,
       uIntensity: 1.0,
-
+      
       uCcEnabled: true,
-
       uSaturation: 1.0,
-
       uBrightness: 0.0,
-
       uContrast: 1.0,
-
       uGamma: 1.0,
-
       uTintColor: [1.0, 1.0, 1.0],
-
       uTintAmount: 0.0,
-
+      
       uCloudOcclusionEnabled: true,
-
       uCloudOcclusionIntensity: 0.8,
-
+      uCloudOcclusionThreshold: 0.5,
+      uCloudOcclusionSoftness: 0.1,
+      uDebugShowClouds: false,
+      
+      // Cloud generation uniforms
+      u_time: 0,
+      u_camera_offset: [0, 0],
+      u_view_size: [1920, 1080],
+      u_windDirection: [0, 0],
+      u_noise_scale: 1.0,
+      u_noise_octaves: 5,
+      u_noise_persistence: 0.5,
+      u_noise_lacunarity: 2.0,
+      u_shading_threshold: 0.5,
+      u_shading_softness: 0.1,
+      u_shading_brightness: 0.0,
+      u_shading_contrast: 1.0,
+      u_shading_gamma: 1.0,
+      u_evolutionSpeed: 0.001,
+      
+      u_layer1_enabled: true,
+      u_layer1_scale: 4.0,
+      u_layer1_speed: 2.5,
+      u_layer1_stretch: [1.0, 1.0],
+      u_layer1_octaves: 3,
+      u_layer1_opacity: 0.3,
+      
+      u_layer2_enabled: true,
+      u_layer2_scale: 1.5,
+      u_layer2_speed: 1.3,
+      u_layer2_stretch: [1.0, 1.0],
+      u_layer2_octaves: 5,
+      u_layer2_opacity: 0.5,
+      
+      u_layer3_enabled: true,
+      u_layer3_scale: 0.7,
+      u_layer3_speed: 0.7,
+      u_layer3_stretch: [1.0, 1.0],
+      u_layer3_octaves: 6,
+      u_layer3_opacity: 0.6,
+      
+      u_layer4_enabled: true,
+      u_layer4_scale: 2.5,
+      u_layer4_speed: 1.8,
+      u_layer4_stretch: [1.0, 1.0],
+      u_layer4_octaves: 4,
+      u_layer4_opacity: 0.4,
+      
+      u_layer5_enabled: true,
+      u_layer5_scale: 5.0,
+      u_layer5_speed: 3.0,
+      u_layer5_stretch: [1.0, 1.0],
+      u_layer5_octaves: 2,
+      u_layer5_opacity: 0.2,
+      
       uLightOcclusionEnabled: true,
-
       uLightOcclusionIntensity: 1.0,
     });
   }
@@ -24985,13 +25607,21 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
       true
     )}</div></summary>
                                 <div style="padding-left: 10px;">
-                                    <p class="description-text">Allows clouds to darken the light cast by the structural effect.</p>
+                                    <p class="description-text">Allows clouds to darken the light cast by the structural effect. <strong>Cloud patterns are generated using settings from the Cloud Shadows effect.</strong></p>
+                                    <p class="description-text" style="background: rgba(255,200,100,0.1); padding: 5px; border-left: 3px solid rgba(255,200,100,0.5); margin: 5px 0;"><i class="fas fa-info-circle"></i> To adjust cloud appearance (speed, scale, layers, etc.), configure the <strong>Cloud Shadows</strong> effect above.</p>
+                                    ${DebuggerUIBuilder._createCheckboxHTML(
+                                      "structuralShadows.cloudOcclusion.debugShowClouds",
+                                      "🐛 DEBUG: Show Cloud Mask",
+                                      false,
+                                      "Visualize the cloud pattern being generated for occlusion (white = clouds, black = clear sky)"
+                                    )}
                                     ${DebuggerUIBuilder._createSliderHTML(
                                       "structuralShadows.cloudOcclusion.intensity",
-                                      "Intensity",
+                                      "Darkening Intensity",
                                       0,
                                       1,
-                                      0.01
+                                      0.01,
+                                      "How much clouds darken the window light."
                                     )}
                                     ${DebuggerUIBuilder._createSliderHTML(
                                       "structuralShadows.cloudOcclusion.threshold",
@@ -25057,25 +25687,97 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
     super._onAnimate(deltaTime); // This renders the combined mask if needed
     if (this._destroyed || !this.filter) return;
 
-    const config = game.mapShine.profileManager.activeConfig.structuralShadows;
+    const config = game.mapShine.profileManager.activeConfig;
+    const ssConfig = config.structuralShadows;
     const hasActiveMasks = this.maskSprites.size > 0;
-    this.filter.enabled = config.enabled && hasActiveMasks;
+    this.filter.enabled = ssConfig.enabled && hasActiveMasks;
 
     if (!this.filter.enabled) return;
 
     const resourceManager = game.mapShine.resourceManager;
     if (!resourceManager) return;
 
-    this.time += deltaTime * (game.mapShine.timeControl.timeFactor ?? 1.0);
+    const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
+    this.time += deltaTime * timeFactor;
 
     const u = this.filter.uniforms;
     u.uStructuralMask = this.getMaskTexture();
     u.uOutdoorsMask = resourceManager.getOutdoorsMask() || PIXI.Texture.WHITE;
-    // Use raw cloud texture so clouds can appear "indoors"
-    // Fallback to a black texture (no clouds) if cloud shadows are inactive.
-    u.uCloudOcclusionMask =
-      resourceManager.getRawCloudTexture(deltaTime) || PIXI.Texture.BLACK;
     u.uLightMask = resourceManager.getLightMask() || PIXI.Texture.WHITE;
+
+    // Update cloud generation uniforms from cloudShadows config (single source of truth)
+    const csConfig = config.cloudShadows;
+    if (csConfig && u.uCloudOcclusionEnabled) {
+      // Time and camera
+      u.u_time += deltaTime * timeFactor;
+      Object.assign(u, CoordinateManager.getShaderUniforms());
+      
+      // Wind direction (from CloudShadowsLayer logic)
+      // Negate because shader uses UV scrolling (pattern moves opposite to scroll direction)
+      const cloudLayer = canvas.layers.find(l => l instanceof CloudShadowsLayer);
+      if (cloudLayer && cloudLayer._cloudVelocity) {
+        u.u_windDirection = [-cloudLayer._cloudVelocity.x, -cloudLayer._cloudVelocity.y];
+      }
+      
+      // Noise parameters
+      u.u_noise_scale = csConfig.noise.scale;
+      u.u_noise_octaves = csConfig.noise.octaves;
+      u.u_noise_persistence = csConfig.noise.persistence;
+      u.u_noise_lacunarity = csConfig.noise.lacunarity;
+      u.u_evolutionSpeed = csConfig.evolutionSpeed ?? 0.001;
+      
+      // Shading controls
+      const s = csConfig.shading;
+      u.u_shading_threshold = s.threshold;
+      u.u_shading_softness = s.softness;
+      u.u_shading_brightness = s.brightness;
+      u.u_shading_contrast = s.contrast;
+      u.u_shading_gamma = s.gamma;
+      
+      // Layer configuration
+      const layers = csConfig.layers;
+      if (layers) {
+        // Layer 1
+        u.u_layer1_enabled = layers.layer1?.enabled ?? true;
+        u.u_layer1_scale = layers.layer1?.scale ?? 4.0;
+        u.u_layer1_speed = layers.layer1?.speed ?? 2.5;
+        u.u_layer1_stretch = [layers.layer1?.stretchX ?? 1.0, layers.layer1?.stretchY ?? 1.0];
+        u.u_layer1_octaves = layers.layer1?.octaves ?? 3;
+        u.u_layer1_opacity = layers.layer1?.opacity ?? 0.3;
+        
+        // Layer 2
+        u.u_layer2_enabled = layers.layer2?.enabled ?? true;
+        u.u_layer2_scale = layers.layer2?.scale ?? 1.5;
+        u.u_layer2_speed = layers.layer2?.speed ?? 1.3;
+        u.u_layer2_stretch = [layers.layer2?.stretchX ?? 1.0, layers.layer2?.stretchY ?? 1.0];
+        u.u_layer2_octaves = layers.layer2?.octaves ?? 5;
+        u.u_layer2_opacity = layers.layer2?.opacity ?? 0.5;
+        
+        // Layer 3
+        u.u_layer3_enabled = layers.layer3?.enabled ?? true;
+        u.u_layer3_scale = layers.layer3?.scale ?? 0.7;
+        u.u_layer3_speed = layers.layer3?.speed ?? 0.7;
+        u.u_layer3_stretch = [layers.layer3?.stretchX ?? 1.0, layers.layer3?.stretchY ?? 1.0];
+        u.u_layer3_octaves = layers.layer3?.octaves ?? 6;
+        u.u_layer3_opacity = layers.layer3?.opacity ?? 0.6;
+        
+        // Layer 4
+        u.u_layer4_enabled = layers.layer4?.enabled ?? true;
+        u.u_layer4_scale = layers.layer4?.scale ?? 2.5;
+        u.u_layer4_speed = layers.layer4?.speed ?? 1.8;
+        u.u_layer4_stretch = [layers.layer4?.stretchX ?? 1.0, layers.layer4?.stretchY ?? 1.0];
+        u.u_layer4_octaves = layers.layer4?.octaves ?? 4;
+        u.u_layer4_opacity = layers.layer4?.opacity ?? 0.4;
+        
+        // Layer 5
+        u.u_layer5_enabled = layers.layer5?.enabled ?? true;
+        u.u_layer5_scale = layers.layer5?.scale ?? 5.0;
+        u.u_layer5_speed = layers.layer5?.speed ?? 3.0;
+        u.u_layer5_stretch = [layers.layer5?.stretchX ?? 1.0, layers.layer5?.stretchY ?? 1.0];
+        u.u_layer5_octaves = layers.layer5?.octaves ?? 2;
+        u.u_layer5_opacity = layers.layer5?.opacity ?? 0.2;
+      }
+    }
 
     // Pass the normalized scene rectangle from the CoordinateManager to the filter.
     u.uSceneRectNorm = CoordinateManager.getSceneRectNormalizedArray();
@@ -25103,6 +25805,7 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
     u.uCloudOcclusionIntensity = cloud.intensity;
     u.uCloudOcclusionThreshold = cloud.threshold;
     u.uCloudOcclusionSoftness = cloud.softness;
+    u.uDebugShowClouds = cloud.debugShowClouds ?? false;
 
     const light = ssConfig.lightOcclusion;
     if (light) {
@@ -25996,7 +26699,13 @@ class GroundGlowLayer extends foundry.canvas.layers.CanvasLayer {
     const currentPath = sprite.texture?.baseTexture?.resource?.src;
     if (texturePath !== currentPath) {
       try {
-        sprite.texture = await TextureLoader.loadTexture(texturePath);
+        const loadedTexture = await TextureLoader.loadTexture(texturePath);
+        if (loadedTexture?.baseTexture?.valid) {
+          sprite.texture = loadedTexture;
+        } else {
+          console.warn(`MapShine | Loaded texture has invalid baseTexture: "${texturePath}"`);
+          sprite.texture = PIXI.Texture.EMPTY;
+        }
       } catch (e) {
         console.warn(
           `MapShine | Failed to load texture "${texturePath}":`,
@@ -26005,7 +26714,7 @@ class GroundGlowLayer extends foundry.canvas.layers.CanvasLayer {
         sprite.texture = PIXI.Texture.EMPTY;
       }
     }
-    if (!sprite.texture.valid || !rect) return;
+    if (!sprite.texture?.valid || !sprite.texture?.baseTexture?.valid || !rect) return;
     sprite.anchor.set(0.5);
     sprite.position.set(rect.x + rect.width / 2, rect.y + rect.height / 2);
     sprite.width = rect.width;
@@ -26377,7 +27086,13 @@ class HeatDistortionLayer extends foundry.canvas.layers.CanvasLayer {
     const currentPath = sprite.texture?.baseTexture?.resource?.src;
     if (texturePath !== currentPath) {
       try {
-        sprite.texture = await TextureLoader.loadTexture(texturePath);
+        const loadedTexture = await TextureLoader.loadTexture(texturePath);
+        if (loadedTexture?.baseTexture?.valid) {
+          sprite.texture = loadedTexture;
+        } else {
+          console.warn(`MapShine | Loaded texture has invalid baseTexture: "${texturePath}"`);
+          sprite.texture = PIXI.Texture.EMPTY;
+        }
       } catch (_e) {
         sprite.texture = PIXI.Texture.EMPTY;
       }
@@ -26387,7 +27102,8 @@ class HeatDistortionLayer extends foundry.canvas.layers.CanvasLayer {
       !sprite ||
       sprite.destroyed ||
       !sprite.anchor ||
-      !sprite.texture.valid ||
+      !sprite.texture?.valid ||
+      !sprite.texture?.baseTexture?.valid ||
       !rect
     )
       return;
@@ -29162,16 +29878,13 @@ class OverheadRecolorFilter extends PIXI.Filter {
 
                 uniform sampler2D uSampler;
 
-                // Original tinting uniforms
-                uniform sampler2D uStructuralMask;
-                uniform vec3 uRecolorTint;
-                uniform float uRecolorIntensity;
-                uniform bool uRecolorEnabled;
-
-                // New cloud darkening uniforms
+                // Cloud darkening uniforms
                 uniform sampler2D uCloudShadows;
                 uniform float uCloudShadowDarkenIntensity;
                 uniform bool uCloudShadowDarkenEnabled;
+
+                // Outdoors mask uniform
+                uniform sampler2D uOutdoorsMask;
 
                 // Scene darkness uniform
                 uniform float uDarkness;
@@ -29213,12 +29926,8 @@ class OverheadRecolorFilter extends PIXI.Filter {
                         discard;
                     }
 
-                    vec3 workingColor = originalColor.rgb;
-
-                    if (uRecolorEnabled) {
-                        float structuralMask = texture2D(uStructuralMask, vTextureCoord).r;
-                        workingColor = mix(workingColor, uRecolorTint, structuralMask * uRecolorIntensity);
-                    }
+                    // Unpremultiply if needed (PIXI uses premultiplied alpha)
+                    vec3 workingColor = originalColor.a > 0.0 ? originalColor.rgb / originalColor.a : originalColor.rgb;
 
                     if (uCloudShadowDarkenEnabled) {
                         // uCloudShadows texture has high values (near 1.0) for clouds and low values (near 0.0) for clear sky.
@@ -29236,8 +29945,11 @@ class OverheadRecolorFilter extends PIXI.Filter {
                     // Apply scene darkness. A darkness of 1.0 will make the color black.
                     workingColor *= (1.0 - uDarkness * 0.875);
 
-                    // Apply Time of Day color correction uniformly to all overhead tiles
-                    if (uToDIntensity > 0.0 && uToDOverheadStrength > 0.0) {
+                    // Sample the _Outdoors mask to determine if this pixel is outdoors
+                    float outdoorsMask = texture2D(uOutdoorsMask, vTextureCoord).r;
+
+                    // Apply Time of Day color correction only to outdoor areas (where mask is white)
+                    if (uToDIntensity > 0.0 && uToDOverheadStrength > 0.0 && outdoorsMask > 0.1) {
                         // Store original color for blending
                         vec3 colorBeforeToD = workingColor;
                         
@@ -29267,25 +29979,20 @@ class OverheadRecolorFilter extends PIXI.Filter {
                         workingColor = mix(colorBeforeToD, workingColor, uToDOverheadStrength);
                     }
 
-                    gl_FragColor = vec4(clamp(workingColor, 0.0, 1.0), originalColor.a);
+                    // Repremultiply alpha for output
+                    vec3 finalColor = clamp(workingColor, 0.0, 1.0) * originalColor.a;
+                    gl_FragColor = vec4(finalColor, originalColor.a);
                 }
             `;
 
     super(vertexSrc, fragmentSrc, {
-      uStructuralMask: PIXI.Texture.EMPTY,
-
-      uRecolorTint: [1.0, 1.0, 1.0],
-
-      uRecolorIntensity: 0.5,
-
-      uRecolorEnabled: false,
-      // New uniforms
-
       uCloudShadows: PIXI.Texture.EMPTY,
 
       uCloudShadowDarkenIntensity: 0.5,
 
       uCloudShadowDarkenEnabled: false,
+
+      uOutdoorsMask: PIXI.Texture.WHITE,
       // Darkness uniform
 
       uDarkness: 0.0,
@@ -29386,7 +30093,7 @@ class MapShineClock {
         // We scale strength so that max gust is full length.
         const scale = strength * 0.45; // 0.45 instead of 0.5 to keep it inside the clock face
 
-        // Add 90 degrees to correct the windsock orientation
+        // Add 90 degrees to align with standard wind direction (0=East, 90=North, etc.)
         arrow.style.transform = `rotate(${angle + 90}deg) scaleY(${scale})`;
       } else {
         arrow.style.display = "none";
@@ -31651,10 +32358,10 @@ class DebuggerUIBuilder {
       ? `
                 
                 <div class="profile-group">
-                    <strong class="profile-group-title">Clipboard</strong>
+                    <strong class="profile-group-title">Quick Copy/Paste</strong>
                     <div style="display: flex; gap: 5px; margin-top: 5px;">
-                        <button id="profile-copy-settings" data-action="copy-settings" style="flex: 1;" title="Copy the current active settings to the clipboard as JSON text.">Copy Settings</button>
-                        <button id="profile-paste-settings" data-action="paste-settings" style="flex: 1;" title="Load settings from JSON text on the clipboard as temporary changes.">Paste Settings</button>
+                        <button id="profile-copy-settings" data-action="copy-settings" style="flex: 1;" title="Copy the current active settings to temporary storage for pasting.">Copy Settings</button>
+                        <button id="profile-paste-settings" data-action="paste-settings" style="flex: 1;" title="Load previously copied settings as temporary changes.">Paste Settings</button>
                     </div>
                 </div>
                     `
@@ -31954,8 +32661,8 @@ class DebuggerUIBuilder {
       path = "loadingScreen.accordion"; // Dummy path
       const labelHtml = `<span class="summary-label" style="${UNIFIED_STYLES.label}">${title}</span>`;
       const resetButtonHtml = `<button type="button" class="reset-accordion-btn" data-action="reset-accordion" data-effect-key="${id}" title="Reset this section to defaults">R</button>`;
-      const copyButtonHtml = `<button type="button" class="header-btn" data-action="copy-accordion" data-effect-key="${id}" title="Copy Settings" style="${UNIFIED_STYLES.button}"><i class="fas fa-copy" style="${UNIFIED_STYLES.buttonIcon}"></i></button>`;
-      const pasteButtonHtml = `<button type="button" class="header-btn" data-action="paste-accordion" data-effect-key="${id}" title="Paste Settings" style="${UNIFIED_STYLES.button}"><i class="fas fa-paste" style="${UNIFIED_STYLES.buttonIcon}"></i></button>`;
+      const copyButtonHtml = `<button type="button" class="header-btn" data-action="copy-accordion" data-effect-key="${id}" title="Copy this section's settings to temporary storage" style="${UNIFIED_STYLES.button}"><i class="fas fa-copy" style="${UNIFIED_STYLES.buttonIcon}"></i></button>`;
+      const pasteButtonHtml = `<button type="button" class="header-btn" data-action="paste-accordion" data-effect-key="${id}" title="Paste previously copied settings to this section" style="${UNIFIED_STYLES.button}"><i class="fas fa-paste" style="${UNIFIED_STYLES.buttonIcon}"></i></button>`;
 
       return `${accordionStyles}<details id="details-${id}" class="accordion-type-${typeInfo.type}">
           <summary style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; padding: 4px 8px;">
@@ -31978,8 +32685,8 @@ class DebuggerUIBuilder {
     const checkboxId = this._createSafeId(path);
     const labelHtml = `<span class="summary-label" style="${UNIFIED_STYLES.label}">${title}</span>`;
     const resetButtonHtml = `<button type="button" class="reset-accordion-btn" data-action="reset-accordion" data-effect-key="${id}" title="Reset this section to defaults">R</button>`;
-    const copyButtonHtml = `<button type="button" class="header-btn" data-action="copy-accordion" data-effect-key="${id}" title="Copy Settings" style="${UNIFIED_STYLES.button}"><i class="fas fa-copy" style="${UNIFIED_STYLES.buttonIcon}"></i></button>`;
-    const pasteButtonHtml = `<button type="button" class="header-btn" data-action="paste-accordion" data-effect-key="${id}" title="Paste Settings" style="${UNIFIED_STYLES.button}"><i class="fas fa-paste" style="${UNIFIED_STYLES.buttonIcon}"></i></button>`;
+    const copyButtonHtml = `<button type="button" class="header-btn" data-action="copy-accordion" data-effect-key="${id}" title="Copy this section's settings to temporary storage" style="${UNIFIED_STYLES.button}"><i class="fas fa-copy" style="${UNIFIED_STYLES.buttonIcon}"></i></button>`;
+    const pasteButtonHtml = `<button type="button" class="header-btn" data-action="paste-accordion" data-effect-key="${id}" title="Paste previously copied settings to this section" style="${UNIFIED_STYLES.button}"><i class="fas fa-paste" style="${UNIFIED_STYLES.buttonIcon}"></i></button>`;
     const checkboxHtml = `<input type="checkbox" name="${path}" id="${checkboxId}" data-path="${path}" style="${UNIFIED_STYLES.checkbox}">`;
 
     return `${accordionStyles}<details id="details-${id}" class="accordion-type-${typeInfo.type}">
@@ -33294,24 +34001,30 @@ class DebuggerUIBuilder {
             <details id="details-overheadEffect-recolor">
                 <summary><span class="accordion-toggle"></span><strong>Recoloration</strong></summary>
                 <div style="padding-left: 10px;">
-                    <details id="details-overheadEffect-recolor-tint">
+                    <details id="details-overheadEffect-recolor-overlay">
                         <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
                           "overheadEffect.recolor.enabled",
-                          "Tint with Structural Mask",
+                          "Blend Structural Mask",
                           true
                         )}</div></summary>
                         <div style="padding-left: 10px;">
-                            <p class="description-text">Applies a color tint to overhead tiles based on the _Structural mask.</p>
-                            ${DebuggerUIBuilder._createColorPickerHTML(
-                              "overheadEffect.recolor.tint",
-                              "Tint Color"
+                            <p class="description-text">Blends the _Structural texture onto overhead tiles. Dark areas in the _Structural texture (like beams) create <strong>bright</strong> effects on tiles, while bright areas create dark effects. Works everywhere by default, or can be limited to <strong>indoor areas only</strong> when Building Shadows effect is enabled.</p>
+                            ${DebuggerUIBuilder._createSelectHTML(
+                              "overheadEffect.recolor.blendMode",
+                              "Blend Mode",
+                              {
+                                "Overlay": 1,
+                                "Hard Light": 2
+                              },
+                              "Choose between Overlay (default) or Hard Light blend modes"
                             )}
                             ${DebuggerUIBuilder._createSliderHTML(
                               "overheadEffect.recolor.intensity",
-                              "Intensity",
+                              "Blend Intensity",
                               0,
                               1,
-                              0.01
+                              0.05,
+                              "Controls how strongly the blend mode affects the tiles"
                             )}
                         </div>
                     </details>
@@ -33618,6 +34331,8 @@ class DebuggerEventHandler {
 
   updateZoomDisplay() {
     if (!this.element) return;
+    
+    // Update Overhead Effect zoom display
     const displayEl = this.element.querySelector("#overhead-zoom-display");
     if (displayEl) {
       const transform = canvas.stage.transform;
@@ -33636,6 +34351,30 @@ class DebuggerEventHandler {
       const pointMax = (config.zoomPointMax || 0).toFixed(2);
 
       displayEl.innerHTML = `
+            Current: <strong>${current}x</strong> (Canvas Min/Max: ${min}x / ${max}x)<br>
+            Effect Points: <strong>${pointMin}x</strong> | <strong>${pointMid}x</strong> | <strong>${pointMax}x</strong>
+          `;
+    }
+
+    // Update Cloud Shadows zoom display
+    const cloudDisplayEl = this.element.querySelector("#cloudshadow-zoom-display");
+    if (cloudDisplayEl) {
+      const transform = canvas.stage.transform;
+
+      const current = transform.scale.x.toFixed(2);
+      const min = (
+        typeof transform.minScale === "number" ? transform.minScale : 0.1
+      ).toFixed(2);
+      const max = (
+        typeof transform.maxScale === "number" ? transform.maxScale : 3.0
+      ).toFixed(2);
+
+      const config = this.profileManager.activeConfig.cloudShadows.depth;
+      const pointMin = (config.zoomPointMin || 0).toFixed(2);
+      const pointMid = (config.zoomPointMid || 0).toFixed(2);
+      const pointMax = (config.zoomPointMax || 0).toFixed(2);
+
+      cloudDisplayEl.innerHTML = `
             Current: <strong>${current}x</strong> (Canvas Min/Max: ${min}x / ${max}x)<br>
             Effect Points: <strong>${pointMin}x</strong> | <strong>${pointMid}x</strong> | <strong>${pointMax}x</strong>
           `;
@@ -33661,6 +34400,9 @@ class DebuggerEventHandler {
     this.addEventListeners();
     this._makeDraggable();
     // rebindDynamicControls is now called by the main editor's render method
+    
+    // Initialize zoom displays immediately
+    this.updateZoomDisplay();
   }
 
   async _onCopyAccordion(effectKey) {
@@ -33709,23 +34451,15 @@ class DebuggerEventHandler {
       return;
     }
 
-    const clipboardData = {
+    const accordionData = {
       type: "map-shine-accordion",
       key: effectKey,
       data: settingsToCopy,
     };
 
-    try {
-      await navigator.clipboard.writeText(
-        JSON.stringify(clipboardData, null, 2)
-      );
-      ui.notifications.info(`"${effectKey}" settings copied to clipboard.`);
-    } catch (err) {
-      console.error("Map Shine | Failed to copy settings:", err);
-      ui.notifications.error(
-        "Could not copy settings. See console for details."
-      );
-    }
+    // Store in temporary storage instead of clipboard
+    TEMP_CLIPBOARD_STORAGE.accordion = accordionData;
+    ui.notifications.info(`"${effectKey}" settings copied to temporary storage.`);
   }
 
   async _onPasteAccordion(effectKey) {
@@ -33734,72 +34468,25 @@ class DebuggerEventHandler {
       effectKey
     );
     try {
-      // Try to read from clipboard
-      let clipboardText;
-      try {
-        // Try modern Clipboard API directly (Firefox supports readText without permission query)
-        clipboardText = await navigator.clipboard.readText();
-      } catch (clipErr) {
-        console.warn(
-          "Map Shine | Clipboard API failed, trying manual paste:",
-          clipErr
-        );
+      // Read from temporary storage instead of clipboard
+      const accordionData = TEMP_CLIPBOARD_STORAGE.accordion;
 
-        // Prompt user to paste manually
-        clipboardText = await new Promise((resolve) => {
-          const dialog = new Dialog({
-            title: "Paste Settings",
-            content: `
-              <p>Please paste the copied settings JSON below:</p>
-              <textarea id="paste-input" style="width: 100%; height: 200px; font-family: monospace; font-size: 12px;"></textarea>
-            `,
-            buttons: {
-              paste: {
-                icon: '<i class="fas fa-check"></i>',
-                label: "Apply",
-                callback: (html) => {
-                  const text = html.find("#paste-input").val();
-                  resolve(text);
-                },
-              },
-              cancel: {
-                icon: '<i class="fas fa-times"></i>',
-                label: "Cancel",
-                callback: () => resolve(null),
-              },
-            },
-            default: "paste",
-            render: (html) => {
-              // Auto-focus the textarea
-              html.find("#paste-input").focus();
-            },
-          });
-          dialog.render(true);
-        });
-
-        if (!clipboardText) {
-          return; // User cancelled
-        }
-      }
-
-      if (!clipboardText) {
-        ui.notifications.warn("Clipboard is empty.");
+      if (!accordionData) {
+        ui.notifications.warn("No accordion settings have been copied yet. Use the copy button first.");
         return;
       }
-
-      const clipboardData = JSON.parse(clipboardText);
 
       if (
-        clipboardData.type !== "map-shine-accordion" ||
-        clipboardData.key !== effectKey
+        accordionData.type !== "map-shine-accordion" ||
+        accordionData.key !== effectKey
       ) {
         ui.notifications.error(
-          `Clipboard data is not for "${effectKey}" settings.`
+          `Copied settings are for "${accordionData.key}", not "${effectKey}".`
         );
         return;
       }
 
-      const settingsToPaste = clipboardData.data;
+      const settingsToPaste = accordionData.data;
       const isGameSettingAccordion = [
         "loadingScreen",
         "fontManager",
@@ -34467,6 +35154,9 @@ class DebuggerEventHandler {
         this.updateTransitionStatus.bind(this)
       );
     }
+    
+    // Update zoom displays after rebind
+    this.updateZoomDisplay();
   }
 
   updateParticleCount(count, limit) {
@@ -35179,10 +35869,10 @@ class DebuggerEventHandler {
         this._onSetDefaultProfile();
         break;
       case "copy-settings":
-        this._onCopySettings();
+        this._onCopySettings(target);
         break;
       case "paste-settings":
-        this._onPasteSettings();
+        this._onPasteSettings(target);
         break;
       case "revert-scene":
         this.profileManager.revertToSceneDefault();
@@ -36450,72 +37140,42 @@ class DebuggerEventHandler {
     }
   }
 
-  async _onCopySettings() {
+  async _onCopySettings(target) {
     try {
       const configToCopy = this.profileManager.getCurrentConfig({
         excludeClientOverrides: true,
       });
-      const jsonString = JSON.stringify(configToCopy, null, 2);
-      await navigator.clipboard.writeText(jsonString);
-      ui.notifications.info("Map Shine settings copied to clipboard.");
+      
+      // Check if this is the DEBUG button (uses clipboard for exporting MODULE_DEFAULTS)
+      // This button is specifically designed to allow easy outputting of the MODULE_DEFAULTS 
+      // value to aid with changing the hard coded settings.
+      const isDebugButton = target?.id === "copy-active-settings-btn";
+      
+      if (isDebugButton) {
+        // DEBUG button: Use clipboard for exporting settings
+        const jsonString = JSON.stringify(configToCopy, null, 2);
+        await navigator.clipboard.writeText(jsonString);
+        ui.notifications.info("Map Shine settings copied to clipboard for export.");
+      } else {
+        // Profile copy button: Use temporary storage
+        TEMP_CLIPBOARD_STORAGE.settings = configToCopy;
+        ui.notifications.info("Map Shine settings copied to temporary storage.");
+      }
     } catch (err) {
-      console.error("Map Shine | Failed to copy settings to clipboard:", err);
+      console.error("Map Shine | Failed to copy settings:", err);
       ui.notifications.error(
         "Could not copy settings. See console for details."
       );
     }
   }
 
-  async _onPasteSettings() {
+  async _onPasteSettings(target) {
     try {
-      // Try to read from clipboard with permission handling
-      let jsonString;
-      try {
-        // Request permission first (if needed)
-        const permission = await navigator.permissions.query({
-          name: "clipboard-read",
-        });
-        if (permission.state === "denied") {
-          throw new Error("Clipboard permission denied");
-        }
-        jsonString = await navigator.clipboard.readText();
-      } catch (permErr) {
-        // Fallback: Create a temporary textarea and use execCommand
-        console.warn(
-          "Map Shine | Clipboard API failed, using fallback method:",
-          permErr
-        );
-        const textarea = document.createElement("textarea");
-        textarea.style.position = "fixed";
-        textarea.style.opacity = "0";
-        document.body.appendChild(textarea);
-        textarea.focus();
-
-        const success = document.execCommand("paste");
-        jsonString = textarea.value;
-        document.body.removeChild(textarea);
-
-        if (!success || !jsonString) {
-          ui.notifications.error(
-            "Unable to access clipboard. Please copy again and ensure your browser allows clipboard access."
-          );
-          return;
-        }
-      }
-
-      if (!jsonString) {
-        ui.notifications.warn("Clipboard is empty.");
-        return;
-      }
-
-      let pastedConfig;
-      try {
-        pastedConfig = JSON.parse(jsonString);
-      } catch (err) {
-        ui.notifications.error(
-          "Failed to parse settings from clipboard. Invalid JSON."
-        );
-        console.error("Map Shine | Invalid JSON from clipboard:", err);
+      // Read from temporary storage instead of clipboard
+      const pastedConfig = TEMP_CLIPBOARD_STORAGE.settings;
+      
+      if (!pastedConfig) {
+        ui.notifications.warn("No settings have been copied yet. Use 'Copy Settings' first.");
         return;
       }
 
@@ -36551,11 +37211,11 @@ class DebuggerEventHandler {
       );
     } catch (err) {
       console.error(
-        "Map Shine | Failed to paste settings from clipboard:",
+        "Map Shine | Failed to paste settings:",
         err
       );
       ui.notifications.error(
-        "Could not paste settings. See console for details. Your browser might require you to grant clipboard permissions."
+        "Could not paste settings. See console for details."
       );
     }
   }
