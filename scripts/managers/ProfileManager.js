@@ -117,24 +117,32 @@ export class ProfileManager {
     return game.user?.isGM;
   }
 
-  initializeForScene() {
+  async initializeForScene() {
     this.activeSceneId = canvas.scene?.id;
     if (!this.activeSceneId) {
       console.error("MapShine | ProfileManager: No active scene.");
       return;
     }
-
+  
     // 1. Load all raw data
     this._worldDefaults = this.dataManager.loadWorldDefaults();
-
-    const sceneData = this.dataManager.loadSceneData();
+  
+    let sceneData = this.dataManager.loadSceneData();
+  
+    // If no profiles exist, create a blank one automatically
+    if (sceneData.profiles.length === 0) {
+      await this.createBlankProfile();
+      // Reload scene data after creation
+      sceneData = this.dataManager.loadSceneData();
+    }
+  
     this._sceneProfiles = sceneData.profiles;
     this._activeProfileId = sceneData.activeProfileId;
-
+  
     const rawUserOverrides = this.dataManager.loadUserOverrides(
       this.activeSceneId
     );
-
+  
     // 2. Build the effective configuration
     const result = ConfigBuilder.buildEffectiveConfig({
       sceneProfiles: this._sceneProfiles,
@@ -142,13 +150,13 @@ export class ProfileManager {
       worldDefaults: this._worldDefaults,
       rawUserOverrides: rawUserOverrides,
     });
-
+  
     // 3. Update the manager's state with the result
     this.activeConfig = result.activeConfig;
     this._userOverrides = result.userOverrides;
     this._activeProfileId = result.activeProfileId;
     this.status = result.status;
-
+  
     console.log(
       `Map Shine | Live configuration built. Source: ${this.status.profileSource}.`
     );
@@ -157,6 +165,33 @@ export class ProfileManager {
   // =========================================================================
   // SECTION: Scene Profile Management (GM Actions)
   // =========================================================================
+  async createBlankProfile() {
+    if (!this.isGm) return;
+  
+    // Create a blank config with everything disabled
+    const blankConfig = foundry.utils.deepClone(MODULE_DEFAULTS);
+    for (const key in blankConfig) {
+      if (typeof blankConfig[key] === 'object' && 'enabled' in blankConfig[key]) {
+        // Respect world-based settings that should always be on
+        if (!blankConfig[key].worldBasedOnly) {
+          blankConfig[key].enabled = false;
+        }
+      }
+    }
+  
+    const newProfile = {
+      id: foundry.utils.randomID(),
+      name: "Blank Profile",
+      config: blankConfig,
+    };
+  
+    await this.dataManager.saveSceneData({
+      profiles: [newProfile],
+      activeProfileId: newProfile.id,
+    });
+    console.log(`Map Shine | Created blank profile for scene ${this.activeSceneId}`);
+  }
+
   async createInitialSceneProfiles() {
     if (!this.isGm || this.status.sceneHasProfiles) return;
 

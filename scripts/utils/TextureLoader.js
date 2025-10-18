@@ -178,13 +178,16 @@ export class TextureLoader {
         const progress = this._optimizationStats.completed / this._optimizationStats.total;
         const loadingManager = game.mapShine?.loadingManager;
         
-        if (loadingManager) {
+        if (loadingManager?.screen?.setProgress) {
             const startWaypoint = loadingManager.waypoints.TEXTURE_OPTIMIZATION_START;
             const endWaypoint = loadingManager.waypoints.TEXTURE_OPTIMIZATION_END;
             const currentWaypoint = startWaypoint + (progress * (endWaypoint - startWaypoint));
             
-            await loadingManager.updateProgress(currentWaypoint, 
+            loadingManager.screen.setProgress(currentWaypoint, 
                 `Optimizing textures... (${this._optimizationStats.completed}/${this._optimizationStats.total})`);
+            
+            // Yield to event loop to allow UI updates
+            await new Promise(resolve => setTimeout(resolve, 0));
         }
     }
 
