@@ -3374,9 +3374,9 @@ export const MODULE_DEFAULTS = {
     "zoomPointMax": 2.8,
     "timeOfDayStrength": 0.5,
     "recolor": {
-      "enabled": false,
-      "intensity": 2,
-      "tint": "#80DEEA",
+      "enabled": true,
+      "intensity": 0.5,
+      "blendMode": 1,
       "cloudShadowDarken": {
         "enabled": true,
         "intensity": 0.3
@@ -8706,10 +8706,10 @@ class OverheadEffectLayer extends foundry.canvas.layers.CanvasLayer {
     if (this.recolorFilter) {
       const resourceManager = game.mapShine.resourceManager;
       if (resourceManager) {
-        this.recolorFilter.uniforms.uStructuralMask =
-          resourceManager.getStructuralMask() ?? PIXI.Texture.white;
         this.recolorFilter.uniforms.uCloudShadows =
-          resourceManager.getRawCloudTexture(deltaTime) ?? PIXI.Texture.white;
+          resourceManager.getRawCloudTexture(deltaTime) ?? PIXI.Texture.EMPTY;
+        this.recolorFilter.uniforms.uOutdoorsMask =
+          resourceManager.getOutdoorsMask() ?? PIXI.Texture.WHITE;
       }
       // Pass the scene  level to the filter
       this.recolorFilter.uniforms.uDarkness =
@@ -8750,32 +8750,11 @@ class OverheadEffectLayer extends foundry.canvas.layers.CanvasLayer {
         this.recolorFilter.uniforms.uToDToTint = todUniforms.uToTint ?? 0.0;
       }
 
-      // Set ToD strength and outdoors mask
+      // Set ToD strength
       const config = game.mapShine.profileManager.activeConfig;
       const oeConfig = config.overheadEffect;
       this.recolorFilter.uniforms.uToDOverheadStrength =
         oeConfig.timeOfDayStrength ?? 0.5;
-
-      // CRITICAL: Ensure Building Shadows layer updates its mask BEFORE we sample it
-      // This prevents a one-frame lag when the camera moves
-      const buildingShadowsLayer = canvas.buildingShadows;
-      if (
-        buildingShadowsLayer &&
-        typeof buildingShadowsLayer.renderEffectNow === "function"
-      ) {
-        buildingShadowsLayer.renderEffectNow(deltaTime);
-      }
-
-      // Get outdoors mask from building shadows layer
-      if (buildingShadowsLayer?.blurredMaskTexture?.valid) {
-        this.recolorFilter.uniforms.uOutdoorsMask =
-          buildingShadowsLayer.blurredMaskTexture;
-        // BlurredMaskTexture is half-resolution, so set scale to 0.5
-        this.recolorFilter.uniforms.uOutdoorsMaskScale = [0.5, 0.5];
-      } else {
-        this.recolorFilter.uniforms.uOutdoorsMask = PIXI.Texture.WHITE;
-        this.recolorFilter.uniforms.uOutdoorsMaskScale = [1.0, 1.0];
-      }
     }
 
     const renderer = canvas.app.renderer;
@@ -8800,7 +8779,19 @@ class OverheadEffectLayer extends foundry.canvas.layers.CanvasLayer {
   _onResize() {
     if (this._destroyed) return;
     const screen = CoordinateManager.getScreenDimensions();
+    
+    // Log texture size mismatch for debugging
+    if (this.compositeTexture && 
+        (this.compositeTexture.width !== screen.width || this.compositeTexture.height !== screen.height)) {
+      console.warn(
+        `Map Shine | Overhead composite texture size mismatch detected before resize: ` +
+        `texture=${this.compositeTexture.width}x${this.compositeTexture.height}, ` +
+        `screen=${screen.width}x${screen.height}`
+      );
+    }
+    
     this.compositeTexture?.resize(screen.width, screen.height);
+    
     if (this.compositeSprite) {
       this.compositeSprite.filterArea = new PIXI.Rectangle(
         0,
@@ -8825,18 +8816,16 @@ class OverheadEffectLayer extends foundry.canvas.layers.CanvasLayer {
     this.zoomPointMid = oeConfig.zoomPointMid ?? 0.65;
     this.zoomPointMax = oeConfig.zoomPointMax ?? 1.5;
 
-    if (this.recolorFilter) {
+    if (this.recolorFilter && oeConfig.recolor) {
       const rConfig = oeConfig.recolor;
-      this.recolorFilter.uniforms.uRecolorEnabled = rConfig.enabled;
-      this.recolorFilter.uniforms.uRecolorTint = hexToRgbArray(rConfig.tint);
-      this.recolorFilter.uniforms.uRecolorIntensity = rConfig.intensity;
+      this.recolorFilter.uniforms.uRecolorEnabled = rConfig.enabled ?? false;
 
       const csdConfig = rConfig.cloudShadowDarken;
       if (csdConfig) {
         this.recolorFilter.uniforms.uCloudShadowDarkenEnabled =
-          csdConfig.enabled;
+          csdConfig.enabled ?? false;
         this.recolorFilter.uniforms.uCloudShadowDarkenIntensity =
-          csdConfig.intensity;
+          csdConfig.intensity ?? 0.5;
       }
     }
   }
@@ -24308,7 +24297,7 @@ class CloudShadowsLayer extends MaskedEffectLayer {
       u.u_windDirection = [-this._cloudVelocity.x, -this._cloudVelocity.y];
     }
 
-    const finalLightMask = resourceManager.getLightMask() || PIXI.Texture.white;
+    const finalLightMask = resourceManager.getLightMask() || PIXI.Texture.WHITE;
 
     u.uOutdoorsMask = mainOutdoorsMask;
     u.uLightPolygonMask = finalLightMask;
@@ -24324,7 +24313,7 @@ class CloudShadowsLayer extends MaskedEffectLayer {
         renderTexture: this.rawCloudTexture,
         clear: true,
       });
-      console.log("MapShine | CloudShadows: Generated raw cloud texture with u_outputRawCloud=true, shader should apply applyShadingControls");
+      // console.log("MapShine | CloudShadows: Generated raw cloud texture with u_outputRawCloud=true, shader should apply applyShadingControls");
     }
     u.u_outputRawCloud = false;
   }
@@ -24626,7 +24615,7 @@ class CloudDepthLayer extends foundry.canvas.layers.CanvasLayer {
 
     // Register hooks to trigger mask updates
     this._flagUpdate = () => { 
-      console.log('MapShine | CloudDepthLayer mask update triggered');
+      // console.log('MapShine | CloudDepthLayer mask update triggered');
       this._needsMaskUpdate = true; 
     };
     Hooks.on("canvasPan", this._flagUpdate);
@@ -24727,7 +24716,7 @@ class CloudDepthLayer extends foundry.canvas.layers.CanvasLayer {
     const hasVisibilitySettings = Object.keys(tileVisibility).length > 0;
     const hasHiddenTiles = Object.values(tileVisibility).some(v => v === false);
     
-    console.log('MapShine | Cloud Tops Masking - hasVisibilitySettings:', hasVisibilitySettings, 'hasHiddenTiles:', hasHiddenTiles);
+    // console.log('MapShine | Cloud Tops Masking - hasVisibilitySettings:', hasVisibilitySettings, 'hasHiddenTiles:', hasHiddenTiles);
     
     if (hasVisibilitySettings && hasHiddenTiles) {
       // Create mask sprite if it doesn't exist
@@ -24810,7 +24799,7 @@ class CloudDepthLayer extends foundry.canvas.layers.CanvasLayer {
   _hexToRgb(hex) {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     return result
-      ? {
+      ? { 
           r: parseInt(result[1], 16),
           g: parseInt(result[2], 16),
           b: parseInt(result[3], 16),
@@ -24870,7 +24859,7 @@ class CloudDepthLayer extends foundry.canvas.layers.CanvasLayer {
       canvas.scene?.setFlag(MODULE_ID, 'cloudTopsTileVisibility', migratedData);
     }
     
-    console.log('MapShine | Cloud Tops Mask - tileVisibility:', tileVisibility);
+    // console.log('MapShine | Cloud Tops Mask - tileVisibility:', tileVisibility);
 
     // INVERTED MASK LOGIC:
     // Start with a WHITE (fully visible) canvas - clouds show everywhere by default
@@ -29854,16 +29843,13 @@ class OverheadRecolorFilter extends PIXI.Filter {
 
                 uniform sampler2D uSampler;
 
-                // Original tinting uniforms
-                uniform sampler2D uStructuralMask;
-                uniform vec3 uRecolorTint;
-                uniform float uRecolorIntensity;
-                uniform bool uRecolorEnabled;
-
-                // New cloud darkening uniforms
+                // Cloud darkening uniforms
                 uniform sampler2D uCloudShadows;
                 uniform float uCloudShadowDarkenIntensity;
                 uniform bool uCloudShadowDarkenEnabled;
+
+                // Outdoors mask uniform
+                uniform sampler2D uOutdoorsMask;
 
                 // Scene darkness uniform
                 uniform float uDarkness;
@@ -29905,12 +29891,8 @@ class OverheadRecolorFilter extends PIXI.Filter {
                         discard;
                     }
 
-                    vec3 workingColor = originalColor.rgb;
-
-                    if (uRecolorEnabled) {
-                        float structuralMask = texture2D(uStructuralMask, vTextureCoord).r;
-                        workingColor = mix(workingColor, uRecolorTint, structuralMask * uRecolorIntensity);
-                    }
+                    // Unpremultiply if needed (PIXI uses premultiplied alpha)
+                    vec3 workingColor = originalColor.a > 0.0 ? originalColor.rgb / originalColor.a : originalColor.rgb;
 
                     if (uCloudShadowDarkenEnabled) {
                         // uCloudShadows texture has high values (near 1.0) for clouds and low values (near 0.0) for clear sky.
@@ -29928,8 +29910,11 @@ class OverheadRecolorFilter extends PIXI.Filter {
                     // Apply scene darkness. A darkness of 1.0 will make the color black.
                     workingColor *= (1.0 - uDarkness * 0.875);
 
-                    // Apply Time of Day color correction uniformly to all overhead tiles
-                    if (uToDIntensity > 0.0 && uToDOverheadStrength > 0.0) {
+                    // Sample the _Outdoors mask to determine if this pixel is outdoors
+                    float outdoorsMask = texture2D(uOutdoorsMask, vTextureCoord).r;
+
+                    // Apply Time of Day color correction only to outdoor areas (where mask is white)
+                    if (uToDIntensity > 0.0 && uToDOverheadStrength > 0.0 && outdoorsMask > 0.1) {
                         // Store original color for blending
                         vec3 colorBeforeToD = workingColor;
                         
@@ -29959,25 +29944,20 @@ class OverheadRecolorFilter extends PIXI.Filter {
                         workingColor = mix(colorBeforeToD, workingColor, uToDOverheadStrength);
                     }
 
-                    gl_FragColor = vec4(clamp(workingColor, 0.0, 1.0), originalColor.a);
+                    // Repremultiply alpha for output
+                    vec3 finalColor = clamp(workingColor, 0.0, 1.0) * originalColor.a;
+                    gl_FragColor = vec4(finalColor, originalColor.a);
                 }
             `;
 
     super(vertexSrc, fragmentSrc, {
-      uStructuralMask: PIXI.Texture.EMPTY,
-
-      uRecolorTint: [1.0, 1.0, 1.0],
-
-      uRecolorIntensity: 0.5,
-
-      uRecolorEnabled: false,
-      // New uniforms
-
       uCloudShadows: PIXI.Texture.EMPTY,
 
       uCloudShadowDarkenIntensity: 0.5,
 
       uCloudShadowDarkenEnabled: false,
+
+      uOutdoorsMask: PIXI.Texture.WHITE,
       // Darkness uniform
 
       uDarkness: 0.0,
@@ -33986,24 +33966,30 @@ class DebuggerUIBuilder {
             <details id="details-overheadEffect-recolor">
                 <summary><span class="accordion-toggle"></span><strong>Recoloration</strong></summary>
                 <div style="padding-left: 10px;">
-                    <details id="details-overheadEffect-recolor-tint">
+                    <details id="details-overheadEffect-recolor-overlay">
                         <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
                           "overheadEffect.recolor.enabled",
-                          "Tint with Structural Mask",
+                          "Blend Structural Mask",
                           true
                         )}</div></summary>
                         <div style="padding-left: 10px;">
-                            <p class="description-text">Applies a color tint to overhead tiles based on the _Structural mask.</p>
-                            ${DebuggerUIBuilder._createColorPickerHTML(
-                              "overheadEffect.recolor.tint",
-                              "Tint Color"
+                            <p class="description-text">Blends the _Structural texture onto overhead tiles. Dark areas in the _Structural texture (like beams) create <strong>bright</strong> effects on tiles, while bright areas create dark effects. Works everywhere by default, or can be limited to <strong>indoor areas only</strong> when Building Shadows effect is enabled.</p>
+                            ${DebuggerUIBuilder._createSelectHTML(
+                              "overheadEffect.recolor.blendMode",
+                              "Blend Mode",
+                              {
+                                "Overlay": 1,
+                                "Hard Light": 2
+                              },
+                              "Choose between Overlay (default) or Hard Light blend modes"
                             )}
                             ${DebuggerUIBuilder._createSliderHTML(
                               "overheadEffect.recolor.intensity",
-                              "Intensity",
+                              "Blend Intensity",
                               0,
                               1,
-                              0.01
+                              0.05,
+                              "Controls how strongly the blend mode affects the tiles"
                             )}
                         </div>
                     </details>
