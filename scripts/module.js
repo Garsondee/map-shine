@@ -24746,41 +24746,6 @@ class CloudDepthLayer extends foundry.canvas.layers.CanvasLayer {
       }
     }
 
-    // Apply mask if tileVisibility settings exist (read from scene flags)
-    const tileVisibility = canvas.scene?.getFlag(MODULE_ID, 'cloudTopsTileVisibility') || {};
-    const hasVisibilitySettings = Object.keys(tileVisibility).length > 0;
-    const hasHiddenTiles = Object.values(tileVisibility).some(v => v === false);
-    
-    // console.log('MapShine | Cloud Tops Masking - hasVisibilitySettings:', hasVisibilitySettings, 'hasHiddenTiles:', hasHiddenTiles);
-    
-    if (hasVisibilitySettings && hasHiddenTiles) {
-      // Create mask sprite if it doesn't exist
-      if (!this.maskSprite) {
-        console.log('MapShine | Creating mask sprite for cloud tops');
-        this.maskSprite = new PIXI.Sprite(this.maskTexture);
-        this.maskSprite.anchor.set(0, 0);
-        this.addChild(this.maskSprite);
-        this.depthSprite.mask = this.maskSprite;
-      } else {
-        // Update mask texture in case it was regenerated
-        this.maskSprite.texture = this.maskTexture;
-      }
-      
-      // CRITICAL: Mask sprite must match depthSprite's transform
-      // Both use screen-space textures positioned in world space
-      this.maskSprite.position.copyFrom(this.depthSprite.position);
-      this.maskSprite.scale.copyFrom(this.depthSprite.scale);
-    } else {
-      // No visibility restrictions, remove mask
-      if (this.maskSprite) {
-        console.log('MapShine | Removing mask sprite (no hidden tiles)');
-        this.removeChild(this.maskSprite);
-        this.maskSprite.destroy();
-        this.maskSprite = null;
-        this.depthSprite.mask = null;
-      }
-    }
-
     // Calculate zoom-based opacity using the same interpolation as OverheadEffectLayer
     const lerp = (a, b, t) => a * (1 - t) + b * t;
     let opacity = 1.0;
