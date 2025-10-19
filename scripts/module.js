@@ -5164,11 +5164,14 @@ class HooksManager {
       // layer's _draw() method is called, preventing framebuffer errors.
       CoordinateManager.update();
 
+      // Create the worldContainer ONCE - this is the single authoritative creation point
       const worldContainer = new PIXI.Container();
       worldContainer.name = "mapShineWorldContainer";
       worldContainer.addChild(...canvas.stage.children);
       canvas.stage.addChild(worldContainer);
       game.mapShine.worldContainer = worldContainer;
+      
+      console.log("Map Shine | worldContainer created in canvasInit");
     });
     Hooks.on("canvasReady", (canvas) => {
       // This ticker takes over after the initial draw, ensuring that the CoordinateManager
@@ -9020,7 +9023,106 @@ class LoadingScreen {
 class MapShineLifecycle {
   // onCanvasReady and onCanvasTearDown are removed as their roles are now taken by SceneChangeManager.
 
-  static async beginPersistentDiscovery(canvas, maxAttempts = 5) {
+  /**
+   * Manager criticality levels for graceful degradation
+   * @enum {string}
+   */
+  static CRITICALITY = {
+    CRITICAL: 'critical',    // Failure aborts entire setup
+    IMPORTANT: 'important',  // Failure logs error but continues
+    OPTIONAL: 'optional'     // Failure logs warning and continues
+  };
+
+  /**
+   * Track initialization failures for diagnostics
+   */
+  static initializationStatus = {
+    succeeded: [],
+    failed: [],
+    skipped: []
+  };
+
+  /**
+   * Safely initialize a manager with proper error handling based on criticality
+   * @param {string} managerName - Name of the manager for logging
+   * @param {Function} initFn - Async initialization function
+   * @param {string} criticality - Criticality level from CRITICALITY enum
+   * @returns {Promise<boolean>} True if successful, false if failed
+   */
+  static async safeInitializeManager(managerName, initFn, criticality) {
+    try {
+      await initFn();
+      this.initializationStatus.succeeded.push(managerName);
+      return true;
+    } catch (error) {
+      // Handle based on criticality
+      if (criticality === this.CRITICALITY.CRITICAL) {
+        console.error(`Map Shine | CRITICAL FAILURE: ${managerName} initialization failed. Aborting setup.`, error);
+        this.initializationStatus.failed.push({ manager: managerName, error: error.message, critical: true });
+        throw error; // Re-throw to abort setup
+      } else if (criticality === this.CRITICALITY.IMPORTANT) {
+        console.error(`Map Shine | ${managerName} initialization failed. Continuing with reduced functionality.`, error);
+        this.initializationStatus.failed.push({ manager: managerName, error: error.message, critical: false });
+        ui.notifications?.warn(`Map Shine: ${managerName} failed to initialize. Some features may not work.`);
+        return false;
+      } else { // OPTIONAL
+        console.warn(`Map Shine | ${managerName} initialization failed. Feature will be unavailable.`, error);
+        this.initializationStatus.failed.push({ manager: managerName, error: error.message, critical: false });
+        return false;
+      }
+    }
+  }
+
+  /**
+   * Wraps a promise with a timeout to prevent infinite hangs
+   * @param {Promise} promise - The promise to wrap
+   * @param {number} timeoutMs - Timeout in milliseconds
+   * @param {string} operationName - Name for error messages
+   * @returns {Promise} Promise that rejects on timeout
+   */
+  static async withTimeout(promise, timeoutMs, operationName = "Operation") {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) =>
+        setTimeout(
+          () => reject(new Error(`${operationName} timed out after ${timeoutMs}ms`)),
+          timeoutMs
+        )
+      ),
+    ]);
+  }
+
+  /**
+   * Wait for render stabilization using requestAnimationFrame instead of fixed delays.
+   * This adapts to the actual rendering speed of the system rather than using arbitrary timeouts.
+   * 
+   * @param {number} frameCount - Number of frames to wait (default: 2)
+   * @param {number} maxMs - Maximum time to wait in milliseconds (default: 1000)
+   * @returns {Promise<void>} Resolves when frames complete or timeout reached
+   */
+  static async waitForRenderStabilization(frameCount = 2, maxMs = 1000) {
+    return Promise.race([
+      // Wait for specified number of frames
+      new Promise(resolve => {
+        let frames = 0;
+        const check = () => {
+          if (++frames >= frameCount) {
+            resolve();
+          } else {
+            requestAnimationFrame(check);
+          }
+        };
+        requestAnimationFrame(check);
+      }),
+      // Timeout fallback for safety
+      new Promise(resolve => setTimeout(resolve, maxMs))
+    ]);
+  }
+
+  static async beginPersistentDiscovery(canvas, maxAttempts = 10) {
+    // Exponential backoff delays: faster initial attempts, longer waits for slow systems
+    const delays = [100, 250, 500, 750, 1000, 1500, 2000, 2500, 3000, 3500]; // ms
+    
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       if (!canvas?.scene || !game.mapShine?.initialized) {
         console.log(
@@ -9031,11 +9133,9 @@ class MapShineLifecycle {
         return;
       }
 
-      // Wait between attempts, giving the scene more time to draw.
-      // The delay is increased for subsequent attempts.
-      await new Promise((resolve) =>
-        setTimeout(resolve, attempt === 1 ? 250 : 500)
-      );
+      // Wait between attempts with exponential backoff
+      const delay = delays[attempt - 1] || 4000;
+      await new Promise((resolve) => setTimeout(resolve, delay));
 
       if (game.mapShine.loadingManager) {
         const message =
@@ -9048,7 +9148,18 @@ class MapShineLifecycle {
         );
       }
 
-      await game.mapShine.effectTargetManager.refresh();
+      // Wrap refresh with timeout to prevent indefinite hangs
+      try {
+        await this.withTimeout(
+          game.mapShine.effectTargetManager.refresh(),
+          5000,
+          "Effect Target Refresh"
+        );
+      } catch (error) {
+        console.warn(`Map Shine | Effect target refresh timed out on attempt ${attempt}:`, error);
+        continue; // Try next attempt
+      }
+      
       const targets = game.mapShine.effectTargetManager.targets;
       const hasBackgroundTarget =
         targets.background &&
@@ -9057,6 +9168,34 @@ class MapShineLifecycle {
         );
       const hasTileTargets = Array.from(targets.tiles.values()).length > 0;
 
+      // Detailed diagnostics for discovery attempts
+      const diagnostics = {
+        backgroundExists: !!canvas.scene?.background?.src,
+        tilesCount: canvas.tiles?.placeables?.length || 0,
+        tilesWithTextures: 0,
+        texturesLoaded: 0,
+        texturesLoading: 0,
+        texturesFailed: 0,
+        hasBackgroundTarget,
+        hasTileTargets
+      };
+
+      // Check each tile's texture status
+      for (const tile of canvas.tiles?.placeables || []) {
+        if (tile.texture) {
+          diagnostics.tilesWithTextures++;
+          if (tile.texture.valid && tile.texture.baseTexture?.valid) {
+            diagnostics.texturesLoaded++;
+          } else if (tile.texture.baseTexture?.isLoading) {
+            diagnostics.texturesLoading++;
+          } else {
+            diagnostics.texturesFailed++;
+          }
+        }
+      }
+
+      console.log(`Map Shine | Discovery attempt ${attempt}/${maxAttempts}:`, diagnostics);
+
       if (hasBackgroundTarget || hasTileTargets) {
         console.log(
           `Map Shine | Texture discovery successful on attempt #${attempt}. Initializing all systems.`
@@ -9064,16 +9203,47 @@ class MapShineLifecycle {
         game.mapShine.loadingManager?.setProgress("DISCOVERY_END");
 
         // Pre-load all discovered textures before proceeding to setup.
-        await this._preloadDiscoveredTextures();
+        try {
+          await this.withTimeout(
+            this._preloadDiscoveredTextures(),
+            15000,
+            "Texture Preloading"
+          );
+        } catch (error) {
+          console.warn("Map Shine | Texture preloading timed out, continuing anyway:", error);
+        }
 
         // Pre-warm shaders to eliminate compilation stutter on first frame
-        await this._prewarmShaders();
+        try {
+          await this.withTimeout(
+            this._prewarmShaders(),
+            10000,
+            "Shader Prewarming"
+          );
+        } catch (error) {
+          console.warn("Map Shine | Shader prewarming timed out, continuing anyway:", error);
+        }
 
-        await this.runFullSetup(canvas);
+        // Wrap full setup with timeout
+        try {
+          await this.withTimeout(
+            this.runFullSetup(canvas),
+            60000,
+            "Full Setup"
+          );
+        } catch (error) {
+          console.error("Map Shine | Full setup timed out, falling back to minimal setup:", error);
+          await this.runMinimalSetup(canvas);
+        }
         return; // Success, exit the loop and the function.
       } else {
+        const reason = diagnostics.texturesLoading > 0 
+          ? `${diagnostics.texturesLoading} textures still loading`
+          : diagnostics.texturesFailed > 0
+          ? `${diagnostics.texturesFailed} textures failed to load`
+          : "no effect map textures found";
         console.log(
-          `Map Shine | Texture discovery attempt #${attempt} found no targets. Retrying...`
+          `Map Shine | Discovery attempt ${attempt}/${maxAttempts} found no targets (${reason}). Next attempt in ${delays[attempt] || 4000}ms...`
         );
       }
     }
@@ -9082,7 +9252,21 @@ class MapShineLifecycle {
     console.warn(
       `Map Shine | Texture discovery failed after ${maxAttempts} attempts. No effect maps found.`
     );
-    await this.runMinimalSetup(canvas);
+    // Wrap minimal setup with timeout as final fallback
+    try {
+      await this.withTimeout(
+        this.runMinimalSetup(canvas),
+        30000,
+        "Minimal Setup (Fallback)"
+      );
+    } catch (error) {
+      console.error("Map Shine | Even minimal setup timed out. Manual intervention may be required:", error);
+      // Hide loading screen to prevent permanent hang
+      if (game.mapShine.loadingScreen) {
+        await game.mapShine.loadingScreen.hide();
+        game.mapShine.loadingScreen = null;
+      }
+    }
   }
 
   /**
@@ -9109,34 +9293,70 @@ class MapShineLifecycle {
     const loadingScreen = game.mapShine.loadingScreen;
     const loadingManager = game.mapShine.loadingManager;
 
+    // Reset initialization status
+    this.initializationStatus = { succeeded: [], failed: [], skipped: [] };
+
     await loadingManager?.tick("SETUP_START");
 
-    // Initialize the new resource manager
-    game.mapShine.resourceManager = new ResourceManager();
-    game.mapShine.resourceManager.initialize();
-    game.mapShine.lightMaskManager = new LightMaskManager();
-    game.mapShine.lightMaskManager.initialize();
+    // CRITICAL: ResourceManager (required for texture loading)
+    await this.safeInitializeManager(
+      'ResourceManager',
+      async () => {
+        game.mapShine.resourceManager = new ResourceManager();
+        game.mapShine.resourceManager.initialize();
+      },
+      this.CRITICALITY.CRITICAL
+    );
+
+    // IMPORTANT: LightMaskManager (affects visual quality but not core functionality)
+    await this.safeInitializeManager(
+      'LightMaskManager',
+      async () => {
+        game.mapShine.lightMaskManager = new LightMaskManager();
+        game.mapShine.lightMaskManager.initialize();
+      },
+      this.CRITICALITY.IMPORTANT
+    );
+    
     await loadingManager?.tick("RESOURCE_MANAGER_INIT");
 
-    // 1. Initialize the profile manager with whatever is saved for the scene.
-    game.mapShine.profileManager.initializeForScene();
+    // CRITICAL: ProfileManager (required for all configuration)
+    await this.safeInitializeManager(
+      'ProfileManager',
+      async () => {
+        game.mapShine.profileManager.initializeForScene();
+      },
+      this.CRITICALITY.CRITICAL
+    );
     await loadingManager?.tick("PROFILES_INIT");
 
-    if (!game.mapShine.windManager) {
-      game.mapShine.windManager = new WindManager();
-    }
-    // Update the wind manager with the finalized, time-scaled configuration
-    game.mapShine.windManager.updateFromConfig(
-      game.mapShine.profileManager.activeConfig.fire.particles.wind
+    // IMPORTANT: WindManager (affects particles and weather but not essential)
+    await this.safeInitializeManager(
+      'WindManager',
+      async () => {
+        if (!game.mapShine.windManager) {
+          game.mapShine.windManager = new WindManager();
+        }
+        game.mapShine.windManager.updateFromConfig(
+          game.mapShine.profileManager.activeConfig.fire.particles.wind
+        );
+      },
+      this.CRITICALITY.IMPORTANT
     );
     await loadingManager?.tick("WIND_INIT");
 
-    // Initialize Weather System Manager
-    if (!game.mapShine.weatherSystemManager) {
-      game.mapShine.weatherSystemManager = new WeatherSystemManager();
-    }
-    await game.mapShine.weatherSystemManager.initialize();
-    console.log('MapShine | Weather system initialized with GPU-accelerated shaders');
+    // OPTIONAL: WeatherSystemManager (bonus feature, not essential)
+    await this.safeInitializeManager(
+      'WeatherSystemManager',
+      async () => {
+        if (!game.mapShine.weatherSystemManager) {
+          game.mapShine.weatherSystemManager = new WeatherSystemManager();
+        }
+        await game.mapShine.weatherSystemManager.initialize();
+        console.log('MapShine | Weather system initialized with GPU-accelerated shaders');
+      },
+      this.CRITICALITY.OPTIONAL
+    );
     await loadingManager?.tick("WEATHER_SYSTEM_INIT");
 
     // 3. (NEW) Finalize the configuration based on discovered textures.
@@ -9174,32 +9394,65 @@ class MapShineLifecycle {
     }
 
     // 6. Initialize the global screen filters.
-    ScreenEffectsManager.initialize(game.mapShine.worldContainer);
-    ScreenEffectsManager.setupAllGlobalFilters();
-    ScreenEffectsManager.updateAllFiltersFromConfig(
-      game.mapShine.profileManager.activeConfig
-    );
+    // Defensive check: Ensure worldContainer exists before initializing screen effects
+    if (!game.mapShine.worldContainer) {
+      console.warn("Map Shine | worldContainer not ready, deferring ScreenEffectsManager initialization");
+    } else {
+      ScreenEffectsManager.initialize(game.mapShine.worldContainer);
+      ScreenEffectsManager.setupAllGlobalFilters();
+      ScreenEffectsManager.updateAllFiltersFromConfig(
+        game.mapShine.profileManager.activeConfig
+      );
+    }
     await loadingManager?.tick("SCREEN_FX_INIT");
 
-    if (!game.mapShine.tokenManager)
-      game.mapShine.tokenManager = new TokenManager();
-    game.mapShine.tokenManager.initialize();
+    // OPTIONAL: TokenManager (visual enhancements only)
+    await this.safeInitializeManager(
+      'TokenManager',
+      async () => {
+        if (!game.mapShine.tokenManager)
+          game.mapShine.tokenManager = new TokenManager();
+        game.mapShine.tokenManager.initialize();
+      },
+      this.CRITICALITY.OPTIONAL
+    );
     await loadingManager?.tick("TOKEN_MANAGER_INIT");
 
-    if (!game.mapShine.dynamicExposureManager)
-      game.mapShine.dynamicExposureManager = new DynamicExposureManager();
-    game.mapShine.dynamicExposureManager.initialize();
+    // OPTIONAL: DynamicExposureManager (visual enhancement)
+    await this.safeInitializeManager(
+      'DynamicExposureManager',
+      async () => {
+        if (!game.mapShine.dynamicExposureManager)
+          game.mapShine.dynamicExposureManager = new DynamicExposureManager();
+        game.mapShine.dynamicExposureManager.initialize();
+      },
+      this.CRITICALITY.OPTIONAL
+    );
     await loadingManager?.tick("DYNAMIC_EXPOSURE_INIT");
 
-    if (game.mapShine.combatEffectManager) {
-      game.mapShine.combatEffectManager.initialize();
-    }
+    // OPTIONAL: CombatEffectManager (visual enhancement)
+    await this.safeInitializeManager(
+      'CombatEffectManager',
+      async () => {
+        if (game.mapShine.combatEffectManager) {
+          game.mapShine.combatEffectManager.initialize();
+        }
+      },
+      this.CRITICALITY.OPTIONAL
+    );
     await loadingManager?.tick("PAUSE_COMBAT_INIT");
 
-    if (!game.mapShine.geometryMaskManager) {
-      game.mapShine.geometryMaskManager = new GeometryMaskManager();
-    }
-    game.mapShine.geometryMaskManager.initialize();
+    // IMPORTANT: GeometryMaskManager (affects particles and effects)
+    await this.safeInitializeManager(
+      'GeometryMaskManager',
+      async () => {
+        if (!game.mapShine.geometryMaskManager) {
+          game.mapShine.geometryMaskManager = new GeometryMaskManager();
+        }
+        game.mapShine.geometryMaskManager.initialize();
+      },
+      this.CRITICALITY.IMPORTANT
+    );
     await loadingManager?.tick("GEOMETRY_MANAGER_INIT");
 
     // 6. (NEW) Update the UI controls to reflect the finalized configuration.
@@ -9208,8 +9461,14 @@ class MapShineLifecycle {
     }
 
     // 7. Initialize canvas-specific managers.
-
-    game.mapShine.tokenMaskManager = new DynamicTokenMaskManager(canvas);
+    // OPTIONAL: DynamicTokenMaskManager (visual enhancement)
+    await this.safeInitializeManager(
+      'DynamicTokenMaskManager',
+      async () => {
+        game.mapShine.tokenMaskManager = new DynamicTokenMaskManager(canvas);
+      },
+      this.CRITICALITY.OPTIONAL
+    );
     await loadingManager?.tick("CANVAS_MANAGERS_INIT");
 
     // Pre-warm the structural shadows layer to prevent pop-in after loading.
@@ -9227,14 +9486,33 @@ class MapShineLifecycle {
 
     // KILL SWITCH DISENGAGED: Re-enable illumination-dependent systems.
     game.mapShine.transitionActive = false;
-    console.log(
-      `%cMap Shine | Setup complete. TRANSITION INACTIVE.`,
-      "color: #4CAF50; font-weight: bold;"
-    );
+    
+    // Log initialization summary
+    const failedCount = this.initializationStatus.failed.length;
+    if (failedCount === 0) {
+      console.log(
+        `%cMap Shine | Setup complete. All ${this.initializationStatus.succeeded.length} managers initialized successfully.`,
+        "color: #4CAF50; font-weight: bold;"
+      );
+    } else {
+      const criticalFailures = this.initializationStatus.failed.filter(f => f.critical);
+      if (criticalFailures.length > 0) {
+        console.error(
+          `%cMap Shine | Setup completed with CRITICAL failures: ${criticalFailures.map(f => f.manager).join(', ')}`,
+          "color: #ff6b6b; font-weight: bold;"
+        );
+      } else {
+        console.warn(
+          `%cMap Shine | Setup complete with ${failedCount} non-critical failures. Running in degraded mode.`,
+          "color: #ffa500; font-weight: bold;",
+          this.initializationStatus.failed
+        );
+      }
+    }
 
-    // Wait for effects to stabilize (give filters time to render first frame)
-    // Increased delay for scene transitions to ensure smooth reveal
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    // Wait for effects to stabilize using RAF instead of fixed delay
+    // This adapts to system rendering speed and ensures filters render first frame
+    await this.waitForRenderStabilization(3, 500);
 
     // Emit custom Hook event AFTER effects are stable
     // This ensures scene transition overlays don't fade in prematurely
@@ -9274,9 +9552,9 @@ class MapShineLifecycle {
       "color: #4CAF50; font-weight: bold;"
     );
 
-    // Wait for effects to stabilize
-    // Increased delay for scene transitions to ensure smooth reveal
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    // Wait for effects to stabilize using RAF instead of fixed delay
+    // Adapts to system rendering speed for smooth scene transitions
+    await this.waitForRenderStabilization(2, 500);
 
     // Emit custom Hook event AFTER effects are stable
     Hooks.callAll("mapShine:setupComplete", { type: "minimal" });
@@ -39352,6 +39630,9 @@ Hooks.on("getSceneControlButtons", (controls) => {
 });
 
 Hooks.once("init", () => {
+  // Initialize the module
+  // Canvas-dependent code is protected by only running in canvasReady hook
+  // which won't fire if canvas is disabled or in low-performance scenarios
   MapShineInitialiser.initialize();
 
   // Register memory profiling console commands
@@ -39438,29 +39719,9 @@ Hooks.on("updateScene", (scene, data, options) => {
   }
 });
 
-Hooks.on("canvasDraw", (canvas) => {
-  // This hook should only run once per scene load. We guard against it re-running on simple redraws.
-  if (game.mapShine.worldContainer) return;
-
-  const worldContainer = new PIXI.Container();
-  worldContainer.name = "mapShineWorldContainer";
-  canvas.stage.addChild(worldContainer);
-  game.mapShine.worldContainer = worldContainer;
-
-  // Identify all layers that should be part of the "world" to be post-processed.
-  // This excludes the container itself and the main UI layer (canvas.interface).
-  const layersToWrap = canvas.stage.children.filter(
-    (child) => child !== worldContainer && child !== canvas.interface
-  );
-
-  // Move them into the container. This ensures all custom layers are properly sorted
-  // with core layers and are affected by post-processing effects.
-  if (layersToWrap.length > 0) {
-    worldContainer.addChild(...layersToWrap);
-
-    worldContainer.sortChildren();
-  }
-});
+// REMOVED: Duplicate worldContainer creation (Issue #1 fix)
+// worldContainer is now created ONLY in canvasInit hook for consistency
+// Previous canvasDraw implementation was redundant and could cause race conditions
 
 Hooks.on("renderSceneControls", (app, html, _data) => {
   if (!game.user.isGM) return;
