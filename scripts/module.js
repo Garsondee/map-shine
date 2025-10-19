@@ -340,6 +340,11 @@ const UNIVERSAL_EFFECT_DEFAULTS = {
       },
     },
   },
+  weather: {
+    enabled: true,
+    currentState: "clear",
+    transitionDuration: 10000, // milliseconds for state transitions
+  },
 };
 
 /**
@@ -4367,6 +4372,24 @@ class SettingsManager {
       default: FM.hint.fontFamily,
     });
 
+    // --- Weather System Settings ---
+    const WS = UNIVERSAL_EFFECT_DEFAULTS.weather;
+    registerUniversalSetting("weather.enabled", {
+      name: "[Universal] Weather System: Enabled",
+      type: Boolean,
+      default: WS.enabled,
+    });
+    registerUniversalSetting("weather.currentState", {
+      name: "[Universal] Weather: Current State",
+      type: String,
+      default: WS.currentState,
+    });
+    registerUniversalSetting("weather.transitionDuration", {
+      name: "[Universal] Weather: Transition Duration (ms)",
+      type: Number,
+      default: WS.transitionDuration,
+    });
+
     game.settings.register(MODULE_ID, "advanced-ui-mode", {
       name: "Advanced UI Mode",
       hint: "Toggles the advanced, detailed UI for Map Shine. When off, a simplified control panel is shown.",
@@ -4690,6 +4713,8 @@ class HooksManager {
       PIXI.particles.Emitter.registerBehavior(SparkPathBehavior);
       PIXI.particles.Emitter.registerBehavior(CandleFlameBehavior);
       PIXI.particles.Emitter.registerBehavior(WindBehavior);
+      PIXI.particles.Emitter.registerBehavior(ZDepthBehavior);
+      PIXI.particles.Emitter.registerBehavior(VelocityStreakBehavior);
       PIXI.particles.Emitter.registerBehavior(PressurisedSteamBehavior);
       PIXI.particles.Emitter.registerBehavior(SmellyFliesBehavior);
       PIXI.particles.Emitter.registerBehavior(ColorFromSpawnBehavior);
@@ -5157,6 +5182,8 @@ class HooksManager {
             canvas.app.ticker.elapsedMS / 1000,
             MAX_DELTA_TIME
           );
+          // Update weather system (transitions, particle counts, etc.)
+          game.mapShine.weatherSystemManager?.update(deltaTime);
           ScreenEffectsManager.updateFrame(deltaTime);
         }
       };
@@ -5914,6 +5941,17 @@ class SceneChangeManager {
         } catch (error) {
           console.warn("Map Shine | Error destroying wind manager:", error);
           game.mapShine.windManager = null; // Still nullify to prevent further issues
+        }
+      }
+
+      if (game.mapShine.weatherSystemManager) {
+        try {
+          console.log("Map Shine | Teardown: Destroying weather system manager...");
+          game.mapShine.weatherSystemManager.destroy();
+          game.mapShine.weatherSystemManager = null;
+        } catch (error) {
+          console.warn("Map Shine | Error destroying weather system manager:", error);
+          game.mapShine.weatherSystemManager = null; // Still nullify to prevent further issues
         }
       }
 
@@ -9092,6 +9130,14 @@ class MapShineLifecycle {
       game.mapShine.profileManager.activeConfig.fire.particles.wind
     );
     await loadingManager?.tick("WIND_INIT");
+
+    // Initialize Weather System Manager
+    if (!game.mapShine.weatherSystemManager) {
+      game.mapShine.weatherSystemManager = new WeatherSystemManager();
+    }
+    await game.mapShine.weatherSystemManager.initialize();
+    console.log('MapShine | Weather system initialized with GPU-accelerated shaders');
+    await loadingManager?.tick("WEATHER_SYSTEM_INIT");
 
     // 3. (NEW) Finalize the configuration based on discovered textures.
     this.finalizeConfigurationAndUI();
@@ -14408,6 +14454,639 @@ class WindManager {
   }
 }
 
+/**
+ * Weather System Manager
+ * 
+ * Manages comprehensive weather states with smooth transitions and cloud-based
+ * precipitation spawning. Coordinates between cloud shadows, precipitation particles,
+ * accumulation, and atmospheric effects.
+ * 
+ * ## Weather States
+ * - CLEAR: No precipitation, minimal cloud coverage
+ * - DRIZZLE: Light rain, moderate clouds
+ * - RAIN: Steady rainfall, heavy clouds
+ * - STORM: Heavy rain with wind, dark storm clouds
+ * - SLEET: Mixed rain/snow, cold atmospheric feel
+ * - SNOW: Snowfall, dense white/grey clouds
+ * - BLIZZARD: Heavy snow with strong wind, thick cloud coverage
+ * 
+ * ## Transition System
+ * States transition smoothly over configurable durations, blending:
+ * - Cloud density and appearance
+ * - Precipitation particle counts and properties
+ * - Wind strength and direction
+ * - Atmospheric lighting and color
+ * 
+ * ## Cloud-Based Spawning
+ * Precipitation particles spawn using TextureMaskShape sampling from rawCloudTexture,
+ * ensuring rain/snow only falls where clouds are visible. This creates natural
+ * density variation and visual coherence.
+ */
+class WeatherSystemManager {
+  // Weather state enumeration
+  static STATES = {
+    CLEAR: 'clear',
+    DRIZZLE: 'drizzle',
+    RAIN: 'rain',
+    STORM: 'storm',
+    SLEET: 'sleet',
+    SNOW: 'snow',
+    BLIZZARD: 'blizzard'
+  };
+
+  constructor() {
+    this.currentState = WeatherSystemManager.STATES.CLEAR;
+    this.targetState = WeatherSystemManager.STATES.CLEAR;
+    
+    // Transition management
+    this.isTransitioning = false;
+    this.transitionProgress = 0; // 0 to 1
+    this.transitionDuration = 10000; // milliseconds
+    this.transitionStartTime = 0;
+    
+    // System state
+    this.isReady = false;
+    this.lastError = null;
+    this.lastErrorTime = 0;
+    
+    // Shader system reference
+    this.weatherEffectLayer = null;
+    
+    // Cloud texture reference for potential future cloud-based intensity modulation
+    this.cloudTextureValid = false;
+    
+    // State definitions with properties for each weather type
+    this.stateDefinitions = this._initializeStateDefinitions();
+    
+    console.log('MapShine | WeatherSystemManager initialized');
+  }
+
+  /**
+   * Initialize weather state definitions with all properties needed for transitions
+   */
+  _initializeStateDefinitions() {
+    return {
+      [WeatherSystemManager.STATES.CLEAR]: {
+        name: 'Clear',
+        cloudDensity: 0.2,
+        cloudThreshold: 0.7,
+        cloudSoftness: 0.3,
+        precipitationIntensity: 0,
+        precipitationType: 'none',
+        particleCount: 0,
+        windSpeedMultiplier: 0.5,
+        atmosphericTint: { r: 1.0, g: 1.0, b: 1.0 },
+        description: 'Sunny day with minimal cloud coverage'
+      },
+      [WeatherSystemManager.STATES.DRIZZLE]: {
+        name: 'Drizzle',
+        cloudDensity: 0.4,
+        cloudThreshold: 0.5,
+        cloudSoftness: 0.4,
+        precipitationIntensity: 0.3,
+        precipitationType: 'rain',
+        particleCount: 200,
+        windSpeedMultiplier: 0.7,
+        atmosphericTint: { r: 0.95, g: 0.95, b: 1.0 },
+        description: 'Light rain with moderate cloud coverage'
+      },
+      [WeatherSystemManager.STATES.RAIN]: {
+        name: 'Rain',
+        cloudDensity: 0.6,
+        cloudThreshold: 0.4,
+        cloudSoftness: 0.5,
+        precipitationIntensity: 0.6,
+        precipitationType: 'rain',
+        particleCount: 500,
+        windSpeedMultiplier: 1.0,
+        atmosphericTint: { r: 0.9, g: 0.9, b: 0.95 },
+        description: 'Steady rainfall with heavy clouds'
+      },
+      [WeatherSystemManager.STATES.STORM]: {
+        name: 'Storm',
+        cloudDensity: 0.8,
+        cloudThreshold: 0.3,
+        cloudSoftness: 0.6,
+        precipitationIntensity: 0.9,
+        precipitationType: 'rain',
+        particleCount: 800,
+        windSpeedMultiplier: 1.5,
+        atmosphericTint: { r: 0.7, g: 0.75, b: 0.8 },
+        description: 'Heavy rain with strong wind and dark storm clouds'
+      },
+      [WeatherSystemManager.STATES.SLEET]: {
+        name: 'Sleet',
+        cloudDensity: 0.7,
+        cloudThreshold: 0.35,
+        cloudSoftness: 0.5,
+        precipitationIntensity: 0.7,
+        precipitationType: 'sleet',
+        particleCount: 600,
+        windSpeedMultiplier: 1.2,
+        atmosphericTint: { r: 0.85, g: 0.9, b: 1.0 },
+        description: 'Mixed rain and snow with cold atmosphere'
+      },
+      [WeatherSystemManager.STATES.SNOW]: {
+        name: 'Snow',
+        cloudDensity: 0.6,
+        cloudThreshold: 0.4,
+        cloudSoftness: 0.6,
+        precipitationIntensity: 0.5,
+        precipitationType: 'snow',
+        particleCount: 400,
+        windSpeedMultiplier: 0.8,
+        atmosphericTint: { r: 0.95, g: 0.97, b: 1.0 },
+        description: 'Snowfall with dense white clouds'
+      },
+      [WeatherSystemManager.STATES.BLIZZARD]: {
+        name: 'Blizzard',
+        cloudDensity: 0.9,
+        cloudThreshold: 0.25,
+        cloudSoftness: 0.7,
+        precipitationIntensity: 1.0,
+        precipitationType: 'snow',
+        particleCount: 1000,
+        windSpeedMultiplier: 2.0,
+        atmosphericTint: { r: 0.9, g: 0.92, b: 1.0 },
+        description: 'Heavy snow with strong wind and thick cloud coverage'
+      }
+    };
+  }
+
+  /**
+   * Get current weather state with interpolated values during transitions
+   */
+  getCurrentWeatherState() {
+    if (!this.isTransitioning) {
+      return this.stateDefinitions[this.currentState];
+    }
+
+    // Interpolate between current and target state
+    const current = this.stateDefinitions[this.currentState];
+    const target = this.stateDefinitions[this.targetState];
+    const t = this.transitionProgress;
+
+    return {
+      name: `${current.name} → ${target.name}`,
+      cloudDensity: this._lerp(current.cloudDensity, target.cloudDensity, t),
+      cloudThreshold: this._lerp(current.cloudThreshold, target.cloudThreshold, t),
+      cloudSoftness: this._lerp(current.cloudSoftness, target.cloudSoftness, t),
+      precipitationIntensity: this._lerp(current.precipitationIntensity, target.precipitationIntensity, t),
+      precipitationType: t < 0.5 ? current.precipitationType : target.precipitationType,
+      particleCount: Math.floor(this._lerp(current.particleCount, target.particleCount, t)),
+      windSpeedMultiplier: this._lerp(current.windSpeedMultiplier, target.windSpeedMultiplier, t),
+      atmosphericTint: {
+        r: this._lerp(current.atmosphericTint.r, target.atmosphericTint.r, t),
+        g: this._lerp(current.atmosphericTint.g, target.atmosphericTint.g, t),
+        b: this._lerp(current.atmosphericTint.b, target.atmosphericTint.b, t)
+      },
+      description: current.description,
+      isTransitioning: true,
+      transitionProgress: t
+    };
+  }
+
+  /**
+   * Start transition to a new weather state
+   */
+  transitionToState(newState, durationMs = null) {
+    if (!Object.values(WeatherSystemManager.STATES).includes(newState)) {
+      this.lastError = `Invalid weather state: ${newState}`;
+      this.lastErrorTime = Date.now();
+      console.error(`MapShine | WeatherSystemManager: ${this.lastError}`);
+      return false;
+    }
+
+    if (newState === this.currentState && !this.isTransitioning) {
+      console.log(`MapShine | WeatherSystemManager: Already in ${newState} state`);
+      return true;
+    }
+
+    // Start the target weather shaders at 0% intensity BEFORE the transition begins
+    // This ensures they're active when transitioning between precipitation types
+    if (this.weatherEffectLayer) {
+      const targetStateDef = this.stateDefinitions[newState];
+      if (targetStateDef.precipitationType !== 'none') {
+        this._startTargetWeatherAtZero(newState);
+      }
+    }
+
+    this.targetState = newState;
+    this.isTransitioning = true;
+    this.transitionProgress = 0;
+    this.transitionDuration = durationMs || this.transitionDuration;
+    this.transitionStartTime = Date.now();
+
+    console.log(`MapShine | WeatherSystemManager: Transitioning from ${this.currentState} to ${newState} over ${this.transitionDuration}ms`);
+    return true;
+  }
+
+  /**
+   * Update weather system state and transitions
+   */
+  update(deltaTime) {
+    // Periodically revalidate cloud texture (it may become valid after initialization)
+    if (!this.cloudTextureValid) {
+      this.cloudTextureValid = this._validateCloudTexture();
+    }
+
+    // Update weather effect layer (updates outdoor masking for camera movement)
+    if (this.weatherEffectLayer) {
+      this.weatherEffectLayer.update();
+    }
+
+    if (!this.isTransitioning) {
+      // Update shader-based weather effects even when not transitioning
+      if (this.weatherEffectLayer) {
+        const currentWeather = this.getCurrentWeatherState();
+        this._updateWeatherShaders(currentWeather);
+      }
+      return;
+    }
+
+    const elapsed = Date.now() - this.transitionStartTime;
+    this.transitionProgress = Math.min(elapsed / this.transitionDuration, 1.0);
+
+    // Apply smooth easing (ease-in-out cubic)
+    const t = this.transitionProgress;
+    const easedProgress = t < 0.5
+      ? 4 * t * t * t
+      : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+    // Update systems with interpolated values
+    const currentWeather = this.getCurrentWeatherState();
+    this._applyCloudState(currentWeather);
+    
+    // Update shader-based weather effects
+    if (this.weatherEffectLayer) {
+      this._updateWeatherShaders(currentWeather);
+    }
+
+    // Complete transition
+    if (this.transitionProgress >= 1.0) {
+      this.currentState = this.targetState;
+      this.isTransitioning = false;
+      this.transitionProgress = 0;
+      console.log(`MapShine | WeatherSystemManager: Transition complete - now in ${this.currentState} state`);
+      
+      // Update shaders one final time at end of transition
+      if (this.weatherEffectLayer) {
+        const config = game.mapShine?.profileManager?.activeConfig;
+        if (config) {
+          this.weatherEffectLayer.updateFromConfig(config);
+        }
+      }
+    }
+  }
+
+  /**
+   * Validate cloud texture availability
+   * @returns {boolean} True if cloud texture is valid and ready
+   */
+  _validateCloudTexture() {
+    try {
+      const resourceManager = game.mapShine?.resourceManager;
+      if (!resourceManager) {
+        console.log('MapShine | WeatherSystemManager: ResourceManager not available for cloud texture');
+        return false;
+      }
+
+      // Check if cloud layer exists and is initialized
+      const cloudLayer = canvas.layers?.find(l => l instanceof CloudShadowsLayer);
+      if (!cloudLayer) {
+        console.log('MapShine | WeatherSystemManager: CloudShadowsLayer not found');
+        return false;
+      }
+
+      if (!cloudLayer.visible) {
+        console.log('MapShine | WeatherSystemManager: CloudShadowsLayer is not visible');
+        return false;
+      }
+
+      // Check if rawCloudTexture exists
+      if (!cloudLayer.rawCloudTexture) {
+        console.log('MapShine | WeatherSystemManager: rawCloudTexture not yet created');
+        return false;
+      }
+
+      // Validate texture
+      const cloudTexture = resourceManager.getRawCloudTexture(0);
+      const isValid = cloudTexture?.valid && cloudTexture?.baseTexture?.valid;
+      
+      if (!isValid) {
+        console.log('MapShine | WeatherSystemManager: Cloud texture invalid', {
+          exists: !!cloudTexture,
+          valid: cloudTexture?.valid,
+          baseTextureValid: cloudTexture?.baseTexture?.valid
+        });
+      } else {
+        console.log('MapShine | WeatherSystemManager: Cloud texture validated successfully');
+      }
+      
+      return isValid;
+    } catch (e) {
+      console.warn('MapShine | WeatherSystemManager: Cloud texture validation error:', e.message);
+      return false;
+    }
+  }
+
+  /**
+   * Apply weather state to cloud system
+   */
+  _applyCloudState(weather) {
+    // Revalidate cloud texture (it may have become ready since initialization)
+    this.cloudTextureValid = this._validateCloudTexture();
+
+    // Update cloud appearance via config changes would happen here
+    // This will be implemented when we integrate with the cloud system
+  }
+
+  /**
+   * Start the target weather shaders at 0% intensity
+   * @param {string} targetState - The target weather state
+   * @private
+   */
+  _startTargetWeatherAtZero(targetState) {
+    if (!this.weatherEffectLayer) return;
+    
+    // Determine which effect to activate based on target state
+    switch (targetState) {
+      case 'drizzle':
+      case 'rain':
+      case 'storm':
+        // Start rain effect at 0% opacity/intensity
+        this.weatherEffectLayer.playEffect('rain', {
+          opacity: 0.0,
+          intensity: 0.0,
+          strength: 0.0
+        });
+        console.log('MapShine | WeatherSystemManager: Started rain shader at 0% for transition');
+        break;
+      
+      case 'snow':
+      case 'blizzard':
+        // Start snow effect at 0% alpha
+        this.weatherEffectLayer.playEffect('snow', {
+          direction: 0.5,
+          speed: 0,
+          scale: 2.5
+        });
+        // Set alpha to 0
+        if (this.weatherEffectLayer.effects.get('snow')) {
+          this.weatherEffectLayer.effects.get('snow').shader.uniforms.alpha = 0.0;
+        }
+        console.log('MapShine | WeatherSystemManager: Started snow shader at 0% for transition');
+        break;
+      
+      case 'sleet':
+        // Start both rain and snow at 0%
+        this.weatherEffectLayer.playEffect('rain', {
+          opacity: 0.0,
+          intensity: 0.0
+        });
+        this.weatherEffectLayer.playEffect('snow', {
+          direction: 0.7,
+          speed: 0
+        });
+        if (this.weatherEffectLayer.effects.get('snow')) {
+          this.weatherEffectLayer.effects.get('snow').shader.uniforms.alpha = 0.0;
+        }
+        console.log('MapShine | WeatherSystemManager: Started sleet shaders at 0% for transition');
+        break;
+    }
+  }
+
+  /**
+   * Update weather shader effects based on current weather state
+   * @param {object} weather - Current weather state with interpolated values
+   * @private
+   */
+  _updateWeatherShaders(weather) {
+    if (!this.weatherEffectLayer) return;
+
+    // Calculate transition intensity (0 to 1) for gradual ramping
+    const transitionIntensity = this.isTransitioning ? this.transitionProgress : 1.0;
+
+    // Build config object for the shader layer
+    const config = {
+      weather: {
+        enabled: true,
+        currentState: this.currentState
+      }
+    };
+
+    // Update the shader layer with the current config
+    // This will set up the base effects
+    this.weatherEffectLayer.updateFromConfig(config);
+    
+    // During transitions, modulate intensity based on progress
+    if (this.isTransitioning) {
+      const currentStateDef = this.stateDefinitions[this.currentState];
+      const targetStateDef = this.stateDefinitions[this.targetState];
+      
+      // Fade out current state's effects
+      if (currentStateDef.precipitationType === 'rain' || currentStateDef.precipitationType === 'sleet') {
+        const rainEffect = this.weatherEffectLayer.effects.get('rain');
+        if (rainEffect && rainEffect.visible) {
+          const baseOpacity = rainEffect.shader.uniforms.opacity || 0.25;
+          rainEffect.shader.uniforms.opacity = baseOpacity * (1.0 - transitionIntensity);
+        }
+      }
+      
+      if (currentStateDef.precipitationType === 'snow' || currentStateDef.precipitationType === 'sleet') {
+        const snowEffect = this.weatherEffectLayer.effects.get('snow');
+        if (snowEffect && snowEffect.visible) {
+          snowEffect.shader.uniforms.alpha = 1.0 - transitionIntensity;
+        }
+      }
+      
+      // Fade in target state's effects
+      if (targetStateDef.precipitationType === 'rain' || targetStateDef.precipitationType === 'sleet') {
+        const rainEffect = this.weatherEffectLayer.effects.get('rain');
+        if (rainEffect) {
+          // Determine target opacity based on target state
+          let targetOpacity = 0.25;
+          if (this.targetState === 'drizzle') targetOpacity = 0.15;
+          else if (this.targetState === 'storm') targetOpacity = 0.45;
+          else if (this.targetState === 'sleet') targetOpacity = 0.15;
+          
+          rainEffect.shader.uniforms.opacity = targetOpacity * transitionIntensity;
+          rainEffect.shader.uniforms.intensity = transitionIntensity;
+        }
+      }
+      
+      if (targetStateDef.precipitationType === 'snow' || targetStateDef.precipitationType === 'sleet') {
+        const snowEffect = this.weatherEffectLayer.effects.get('snow');
+        if (snowEffect) {
+          snowEffect.shader.uniforms.alpha = transitionIntensity;
+          
+          // Gradually increase speed
+          let targetSpeed = 2;
+          if (this.targetState === 'blizzard') targetSpeed = 8;
+          else if (this.targetState === 'sleet') targetSpeed = 3;
+          snowEffect.shader.uniforms.speed = targetSpeed * transitionIntensity;
+        }
+      }
+    }
+  }
+
+  /**
+   * Get diagnostic information for UI display
+   */
+  getDiagnostics() {
+    const weather = this.getCurrentWeatherState();
+    
+    // Get cloud texture status message
+    let cloudTextureStatus = 'Unknown';
+    if (!game.mapShine?.resourceManager) {
+      cloudTextureStatus = 'ResourceManager missing';
+    } else {
+      const cloudLayer = canvas.layers?.find(l => l instanceof CloudShadowsLayer);
+      if (!cloudLayer) {
+        cloudTextureStatus = 'CloudShadowsLayer not found';
+      } else if (!cloudLayer.visible) {
+        cloudTextureStatus = 'CloudShadows disabled';
+      } else if (!cloudLayer.rawCloudTexture) {
+        cloudTextureStatus = 'Not rendered yet';
+      } else if (!this.cloudTextureValid) {
+        cloudTextureStatus = 'Texture invalid';
+      } else {
+        cloudTextureStatus = 'Valid';
+      }
+    }
+    
+    return {
+      // System status
+      isReady: this.isReady,
+      cloudTextureValid: this.cloudTextureValid,
+      cloudTextureStatus: cloudTextureStatus,
+      targetState: this.targetState,
+      isTransitioning: this.isTransitioning,
+      transitionProgress: this.isTransitioning ? `${(this.transitionProgress * 100).toFixed(1)}%` : 'N/A',
+      
+      // Weather properties
+      weatherName: weather.name,
+      cloudDensity: weather.cloudDensity.toFixed(2),
+      precipitationType: weather.precipitationType,
+      precipitationIntensity: weather.precipitationIntensity.toFixed(2),
+      
+      // Shader system
+      shaderLayerActive: this.weatherEffectLayer !== null,
+      effectsCount: this.weatherEffectLayer?.effects?.size || 0,
+      
+      // System health
+      lastError: this.lastError,
+      lastErrorTime: this.lastError ? new Date(this.lastErrorTime).toLocaleTimeString() : null,
+      
+      // Performance
+      windMultiplier: weather.windSpeedMultiplier.toFixed(2)
+    };
+  }
+
+  /**
+   * Linear interpolation helper
+   */
+  _lerp(a, b, t) {
+    return a + (b - a) * t;
+  }
+
+  /**
+   * Set the initial weather state from config
+   * @param {string} state - Weather state to set
+   */
+  setInitialState(state) {
+    const stateLowercase = state?.toLowerCase() || 'clear';
+    if (!Object.values(WeatherSystemManager.STATES).includes(stateLowercase)) {
+      console.warn(`MapShine | WeatherSystemManager: Invalid initial state '${stateLowercase}', defaulting to 'clear'`);
+      this.currentState = WeatherSystemManager.STATES.CLEAR;
+      this.targetState = WeatherSystemManager.STATES.CLEAR;
+      return;
+    }
+    
+    this.currentState = stateLowercase;
+    this.targetState = stateLowercase;
+    console.log(`MapShine | WeatherSystemManager: Initial state set to '${stateLowercase}'`);
+    
+    // Apply the initial state immediately (no transition)
+    if (this.weatherEffectLayer) {
+      const config = {
+        weather: {
+          enabled: true,
+          currentState: this.currentState
+        }
+      };
+      this.weatherEffectLayer.updateFromConfig(config);
+    }
+  }
+
+  /**
+   * Initialize the weather system
+   */
+  async initialize() {
+    try {
+      // Import and initialize the shader-based weather system
+      const { WeatherEffectLayer } = await import('./weather/WeatherEffectLayer.js');
+      
+      // Create the weather effect layer
+      this.weatherEffectLayer = new WeatherEffectLayer();
+      await this.weatherEffectLayer.initialize();
+      
+      // Add the layer to canvas (above background, below tokens)
+      if (canvas.primary) {
+        // Find a good insertion point (after effects layer if it exists)
+        const effectsLayer = canvas.layers.find(l => l.constructor.name === 'EffectsLayer');
+        if (effectsLayer) {
+          const index = canvas.primary.children.indexOf(effectsLayer);
+          canvas.primary.addChildAt(this.weatherEffectLayer, index + 1);
+        } else {
+          canvas.primary.addChild(this.weatherEffectLayer);
+        }
+        console.log('MapShine | WeatherSystemManager: Weather shader layer added to canvas');
+      }
+      
+      // Load initial state from config
+      const config = game.mapShine?.profileManager?.activeConfig;
+      if (config?.weather?.currentState) {
+        this.setInitialState(config.weather.currentState);
+      }
+      
+      this.isReady = true;
+      console.log('MapShine | WeatherSystemManager: Initialized successfully with shader system');
+      return true;
+    } catch (e) {
+      this.lastError = `Initialization failed: ${e.message}`;
+      this.lastErrorTime = Date.now();
+      this.isReady = false;
+      console.error(`MapShine | WeatherSystemManager: ${this.lastError}`, e);
+      return false;
+    }
+  }
+
+  // OLD PARTICLE PRECIPITATION METHODS REMOVED
+  // These have been replaced by GPU-accelerated shader-based weather effects
+  // See: WeatherEffectLayer, RainShader, SnowShader, FogShader
+
+  /**
+   * Clean up resources
+   */
+  destroy() {
+    this.isReady = false;
+    
+    // Destroy shader-based weather layer
+    if (this.weatherEffectLayer) {
+      try {
+        this.weatherEffectLayer.destroy();
+        console.log('MapShine | WeatherSystemManager: Weather effect layer destroyed');
+      } catch (error) {
+        console.warn('MapShine | WeatherSystemManager: Error destroying weather effect layer:', error);
+      }
+      this.weatherEffectLayer = null;
+    }
+    
+    console.log('MapShine | WeatherSystemManager destroyed');
+  }
+}
+
 class TextureMaskShape {
   static type = "textureMask";
 
@@ -15085,6 +15764,8 @@ export class ParticleLayer extends foundry.canvas.layers.CanvasLayer {
         game.mapShine.debugger.eventHandler.updateParticleCount(count, limit);
         // Update the zoom display for the overhead effect UI.
         game.mapShine.debugger.eventHandler.updateZoomDisplay();
+        // Update weather system diagnostics
+        game.mapShine.debugger.eventHandler.updateWeatherDiagnostics();
       }
     }
   }
@@ -16292,8 +16973,11 @@ class WindBehavior {
   constructor(config) {
     this.order = PIXI.particles.behaviors.BehaviorOrder.Normal;
     this.config = config;
-    // The fire's natural upward buoyancy is now part of this self-contained behavior.
-    this.buoyancy = { x: 0, y: -50 };
+    // Buoyancy can be configured per-particle system
+    // Default: { x: 0, y: -50 } for fire (upward force)
+    // Precipitation uses: { x: 0, y: 0 } (no buoyancy, gravity-only)
+    this.buoyancy = config.buoyancy || { x: 0, y: -50 };
+    this.turbulence = config.turbulence || 0; // Turbulence intensity (0-1)
   }
 
   /**
@@ -16305,8 +16989,9 @@ class WindBehavior {
     let p = first;
     while (p) {
       // Each particle gets its own velocity vector, initialized to zero.
-
       p.velocity = new PIXI.Point(0, 0);
+      // Random turbulence phase for each particle
+      p.turbulencePhase = Math.random() * Math.PI * 2;
       p = p.next;
     }
   }
@@ -16329,21 +17014,177 @@ class WindBehavior {
     // Negate Y for screen coordinates (Y increases downward)
     const windAccelY = -Math.sin(windAngleRad) * windForce;
 
-    // 2. Calculate the total acceleration for this frame (buoyancy + wind).
-    const totalAccelX = this.buoyancy.x + windAccelX;
-    const totalAccelY = this.buoyancy.y + windAccelY;
+    // 2. Add turbulence - random chaotic motion scaled by wind speed
+    let turbulenceX = 0;
+    let turbulenceY = 0;
+    if (this.turbulence > 0) {
+      // Turbulence intensity scales with wind speed (more wind = more chaos)
+      const turbulenceIntensity = this.turbulence * windManager.speed * 0.5;
+      
+      // Use time-based noise for smooth chaotic motion
+      particle.turbulencePhase += deltaSec * 3; // Advance phase
+      turbulenceX = Math.sin(particle.turbulencePhase) * turbulenceIntensity;
+      turbulenceY = Math.cos(particle.turbulencePhase * 1.3) * turbulenceIntensity;
+    }
 
-    // 3. Update the particle's velocity based on the total acceleration.
+    // 3. Calculate the total acceleration for this frame (buoyancy + wind + turbulence).
+    const totalAccelX = this.buoyancy.x + windAccelX + turbulenceX;
+    const totalAccelY = this.buoyancy.y + windAccelY + turbulenceY;
 
+    // 4. Update the particle's velocity based on the total acceleration.
     particle.velocity.x += totalAccelX * deltaSec;
-
     particle.velocity.y += totalAccelY * deltaSec;
 
-    // 4. Update the particle's screen position based on its new velocity.
-
+    // 5. Update the particle's screen position based on its new velocity.
     particle.position.x += particle.velocity.x * deltaSec;
-
     particle.position.y += particle.velocity.y * deltaSec;
+  }
+}
+
+/**
+ * ZDepthBehavior - Simulates a Z-axis (height/depth) for particles in top-down view
+ * Particles fall through virtual 3D space while staying in roughly the same X/Y map position
+ * Provides perspective scaling (far = small, near = large) and Z-velocity for streaks
+ */
+class ZDepthBehavior {
+  static type = "zDepth";
+
+  constructor(config) {
+    this.order = PIXI.particles.behaviors.BehaviorOrder.Normal; // Run during normal update
+    this.startHeight = config.startHeight || 1000; // Starting Z-height in pixels
+    this.endHeight = config.endHeight || 0; // Ground level (Z=0)
+    
+    // Validate fallSpeed - ensure min/max are numbers, not undefined
+    const fallSpeedConfig = config.fallSpeed || {};
+    this.fallSpeedMin = fallSpeedConfig.min ?? 400; // Default: 400 px/s
+    this.fallSpeedMax = fallSpeedConfig.max ?? 600; // Default: 600 px/s
+    
+    this.scaleAtTop = config.scaleAtTop || 3.0; // Scale when at max height (far from camera)
+    this.scaleAtBottom = config.scaleAtBottom || 0.1; // Scale when at ground (near camera)
+  }
+
+  /**
+   * Initialize particles with Z-height and Z-velocity
+   */
+  initParticles(first) {
+    let particle = first;
+    while (particle) {
+      // Initialize Z-coordinate (height above ground)
+      if (!particle.zDepth) {
+        particle.zDepth = {};
+      }
+      
+      // Start at maximum height
+      particle.zDepth.z = this.startHeight;
+      particle.zDepth.startHeight = this.startHeight; // Store for VelocityStreakBehavior
+      
+      // Random fall speed within range
+      const speed = this.fallSpeedMin + Math.random() * (this.fallSpeedMax - this.fallSpeedMin);
+      particle.zDepth.zVelocity = -speed; // Negative = falling downward
+      
+      particle = particle.next;
+    }
+  }
+
+  /**
+   * Update particle Z-position and apply perspective scaling
+   */
+  updateParticle(particle, deltaSec) {
+    if (!particle.zDepth) {
+      // Initialize if missing (shouldn't happen)
+      particle.zDepth = {
+        z: this.startHeight,
+        zVelocity: -(this.fallSpeedMin + Math.random() * (this.fallSpeedMax - this.fallSpeedMin))
+      };
+    }
+
+    // Update Z-position (falling through virtual space)
+    particle.zDepth.z += particle.zDepth.zVelocity * deltaSec;
+    
+    // Clamp to ground level (don't go below 0)
+    if (particle.zDepth.z < this.endHeight) {
+      particle.zDepth.z = this.endHeight;
+      particle.zDepth.zVelocity = 0;
+    }
+    
+    // Calculate perspective scale based on Z-height
+    // Higher Z = farther from camera = smaller scale
+    // Lower Z = closer to camera = larger scale
+    const heightPercent = particle.zDepth.z / this.startHeight; // 1.0 at top, 0.0 at bottom
+    const perspectiveScale = this.scaleAtTop + (this.scaleAtBottom - this.scaleAtTop) * (1.0 - heightPercent);
+    
+    // Apply perspective scale (this is the base scale, VelocityStreakBehavior will modify Y-scale)
+    particle.scale.x = perspectiveScale;
+    particle.scale.y = perspectiveScale;
+  }
+}
+
+/**
+ * VelocityStreakBehavior - Dynamically adjusts rain particle rotation and scale based on velocity
+ * Creates realistic motion blur streaks that lengthen with speed
+ * NOW USES Z-VELOCITY from ZDepthBehavior for streak length
+ */
+class VelocityStreakBehavior {
+  static type = "velocityStreak";
+
+  constructor(config) {
+    this.order = PIXI.particles.behaviors.BehaviorOrder.Late; // Run after movement
+    this.baseStreakLength = config.baseStreakLength || 1.0; // Multiplier for streak length
+    this.minStretch = config.minStretch || 1.0; // Minimum Y-scale
+    this.maxStretch = config.maxStretch || 3.0; // Maximum Y-scale
+    this.velocityThreshold = config.velocityThreshold || 50; // Speed needed for max stretch
+    this.fadeInTime = config.fadeInTime || 0.1; // Fade in streak during first 10% of life
+    this.fadeOutTime = config.fadeOutTime || 0.9; // Fade out streak during last 10% of life
+  }
+
+  /**
+   * Initialize particles with streak properties
+   */
+  initParticles(first) {
+    // Nothing to initialize
+  }
+
+  /**
+   * Update particle rotation and scale based on Z-velocity (falling speed)
+   */
+  updateParticle(particle, deltaSec) {
+    // Use Z-velocity for streak length (falling speed through virtual 3D space)
+    const zVelocity = particle.zDepth?.zVelocity || 0;
+    const speed = Math.abs(zVelocity); // Falling speed magnitude
+    
+    if (speed > 1) {
+      // TOP-DOWN VIEW: Rain falls straight down through Z-axis
+      // Streaks should always be VERTICAL (pointing down the screen) regardless of wind
+      // Wind only creates horizontal drift, but doesn't tilt the rain
+      // rotation = 0 keeps the texture vertical (our 1x8px texture is already vertical)
+      particle.rotation = 0;
+
+      // Stretch Y-scale based on Z-speed (falling speed)
+      // Faster falling = longer streaks
+      const stretchFactor = Math.min(speed / this.velocityThreshold, 1.0);
+      const yStretch = this.minStretch + (this.maxStretch - this.minStretch) * stretchFactor;
+      
+      // Fade streak length based on Z-height (fade in when spawning high, fade out when reaching ground)
+      const zHeight = particle.zDepth?.z || 0;
+      const zMax = particle.zDepth?.startHeight || 1000;
+      const heightPercent = zHeight / zMax; // 1.0 at top, 0.0 at bottom
+      
+      let heightFade = 1.0;
+      
+      if (heightPercent > this.fadeOutTime) {
+        // Fade in at top: 1.0→0.9 height = 0→1 fade
+        heightFade = (1.0 - heightPercent) / (1.0 - this.fadeOutTime);
+      } else if (heightPercent < this.fadeInTime) {
+        // Fade out at bottom: 0.1→0.0 height = 0→1 fade
+        heightFade = heightPercent / this.fadeInTime;
+      }
+      
+      // Apply the stretch with height fade
+      particle.scale.y = particle.scale.x * yStretch * this.baseStreakLength * heightFade;
+    } else {
+      // At low/zero speed, keep scale minimal
+      particle.scale.y = particle.scale.x;
+    }
   }
 }
 
@@ -24306,9 +25147,10 @@ class CloudShadowsLayer extends MaskedEffectLayer {
 
     u.u_outputRawCloud = true;
     // Validate sprite and textures before rendering
+    // NOTE: Don't check rawCloudTexture.valid - RenderTextures may not be valid until first render
     if (this._patternGeneratorSprite?.texture?.baseTexture?.valid && 
         !this._patternGeneratorSprite.destroyed && 
-        this.rawCloudTexture?.valid) {
+        this.rawCloudTexture) {
       canvas.app.renderer.render(this._patternGeneratorSprite, {
         renderTexture: this.rawCloudTexture,
         clear: true,
@@ -24716,7 +25558,7 @@ class CloudDepthLayer extends foundry.canvas.layers.CanvasLayer {
     const hasVisibilitySettings = Object.keys(tileVisibility).length > 0;
     const hasHiddenTiles = Object.values(tileVisibility).some(v => v === false);
     
-    console.log('MapShine | Cloud Tops Masking - hasVisibilitySettings:', hasVisibilitySettings, 'hasHiddenTiles:', hasHiddenTiles);
+    // console.log('MapShine | Cloud Tops Masking - hasVisibilitySettings:', hasVisibilitySettings, 'hasHiddenTiles:', hasHiddenTiles);
     
     if (hasVisibilitySettings && hasHiddenTiles) {
       // Create mask sprite if it doesn't exist
@@ -31349,6 +32191,7 @@ class DebuggerUIBuilder {
     // Column 1: Post-processing effects
     column1.innerHTML = managedEffects.postProcessing;
     column1.innerHTML += this._buildParticleSystemSection();
+    column1.innerHTML += this._buildWeatherSystemSection();
     column1.innerHTML += this._buildFontManagerSection();
     column1.innerHTML += loadingScreenHTML;
     column1.innerHTML += pauseEffectHTML;
@@ -31629,6 +32472,368 @@ class DebuggerUIBuilder {
                             </div>
                         </details>
                     `;
+  }
+
+  _buildWeatherSystemSection() {
+    return `
+      <h3 class="pane-title" style="margin-top: 15px;">Weather System</h3>
+      <details id="details-weatherSystem">
+        <summary>
+          <span class="accordion-toggle"></span>
+          <div class="summary-control">
+            ${DebuggerUIBuilder._createCheckboxHTML(
+              "universal.weather.enabled",
+              "<strong>Enable Weather System</strong>",
+              false,
+              "Master toggle for dynamic weather effects."
+            )}
+          </div>
+        </summary>
+        <div style="padding-top: 5px;">
+          
+          <!-- Diagnostic Panel -->
+          <div class="weather-diagnostics" style="padding: 8px; background: rgba(0,0,0,0.3); border-radius: 4px; margin-bottom: 10px; border-left: 3px solid #3b82f6;">
+            <div style="font-weight: bold; margin-bottom: 6px; color: #60a5fa;">⚡ System Diagnostics</div>
+            
+            <div class="diagnostic-row" style="display: flex; justify-content: space-between; padding: 3px 0; font-size: 11px;">
+              <span style="color: #94a3b8;">Current State:</span>
+              <span id="weather-diag-state" style="font-weight: bold; color: #fff;">clear</span>
+            </div>
+            
+            <div class="diagnostic-row" style="display: flex; justify-content: space-between; padding: 3px 0; font-size: 11px;">
+              <span style="color: #94a3b8;">Transition Progress:</span>
+              <span id="weather-diag-transition" style="color: #fff;">N/A</span>
+            </div>
+            
+            <div class="diagnostic-row" style="display: flex; justify-content: space-between; padding: 3px 0; font-size: 11px;">
+              <span style="color: #94a3b8;">Precipitation Type:</span>
+              <span id="weather-diag-precip-type" style="color: #fff;">none</span>
+            </div>
+            
+            <div class="diagnostic-row" style="display: flex; justify-content: space-between; padding: 3px 0; font-size: 11px;">
+              <span style="color: #94a3b8;">Shader Layer:</span>
+              <span id="weather-diag-shader-layer" style="color: #10b981;">✓ Active</span>
+            </div>
+            
+            <div class="diagnostic-row" style="display: flex; justify-content: space-between; padding: 3px 0; font-size: 11px;">
+              <span style="color: #94a3b8;">Active Effects:</span>
+              <span id="weather-diag-effects-count" style="color: #fff;">0</span>
+            </div>
+            
+            <div class="diagnostic-row" style="display: flex; justify-content: space-between; padding: 3px 0; font-size: 11px;">
+              <span style="color: #94a3b8;">System Ready:</span>
+              <span id="weather-diag-ready" style="color: #10b981;">✓ Yes</span>
+            </div>
+            
+            <div id="weather-diag-error" style="display: none; margin-top: 6px; padding: 6px; background: rgba(239,68,68,0.2); border-radius: 3px; border-left: 2px solid #ef4444;">
+              <div style="font-size: 10px; color: #fca5a5; font-weight: bold;">⚠ ERROR</div>
+              <div id="weather-diag-error-msg" style="font-size: 10px; color: #fecaca; margin-top: 2px;"></div>
+              <div id="weather-diag-error-time" style="font-size: 9px; color: #9ca3af; margin-top: 2px;"></div>
+            </div>
+          </div>
+
+          <!-- State Control -->
+          <div class="control-row">
+            <label>Current Weather</label>
+            ${DebuggerUIBuilder._createSelectHTML(
+              "universal.weather.currentState",
+              "",
+              {
+                clear: "Clear",
+                drizzle: "Drizzle",
+                rain: "Rain",
+                storm: "Storm",
+                sleet: "Sleet",
+                snow: "Snow",
+                blizzard: "Blizzard"
+              },
+              "Select the current weather state"
+            )}
+          </div>
+
+          ${DebuggerUIBuilder._createSliderHTML(
+            "universal.weather.transitionDuration",
+            "Transition Duration (ms)",
+            1000,
+            30000,
+            1000,
+            "Time for smooth transitions between weather states"
+          )}
+
+          <!-- Shader Effects Note -->
+          <div style="padding: 10px; background: rgba(59,130,246,0.1); border-left: 3px solid #3b82f6; border-radius: 3px; margin: 10px 0;">
+            <div style="font-size: 11px; color: #93c5fd; margin-bottom: 4px;">
+              <strong>🚀 GPU-Accelerated Shaders</strong>
+            </div>
+            <div style="font-size: 10px; color: #cbd5e1; line-height: 1.4;">
+              Weather effects are now powered by GPU shaders for better performance and visual quality. Controls for Rain, Snow, and Fog shaders will be added in future updates.
+            </div>
+          </div>
+
+          <!-- Shader Effects Sub-Accordion -->
+          <details style="margin-top: 10px;">
+            <summary><span class="accordion-toggle"></span><strong>🌧️ Rain Shader</strong></summary>
+            <div style="padding-left: 10px;">
+              <p class="description-text">Control GPU-accelerated rain shader parameters. (Coming Soon)</p>
+            </div>
+          </details>
+
+          <!-- Snow Shader Sub-Accordion -->
+          <details style="margin-top: 10px;">
+            <summary><span class="accordion-toggle"></span><strong>❄️ Snow Shader</strong></summary>
+            <div style="padding-left: 10px;">
+              <p class="description-text">Control GPU-accelerated snow shader parameters. (Coming Soon)</p>
+            </div>
+          </details>
+
+          <!-- Fog Shader Sub-Accordion -->
+          <details style="margin-top: 10px;">
+            <summary><span class="accordion-toggle"></span><strong>🌫️ Fog Shader</strong></summary>
+            <div style="padding-left: 10px;">
+              <p class="description-text">Control GPU-accelerated fog shader parameters. (Coming Soon)</p>
+            </div>
+          </details>
+
+        </div>
+      </details>
+    `;
+  }
+
+  _getStyles() {
+    return `<style>
+    /* --- Gradient Editor --- */
+                1,
+                20,
+                1
+              )}
+
+              ${DebuggerUIBuilder._createSliderHTML(
+                "universal.weather.impacts.particlesPerImpact.max",
+                "Max Particles/Impact",
+                1,
+                20,
+                1
+              )}
+
+              ${DebuggerUIBuilder._createSliderHTML(
+                "universal.weather.impacts.splashHeight.min",
+                "Min Splash Height (px)",
+                2,
+                50,
+                1
+              )}
+
+              ${DebuggerUIBuilder._createSliderHTML(
+                "universal.weather.impacts.splashHeight.max",
+                "Max Splash Height (px)",
+                2,
+                50,
+                1
+              )}
+
+              ${DebuggerUIBuilder._createSliderHTML(
+                "universal.weather.impacts.splashDuration",
+                "Splash Duration (s)",
+                0.1,
+                2,
+                0.1
+              )}
+
+              ${DebuggerUIBuilder._createTextInputHTML(
+                "universal.weather.impacts.surfaceMaskPath",
+                "Surface Mask Path (_Surface)"
+              )}
+            </div>
+          </details>
+
+          <!-- Accumulation Sub-Accordion (Bonus) -->
+          <details style="margin-top: 10px;">
+            <summary><span class="accordion-toggle"></span><strong>❄️ Snow Accumulation (Bonus)</strong></summary>
+            <div style="padding-left: 10px;">
+              <p class="description-text">Gradual snow buildup on rooftops and surfaces.</p>
+              
+              ${DebuggerUIBuilder._createCheckboxHTML(
+                "universal.weather.accumulation.enabled",
+                "Enable Snow Accumulation",
+                false,
+                "Render snow buildup on _Rooftops masks"
+              )}
+
+              ${DebuggerUIBuilder._createSliderHTML(
+                "universal.weather.accumulation.rate",
+                "Accumulation Rate",
+                0.1,
+                2,
+                0.1,
+                "Speed multiplier for snow buildup"
+              )}
+
+              ${DebuggerUIBuilder._createSliderHTML(
+                "universal.weather.accumulation.maxDepth",
+                "Max Depth (px)",
+                5,
+                50,
+                1,
+                "Maximum snow depth in pixels"
+              )}
+
+              ${DebuggerUIBuilder._createSliderHTML(
+                "universal.weather.accumulation.meltRate",
+                "Melt Rate",
+                0,
+                1,
+                0.05,
+                "How fast snow melts when transitioning away"
+              )}
+
+              ${DebuggerUIBuilder._createSliderHTML(
+                "universal.weather.accumulation.visualOpacity",
+                "Visual Opacity",
+                0,
+                1,
+                0.05,
+                "Opacity of accumulated snow"
+              )}
+
+              ${DebuggerUIBuilder._createTextInputHTML(
+                "universal.weather.accumulation.rooftopMaskPath",
+                "Rooftop Mask Path (_Rooftops)"
+              )}
+            </div>
+          </details>
+
+          <!-- Lightning Sub-Accordion (Bonus) -->
+          <details style="margin-top: 10px;">
+            <summary><span class="accordion-toggle"></span><strong>⚡ Lightning & Thunder (Bonus)</strong></summary>
+            <div style="padding-left: 10px;">
+              <p class="description-text">Screen flash effects with optional thunder sounds.</p>
+              
+              ${DebuggerUIBuilder._createCheckboxHTML(
+                "universal.weather.lightning.enabled",
+                "Enable Lightning",
+                false,
+                "Random lightning flash effects during storms"
+              )}
+
+              ${DebuggerUIBuilder._createSliderHTML(
+                "universal.weather.lightning.frequency.min",
+                "Min Frequency (ms)",
+                1000,
+                30000,
+                1000,
+                "Minimum time between lightning strikes"
+              )}
+
+              ${DebuggerUIBuilder._createSliderHTML(
+                "universal.weather.lightning.frequency.max",
+                "Max Frequency (ms)",
+                1000,
+                30000,
+                1000,
+                "Maximum time between lightning strikes"
+              )}
+
+              ${DebuggerUIBuilder._createSliderHTML(
+                "universal.weather.lightning.flashDuration",
+                "Flash Duration (ms)",
+                50,
+                500,
+                10
+              )}
+
+              ${DebuggerUIBuilder._createSliderHTML(
+                "universal.weather.lightning.flashIntensity",
+                "Flash Intensity",
+                0,
+                1,
+                0.05,
+                "Brightness of the lightning flash (0-1)"
+              )}
+
+              ${DebuggerUIBuilder._createTextInputHTML(
+                "universal.weather.lightning.flashColor",
+                "Flash Color"
+              )}
+
+              ${DebuggerUIBuilder._createSliderHTML(
+                "universal.weather.lightning.thunderDelay.min",
+                "Min Thunder Delay (ms)",
+                0,
+                5000,
+                100,
+                "Minimum delay between flash and thunder"
+              )}
+
+              ${DebuggerUIBuilder._createSliderHTML(
+                "universal.weather.lightning.thunderDelay.max",
+                "Max Thunder Delay (ms)",
+                0,
+                5000,
+                100,
+                "Maximum delay between flash and thunder"
+              )}
+
+              ${DebuggerUIBuilder._createCheckboxHTML(
+                "universal.weather.lightning.playThunderSound",
+                "Play Thunder Sound",
+                false,
+                "Play thunder sound effect (requires audio file integration)"
+              )}
+            </div>
+          </details>
+
+          <!-- Performance Sub-Accordion -->
+          <details style="margin-top: 10px;">
+            <summary><span class="accordion-toggle"></span><strong>⚙️ Performance</strong></summary>
+            <div style="padding-left: 10px;">
+              <p class="description-text">Optimize weather particle rendering.</p>
+              
+              ${DebuggerUIBuilder._createSliderHTML(
+                "universal.weather.performance.maxParticles",
+                "Max Particles",
+                100,
+                5000,
+                100,
+                "Hard limit on total weather particles"
+              )}
+
+              ${DebuggerUIBuilder._createCheckboxHTML(
+                "universal.weather.performance.cullOutsideViewport",
+                "Viewport Culling",
+                true,
+                "Don't render particles outside the visible area"
+              )}
+
+              ${DebuggerUIBuilder._createCheckboxHTML(
+                "universal.weather.performance.lodEnabled",
+                "Level of Detail (LOD)",
+                true,
+                "Reduce particle count when zoomed out"
+              )}
+
+              ${DebuggerUIBuilder._createSliderHTML(
+                "universal.weather.performance.lodDistanceThreshold",
+                "LOD Distance (px)",
+                500,
+                5000,
+                100,
+                "Zoom distance to trigger LOD reduction"
+              )}
+
+              ${DebuggerUIBuilder._createSliderHTML(
+                "universal.weather.performance.lodReductionFactor",
+                "LOD Reduction Factor",
+                0.1,
+                1,
+                0.05,
+                "Multiply particle count by this when LOD active"
+              )}
+            </div>
+          </details>
+
+        </div>
+      </details>
+    `;
   }
 
   _getStyles() {
@@ -34670,6 +35875,20 @@ class DebuggerEventHandler {
     const isGameSetting =
       path.startsWith("universal.") || path.startsWith("loading-screen-");
 
+    // Special handling for weather state changes - use shader system only
+    if (path === "universal.weather.currentState") {
+      const weatherManager = game.mapShine?.weatherSystemManager;
+      if (weatherManager) {
+        // Use UNIVERSAL_EFFECT_DEFAULTS.weather as the config base
+        const config = UNIVERSAL_EFFECT_DEFAULTS.weather;
+        
+        // Transition to the new state (convert to lowercase to match STATES)
+        const stateLowercase = value.toLowerCase();
+        weatherManager.transitionToState(stateLowercase, config.transitionDuration || 10000);
+        console.log(`MapShine | Transitioning to weather state: ${stateLowercase} (shader-based)`);
+      }
+    }
+    
     if (isGameSetting) {
       await game.settings.set(MODULE_ID, path, value);
       // A full refresh ensures any managers reading these settings are updated.
@@ -35131,6 +36350,84 @@ class DebuggerEventHandler {
 
     if (countEl) countEl.textContent = count;
     if (limitEl) limitEl.textContent = limit;
+  }
+
+  /**
+   * Update weather system diagnostic panel with real-time data
+   */
+  updateWeatherDiagnostics() {
+    if (!this.element) return;
+    
+    const weatherManager = game.mapShine?.weatherSystemManager;
+    if (!weatherManager) return;
+
+    const diag = weatherManager.getDiagnostics();
+    
+    // Update state display
+    const stateEl = this.element.querySelector("#weather-diag-state");
+    if (stateEl) {
+      stateEl.textContent = diag.weatherName || diag.currentState;
+      stateEl.style.color = diag.isTransitioning ? "#fbbf24" : "#fff";
+    }
+
+    // Update transition progress
+    const transitionEl = this.element.querySelector("#weather-diag-transition");
+    if (transitionEl) {
+      transitionEl.textContent = diag.transitionProgress;
+      transitionEl.style.color = diag.isTransitioning ? "#fbbf24" : "#94a3b8";
+    }
+
+    // Update precipitation type
+    const precipTypeEl = this.element.querySelector("#weather-diag-precip-type");
+    if (precipTypeEl) {
+      precipTypeEl.textContent = diag.precipitationType;
+    }
+
+    // Update shader layer status
+    const shaderLayerEl = this.element.querySelector("#weather-diag-shader-layer");
+    if (shaderLayerEl) {
+      if (diag.shaderLayerActive) {
+        shaderLayerEl.textContent = "✓ Active";
+        shaderLayerEl.style.color = "#10b981";
+      } else {
+        shaderLayerEl.textContent = "✗ Inactive";
+        shaderLayerEl.style.color = "#ef4444";
+      }
+    }
+
+    // Update active effects count
+    const effectsCountEl = this.element.querySelector("#weather-diag-effects-count");
+    if (effectsCountEl) {
+      effectsCountEl.textContent = diag.effectsCount || 0;
+      effectsCountEl.style.color = diag.effectsCount > 0 ? "#10b981" : "#94a3b8";
+    }
+
+    // Update system ready status
+    const readyEl = this.element.querySelector("#weather-diag-ready");
+    if (readyEl) {
+      if (diag.isReady) {
+        readyEl.textContent = "✓ Yes";
+        readyEl.style.color = "#10b981";
+      } else {
+        readyEl.textContent = "✗ No";
+        readyEl.style.color = "#ef4444";
+      }
+    }
+
+    // Update error display
+    const errorContainer = this.element.querySelector("#weather-diag-error");
+    const errorMsgEl = this.element.querySelector("#weather-diag-error-msg");
+    const errorTimeEl = this.element.querySelector("#weather-diag-error-time");
+    
+    if (errorContainer && errorMsgEl && errorTimeEl) {
+      if (diag.lastError) {
+        errorContainer.style.display = "block";
+        errorMsgEl.textContent = diag.lastError;
+        errorTimeEl.textContent = `at ${diag.lastErrorTime}`;
+      } else {
+        errorContainer.style.display = "none";
+      }
+    }
   }
 
   addEventListeners() {
@@ -37905,6 +39202,7 @@ class SimpleUIPanel extends Application {
         const parsed = parseFloat(el.value);
         value = isNaN(parsed) ? el.value : parsed;
       }
+      
       await this.profileManager.recordUserChange(path, value);
     } else if (key && type) {
       // Client override controls
