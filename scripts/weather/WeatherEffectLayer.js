@@ -23,6 +23,10 @@ export class WeatherEffectLayer extends PIXI.Container {
     this.sortableChildren = true;
     this.eventMode = "none";
     
+    // State tracking to prevent log spam
+    this._lastLoggedState = null;
+    this._outdoorMaskingWarned = false;
+    
     console.log('MapShine | WeatherEffectLayer initialized');
   }
 
@@ -107,7 +111,7 @@ export class WeatherEffectLayer extends PIXI.Container {
 
     effect.configure(config);
     effect.play();
-    console.log(`MapShine | WeatherEffectLayer: Playing ${effectType}`, config);
+    // ⚠️ Logging removed - called too frequently during transitions
   }
 
   /**
@@ -122,37 +126,44 @@ export class WeatherEffectLayer extends PIXI.Container {
     }
 
     effect.stop();
-    console.log(`MapShine | WeatherEffectLayer: Stopped ${effectType}`);
+    // ⚠️ Logging removed - called too frequently during transitions
   }
 
   /**
    * Stop all weather effects
+   * 
+   * ⚠️ WARNING: Can be called frequently during transitions - minimize logging!
    */
   stopAllEffects() {
     for (const [type, effect] of this.effects.entries()) {
       effect.stop();
     }
-    console.log('MapShine | WeatherEffectLayer: Stopped all effects');
+    // ⚠️ Logging removed - called too frequently during state changes
   }
 
   /**
    * Update _Outdoors masking for all weather effects
    * This ensures weather only renders in outdoor areas
+   * 
+   * ⚠️ WARNING: DO NOT ADD CONSOLE.LOG HERE - THIS RUNS EVERY FRAME!
+   * 
    * @private
    */
   _updateOutdoorMasking() {
     // Get the _Outdoors mask from ResourceManager
     const resourceManager = game.mapShine?.resourceManager;
     if (!resourceManager) {
-      console.warn('MapShine | WeatherEffectLayer: ResourceManager not available for outdoor masking');
+      // Only warn once, not every frame
+      if (!this._outdoorMaskingWarned) {
+        console.warn('MapShine | WeatherEffectLayer: ResourceManager not available for outdoor masking');
+        this._outdoorMaskingWarned = true;
+      }
       return;
     }
 
     const outdoorsMask = resourceManager.getOutdoorsMask();
     if (!outdoorsMask || !outdoorsMask.valid) {
-      console.log('MapShine | WeatherEffectLayer: _Outdoors mask not available, weather will render everywhere');
-      
-      // Disable terrain masking for all effects
+      // Disable terrain masking for all effects (silently)
       for (const [type, effect] of this.effects.entries()) {
         effect.shader.uniforms.useTerrain = false;
       }
@@ -172,7 +183,7 @@ export class WeatherEffectLayer extends PIXI.Container {
       shader.uniforms.terrainWeights = [1, 0, 0, 0]; // Sample red channel
     }
 
-    console.log('MapShine | WeatherEffectLayer: Configured _Outdoors masking for all effects');
+    // ⚠️ DO NOT LOG HERE - THIS RUNS EVERY FRAME!
   }
 
   /**
@@ -247,12 +258,15 @@ export class WeatherEffectLayer extends PIXI.Container {
       }
     }
 
+    // Logging kept for manual masking configuration (rarely called)
     console.log(`MapShine | WeatherEffectLayer: Configured masking for ${effectType}`, maskConfig);
   }
 
   /**
    * Update the layer each frame
    * Called by the animation ticker
+   * 
+   * ⚠️ WARNING: THIS RUNS EVERY FRAME - DO NOT ADD CONSOLE.LOG HERE!
    */
   update() {
     // Update outdoor masking each frame to handle camera movement
@@ -261,6 +275,9 @@ export class WeatherEffectLayer extends PIXI.Container {
 
   /**
    * Update from configuration object
+   * 
+   * ⚠️ WARNING: Can be called multiple times during transitions - minimize logging!
+   * 
    * @param {object} config - Weather configuration from profile
    */
   updateFromConfig(config) {
@@ -348,7 +365,12 @@ export class WeatherEffectLayer extends PIXI.Container {
         break;
     }
 
-    console.log(`MapShine | WeatherEffectLayer: Updated for state '${state}'`);
+    // ⚠️ Logging removed - called too frequently during transitions and frame updates
+    // Only log on actual state changes if needed
+    if (this._lastLoggedState !== state) {
+      console.log(`MapShine | WeatherEffectLayer: Weather state changed to '${state}'`);
+      this._lastLoggedState = state;
+    }
   }
 
   /**

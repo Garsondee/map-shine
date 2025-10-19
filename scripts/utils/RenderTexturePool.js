@@ -139,7 +139,9 @@ export class RenderTexturePool {
    * }
    */
   static acquire(width, height, options = {}) {
-    const key = `${width}x${height}`;
+    // Include type in key to separate FLOAT and UNSIGNED_BYTE pools
+    const type = options.type || PIXI.TYPES.UNSIGNED_BYTE;
+    const key = `${width}x${height}x${type}`;
     const pool = this._pools.get(key) || [];
 
     this._stats.acquires++;
@@ -215,7 +217,9 @@ export class RenderTexturePool {
     this._stats.releases++;
     this._stats.active.delete(texture);
 
-    const key = `${texture.width}x${texture.height}`;
+    // Include type in key to match acquire()
+    const type = texture.baseTexture?.type || PIXI.TYPES.UNSIGNED_BYTE;
+    const key = `${texture.width}x${texture.height}x${type}`;
     const pool = this._pools.get(key) || [];
 
     // Optional: Clear texture for debugging (helps catch reuse bugs)

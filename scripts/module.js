@@ -45,6 +45,7 @@ import { hexToRgbArray, lerp } from "./utils/ColorUtils.js";
 import { LoadingUI } from "./ui/LoadingUI.js";
 import { MemoryProfiler } from "./utils/MemoryProfiler.js";
 import { TextureLoader } from "./utils/TextureLoader.js";
+import { RenderTexturePool } from "./utils/RenderTexturePool.js";
 
 /***************************************************************************************
  *
@@ -5958,7 +5959,15 @@ class SceneChangeManager {
         }
       }
 
-      // 6. Clean up resource manager
+      // 6. Clean up render texture pool
+      try {
+        console.log("Map Shine | Teardown: Destroying render texture pool...");
+        RenderTexturePool.destroy();
+      } catch (error) {
+        console.warn("Map Shine | Error destroying render texture pool:", error);
+      }
+
+      // 7. Clean up resource manager
       if (game.mapShine.resourceManager) {
         try {
           console.log("Map Shine | Teardown: Destroying resource manager...");
@@ -5970,7 +5979,7 @@ class SceneChangeManager {
         }
       }
 
-      // 7. Reset system ready flag
+      // 8. Reset system ready flag
       game.mapShine.systemsReady = false;
 
       console.log(
@@ -6923,7 +6932,7 @@ class ResourceManager {
  ***************************************************************************************/
 class LightMaskManager {
   constructor() {
-    // Final output texture
+    // Final output texture (PERSISTENT - not pooled)
     this.blurredLightMaskTexture = null;
 
     // --- Properties for three-stage rendering (Hard Mask -> Blur 1 -> Blur 2 -> Blur 3 + Noise) ---
@@ -6931,9 +6940,9 @@ class LightMaskManager {
     this.lightMaskGraphics = null;
     this.lightPolygonMaskTexture = null;
 
-    // Stage 2: Blurring
-    this.intermediateBlurTexture = null;
-    this.intermediateBlurTexture2 = null;
+    // Stage 2: Blurring - Store dimensions for pool acquisition
+    this._blurWidth = 0;
+    this._blurHeight = 0;
     this.kawaseBlurFilter1 = null;
     this.kawaseBlurFilter2 = null;
     this.kawaseBlurFilter3 = null;
@@ -6990,15 +6999,9 @@ class LightMaskManager {
       scaleMode: PIXI.SCALE_MODES.LINEAR,
     });
 
-    // Stage 2 resources (Downscaled for performance)
-    // @ts-expect-error - PIXI.RenderTexture.create accepts options object in v5+
-    this.intermediateBlurTexture = PIXI.RenderTexture.create(
-      downscaledTextureOptions
-    );
-    // @ts-expect-error - PIXI.RenderTexture.create accepts options object in v5+
-    this.intermediateBlurTexture2 = PIXI.RenderTexture.create(
-      downscaledTextureOptions
-    );
+    // Stage 2 resources - Store dimensions for pooled texture acquisition
+    this._blurWidth = downscaledWidth;
+    this._blurHeight = downscaledHeight;
     // The final output texture must be full resolution
     // @ts-expect-error - PIXI.RenderTexture.create accepts options object in v5+
     this.blurredLightMaskTexture = PIXI.RenderTexture.create(
@@ -7007,8 +7010,7 @@ class LightMaskManager {
 
     // CRITICAL: Set texture wrap mode to CLAMP to prevent edge artifacts from Kawase blur
     // Kawase blur samples outside texture bounds at screen edges, causing visible lines
-    this.intermediateBlurTexture.baseTexture.wrapMode = PIXI.WRAP_MODES.CLAMP;
-    this.intermediateBlurTexture2.baseTexture.wrapMode = PIXI.WRAP_MODES.CLAMP;
+    // Note: Pooled textures have CLAMP set by default in RenderTexturePool
     this.blurredLightMaskTexture.baseTexture.wrapMode = PIXI.WRAP_MODES.CLAMP;
 
     this.kawaseBlurFilter1 = new PIXI.filters.KawaseBlurFilter(15, 2, true);
@@ -7019,12 +7021,13 @@ class LightMaskManager {
     this.noiseFilter = new NoiseFilter({ noiseAmount: 0 });
 
     // Sprite for full-resolution rendering (final pass)
-    this.blurSourceSprite = new PIXI.Sprite();
+    // Use EMPTY texture to prevent resize errors before first render
+    this.blurSourceSprite = new PIXI.Sprite(PIXI.Texture.EMPTY);
     this.blurSourceSprite.width = screen.width;
     this.blurSourceSprite.height = screen.height;
 
     // Sprite for downscaled rendering (intermediate blur passes)
-    this.downscaledBlurSprite = new PIXI.Sprite();
+    this.downscaledBlurSprite = new PIXI.Sprite(PIXI.Texture.EMPTY);
     this.downscaledBlurSprite.width = downscaledWidth;
     this.downscaledBlurSprite.height = downscaledHeight;
 
@@ -7072,8 +7075,7 @@ class LightMaskManager {
     // Destroy all PIXI objects
     this.lightMaskGraphics?.destroy();
     this.lightPolygonMaskTexture?.destroy(true);
-    this.intermediateBlurTexture?.destroy(true);
-    this.intermediateBlurTexture2?.destroy(true);
+    // Intermediate blur textures are pooled - not owned by this manager
     this.blurredLightMaskTexture?.destroy(true);
     this.kawaseBlurFilter1?.destroy();
     this.kawaseBlurFilter2?.destroy();
@@ -7089,8 +7091,6 @@ class LightMaskManager {
     // Nullify references
     this.lightMaskGraphics = null;
     this.lightPolygonMaskTexture = null;
-    this.intermediateBlurTexture = null;
-    this.intermediateBlurTexture2 = null;
     this.blurredLightMaskTexture = null;
     this.kawaseBlurFilter1 = null;
     this.kawaseBlurFilter2 = null;
@@ -7134,16 +7134,17 @@ class LightMaskManager {
 
     // Resize all render textures
     this.lightPolygonMaskTexture?.resize(screenWidth, screenHeight);
-    this.intermediateBlurTexture?.resize(downscaledWidth, downscaledHeight);
-    this.intermediateBlurTexture2?.resize(downscaledWidth, downscaledHeight);
+    // Update dimensions for pooled texture acquisition
+    this._blurWidth = downscaledWidth;
+    this._blurHeight = downscaledHeight;
     this.blurredLightMaskTexture?.resize(screenWidth, screenHeight);
 
-    // Resize screen-filling sprites
-    if (this.blurSourceSprite) {
+    // Resize screen-filling sprites (only if they have valid textures)
+    if (this.blurSourceSprite && this.blurSourceSprite.texture?.valid) {
       this.blurSourceSprite.width = screenWidth;
       this.blurSourceSprite.height = screenHeight;
     }
-    if (this.downscaledBlurSprite) {
+    if (this.downscaledBlurSprite && this.downscaledBlurSprite.texture?.valid) {
       this.downscaledBlurSprite.width = downscaledWidth;
       this.downscaledBlurSprite.height = downscaledHeight;
     }
@@ -7230,31 +7231,47 @@ class LightMaskManager {
       });
     }
 
-    // --- Stage 2: Three-Pass Kawase Blur & Noise (Using Downscaling) ---
-    // Pass 1 (Full-res -> Half-res)
-    this.downscaledBlurSprite.texture = this.lightPolygonMaskTexture;
-    this.downscaledBlurSprite.filters = [this.kawaseBlurFilter1];
-    renderer.render(this.downscaledBlurSprite, {
-      renderTexture: this.intermediateBlurTexture,
-      clear: true,
+    // --- Stage 2: Three-Pass Kawase Blur & Noise (Using Downscaling + Pooled Textures) ---
+    // Acquire temporary textures from pool
+    const temp1 = RenderTexturePool.acquire(this._blurWidth, this._blurHeight, {
+      type: PIXI.TYPES.FLOAT,
+      scaleMode: PIXI.SCALE_MODES.LINEAR,
+    });
+    const temp2 = RenderTexturePool.acquire(this._blurWidth, this._blurHeight, {
+      type: PIXI.TYPES.FLOAT,
+      scaleMode: PIXI.SCALE_MODES.LINEAR,
     });
 
-    // Pass 2 (Half-res -> Half-res)
-    this.downscaledBlurSprite.texture = this.intermediateBlurTexture;
-    this.downscaledBlurSprite.filters = [this.kawaseBlurFilter2];
-    renderer.render(this.downscaledBlurSprite, {
-      renderTexture: this.intermediateBlurTexture2,
-      clear: true,
-    });
+    try {
+      // Pass 1 (Full-res -> Half-res)
+      this.downscaledBlurSprite.texture = this.lightPolygonMaskTexture;
+      this.downscaledBlurSprite.filters = [this.kawaseBlurFilter1];
+      renderer.render(this.downscaledBlurSprite, {
+        renderTexture: temp1,
+        clear: true,
+      });
 
-    // Pass 3 (Final, Half-res -> Full-res)
-    // The source sprite must be full-size to fill the final texture.
-    this.blurSourceSprite.texture = this.intermediateBlurTexture2;
-    this.blurSourceSprite.filters = [this.kawaseBlurFilter3, this.noiseFilter];
-    renderer.render(this.blurSourceSprite, {
-      renderTexture: this.blurredLightMaskTexture,
-      clear: true,
-    });
+      // Pass 2 (Half-res -> Half-res)
+      this.downscaledBlurSprite.texture = temp1;
+      this.downscaledBlurSprite.filters = [this.kawaseBlurFilter2];
+      renderer.render(this.downscaledBlurSprite, {
+        renderTexture: temp2,
+        clear: true,
+      });
+
+      // Pass 3 (Final, Half-res -> Full-res)
+      // The source sprite must be full-size to fill the final texture.
+      this.blurSourceSprite.texture = temp2;
+      this.blurSourceSprite.filters = [this.kawaseBlurFilter3, this.noiseFilter];
+      renderer.render(this.blurSourceSprite, {
+        renderTexture: this.blurredLightMaskTexture,
+        clear: true,
+      });
+    } finally {
+      // CRITICAL: Always return textures to pool
+      RenderTexturePool.release(temp1);
+      RenderTexturePool.release(temp2);
+    }
   }
 
   /**
@@ -9297,6 +9314,15 @@ class MapShineLifecycle {
     this.initializationStatus = { succeeded: [], failed: [], skipped: [] };
 
     await loadingManager?.tick("SETUP_START");
+
+    // CRITICAL: RenderTexturePool (required for memory-efficient texture operations)
+    await this.safeInitializeManager(
+      'RenderTexturePool',
+      async () => {
+        RenderTexturePool.initialize();
+      },
+      this.CRITICALITY.CRITICAL
+    );
 
     // CRITICAL: ResourceManager (required for texture loading)
     await this.safeInitializeManager(
@@ -30645,8 +30671,10 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
     this.filter = null;
 
     // Properties for Kawase Blur
-    this.blurredMaskTexture = null;
-    this.intermediateBlurTexture = null;
+    this.blurredMaskTexture = null; // PERSISTENT - not pooled
+    // Store dimensions for pool acquisition (intermediate texture is pooled)
+    this._blurWidth = 0;
+    this._blurHeight = 0;
     this.kawaseBlurFilter1 = null;
     this.kawaseBlurFilter2 = null;
     this.blurSourceSprite = null;
@@ -30743,27 +30771,29 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
     const halfWidth = Math.floor(screen.width / 2);
     const halfHeight = Math.floor(screen.height / 2);
 
-    // Initialize blur resources at half resolution
+    // Store dimensions for pooled texture acquisition
+    this._blurWidth = halfWidth;
+    this._blurHeight = halfHeight;
+
+    // Initialize PERSISTENT blur output texture (not pooled)
     const halfResTextureOptions = {
       width: halfWidth,
       height: halfHeight,
       scaleMode: PIXI.SCALE_MODES.LINEAR,
     };
-    this.intermediateBlurTexture = PIXI.RenderTexture.create(
-      halfResTextureOptions
-    );
     this.blurredMaskTexture = PIXI.RenderTexture.create(halfResTextureOptions);
 
     // CRITICAL: Set texture wrap mode to CLAMP to prevent edge artifacts from Kawase blur
     // Kawase blur samples outside texture bounds at screen edges, causing visible lines
-    this.intermediateBlurTexture.baseTexture.wrapMode = PIXI.WRAP_MODES.CLAMP;
+    // Note: Pooled textures have CLAMP set by default in RenderTexturePool
     this.blurredMaskTexture.baseTexture.wrapMode = PIXI.WRAP_MODES.CLAMP;
 
     this.kawaseBlurFilter1 = new PIXI.filters.KawaseBlurFilter(15, 2, true);
     this.kawaseBlurFilter2 = new PIXI.filters.KawaseBlurFilter(15, 2, true);
 
     // Sprite sized for half-resolution rendering
-    this.blurSourceSprite = new PIXI.Sprite();
+    // Use EMPTY texture to prevent resize errors before first render
+    this.blurSourceSprite = new PIXI.Sprite(PIXI.Texture.EMPTY);
     this.blurSourceSprite.width = halfWidth;
     this.blurSourceSprite.height = halfHeight;
 
@@ -30805,10 +30835,14 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
     const halfWidth = Math.floor(screen.width / 2);
     const halfHeight = Math.floor(screen.height / 2);
 
-    // Resize blur textures to half resolution
-    this.intermediateBlurTexture?.resize(halfWidth, halfHeight);
+    // Update dimensions for pooled texture acquisition
+    this._blurWidth = halfWidth;
+    this._blurHeight = halfHeight;
+    // Resize PERSISTENT blur output texture
     this.blurredMaskTexture?.resize(halfWidth, halfHeight);
-    if (this.blurSourceSprite) {
+    
+    // Resize sprite (only if it has valid texture)
+    if (this.blurSourceSprite && this.blurSourceSprite.texture?.valid) {
       this.blurSourceSprite.width = halfWidth;
       this.blurSourceSprite.height = halfHeight;
     }
@@ -30885,21 +30919,31 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
 
       const renderer = canvas.app.renderer;
 
-      // First pass (Full-res -> Half-res)
-      this.blurSourceSprite.texture = this.combinedMaskTexture;
-      this.blurSourceSprite.filters = [this.kawaseBlurFilter1];
-      renderer.render(this.blurSourceSprite, {
-        renderTexture: this.intermediateBlurTexture,
-        clear: true,
+      // Acquire temporary texture from pool for intermediate blur pass
+      const temp = RenderTexturePool.acquire(this._blurWidth, this._blurHeight, {
+        scaleMode: PIXI.SCALE_MODES.LINEAR,
       });
 
-      // Second pass (Half-res -> Half-res)
-      this.blurSourceSprite.texture = this.intermediateBlurTexture;
-      this.blurSourceSprite.filters = [this.kawaseBlurFilter2];
-      renderer.render(this.blurSourceSprite, {
-        renderTexture: this.blurredMaskTexture,
-        clear: true,
-      });
+      try {
+        // First pass (Full-res -> Half-res)
+        this.blurSourceSprite.texture = this.combinedMaskTexture;
+        this.blurSourceSprite.filters = [this.kawaseBlurFilter1];
+        renderer.render(this.blurSourceSprite, {
+          renderTexture: temp,
+          clear: true,
+        });
+
+        // Second pass (Half-res -> Half-res)
+        this.blurSourceSprite.texture = temp;
+        this.blurSourceSprite.filters = [this.kawaseBlurFilter2];
+        renderer.render(this.blurSourceSprite, {
+          renderTexture: this.blurredMaskTexture,
+          clear: true,
+        });
+      } finally {
+        // CRITICAL: Always return texture to pool
+        RenderTexturePool.release(temp);
+      }
     }
 
     const u = this.filter.uniforms;
@@ -30925,12 +30969,11 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
     }
 
     // Destroy blur resources
-    this.intermediateBlurTexture?.destroy(true);
+    // Intermediate blur texture is pooled - not owned by this layer
     this.blurredMaskTexture?.destroy(true);
     this.kawaseBlurFilter1?.destroy();
     this.kawaseBlurFilter2?.destroy();
     this.blurSourceSprite?.destroy();
-    this.intermediateBlurTexture = null;
     this.blurredMaskTexture = null;
     this.kawaseBlurFilter1 = null;
     this.kawaseBlurFilter2 = null;
