@@ -19,7 +19,7 @@
  * - Real-time shader-based visual enhancements
  *
  * @author Mythica Machina - Ingram Blakelock
- * @version 1.0.62
+ * @version 1.1.15 - (PS, please double check this value and update it as needed. You will need to update the @module.json in the root too.)
  *
  * @requires foundry ^13+
  * @requires pixi.js ^7.4.3
