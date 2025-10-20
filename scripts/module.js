@@ -19,7 +19,7 @@
  * - Real-time shader-based visual enhancements
  *
  * @author Mythica Machina - Ingram Blakelock
- * @version 1.1.15 - (PS, please double check this value and update it as needed. You will need to update the @module.json in the root too.)
+ * @version 1.1.15 - (PS, please double check this value and update it as needed. You will need to update the module.json in the root too.)
  *
  * @requires foundry ^13+
  * @requires pixi.js ^7.4.3
@@ -6803,6 +6803,12 @@ class ResourceManager {
     const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
     layer.displacementFilter.uniforms.u_time += deltaTime * timeFactor;
     if (layer.displacementSprite?.texture?.baseTexture?.valid && !layer.displacementSprite.destroyed && layer.displacementTexture?.valid) {
+      // CRITICAL: Check if BatchRenderer is ready before rendering
+      const batchRenderer = canvas.app.renderer.plugins?.batch;
+      if (!batchRenderer || !batchRenderer._bufferedElements) {
+        return null; // Defer rendering until BatchRenderer is initialized
+      }
+      
       canvas.app.renderer.render(layer.displacementSprite, {
         renderTexture: layer.displacementTexture,
         clear: true,
@@ -8816,6 +8822,12 @@ class OverheadEffectLayer extends foundry.canvas.layers.CanvasLayer {
     }
 
     const renderer = canvas.app.renderer;
+    // CRITICAL: Check if BatchRenderer is ready before rendering
+    const batchRenderer = renderer.plugins?.batch;
+    if (!batchRenderer || !batchRenderer._bufferedElements) {
+      return; // Defer rendering until BatchRenderer is initialized
+    }
+    
     renderer.render(this.spritesContainer, {
       renderTexture: this.compositeTexture,
       clear: true,
@@ -10682,6 +10694,12 @@ class GeometryMaskManager {
       }
     }
 
+    // CRITICAL: Check if BatchRenderer is ready before rendering
+    const batchRenderer = this.renderer.plugins?.batch;
+    if (!batchRenderer || !batchRenderer._bufferedElements || !batchRenderer._aIndex || batchRenderer._aIndex.length === 0) {
+      return; // Defer rendering until BatchRenderer is initialized
+    }
+    
     // Render each graphics object to its texture
     for (const { graphics, texture } of this.masks.values()) {
       const renderContainer = new PIXI.Container();
@@ -11165,6 +11183,10 @@ class DynamicTokenMaskManager {
       !this.canvas?.tokens?.placeables
     )
       return;
+    
+    // CRITICAL: Skip rendering during scene transitions to prevent accessing destroyed tokens
+    if (game.mapShine.transitionActive) return;
+    
     const renderer = this.canvas.app.renderer;
     
     // Skip rendering if renderer context isn't ready
@@ -13574,6 +13596,12 @@ class ParticleEffectController {
       this.definition.configPath === "biofilm" &&
       this.particleOutputTexture
     ) {
+      // CRITICAL: Check if BatchRenderer is ready before rendering
+      const batchRenderer = canvas.app.renderer.plugins?.batch;
+      if (!batchRenderer || !batchRenderer._bufferedElements || !batchRenderer._aIndex || batchRenderer._aIndex.length === 0) {
+        return; // Defer rendering until BatchRenderer is initialized
+      }
+      
       // Validate container before rendering biofilm particles
       if (this.parentContainer && !this.parentContainer.destroyed && this.particleOutputTexture?.valid) {
         canvas.app.renderer.render(this.parentContainer, {
@@ -15497,7 +15525,7 @@ class TextureMaskShape {
     
     // Check if BatchRenderer is ready (critical for sprite rendering)
     const batchRenderer = renderer.plugins?.batch;
-    if (!batchRenderer || !batchRenderer._aIndex) {
+    if (!batchRenderer || !batchRenderer._bufferedElements) {
       console.warn("TextureMaskShape | BatchRenderer not ready, deferring compilation");
       this.isCompiled = false;
       this.isCompiling = false;
@@ -16008,6 +16036,9 @@ export class ParticleLayer extends foundry.canvas.layers.CanvasLayer {
 
   _onAnimate(deltaTime) {
     if (this._destroyed || !game.mapShine.particleManager) return;
+    
+    // CRITICAL: Skip all updates during scene transitions to prevent rendering destroyed objects
+    if (game.mapShine.transitionActive) return;
 
     // Clamp delta time to prevent physics explosions on frame drops
     const clampedDeltaTime = Math.min(deltaTime, MAX_DELTA_TIME);
@@ -21917,6 +21948,9 @@ class MaskedEffectLayer extends foundry.canvas.layers.CanvasLayer {
 
   _onAnimate(_deltaTime) {
     if (this._destroyed) return;
+    
+    // CRITICAL: Skip all updates during scene transitions
+    if (game.mapShine.transitionActive) return;
 
     if (this._needsMaskUpdate) {
       this.renderMask();
@@ -21949,6 +21983,12 @@ class MaskedEffectLayer extends foundry.canvas.layers.CanvasLayer {
   renderMask() {
     if (!this.maskContainer || !this.combinedMaskTexture) return;
     const renderer = canvas.app.renderer;
+
+    // CRITICAL: Check if BatchRenderer is ready before rendering
+    const batchRenderer = renderer.plugins?.batch;
+    if (!batchRenderer || !batchRenderer._bufferedElements) {
+      return; // Defer rendering until BatchRenderer is initialized
+    }
 
     // Bind the render texture system to our target texture
     renderer.renderTexture.bind(this.combinedMaskTexture);
@@ -25455,7 +25495,14 @@ class CloudShadowsLayer extends MaskedEffectLayer {
     if (this._patternGeneratorSprite?.texture?.baseTexture?.valid && 
         !this._patternGeneratorSprite.destroyed && 
         this.rawCloudTexture) {
-      canvas.app.renderer.render(this._patternGeneratorSprite, {
+      const renderer = canvas.app.renderer;
+      // CRITICAL: Check if BatchRenderer is ready before rendering
+      const batchRenderer = renderer.plugins?.batch;
+      if (!batchRenderer || !batchRenderer._bufferedElements || !batchRenderer._aIndex || batchRenderer._aIndex.length === 0) {
+        return; // Defer rendering until BatchRenderer is initialized
+      }
+      
+      renderer.render(this._patternGeneratorSprite, {
         renderTexture: this.rawCloudTexture,
         clear: true,
       });
@@ -27442,6 +27489,9 @@ class IridescenceLayer extends MaskedEffectLayer {
   _onAnimate(deltaTime) {
     super._onAnimate(deltaTime);
     if (this._destroyed || !this.visible || !this.iridescenceFilter) return;
+    
+    // CRITICAL: Skip all updates during scene transitions
+    if (game.mapShine.transitionActive) return;
     this._framesSinceLoad++;
 
     const hasActiveTargets =
