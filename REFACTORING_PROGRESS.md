@@ -20,9 +20,63 @@
 
 **Commit Message:** `refactor: extract core constants to config/constants.js`
 
+### Step 2: Blend Mode Options ✅ TESTED & WORKING
+**Files Created:**
+- ✅ `scripts/config/blend-modes.js` - BLEND_MODE_OPTIONS
+
+**Files Modified:**
+- ✅ `scripts/module.js` - Added import, removed old definition
+
+**Test Result:** ✅ All effects working, blend modes functioning correctly
+
+**Commit Message:** `refactor: extract blend mode options to config/blend-modes.js`
+
+### Step 3: Preset Configurations ✅ TESTED & WORKING
+**Files Created:**
+- ✅ `scripts/config/presets.js` - GRADIENT_PRESETS, LUT_PRESETS, EFFECT_SOURCE_OPTIONS
+
+**Files Modified:**
+- ✅ `scripts/module.js` - Added import, removed old definitions
+
+**Test Result:** ✅ All effects working, presets functioning correctly
+
+**Commit Message:** `refactor: extract gradient and effect presets to config/presets.js`
+
+### Step 4: Font Choices ✅ TESTED & WORKING
+**Files Created:**
+- ✅ `scripts/config/fonts.js` - FONT_CHOICES
+
+**Files Modified:**
+- ✅ `scripts/module.js` - Added import, removed old definition
+
+**Test Result:** ✅ All effects working, fonts accessible in UI
+
+**Commit Message:** `refactor: extract font choices to config/fonts.js`
+
+### Step 5: Rope Type Presets ✅ TESTED & WORKING
+**Files Created:**
+- ✅ Added to `scripts/config/presets.js` - ROPE_TYPE_PRESETS
+
+**Files Modified:**
+- ✅ `scripts/module.js` - Added import, removed old definition
+- ✅ `scripts/config/presets.js` - Added ROPE_TYPE_PRESETS export
+
+**Test Result:** ✅ All effects working, rope physics accessible
+
+**Commit Message:** `refactor: extract rope type presets to config/presets.js`
+
+### Step 6: Color Correction Presets (COMPLETED)
+**Files Created:**
+- ✅ `scripts/config/color-correction-presets.js` - COLOR_CORRECTION_PRESETS (13 presets, 1155 lines)
+
+**Files Modified:**
+- ✅ `scripts/module.js` - Added import, removed old definition
+
+**Status:** Ready for testing
+
 ---
 
-## 🧪 TEST CHECKPOINT #1
+## 🧪 TEST CHECKPOINT #6
 
 **STOP HERE AND TEST BEFORE PROCEEDING!**
 
