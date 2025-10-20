@@ -19,7 +19,7 @@
  * - Real-time shader-based visual enhancements
  *
  * @author Mythica Machina - Ingram Blakelock
- * @version 1.1.20 - Performance: Particle viewport culling + LOD; Fixed: Building Shadows edge artifacts
+ * @version 1.1.52 - Added: RGB Split (glass diffraction), Exposure control, and Metallic Preservation to Structural effect
  *
  * @requires foundry ^13+
  * @requires pixi.js ^7.4.3
@@ -1832,8 +1832,8 @@ export const MODULE_DEFAULTS = {
   "showTokenMask": false,
   "tileOpacity": 0,
   "lightMask": {
-    "blur": 50,
-    "noise": 0
+    "blur": 96,
+    "noise": 0.05
   },
   "baseShine": {
     "enabled": true,
@@ -1841,27 +1841,27 @@ export const MODULE_DEFAULTS = {
       "layerBlendMode": 1
     },
     "animation": {
-      "globalIntensity": 0.1
+      "globalIntensity": 1.5
     },
     "pattern": {
       "stripes": {
         "enabled": true,
-        "speed": 0.001,
-        "angle": 38,
-        "scale": 0.08,
+        "speed": 0,
+        "angle": 140,
+        "scale": 1,
         "parallax": 1,
         "width": 1,
-        "softness": 0.5,
+        "softness": 0.2,
         "randomWidth": 0.49,
         "randomIntensity": 1
       }
     },
     "colorCorrection": {
       "enabled": true,
-      "saturation": 1.5,
-      "brightness": 0.53,
+      "saturation": 1.25,
+      "brightness": 0.5,
       "contrast": 3.25,
-      "gamma": 1,
+      "gamma": 0.3,
       "tint": {
         "color": "#FFFFFF",
         "amount": 0
@@ -1869,48 +1869,48 @@ export const MODULE_DEFAULTS = {
       "invert": false
     },
     "cloudOcclusion": {
-      "enabled": true,
+      "enabled": false,
       "intensity": 0.81
     }
   },
   "cloudShadows": {
     "enabled": true,
     "blendMode": 0,
-    "shadowIntensity": 0.9,
-    "maskBlur": 0,
+    "shadowIntensity": 0.85,
+    "maskBlur": 1,
     "lightOcclusion": {
       "enabled": true,
       "intensity": 1
     },
     "wind": {
-      "angle": 45,
-      "speed": 1.5868,
+      "angle": 326,
+      "speed": 0.5074,
       "linkToWind": true,
-      "linkedWindForce": 0.0001,
-      "linkedMaxSpeed": 0.0002,
-      "linkedDrag": 1
+      "linkedWindForce": 0.02094,
+      "linkedMaxSpeed": 0.002,
+      "linkedDrag": 0.54
     },
     "noise": {
-      "scale": 0.03,
+      "scale": 0.08,
       "octaves": 7,
-      "persistence": 0.25,
-      "lacunarity": 3.1
+      "persistence": 0.3,
+      "lacunarity": 2.7
     },
     "shading": {
-      "threshold": 0.86,
+      "threshold": 0.29,
       "softness": 1,
-      "brightness": 0.17,
-      "contrast": 5,
-      "gamma": 1.6
+      "brightness": 0.18,
+      "contrast": 2.1,
+      "gamma": 0.95
     },
-    "evolutionSpeed": 0.001,
+    "evolutionSpeed": 0.0005,
     "layers": {
       "layer1": {
         "enabled": true,
         "scale": 4,
         "speed": 2.5,
-        "stretchX": 1.0,
-        "stretchY": 1.0,
+        "stretchX": 3,
+        "stretchY": 1,
         "octaves": 3,
         "opacity": 0.3
       },
@@ -1918,8 +1918,8 @@ export const MODULE_DEFAULTS = {
         "enabled": true,
         "scale": 1.5,
         "speed": 1.3,
-        "stretchX": 1.0,
-        "stretchY": 1.0,
+        "stretchX": 1.5,
+        "stretchY": 1,
         "octaves": 5,
         "opacity": 0.5
       },
@@ -1927,8 +1927,8 @@ export const MODULE_DEFAULTS = {
         "enabled": true,
         "scale": 0.7,
         "speed": 0.7,
-        "stretchX": 1.0,
-        "stretchY": 1.0,
+        "stretchX": 1,
+        "stretchY": 1,
         "octaves": 6,
         "opacity": 0.6
       },
@@ -1936,47 +1936,47 @@ export const MODULE_DEFAULTS = {
         "enabled": true,
         "scale": 2.5,
         "speed": 1.8,
-        "stretchX": 1.0,
-        "stretchY": 1.0,
+        "stretchX": 1,
+        "stretchY": 1,
         "octaves": 4,
         "opacity": 0.4
       },
       "layer5": {
         "enabled": true,
-        "scale": 5.0,
-        "speed": 3.0,
-        "stretchX": 1.0,
-        "stretchY": 1.0,
+        "scale": 5,
+        "speed": 3,
+        "stretchX": 1,
+        "stretchY": 1,
         "octaves": 2,
         "opacity": 0.2
       }
     },
     "depth": {
       "enabled": true,
-      "color": "#CCCCCC",
-      "threshold": 0.5,
-      "softness": 0.5,
+      "color": "#f6f6f6",
+      "threshold": 0.73,
+      "softness": 0.3,
       "offsetX": 0,
       "offsetY": 0,
       "zoomThresholdMin": 1.57,
       "zoomThresholdMax": 1.9,
       "saturation": 1,
-      "brightness": 0,
-      "contrast": 1,
+      "brightness": 1,
+      "contrast": 3,
       "exposure": 0,
-      "gamma": 1,
+      "gamma": 0.1,
       "temperature": 0,
       "tint": 0,
-      "zoomPointMin": 1.0,
-      "zoomPointMid": 2.0,
-      "zoomPointMax": 3.0,
-      "opacityMinZoom": 1.0,
-      "opacityMidZoom": 1.0,
-      "opacityMaxZoom": 1.0
+      "zoomPointMin": 0.3,
+      "zoomPointMid": 0.5,
+      "zoomPointMax": 0.6,
+      "opacityMinZoom": 1,
+      "opacityMidZoom": 0,
+      "opacityMaxZoom": 0
     }
   },
   "iridescence": {
-    "enabled": false,
+    "enabled": true,
     "intensity": 0.9,
     "speed": 0.01,
     "scale": 0.7,
@@ -2010,59 +2010,71 @@ export const MODULE_DEFAULTS = {
     }
   },
   "canopy": {
-    "enabled": false,
-    "shadowIntensity": 0.41,
+    "enabled": true,
+    "shadowIntensity": 0.3,
     "tint": "#050805",
     "distortion": {
       "enabled": true,
-      "strength": 0.0079,
-      "speed": 0.07,
-      "scale": 1.4,
-      "evolution": 0.34,
+      "strength": 0.004,
+      "speed": 0.005,
+      "scale": 0.01,
+      "evolution": 0.01,
       "threshold": 0,
-      "brightness": 0,
-      "contrast": 0.45,
+      "brightness": -0.37,
+      "contrast": 1,
       "softness": 1
     }
   },
   "structuralShadows": {
     "enabled": true,
-    "intensity": 0.8,
-    "blendMode": 2,
+    "intensity": 0.5,
+    "blendMode": 4,
     "colorCorrection": {
       "enabled": true,
+      "exposure": 1.8,
       "saturation": 1,
-      "brightness": -0.01,
-      "contrast": 0.6,
-      "gamma": 1.2,
+      "brightness": 0,
+      "contrast": 1,
+      "gamma": 1,
       "tint": {
         "color": "#FFFFFF",
         "amount": 0
       }
     },
+    "rgbSplit": {
+      "enabled": true,
+      "amount": 5,
+      "threshold": 0.2,
+      "softness": 0.5
+    },
+    "metallicPreservation": {
+      "enabled": true,
+      "threshold": 0.5,
+      "blendMode": 1
+    },
     "cloudOcclusion": {
       "enabled": true,
-      "intensity": 0.88,
-      "threshold": 0.94,
-      "softness": 1
+      "intensity": 1,
+      "threshold": 0,
+      "softness": 0.01
     },
     "lightOcclusion": {
       "enabled": true,
-      "intensity": 1
+      "intensity": 0.2
     }
   },
   "prism": {
-    "enabled": false,
-    "intensity": 2.5,
-    "angle": 92,
-    "threshold": 0.11,
-    "softness": 0.29,
-    "distortionStrength": 1,
+    "enabled": true,
+    "intensity": 1,
+    "angle": 218,
+    "threshold": 0.1,
+    "softness": 0.5,
+    "distortionStrength": 1.9,
     "distortionNoise": {
       "enabled": true,
-      "speed": 0.1,
-      "scale": 3.76,
-      "evolution": 0.15,
+      "speed": 0,
+      "scale": 3.83,
+      "evolution": 0,
       "threshold": 0,
       "brightness": 0.11,
       "contrast": 1.85,
@@ -2073,7 +2085,7 @@ export const MODULE_DEFAULTS = {
     "enabled": false,
     "texturePath": "",
     "blendMode": 1,
-    "intensity": 1,
+    "intensity": 2,
     "masking": {
       "enabled": true,
       "threshold": 0,
@@ -2096,7 +2108,7 @@ export const MODULE_DEFAULTS = {
     }
   },
   "groundGlow": {
-    "enabled": false,
+    "enabled": true,
     "texturePath": "",
     "blendMode": 1,
     "intensity": 1.05,
@@ -2105,26 +2117,26 @@ export const MODULE_DEFAULTS = {
     "invert": false
   },
   "heatDistortion": {
-    "enabled": false,
+    "enabled": true,
     "texturePath": "",
-    "intensity": 0.0015,
+    "intensity": 0.0005,
     "noise": {
       "primary": {
-        "speed": 0.002,
+        "speed": 97,
         "scale": 0.5,
-        "octaves": 3,
+        "octaves": 2,
         "lacunarity": 2.2,
         "persistence": 0.45
       },
       "secondary": {
-        "speed": 0.08,
-        "scale": 3,
-        "octaves": 7,
+        "speed": 79,
+        "scale": 3.5,
+        "octaves": 3,
         "lacunarity": 3.8,
         "persistence": 0.3
       },
       "rising": {
-        "speed": 0.02,
+        "speed": 0.077,
         "intensity": 0.4
       }
     }
@@ -2136,7 +2148,7 @@ export const MODULE_DEFAULTS = {
     "enabled": true,
     "colorCorrection": {
       "enabled": true,
-      "saturation": 1,
+      "saturation": 0.7,
       "brightness": 0,
       "contrast": 1,
       "invert": false,
@@ -2144,8 +2156,8 @@ export const MODULE_DEFAULTS = {
         "color": "#FFFFFF",
         "amount": 0
       },
-      "exposure": 1,
-      "gamma": 0.9,
+      "exposure": 0,
+      "gamma": 1,
       "levels": {
         "inBlack": 0,
         "inWhite": 1
@@ -2271,33 +2283,33 @@ export const MODULE_DEFAULTS = {
     },
     "lensDistortion": {
       "enabled": false,
-      "amount": 0.03,
+      "amount": 0.015,
       "centerX": 0.5,
       "centerY": 0.5
     },
     "chromaticAberration": {
       "enabled": false,
-      "amount": 0.003,
+      "amount": 0.001,
       "centerX": 0.5,
       "centerY": 0.5
     },
     "tiltShift": {
       "enabled": false,
-      "blur": 12,
-      "gradientBlur": 2190,
+      "blur": 23,
+      "gradientBlur": 3610,
       "startX": 0,
-      "startY": 1,
-      "endX": 0.4,
-      "endY": 0.56
+      "startY": 0.5,
+      "endX": 1,
+      "endY": 0.5
     },
     "grain": {
       "enabled": false,
-      "intensity": 0.05,
-      "size": 5,
+      "intensity": 0.1,
+      "size": 1.5,
       "monochromatic": true,
       "luminanceResponse": {
-        "shadows": 0.81,
-        "highlights": 0
+        "shadows": 0.8,
+        "highlights": 0.2
       }
     },
     "lut": {
@@ -2308,12 +2320,12 @@ export const MODULE_DEFAULTS = {
     }
   },
   "dust": {
-    "enabled": false,
+    "enabled": true,
     "blendMode": 0,
     "maskThreshold": 0.39,
-    "maskInfluence": 5,
+    "maskInfluence": 1.48,
     "particleTexture": "modules/map-shine/assets/particle.webp",
-    "frequency": 0.097,
+    "frequency": 0.234,
     "lifetime": {
       "min": 4,
       "max": 12
@@ -2327,7 +2339,7 @@ export const MODULE_DEFAULTS = {
       {
         "time": 0.1,
         "color": "#ffc242",
-        "alpha": 0.69
+        "alpha": 0.15
       },
       {
         "time": 0.97,
@@ -2344,12 +2356,12 @@ export const MODULE_DEFAULTS = {
       {
         "time": 0,
         "color": "#ffbc40",
-        "alpha": 1
+        "alpha": 0.51
       },
       {
         "time": 1,
         "color": "#fffb55",
-        "alpha": 1
+        "alpha": 0.48
       }
     ],
     "scale": {
@@ -2436,13 +2448,13 @@ export const MODULE_DEFAULTS = {
   "metallicGlints": {
     "enabled": true,
     "blendMode": 1,
-    "maskThreshold": 0.9,
-    "maskInfluence": 1.9,
+    "maskThreshold": 0.93,
+    "maskInfluence": 3.92,
     "particleTexture": "modules/map-shine/assets/glint.webp",
-    "frequency": 0.231,
+    "frequency": 0.33,
     "lifetime": {
-      "min": 0.4,
-      "max": 1.2
+      "min": 4.7,
+      "max": 8.9
     },
     "colorAlphaGradient": [
       {
@@ -2451,9 +2463,9 @@ export const MODULE_DEFAULTS = {
         "alpha": 0
       },
       {
-        "time": 0.1,
+        "time": 0.2066580908571582,
         "color": "#FFFFFF",
-        "alpha": 0.75
+        "alpha": 1
       },
       {
         "time": 1,
@@ -2468,40 +2480,45 @@ export const MODULE_DEFAULTS = {
         "alpha": 1
       },
       {
+        "time": 0.24097173100375402,
+        "color": "#393939",
+        "alpha": 1
+      },
+      {
         "time": 1,
         "color": "#000000",
         "alpha": 1
       }
     ],
     "scale": {
-      "sizeMultiplier": 4,
-      "start": 1,
-      "end": 0.1,
-      "minMult": 0.7
+      "sizeMultiplier": 4.1,
+      "start": 0.11,
+      "end": 1.15,
+      "minMult": 0.78
     },
     "speed": {
       "start": 0,
       "end": 0,
-      "minMult": 0.5
+      "minMult": 0.1
     },
     "rotation": {
-      "enabled": false,
-      "minSpeed": 0,
-      "maxSpeed": 0,
+      "enabled": true,
+      "minSpeed": -2,
+      "maxSpeed": 2,
       "accel": 0
     }
   },
   "biofilm": {
     "enabled": true,
-    "blendMode": 1,
-    "maskThreshold": 0.49,
+    "blendMode": 0,
+    "maskThreshold": 0.2,
     "maskUpperThreshold": 0.6,
-    "maskInfluence": 2.09,
-    "particleTexture": "modules/map-shine/assets/foam.webp",
-    "frequency": 0.112,
+    "maskInfluence": 5,
+    "particleTexture": "modules/map-shine/assets/particle.webp",
+    "frequency": 0.097,
     "lifetime": {
-      "min": 3.2,
-      "max": 5.4
+      "min": 4,
+      "max": 12
     },
     "colorAlphaGradient": [
       {
@@ -2510,9 +2527,9 @@ export const MODULE_DEFAULTS = {
         "alpha": 0
       },
       {
-        "time": 0.11096689802832989,
-        "color": "#ffffff",
-        "alpha": 0.39
+        "time": 0.04,
+        "color": "#c9c9c8",
+        "alpha": 0.92
       },
       {
         "time": 1,
@@ -2524,117 +2541,112 @@ export const MODULE_DEFAULTS = {
       {
         "time": 0,
         "color": "#000000",
-        "alpha": 0
-      },
-      {
-        "time": 0.11189533804346265,
-        "color": "#959595",
-        "alpha": 0.22
+        "alpha": 1
       },
       {
         "time": 1,
         "color": "#000000",
-        "alpha": 0
+        "alpha": 1
       }
     ],
     "scale": {
-      "sizeMultiplier": 3.1,
-      "start": 0.1,
-      "end": 1.41,
-      "minMult": 1
+      "sizeMultiplier": 0.6,
+      "start": 0.9,
+      "end": 1.09,
+      "minMult": 0.3
     },
     "speed": {
-      "start": 21,
-      "end": -29,
-      "minMult": 0.86
+      "start": 3,
+      "end": 6,
+      "minMult": 0.5
     },
     "rotation": {
-      "enabled": true,
-      "minSpeed": -33,
-      "maxSpeed": 36,
+      "enabled": false,
+      "minSpeed": 0,
+      "maxSpeed": 20,
       "accel": 0
     }
   },
   "water": {
     "enabled": true,
     "depthDisplacement": {
-      "enabled": false,
-      "strength": 0.003,
-      "darken": 0.06,
+      "enabled": true,
+      "strength": 0.005,
+      "darken": 0.15,
       "wallColor": "#0d1a26",
-      "wallIntensity": 1,
-      "wallSmearBlend": 1
+      "wallIntensity": 0.8,
+      "wallSmearBlend": 0.3
     },
     "flow": {
-      "enabled": true,
-      "angle": 95,
-      "speed": 50
+      "enabled": false,
+      "angle": 45,
+      "speed": 5
     },
     "wave": {
       "enabled": true,
-      "speed": 1.5,
-      "scale": 0.5,
-      "intensity": 0.0027,
+      "speed": 0.5,
+      "scale": 4.2,
+      "intensity": 0.0025,
       "biofilmDistortion": {
         "enabled": false,
         "intensity": 0.5
       }
     },
     "murkiness": {
-      "enabled": true,
-      "color": "#112825",
+      "enabled": false,
+      "color": "#1a2c22",
       "wavyNoise": {
-        "strength": 0.46,
-        "scale": 0.05,
-        "speed": 0.75
+        "strength": 0.8,
+        "scale": 2,
+        "speed": 0.005
       },
       "sandyNoise": {
-        "strength": 0.67,
-        "scale": 49.5,
-        "speed": 5.5,
-        "modulationScale": 0.1,
-        "modulationSpeed": 0.21,
-        "modulationStrength": 0.91
+        "strength": 0.3,
+        "scale": 15,
+        "speed": 0.02,
+        "modulationScale": 3,
+        "modulationSpeed": 0.01,
+        "modulationStrength": 0.5
       }
     },
     "surface": {
       "enabled": true,
-      "foamColor": "#ffffff",
-      "foamIntensity": 2,
-      "foamCoverage": 0.39,
-      "foamSharpness": 0.97,
-      "fbmScale": 0.1278,
-      "fbmSpeed": 0.5,
-      "fbmEvolution": 0.5,
-      "fbmOctaves": 8,
-      "fbmLacunarity": 3.35,
-      "fbmPersistence": 0.65,
+      "foamColor": "#33adff",
+      "foamIntensity": 0,
+      "foamCoverage": 0,
+      "foamSharpness": 0.13,
+      "fbmScale": 15.196,
+      "fbmSpeed": 0.01,
+      "fbmEvolution": 0.03,
+      "fbmOctaves": 5,
+      "fbmLacunarity": 4,
+      "fbmPersistence": 0.1,
       "specularity": {
         "enabled": true,
-        "color": "#f0ffca",
-        "intensity": 0.15,
-        "shininess": 14,
-        "lightAngle": 0,
-        "lightElevation": 90,
+        "color": "#FFFFFF",
+        "intensity": 0.75,
+        "shininess": 256,
+        "lightAngle": 45,
+        "lightElevation": 60,
         "cloudOcclusion": {
           "enabled": true,
-          "intensity": 0.75
+          "intensity": 1
         }
       }
     },
     "caustics": {
       "enabled": true,
-      "intensity": 0.008,
-      "scale": 0.3,
-      "speed": 3.6,
-      "color": "#73ffc4",
-      "lineSharpness": 3,
-      "bloomIntensity": 0,
-      "lineDistortion": 0.04,
+      "intensity": 0.033,
+      "scale": 1,
+      "speed": 0.14,
+      "color": "#87CEFA",
+      "lineSharpness": 5,
+      "bloomIntensity": 1,
+      "lineDistortion": 0.1,
       "lineDistortionScale": 5,
       "intersectionBoost": 20,
-      "roughnessScale": 0.7,
-      "roughnessIntensity": 1,
+      "roughnessScale": 4.2,
+      "roughnessIntensity": 0.83,
       "cloudOcclusion": {
         "enabled": true,
         "intensity": 1
@@ -2642,36 +2654,36 @@ export const MODULE_DEFAULTS = {
     },
     "shoreline": {
       "enabled": false,
-      "detectionBlur": 25,
+      "detectionBlur": 1,
       "foamColor": "#FFFFFF",
-      "foamIntensity": 1.7,
+      "foamIntensity": 0.5,
       "foamPattern": {
-        "scale": 18,
-        "speed": 9.9,
-        "evolution": 12.5,
+        "scale": 1,
+        "speed": 0,
+        "evolution": 0.01,
         "octaves": 4,
         "lacunarity": 2.05,
         "persistence": 0.15,
         "brightness": 0.5,
-        "contrast": 5
+        "contrast": 1
       },
       "displacement": {
-        "enabled": true,
-        "scale": 1.8,
-        "speed": 2.5,
-        "strength": 0.0475
+        "enabled": false,
+        "scale": 0.4,
+        "speed": 0.011,
+        "strength": 0.0025
       }
     },
     "glintParticles": {
-      "enabled": false,
-      "blendMode": 10,
+      "enabled": true,
+      "blendMode": 9,
       "maskThreshold": 0.17,
-      "maskInfluence": 2.18,
+      "maskInfluence": 1.95,
       "particleTexture": "modules/map-shine/assets/glint.webp",
-      "frequency": 0.273,
+      "frequency": 0.99,
       "lifetime": {
-        "min": 0.2,
-        "max": 1.4
+        "min": 0.8,
+        "max": 0.8
       },
       "colorAlphaGradient": [
         {
@@ -2680,9 +2692,9 @@ export const MODULE_DEFAULTS = {
           "alpha": 0
         },
         {
-          "time": 0.13706370891150219,
+          "time": 0.1,
           "color": "#FFFFFF",
-          "alpha": 0.72
+          "alpha": 0.8
         },
         {
           "time": 1,
@@ -2694,21 +2706,16 @@ export const MODULE_DEFAULTS = {
         {
           "time": 0,
           "color": "#000000",
-          "alpha": 0
-        },
-        {
-          "time": 0.13238472913549085,
-          "color": "#ffffff",
-          "alpha": 0.85
+          "alpha": 1
         },
         {
           "time": 1,
           "color": "#000000",
-          "alpha": 0
+          "alpha": 1
         }
       ],
       "scale": {
-        "sizeMultiplier": 2,
+        "sizeMultiplier": 1.9,
         "start": 0.76,
         "end": 0.82,
         "minMult": 0.95
@@ -2720,72 +2727,72 @@ export const MODULE_DEFAULTS = {
       },
       "rotation": {
         "enabled": true,
-        "minSpeed": -20,
-        "maxSpeed": 11,
-        "accel": -1
+        "minSpeed": 116,
+        "maxSpeed": 123,
+        "accel": 52
       }
     }
   },
   "foam": {
     "enabled": true,
-    "blendMode": 0,
-    "smallBlur": 1,
-    "largeBlur": 64,
-    "intensity": 3.75,
-    "threshold": 0.01,
-    "softness": 0.79,
-    "color": "#edf1eb",
+    "blendMode": 1,
+    "smallBlur": 2,
+    "largeBlur": 10,
+    "intensity": 1.5,
+    "threshold": 0.2,
+    "softness": 0.1,
+    "color": "#FFFFFF",
     "noise": {
-      "scale": 23,
-      "speed": 0.5,
-      "evolution": 0.5,
-      "octaves": 3,
-      "lacunarity": 1.9,
-      "persistence": 0.2
+      "scale": 15,
+      "speed": 0.02,
+      "evolution": 0.05,
+      "octaves": 4,
+      "lacunarity": 2.2,
+      "persistence": 0.45
     },
     "breakupNoise": {
       "enabled": true,
-      "scale": 0.7,
-      "evolution": 0.1,
-      "octaves": 2,
-      "lacunarity": 3.75,
-      "persistence": 0.1,
-      "brightness": 0.04,
-      "contrast": 0.1
+      "scale": 2.5,
+      "evolution": 0.01,
+      "octaves": 5,
+      "lacunarity": 2.8,
+      "persistence": 0.35,
+      "brightness": 0.4,
+      "contrast": 1.2
     },
     "suppressionNoise": {
       "enabled": true,
-      "scale": 0.011,
-      "speed": 0.043,
-      "evolution": 0.069,
+      "scale": 2.5,
+      "speed": 0.005,
+      "evolution": 0.01,
       "octaves": 4,
-      "lacunarity": 1.5,
+      "lacunarity": 2,
       "persistence": 0.5,
       "brightness": 0.5,
       "contrast": 1
     },
     "blurTurbulence": {
-      "strength": 3,
-      "scale": 4.3,
-      "speed": 0.05
+      "strength": 8,
+      "scale": 0.5,
+      "speed": 0.01
     },
     "crestFoam": {
-      "enabled": true,
-      "intensity": 0.35,
-      "frequency": 4,
-      "speed": 0.2,
-      "angle": 16,
-      "sharpness": 39,
-      "perturbStrength": 100,
-      "perturbScale": 0.01,
-      "perturbSpeed": 0.074,
-      "perturbOctaves": 1,
+      "enabled": false,
+      "intensity": 1.8,
+      "frequency": 35,
+      "speed": 0.03,
+      "angle": 15,
+      "sharpness": 12,
+      "perturbStrength": 35,
+      "perturbScale": 0.04,
+      "perturbSpeed": 0.01,
+      "perturbOctaves": 4,
       "crestBreakup": {
-        "scale": 0.24,
-        "speed": 0.174,
-        "octaves": 1,
-        "brightness": 0.06,
-        "contrast": 3.9
+        "scale": 0.35,
+        "speed": 0.08,
+        "octaves": 3,
+        "brightness": 0.45,
+        "contrast": 1.8
       }
     }
   },
@@ -2794,51 +2801,31 @@ export const MODULE_DEFAULTS = {
     "particles": {
       "enabled": true,
       "blendMode": 1,
-      "maskThreshold": 0.51,
-      "maskInfluence": 0.97,
+      "maskThreshold": 0.4,
+      "maskInfluence": 3.91,
       "particleTexture": "modules/map-shine/assets/flame.webp",
-      "frequency": 0.006,
+      "frequency": 0.027,
       "lifetime": {
-        "min": 0.5,
-        "max": 2.6
+        "min": 3.1,
+        "max": 3.4
       },
       "toneCurve": {
         "enabled": true,
-        "contrast": 0.79,
-        "gamma": 1.8,
-        "knee": 0.54,
-        "coreClamp": 0.78
+        "contrast": 1.93,
+        "gamma": 3,
+        "knee": 0.64,
+        "coreClamp": 1.5
       },
       "colorAlphaGradient": [
         {
           "time": 0,
-          "color": "#FFDD88",
+          "color": "#FFFFFF",
           "alpha": 0
         },
         {
-          "time": 0.08643451575062551,
-          "color": "#ffd782",
-          "alpha": 0.29
-        },
-        {
-          "time": 0.18309957418463563,
-          "color": "#ff731e",
-          "alpha": 0.37
-        },
-        {
-          "time": 0.46143798828125,
-          "color": "#9e4712",
-          "alpha": 0.25
-        },
-        {
-          "time": 0.671140900715665,
-          "color": "#000000",
-          "alpha": 0.04
-        },
-        {
-          "time": 0.840843686122106,
-          "color": "#000000",
-          "alpha": 0.02
+          "time": 0.09321555065706419,
+          "color": "#ffac00",
+          "alpha": 0.87
         },
         {
           "time": 1,
@@ -2849,28 +2836,23 @@ export const MODULE_DEFAULTS = {
       "emissiveGradient": [
         {
           "time": 0,
-          "color": "#ffffff",
-          "alpha": 0
+          "color": "#ffe88c",
+          "alpha": 0.84
         },
         {
-          "time": 0.16216202884097997,
-          "color": "#fff3e1",
-          "alpha": 0.92
+          "time": 0.1205898832317438,
+          "color": "#ff9d26",
+          "alpha": 0.31
         },
         {
-          "time": 0.22994685295145176,
-          "color": "#ffb340",
-          "alpha": 0.96
+          "time": 0.2237199781512459,
+          "color": "#fb3f00",
+          "alpha": 0.04
         },
         {
-          "time": 0.32901698049752587,
-          "color": "#ff6a11",
-          "alpha": 0.78
-        },
-        {
-          "time": 0.69401218724622,
+          "time": 0.8409741765056603,
           "color": "#000000",
-          "alpha": 0
+          "alpha": 0.5195989291312645
         },
         {
           "time": 1,
@@ -2879,10 +2861,10 @@ export const MODULE_DEFAULTS = {
         }
       ],
       "scale": {
-        "sizeMultiplier": 3.1,
-        "start": 0,
-        "end": 0.58,
-        "minMult": 1
+        "sizeMultiplier": 1.1,
+        "start": 0.49,
+        "end": 1.59,
+        "minMult": 0.32
       },
       "speed": {
         "start": 1,
@@ -2891,30 +2873,30 @@ export const MODULE_DEFAULTS = {
       },
       "rotation": {
         "enabled": true,
-        "minSpeed": -42,
-        "maxSpeed": 42,
-        "accel": -2
+        "minSpeed": -180,
+        "maxSpeed": 180,
+        "accel": 75
       },
       "wind": {
         "enabled": true,
-        "force": 3,
-        "baseSpeed": 3,
-        "gustSpeed": 4,
+        "force": 5,
+        "baseSpeed": 5,
+        "gustSpeed": 15,
         "gustFrequencyMin": 0.1,
         "gustFrequencyMax": 30,
         "gustDurationMin": 0.1,
         "gustDurationMax": 5,
         "angleChangeFrequencyMin": 1,
         "angleChangeFrequencyMax": 60,
-        "angleChangeRange": 6
+        "angleChangeRange": 2
       },
       "colorCorrection": {
         "enabled": true,
-        "saturation": 2,
-        "brightness": -0.92,
-        "contrast": 0.1,
-        "exposure": 0.7,
-        "gamma": 0.3
+        "saturation": 1.4,
+        "brightness": 0.2,
+        "contrast": 1,
+        "exposure": 0,
+        "gamma": 1
       }
     }
   },
@@ -2922,7 +2904,7 @@ export const MODULE_DEFAULTS = {
     "enabled": true,
     "blendMode": 1,
     "particleTexture": "modules/map-shine/assets/particle.webp",
-    "frequency": 0.054,
+    "frequency": 0.002,
     "lifetime": {
       "min": 0.8,
       "max": 1.2
@@ -2967,7 +2949,7 @@ export const MODULE_DEFAULTS = {
       }
     ],
     "scale": {
-      "sizeMultiplier": 0.84,
+      "sizeMultiplier": 2,
       "start": 2,
       "end": 0.92,
       "minMult": 0.8
@@ -2980,10 +2962,10 @@ export const MODULE_DEFAULTS = {
     }
   },
   "pressurisedSteam": {
-    "enabled": false,
+    "enabled": true,
     "blendMode": 0,
     "maskThreshold": 0.5,
-    "maskInfluence": 3.46,
+    "maskInfluence": 1.5,
     "particleTexture": "modules/map-shine/assets/steam.webp",
     "lifetime": {
       "min": 0.5,
@@ -2996,14 +2978,14 @@ export const MODULE_DEFAULTS = {
         "alpha": 0
       },
       {
-        "time": 0.106384358403457,
+        "time": 0.1,
         "color": "#eeeeee",
-        "alpha": 0.1
+        "alpha": 0.8
       },
       {
-        "time": 0.6928370313600106,
+        "time": 0.7,
         "color": "#dddddd",
-        "alpha": 0.02
+        "alpha": 0.4
       },
       {
         "time": 1,
@@ -3015,50 +2997,45 @@ export const MODULE_DEFAULTS = {
       {
         "time": 0,
         "color": "#000000",
-        "alpha": 0
-      },
-      {
-        "time": 0.12776101565216483,
-        "color": "#ffffff",
         "alpha": 1
       },
       {
         "time": 1,
         "color": "#000000",
-        "alpha": 0
+        "alpha": 1
       }
     ],
     "scale": {
-      "sizeMultiplier": 0.3,
-      "start": 0.15,
-      "end": 1.95,
+      "sizeMultiplier": 1.8,
+      "start": 0.2,
+      "end": 1.5,
       "minMult": 0.7
     },
     "speed": {
-      "start": 231,
-      "end": 9,
-      "minMult": 0.18
+      "start": 250,
+      "end": 20,
+      "minMult": 0.8
     },
     "rotation": {
       "enabled": true,
-      "minSpeed": -141,
-      "maxSpeed": 168,
+      "minSpeed": -60,
+      "maxSpeed": 60,
       "accel": 0
     },
     "path": {
       "angle": {
-        "min": -69,
-        "max": 3
+        "min": -100,
+        "max": -80
       }
     },
     "burst": {
-      "onDuration": 0.5,
-      "offDuration": 4.6,
-      "frequency": 0.002
+      "onDuration": 10,
+      "offDuration": 10,
+      "frequency": 0.005
     }
   },
   "sparks": {
-    "enabled": false,
+    "enabled": true,
     "blendMode": 1,
     "maskThreshold": 0.95,
     "maskInfluence": 1.12,
@@ -3075,8 +3052,13 @@ export const MODULE_DEFAULTS = {
         "alpha": 0
       },
       {
-        "time": 0.1,
-        "color": "#ffc242",
+        "time": 0.10273972817490937,
+        "color": "#b9e4ff",
+        "alpha": 0.94
+      },
+      {
+        "time": 0.5219178191285396,
+        "color": "#aeda49",
         "alpha": 0.69
       },
       {
@@ -3097,6 +3079,11 @@ export const MODULE_DEFAULTS = {
         "alpha": 1
       },
       {
+        "time": 0.11095890642890212,
+        "color": "#ffffff",
+        "alpha": 1
+      },
+      {
         "time": 1,
         "color": "#000000",
         "alpha": 1
@@ -3110,9 +3097,9 @@ export const MODULE_DEFAULTS = {
     },
     "path": {
       "speed": {
-        "start": 32,
-        "end": 10,
-        "minMult": 0.6
+        "start": 114,
+        "end": 27,
+        "minMult": 0.99
       },
       "amplitude": {
         "min": 10,
@@ -3139,38 +3126,38 @@ export const MODULE_DEFAULTS = {
     }
   },
   "lightning": {
-    "enabled": false,
+    "enabled": true,
     "minDelay": 100,
-    "maxDelay": 500,
-    "flickerChance": 0.15,
+    "maxDelay": 5000,
+    "flickerChance": 0.55,
     "burstMinStrikes": 1,
-    "burstMaxStrikes": 5,
-    "burstStrikeDuration": 50,
-    "burstStrikeDelay": 80,
-    "endPointVariationX": 50,
-    "endPointVariationY": 50,
+    "burstMaxStrikes": 10,
+    "burstStrikeDuration": 150,
+    "burstStrikeDelay": 300,
+    "endPointVariationX": 200,
+    "endPointVariationY": 200,
     "offPeriodMin": 1,
     "offPeriodMax": 1761,
-    "strikeDuration": 50,
-    "flickerInterval": 10,
-    "flickerIntensity": 0.2,
+    "strikeDuration": 1500,
+    "flickerInterval": 96,
+    "flickerIntensity": 0.51,
     "fadeEasePower": 2,
     "color": "#99DDFF",
     "coreColor": "#FFFFFF",
-    "brightness": 3,
+    "brightness": 2.9,
     "sheathOpacity": 1,
     "coreOpacity": 1,
     "width": {
-      "start": 12,
-      "end": 2,
+      "start": 47.5,
+      "end": 16.1,
       "variationEnabled": true,
       "variationAmount": 0.5,
       "variationScale": 0.1,
       "variationSpeed": 0.1
     },
     "coreWidth": {
-      "start": 4,
-      "end": 0.5
+      "start": 14.1,
+      "end": 4.8
     },
     "path": {
       "segments": 100,
@@ -3205,7 +3192,7 @@ export const MODULE_DEFAULTS = {
     }
   },
   "smellyFlies": {
-    "enabled": false,
+    "enabled": true,
     "blendMode": 0,
     "particleTexture": "modules/map-shine/assets/fly.webp",
     "maxParticles": 10,
@@ -3241,60 +3228,60 @@ export const MODULE_DEFAULTS = {
   },
   "particleSystems": {
     "enabled": true,
-    "globalDensityMultiplier": 0.6,
-    "globalParticleLimit": 1000
+    "globalDensityMultiplier": 1,
+    "globalParticleLimit": 3600
   },
   "buildingShadows": {
-    "enabled": false,
-    "intensity": 0.6,
-    "maxOffset": 26,
-    "maxBlur": 23,
-    "sunAngle": 0
+    "enabled": true,
+    "intensity": 0.33,
+    "maxOffset": 225,
+    "maxBlur": 9,
+    "sunAngle": 3
   },
   "timeOfDay": {
     "enabled": true,
     "syncToSceneDarkness": true,
     "intensity": 1,
-    "currentTime": 15.11364792325071,
+    "currentTime": 16.024852297982555,
     "keyframes": {
       "midnight": {
         "time": 0,
-        "temperature": -0.2,
-        "tint": -0.05,
-        "saturation": 0.8,
-        "brightness": 0,
-        "contrast": 1.1,
-        "exposure": -0.62,
-        "gamma": 1.1
+        "temperature": -0.22,
+        "tint": 0.02,
+        "saturation": 0.5,
+        "brightness": -0.01,
+        "contrast": 0.99,
+        "exposure": 0,
+        "gamma": 1
       },
       "dawn": {
         "time": 6,
-        "temperature": 0.3,
-        "tint": -0.09,
-        "saturation": 0.7,
-        "brightness": -0.02,
-        "contrast": 1.05,
-        "exposure": -0.31,
-        "gamma": 0.98
+        "temperature": 1,
+        "tint": -0.25,
+        "saturation": 0.5,
+        "brightness": 0,
+        "contrast": 1,
+        "exposure": -0.25,
+        "gamma": 1
       },
       "midday": {
         "time": 12,
         "temperature": 0,
         "tint": 0,
-        "saturation": 1,
+        "saturation": 1.1,
         "brightness": 0,
         "contrast": 1,
-        "exposure": 0.35,
+        "exposure": 0.25,
         "gamma": 1
       },
       "dusk": {
         "time": 18,
-        "temperature": 0.4,
-        "tint": -0.1,
-        "saturation": 0.74,
-        "brightness": -0.05,
+        "temperature": 1,
+        "tint": -0.25,
+        "saturation": 0.5,
+        "brightness": 0,
         "contrast": 1.1,
-        "exposure": -0.44,
+        "exposure": -0.25,
         "gamma": 1
       },
       "twilight": {
@@ -3311,26 +3298,26 @@ export const MODULE_DEFAULTS = {
   },
   "diagnostic": {
     "enabled": false,
-    "showMasks": false,
+    "showMasks": true,
     "pixelInspector": false,
-    "displaySuffix": "generated_lightMask"
+    "displaySuffix": "structural"
   },
   "physicsRope": {
     "enabled": true,
     "rope": {
-      "texturePath": "modules/mythica-machina-flooded-river-prison/assets/rope.png",
-      "segmentLength": 8,
-      "animationSpeed": 3,
-      "damping": 0.95,
-      "windForce": 2.7,
+      "texturePath": "modules/map-shine/assets/rope.webp",
+      "segmentLength": 10,
+      "animationSpeed": 1,
+      "damping": 0.99,
+      "windForce": 1,
       "springConstant": 0.8,
-      "tapering": 0.55,
-      "ropeEndTexturePath": "modules/mythica-machina-flooded-river-prison/assets/rope_end_01.png",
+      "tapering": 0.5,
+      "ropeEndTexturePath": null,
       "ropeEndScale": 1,
-      "indoorWindShielding": 0.8,
-      "endpointFade": 0.85,
-      "fadeStartDistance": 0.01,
-      "fadeEndDistance": 0.01
+      "indoorWindShielding": 0.9,
+      "endpointFade": 0,
+      "fadeStartDistance": 0.2,
+      "fadeEndDistance": 0.2
     },
     "chain": {
       "texturePath": "modules/map-shine/assets/rope.webp",
@@ -3366,22 +3353,22 @@ export const MODULE_DEFAULTS = {
   "overheadEffect": {
     "enabled": true,
     "blurMinZoom": 0,
-    "blurMidZoom": 7.5,
-    "blurMaxZoom": 37,
+    "blurMidZoom": 1.5,
+    "blurMaxZoom": 18,
     "opacityMinZoom": 1,
-    "opacityMidZoom": 0.24,
-    "opacityMaxZoom": 0.07,
+    "opacityMidZoom": 0.5,
+    "opacityMaxZoom": 0,
     "zoomPointMin": 0.2,
-    "zoomPointMid": 1.75,
-    "zoomPointMax": 2.8,
-    "timeOfDayStrength": 0.5,
+    "zoomPointMid": 0.65,
+    "zoomPointMax": 1.5,
+    "timeOfDayStrength": 1,
     "recolor": {
       "enabled": true,
-      "intensity": 0.5,
+      "intensity": 1,
       "blendMode": 1,
       "cloudShadowDarken": {
         "enabled": true,
-        "intensity": 0.3
+        "intensity": 1
       }
     },
     "hoverFadeDuration": 500,
@@ -24813,6 +24800,7 @@ class CloudShadowsFilter extends PIXI.Filter {
         uniform vec2 u_layer1_stretch;
         uniform int u_layer1_octaves;
         uniform float u_layer1_opacity;
+        uniform float u_layer1_parallaxDepth;
 
         // Layer 2 (Mid Altitude - Medium Speed, Medium Scale)
         uniform bool u_layer2_enabled;
@@ -24821,6 +24809,7 @@ class CloudShadowsFilter extends PIXI.Filter {
         uniform vec2 u_layer2_stretch;
         uniform int u_layer2_octaves;
         uniform float u_layer2_opacity;
+        uniform float u_layer2_parallaxDepth;
 
         // Layer 3 (low Altitude - Slow, Small, Dense)
         uniform bool u_layer3_enabled;
@@ -24829,6 +24818,7 @@ class CloudShadowsFilter extends PIXI.Filter {
         uniform vec2 u_layer3_stretch;
         uniform int u_layer3_octaves;
         uniform float u_layer3_opacity;
+        uniform float u_layer3_parallaxDepth;
 
         // Layer 4 (Extra Altitude)
         uniform bool u_layer4_enabled;
@@ -24837,6 +24827,7 @@ class CloudShadowsFilter extends PIXI.Filter {
         uniform vec2 u_layer4_stretch;
         uniform int u_layer4_octaves;
         uniform float u_layer4_opacity;
+        uniform float u_layer4_parallaxDepth;
 
         // Layer 5 (Extra Altitude)
         uniform bool u_layer5_enabled;
@@ -24845,6 +24836,7 @@ class CloudShadowsFilter extends PIXI.Filter {
         uniform vec2 u_layer5_stretch;
         uniform int u_layer5_octaves;
         uniform float u_layer5_opacity;
+        uniform float u_layer5_parallaxDepth;
 
         // Evolution (shape morphing over time)
         uniform float u_evolutionSpeed;
@@ -24931,7 +24923,10 @@ class CloudShadowsFilter extends PIXI.Filter {
                 
                 // Layer 1: High altitude (fast, large, wispy)
                 if (u_layer1_enabled) {
-                    vec2 layer1_uv = base_uv * u_layer1_scale * u_layer1_stretch;
+                    // Apply zoom-independent parallax offset in world space
+                    vec2 parallax_offset1 = u_camera_offset * u_layer1_parallaxDepth * 0.001;
+                    vec2 layer1_coord = corrected_coord + parallax_offset1;
+                    vec2 layer1_uv = (layer1_coord / 100.0 * u_noise_scale) * u_layer1_scale * u_layer1_stretch;
                     layer1_uv += u_time * u_windDirection * u_layer1_speed;
                     float layer1_raw = fbm3d(vec3(layer1_uv, evolutionZ), u_layer1_octaves, u_noise_persistence, u_noise_lacunarity);
                     // Always apply shading controls to get proper cloud shapes for both display and texture output
@@ -24941,7 +24936,10 @@ class CloudShadowsFilter extends PIXI.Filter {
                 
                 // Layer 2: Mid altitude (medium speed, medium scale)
                 if (u_layer2_enabled) {
-                    vec2 layer2_uv = base_uv * u_layer2_scale * u_layer2_stretch;
+                    // Apply zoom-independent parallax offset in world space
+                    vec2 parallax_offset2 = u_camera_offset * u_layer2_parallaxDepth * 0.001;
+                    vec2 layer2_coord = corrected_coord + parallax_offset2;
+                    vec2 layer2_uv = (layer2_coord / 100.0 * u_noise_scale) * u_layer2_scale * u_layer2_stretch;
                     layer2_uv += u_time * u_windDirection * u_layer2_speed;
                     float layer2_raw = fbm3d(vec3(layer2_uv, evolutionZ * 0.8), u_layer2_octaves, u_noise_persistence, u_noise_lacunarity);
                     float layer2_value = applyShadingControls(layer2_raw);
@@ -24950,7 +24948,10 @@ class CloudShadowsFilter extends PIXI.Filter {
                 
                 // Layer 3: Low altitude (slow, small, dense)
                 if (u_layer3_enabled) {
-                    vec2 layer3_uv = base_uv * u_layer3_scale * u_layer3_stretch;
+                    // Apply zoom-independent parallax offset in world space
+                    vec2 parallax_offset3 = u_camera_offset * u_layer3_parallaxDepth * 0.001;
+                    vec2 layer3_coord = corrected_coord + parallax_offset3;
+                    vec2 layer3_uv = (layer3_coord / 100.0 * u_noise_scale) * u_layer3_scale * u_layer3_stretch;
                     layer3_uv += u_time * u_windDirection * u_layer3_speed;
                     float layer3_raw = fbm3d(vec3(layer3_uv, evolutionZ * 0.6), u_layer3_octaves, u_noise_persistence, u_noise_lacunarity);
                     float layer3_value = applyShadingControls(layer3_raw);
@@ -24959,7 +24960,10 @@ class CloudShadowsFilter extends PIXI.Filter {
                 
                 // Layer 4: Extra altitude
                 if (u_layer4_enabled) {
-                    vec2 layer4_uv = base_uv * u_layer4_scale * u_layer4_stretch;
+                    // Apply zoom-independent parallax offset in world space
+                    vec2 parallax_offset4 = u_camera_offset * u_layer4_parallaxDepth * 0.001;
+                    vec2 layer4_coord = corrected_coord + parallax_offset4;
+                    vec2 layer4_uv = (layer4_coord / 100.0 * u_noise_scale) * u_layer4_scale * u_layer4_stretch;
                     layer4_uv += u_time * u_windDirection * u_layer4_speed;
                     float layer4_raw = fbm3d(vec3(layer4_uv, evolutionZ * 0.4), u_layer4_octaves, u_noise_persistence, u_noise_lacunarity);
                     float layer4_value = applyShadingControls(layer4_raw);
@@ -24968,7 +24972,10 @@ class CloudShadowsFilter extends PIXI.Filter {
                 
                 // Layer 5: Extra altitude
                 if (u_layer5_enabled) {
-                    vec2 layer5_uv = base_uv * u_layer5_scale * u_layer5_stretch;
+                    // Apply zoom-independent parallax offset in world space
+                    vec2 parallax_offset5 = u_camera_offset * u_layer5_parallaxDepth * 0.001;
+                    vec2 layer5_coord = corrected_coord + parallax_offset5;
+                    vec2 layer5_uv = (layer5_coord / 100.0 * u_noise_scale) * u_layer5_scale * u_layer5_stretch;
                     layer5_uv += u_time * u_windDirection * u_layer5_speed;
                     float layer5_raw = fbm3d(vec3(layer5_uv, evolutionZ * 0.2), u_layer5_octaves, u_noise_persistence, u_noise_lacunarity);
                     float layer5_value = applyShadingControls(layer5_raw);
@@ -25051,6 +25058,7 @@ class CloudShadowsFilter extends PIXI.Filter {
       u_layer1_stretch: [1.0, 1.0],
       u_layer1_octaves: 3,
       u_layer1_opacity: 0.3,
+      u_layer1_parallaxDepth: 0.1,
 
       // Layer 2: Mid altitude (medium speed, medium scale)
       u_layer2_enabled: true,
@@ -25059,6 +25067,7 @@ class CloudShadowsFilter extends PIXI.Filter {
       u_layer2_stretch: [1.0, 1.0],
       u_layer2_octaves: 5,
       u_layer2_opacity: 0.5,
+      u_layer2_parallaxDepth: 0.3,
 
       // Layer 3: Low altitude (slow, small, dense)
       u_layer3_enabled: true,
@@ -25067,6 +25076,7 @@ class CloudShadowsFilter extends PIXI.Filter {
       u_layer3_stretch: [1.0, 1.0],
       u_layer3_octaves: 6,
       u_layer3_opacity: 0.6,
+      u_layer3_parallaxDepth: 0.5,
 
       // Layer 4: Extra altitude
       u_layer4_enabled: true,
@@ -25075,6 +25085,7 @@ class CloudShadowsFilter extends PIXI.Filter {
       u_layer4_stretch: [1.0, 1.0],
       u_layer4_octaves: 4,
       u_layer4_opacity: 0.4,
+      u_layer4_parallaxDepth: 0.2,
 
       // Layer 5: Extra altitude
       u_layer5_enabled: true,
@@ -25083,6 +25094,7 @@ class CloudShadowsFilter extends PIXI.Filter {
       u_layer5_stretch: [1.0, 1.0],
       u_layer5_octaves: 2,
       u_layer5_opacity: 0.2,
+      u_layer5_parallaxDepth: 0.15,
 
       // Evolution (shape morphing)
       u_evolutionSpeed: 0.001,
@@ -26421,8 +26433,10 @@ class StructuralFilter extends PIXI.Filter {
             uniform sampler2D uStructuralMask;
             uniform sampler2D uOutdoorsMask;
             uniform sampler2D uLightMask;
+            uniform sampler2D uMetallicMask;
 
             uniform vec4 uSceneRectNorm;
+            uniform vec2 uTexelSize;
 
             // Effect Controls
             uniform int uBlendMode;
@@ -26430,12 +26444,24 @@ class StructuralFilter extends PIXI.Filter {
 
             // Color Correction
             uniform bool uCcEnabled;
+            uniform float uExposure;
             uniform float uSaturation;
             uniform float uBrightness;
             uniform float uContrast;
             uniform float uGamma;
             uniform vec3 uTintColor;
             uniform float uTintAmount;
+            
+            // RGB Split (Chromatic Aberration)
+            uniform bool uRgbSplitEnabled;
+            uniform float uRgbSplitAmount;
+            uniform float uRgbSplitThreshold;
+            uniform float uRgbSplitSoftness;
+            
+            // Metallic Preservation
+            uniform bool uMetallicPreservationEnabled;
+            uniform float uMetallicPreservationThreshold;
+            uniform int uMetallicPreservationBlendMode;
 
             // Cloud Occlusion
             uniform bool uCloudOcclusionEnabled;
@@ -26467,6 +26493,7 @@ class StructuralFilter extends PIXI.Filter {
             uniform vec2 u_layer1_stretch;
             uniform int u_layer1_octaves;
             uniform float u_layer1_opacity;
+            uniform float u_layer1_parallaxDepth;
             
             uniform bool u_layer2_enabled;
             uniform float u_layer2_scale;
@@ -26474,6 +26501,7 @@ class StructuralFilter extends PIXI.Filter {
             uniform vec2 u_layer2_stretch;
             uniform int u_layer2_octaves;
             uniform float u_layer2_opacity;
+            uniform float u_layer2_parallaxDepth;
             
             uniform bool u_layer3_enabled;
             uniform float u_layer3_scale;
@@ -26481,6 +26509,7 @@ class StructuralFilter extends PIXI.Filter {
             uniform vec2 u_layer3_stretch;
             uniform int u_layer3_octaves;
             uniform float u_layer3_opacity;
+            uniform float u_layer3_parallaxDepth;
             
             uniform bool u_layer4_enabled;
             uniform float u_layer4_scale;
@@ -26488,6 +26517,7 @@ class StructuralFilter extends PIXI.Filter {
             uniform vec2 u_layer4_stretch;
             uniform int u_layer4_octaves;
             uniform float u_layer4_opacity;
+            uniform float u_layer4_parallaxDepth;
             
             uniform bool u_layer5_enabled;
             uniform float u_layer5_scale;
@@ -26495,6 +26525,7 @@ class StructuralFilter extends PIXI.Filter {
             uniform vec2 u_layer5_stretch;
             uniform int u_layer5_octaves;
             uniform float u_layer5_opacity;
+            uniform float u_layer5_parallaxDepth;
 
             // Light Occlusion
             uniform bool uLightOcclusionEnabled;
@@ -26549,7 +26580,10 @@ class StructuralFilter extends PIXI.Filter {
                 float shadow = 1.0;
                 
                 if (u_layer1_enabled) {
-                    vec2 layer1_uv = base_uv * u_layer1_scale * u_layer1_stretch;
+                    // Apply zoom-independent parallax offset in world space
+                    vec2 parallax_offset1 = u_camera_offset * u_layer1_parallaxDepth * 0.001;
+                    vec2 layer1_coord = corrected_coord + parallax_offset1;
+                    vec2 layer1_uv = (layer1_coord / 100.0 * u_noise_scale) * u_layer1_scale * u_layer1_stretch;
                     layer1_uv += u_time * u_windDirection * u_layer1_speed;
                     float layer1_raw = fbm3d(vec3(layer1_uv, evolutionZ), u_layer1_octaves, u_noise_persistence, u_noise_lacunarity);
                     float layer1_value = applyShadingControls(layer1_raw);
@@ -26557,7 +26591,10 @@ class StructuralFilter extends PIXI.Filter {
                 }
                 
                 if (u_layer2_enabled) {
-                    vec2 layer2_uv = base_uv * u_layer2_scale * u_layer2_stretch;
+                    // Apply zoom-independent parallax offset in world space
+                    vec2 parallax_offset2 = u_camera_offset * u_layer2_parallaxDepth * 0.001;
+                    vec2 layer2_coord = corrected_coord + parallax_offset2;
+                    vec2 layer2_uv = (layer2_coord / 100.0 * u_noise_scale) * u_layer2_scale * u_layer2_stretch;
                     layer2_uv += u_time * u_windDirection * u_layer2_speed;
                     float layer2_raw = fbm3d(vec3(layer2_uv, evolutionZ * 0.8), u_layer2_octaves, u_noise_persistence, u_noise_lacunarity);
                     float layer2_value = applyShadingControls(layer2_raw);
@@ -26565,7 +26602,10 @@ class StructuralFilter extends PIXI.Filter {
                 }
                 
                 if (u_layer3_enabled) {
-                    vec2 layer3_uv = base_uv * u_layer3_scale * u_layer3_stretch;
+                    // Apply zoom-independent parallax offset in world space
+                    vec2 parallax_offset3 = u_camera_offset * u_layer3_parallaxDepth * 0.001;
+                    vec2 layer3_coord = corrected_coord + parallax_offset3;
+                    vec2 layer3_uv = (layer3_coord / 100.0 * u_noise_scale) * u_layer3_scale * u_layer3_stretch;
                     layer3_uv += u_time * u_windDirection * u_layer3_speed;
                     float layer3_raw = fbm3d(vec3(layer3_uv, evolutionZ * 0.6), u_layer3_octaves, u_noise_persistence, u_noise_lacunarity);
                     float layer3_value = applyShadingControls(layer3_raw);
@@ -26573,7 +26613,10 @@ class StructuralFilter extends PIXI.Filter {
                 }
                 
                 if (u_layer4_enabled) {
-                    vec2 layer4_uv = base_uv * u_layer4_scale * u_layer4_stretch;
+                    // Apply zoom-independent parallax offset in world space
+                    vec2 parallax_offset4 = u_camera_offset * u_layer4_parallaxDepth * 0.001;
+                    vec2 layer4_coord = corrected_coord + parallax_offset4;
+                    vec2 layer4_uv = (layer4_coord / 100.0 * u_noise_scale) * u_layer4_scale * u_layer4_stretch;
                     layer4_uv += u_time * u_windDirection * u_layer4_speed;
                     float layer4_raw = fbm3d(vec3(layer4_uv, evolutionZ * 0.4), u_layer4_octaves, u_noise_persistence, u_noise_lacunarity);
                     float layer4_value = applyShadingControls(layer4_raw);
@@ -26581,7 +26624,10 @@ class StructuralFilter extends PIXI.Filter {
                 }
                 
                 if (u_layer5_enabled) {
-                    vec2 layer5_uv = base_uv * u_layer5_scale * u_layer5_stretch;
+                    // Apply zoom-independent parallax offset in world space
+                    vec2 parallax_offset5 = u_camera_offset * u_layer5_parallaxDepth * 0.001;
+                    vec2 layer5_coord = corrected_coord + parallax_offset5;
+                    vec2 layer5_uv = (layer5_coord / 100.0 * u_noise_scale) * u_layer5_scale * u_layer5_stretch;
                     layer5_uv += u_time * u_windDirection * u_layer5_speed;
                     float layer5_raw = fbm3d(vec3(layer5_uv, evolutionZ * 0.2), u_layer5_octaves, u_noise_persistence, u_noise_lacunarity);
                     float layer5_value = applyShadingControls(layer5_raw);
@@ -26627,6 +26673,25 @@ class StructuralFilter extends PIXI.Filter {
                 }
 
                 vec3 structuralColor = texture2D(uStructuralMask, vScreenCoord).rgb;
+                
+                // RGB Split (Chromatic Aberration) - Apply BEFORE cloud occlusion
+                if (uRgbSplitEnabled) {
+                    float structuralLuminance = dot(structuralColor, lum_weights);
+                    float splitMask = smoothstep(
+                        uRgbSplitThreshold - uRgbSplitSoftness,
+                        uRgbSplitThreshold + uRgbSplitSoftness,
+                        structuralLuminance
+                    );
+                    
+                    if (splitMask > 0.01) {
+                        // Horizontal chromatic aberration (like light through glass)
+                        vec2 offset = vec2(uRgbSplitAmount * uTexelSize.x, 0.0) * splitMask;
+                        vec3 r = texture2D(uStructuralMask, vScreenCoord - offset).rgb;
+                        vec3 g = structuralColor; // center sample
+                        vec3 b = texture2D(uStructuralMask, vScreenCoord + offset).rgb;
+                        structuralColor = vec3(r.r, g.g, b.b);
+                    }
+                }
 
                 if (uCloudOcclusionEnabled) {
                     float cloudValue = generateCloudValue();
@@ -26644,12 +26709,21 @@ class StructuralFilter extends PIXI.Filter {
                         structuralLuminance
                     );
                     // Apply 2.5x multiplier to make cloud darkening more visible on window light
-                    float darkeningFactor = 1.0 - (cloudValue * uCloudOcclusionIntensity * brightnessMask * 2.5);
+                    // Clamp to prevent negative values (which cause hard black pixels at high intensity)
+                    float darkeningFactor = clamp(1.0 - (cloudValue * uCloudOcclusionIntensity * brightnessMask * 2.5), 0.0, 1.0);
                     structuralColor *= darkeningFactor;
                 }
 
                 if (uCcEnabled) {
+                    // Apply exposure first (HDR-style boost)
+                    if (abs(uExposure) > 0.001) {
+                        structuralColor *= pow(2.0, uExposure);
+                    }
+                    
+                    // Then gamma
                     if (uGamma > 0.0) structuralColor = pow(structuralColor, vec3(1.0 / uGamma));
+                    
+                    // Brightness, contrast, saturation, tint
                     structuralColor += uBrightness;
                     structuralColor = (structuralColor - 0.5) * uContrast + 0.5;
                     float luminance = dot(structuralColor, lum_weights);
@@ -26666,17 +26740,41 @@ class StructuralFilter extends PIXI.Filter {
                     effectLayer = max(effectLayer, lightenedColor);
                 }
 
+                // Metallic Preservation: Use additive/screen blend where metallic and structural overlap
                 vec3 effectColor = originalColor.rgb;
-                if (uBlendMode == 5) {
-                    effectColor = blendOverlay(originalColor.rgb, effectLayer);
-                } else if (uBlendMode == 1) {
-                    effectColor = blendAdd(originalColor.rgb, effectLayer);
-                } else if (uBlendMode == 2) {
-                    effectColor = blendMultiply(originalColor.rgb, effectLayer);
-                } else if (uBlendMode == 3) {
-                    effectColor = blendScreen(originalColor.rgb, effectLayer);
-                } else {
-                    effectColor = blendOverlay(originalColor.rgb, effectLayer);
+                bool useMetallicPreservation = false;
+                
+                if (uMetallicPreservationEnabled) {
+                    vec3 metallicColor = texture2D(uMetallicMask, vScreenCoord).rgb;
+                    float metallicLuminance = dot(metallicColor, lum_weights);
+                    float effectLuminance = dot(effectLayer, lum_weights);
+                    
+                    // If both metallic shine and structural light are bright, preserve the shine
+                    if (metallicLuminance > uMetallicPreservationThreshold && effectLuminance > uMetallicPreservationThreshold) {
+                        useMetallicPreservation = true;
+                        if (uMetallicPreservationBlendMode == 1) {
+                            // Additive blend
+                            effectColor = blendAdd(originalColor.rgb, effectLayer);
+                        } else {
+                            // Screen blend (default)
+                            effectColor = blendScreen(originalColor.rgb, effectLayer);
+                        }
+                    }
+                }
+                
+                if (!useMetallicPreservation) {
+                    // Normal blending
+                    if (uBlendMode == 5) {
+                        effectColor = blendOverlay(originalColor.rgb, effectLayer);
+                    } else if (uBlendMode == 1) {
+                        effectColor = blendAdd(originalColor.rgb, effectLayer);
+                    } else if (uBlendMode == 2) {
+                        effectColor = blendMultiply(originalColor.rgb, effectLayer);
+                    } else if (uBlendMode == 3) {
+                        effectColor = blendScreen(originalColor.rgb, effectLayer);
+                    } else {
+                        effectColor = blendOverlay(originalColor.rgb, effectLayer);
+                    }
                 }
 
                 vec3 intensityAdjustedColor = mix(originalColor.rgb, effectColor, uIntensity);
@@ -26690,18 +26788,30 @@ class StructuralFilter extends PIXI.Filter {
       uStructuralMask: PIXI.Texture.EMPTY,
       uOutdoorsMask: PIXI.Texture.EMPTY,
       uLightMask: PIXI.Texture.EMPTY,
+      uMetallicMask: PIXI.Texture.EMPTY,
       uSceneRectNorm: [0, 0, 1, 1],
+      uTexelSize: [1.0 / 1920, 1.0 / 1080],
       
       uBlendMode: 5,
       uIntensity: 1.0,
       
       uCcEnabled: true,
+      uExposure: 0.0,
       uSaturation: 1.0,
       uBrightness: 0.0,
       uContrast: 1.0,
       uGamma: 1.0,
       uTintColor: [1.0, 1.0, 1.0],
       uTintAmount: 0.0,
+      
+      uRgbSplitEnabled: false,
+      uRgbSplitAmount: 2.0,
+      uRgbSplitThreshold: 0.7,
+      uRgbSplitSoftness: 0.2,
+      
+      uMetallicPreservationEnabled: true,
+      uMetallicPreservationThreshold: 0.5,
+      uMetallicPreservationBlendMode: 1,
       
       uCloudOcclusionEnabled: true,
       uCloudOcclusionIntensity: 0.8,
@@ -26731,6 +26841,7 @@ class StructuralFilter extends PIXI.Filter {
       u_layer1_stretch: [1.0, 1.0],
       u_layer1_octaves: 3,
       u_layer1_opacity: 0.3,
+      u_layer1_parallaxDepth: 0.1,
       
       u_layer2_enabled: true,
       u_layer2_scale: 1.5,
@@ -26738,6 +26849,7 @@ class StructuralFilter extends PIXI.Filter {
       u_layer2_stretch: [1.0, 1.0],
       u_layer2_octaves: 5,
       u_layer2_opacity: 0.5,
+      u_layer2_parallaxDepth: 0.3,
       
       u_layer3_enabled: true,
       u_layer3_scale: 0.7,
@@ -26745,6 +26857,7 @@ class StructuralFilter extends PIXI.Filter {
       u_layer3_stretch: [1.0, 1.0],
       u_layer3_octaves: 6,
       u_layer3_opacity: 0.6,
+      u_layer3_parallaxDepth: 0.5,
       
       u_layer4_enabled: true,
       u_layer4_scale: 2.5,
@@ -26752,6 +26865,7 @@ class StructuralFilter extends PIXI.Filter {
       u_layer4_stretch: [1.0, 1.0],
       u_layer4_octaves: 4,
       u_layer4_opacity: 0.4,
+      u_layer4_parallaxDepth: 0.2,
       
       u_layer5_enabled: true,
       u_layer5_scale: 5.0,
@@ -26759,6 +26873,7 @@ class StructuralFilter extends PIXI.Filter {
       u_layer5_stretch: [1.0, 1.0],
       u_layer5_octaves: 2,
       u_layer5_opacity: 0.2,
+      u_layer5_parallaxDepth: 0.15,
       
       uLightOcclusionEnabled: true,
       uLightOcclusionIntensity: 1.0,
@@ -26834,6 +26949,14 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
                 <div style="padding-left: 5px;">
                     <p class="description-text">Adjusts the color of the structural light/shadow before blending.</p>
                     ${DebuggerUIBuilder._createSliderHTML(
+                      "structuralShadows.colorCorrection.exposure",
+                      "Exposure (HDR Boost)",
+                      -3,
+                      3,
+                      0.1,
+                      "Boosts the brightness of window light for HDR-style highlights. Positive values make it pop."
+                    )}
+                    ${DebuggerUIBuilder._createSliderHTML(
                       "structuralShadows.colorCorrection.saturation",
                       "Saturation",
                       0,
@@ -26874,6 +26997,65 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
                           0.01
                         )}
                     </div></details>
+                </div>
+            </details>
+            
+            <details id="details-structuralShadows-rgbSplit">
+                <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                  "structuralShadows.rgbSplit.enabled",
+                  "RGB Split (Glass Diffraction)",
+                  false
+                )}</div></summary>
+                <div style="padding-left: 5px;">
+                    <p class="description-text">Simulates chromatic aberration from light diffracting through thick window glass on the brightest areas.</p>
+                    ${DebuggerUIBuilder._createSliderHTML(
+                      "structuralShadows.rgbSplit.amount",
+                      "Split Amount",
+                      0,
+                      10,
+                      0.1,
+                      "The strength of the RGB separation effect in pixels."
+                    )}
+                    ${DebuggerUIBuilder._createSliderHTML(
+                      "structuralShadows.rgbSplit.threshold",
+                      "Brightness Threshold",
+                      0,
+                      1,
+                      0.01,
+                      "Only affects areas brighter than this threshold."
+                    )}
+                    ${DebuggerUIBuilder._createSliderHTML(
+                      "structuralShadows.rgbSplit.softness",
+                      "Threshold Softness",
+                      0,
+                      0.5,
+                      0.01,
+                      "Smoothness of the transition at the brightness threshold."
+                    )}
+                </div>
+            </details>
+            
+            <details id="details-structuralShadows-metallicPreservation">
+                <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                  "structuralShadows.metallicPreservation.enabled",
+                  "Preserve Metallic Shine",
+                  true
+                )}</div></summary>
+                <div style="padding-left: 5px;">
+                    <p class="description-text">Prevents structural effect from darkening bright metallic/reflective surfaces. Uses additive blending where bright window light overlaps with bright metallic shine.</p>
+                    ${DebuggerUIBuilder._createSliderHTML(
+                      "structuralShadows.metallicPreservation.threshold",
+                      "Brightness Threshold",
+                      0,
+                      1,
+                      0.01,
+                      "Minimum brightness for both structural and metallic to trigger preservation."
+                    )}
+                    ${DebuggerUIBuilder._createSelectHTML(
+                      "structuralShadows.metallicPreservation.blendMode",
+                      "Preservation Blend Mode",
+                      [{value: 1, label: "Add (Brightest)"}, {value: 3, label: "Screen (Softer)"}]
+                    )}
                 </div>
             </details>
 
@@ -26980,6 +27162,11 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
     u.uStructuralMask = this.getMaskTexture();
     u.uOutdoorsMask = resourceManager.getOutdoorsMask() || PIXI.Texture.WHITE;
     u.uLightMask = resourceManager.getLightMask() || PIXI.Texture.WHITE;
+    u.uMetallicMask = resourceManager.getMetallicSpecularMask() || PIXI.Texture.EMPTY;
+    
+    // Update texelSize for RGB split
+    const screen = canvas.app.renderer.screen;
+    u.uTexelSize = [1.0 / screen.width, 1.0 / screen.height];
 
     // Update cloud generation uniforms from cloudShadows config (single source of truth)
     const csConfig = config.cloudShadows;
@@ -27069,12 +27256,28 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
 
     const cc = ssConfig.colorCorrection;
     u.uCcEnabled = cc.enabled;
+    u.uExposure = cc.exposure ?? 0.0;
     u.uSaturation = cc.saturation;
     u.uBrightness = cc.brightness;
     u.uContrast = cc.contrast;
     u.uGamma = cc.gamma;
     u.uTintColor = hexToRgbArray(cc.tint.color);
     u.uTintAmount = cc.tint.amount;
+    
+    const rgb = ssConfig.rgbSplit;
+    if (rgb) {
+      u.uRgbSplitEnabled = rgb.enabled;
+      u.uRgbSplitAmount = rgb.amount;
+      u.uRgbSplitThreshold = rgb.threshold;
+      u.uRgbSplitSoftness = rgb.softness;
+    }
+    
+    const metallic = ssConfig.metallicPreservation;
+    if (metallic) {
+      u.uMetallicPreservationEnabled = metallic.enabled;
+      u.uMetallicPreservationThreshold = metallic.threshold;
+      u.uMetallicPreservationBlendMode = metallic.blendMode;
+    }
 
     const cloud = ssConfig.cloudOcclusion;
     u.uCloudOcclusionEnabled = cloud.enabled;
