@@ -19,15 +19,10 @@
  * - Real-time shader-based visual enhancements
  *
  * @author Mythica Machina - Ingram Blakelock
- * @version 1.1.18 - (PS, please double check this value and update it as needed. You will need to update the module.json in the root too.)
+ * @version 1.1.20 - Performance: Particle viewport culling + LOD; Fixed: Building Shadows edge artifacts
  *
  * @requires foundry ^13+
  * @requires pixi.js ^7.4.3
- *
- * @TODO: Building Shadows leaves a line on one side of the screen. I bet it's something to do with kawase blurs trying to access information outside the bounds of the screen.
- *
- *
- *
  *
  * @TODO: FUN IDEA - Horror world vision. Basically the ability to quickly swap the appearance of the background with a different background for a horror vibe.
  * @TODO: Screen Overlay effects, should be able to happen on only one player or something like that.
@@ -46,6 +41,7 @@ import { LoadingUI } from "./ui/LoadingUI.js";
 import { MemoryProfiler } from "./utils/MemoryProfiler.js";
 import { TextureLoader } from "./utils/TextureLoader.js";
 import { RenderTexturePool } from "./utils/RenderTexturePool.js";
+import { AnimatedCanvasLayer, ResizableAnimatedCanvasLayer } from "./layers/AnimatedCanvasLayer.js";
 
 /***************************************************************************************
  *
@@ -4391,6 +4387,40 @@ class SettingsManager {
       default: WS.transitionDuration,
     });
 
+    // --- Weather Performance Settings ---
+    registerUniversalSetting("weather.performance.maxParticles", {
+      name: "[Universal] Weather Performance: Max Particles",
+      type: Number,
+      default: 1000,
+      range: { min: 100, max: 5000, step: 100 },
+    });
+    registerUniversalSetting("weather.performance.cullOutsideViewport", {
+      name: "[Universal] Weather Performance: Viewport Culling",
+      hint: "Don't render particles outside the visible area",
+      type: Boolean,
+      default: true,
+    });
+    registerUniversalSetting("weather.performance.lodEnabled", {
+      name: "[Universal] Weather Performance: Level of Detail (LOD)",
+      hint: "Reduce particle count when zoomed out",
+      type: Boolean,
+      default: true,
+    });
+    registerUniversalSetting("weather.performance.lodDistanceThreshold", {
+      name: "[Universal] Weather Performance: LOD Distance Threshold (px)",
+      hint: "Zoom distance at which LOD reduction begins",
+      type: Number,
+      default: 2000,
+      range: { min: 500, max: 5000, step: 100 },
+    });
+    registerUniversalSetting("weather.performance.lodReductionFactor", {
+      name: "[Universal] Weather Performance: LOD Reduction Factor",
+      hint: "Minimum particle count when fully zoomed out (0.5 = 50%)",
+      type: Number,
+      default: 0.5,
+      range: { min: 0.1, max: 1.0, step: 0.1 },
+    });
+
     game.settings.register(MODULE_ID, "advanced-ui-mode", {
       name: "Advanced UI Mode",
       hint: "Toggles the advanced, detailed UI for Map Shine. When off, a simplified control panel is shown.",
@@ -8591,7 +8621,7 @@ class CombatEffectManager {
   }
 }
 
-class OverheadEffectLayer extends foundry.canvas.layers.CanvasLayer {
+class OverheadEffectLayer extends ResizableAnimatedCanvasLayer {
   constructor() {
     super();
     this.overheadSprites = new Map();
@@ -8616,15 +8646,11 @@ class OverheadEffectLayer extends foundry.canvas.layers.CanvasLayer {
 
     // Bound listeners for robust add/remove
     this._boundRefresh = this._refreshOverheadTiles.bind(this);
-    this._boundOnAnimate = this._onAnimate.bind(this);
-    this._boundOnResize = this._onResize.bind(this);
     this._boundOnCanvasReady = this._refreshOverheadTiles.bind(this);
   }
 
   async _draw() {
-    this._destroyed = false;
-    /** @type {string} */
-    this.eventMode = "none"; // Set to "none" initially to avoid EventBoundary issues
+    await super._draw(); // Handles ticker, resize, and _destroyed flag
     
     // Defer setting eventMode to "auto" until after EventSystem is fully initialized
     setTimeout(() => {
@@ -8659,16 +8685,12 @@ class OverheadEffectLayer extends foundry.canvas.layers.CanvasLayer {
     Hooks.on("updateTile", this._boundRefresh);
     Hooks.on("deleteTile", this._boundRefresh);
     Hooks.on("canvasReady", this._boundOnCanvasReady);
-    canvas.app.ticker.add(this._boundOnAnimate);
-    window.addEventListener("resize", this._boundOnResize);
 
     // The calls to updateFromConfig and _refreshOverheadTiles have been removed from here.
     // They are now correctly handled by the main lifecycle manager and the canvasReady hook respectively.
   }
 
   async _tearDown(options) {
-    this._destroyed = true;
-
     for (const anim of this.activeAnimations.values()) {
       anim.kill();
     }
@@ -8686,8 +8708,6 @@ class OverheadEffectLayer extends foundry.canvas.layers.CanvasLayer {
     Hooks.off("updateTile", this._boundRefresh);
     Hooks.off("deleteTile", this._boundRefresh);
     Hooks.off("canvasReady", this._boundOnCanvasReady);
-    canvas.app.ticker.remove(this._boundOnAnimate);
-    window.removeEventListener("resize", this._boundOnResize);
 
     this.spritesContainer?.destroy({ children: true });
     this.blurFilter?.destroy();
@@ -8697,7 +8717,7 @@ class OverheadEffectLayer extends foundry.canvas.layers.CanvasLayer {
     this.compositeSprite?.destroy();
     this.overheadSprites.clear();
 
-    return super._tearDown(options);
+    await super._tearDown(options); // Handles ticker, resize unbinding and _destroyed flag
   }
 
   _onAnimate(deltaTime) {
@@ -9345,6 +9365,10 @@ class MapShineLifecycle {
       },
       this.CRITICALITY.CRITICAL
     );
+
+    // CRITICAL: Expose CoordinateManager (static class for viewport calculations)
+    // This is needed by ParticleEffectController for viewport culling
+    game.mapShine.coordinateManager = CoordinateManager;
 
     // IMPORTANT: LightMaskManager (affects visual quality but not core functionality)
     await this.safeInitializeManager(
@@ -13578,6 +13602,42 @@ class ParticleEffectController {
       }
     }
 
+    // Get performance settings for viewport culling and LOD
+    // These are stored during updateFromConfig() from universal.weather.performance
+    const performanceConfig = this.performanceConfig || {};
+    const cullOutsideViewport = performanceConfig.cullOutsideViewport ?? false;
+    const lodEnabled = performanceConfig.lodEnabled ?? false;
+    const lodDistanceThreshold = performanceConfig.lodDistanceThreshold ?? 2000;
+    const lodReductionFactor = performanceConfig.lodReductionFactor ?? 0.5;
+
+    // Get viewport bounds for culling
+    let viewportBounds = null;
+    if (cullOutsideViewport && game.mapShine?.coordinateManager) {
+      const cameraOffset = game.mapShine.coordinateManager.getCameraOffset();
+      const viewSize = game.mapShine.coordinateManager.getViewSize();
+      viewportBounds = {
+        left: cameraOffset.x,
+        right: cameraOffset.x + viewSize.width,
+        top: cameraOffset.y,
+        bottom: cameraOffset.y + viewSize.height
+      };
+    }
+
+    // Calculate LOD scaling factor based on zoom level
+    let lodScale = 1.0;
+    if (lodEnabled && game.mapShine?.coordinateManager) {
+      const canvasScale = game.mapShine.coordinateManager.getCanvasScale();
+      // If zoomed out (scale < 1), reduce particle count
+      // lodDistanceThreshold represents the "comfortable viewing distance" in pixels
+      // When zoomed out, 1 world unit = fewer pixels on screen
+      const pixelsPerWorldUnit = canvasScale * 100; // Assuming ~100px grid squares at 1x zoom
+      if (pixelsPerWorldUnit < lodDistanceThreshold) {
+        // Gradually reduce particles as we zoom out
+        const lodRatio = Math.max(0.1, pixelsPerWorldUnit / lodDistanceThreshold);
+        lodScale = lodReductionFactor + (1.0 - lodReductionFactor) * lodRatio;
+      }
+    }
+
     for (const { emitter } of this.emitters.values()) {
       // Manually update any behaviors that have a custom `update(emitter, delta)` method.
       // This is a custom extension to the pixi-particles library's behavior system.
@@ -13588,7 +13648,44 @@ class ParticleEffectController {
           }
         }
       }
+
+      // Apply LOD by modifying spawn frequency
+      if (lodEnabled && lodScale < 1.0 && emitter._frequency !== undefined) {
+        // Store original frequency if not already stored
+        if (emitter._originalFrequency === undefined) {
+          emitter._originalFrequency = emitter._frequency;
+        }
+        // Reduce spawn rate by increasing frequency (time between spawns)
+        emitter._frequency = emitter._originalFrequency / lodScale;
+      } else if (emitter._originalFrequency !== undefined) {
+        // Restore original frequency when LOD not active
+        emitter._frequency = emitter._originalFrequency;
+        emitter._originalFrequency = undefined;
+      }
+
+      // Update emitter
       emitter.update(deltaTime);
+
+      // Apply viewport culling AFTER update to hide off-screen particles
+      if (cullOutsideViewport && viewportBounds && emitter._parent) {
+        for (let particle = emitter._activeParticlesFirst; particle; particle = particle.next) {
+          const worldPos = particle.position;
+          const isVisible = (
+            worldPos.x >= viewportBounds.left &&
+            worldPos.x <= viewportBounds.right &&
+            worldPos.y >= viewportBounds.top &&
+            worldPos.y <= viewportBounds.bottom
+          );
+          // Hide particles outside viewport but keep them alive
+          // This saves rendering cost without destroying/recreating particles
+          particle.visible = isVisible;
+        }
+      } else if (emitter._parent) {
+        // Ensure all particles are visible when culling disabled
+        for (let particle = emitter._activeParticlesFirst; particle; particle = particle.next) {
+          particle.visible = true;
+        }
+      }
     }
 
     // If this controller is for biofilm, render its output to the dedicated texture.
@@ -13618,6 +13715,16 @@ class ParticleEffectController {
       fullConfig,
       this.definition.configPath
     );
+
+    // CRITICAL: Read performance settings from game.settings
+    // These are universal settings stored separately from profile config
+    // They're needed in update() for viewport culling and LOD
+    this.performanceConfig = {
+      cullOutsideViewport: game.settings.get(MODULE_ID, "universal.weather.performance.cullOutsideViewport") ?? false,
+      lodEnabled: game.settings.get(MODULE_ID, "universal.weather.performance.lodEnabled") ?? false,
+      lodDistanceThreshold: game.settings.get(MODULE_ID, "universal.weather.performance.lodDistanceThreshold") ?? 2000,
+      lodReductionFactor: game.settings.get(MODULE_ID, "universal.weather.performance.lodReductionFactor") ?? 0.5,
+    };
 
     // Force initialization of special resources before configuration is applied.
     if (this.definition.configPath === "biofilm") {
@@ -16011,11 +16118,9 @@ class GeometryMaskShape {
   }
 }
 
-export class ParticleLayer extends foundry.canvas.layers.CanvasLayer {
+export class ParticleLayer extends AnimatedCanvasLayer {
   constructor() {
     super();
-    this._onAnimateBound = null;
-    this._destroyed = false;
     this._onMapPointsUpdatedBound = null;
     this._initialized = false; // Flag to ensure one-time setup
     this._uiUpdateCounter = 0; // Frame counter for UI throttling
@@ -16028,16 +16133,13 @@ export class ParticleLayer extends foundry.canvas.layers.CanvasLayer {
   }
 
   async _draw() {
-    this._destroyed = false;
+    await super._draw(); // Handles ticker binding and _destroyed flag
     this._initialized = false; // Reset flag for new scene
     this.eventMode = "none";
 
     game.mapShine.particleManager = new ParticleManager();
     this.addChild(game.mapShine.particleManager.masterContainer);
     game.mapShine.particleManager.initialize();
-
-    this._onAnimateBound = this._onAnimate.bind(this);
-    canvas.app.ticker.add(this._onAnimateBound);
 
     // Bind and register the listener for mask rendering completion.
     // This fires AFTER GeometryMaskManager has rendered masks, preventing race conditions.
@@ -16069,11 +16171,6 @@ export class ParticleLayer extends foundry.canvas.layers.CanvasLayer {
 
   async _tearDown(options) {
     if (this._destroyed) return;
-    this._destroyed = true;
-
-    if (this._onAnimateBound) {
-      canvas.app.ticker.remove(this._onAnimateBound);
-    }
 
     // Unregister the mask rendering listener to prevent memory leaks.
     if (this._onMasksRenderedBound) {
@@ -16090,7 +16187,7 @@ export class ParticleLayer extends foundry.canvas.layers.CanvasLayer {
       game.mapShine.particleManager = null;
     }
 
-    return super._tearDown(options);
+    await super._tearDown(options); // Handles ticker unbinding and _destroyed flag
   }
 
   /**
@@ -18425,18 +18522,16 @@ const buildSmellyFliesEmitterConfig = (effectConfig, targetData, group) => {
   };
 };
 
-export class SmellyFliesLayer extends foundry.canvas.layers.CanvasLayer {
+export class SmellyFliesLayer extends AnimatedCanvasLayer {
   constructor() {
     super();
     this.controller = null; // Will hold the ParticleEffectController for smellyFlies
-    this._onAnimateBound = null;
-    this._destroyed = false;
     this._onMapPointsUpdatedBound = null;
     this._initialized = false;
   }
 
   async _draw() {
-    this._destroyed = false;
+    await super._draw(); // Handles ticker binding and _destroyed flag
     this._initialized = false;
     this.eventMode = "none";
 
@@ -18452,9 +18547,6 @@ export class SmellyFliesLayer extends foundry.canvas.layers.CanvasLayer {
       console.error("Map Shine | SmellyFlies particle definition not found!");
     }
 
-    this._onAnimateBound = this._onAnimate.bind(this);
-    canvas.app.ticker.add(this._onAnimateBound);
-
     // Bind and register listener for mask rendering completion to prevent race conditions.
     this._onMasksRenderedBound = this._onMasksRendered.bind(this);
 
@@ -18463,11 +18555,7 @@ export class SmellyFliesLayer extends foundry.canvas.layers.CanvasLayer {
 
   async _tearDown(options) {
     if (this._destroyed) return;
-    this._destroyed = true;
 
-    if (this._onAnimateBound) {
-      canvas.app.ticker.remove(this._onAnimateBound);
-    }
     if (this._onMasksRenderedBound) {
       Hooks.off("mapShine:masksRendered", this._onMasksRenderedBound);
     }
@@ -18475,7 +18563,7 @@ export class SmellyFliesLayer extends foundry.canvas.layers.CanvasLayer {
     this.controller?.destroy();
     this.controller = null;
 
-    return super._tearDown(options);
+    await super._tearDown(options); // Handles ticker unbinding and _destroyed flag
   }
 
   /**
@@ -21258,7 +21346,7 @@ class FoamFilter extends PIXI.Filter {
   }
 }
 
-class FoamLayer extends foundry.canvas.layers.CanvasLayer {
+class FoamLayer extends ResizableAnimatedCanvasLayer {
   constructor() {
     super();
 
@@ -21266,7 +21354,6 @@ class FoamLayer extends foundry.canvas.layers.CanvasLayer {
     this.effectSprite = null;
 
     this.time = 0;
-    this._destroyed = false;
   }
 
   static getSettingsHTML() {
@@ -21671,7 +21758,7 @@ class FoamLayer extends foundry.canvas.layers.CanvasLayer {
   }
 
   async _draw() {
-    this._destroyed = false;
+    await super._draw(); // Handles ticker, resize, and _destroyed flag
     this.time = 0;
 
     try {
@@ -21683,11 +21770,6 @@ class FoamLayer extends foundry.canvas.layers.CanvasLayer {
     this.effectSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
     this.effectSprite.filters = this.foamFilter ? [this.foamFilter] : [];
     this.addChild(this.effectSprite);
-
-    this._onAnimateBound = this._onAnimate.bind(this);
-    this._onResizeBound = this._onResize.bind(this);
-    canvas.app.ticker.add(this._onAnimateBound);
-    window.addEventListener("resize", this._onResizeBound);
 
     await this.updateFromConfig(game.mapShine.profileManager.activeConfig);
   }
@@ -21801,13 +21883,10 @@ class FoamLayer extends foundry.canvas.layers.CanvasLayer {
   }
 
   async _tearDown(options) {
-    this._destroyed = true;
-    canvas.app.ticker.remove(this._onAnimateBound);
-    window.removeEventListener("resize", this._onResizeBound);
 
     this.foamFilter?.destroy();
     this.effectSprite?.destroy();
-    await super._tearDown(options);
+    await super._tearDown(options); // Handles ticker, resize unbinding and _destroyed flag
   }
 }
 
@@ -21819,29 +21898,27 @@ class FoamLayer extends foundry.canvas.layers.CanvasLayer {
 //              heat haze, iridescence, and glow effects.
 // ---------------------------------------------------------------------------------
 
-class BackgroundEffectTileLayer extends foundry.canvas.layers.CanvasLayer {
+class BackgroundEffectTileLayer extends AnimatedCanvasLayer {
   constructor() {
     super();
     this.backgroundSprites = new Map();
     this.spritesContainer = null;
     this._boundRefresh = this._refreshBackgroundTiles.bind(this);
-    this._boundOnAnimate = this._onAnimate.bind(this);
   }
 
   async _draw() {
-    this._destroyed = false;
+    await super._draw(); // Handles ticker binding and _destroyed flag
     this.eventMode = "none";
     this.spritesContainer = this.addChild(new PIXI.Container());
 
     Hooks.on("mapShine:targetsRefreshed", this._boundRefresh);
-    canvas.app.ticker.add(this._boundOnAnimate);
 
     // Initial population
     this._refreshBackgroundTiles();
   }
 
   async _tearDown(options) {
-    this._destroyed = true;
+    if (this._destroyed) return;
 
     // Restore original tiles
     for (const tileId of this.backgroundSprites.keys()) {
@@ -21853,12 +21930,11 @@ class BackgroundEffectTileLayer extends foundry.canvas.layers.CanvasLayer {
     }
 
     Hooks.off("mapShine:targetsRefreshed", this._boundRefresh);
-    canvas.app.ticker.remove(this._boundOnAnimate);
 
     this.spritesContainer?.destroy({ children: true });
     this.backgroundSprites.clear();
 
-    return super._tearDown(options);
+    await super._tearDown(options); // Handles ticker unbinding and _destroyed flag
   }
 
   _onAnimate() {
@@ -21918,7 +21994,7 @@ class BackgroundEffectTileLayer extends foundry.canvas.layers.CanvasLayer {
   }
 }
 
-class MaskedEffectLayer extends foundry.canvas.layers.CanvasLayer {
+class MaskedEffectLayer extends ResizableAnimatedCanvasLayer {
   constructor(options) {
     super();
     this.options = options;
@@ -21929,14 +22005,11 @@ class MaskedEffectLayer extends foundry.canvas.layers.CanvasLayer {
     this.maskSprites = new Map();
 
     this._needsMaskUpdate = true;
-    this._destroyed = false;
 
     // Initialize bounds safely - will be updated in _draw if needed
     this.bounds = this._getBounds();
 
     // Bound listeners, defined in _draw
-    this._onAnimateBound = null;
-    this._onResizeBound = null;
     this._onPanBound = null;
   }
 
@@ -21966,15 +22039,13 @@ class MaskedEffectLayer extends foundry.canvas.layers.CanvasLayer {
   }
 
   async _draw() {
-    this._destroyed = false;
+    await super._draw(); // Handles ticker and resize binding, _destroyed flag
     this._needsMaskUpdate = true;
     this.eventMode = "none";
 
     // Update bounds now that canvas is ready
     this.bounds = this._getBounds();
 
-    this._onAnimateBound = this._onAnimate.bind(this);
-    this._onResizeBound = this._onResize.bind(this);
     this._onPanBound = this._onPan.bind(this);
 
     const renderer = canvas.app.renderer;
@@ -21988,9 +22059,7 @@ class MaskedEffectLayer extends foundry.canvas.layers.CanvasLayer {
     // Set CLAMP wrap mode to prevent edge artifacts when sampling
     this.combinedMaskTexture.baseTexture.wrapMode = PIXI.WRAP_MODES.CLAMP;
 
-    // Add listeners
-    canvas.app.ticker.add(this._onAnimateBound);
-    window.addEventListener("resize", this._onResizeBound);
+    // Add pan listener (ticker and resize handled by base class)
     if (!game.modules.get("libwrapper")?.active) {
       Hooks.on("canvasPan", this._onPanBound);
     }
@@ -22001,12 +22070,8 @@ class MaskedEffectLayer extends foundry.canvas.layers.CanvasLayer {
    */
   async _tearDown(options) {
     if (this._destroyed) return;
-    this._destroyed = true;
 
-    // Remove listeners
-    if (this._onAnimateBound) canvas.app.ticker.remove(this._onAnimateBound);
-    if (this._onResizeBound)
-      window.removeEventListener("resize", this._onResizeBound);
+    // Remove pan listener (ticker and resize handled by base class)
     if (this._onPanBound) Hooks.off("canvasPan", this._onPanBound);
 
     // Destroy PIXI objects
@@ -22021,7 +22086,7 @@ class MaskedEffectLayer extends foundry.canvas.layers.CanvasLayer {
     this.combinedMaskTexture = null;
     this.maskContainer = null;
 
-    return super._tearDown(options);
+    await super._tearDown(options); // Handles ticker, resize unbinding and _destroyed flag
   }
 
   /**
@@ -22179,7 +22244,7 @@ class MaskedEffectLayer extends foundry.canvas.layers.CanvasLayer {
   }
 }
 
-class DiagnosticLayer extends foundry.canvas.layers.CanvasLayer {
+class DiagnosticLayer extends AnimatedCanvasLayer {
   constructor() {
     super();
     this.diagnosticContainer = null;
@@ -22189,16 +22254,13 @@ class DiagnosticLayer extends foundry.canvas.layers.CanvasLayer {
     this.fullscreenSprite = null; // For viewing intermediate textures
     this.backgroundGfx = null; // For the black background
     this.tooltip = null;
-    this._destroyed = false;
     this._needsRefresh = true;
-    this._onAnimateBound = this._onAnimate.bind(this);
     this._onPanBound = null;
     this.tempRenderTexture = null; // To hold transient render textures for inspection
   }
 
   async _draw() {
-    this._destroyed = false;
-    this.eventMode = "none";
+    await super._draw(); // Handles ticker binding and _destroyed flag
     this._needsRefresh = true;
 
     this.diagnosticContainer = this.addChild(new PIXI.Container());
@@ -22213,8 +22275,6 @@ class DiagnosticLayer extends foundry.canvas.layers.CanvasLayer {
 
     this._createTooltip();
 
-    canvas.app.ticker.add(this._onAnimateBound);
-
     // Add a hook to flag for a refresh when the canvas is panned.
     this._onPanBound = () => {
       this._needsRefresh = true;
@@ -22225,10 +22285,6 @@ class DiagnosticLayer extends foundry.canvas.layers.CanvasLayer {
   }
 
   async _tearDown(options) {
-    this._destroyed = true;
-
-    canvas.app.ticker.remove(this._onAnimateBound);
-
     if (this._onPanBound) {
       Hooks.off("canvasPan", this._onPanBound);
     }
@@ -22242,7 +22298,7 @@ class DiagnosticLayer extends foundry.canvas.layers.CanvasLayer {
     this.overlays.clear();
     this._destroyTooltip();
 
-    return super._tearDown(options);
+    await super._tearDown(options); // Handles ticker unbinding and _destroyed flag
   }
 
   _createTooltip() {
@@ -24122,7 +24178,7 @@ class MetallicStripePatternFilter extends PIXI.Filter {
   }
 }
 
-class MetallicShineLayer extends foundry.canvas.layers.CanvasLayer {
+class MetallicShineLayer extends ResizableAnimatedCanvasLayer {
   constructor() {
     super();
     // For compositing _Specular maps
@@ -24352,8 +24408,7 @@ class MetallicShineLayer extends foundry.canvas.layers.CanvasLayer {
   }
 
   async _draw() {
-    this._destroyed = false;
-    this.eventMode = "none";
+    await super._draw(); // Handles ticker, resize, and _destroyed flag
     this._needsMaskUpdate = true;
     this.time = 0;
 
@@ -24392,14 +24447,9 @@ class MetallicShineLayer extends foundry.canvas.layers.CanvasLayer {
       height: screen.height,
     });
 
-    this._onAnimateBound = this._onAnimate.bind(this);
-    this._onResizeBound = this._onResize.bind(this);
     this._onPanBound = () => {
       this._needsMaskUpdate = true;
     };
-
-    canvas.app.ticker.add(this._onAnimateBound);
-    window.addEventListener("resize", this._onResizeBound);
     Hooks.on("canvasPan", this._onPanBound);
   }
 
@@ -24681,10 +24731,6 @@ class MetallicShineLayer extends foundry.canvas.layers.CanvasLayer {
   async _tearDown(options) {
     if (this._destroyed) return;
 
-    this._destroyed = true;
-
-    canvas.app.ticker.remove(this._onAnimateBound);
-    window.removeEventListener("resize", this._onResizeBound);
     Hooks.off("canvasPan", this._onPanBound);
 
     this.sourceContainer?.destroy({ children: true });
@@ -24707,7 +24753,7 @@ class MetallicShineLayer extends foundry.canvas.layers.CanvasLayer {
     this.effectSprite = null;
     this.finalShineTexture = null;
 
-    await super._tearDown(options);
+    await super._tearDown(options); // Handles ticker, resize unbinding and _destroyed flag
   }
 }
 
@@ -25842,7 +25888,7 @@ class CloudDepthRecolorFilter extends PIXI.Filter {
   }
 }
 
-class CloudDepthLayer extends foundry.canvas.layers.CanvasLayer {
+class CloudDepthLayer extends AnimatedCanvasLayer {
   constructor() {
     super();
     this.depthSprite = null;
@@ -25861,14 +25907,10 @@ class CloudDepthLayer extends foundry.canvas.layers.CanvasLayer {
     this.zoomPointMin = 0.25;
     this.zoomPointMid = 0.30;
     this.zoomPointMax = 2.00;
-
-    // Bound listeners
-    this._boundOnAnimate = this._onAnimate.bind(this);
   }
 
   async _draw() {
-    this._destroyed = false;
-    this.eventMode = "none"; // No interaction needed
+    await super._draw(); // Handles ticker binding and _destroyed flag
     this.interactiveChildren = false;
 
     // Create the recolor filter
@@ -25897,9 +25939,6 @@ class CloudDepthLayer extends foundry.canvas.layers.CanvasLayer {
     Hooks.on("canvasPan", this._flagUpdate);
     Hooks.on("updateScene", this._flagUpdate); // Listen for scene flag changes
 
-    // Start animation loop
-    canvas.app.ticker.add(this._boundOnAnimate);
-
     this.updateFromConfig(game.mapShine.profileManager.activeConfig);
     
     // Initial mask update
@@ -25907,10 +25946,6 @@ class CloudDepthLayer extends foundry.canvas.layers.CanvasLayer {
   }
 
   async _tearDown(options) {
-    this._destroyed = true;
-
-    canvas.app.ticker.remove(this._boundOnAnimate);
-    
     // Remove hooks
     if (this._flagUpdate) {
       Hooks.off("canvasPan", this._flagUpdate);
@@ -25929,7 +25964,7 @@ class CloudDepthLayer extends foundry.canvas.layers.CanvasLayer {
     this.maskGraphics = null;
     this.maskSprite = null;
 
-    return super._tearDown(options);
+    await super._tearDown(options); // Handles ticker unbinding and _destroyed flag
   }
 
   _onAnimate(deltaTime) {
@@ -27733,7 +27768,7 @@ class IridescenceLayer extends MaskedEffectLayer {
  *
  * @extends CanvasLayer
  */
-class GroundGlowLayer extends foundry.canvas.layers.CanvasLayer {
+class GroundGlowLayer extends ResizableAnimatedCanvasLayer {
   constructor() {
     super();
     this.glowSpritesContainer = null;
@@ -27741,7 +27776,6 @@ class GroundGlowLayer extends foundry.canvas.layers.CanvasLayer {
     this.effectSprite = null;
     this.glowFilter = null;
     this.glowSprites = new Map();
-    this._destroyed = false;
     this._needsMaskUpdate = true;
   }
 
@@ -27815,8 +27849,7 @@ class GroundGlowLayer extends foundry.canvas.layers.CanvasLayer {
   }
 
   async _draw() {
-    this._destroyed = false;
-    this.eventMode = "none";
+    await super._draw(); // Handles ticker, resize, and _destroyed flag
     this._needsMaskUpdate = true;
 
     const renderer = canvas.app.renderer;
@@ -27843,20 +27876,11 @@ class GroundGlowLayer extends foundry.canvas.layers.CanvasLayer {
     this.effectSprite.filters = this.glowFilter ? [this.glowFilter] : [];
     this.addChild(this.effectSprite);
 
-    this._onAnimateBound = this._onAnimate.bind(this);
-    this._onResizeBound = this._onResize.bind(this);
     this._onPanBound = () => (this._needsMaskUpdate = true);
-
-    canvas.app.ticker.add(this._onAnimateBound);
-    window.addEventListener("resize", this._onResizeBound);
     Hooks.on("canvasPan", this._onPanBound);
   }
 
   async _tearDown(options) {
-    this._destroyed = true;
-
-    canvas.app.ticker.remove(this._onAnimateBound);
-    window.removeEventListener("resize", this._onResizeBound);
     Hooks.off("canvasPan", this._onPanBound);
 
     this.glowFilter?.destroy();
@@ -27870,7 +27894,7 @@ class GroundGlowLayer extends foundry.canvas.layers.CanvasLayer {
     this.glowSpritesContainer = null;
     this.glowSprites.clear();
 
-    return super._tearDown(options);
+    await super._tearDown(options); // Handles ticker, resize unbinding and _destroyed flag
   }
 
   _onAnimate() {
@@ -28081,7 +28105,7 @@ class GroundGlowFilter extends PIXI.Filter {
   }
 }
 
-class HeatDistortionLayer extends foundry.canvas.layers.CanvasLayer {
+class HeatDistortionLayer extends ResizableAnimatedCanvasLayer {
   constructor() {
     super();
     this.heatSourceContainer = null;
@@ -28240,16 +28264,14 @@ class HeatDistortionLayer extends foundry.canvas.layers.CanvasLayer {
   }
 
   async _draw() {
+    await super._draw(); // Handles ticker, resize, and _destroyed flag
+    
     this.visible = false;
     this.eventMode = "none";
-
-    this._onAnimateBound = this._onAnimate.bind(this);
-    this._onResizeBound = this._onResize.bind(this);
     this._onPanBound = this._onPan.bind(this);
 
     this._framesSinceLoad = 0;
     this._needsMaskUpdate = true;
-    this._destroyed = false;
     this.time = 0;
 
     this.heatSourceContainer = new PIXI.Container();
@@ -28281,8 +28303,6 @@ class HeatDistortionLayer extends foundry.canvas.layers.CanvasLayer {
       );
     }
 
-    canvas.app.ticker.add(this._onAnimateBound);
-    window.addEventListener("resize", this._onResizeBound);
     if (!game.modules.get("libwrapper")?.active) {
       Hooks.on("canvasPan", this._onPanBound);
     }
@@ -28468,11 +28488,7 @@ class HeatDistortionLayer extends foundry.canvas.layers.CanvasLayer {
 
   async _tearDown(options) {
     if (this._destroyed) return;
-    this._destroyed = true;
 
-    if (this._onAnimateBound) canvas.app.ticker.remove(this._onAnimateBound);
-    if (this._onResizeBound)
-      window.removeEventListener("resize", this._onResizeBound);
     if (this._onPanBound) Hooks.off("canvasPan", this._onPanBound);
 
     this.noiseFilter?.destroy();
@@ -28490,7 +28506,7 @@ class HeatDistortionLayer extends foundry.canvas.layers.CanvasLayer {
     this.combinedMaskTexture = null;
     this.noiseFilter = this.noiseSprite = this.noiseTexture = null;
 
-    return super._tearDown(options);
+    await super._tearDown(options); // Handles ticker, resize unbinding and _destroyed flag
   }
 }
 
@@ -28502,7 +28518,6 @@ class PrismLayer extends MaskedEffectLayer {
 
     this.distortionNoiseManager = null;
     this._framesSinceLoad = 0;
-    this._destroyed = false;
   }
 
   static getSettingsHTML() {
@@ -30743,8 +30758,13 @@ class BuildingShadowsFilter extends PIXI.Filter {
                     vec2 sceneMin = uSceneRectNorm.xy;
                     vec2 sceneMax = uSceneRectNorm.xy + uSceneRectNorm.zw;
                     
-                    // Add a small margin (in UV space) to prevent artifacts at the very edge
-                    vec2 margin = vec2(abs(uvOffset.x) + 0.001, abs(uvOffset.y) + 0.001);
+                    // IMPROVED: Add a more aggressive margin to account for blur and offset
+                    // The margin needs to be larger than the shadow offset + blur radius
+                    // Half-resolution blur means artifacts can appear up to 4 pixels away at edges
+                    vec2 blurMargin = uTexelSize * 8.0; // 8 pixels for half-res blur safety
+                    vec2 offsetMargin = vec2(abs(uvOffset.x), abs(uvOffset.y));
+                    vec2 margin = offsetMargin + blurMargin;
+                    
                     vec2 safeMin = sceneMin + margin;
                     vec2 safeMax = sceneMax - margin;
                     
@@ -30752,8 +30772,12 @@ class BuildingShadowsFilter extends PIXI.Filter {
                     bool isInSafeZone = vTextureCoord.x >= safeMin.x && vTextureCoord.x <= safeMax.x &&
                                         vTextureCoord.y >= safeMin.y && vTextureCoord.y <= safeMax.y;
                     
-                    if (!isInSafeZone) {
-                        // Too close to edge - skip shadow to prevent artifacts
+                    // ADDITIONAL CHECK: Ensure the sample coordinate is also in bounds
+                    bool isSampleInBounds = baseSampleCoord.x >= sceneMin.x && baseSampleCoord.x <= sceneMax.x &&
+                                            baseSampleCoord.y >= sceneMin.y && baseSampleCoord.y <= sceneMax.y;
+                    
+                    if (!isInSafeZone || !isSampleInBounds) {
+                        // Too close to edge or sample out of bounds - skip shadow to prevent artifacts
                         gl_FragColor = originalColor;
                         return;
                     }
@@ -30920,6 +30944,12 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
     // Kawase blur samples outside texture bounds at screen edges, causing visible lines
     // Note: Pooled textures have CLAMP set by default in RenderTexturePool
     this.blurredMaskTexture.baseTexture.wrapMode = PIXI.WRAP_MODES.CLAMP;
+    
+    // CRITICAL FIX: Set CLAMP mode on the source texture as well
+    // This prevents Kawase blur from sampling invalid data at edges
+    if (this.combinedMaskTexture) {
+      this.combinedMaskTexture.baseTexture.wrapMode = PIXI.WRAP_MODES.CLAMP;
+    }
 
     this.kawaseBlurFilter1 = new PIXI.filters.KawaseBlurFilter(15, 2, true);
     this.kawaseBlurFilter2 = new PIXI.filters.KawaseBlurFilter(15, 2, true);
@@ -31049,6 +31079,12 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
       const blurAmount = Math.max(0.1, blurPixels) / 4.0 / 2.0;
       this.kawaseBlurFilter1.blur = blurAmount;
       this.kawaseBlurFilter2.blur = blurAmount;
+      
+      // CRITICAL FIX: Ensure CLAMP wrap mode on source texture before blur
+      // This prevents Kawase blur from creating edge artifacts
+      if (this.combinedMaskTexture.baseTexture.wrapMode !== PIXI.WRAP_MODES.CLAMP) {
+        this.combinedMaskTexture.baseTexture.wrapMode = PIXI.WRAP_MODES.CLAMP;
+      }
 
       const renderer = canvas.app.renderer;
 
@@ -31372,7 +31408,7 @@ class MapShineClock {
     const initialIcon = isNight
       ? "modules/map-shine/assets/moon.webp"
       : "modules/map-shine/assets/sun.webp";
-    const initialTintColor = MapShineClock._getColorForTime(this.currentTime);
+    const initialGradient = MapShineClock._getClockGradientForTime(this.currentTime);
 
     const dragHandleHTML = this.options.showDragHandle
       ? '<div class="clock-drag-handle"></div>'
@@ -31396,21 +31432,19 @@ class MapShineClock {
                   .clock-container:active { cursor: grabbing; }
                   .clock-face {
                       width: 100%; height: 100%; border-radius: 50%;
-                      background-image: url('modules/map-shine/assets/clock-face.webp');
-                      background-size: cover;
-                      background-position: center;
-                      border: 4px solid #333;
-                      box-shadow: 0 0 10px rgba(0,0,0,0.5) inset;
+                      background: var(--clock-gradient, radial-gradient(circle, #888, #444));
+                      border: 4px solid #222;
+                      box-shadow: 0 0 15px rgba(0,0,0,0.6) inset, 0 0 10px rgba(255,255,255,0.1);
                       position: relative;
                       overflow: hidden;
+                      transition: background 0.5s ease;
                   }
                   .clock-face::after {
                       content: '';
                       position: absolute;
                       top: 0; left: 0; right: 0; bottom: 0;
-                      background-color: var(--clock-tint-color, rgb(128,128,128));
-                      mix-blend-mode: overlay;
-                      opacity: 0.7;
+                      background: radial-gradient(circle at 40% 40%, rgba(255,255,255,0.15), transparent 60%);
+                      pointer-events: none;
                   }
                   .clock-hand {
                       position: absolute;
@@ -31453,7 +31487,7 @@ class MapShineClock {
                 <div class="day-night-clock-component">
                     ${dragHandleHTML}
                     <div class="clock-container">
-                        <div class="clock-face" style="--clock-tint-color: ${initialTintColor};">
+                        <div class="clock-face" style="--clock-gradient: ${initialGradient};">
                             <div class="time-marker m-12">12</div> <div class="time-marker m-6">6</div>
                             <div class="time-marker m-18">18</div> <div class="time-marker m-0">0</div>
                             <div class="clock-hand" style="transform: rotate(${initialAngle}deg);"><img class="clock-icon" src="${initialIcon}"></div>
@@ -31548,6 +31582,48 @@ class MapShineClock {
       hour -= 24;
     }
     return hour;
+  }
+
+  static _getClockGradientForTime(time) {
+    // Generate a vibrant gradient based on time of day
+    // Teenage Engineering-inspired color palette
+    const hour = time % 24;
+    
+    let color1, color2, color3;
+    
+    if (hour >= 0 && hour < 6) {
+      // Deep Night: Dark blue → Purple
+      const t = hour / 6;
+      color1 = `rgb(${Math.round(15 + t * 20)}, ${Math.round(10 + t * 15)}, ${Math.round(45 + t * 30)})`;
+      color2 = `rgb(${Math.round(25 + t * 30)}, ${Math.round(15 + t * 20)}, ${Math.round(60 + t * 40)})`;
+      color3 = `rgb(${Math.round(10 + t * 15)}, ${Math.round(5 + t * 10)}, ${Math.round(35 + t * 25)})`;
+    } else if (hour >= 6 && hour < 8) {
+      // Dawn: Purple → Pink → Orange
+      const t = (hour - 6) / 2;
+      color1 = `rgb(${Math.round(255 * (0.4 + t * 0.6))}, ${Math.round(255 * (0.2 + t * 0.4))}, ${Math.round(255 * (0.5 - t * 0.3))})`;
+      color2 = `rgb(${Math.round(255 * (0.9 + t * 0.1))}, ${Math.round(255 * (0.3 + t * 0.5))}, ${Math.round(255 * (0.4 - t * 0.2))})`;
+      color3 = `rgb(${Math.round(255 * (0.3 + t * 0.4))}, ${Math.round(255 * (0.15 + t * 0.35))}, ${Math.round(255 * (0.6 - t * 0.4))})`;
+    } else if (hour >= 8 && hour < 16) {
+      // Day: Bright cyan → Sky blue
+      const t = (hour - 8) / 8;
+      color1 = `rgb(${Math.round(255 * (0.3 - t * 0.1))}, ${Math.round(255 * (0.8 + t * 0.1))}, ${Math.round(255)})`;
+      color2 = `rgb(${Math.round(255 * (0.4 + t * 0.1))}, ${Math.round(255 * (0.85 + t * 0.1))}, ${Math.round(255)})`;
+      color3 = `rgb(${Math.round(255 * (0.2 - t * 0.1))}, ${Math.round(255 * (0.75 + t * 0.1))}, ${Math.round(255 * (0.95 + t * 0.05))})`;
+    } else if (hour >= 16 && hour < 18) {
+      // Dusk: Orange → Pink → Purple
+      const t = (hour - 16) / 2;
+      color1 = `rgb(${Math.round(255)}, ${Math.round(255 * (0.5 - t * 0.3))}, ${Math.round(255 * (0.2 + t * 0.3))})`;
+      color2 = `rgb(${Math.round(255 * (0.9 - t * 0.2))}, ${Math.round(255 * (0.4 - t * 0.2))}, ${Math.round(255 * (0.3 + t * 0.3))})`;
+      color3 = `rgb(${Math.round(255 * (0.95 - t * 0.3))}, ${Math.round(255 * (0.3 - t * 0.15))}, ${Math.round(255 * (0.25 + t * 0.35))})`;
+    } else {
+      // Evening/Night: Purple → Deep blue
+      const t = (hour - 18) / 6;
+      color1 = `rgb(${Math.round(255 * (0.4 - t * 0.3))}, ${Math.round(255 * (0.2 - t * 0.15))}, ${Math.round(255 * (0.6 - t * 0.4))})`;
+      color2 = `rgb(${Math.round(255 * (0.3 - t * 0.2))}, ${Math.round(255 * (0.15 - t * 0.1))}, ${Math.round(255 * (0.5 - t * 0.3))})`;
+      color3 = `rgb(${Math.round(255 * (0.15 - t * 0.1))}, ${Math.round(255 * (0.08 - t * 0.05))}, ${Math.round(255 * (0.4 - t * 0.25))})`;
+    }
+    
+    return `radial-gradient(circle at 30% 30%, ${color1}, ${color2} 50%, ${color3})`;
   }
 
   static _getColorForTime(time) {
@@ -31664,8 +31740,8 @@ class MapShineClock {
     this.currentTime = (newTime + 24) % 24;
     if (!this.element) return;
 
-    const tintColor = this.constructor._getColorForTime(this.currentTime);
-    this.element.find(".clock-face").css("--clock-tint-color", tintColor);
+    const gradient = this.constructor._getClockGradientForTime(this.currentTime);
+    this.element.find(".clock-face").css("--clock-gradient", gradient);
 
     const angle = this.constructor._getAngleForTime(this.currentTime);
 
@@ -33468,8 +33544,8 @@ class DebuggerUIBuilder {
                                 #material-editor-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 4px; }
                                 .header-buttons-left, .header-buttons-right { display: flex; gap: 4px; flex-shrink: 0; }
                                 #material-editor-header h3 { margin: 0; padding: 0; border: none; flex-grow: 1; text-align: center; cursor: move; user-select: none; font-size: 1.4em; }
-                                .header-btn { display: inline-block; text-decoration: none; background: #3a3a3a; border: 1px solid #666; color: #ccc; font-weight: bold; width: 22px; height: 22px; line-height: 22px; text-align: center; cursor: pointer; border-radius: 4px; flex-shrink: 0; font-size: 14px; padding: 0; }
-                                .header-btn:hover { background: #555; border-color: #888; }
+                                .header-btn { display: inline-block; text-decoration: none; background: #3a3a3a; border: 1px solid #666; color: #ccc; font-weight: bold; width: 22px; height: 22px; line-height: 22px; text-align: center; cursor: pointer; border-radius: 4px; flex-shrink: 0; font-size: 14px; padding: 0; transition: all 0.2s ease; }
+                                .header-btn:hover { background: #555; border-color: #FF6B35; color: #fff; transform: scale(1.05); }
                                                             #material-editor-debugger .summary-control .header-btn { width: 22px; height: 22px; font-size: 11px; padding: 0; }
                                 #material-editor-debugger .file-picker-btn {
                                     flex-shrink: 0;
@@ -33484,7 +33560,7 @@ class DebuggerUIBuilder {
                                     cursor: pointer;
                                     border-radius: 4px;
                                 }
-                                #material-editor-debugger .file-picker-btn:hover { background: #555; border-color: #888; }
+                                #material-editor-debugger .file-picker-btn:hover { background: #555; border-color: #FF6B35; color: #fff; transform: scale(1.05); }
                                 #material-editor-debugger details { background: rgba(255,255,255,0.05); border: 1px solid #555; border-radius: 2px; padding: 1px; margin-bottom: 0; transition: background 0.2s ease-in-out; }
                                 #material-editor-debugger details[open] { background: rgba(255,255,255,0.08); padding-bottom: 1px; }
                                 
@@ -33560,9 +33636,9 @@ class DebuggerUIBuilder {
 
                                 #material-editor-debugger details details { margin-left: 4px; margin-top: 2px; border-style: dashed; }
                                 #material-editor-debugger .traffic-light { width: 9px; height: 9px; border-radius: 50%; display: inline-block; box-shadow: 0 0 4px rgba(0,0,0,0.5); border: 1px solid #111; flex-shrink: 0; }
-                                #material-editor-debugger .traffic-light.ok { background-color: #4cfa40; }
-                                #material-editor-debugger .traffic-light.error { background-color: #fa4040; }
-                                #material-editor-debugger .traffic-light.warning { background-color: #f7a000; }
+                                #material-editor-debugger .traffic-light.ok { background-color: #FF6B35; box-shadow: 0 0 6px rgba(255, 107, 53, 0.5); }
+                                #material-editor-debugger .traffic-light.error { background-color: #EE4266; box-shadow: 0 0 6px rgba(238, 66, 102, 0.5); }
+                                #material-editor-debugger .traffic-light.warning { background-color: #FFD23F; box-shadow: 0 0 6px rgba(255, 210, 63, 0.5); }
                                 #material-editor-debugger .traffic-light.unknown { background-color: #888; }
                                 #material-editor-debugger .traffic-light.inactive, #material-editor-debugger .traffic-light.disabled { background: none; border: 1px dashed #666; }
                                 #material-editor-debugger .control-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1px; padding: 0; }
@@ -33611,21 +33687,19 @@ class DebuggerUIBuilder {
                                 #debugger-clock-container:active { cursor: grabbing; }
                                 #debugger-clock-container .clock-face {
                                     width: 100%; height: 100%; border-radius: 50%;
-                                    background-image: url('modules/map-shine/assets/clock-face.webp');
-                                    background-size: cover;
-                                    background-position: center;
-                                    border: 3px solid #333;
-                                    box-shadow: 0 0 8px rgba(0,0,0,0.5) inset;
+                                    background: var(--clock-gradient, radial-gradient(circle, #888, #444));
+                                    border: 3px solid #222;
+                                    box-shadow: 0 0 15px rgba(0,0,0,0.6) inset, 0 0 10px rgba(255,255,255,0.1);
                                     position: relative;
                                     overflow: hidden;
+                                    transition: background 0.5s ease;
                                 }
                                 #debugger-clock-container .clock-face::after {
                                     content: '';
                                     position: absolute;
                                     top: 0; left: 0; right: 0; bottom: 0;
-                                    background-color: var(--clock-tint-color, rgb(128,128,128));
-                                    mix-blend-mode: overlay;
-                                    opacity: 0.7;
+                                    background: radial-gradient(circle at 40% 40%, rgba(255,255,255,0.15), transparent 60%);
+                                    pointer-events: none;
                                 }
                                 #debugger-clock-hand {
                                     position: absolute;
@@ -33649,7 +33723,8 @@ class DebuggerUIBuilder {
                                 #debugger-clock-container .time-marker.m-18 { top: 50%; right: 3px; transform: translateY(-50%); }
                                 #debugger-clock-container .time-marker.m-0 { bottom: 1px; left: 50%; transform: translateX(-50%); }
                                 #debugger-clock-controls { display: flex; align-items: center; justify-content: center; gap: 4px; width: 100%; }
-                                #debugger-clock-controls button { width: 25px; height: 25px; font-size: 1em; font-weight: bold; background: #3a3a3a; border: 1px solid #666; color: #ccc; border-radius: 4px; cursor: pointer; }
+                                #debugger-clock-controls button { width: 25px; height: 25px; font-size: 1em; font-weight: bold; background: #3a3a3a; border: 1px solid #666; color: #ccc; border-radius: 4px; cursor: pointer; transition: all 0.2s ease; }
+                                #debugger-clock-controls button:hover { background: #555; border-color: #FF6B35; color: #fff; transform: scale(1.05); }
                                 #debugger-clock-controls input { width: 50px; height: 25px; text-align: center; font-size: 1em; background: #2a2a2a; color: white; border: 1px solid #666; border-radius: 4px; }
                                 #debugger-clock-wrapper .clock-disclaimer {
                                     font-size: 10px;
@@ -33663,10 +33738,10 @@ class DebuggerUIBuilder {
                   /* --- End Clock Styles --- */
 
                                 .fx-status-light { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 1px solid #111; margin-right: 5px; vertical-align: middle; }
-                                .fx-status-light.green { background-color: #4cfa40; box-shadow: 0 0 5px #4cfa40; }
-                                .fx-status-light.blue { background-color: #40a0fa; box-shadow: 0 0 5px #40a0fa; }
+                                .fx-status-light.green { background-color: #FF6B35; box-shadow: 0 0 8px rgba(255, 107, 53, 0.6); }
+                                .fx-status-light.blue { background-color: #FFD23F; box-shadow: 0 0 8px rgba(255, 210, 63, 0.6); }
                                 .fx-status-light.grey { background-color: #888; }
-                                .fx-status-light.red { background-color: #fa4040; box-shadow: 0 0 5px #fa4040; }
+                                .fx-status-light.red { background-color: #EE4266; box-shadow: 0 0 8px rgba(238, 66, 102, 0.6); }
                                 .profile-controls button:disabled { background-color: #333; color: #777; cursor: not-allowed; border-color: #555; }
                                 .description-text { font-size: 10px; color: #aaa; margin: 2px 0 4px 0; padding-left: 3px; }
                                 .warning-box { background: #552222; border: 1px solid #ff6666; padding: 5px; margin: 5px 0; border-radius: 3px; font-size: 10px; }
@@ -33730,9 +33805,9 @@ class DebuggerUIBuilder {
                             </div>
                             <h3 id="material-editor-title">Map Shine</h3>
                             <div class="header-buttons-right">
-                              <a href="https://www.patreon.com/c/MythicaMachina" target="_blank" class="header-btn header-patreon-btn" title="Support on Patreon" style="background: linear-gradient(135deg, #f96854 0%, #ff5c4d 100%); border-color: rgba(255, 255, 255, 0.3); color: #fff; width: auto; padding: 0 8px; font-weight: 600;"><i class="fab fa-patreon"></i> Patreon</a>
-                              <a href="https://www.foundryvtt.store/creators/mythica-machina" target="_blank" class="header-btn header-store-btn" title="Foundry Store"><i class="fas fa-dice-d20"></i></a>
-                              <a href="https://www.drivethrurpg.com/en/publisher/29377/mythicamachina" target="_blank" class="header-btn header-store-btn" title="DriveThruRPG"><i class="fas fa-book"></i></a>
+                              <a href="https://www.patreon.com/c/MythicaMachina" target="_blank" class="header-btn header-patreon-btn" title="Support on Patreon" style="background: linear-gradient(135deg, #f96854 0%, #ff5c4d 100%); border-color: rgba(255, 255, 255, 0.3); color: #fff; width: auto; padding: 0 8px; font-weight: 600; transition: all 0.2s ease;"><i class="fab fa-patreon"></i> Patreon</a>
+                              <a href="https://www.foundryvtt.store/creators/mythica-machina" target="_blank" class="header-btn header-store-btn" title="Foundry Store" style="transition: all 0.2s ease;"><i class="fas fa-dice-d20"></i></a>
+                              <a href="https://www.drivethrurpg.com/en/publisher/29377/mythicamachina" target="_blank" class="header-btn header-store-btn" title="DriveThruRPG" style="transition: all 0.2s ease;"><i class="fas fa-book"></i></a>
                               <button data-action="minimize" id="material-editor-minimize-btn" class="header-btn" title="Minimize">-</button>
                               <button data-action="close" id="material-editor-close-btn" class="header-btn" title="Close" style="color: #ff8080;">X</button>
                             </div>
@@ -37753,12 +37828,12 @@ class DebuggerEventHandler {
       ? "modules/map-shine/assets/moon.webp"
       : "modules/map-shine/assets/sun.webp";
 
-    const tintColor = MapShineClock._getColorForTime(clockTime);
+    const gradient = MapShineClock._getClockGradientForTime(clockTime);
     const clockFace = this.element.querySelector(
       "#debugger-clock-container .clock-face"
     );
     if (clockFace) {
-      clockFace.style.setProperty("--clock-tint-color", tintColor);
+      clockFace.style.setProperty("--clock-gradient", gradient);
     }
 
     this.element

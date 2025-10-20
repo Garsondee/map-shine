@@ -274,7 +274,7 @@ class AmbientLayer extends foundry.canvas.layers.CanvasLayer {
 			"AmbientLayer DEBUG | _tearDown: All children destroyed and effectSprites map cleared."
 		);
 
-		super._tearDown(options);
+		await super._tearDown(options);
 	}
 
 	_onAnimate() {
