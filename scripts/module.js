@@ -42,6 +42,7 @@ import { MemoryProfiler } from "./utils/MemoryProfiler.js";
 import { TextureLoader } from "./utils/TextureLoader.js";
 import { RenderTexturePool } from "./utils/RenderTexturePool.js";
 import { AnimatedCanvasLayer, ResizableAnimatedCanvasLayer } from "./layers/AnimatedCanvasLayer.js";
+import { MODULE_ID, MAX_DELTA_TIME, TEMP_CLIPBOARD_STORAGE } from "./config/constants.js";
 
 /***************************************************************************************
  *
@@ -174,30 +175,7 @@ import { AnimatedCanvasLayer, ResizableAnimatedCanvasLayer } from "./layers/Anim
 // Description: Global constants, default settings, and simple utility functions.
 // ---------------------------------------------------------------------------------
 
-/**
- * The unique identifier for this Foundry VTT module.
- * Used for settings registration, localization, and module identification.
- * @constant {string}
- */
-export const MODULE_ID = "map-shine";
-
-/**
- * Temporary storage for copy/paste operations within the module.
- * Replaces clipboard usage to avoid browser compatibility issues.
- * @type {Object}
- */
-const TEMP_CLIPBOARD_STORAGE = {
-  accordion: null,  // For individual accordion copy/paste
-  settings: null    // For whole scene copy/paste
-};
-
-/**
- * The maximum delta time in seconds allowed for a single simulation step.
- * This prevents physics "explosions" or extreme jumps during moments of low frame rate.
- * The value 1/30 corresponds to a minimum of 30 frames per second.
- * @constant {number}
- */
-const MAX_DELTA_TIME = 1 / 30;
+// MODULE_ID, MAX_DELTA_TIME, and TEMP_CLIPBOARD_STORAGE have been moved to scripts/config/constants.js
 
 /**
  * Default configuration settings for all universal effects in the Map Shine module.

@@ -1,4 +1,5 @@
-import { MODULE_ID, ProfileDataManager, MODULE_DEFAULTS, ConfigBuilder, ParticleLayer, SmellyFliesLayer } from "../module.js";
+import { MODULE_ID } from "../config/constants.js";
+import { ProfileDataManager, MODULE_DEFAULTS, ConfigBuilder, ParticleLayer, SmellyFliesLayer } from "../module.js";
 
 /**
  * Maps configuration paths to their corresponding system update functions.

@@ -16,7 +16,7 @@
  * @author Mythica Machina - Ingram Blakelock
  */
 
-import { MODULE_ID } from "../module.js";
+import { MODULE_ID } from "../config/constants.js";
 import { FontLoader } from "../managers/FontManager.js";
 
 /**
