@@ -19,7 +19,7 @@
  * - Real-time shader-based visual enhancements
  *
  * @author Mythica Machina - Ingram Blakelock
- * @version 1.1.15 - (PS, please double check this value and update it as needed. You will need to update the module.json in the root too.)
+ * @version 1.1.18 - (PS, please double check this value and update it as needed. You will need to update the module.json in the root too.)
  *
  * @requires foundry ^13+
  * @requires pixi.js ^7.4.3
@@ -11660,7 +11660,7 @@ class ParticleEffectController {
                     <p class="description-text">${definition.description}</p>
                     <details>
                       <summary><span class="accordion-toggle"></span><strong>Spawning & Density</strong></summary>
-                      <div style="padding-left: 10px;">
+                      <div style="padding-left: 5px;">
                         ${DebuggerUIBuilder._createTextureInputHTML(
                           definition.triggerTexture,
                           `Effect Mask (_${
@@ -11694,7 +11694,7 @@ class ParticleEffectController {
                     </details>
                     <details>
                       <summary><span class="accordion-toggle"></span><strong>Particle Appearance</strong></summary>
-                      <div style="padding-left: 10px;">
+                      <div style="padding-left: 5px;">
                         ${DebuggerUIBuilder._createSelectHTML(
                           `${sparksPath}.blendMode`,
                           "Blend Mode",
@@ -11706,7 +11706,7 @@ class ParticleEffectController {
                         )}
                         <details>
                           <summary><span class="accordion-toggle"></span><strong>Lifetime</strong></summary>
-                          <div style="padding-left: 10px;">
+                          <div style="padding-left: 5px;">
                             ${DebuggerUIBuilder._createSliderHTML(
                               `${sparksPath}.lifetime.min`,
                               "Min Lifetime (s)",
@@ -11735,7 +11735,7 @@ class ParticleEffectController {
 
                         <details>
                           <summary><span class="accordion-toggle"></span><strong>Scale / Size</strong></summary>
-                          <div style="padding-left: 10px;">
+                          <div style="padding-left: 5px;">
                             ${DebuggerUIBuilder._createSliderHTML(
                               `${sparksPath}.scale.sizeMultiplier`,
                               "Global Size",
@@ -11770,10 +11770,10 @@ class ParticleEffectController {
                     </details>
                     <details>
                       <summary><span class="accordion-toggle"></span><strong>Movement (Spark Path)</strong></summary>
-                      <div style="padding-left:15px;">
+                      <div style="padding-left: 8px;">
                         <details>
                           <summary><span class="accordion-toggle"></span><strong>Speed Along Path</strong></summary>
-                          <div style="padding-left:15px;">
+                          <div style="padding-left: 8px;">
                             ${DebuggerUIBuilder._createSliderHTML(
                               `${sparksPath}.path.speed.start`,
                               "Start Speed",
@@ -11799,7 +11799,7 @@ class ParticleEffectController {
                         </details>
                         <details>
                           <summary><span class="accordion-toggle"></span><strong>Path Shape</strong></summary>
-                          <div style="padding-left:15px;">
+                          <div style="padding-left: 8px;">
                             <p class="description-text">Controls the random sine wave path for each spark.</p>
                             ${DebuggerUIBuilder._createSliderHTML(
                               `${sparksPath}.path.amplitude.min`,
@@ -11859,7 +11859,7 @@ class ParticleEffectController {
                             "Motion Blur",
                             true
                           )}</div></summary>
-                          <div style="padding-left:15px;">
+                          <div style="padding-left: 8px;">
                             <p class="description-text">Stretches particles based on their speed to simulate motion blur.</p>
                             ${DebuggerUIBuilder._createSliderHTML(
                               `${sparksPath}.path.motionBlur.strength`,
@@ -11925,7 +11925,7 @@ class ParticleEffectController {
 
           <details>
             <summary><span class="accordion-toggle"></span><strong>Appearance</strong></summary>
-            <div style="padding-left: 10px;">
+            <div style="padding-left: 5px;">
               ${DebuggerUIBuilder._createSelectHTML(
                 `${firePath}.blendMode`,
                 "Blend Mode",
@@ -11948,7 +11948,7 @@ class ParticleEffectController {
           
           <details>
             <summary><span class="accordion-toggle"></span><strong>Spawning & Lifetime</strong></summary>
-            <div style="padding-left: 10px;">
+            <div style="padding-left: 5px;">
               ${DebuggerUIBuilder._createSliderHTML(
                 `${firePath}.frequency`,
                 "Spawn Rate (s)",
@@ -11975,7 +11975,7 @@ class ParticleEffectController {
           
           <details>
             <summary><span class="accordion-toggle"></span><strong>Shape & Size</strong></summary>
-            <div style="padding-left: 10px;">
+            <div style="padding-left: 5px;">
               ${DebuggerUIBuilder._createSliderHTML(
                 `${firePath}.scale.sizeMultiplier`,
                 "Global Size",
@@ -12009,7 +12009,7 @@ class ParticleEffectController {
           
           <details>
             <summary><span class="accordion-toggle"></span><strong>Speed & Motion</strong></summary>
-            <div style="padding-left: 10px;">
+            <div style="padding-left: 5px;">
               ${DebuggerUIBuilder._createSliderHTML(
                 `${firePath}.speed.start`,
                 "Start Speed",
@@ -12036,7 +12036,7 @@ class ParticleEffectController {
           
           <details>
             <summary><span class="accordion-toggle"></span><strong>Rotation</strong></summary>
-            <div style="padding-left: 10px;">
+            <div style="padding-left: 5px;">
               ${DebuggerUIBuilder._createCheckboxHTML(
                 `${firePath}.rotation.enabled`,
                 "Enable Rotation",
@@ -12068,7 +12068,7 @@ class ParticleEffectController {
           
           <details>
             <summary><span class="accordion-toggle"></span><strong>Wind Influence</strong></summary>
-            <div style="padding-left: 10px;">
+            <div style="padding-left: 5px;">
               <p class="description-text" style="font-style: italic; color: #999;">Wind is now controlled globally in the "Wind" section. The values below reflect the current global settings.</p>
               ${DebuggerUIBuilder._createReadOnlyDisplayHTML(
                 `${firePath}.wind.enabled`,
@@ -12091,7 +12091,7 @@ class ParticleEffectController {
 
           <details>
             <summary><span class="accordion-toggle"></span><strong>Flame Tone Curve</strong></summary>
-            <div style="padding-left: 10px;">
+            <div style="padding-left: 5px;">
               ${DebuggerUIBuilder._createCheckboxHTML(
                 `${firePath}.toneCurve.enabled`,
                 "Enable Fire Tone Curve",
@@ -12130,7 +12130,7 @@ class ParticleEffectController {
           
           <details>
             <summary><span class="accordion-toggle"></span><strong>Fire Color Correction</strong></summary>
-            <div style="padding-left: 10px;">
+            <div style="padding-left: 5px;">
               <p class="description-text">Apply color correction filters specifically to fire particles.</p>
               ${DebuggerUIBuilder._createCheckboxHTML(
                 `${firePath}.colorCorrection.enabled`,
@@ -12195,7 +12195,7 @@ class ParticleEffectController {
           <p class="description-text">${definition.description}</p>
           <details>
             <summary><span class="accordion-toggle"></span><strong>Appearance</strong></summary>
-            <div style="padding-left: 10px;">
+            <div style="padding-left: 5px;">
               ${DebuggerUIBuilder._createSelectHTML(
                 `${candlePath}.blendMode`,
                 "Blend Mode",
@@ -12217,7 +12217,7 @@ class ParticleEffectController {
           </details>
           <details>
             <summary><span class="accordion-toggle"></span><strong>Spawning & Lifetime</strong></summary>
-            <div style="padding-left: 10px;">
+            <div style="padding-left: 5px;">
               ${DebuggerUIBuilder._createSliderHTML(
                 `${candlePath}.frequency`,
                 "Spawn Rate (s)",
@@ -12243,7 +12243,7 @@ class ParticleEffectController {
           </details>
           <details>
             <summary><span class="accordion-toggle"></span><strong>Shape & Size</strong></summary>
-            <div style="padding-left: 10px;">
+            <div style="padding-left: 5px;">
               ${DebuggerUIBuilder._createSliderHTML(
                 `${candlePath}.scale.sizeMultiplier`,
                 "Global Size",
@@ -12276,7 +12276,7 @@ class ParticleEffectController {
           </details>
           <details>
             <summary><span class="accordion-toggle"></span><strong>Jiggle Motion</strong></summary>
-            <div style="padding-left: 10px;">
+            <div style="padding-left: 5px;">
               ${DebuggerUIBuilder._createSliderHTML(
                 `${candlePath}.jiggle.upwardVelocity`,
                 "Upward Velocity",
@@ -12328,7 +12328,7 @@ class ParticleEffectController {
           <p class="description-text">${definition.description}</p>
           <details>
               <summary><span class="accordion-toggle"></span><strong>Spawning & Density</strong></summary>
-              <div style="padding-left: 10px;">
+              <div style="padding-left: 5px;">
                   ${DebuggerUIBuilder._createTextureInputHTML(
                     definition.triggerTexture,
                     `Effect Mask (_Steam)`
@@ -12351,7 +12351,7 @@ class ParticleEffectController {
           </details>
           <details>
               <summary><span class="accordion-toggle"></span><strong>Burst Emission Cycle</strong></summary>
-              <div style="padding-left: 10px;">
+              <div style="padding-left: 5px;">
                   <p class="description-text">Controls the on/off cycle of the steam bursts.</p>
                   ${DebuggerUIBuilder._createSliderHTML(
                     `${steamPath}.burst.onDuration`,
@@ -12380,7 +12380,7 @@ class ParticleEffectController {
           </details>
           <details>
               <summary><span class="accordion-toggle"></span><strong>Particle Appearance</strong></summary>
-              <div style="padding-left: 10px;">
+              <div style="padding-left: 5px;">
                   ${DebuggerUIBuilder._createSelectHTML(
                     `${steamPath}.blendMode`,
                     "Blend Mode",
@@ -12392,7 +12392,7 @@ class ParticleEffectController {
                   )}
                   <details>
                       <summary><span class="accordion-toggle"></span><strong>Lifetime</strong></summary>
-                      <div style="padding-left: 10px;">
+                      <div style="padding-left: 5px;">
                           ${DebuggerUIBuilder._createSliderHTML(
                             `${steamPath}.lifetime.min`,
                             "Min Lifetime (s)",
@@ -12419,7 +12419,7 @@ class ParticleEffectController {
                   )}
                   <details>
                       <summary><span class="accordion-toggle"></span><strong>Scale / Size</strong></summary>
-                      <div style="padding-left: 10px;">
+                      <div style="padding-left: 5px;">
                           ${DebuggerUIBuilder._createSliderHTML(
                             `${steamPath}.scale.sizeMultiplier`,
                             "Global Size",
@@ -12454,10 +12454,10 @@ class ParticleEffectController {
           </details>
           <details>
               <summary><span class="accordion-toggle"></span><strong>Movement & Physics</strong></summary>
-              <div style="padding-left:15px;">
+              <div style="padding-left: 8px;">
                   <details>
                       <summary><span class="accordion-toggle"></span><strong>Initial Velocity (Air Drag)</strong></summary>
-                      <div style="padding-left:15px;">
+                      <div style="padding-left: 8px;">
                           <p class="description-text">High start and low end speed simulates air drag.</p>
                           ${DebuggerUIBuilder._createSliderHTML(
                             `${steamPath}.speed.start`,
@@ -12484,7 +12484,7 @@ class ParticleEffectController {
                   </details>
                   <details>
                       <summary><span class="accordion-toggle"></span><strong>Direction</strong></summary>
-                      <div style="padding-left:15px;">
+                      <div style="padding-left: 8px;">
                           ${DebuggerUIBuilder._createSliderHTML(
                             `${steamPath}.path.angle.min`,
                             "Min Start Angle",
@@ -12507,7 +12507,7 @@ class ParticleEffectController {
                         "Tumbling / Rotation",
                         true
                       )}</div></summary>
-                      <div style="padding-left: 10px;">
+                      <div style="padding-left: 5px;">
                           ${DebuggerUIBuilder._createSliderHTML(
                             `${steamPath}.rotation.minSpeed`,
                             "Min Rot. Speed",
@@ -12554,7 +12554,7 @@ class ParticleEffectController {
     content += `
                     <details>
                       <summary><span class="accordion-toggle"></span><strong>Spawning & Density</strong></summary>
-                      <div style="padding-left: 10px;">
+                      <div style="padding-left: 5px;">
                         ${DebuggerUIBuilder._createTextureInputHTML(
                           definition.triggerTexture,
                           `Effect Mask (_${
@@ -12591,7 +12591,7 @@ class ParticleEffectController {
                     </details>
                     <details>
                       <summary><span class="accordion-toggle"></span><strong>Particle Appearance</strong></summary>
-                      <div style="padding-left: 10px;">
+                      <div style="padding-left: 5px;">
                         ${DebuggerUIBuilder._createTextInputHTML(
                           `${path}.particleTexture`,
                           "Particle Texture",
@@ -12599,7 +12599,7 @@ class ParticleEffectController {
                         )}
                         <details>
                           <summary><span class="accordion-toggle"></span><strong>Lifetime</strong></summary>
-                          <div style="padding-left: 10px;">
+                          <div style="padding-left: 5px;">
                             ${DebuggerUIBuilder._createSliderHTML(
                               `${path}.lifetime.min`,
                               "Min Lifetime (s)",
@@ -12633,7 +12633,7 @@ class ParticleEffectController {
 
                         <details>
                           <summary><span class="accordion-toggle"></span><strong>Scale / Size</strong></summary>
-                          <div style="padding-left: 10px;">
+                          <div style="padding-left: 5px;">
                             ${DebuggerUIBuilder._createSliderHTML(
                               `${path}.scale.sizeMultiplier`,
                               "Global Size",
@@ -12677,7 +12677,7 @@ class ParticleEffectController {
                             "RGB Split Effect",
                             true
                           )}</div></summary>
-                          <div style="padding-left: 10px;">
+                          <div style="padding-left: 5px;">
                             <p class="description-text">Applies a chromatic aberration effect to the particles.</p>
                             ${DebuggerUIBuilder._createSliderHTML(
                               `${path}.rgbSplit.amount`,
@@ -12694,10 +12694,10 @@ class ParticleEffectController {
                     </details>
                     <details>
                       <summary><span class="accordion-toggle"></span><strong>Movement</strong></summary>
-                      <div style="padding-left: 10px;">
+                      <div style="padding-left: 5px;">
                         <details>
                           <summary><span class="accordion-toggle"></span><strong>Speed</strong></summary>
-                          <div style="padding-left: 10px;">
+                          <div style="padding-left: 5px;">
                             ${DebuggerUIBuilder._createSliderHTML(
                               `${path}.speed.start`,
                               "Start Speed",
@@ -12728,7 +12728,7 @@ class ParticleEffectController {
                             "Tumbling / Rotation",
                             true
                           )}</div></summary>
-                          <div style="padding-left: 10px;">
+                          <div style="padding-left: 5px;">
                             ${DebuggerUIBuilder._createSliderHTML(
                               `${path}.rotation.minSpeed`,
                               "Min Rot. Speed",
@@ -12770,7 +12770,7 @@ class ParticleEffectController {
                             true
                           )}</div>
                         </summary>
-                        <div style="padding-left: 10px;">
+                        <div style="padding-left: 5px;">
                           <p class="description-text">Applies a dynamic wind force to all fire particles.</p>
                           ${DebuggerUIBuilder._createSliderHTML(
                             `${path}.wind.force`,
@@ -12798,7 +12798,7 @@ class ParticleEffectController {
                           )}
                           <details>
                             <summary><span class="accordion-toggle"></span><strong>Gust Timing</strong></summary>
-                            <div style="padding-left: 10px;">
+                            <div style="padding-left: 5px;">
                               ${DebuggerUIBuilder._createSliderHTML(
                                 `${path}.wind.gustFrequencyMin`,
                                 "Min Time Between Gusts (s)",
@@ -12831,7 +12831,7 @@ class ParticleEffectController {
                           </details>
                           <details>
                             <summary><span class="accordion-toggle"></span><strong>Angle Change</strong></summary>
-                            <div style="padding-left: 10px;">
+                            <div style="padding-left: 5px;">
                               ${DebuggerUIBuilder._createSliderHTML(
                                 `${path}.wind.angleChangeFrequencyMin`,
                                 "Min Time Between Changes (s)",
@@ -12912,10 +12912,10 @@ class ParticleEffectController {
 
           <details id="details-smellyFlies-flying">
             <summary><span class="accordion-toggle"></span><strong>Flying Behavior</strong></summary>
-            <div style="padding-left: 10px;">
+            <div style="padding-left: 5px;">
               <details id="details-smellyFlies-takeoff">
                 <summary><span class="accordion-toggle"></span><strong>Takeoff & Landing</strong></summary>
-                <div style="padding-left: 10px;">
+                <div style="padding-left: 5px;">
                   ${DebuggerUIBuilder._createSliderHTML(
                     `${effectKey}.flying.takeoffDuration`,
                     "Takeoff Duration (s)",
@@ -12957,7 +12957,7 @@ class ParticleEffectController {
               </details>
               <details id="details-smellyFlies-physics">
                 <summary><span class="accordion-toggle"></span><strong>Flight Physics</strong></summary>
-                <div style="padding-left: 10px;">
+                <div style="padding-left: 5px;">
                   ${DebuggerUIBuilder._createSliderHTML(
                     `${effectKey}.flying.noiseStrength`,
                     "Erratic Force",
@@ -13004,7 +13004,7 @@ class ParticleEffectController {
 
           <details id="details-smellyFlies-walking">
             <summary><span class="accordion-toggle"></span><strong>Walking Behavior</strong></summary>
-            <div style="padding-left: 10px;">
+            <div style="padding-left: 5px;">
               ${DebuggerUIBuilder._createSliderHTML(
                 `${effectKey}.walking.walkSpeed`,
                 "Walk Speed (px/s)",
@@ -13022,7 +13022,7 @@ class ParticleEffectController {
               )}
               <details>
                 <summary><span class="accordion-toggle"></span><strong>Idle Timing</strong></summary>
-                <div style="padding-left: 10px;">
+                <div style="padding-left: 5px;">
                   ${DebuggerUIBuilder._createSliderHTML(
                     `${effectKey}.walking.minIdleTime`,
                     "Min Idle Time (s)",
@@ -13041,7 +13041,7 @@ class ParticleEffectController {
               </details>
               <details>
                 <summary><span class="accordion-toggle"></span><strong>Rotation Timing</strong></summary>
-                <div style="padding-left: 10px;">
+                <div style="padding-left: 5px;">
                   ${DebuggerUIBuilder._createSliderHTML(
                     `${effectKey}.walking.minRotateTime`,
                     "Min Rotate Time (s)",
@@ -13060,7 +13060,7 @@ class ParticleEffectController {
               </details>
               <details>
                 <summary><span class="accordion-toggle"></span><strong>Move Distance</strong></summary>
-                <div style="padding-left: 10px;">
+                <div style="padding-left: 5px;">
                   ${DebuggerUIBuilder._createSliderHTML(
                     `${effectKey}.walking.minMoveDistance`,
                     "Min Move Distance (px)",
@@ -13086,7 +13086,7 @@ class ParticleEffectController {
               "Motion Blur",
               true
             )}</div></summary>
-            <div style="padding-left: 10px;">
+            <div style="padding-left: 5px;">
               <p class="description-text">Stretches particles based on their speed to simulate motion blur.</p>
               ${DebuggerUIBuilder._createSliderHTML(
                 `${effectKey}.motionBlur.strength`,
@@ -15146,42 +15146,54 @@ class WeatherSystemManager {
       case 'drizzle':
       case 'rain':
       case 'storm':
-        // Start rain effect at 0% opacity/intensity
+        // Start rain effect at 0% opacity/intensity BUT keep shader animating
         this.weatherEffectLayer.playEffect('rain', {
           opacity: 0.0,
           intensity: 0.0,
           strength: 0.0
         });
+        // Ensure shader is animating (speed controls time accumulation)
+        const rainEffect = this.weatherEffectLayer.effects.get('rain');
+        if (rainEffect) {
+          rainEffect.shader.speed = 0.2; // Match default from WeatherEffectLayer
+        }
         console.log('MapShine | WeatherSystemManager: Started rain shader at 0% for transition');
         break;
       
       case 'snow':
       case 'blizzard':
-        // Start snow effect at 0% alpha
+        // Start snow effect - keep effect speed parameters but set alpha to 0
+        const targetSpeed = targetState === 'blizzard' ? 8 : 2;
         this.weatherEffectLayer.playEffect('snow', {
           direction: 0.5,
-          speed: 0,
+          speed: targetSpeed, // Keep effect speed active
           scale: 2.5
         });
-        // Set alpha to 0
-        if (this.weatherEffectLayer.effects.get('snow')) {
-          this.weatherEffectLayer.effects.get('snow').shader.uniforms.alpha = 0.0;
+        // Set alpha to 0 to hide it, but shader will still animate
+        const snowEffect = this.weatherEffectLayer.effects.get('snow');
+        if (snowEffect) {
+          snowEffect.shader.uniforms.alpha = 0.0;
+          snowEffect.shader.speed = 1; // Ensure animation is active
         }
         console.log('MapShine | WeatherSystemManager: Started snow shader at 0% for transition');
         break;
       
       case 'sleet':
-        // Start both rain and snow at 0%
+        // Start both rain and snow at 0% but keep them animating
         this.weatherEffectLayer.playEffect('rain', {
           opacity: 0.0,
           intensity: 0.0
         });
         this.weatherEffectLayer.playEffect('snow', {
           direction: 0.7,
-          speed: 0
+          speed: 3 // Keep effect speed active
         });
-        if (this.weatherEffectLayer.effects.get('snow')) {
-          this.weatherEffectLayer.effects.get('snow').shader.uniforms.alpha = 0.0;
+        const rainSleet = this.weatherEffectLayer.effects.get('rain');
+        const snowSleet = this.weatherEffectLayer.effects.get('snow');
+        if (rainSleet) rainSleet.shader.speed = 0.2;
+        if (snowSleet) {
+          snowSleet.shader.uniforms.alpha = 0.0;
+          snowSleet.shader.speed = 1;
         }
         console.log('MapShine | WeatherSystemManager: Started sleet shaders at 0% for transition');
         break;
@@ -15196,69 +15208,140 @@ class WeatherSystemManager {
   _updateWeatherShaders(weather) {
     if (!this.weatherEffectLayer) return;
 
-    // Calculate transition intensity (0 to 1) for gradual ramping
-    const transitionIntensity = this.isTransitioning ? this.transitionProgress : 1.0;
-
-    // Build config object for the shader layer
-    const config = {
-      weather: {
-        enabled: true,
-        currentState: this.currentState
-      }
-    };
-
-    // Update the shader layer with the current config
-    // This will set up the base effects
-    this.weatherEffectLayer.updateFromConfig(config);
-    
-    // During transitions, modulate intensity based on progress
+    // Calculate eased transition intensity (0 to 1) for gradual ramping
+    let transitionIntensity = 1.0;
     if (this.isTransitioning) {
+      const t = this.transitionProgress;
+      // Apply smooth easing (ease-in-out cubic)
+      transitionIntensity = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    }
+
+    // ONLY call updateFromConfig when NOT transitioning
+    // During transitions, we manually control opacity to avoid binary visibility toggles
+    if (!this.isTransitioning) {
+      const config = {
+        weather: {
+          enabled: true,
+          currentState: this.currentState
+        }
+      };
+      this.weatherEffectLayer.updateFromConfig(config);
+      
+      // CRITICAL: Ensure shader.speed is set for active effects so they animate
+      // This is needed when loading a scene with weather already active (not transitioning)
+      const rainEffect = this.weatherEffectLayer.effects.get('rain');
+      const snowEffect = this.weatherEffectLayer.effects.get('snow');
+      const fogEffect = this.weatherEffectLayer.effects.get('fog');
+      
       const currentStateDef = this.stateDefinitions[this.currentState];
-      const targetStateDef = this.stateDefinitions[this.targetState];
       
-      // Fade out current state's effects
-      if (currentStateDef.precipitationType === 'rain' || currentStateDef.precipitationType === 'sleet') {
-        const rainEffect = this.weatherEffectLayer.effects.get('rain');
-        if (rainEffect && rainEffect.visible) {
-          const baseOpacity = rainEffect.shader.uniforms.opacity || 0.25;
-          rainEffect.shader.uniforms.opacity = baseOpacity * (1.0 - transitionIntensity);
-        }
+      // Set animation speed for active precipitation effects
+      if ((currentStateDef.precipitationType === 'rain' || currentStateDef.precipitationType === 'sleet') && rainEffect?.visible) {
+        rainEffect.shader.speed = 0.2; // Rain animation speed
       }
       
-      if (currentStateDef.precipitationType === 'snow' || currentStateDef.precipitationType === 'sleet') {
-        const snowEffect = this.weatherEffectLayer.effects.get('snow');
-        if (snowEffect && snowEffect.visible) {
-          snowEffect.shader.uniforms.alpha = 1.0 - transitionIntensity;
-        }
+      if ((currentStateDef.precipitationType === 'snow' || currentStateDef.precipitationType === 'sleet') && snowEffect?.visible) {
+        snowEffect.shader.speed = 1; // Snow animation speed
       }
       
-      // Fade in target state's effects
-      if (targetStateDef.precipitationType === 'rain' || targetStateDef.precipitationType === 'sleet') {
-        const rainEffect = this.weatherEffectLayer.effects.get('rain');
-        if (rainEffect) {
-          // Determine target opacity based on target state
-          let targetOpacity = 0.25;
-          if (this.targetState === 'drizzle') targetOpacity = 0.15;
-          else if (this.targetState === 'storm') targetOpacity = 0.45;
-          else if (this.targetState === 'sleet') targetOpacity = 0.15;
-          
-          rainEffect.shader.uniforms.opacity = targetOpacity * transitionIntensity;
-          rainEffect.shader.uniforms.intensity = transitionIntensity;
-        }
+      // Set animation speed for fog in storm/blizzard
+      if ((this.currentState === 'storm' || this.currentState === 'blizzard') && fogEffect?.visible) {
+        fogEffect.shader.speed = 0.4; // Fog animation speed
       }
       
-      if (targetStateDef.precipitationType === 'snow' || targetStateDef.precipitationType === 'sleet') {
-        const snowEffect = this.weatherEffectLayer.effects.get('snow');
-        if (snowEffect) {
-          snowEffect.shader.uniforms.alpha = transitionIntensity;
-          
-          // Gradually increase speed
-          let targetSpeed = 2;
-          if (this.targetState === 'blizzard') targetSpeed = 8;
-          else if (this.targetState === 'sleet') targetSpeed = 3;
-          snowEffect.shader.uniforms.speed = targetSpeed * transitionIntensity;
-        }
+      return; // Exit early when not transitioning
+    }
+
+    // During transitions, manually control both current and target effects
+    const currentStateDef = this.stateDefinitions[this.currentState];
+    const targetStateDef = this.stateDefinitions[this.targetState];
+    
+    // Get all effects and ensure they're visible but with controlled opacity
+    const rainEffect = this.weatherEffectLayer.effects.get('rain');
+    const snowEffect = this.weatherEffectLayer.effects.get('snow');
+    const fogEffect = this.weatherEffectLayer.effects.get('fog');
+    
+    // Fade out current state's effects
+    if (currentStateDef.precipitationType === 'rain' || currentStateDef.precipitationType === 'sleet') {
+      if (rainEffect) {
+        // Ensure visible and animating during transition
+        rainEffect.visible = true;
+        rainEffect.shader.speed = 0.2; // Ensure animation continues
+        // Determine current opacity
+        let currentOpacity = 0.25;
+        if (this.currentState === 'drizzle') currentOpacity = 0.15;
+        else if (this.currentState === 'storm') currentOpacity = 0.45;
+        else if (this.currentState === 'sleet') currentOpacity = 0.15;
+        
+        rainEffect.shader.uniforms.opacity = currentOpacity * (1.0 - transitionIntensity);
+        rainEffect.shader.uniforms.intensity = 1.0 - transitionIntensity;
       }
+    }
+    
+    if (currentStateDef.precipitationType === 'snow' || currentStateDef.precipitationType === 'sleet') {
+      if (snowEffect) {
+        snowEffect.visible = true;
+        snowEffect.shader.speed = 1; // Ensure animation continues
+        snowEffect.shader.uniforms.alpha = 1.0 - transitionIntensity;
+      }
+    }
+    
+    // Fade in target state's effects
+    if (targetStateDef.precipitationType === 'rain' || targetStateDef.precipitationType === 'sleet') {
+      if (rainEffect) {
+        // Ensure visible and animating during transition
+        rainEffect.visible = true;
+        rainEffect.shader.speed = 0.2; // Ensure animation is active
+        // Determine target opacity based on target state
+        let targetOpacity = 0.25;
+        if (this.targetState === 'drizzle') targetOpacity = 0.15;
+        else if (this.targetState === 'storm') targetOpacity = 0.45;
+        else if (this.targetState === 'sleet') targetOpacity = 0.15;
+        
+        rainEffect.shader.uniforms.opacity = targetOpacity * transitionIntensity;
+        rainEffect.shader.uniforms.intensity = transitionIntensity;
+      }
+    }
+    
+    if (targetStateDef.precipitationType === 'snow' || targetStateDef.precipitationType === 'sleet') {
+      if (snowEffect) {
+        // Ensure visible and animating during transition
+        snowEffect.visible = true;
+        snowEffect.shader.speed = 1; // Ensure animation is active
+        snowEffect.shader.uniforms.alpha = transitionIntensity;
+        
+        // Set target speed parameter (this controls fall speed, not animation)
+        let targetSpeed = 2;
+        if (this.targetState === 'blizzard') targetSpeed = 8;
+        else if (this.targetState === 'sleet') targetSpeed = 3;
+        snowEffect.shader.uniforms.speed = targetSpeed; // Keep at full speed for animation
+      }
+    }
+    
+    // Handle fog for storm/blizzard transitions
+    if (this.targetState === 'storm' || this.targetState === 'blizzard') {
+      if (fogEffect) {
+        fogEffect.visible = true;
+        fogEffect.shader.speed = 0.4; // Ensure animation is active
+        fogEffect.shader.uniforms.alpha = transitionIntensity;
+      }
+    } else if (this.currentState === 'storm' || this.currentState === 'blizzard') {
+      if (fogEffect) {
+        fogEffect.visible = true;
+        fogEffect.shader.speed = 0.4; // Ensure animation is active
+        fogEffect.shader.uniforms.alpha = 1.0 - transitionIntensity;
+      }
+    }
+    
+    // Hide effects that aren't involved in this transition
+    if (currentStateDef.precipitationType !== 'rain' && currentStateDef.precipitationType !== 'sleet' &&
+        targetStateDef.precipitationType !== 'rain' && targetStateDef.precipitationType !== 'sleet') {
+      if (rainEffect) rainEffect.visible = false;
+    }
+    
+    if (currentStateDef.precipitationType !== 'snow' && currentStateDef.precipitationType !== 'sleet' &&
+        targetStateDef.precipitationType !== 'snow' && targetStateDef.precipitationType !== 'sleet') {
+      if (snowEffect) snowEffect.visible = false;
     }
   }
 
@@ -16799,7 +16882,7 @@ class LightningLayer extends foundry.canvas.layers.CanvasLayer {
             )}
             <details id="details-lightning-timing">
                 <summary><span class="accordion-toggle"></span><strong>Timing Controls</strong></summary>
-                <div style="padding-left: 10px;">
+                <div style="padding-left: 5px;">
                     ${DebuggerUIBuilder._createSliderHTML(
                       "lightning.minDelay",
                       "Min Delay Between Bursts (ms)",
@@ -16820,7 +16903,7 @@ class LightningLayer extends foundry.canvas.layers.CanvasLayer {
             </details>
             <details id="details-lightning-burst">
                 <summary><span class="accordion-toggle"></span><strong>Burst Controls</strong></summary>
-                <div style="padding-left: 10px;">
+                <div style="padding-left: 5px;">
                     ${DebuggerUIBuilder._createSliderHTML(
                       "lightning.burstMinStrikes",
                       "Min Strikes Per Burst",
@@ -16857,7 +16940,7 @@ class LightningLayer extends foundry.canvas.layers.CanvasLayer {
             </details>
             <details id="details-lightning-variation">
                 <summary><span class="accordion-toggle"></span><strong>Variation Controls</strong></summary>
-                <div style="padding-left: 10px;">
+                <div style="padding-left: 5px;">
                     ${DebuggerUIBuilder._createSliderHTML(
                       "lightning.endPointVariationX",
                       "End Point X Variation (px)",
@@ -19187,7 +19270,7 @@ export class ScreenEffectsManager {
   static getManagedEffectsHTML() {
     const buildSelectiveControls = (pathPrefix) => `
                             <p class="description-text">Isolates a specific color range and applies adjustments to it and/or the rest of the image.</p>
-                            <details><summary><span class="accordion-toggle"></span><strong>Color Selection</strong></summary><div style="padding-left: 10px;">
+                            <details><summary><span class="accordion-toggle"></span><strong>Color Selection</strong></summary><div style="padding-left: 5px;">
                                 <p class="description-text">Define the color range to target.</p>
                                 ${DebuggerUIBuilder._createColorPickerHTML(
                                   pathPrefix + "color",
@@ -19230,7 +19313,7 @@ export class ScreenEffectsManager {
                                   "How gradual the transition is at the edge of the selection."
                                 )}
                             </div></details>
-                            <details><summary><span class="accordion-toggle"></span><strong>Adjustments</strong></summary><div style="padding-left: 10px;">
+                            <details><summary><span class="accordion-toggle"></span><strong>Adjustments</strong></summary><div style="padding-left: 5px;">
                                 ${DebuggerUIBuilder._createCheckboxHTML(
                                   pathPrefix + "invert",
                                   "Invert Selection",
@@ -19297,7 +19380,7 @@ export class ScreenEffectsManager {
                                 </div>
                               </summary>
                                 <div>
-                                    <details id="details-postProcessing-cc-presets"><summary><span class="accordion-toggle"></span><strong>Color Presets</strong></summary><div style="padding-left: 10px;">
+                                    <details id="details-postProcessing-cc-presets"><summary><span class="accordion-toggle"></span><strong>Color Presets</strong></summary><div style="padding-left: 5px;">
                                         <p class="description-text">Apply professional color grading presets or save your own custom looks.</p>
                                         ${DebuggerUIBuilder._createPresetSelectHTML(
                                           "postProcessing.colorCorrection.activePreset",
@@ -19308,13 +19391,13 @@ export class ScreenEffectsManager {
                                             <button id="apply-color-preset-btn" title="Apply the selected preset to all color correction settings" style="flex: 1; height: 24px;">Apply Preset</button>
                                             <button id="save-color-favorite-btn" title="Save current color settings as a favorite" style="flex: 1; height: 24px;">Save as Favorite</button>
                                         </div>
-                                        <details id="details-postProcessing-cc-favorites" style="margin-top: 8px;"><summary><span class="accordion-toggle"></span><strong>My Favorites</strong></summary><div style="padding-left: 10px;">
+                                        <details id="details-postProcessing-cc-favorites" style="margin-top: 4px;"><summary><span class="accordion-toggle"></span><strong>My Favorites</strong></summary><div style="padding-left: 5px;">
                                             <div id="color-favorites-list" style="margin-top: 5px;">
                                                 <p style="color: #888; font-style: italic;">No favorites saved yet.</p>
                                             </div>
                                         </div></details>
                                     </div></details>
-                                    <details id="details-postProcessing-cc-basic"><summary><span class="accordion-toggle"></span><strong>Basic Adjustments</strong></summary><div style="padding-left: 10px;">
+                                    <details id="details-postProcessing-cc-basic"><summary><span class="accordion-toggle"></span><strong>Basic Adjustments</strong></summary><div style="padding-left: 5px;">
                                             ${DebuggerUIBuilder._createSliderHTML(
                                               "postProcessing.colorCorrection.saturation",
                                               "Saturation",
@@ -19341,7 +19424,7 @@ export class ScreenEffectsManager {
                                               "Invert Colors"
                                             )}
                                     </div></details>
-                                    <details id="details-postProcessing-cc-advanced"><summary><span class="accordion-toggle"></span><strong>Advanced Adjustments</strong></summary><div style="padding-left: 10px;">
+                                    <details id="details-postProcessing-cc-advanced"><summary><span class="accordion-toggle"></span><strong>Advanced Adjustments</strong></summary><div style="padding-left: 5px;">
                                             ${DebuggerUIBuilder._createSliderHTML(
                                               "postProcessing.colorCorrection.exposure",
                                               "Exposure",
@@ -19375,7 +19458,7 @@ export class ScreenEffectsManager {
                                               "Sets the brightest point of the image."
                                             )}
                                     </div></details>
-                                    <details id="details-postProcessing-cc-whiteBalance"><summary><span class="accordion-toggle"></span><strong>White Balance</strong></summary><div style="padding-left: 10px;">
+                                    <details id="details-postProcessing-cc-whiteBalance"><summary><span class="accordion-toggle"></span><strong>White Balance</strong></summary><div style="padding-left: 5px;">
                                             <p class="description-text">Simulates camera white balance correction.</p>
                                             ${DebuggerUIBuilder._createSliderHTML(
                                               "postProcessing.colorCorrection.whiteBalance.temperature",
@@ -19394,7 +19477,7 @@ export class ScreenEffectsManager {
                                               "Negative values shift toward magenta, positive toward green."
                                             )}
                                     </div></details>
-                                    <details id="details-postProcessing-cc-tint"><summary><span class="accordion-toggle"></span><strong>Global Tint</strong></summary><div style="padding-left: 10px;">
+                                    <details id="details-postProcessing-cc-tint"><summary><span class="accordion-toggle"></span><strong>Global Tint</strong></summary><div style="padding-left: 5px;">
                                             <p class="description-text">Applies a color overlay to the entire scene.</p>
                                             ${DebuggerUIBuilder._createColorPickerHTML(
                                               "postProcessing.colorCorrection.tint.color",
@@ -19412,7 +19495,7 @@ export class ScreenEffectsManager {
                                       "postProcessing.colorCorrection.mask.enabled",
                                       "Luminance Mask",
                                       true
-                                    )}</div></summary><div style="padding-left: 10px;">
+                                    )}</div></summary><div style="padding-left: 5px;">
                                             <p class="description-text">Applies the color correction only to lit areas of the scene. Requires the Illumination Buffer module.</p>
                                             ${DebuggerUIBuilder._createCheckboxHTML(
                                               "postProcessing.colorCorrection.mask.invert",
@@ -19437,7 +19520,7 @@ export class ScreenEffectsManager {
                                       "postProcessing.colorCorrection.selective.enabled",
                                       "Selective Color",
                                       true
-                                    )}</div></summary><div style="padding-left: 10px;">
+                                    )}</div></summary><div style="padding-left: 5px;">
                                         ${buildSelectiveControls(
                                           "postProcessing.colorCorrection.selective."
                                         )}
@@ -19451,7 +19534,7 @@ export class ScreenEffectsManager {
                                               true
                                             )}</div>
                                         </summary>
-                                        <div style="padding-left: 10px; display: flex; flex-direction: column; align-items: center; padding-top: 5px;">
+                                        <div style="padding-left: 5px; display: flex; flex-direction: column; align-items: center; padding-top: 5px;">
                                             <p class="description-text">Precise, non-linear control over tonal range, similar to Photoshop's Curves tool.</p>
                                             <div id="curve-channel-selector" style="text-align: center; margin-bottom: 5px; display: flex; gap: 8px; justify-content: center;">
                                                 <div class="widget-group"><input type="radio" name="curve-channel" id="curve-channel-rgb" value="rgb" data-path="postProcessing.colorCorrection.curves.activeChannel"><label for="curve-channel-rgb">RGB</label></div>
@@ -19488,7 +19571,7 @@ export class ScreenEffectsManager {
                                   )}
                                 </div>
                               </summary>
-                                <div style="padding-left: 10px;">
+                                <div style="padding-left: 5px;">
                                     <p class="description-text">Creates a "dazzle" effect when a token moves from an area defined as indoors (dark parts of _Outdoors mask) to outdoors (light parts).</p>
                                     ${DebuggerUIBuilder._createSliderHTML(
                                       "postProcessing.colorCorrection.dynamicExposure.intensity",
@@ -19677,7 +19760,7 @@ export class ScreenEffectsManager {
                                     )}
                                     <details>
                                         <summary><span class="accordion-toggle"></span><strong>Luminance Response</strong></summary>
-                                        <div style="padding-left:15px;">
+                                        <div style="padding-left: 8px;">
                                             <p class="description-text">Controls how much grain appears in dark vs. bright areas of the scene.</p>
                                             ${DebuggerUIBuilder._createSliderHTML(
                                               "postProcessing.grain.luminanceResponse.shadows",
@@ -21208,7 +21291,7 @@ class FoamLayer extends foundry.canvas.layers.CanvasLayer {
           )}
           <details>
             <summary><span class="accordion-toggle"></span><strong>Edge Detection</strong></summary>
-            <div style="padding-left: 10px;">
+            <div style="padding-left: 5px;">
               <p class="description-text">Controls how the foam detects and clings to the shoreline.</p>
               ${DebuggerUIBuilder._createSliderHTML(
                 "foam.smallBlur",
@@ -21246,7 +21329,7 @@ class FoamLayer extends foundry.canvas.layers.CanvasLayer {
           </details>
           <details>
             <summary><span class="accordion-toggle"></span><strong>Blur Turbulence</strong></summary>
-            <div style="padding-left: 10px;">
+            <div style="padding-left: 5px;">
               <p class="description-text">Introduces noise into the blur calculation to create more organic, irregular foam shapes.</p>
               ${DebuggerUIBuilder._createSliderHTML(
                 "foam.blurTurbulence.strength",
@@ -21276,7 +21359,7 @@ class FoamLayer extends foundry.canvas.layers.CanvasLayer {
           </details>
           <details>
             <summary><span class="accordion-toggle"></span><strong>Foam Pattern Noise</strong></summary>
-            <div style="padding-left: 10px;">
+            <div style="padding-left: 5px;">
               <p class="description-text">Controls the procedural noise used to create the foam's visual texture.</p>
               ${DebuggerUIBuilder._createSliderHTML(
                 "foam.noise.scale",
@@ -21330,7 +21413,7 @@ class FoamLayer extends foundry.canvas.layers.CanvasLayer {
                 "Foam Breakup",
                 true
               )}</div></summary>
-              <div style="padding-left: 10px;">
+              <div style="padding-left: 5px;">
                   <p class="description-text">Uses a second noise pattern to break up the foam, creating a more patchy appearance.</p>
                   ${DebuggerUIBuilder._createSliderHTML(
                     "foam.breakupNoise.scale",
@@ -21391,7 +21474,7 @@ class FoamLayer extends foundry.canvas.layers.CanvasLayer {
                 "Foam Suppression",
                 true
               )}</div></summary>
-              <div style="padding-left: 10px;">
+              <div style="padding-left: 5px;">
                   <p class="description-text">Uses a large, slow noise pattern to mask out the foam, preventing it from appearing everywhere at once.</p>
                   ${DebuggerUIBuilder._createSliderHTML(
                     "foam.suppressionNoise.scale",
@@ -21457,7 +21540,7 @@ class FoamLayer extends foundry.canvas.layers.CanvasLayer {
                 "Wave Crest Foam",
                 true
               )}</div></summary>
-              <div style="padding-left: 10px;">
+              <div style="padding-left: 5px;">
                   <p class="description-text">Generates long, flowing wave crests using perturbed sine waves.</p>
                   ${DebuggerUIBuilder._createSliderHTML(
                     "foam.crestFoam.intensity",
@@ -21500,7 +21583,7 @@ class FoamLayer extends foundry.canvas.layers.CanvasLayer {
                   )}
                   <details>
                       <summary><span class="accordion-toggle"></span><strong>Perturbation (Wave Breakup)</strong></summary>
-                      <div style="padding-left:15px;">
+                      <div style="padding-left: 8px;">
                           <p class="description-text">Controls the noise that makes the waves look organic and turbulent.</p>
                           ${DebuggerUIBuilder._createSliderHTML(
                             "foam.crestFoam.perturbStrength",
@@ -21538,7 +21621,7 @@ class FoamLayer extends foundry.canvas.layers.CanvasLayer {
                   </details>
                   <details>
                       <summary><span class="accordion-toggle"></span><strong>Crest Breakup (Texture)</strong></summary>
-                      <div style="padding-left:15px;">
+                      <div style="padding-left: 8px;">
                           <p class="description-text">Controls the fine-grained noise that breaks the wave crests into a dot-like pattern.</p>
                           ${DebuggerUIBuilder._createSliderHTML(
                             "foam.crestFoam.crestBreakup.scale",
@@ -24115,7 +24198,7 @@ class MetallicShineLayer extends foundry.canvas.layers.CanvasLayer {
 
           <details id="details-baseShine-pattern-stripes">
               <summary><span class="accordion-toggle"></span><strong>Shine Stripes Pattern</strong></summary>
-              <div style="padding-left: 10px;">
+              <div style="padding-left: 5px;">
                   <p class="description-text">Controls the animated stripes that create the shine effect.</p>
                   ${DebuggerUIBuilder._createSliderHTML(
                     "baseShine.pattern.stripes.speed",
@@ -24190,7 +24273,7 @@ class MetallicShineLayer extends foundry.canvas.layers.CanvasLayer {
                 "Color Correction",
                 true
               )}</div></summary>
-              <div style="padding-left: 10px;">
+              <div style="padding-left: 5px;">
                   <p class="description-text">Adjusts the color of the final shine effect.</p>
                   ${DebuggerUIBuilder._createSliderHTML(
                     "baseShine.colorCorrection.saturation",
@@ -24224,7 +24307,7 @@ class MetallicShineLayer extends foundry.canvas.layers.CanvasLayer {
                     "baseShine.colorCorrection.invert",
                     "Invert Colors"
                   )}
-                  <details id="details-baseShine-cc-tint"><summary><span class="accordion-toggle"></span><strong>Color Tint</strong></summary><div style="padding-left: 10px;">
+                  <details id="details-baseShine-cc-tint"><summary><span class="accordion-toggle"></span><strong>Color Tint</strong></summary><div style="padding-left: 5px;">
                       ${DebuggerUIBuilder._createColorPickerHTML(
                         "baseShine.colorCorrection.tint.color",
                         "Tint Color"
@@ -24247,7 +24330,7 @@ class MetallicShineLayer extends foundry.canvas.layers.CanvasLayer {
                     true
                   )}</div>
               </summary>
-              <div style="padding-left: 10px;">
+              <div style="padding-left: 5px;">
                   <p class="description-text">Reduces shine intensity based on cloud cover, making metal less reflective under overcast skies. Requires the Cloud Shadows effect to be active.</p>
                   ${DebuggerUIBuilder._createSliderHTML(
                     "baseShine.cloudOcclusion.intensity",
@@ -25016,7 +25099,7 @@ class CloudShadowsLayer extends MaskedEffectLayer {
                               1
                             )}
                             <details><summary><span class="accordion-toggle"></span><strong>Wind</strong></summary>
-                                <div style="padding-left: 10px;">
+                                <div style="padding-left: 5px;">
                                     ${DebuggerUIBuilder._createSliderHTML(
                                       "cloudShadows.wind.angle",
                                       "Angle",
@@ -25037,7 +25120,7 @@ class CloudShadowsLayer extends MaskedEffectLayer {
                         "Link to Complex Wind",
                         true
                       )}</div></summary>
-                      <div style="padding-left: 10px;">
+                      <div style="padding-left: 5px;">
                         <p class="description-text">Overrides the simple wind settings above and uses the complex wind simulation system.</p>
                         ${DebuggerUIBuilder._createSliderHTML(
                           "cloudShadows.wind.linkedWindForce",
@@ -25068,7 +25151,7 @@ class CloudShadowsLayer extends MaskedEffectLayer {
                                 </div>
                             </details>
                             <details><summary><span class="accordion-toggle"></span><strong>Noise Pattern</strong></summary>
-                                <div style="padding-left: 10px;">
+                                <div style="padding-left: 5px;">
                                     ${DebuggerUIBuilder._createSliderHTML(
                                       "cloudShadows.noise.scale",
                                       "Scale",
@@ -25111,7 +25194,7 @@ class CloudShadowsLayer extends MaskedEffectLayer {
                                 </div>
                             </details>
                             <details><summary><span class="accordion-toggle"></span><strong>Shading & Appearance</strong></summary>
-                                <div style="padding-left: 10px;">
+                                <div style="padding-left: 5px;">
                                     ${DebuggerUIBuilder._createSliderHTML(
                                       "cloudShadows.shading.threshold",
                                       "Threshold",
@@ -25158,7 +25241,7 @@ class CloudShadowsLayer extends MaskedEffectLayer {
                                       true
                                     )}</div>
                                 </summary>
-                                <div style="padding-left: 10px;">
+                                <div style="padding-left: 5px;">
                                     <p class="description-text">Allows light sources to cut through the cloud shadows, with artist-controlled falloff.</p>
                                     ${DebuggerUIBuilder._createSliderHTML(
                                       "cloudShadows.lightOcclusion.intensity",
@@ -25178,7 +25261,7 @@ class CloudShadowsLayer extends MaskedEffectLayer {
                                       false
                                     )}</div>
                                 </summary>
-                                <div style="padding-left: 10px;">
+                                <div style="padding-left: 5px;">
                                     <p class="description-text">When zoomed out, renders an offset white/grey version of the clouds above everything to create the actual clouds to go above the shadows.</p>
                                     
                                     ${DebuggerUIBuilder._createSliderHTML(
@@ -25199,13 +25282,13 @@ class CloudShadowsLayer extends MaskedEffectLayer {
                                     )}
                                     
                                     <details><summary><span class="accordion-toggle"></span><strong>Color Correction</strong></summary>
-                                      <div style="padding-left: 10px;">
+                                      <div style="padding-left: 5px;">
                                         ${DebuggerUIBuilder._createColorPickerHTML(
                                           "cloudShadows.depth.color",
                                           "Base Color"
                                         )}
                                         
-                                        <h4 style="margin-top: 10px; margin-bottom: 5px; font-size: 0.9em;">Exposure & Tone</h4>
+                                        <h4 style="margin-top: 5px; margin-bottom: 5px; font-size: 0.9em;">Exposure & Tone</h4>
                                         ${DebuggerUIBuilder._createSliderHTML(
                                           "cloudShadows.depth.exposure",
                                           "Exposure",
@@ -25235,7 +25318,7 @@ class CloudShadowsLayer extends MaskedEffectLayer {
                                           0.01
                                         )}
                                         
-                                        <h4 style="margin-top: 10px; margin-bottom: 5px; font-size: 0.9em;">Color</h4>
+                                        <h4 style="margin-top: 5px; margin-bottom: 5px; font-size: 0.9em;">Color</h4>
                                         ${DebuggerUIBuilder._createSliderHTML(
                                           "cloudShadows.depth.saturation",
                                           "Saturation",
@@ -25263,7 +25346,7 @@ class CloudShadowsLayer extends MaskedEffectLayer {
                                     </details>
                                     
                                     <details><summary><span class="accordion-toggle"></span><strong>Position & Offset</strong></summary>
-                                      <div style="padding-left: 10px;">
+                                      <div style="padding-left: 5px;">
                                         ${DebuggerUIBuilder._createSliderHTML(
                                           "cloudShadows.depth.offsetX",
                                           "X Offset",
@@ -25284,14 +25367,14 @@ class CloudShadowsLayer extends MaskedEffectLayer {
                                     </details>
                                     
                                     <details><summary><span class="accordion-toggle"></span><strong>Zoom-Based Opacity</strong></summary>
-                                        <div style="padding-left: 10px;">
+                                        <div style="padding-left: 5px;">
                                             <p class="description-text">Define the layer opacity at various zoom levels to fade the cloud tops in or out.</p>
                                             <div id="cloudshadow-zoom-display" style="text-align: center; padding: 4px; background: rgba(0,0,0,0.3); border-radius: 3px; margin-bottom: 5px; font-family: monospace;">
                                                 Loading zoom data...
                                             </div>
                                             <details>
                                                 <summary><span class="accordion-toggle"></span><strong>Zoom Point Configuration</strong></summary>
-                                                <div style="padding-left: 10px;">
+                                                <div style="padding-left: 5px;">
                                                     <p class="description-text">Define the zoom levels used for opacity interpolation.</p>
                                                     ${DebuggerUIBuilder._createSliderHTML(
                                                       "cloudShadows.depth.zoomPointMin",
@@ -25321,7 +25404,7 @@ class CloudShadowsLayer extends MaskedEffectLayer {
                                             </details>
                                             <details>
                                                 <summary><span class="accordion-toggle"></span><strong>Opacity Configuration</strong></summary>
-                                                <div style="padding-left: 10px;">
+                                                <div style="padding-left: 5px;">
                                                     <p class="description-text">Define the layer opacity at the configured zoom points.</p>
                                                     ${DebuggerUIBuilder._createSliderHTML(
                                                       "cloudShadows.depth.opacityMinZoom",
@@ -25350,7 +25433,7 @@ class CloudShadowsLayer extends MaskedEffectLayer {
                                     </details>
 
                                     <details><summary><span class="accordion-toggle"></span><strong>Per-Tile Visibility</strong></summary>
-                                      <div style="padding-left: 10px;">
+                                      <div style="padding-left: 5px;">
                                         <p class="description-text">Control which tiles and backgrounds show cloud tops. Unchecked items will not display clouds above them.</p>
                                         ${DebuggerUIBuilder._createTileVisibilityHTML("cloudShadows.depth")}
                                       </div>
@@ -26713,7 +26796,7 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
                   "Color Correction",
                   true
                 )}</div></summary>
-                <div style="padding-left: 10px;">
+                <div style="padding-left: 5px;">
                     <p class="description-text">Adjusts the color of the structural light/shadow before blending.</p>
                     ${DebuggerUIBuilder._createSliderHTML(
                       "structuralShadows.colorCorrection.saturation",
@@ -26743,7 +26826,7 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
                       2.5,
                       0.05
                     )}
-                    <details id="details-structuralShadows-cc-tint"><summary><span class="accordion-toggle"></span><strong>Color Tint</strong></summary><div style="padding-left: 10px;">
+                    <details id="details-structuralShadows-cc-tint"><summary><span class="accordion-toggle"></span><strong>Color Tint</strong></summary><div style="padding-left: 5px;">
                         ${DebuggerUIBuilder._createColorPickerHTML(
                           "structuralShadows.colorCorrection.tint.color",
                           "Tint Color"
@@ -26764,7 +26847,7 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
       "Cloud Occlusion",
       true
     )}</div></summary>
-                                <div style="padding-left: 10px;">
+                                <div style="padding-left: 5px;">
                                     <p class="description-text">Allows clouds to darken the light cast by the structural effect. <strong>Cloud patterns are generated using settings from the Cloud Shadows effect.</strong></p>
                                     <p class="description-text" style="background: rgba(255,200,100,0.1); padding: 5px; border-left: 3px solid rgba(255,200,100,0.5); margin: 5px 0;"><i class="fas fa-info-circle"></i> To adjust cloud appearance (speed, scale, layers, etc.), configure the <strong>Cloud Shadows</strong> effect above.</p>
                                     ${DebuggerUIBuilder._createCheckboxHTML(
@@ -26804,7 +26887,7 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
               "Light Occlusion",
               true
             )}</div></summary>
-                <div style="padding-left: 10px;">
+                <div style="padding-left: 5px;">
                     <p class="description-text">Allows scene lights to "cut out" the dark parts of the structural shadows.</p>
                     ${DebuggerUIBuilder._createSliderHTML(
                       "structuralShadows.lightOcclusion.intensity",
@@ -27716,7 +27799,7 @@ class GroundGlowLayer extends foundry.canvas.layers.CanvasLayer {
                         )}
                     </div>
                 </summary>
-                <div style="padding-left: 10px;">
+                <div style="padding-left: 5px;">
                     <p class="description-text">Hides the effect behind tokens.</p>
                     ${DebuggerUIBuilder._createSliderHTML(
                       "groundGlow.tokenMasking.threshold",
@@ -28044,10 +28127,10 @@ class HeatDistortionLayer extends foundry.canvas.layers.CanvasLayer {
                             )}
                             <details id="details-heatDistortion-noise">
                                 <summary><span class="accordion-toggle"></span><strong>Noise Pattern</strong></summary>
-                                <div style="padding-left: 10px;">
+                                <div style="padding-left: 5px;">
                                     <details id="details-heatDistortion-noise-primary">
                                         <summary><span class="accordion-toggle"></span><strong>Primary Waves (Large)</strong></summary>
-                                        <div style="padding-left: 10px;">
+                                        <div style="padding-left: 5px;">
                                             ${DebuggerUIBuilder._createSliderHTML(
                                               "heatDistortion.noise.primary.speed",
                                               "Speed",
@@ -28087,7 +28170,7 @@ class HeatDistortionLayer extends foundry.canvas.layers.CanvasLayer {
                                     </details>
                                     <details id="details-heatDistortion-noise-secondary">
                                         <summary><span class="accordion-toggle"></span><strong>Secondary Waves (Fine Detail)</strong></summary>
-                                        <div style="padding-left: 10px;">
+                                        <div style="padding-left: 5px;">
                                             ${DebuggerUIBuilder._createSliderHTML(
                                               "heatDistortion.noise.secondary.speed",
                                               "Speed",
@@ -28127,7 +28210,7 @@ class HeatDistortionLayer extends foundry.canvas.layers.CanvasLayer {
                                     </details>
                                     <details id="details-heatDistortion-noise-rising">
                                         <summary><span class="accordion-toggle"></span><strong>Rising Motion</strong></summary>
-                                        <div style="padding-left: 10px;">
+                                        <div style="padding-left: 5px;">
                                             ${DebuggerUIBuilder._createSliderHTML(
                                               "heatDistortion.noise.rising.speed",
                                               "Speed",
@@ -28479,7 +28562,7 @@ class PrismLayer extends MaskedEffectLayer {
                               "Distortion",
                               true
                             )}</div></summary>
-                                <div style="padding-left: 10px;">
+                                <div style="padding-left: 5px;">
                                     <p class="description-text">Uses a noise pattern to warp and animate the prism effect.</p>
                                     ${DebuggerUIBuilder._createSliderHTML(
                                       "prism.distortionStrength",
@@ -28510,7 +28593,7 @@ class PrismLayer extends MaskedEffectLayer {
                                       0.01
                                     )}
                                     <details id="details-prism-distortionNoise-adv"><summary><span class="accordion-toggle"></span><strong>Advanced Noise Controls</strong></summary>
-                                        <div style="padding-left: 10px;">
+                                        <div style="padding-left: 5px;">
                                             ${DebuggerUIBuilder._createSliderHTML(
                                               "prism.distortionNoise.threshold",
                                               "Threshold",
@@ -29180,7 +29263,7 @@ class WaterFXLayer extends MaskedEffectLayer {
                                   "Water Flow",
                                   true
                                 )}</div></summary>
-                                <div style="padding-left: 10px;">
+                                <div style="padding-left: 5px;">
                                     <p class="description-text">Applies a directional current to all animated water effects.</p>
                                     ${DebuggerUIBuilder._createSliderHTML(
                                       "water.flow.angle",
@@ -29207,7 +29290,7 @@ class WaterFXLayer extends MaskedEffectLayer {
                                   "Murkiness & Occlusion",
                                   true
                                 )}</div></summary>
-                                <div style="padding-left: 10px;">
+                                <div style="padding-left: 5px;">
                                     <p class="description-text">Makes the water opaque, hiding what is underneath. Occlusion is stronger in deeper water.</p>
                                     ${DebuggerUIBuilder._createColorPickerHTML(
                                       "water.murkiness.color",
@@ -29215,7 +29298,7 @@ class WaterFXLayer extends MaskedEffectLayer {
                                     )}
                                     <details id="details-water-murkiness-wavy">
                                         <summary><span class="accordion-toggle"></span><strong>Large Wavy Occlusion</strong></summary>
-                                        <div style="padding-left: 10px;">
+                                        <div style="padding-left: 5px;">
                                             ${DebuggerUIBuilder._createSliderHTML(
                                               "water.murkiness.wavyNoise.strength",
                                               "Strength",
@@ -29241,7 +29324,7 @@ class WaterFXLayer extends MaskedEffectLayer {
                                     </details>
                                     <details id="details-water-murkiness-sandy">
                                         <summary><span class="accordion-toggle"></span><strong>Fine Sandy Occlusion</strong></summary>
-                                        <div style="padding-left: 10px;">
+                                        <div style="padding-left: 5px;">
                                             ${DebuggerUIBuilder._createSliderHTML(
                                               "water.murkiness.sandyNoise.strength",
                                               "Strength",
@@ -29264,7 +29347,7 @@ class WaterFXLayer extends MaskedEffectLayer {
                                               0.5
                                             )}
                                             <div style="margin-top: 12px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
-                                                <strong style="display: block; margin-bottom: 8px;">Opacity Modulation</strong>
+                                                <strong style="display: block; margin-bottom: 4px;">Opacity Modulation</strong>
                                                 ${DebuggerUIBuilder._createSliderHTML(
                                                   "water.murkiness.sandyNoise.modulationScale",
                                                   "Modulation Scale",
@@ -29298,7 +29381,7 @@ class WaterFXLayer extends MaskedEffectLayer {
                                   "Wave Distortion",
                                   true
                                 )}</div></summary>
-                                <div style="padding-left: 10px;">
+                                <div style="padding-left: 5px;">
                                     <p class="description-text">Controls the underlying ripple/wobble of the water surface. This distortion affects the scene viewed through the water, as well as the foam and sheen on the surface.</p>
                                     ${DebuggerUIBuilder._createSliderHTML(
                                       "water.wave.speed",
@@ -29332,7 +29415,7 @@ class WaterFXLayer extends MaskedEffectLayer {
                                   "Depth Parallax",
                                   true
                                 )}</div></summary>
-                                <div style="padding-left: 10px;">
+                                <div style="padding-left: 5px;">
                                     <p class="description-text">Creates a "faux-3D" parallax effect by displacing the map under the water based on the water mask's brightness, simulating depth.</p>
                                     ${DebuggerUIBuilder._createSliderHTML(
                                       "water.depthDisplacement.strength",
@@ -29379,10 +29462,10 @@ class WaterFXLayer extends MaskedEffectLayer {
                                   "Open Water Surface",
                                   true
                                 )}</div></summary>
-                                <div style="padding-left: 10px;">
+                                <div style="padding-left: 5px;">
                                     <details id="details-water-foam">
                                         <summary><span class="accordion-toggle"></span><strong>Foam</strong></summary>
-                                        <div style="padding-left: 10px;">
+                                        <div style="padding-left: 5px;">
                                             ${DebuggerUIBuilder._createColorPickerHTML(
                                               "water.surface.foamColor",
                                               "Color"
@@ -29412,7 +29495,7 @@ class WaterFXLayer extends MaskedEffectLayer {
                                             )}
                                             <details id="details-water-foam-fbm">
                                                 <summary><span class="accordion-toggle"></span><strong>FBM Pattern</strong></summary>
-                                                <div style="padding-left: 10px;">
+                                                <div style="padding-left: 5px;">
                                                     <p class="description-text">Controls the procedural noise used for the foam pattern.</p>
                                                     ${DebuggerUIBuilder._createSliderHTML(
                                                       "water.surface.fbmScale",
@@ -29468,7 +29551,7 @@ class WaterFXLayer extends MaskedEffectLayer {
                                           "Specular Highlights",
                                           true
                                         )}</div></summary>
-                                        <div style="padding-left: 10px;">
+                                        <div style="padding-left: 5px;">
                                             <p class="description-text">Simulates physically-based light reflections (shine) off the water surface.</p>
                                             ${DebuggerUIBuilder._createColorPickerHTML(
                                               "water.surface.specularity.color",
@@ -29511,7 +29594,7 @@ class WaterFXLayer extends MaskedEffectLayer {
                                                   "Cloud Occlusion",
                                                   true
                                                 )}</div></summary>
-                                                <div style="padding-left: 10px;">
+                                                <div style="padding-left: 5px;">
                                                     <p class="description-text">Uses the Cloud Shadows texture to darken the highlights, simulating them being obscured by clouds.</p>
                                                     ${DebuggerUIBuilder._createSliderHTML(
                                                       "water.surface.specularity.cloudOcclusion.intensity",
@@ -29532,7 +29615,7 @@ class WaterFXLayer extends MaskedEffectLayer {
                                   "Underwater Caustics",
                                   true
                                 )}</div></summary>
-                                <div style="padding-left: 10px;">
+                                <div style="padding-left: 5px;">
                                     ${DebuggerUIBuilder._createSliderHTML(
                                       "water.caustics.intensity",
                                       "Intensity",
@@ -29620,7 +29703,7 @@ class WaterFXLayer extends MaskedEffectLayer {
                                           "Cloud Occlusion",
                                           true
                                         )}</div></summary>
-                                        <div style="padding-left: 10px;">
+                                        <div style="padding-left: 5px;">
                                             <p class="description-text">Uses the Cloud Shadows texture to darken the caustics, simulating them being obscured by clouds.</p>
                                             ${DebuggerUIBuilder._createSliderHTML(
                                               "water.caustics.cloudOcclusion.intensity",
@@ -29639,14 +29722,14 @@ class WaterFXLayer extends MaskedEffectLayer {
                                   "Shoreline Foam",
                                   true
                                 )}</div></summary>
-                                <div style="padding-left: 10px;">
+                                <div style="padding-left: 5px;">
                                     ${DebuggerUIBuilder._createTextureInputHTML(
                                       "shoreline",
                                       "Shoreline Override (_Shoreline)"
                                     )}
                                     <p class="description-text">Controls foam near land. Best results with a soft-edged, grayscale _Shoreline map.</p>
 
-                                    <details><summary><span class="accordion-toggle"></span><strong>Foam Appearance</strong></summary><div style="padding-left:15px;">
+                                    <details><summary><span class="accordion-toggle"></span><strong>Foam Appearance</strong></summary><div style="padding-left: 8px;">
                                         ${DebuggerUIBuilder._createColorPickerHTML(
                                           "water.shoreline.foamColor",
                                           "Foam Color"
@@ -29676,7 +29759,7 @@ class WaterFXLayer extends MaskedEffectLayer {
                                               true
                                             )}</div>
                                         </summary>
-                                        <div style="padding-left:15px;">
+                                        <div style="padding-left: 8px;">
                                             <p class="description-text">Adds a swirling distortion to the shoreline foam pattern, simulating churning water.</p>
                                             ${DebuggerUIBuilder._createSliderHTML(
                                               "water.shoreline.displacement.scale",
@@ -29705,7 +29788,7 @@ class WaterFXLayer extends MaskedEffectLayer {
                                         </div>
                                     </details>
 
-                                    <details><summary><span class="accordion-toggle"></span><strong>Foam Pattern (FBM)</strong></summary><div style="padding-left:15px;">
+                                    <details><summary><span class="accordion-toggle"></span><strong>Foam Pattern (FBM)</strong></summary><div style="padding-left: 8px;">
                                         ${DebuggerUIBuilder._createSliderHTML(
                                           "water.shoreline.foamPattern.scale",
                                           "Scale",
@@ -29776,7 +29859,7 @@ class WaterFXLayer extends MaskedEffectLayer {
                                       true
                                     )}</div>
                                 </summary>
-                                <div style="padding-left:15px;">
+                                <div style="padding-left: 8px;">
                                     <p class="description-text">General-purpose particles spawned across the entire water surface.</p>
                                     ${DebuggerUIBuilder._createSelectHTML(
                                       "water.glintParticles.blendMode",
@@ -29785,7 +29868,7 @@ class WaterFXLayer extends MaskedEffectLayer {
                                     )}
                                     <details>
                                         <summary><span class="accordion-toggle"></span><strong>Spawning & Density</strong></summary>
-                                        <div style="padding-left: 10px;">
+                                        <div style="padding-left: 5px;">
                                             ${DebuggerUIBuilder._createSliderHTML(
                                               "water.glintParticles.maskInfluence",
                                               "Particle Density",
@@ -29814,7 +29897,7 @@ class WaterFXLayer extends MaskedEffectLayer {
                                     </details>
                                     <details>
                                         <summary><span class="accordion-toggle"></span><strong>Particle Appearance</strong></summary>
-                                        <div style="padding-left: 10px;">
+                                        <div style="padding-left: 5px;">
                                             ${DebuggerUIBuilder._createTextInputHTML(
                                               "water.glintParticles.particleTexture",
                                               "Particle Texture",
@@ -29822,7 +29905,7 @@ class WaterFXLayer extends MaskedEffectLayer {
                                             )}
                                             <details>
                                                 <summary><span class="accordion-toggle"></span><strong>Lifetime</strong></summary>
-                                                <div style="padding-left: 10px;">
+                                                <div style="padding-left: 5px;">
                                                     ${DebuggerUIBuilder._createSliderHTML(
                                                       "water.glintParticles.lifetime.min",
                                                       "Min Lifetime (s)",
@@ -29849,7 +29932,7 @@ class WaterFXLayer extends MaskedEffectLayer {
                                             )}
                                             <details>
                                                 <summary><span class="accordion-toggle"></span><strong>Scale / Size</strong></summary>
-                                                <div style="padding-left: 10px;">
+                                                <div style="padding-left: 5px;">
                                                     ${DebuggerUIBuilder._createSliderHTML(
                                                       "water.glintParticles.scale.sizeMultiplier",
                                                       "Global Size",
@@ -29888,10 +29971,10 @@ class WaterFXLayer extends MaskedEffectLayer {
                                     </details>
                                     <details>
                                         <summary><span class="accordion-toggle"></span><strong>Movement</strong></summary>
-                                        <div style="padding-left: 10px;">
+                                        <div style="padding-left: 5px;">
                                             <details>
                                                 <summary><span class="accordion-toggle"></span><strong>Speed</strong></summary>
-                                                <div style="padding-left: 10px;">
+                                                <div style="padding-left: 5px;">
                                                     ${DebuggerUIBuilder._createSliderHTML(
                                                       "water.glintParticles.speed.start",
                                                       "Start Speed",
@@ -29922,7 +30005,7 @@ class WaterFXLayer extends MaskedEffectLayer {
                                                   "Tumbling / Rotation",
                                                   true
                                                 )}</div></summary>
-                                                <div style="padding-left: 10px;">
+                                                <div style="padding-left: 5px;">
                                                     ${DebuggerUIBuilder._createSliderHTML(
                                                       "water.glintParticles.rotation.minSpeed",
                                                       "Min Rot. Speed",
@@ -31833,7 +31916,7 @@ class TimeOfDayLayer extends MaskedEffectLayer {
     const createKeyframeControls = (keyframeName, label) => `
                 <details id="details-timeOfDay-${keyframeName}">
                     <summary><span class="accordion-toggle"></span><strong>${label} Settings</strong></summary>
-                    <div style="padding-left: 10px;">
+                    <div style="padding-left: 5px;">
                         ${DebuggerUIBuilder._createSliderHTML(
                           `timeOfDay.keyframes.${keyframeName}.time`,
                           "Time (Hour)",
@@ -31914,7 +31997,7 @@ class TimeOfDayLayer extends MaskedEffectLayer {
                 )}
                 <details id="details-timeOfDay-keyframes">
                     <summary><span class="accordion-toggle"></span><strong>Time Keyframes</strong></summary>
-                    <div style="padding-left: 10px;">
+                    <div style="padding-left: 5px;">
                         <p class="description-text">Define the color palettes for different times of day. The system will blend between these keyframes.</p>
                         ${createKeyframeControls("midnight", "Midnight")}
                         ${createKeyframeControls("dawn", "Dawn")}
@@ -32576,8 +32659,8 @@ class DebuggerUIBuilder {
     column2.innerHTML = column2Effects.join("");
     column3.innerHTML = column3Effects.join("");
 
-    element.querySelector("#material-editor-bottom-bar").innerHTML =
-      DebuggerUIBuilder._buildBottomBar();
+    // Collapse all accordions by default for a more compact initial view
+    element.querySelectorAll('details').forEach(d => d.open = false);
 
     return element;
   }
@@ -32588,7 +32671,7 @@ class DebuggerUIBuilder {
           
           <details id="details-fontManager-preview">
             <summary><span class="accordion-toggle"></span><strong>Font Preview</strong></summary>
-            <div style="padding-left: 10px;">
+            <div style="padding-left: 5px;">
               <div class="control-row">
                 <label for="font-preview-selector">Preview Font</label>
                 ${DebuggerUIBuilder._createSelectHTML(
@@ -32599,7 +32682,7 @@ class DebuggerUIBuilder {
                   "font-selector-dropdown"
                 )}
               </div>
-              <div id="font-preview-text" style="font-size: 24px; margin-top: 8px; padding: 12px; background: rgba(0,0,0,0.3); border-radius: 3px; text-align: center; font-family: 'Signika';">
+              <div id="font-preview-text" style="font-size: 24px; margin-top: 4px; padding: 12px; background: rgba(0,0,0,0.3); border-radius: 3px; text-align: center; font-family: 'Signika';">
                 The quick brown fox jumps over the lazy dog.
               </div>
             </div>
@@ -32607,7 +32690,7 @@ class DebuggerUIBuilder {
           
           <details id="details-fontManager-styles" open>
             <summary><span class="accordion-toggle"></span><strong>Style Assignments</strong></summary>
-            <div style="padding-left: 10px;">
+            <div style="padding-left: 5px;">
               ${DebuggerUIBuilder._createSelectHTML(
                 "universal.fontManager.styles.heading1.fontFamily",
                 "Heading 1",
@@ -32657,7 +32740,7 @@ class DebuggerUIBuilder {
           
           <details id="details-loadingScreen-initial">
             <summary><span class="accordion-toggle"></span><strong>Initial Loading Screen</strong></summary>
-            <div style="padding-left: 10px;">
+            <div style="padding-left: 5px;">
               <p class="description-text">Content displayed on the initial world loading screen.</p>
               ${DebuggerUIBuilder._createTextInputHTML(
                 "loading-screen-subheading",
@@ -32669,7 +32752,7 @@ class DebuggerUIBuilder {
           
           <details id="details-loadingScreen-backgrounds">
             <summary><span class="accordion-toggle"></span><strong>Backgrounds &amp; Overlays</strong></summary>
-            <div style="padding-left: 10px;">
+            <div style="padding-left: 5px;">
               <p class="description-text">Background images and overlays for both the initial loading screen and scene transitions.</p>
               ${DebuggerUIBuilder._createTextInputWithPickerHTML(
                 "loading-screen-static-background",
@@ -32694,7 +32777,7 @@ class DebuggerUIBuilder {
                       true
                     )}</div>
                 </summary>
-                <div style="padding-left: 10px;">
+                <div style="padding-left: 5px;">
                     ${DebuggerUIBuilder._createSliderHTML(
                       "loading-screen-background-overlay-opacity",
                       "Overlay Opacity",
@@ -32709,7 +32792,7 @@ class DebuggerUIBuilder {
           
           <details id="details-loadingScreen-transition">
             <summary><span class="accordion-toggle"></span><strong>Scene Transition Content</strong></summary>
-            <div style="padding-left: 10px;">
+            <div style="padding-left: 5px;">
               <p class="description-text">Text, logo, and timing for animated transitions between scenes.</p>
               ${DebuggerUIBuilder._createCheckboxHTML(
                 "universal.sceneTransition.enabled",
@@ -32767,7 +32850,7 @@ class DebuggerUIBuilder {
           
           <details id="details-loadingScreen-fonts">
             <summary><span class="accordion-toggle"></span><strong>Typography</strong></summary>
-            <div style="padding-left: 10px;">
+            <div style="padding-left: 5px;">
               <p class="description-text">Font assignments for loading screen elements. These settings are shared with the Pause Screen in the Font Manager section.</p>
               ${DebuggerUIBuilder._createSelectHTML(
                 "universal.fontManager.styles.heading1.fontFamily",
@@ -32942,25 +33025,25 @@ class DebuggerUIBuilder {
           </div>
 
           <!-- Shader Effects Sub-Accordion -->
-          <details style="margin-top: 10px;">
+          <details style="margin-top: 5px;">
             <summary><span class="accordion-toggle"></span><strong>🌧️ Rain Shader</strong></summary>
-            <div style="padding-left: 10px;">
+            <div style="padding-left: 5px;">
               <p class="description-text">Control GPU-accelerated rain shader parameters. (Coming Soon)</p>
             </div>
           </details>
 
           <!-- Snow Shader Sub-Accordion -->
-          <details style="margin-top: 10px;">
+          <details style="margin-top: 5px;">
             <summary><span class="accordion-toggle"></span><strong>❄️ Snow Shader</strong></summary>
-            <div style="padding-left: 10px;">
+            <div style="padding-left: 5px;">
               <p class="description-text">Control GPU-accelerated snow shader parameters. (Coming Soon)</p>
             </div>
           </details>
 
           <!-- Fog Shader Sub-Accordion -->
-          <details style="margin-top: 10px;">
+          <details style="margin-top: 5px;">
             <summary><span class="accordion-toggle"></span><strong>🌫️ Fog Shader</strong></summary>
-            <div style="padding-left: 10px;">
+            <div style="padding-left: 5px;">
               <p class="description-text">Control GPU-accelerated fog shader parameters. (Coming Soon)</p>
             </div>
           </details>
@@ -33018,9 +33101,9 @@ class DebuggerUIBuilder {
           </details>
 
           <!-- Accumulation Sub-Accordion (Bonus) -->
-          <details style="margin-top: 10px;">
+          <details style="margin-top: 5px;">
             <summary><span class="accordion-toggle"></span><strong>❄️ Snow Accumulation (Bonus)</strong></summary>
-            <div style="padding-left: 10px;">
+            <div style="padding-left: 5px;">
               <p class="description-text">Gradual snow buildup on rooftops and surfaces.</p>
               
               ${DebuggerUIBuilder._createCheckboxHTML(
@@ -33074,9 +33157,9 @@ class DebuggerUIBuilder {
           </details>
 
           <!-- Lightning Sub-Accordion (Bonus) -->
-          <details style="margin-top: 10px;">
+          <details style="margin-top: 5px;">
             <summary><span class="accordion-toggle"></span><strong>⚡ Lightning & Thunder (Bonus)</strong></summary>
-            <div style="padding-left: 10px;">
+            <div style="padding-left: 5px;">
               <p class="description-text">Screen flash effects with optional thunder sounds.</p>
               
               ${DebuggerUIBuilder._createCheckboxHTML(
@@ -33154,9 +33237,9 @@ class DebuggerUIBuilder {
           </details>
 
           <!-- Performance Sub-Accordion -->
-          <details style="margin-top: 10px;">
+          <details style="margin-top: 5px;">
             <summary><span class="accordion-toggle"></span><strong>⚙️ Performance</strong></summary>
-            <div style="padding-left: 10px;">
+            <div style="padding-left: 5px;">
               <p class="description-text">Optimize weather particle rendering.</p>
               
               ${DebuggerUIBuilder._createSliderHTML(
@@ -33590,156 +33673,36 @@ class DebuggerUIBuilder {
                                 .warning-box strong { color: #ffaaaa; }
                                 .profile-group-title { font-weight: bold; text-align: center; display: block; margin-bottom: 5px; color: #ccc; border-bottom: 1px solid #555; padding-bottom: 3px;}
                                     
-    /* Bottom Bar - Modern Unified Design */
-    #material-editor-bottom-bar {
-      margin-top: 15px;
-      padding: 0;
-      background: linear-gradient(135deg, rgba(20, 25, 35, 0.95) 0%, rgba(30, 35, 45, 0.95) 100%);
-      border-radius: 8px;
-      border: 1px solid rgba(100, 120, 150, 0.3);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-      overflow: hidden;
+    /* Main Controls - 3-Column Layout with Clock */
+    .main-controls-three-column-layout {
       display: grid;
-      grid-template-columns: auto 1fr;
-      align-items: stretch;
-      gap: 0;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: start;
     }
 
-    #material-editor-bottom-bar #debugger-ui-clock-container {
-      padding: 20px;
-      background: rgba(0, 0, 0, 0.2);
-      border-right: 1px solid rgba(100, 120, 150, 0.3);
+    .main-controls-column {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .main-controls-clock {
       display: flex;
       align-items: center;
       justify-content: center;
-    }
-
-    #material-editor-bottom-bar .bottom-bar-content {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 20px;
-      padding: 20px;
-      align-items: center;
-    }
-
-    /* About Section */
-    #material-editor-bottom-bar .about-section {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    #material-editor-bottom-bar .about-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 4px;
-    }
-
-    #material-editor-bottom-bar .about-header i {
-      color: #fbbf24;
-      font-size: 18px;
-      text-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
-    }
-
-    #material-editor-bottom-bar .about-header h4 {
-      margin: 0;
-      padding: 0;
-      font-size: 16px;
-      font-weight: 700;
-      color: #f1f5f9;
-      letter-spacing: 0.5px;
-    }
-
-    #material-editor-bottom-bar .about-text {
-      font-size: 12px;
-      line-height: 1.6;
-      color: #cbd5e1;
-      margin: 0;
-    }
-
-    /* Support Section */
-    #material-editor-bottom-bar .support-section {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      align-items: flex-end;
-    }
-
-    #material-editor-bottom-bar .patreon-link {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 20px;
-      background: linear-gradient(135deg, #f96854 0%, #ff5c4d 100%);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 6px;
-      color: #fff;
-      font-weight: 700;
-      font-size: 14px;
-      text-decoration: none;
-      transition: all 0.2s ease;
-      box-shadow: 0 2px 8px rgba(249, 104, 84, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-      white-space: nowrap;
-    }
-
-    #material-editor-bottom-bar .patreon-link:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(249, 104, 84, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.3);
-      background: linear-gradient(135deg, #ff5c4d 0%, #f96854 100%);
-    }
-
-    #material-editor-bottom-bar .patreon-logo {
-      height: 20px;
-      width: 20px;
-      filter: brightness(0) invert(1);
-    }
-
-    #material-editor-bottom-bar .store-links {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 8px 12px;
-      background: rgba(0, 0, 0, 0.3);
+      padding: 12px;
+      background: rgba(0, 0, 0, 0.2);
       border-radius: 6px;
       border: 1px solid rgba(100, 120, 150, 0.2);
+      min-width: 150px;
     }
 
-    #material-editor-bottom-bar .store-label {
-      font-size: 11px;
-      color: #94a3b8;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      white-space: nowrap;
-    }
-
-    #material-editor-bottom-bar .store-link {
+    #debugger-ui-clock-container {
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      background: rgba(59, 130, 246, 0.15);
-      border: 1px solid rgba(59, 130, 246, 0.3);
-      border-radius: 4px;
-      color: #93c5fd;
-      font-size: 12px;
-      font-weight: 600;
-      text-decoration: none;
-      transition: all 0.2s ease;
-      white-space: nowrap;
-    }
-
-    #material-editor-bottom-bar .store-link:hover {
-      background: rgba(59, 130, 246, 0.25);
-      border-color: rgba(59, 130, 246, 0.5);
-      color: #bfdbfe;
-      transform: translateY(-1px);
-      box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
-    }
-
-    #material-editor-bottom-bar .store-link i {
-      font-size: 13px;
+      gap: 8px;
     }
                                 details.effect-unavailable { border-style: dashed; border-color: #444; }
                                 details.effect-unavailable > summary { opacity: 0.7; }
@@ -33767,18 +33730,23 @@ class DebuggerUIBuilder {
                             </div>
                             <h3 id="material-editor-title">Map Shine</h3>
                             <div class="header-buttons-right">
+                              <a href="https://www.patreon.com/c/MythicaMachina" target="_blank" class="header-btn header-patreon-btn" title="Support on Patreon" style="background: linear-gradient(135deg, #f96854 0%, #ff5c4d 100%); border-color: rgba(255, 255, 255, 0.3); color: #fff; width: auto; padding: 0 8px; font-weight: 600;"><i class="fab fa-patreon"></i> Patreon</a>
+                              <a href="https://www.foundryvtt.store/creators/mythica-machina" target="_blank" class="header-btn header-store-btn" title="Foundry Store"><i class="fas fa-dice-d20"></i></a>
+                              <a href="https://www.drivethrurpg.com/en/publisher/29377/mythicamachina" target="_blank" class="header-btn header-store-btn" title="DriveThruRPG"><i class="fas fa-book"></i></a>
                               <button data-action="minimize" id="material-editor-minimize-btn" class="header-btn" title="Minimize">-</button>
                               <button data-action="close" id="material-editor-close-btn" class="header-btn" title="Close" style="color: #ff8080;">X</button>
                             </div>
                         </div>
                         <div id="main-controls-section"></div>
                         <div id="material-editor-profiles-section"></div>
+                        <div id="effects-search-wrapper" style="padding: 6px; margin-bottom: 6px; background: rgba(10, 10, 10, 0.4); border-radius: 4px;">
+                            <input type="text" id="effects-search-input" placeholder="Search effects..." style="width: 100%; padding: 6px 10px; background: rgba(0,0,0,0.4); border: 1px solid #444; border-radius: 3px; color: #fff; font-family: 'Inter', system-ui, sans-serif; font-size: 12px;">
+                        </div>
                         <div class="main-layout-wrapper">
                             <div id="fx-column-1" class="fx-column"></div>
                             <div id="fx-column-2" class="fx-column"></div>
                             <div id="fx-column-3" class="fx-column"></div>
                         </div>
-                        <div id="material-editor-bottom-bar"></div>
                     `;
   }
 
@@ -33880,15 +33848,24 @@ class DebuggerUIBuilder {
     return `
                 <div class="main-controls-wrapper">
                     <h3 class="pane-title">Main Controls</h3>
-                    ${DebuggerUIBuilder._createSliderHTML(
-                      "timeControl.globalTime",
-                      "Global Time Speed",
-                      0,
-                      200,
-                      1,
-                      "Controls the speed at which all time-based effects animate (0% = paused, 100% = normal, 200% = double speed)"
-                    )}
-                    ${contentHTML}
+                    <div class="main-controls-three-column-layout">
+                        <div class="main-controls-column main-controls-left">
+                            ${DebuggerUIBuilder._createSliderHTML(
+                              "timeControl.globalTime",
+                              "Global Time Speed",
+                              0,
+                              200,
+                              1,
+                              "Controls the speed at which all time-based effects animate (0% = paused, 100% = normal, 200% = double speed)"
+                            )}
+                            ${contentHTML}
+                        </div>
+                        <div class="main-controls-column main-controls-clock">
+                            <div id="debugger-ui-clock-container">
+                                <!-- Clock will be rendered here by JS -->
+                            </div>
+                        </div>
+                    </div>
                 </div>
             `;
   }
@@ -33964,43 +33941,9 @@ class DebuggerUIBuilder {
                                   "showTokenMask",
                                   "Show Token Mask"
                                 )}
-                                <button id="output-config-btn" title="Log the current full config object to the console for copy/pasting." style="width: 100%; margin-top: 8px;">Log Full Config to Console</button>
+                                <button id="output-config-btn" title="Log the current full config object to the console for copy/pasting." style="width: 100%; margin-top: 4px;">Log Full Config to Console</button>
                             </div>
                         </details>
-                    `;
-  }
-
-  static _buildBottomBar() {
-    return `
-                            <div id="debugger-ui-clock-container">
-                                <!-- Clock will be rendered here by JS -->
-                            </div>
-                            <div class="bottom-bar-content">
-                                <div class="about-section">
-                                    <div class="about-header">
-                                        <i class="fas fa-sparkles"></i>
-                                        <h4>Map Shine</h4>
-                                    </div>
-                                    <p class="about-text">A free toolkit for creating memorable, animated, and visually striking maps. Always free for commercial use. Map making is both my passion and helps support my family.</p>
-                                </div>
-                                <div class="support-section">
-                                    <a href="https://www.patreon.com/c/MythicaMachina" target="_blank" class="patreon-link">
-                                        <img src="https://upload.wikimedia.org/wikipedia/commons/9/94/Patreon_logo.svg" class="patreon-logo" alt="Patreon">
-                                        <span>Support on Patreon</span>
-                                    </a>
-                                    <div class="store-links">
-                                        <span class="store-label">Buy My Maps:</span>
-                                        <a href="https://www.foundryvtt.store/creators/mythica-machina" target="_blank" class="store-link">
-                                            <i class="fas fa-dice-d20"></i>
-                                            <span>Foundry Store</span>
-                                        </a>
-                                        <a href="https://www.drivethrurpg.com/en/publisher/29377/mythicamachina" target="_blank" class="store-link">
-                                            <i class="fas fa-book"></i>
-                                            <span>DriveThruRPG</span>
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
                     `;
   }
 
@@ -34368,7 +34311,7 @@ class DebuggerUIBuilder {
               <label>${itemLabel}s</label>
               <button type="button" id="${addButtonId}" data-action="add-list-item" class="add-item-btn">${addButtonLabel}</button>
             </div>
-            <div id="${listContainerId}" class="list-items-container" style="display: flex; flex-direction: column; gap: 4px; margin-top: 5px; padding-left: 10px;">
+            <div id="${listContainerId}" class="list-items-container" style="display: flex; flex-direction: column; gap: 4px; margin-top: 5px; padding-left: 5px;">
               <!-- Items will be populated by JS -->
             </div>
           </div>
@@ -34388,7 +34331,7 @@ class DebuggerUIBuilder {
     if (tiles.length === 0) {
       html += '<p class="description-text" style="color: #888;">No tiles in this scene.</p>';
     } else {
-      html += '<p class="description-text" style="margin-bottom: 8px;">Uncheck tiles where cloud tops should NOT appear:</p>';
+      html += '<p class="description-text" style="margin-bottom: 4px;">Uncheck tiles where cloud tops should NOT appear:</p>';
       for (const tile of tiles) {
         const tilePath = tile.document.texture.src;
         const tileFilename = tilePath.split('/').pop();
@@ -34608,7 +34551,7 @@ class DebuggerUIBuilder {
       <p class="description-text">Global settings that affect how light interacts with Map Shine effects.</p>
       <details>
           <summary><span class="accordion-toggle"></span><strong>Light Masking</strong></summary>
-          <div style="padding-left: 10px;">
+          <div style="padding-left: 5px;">
               <p class="description-text">Controls the shared, screen-space mask of all light sources.</p>
               ${DebuggerUIBuilder._createSliderHTML(
                 "lightMask.blur",
@@ -34756,7 +34699,7 @@ class DebuggerUIBuilder {
                   </select>
                 </div>
                 
-                <div style="margin-top: 8px; display: ${
+                <div style="margin-top: 4px; display: ${
                   group.isEffectSource ? "block" : "none"
                 };" data-visibility-target="group.${group.id}.isEffectSource">
                   <p class="description-text" style="font-size: 0.9em; margin-bottom: 4px;">Emission Settings</p>
@@ -34940,7 +34883,7 @@ class DebuggerUIBuilder {
               </button>
             </summary>
             <div style="padding: 8px 12px; border-top: 1px solid rgba(255,255,255,0.1);">
-              <p class="description-text" style="margin-bottom: 8px; font-size: 0.9em;">Current Runtime Properties:</p>
+              <p class="description-text" style="margin-bottom: 4px; font-size: 0.9em;">Current Runtime Properties:</p>
               
               <div class="control-row">
                 <label>Texture:</label>
@@ -34964,7 +34907,7 @@ class DebuggerUIBuilder {
                   Rope Ends
                 </summary>
                 <div style="padding: 8px 0 8px 12px; border-left: 2px solid rgba(255,255,255,0.1);">
-                  <p class="description-text" style="margin-bottom: 8px; font-size: 0.85em; color: #999;">Add decorative sprites at rope anchor points</p>
+                  <p class="description-text" style="margin-bottom: 4px; font-size: 0.85em; color: #999;">Add decorative sprites at rope anchor points</p>
                   
                   <div class="control-row">
                     <label>End Texture:</label>
@@ -35104,7 +35047,7 @@ class DebuggerUIBuilder {
                 rope.fadeEndDistance ?? 0.2
               )}
               
-              <div class="control-row" style="margin-top: 8px;">
+              <div class="control-row" style="margin-top: 4px;">
                 <label>Is Indoors:</label>
                 <input type="checkbox" data-path="rope-instance.${
                   rope.id
@@ -35125,7 +35068,7 @@ class DebuggerUIBuilder {
       return `
         <details ${isOpen ? "open" : ""}>
           <summary><span class="accordion-toggle"></span><strong>${label}</strong></summary>
-          <div style="padding-left: 10px; margin-top: 8px;">
+          <div style="padding-left: 5px; margin-top: 4px;">
             <div style="display: flex; gap: 4px; align-items: center; margin-bottom: 10px;">
               <button type="button" class="create-effect-from-ui" data-action="create-physics-rope" data-rope-type="${type}" title="Create new ${label.toLowerCase()}">
                 <i class="fas fa-plus-square"></i>
@@ -35135,7 +35078,7 @@ class DebuggerUIBuilder {
             
             <details>
               <summary><span class="accordion-toggle"></span><strong>Default Settings</strong></summary>
-              <div style="padding-left: 10px; margin-top: 8px;">
+              <div style="padding-left: 5px; margin-top: 4px;">
                 <p class="description-text">These settings apply to newly created ${label.toLowerCase()}s.</p>
                 
                 <div class="control-row">
@@ -35251,7 +35194,7 @@ class DebuggerUIBuilder {
             
             <details>
               <summary><span class="accordion-toggle"></span><strong>Rope Ends</strong></summary>
-              <div style="padding-left: 10px; margin-top: 8px;">
+              <div style="padding-left: 5px; margin-top: 4px;">
                 <p class="description-text">Add decorative sprites at rope anchor points to cover ugly ends.</p>
                 
                 <div class="control-row">
@@ -35275,7 +35218,7 @@ class DebuggerUIBuilder {
               </div>
             </details>
             
-            <div class="rope-list" style="margin-top: 10px;">
+            <div class="rope-list" style="margin-top: 5px;">
               <strong>Existing ${label}s:</strong>
               ${createRopeListHTML(ropesByType[type])}
             </div>
@@ -35294,7 +35237,7 @@ class DebuggerUIBuilder {
         <!-- Wind Influence -->
         <details>
           <summary><span class="accordion-toggle"></span><strong>Wind Influence</strong></summary>
-          <div style="padding-left: 10px;">
+          <div style="padding-left: 5px;">
             <p class="description-text" style="font-style: italic; color: #999;">Wind is controlled globally in the "Wind" section. Values shown below are read-only.</p>
             ${DebuggerUIBuilder._createReadOnlyDisplayHTML(
               `${windPath}.enabled`,
@@ -35325,7 +35268,7 @@ class DebuggerUIBuilder {
         <p class="description-text">Configure the global wind conditions that affect various particle systems like fire and physics ropes.</p>
         <details>
           <summary><span class="accordion-toggle"></span><strong>Global Wind Simulation</strong></summary>
-          <div style="padding-left: 10px;">
+          <div style="padding-left: 5px;">
           ${DebuggerUIBuilder._createSliderHTML(
             `${windPath}.baseSpeed`,
             "Base Wind Speed",
@@ -35441,7 +35384,7 @@ class DebuggerUIBuilder {
             </div>
             <details>
                 <summary><span class="accordion-toggle"></span><strong>Zoom Point Configuration</strong></summary>
-                <div style="padding-left: 10px;">
+                <div style="padding-left: 5px;">
                     <p class="description-text">Define the zoom levels used for interpolation.</p>
                     ${DebuggerUIBuilder._createSliderHTML(
                       "overheadEffect.zoomPointMin",
@@ -35471,7 +35414,7 @@ class DebuggerUIBuilder {
             </details>
             <details>
                 <summary><span class="accordion-toggle"></span><strong>Zoom-Based Blurring</strong></summary>
-                <div style="padding-left: 10px;">
+                <div style="padding-left: 5px;">
                     <p class="description-text">Define the world-space blur amount at the configured zoom points.</p>
                     ${DebuggerUIBuilder._createSliderHTML(
                       "overheadEffect.blurMinZoom",
@@ -35498,7 +35441,7 @@ class DebuggerUIBuilder {
             </details>
             <details>
                 <summary><span class="accordion-toggle"></span><strong>Zoom-Based Opacity</strong></summary>
-                <div style="padding-left: 10px;">
+                <div style="padding-left: 5px;">
                     <p class="description-text">Define the layer opacity at the configured zoom points.</p>
                     ${DebuggerUIBuilder._createSliderHTML(
                       "overheadEffect.opacityMinZoom",
@@ -35541,14 +35484,14 @@ class DebuggerUIBuilder {
             )}
             <details id="details-overheadEffect-recolor">
                 <summary><span class="accordion-toggle"></span><strong>Recoloration</strong></summary>
-                <div style="padding-left: 10px;">
+                <div style="padding-left: 5px;">
                     <details id="details-overheadEffect-recolor-overlay">
                         <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
                           "overheadEffect.recolor.enabled",
                           "Blend Structural Mask",
                           true
                         )}</div></summary>
-                        <div style="padding-left: 10px;">
+                        <div style="padding-left: 5px;">
                             <p class="description-text">Blends the _Structural texture onto overhead tiles. Dark areas in the _Structural texture (like beams) create <strong>bright</strong> effects on tiles, while bright areas create dark effects. Works everywhere by default, or can be limited to <strong>indoor areas only</strong> when Building Shadows effect is enabled.</p>
                             ${DebuggerUIBuilder._createSelectHTML(
                               "overheadEffect.recolor.blendMode",
@@ -35575,7 +35518,7 @@ class DebuggerUIBuilder {
                           "Darken with Cloud Shadows",
                           true
                         )}</div></summary>
-                        <div style="padding-left: 10px;">
+                        <div style="padding-left: 5px;">
                             <p class="description-text">Darkens overhead tiles using the cloud shadow pattern. Requires Cloud Shadows effect to be active.</p>
                             ${DebuggerUIBuilder._createSliderHTML(
                               "overheadEffect.recolor.cloudShadowDarken.intensity",
@@ -35598,7 +35541,7 @@ class DebuggerUIBuilder {
           
           <details id="details-pauseEffect-content">
             <summary><span class="accordion-toggle"></span><strong>Content &amp; Text</strong></summary>
-            <div style="padding-left: 10px;">
+            <div style="padding-left: 5px;">
               ${DebuggerUIBuilder._createTextInputHTML(
                 "universal.pauseEffect.heading",
                 "Heading"
@@ -35613,7 +35556,7 @@ class DebuggerUIBuilder {
           
           <details id="details-pauseEffect-styling">
             <summary><span class="accordion-toggle"></span><strong>Styling &amp; Colors</strong></summary>
-            <div style="padding-left: 10px;">
+            <div style="padding-left: 5px;">
               ${DebuggerUIBuilder._createTextInputWithPickerHTML(
                 "universal.pauseEffect.logoPath",
                 "Logo Path"
@@ -35656,7 +35599,7 @@ class DebuggerUIBuilder {
           
           <details id="details-pauseEffect-hints">
             <summary><span class="accordion-toggle"></span><strong>Random Hints</strong></summary>
-            <div style="padding-left: 10px;">
+            <div style="padding-left: 5px;">
               ${DebuggerUIBuilder._createCheckboxHTML(
                 "universal.pauseEffect.useRandomHint",
                 "Show Random Hint"
@@ -36849,6 +36792,15 @@ class DebuggerEventHandler {
 
     // Track accordion state for dynamic column resizing
     this._setupDynamicColumnResizing();
+    
+    // Search functionality
+    const searchInput = this.element.querySelector("#effects-search-input");
+    if (searchInput) {
+      searchInput.addEventListener("input", (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        this._filterEffects(query);
+      });
+    }
   }
 
   /**
@@ -36931,6 +36883,33 @@ class DebuggerEventHandler {
       }
     }
     // If no accordions are open, default balanced state (no class needed)
+  }
+
+  /**
+   * Filters effect sections based on search query
+   * @param {string} query - The search query
+   */
+  _filterEffects(query) {
+    const allEffects = this.element.querySelectorAll('.fx-column > details, .fx-column > h3');
+    
+    if (!query) {
+      // Show all effects when search is empty
+      allEffects.forEach(el => {
+        el.style.display = '';
+      });
+      return;
+    }
+    
+    allEffects.forEach(el => {
+      // Get the text content of the summary or heading
+      const text = el.tagName === 'H3' 
+        ? el.textContent 
+        : el.querySelector('summary')?.textContent || '';
+      
+      // Check if text matches the query
+      const matches = text.toLowerCase().includes(query);
+      el.style.display = matches ? '' : 'none';
+    });
   }
 
   _onTimeChanged(time) {
@@ -39496,7 +39475,7 @@ class SimpleUIPanel extends Application {
                             .simple-slider-wrapper { display: flex; align-items: center; gap: 5px; }
                             .simple-slider-wrapper input[type="range"] { width: 100px; }
                             .simple-slider-wrapper .value-span { width: 30px; text-align: right; font-family: monospace; background: rgba(0,0,0,0.4); padding: 2px 4px; border-radius: 3px; }
-                            .simple-ui-footer { margin-top: 10px; padding-top: 10px; border-top: 1px solid #555; text-align: center; }
+                            .simple-ui-footer { margin-top: 5px; padding-top: 10px; border-top: 1px solid #555; text-align: center; }
                             .simple-ui-footer button { padding: 8px 12px; font-weight: bold; cursor: pointer; background: #3a3a3a; border: 1px solid #666; color: #ccc; border-radius: 3px; }
                             .simple-ui-footer button:hover { background: #555; border-color: #888; }
                             .simple-ui-footer button.advanced-btn { background-color: #224466; border-color: #6688aa; color: #cceeff; }
