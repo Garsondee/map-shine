@@ -19,7 +19,7 @@
  * - Real-time shader-based visual enhancements
  *
  * @author Mythica Machina - Ingram Blakelock
- * @version 1.1.52 - Added: RGB Split (glass diffraction), Exposure control, and Metallic Preservation to Structural effect
+ * @version 1.1.58 - Fixed: Overhead layer invisibility, weather system config errors, and unregistered settings
  *
  * @requires foundry ^13+
  * @requires pixi.js ^7.4.3
@@ -47,6 +47,7 @@ import { BLEND_MODE_OPTIONS } from "./config/blend-modes.js";
 import { GRADIENT_PRESETS, LUT_PRESETS, EFFECT_SOURCE_OPTIONS, ROPE_TYPE_PRESETS } from "./config/presets.js";
 import { FONT_CHOICES } from "./config/fonts.js";
 import { COLOR_CORRECTION_PRESETS } from "./config/color-correction-presets.js";
+import { UNIVERSAL_EFFECT_DEFAULTS } from "./config/universal-defaults.js";
 
 /***************************************************************************************
  *
@@ -192,139 +193,7 @@ import { COLOR_CORRECTION_PRESETS } from "./config/color-correction-presets.js";
  * @property {Object} combatEffect - Configuration for combat visual effects
  * @property {Object} fontManager - Font family configurations for UI elements
  */
-const UNIVERSAL_EFFECT_DEFAULTS = {
-  sceneTransition: {
-    enabled: true,
-    fadeOutDuration: 5000,
-    fadeInDuration: 5000,
-    logoPath: "modules/map-shine/assets/mm-logo.png",
-    heading: "New Chapter",
-    subheading: "The story continues...",
-    staticDescription: "This is the default description text...",
-    showSceneName: true,
-    useRandomHint: true,
-    randomHints: [
-      "Press 'C' to quickly open your character sheet.",
-      "Hold the Shift key while using the arrow keys to rotate tokens.",
-      "You can assign a keyboard shortcut to toggle a token's visibility, saving you right-clicks.",
-      'To manage a group of player characters more easily, place them all in a "Party" folder and drag the folder onto the canvas to create a single party token.',
-      "Double-click the right mouse button to quickly end a measurement template.",
-      "You can lock the position of tokens and tiles to prevent them from being accidentally moved.",
-      "Use the search bar in the sidebars to quickly find actors, items, and journal entries.",
-      "The 'Tab' key can be used to target the next token on the canvas.",
-      "Remember that many actions have consequences in the game world.",
-      "Running away is a valid and often wise alternative to a character's death.",
-      "You can pop out character sheets and journal entries into their own windows.",
-      'The "Ping" tool (left-click and hold) can be used to draw your players\' attention to a specific location.',
-      "Don't forget that your action can be used for more than just attacking; consider options like Dash, Dodge, and Help.",
-      "If you're unsure about a rule, it's often best to make a quick ruling and look it up later to keep the game moving.",
-      "Communication is key; keep your fellow players and the Game Master informed of your character's intentions.",
-    ],
-  },
-  pauseEffect: {
-    enabled: true,
-    duration: 3000,
-    // --- New properties for the overlay ---
-    heading: "SESSION PAUSED",
-    subheading: "Please stand by...",
-    logoPath: "modules/map-shine/assets/mm-logo.png",
-    logoOpacity: 0.8,
-    backgroundColor: "rgba(10, 0, 0, 0.75)",
-    gradientColor1: "#ff4444",
-    gradientColor2: "rgba(255, 0, 0, 0.5)",
-    gradientShadowColor: "#ff0000",
-    headingColor: "#ffcccc",
-    subheadingColor: "#ff8888",
-    hintColor: "#dddddd",
-    useRandomHint: true,
-    randomHints: [
-      "Hint: Check your inventory for useful items.",
-      "Hint: Remember to save frequently!",
-      "Hint: Resting can restore health and spells.",
-    ],
-    // --- Existing color correction ---
-    colorCorrection: {
-      enabled: true,
-      saturation: 0.2,
-      brightness: -0.15,
-      contrast: 1,
-      invert: false,
-      tint: {
-        color: "#FFFFFF",
-        amount: 0,
-      },
-      exposure: 0,
-      gamma: 1,
-      levels: {
-        inBlack: 0,
-        inWhite: 1,
-      },
-      whiteBalance: {
-        temperature: 0,
-        tint: 0,
-      },
-      selective: {
-        enabled: false,
-        color: "#ff0000",
-        hueRange: 0.05,
-        saturationRange: 0.3,
-      },
-    },
-  },
-  combatEffect: {
-    enabled: true,
-    duration: 10000,
-    timeScale: 0.25,
-    colorCorrection: {
-      enabled: true,
-      saturation: 1,
-      brightness: 0,
-      contrast: 1,
-      invert: false,
-      tint: {
-        color: "#ff0000",
-        amount: 0,
-      },
-      exposure: 0,
-      gamma: 1,
-      levels: {
-        inBlack: 0,
-        inWhite: 1,
-      },
-      whiteBalance: {
-        temperature: 0,
-        tint: 0,
-      },
-      selective: {
-        enabled: false,
-        color: "#ff0000",
-        hueRange: 0.05,
-        saturationRange: 0.3,
-      },
-    },
-  },
-  fontManager: {
-    styles: {
-      heading1: {
-        fontFamily: "Lexend",
-      },
-      heading2: {
-        fontFamily: "Lexend",
-      },
-      body: {
-        fontFamily: "Roboto",
-      },
-      hint: {
-        fontFamily: "Special Elite",
-      },
-    },
-  },
-  weather: {
-    enabled: true,
-    currentState: "clear",
-    transitionDuration: 10000, // milliseconds for state transitions
-  },
-};
+// UNIVERSAL_EFFECT_DEFAULTS has been moved to scripts/config/universal-defaults.js
 
 /**
  * Setting key for storing world-level default configurations for individual effects.
@@ -343,1560 +212,1630 @@ const WORLD_DEFAULTS_SETTING = "worldDefaults";
 // COLOR_CORRECTION_PRESETS has been moved to scripts/config/color-correction-presets.js
 
 export const MODULE_DEFAULTS = {
-  "timeControl": {
-    "globalTime": 100
+  timeControl: {
+    globalTime: 100,
   },
-  "enabled": true,
-  "debug": true,
-  "showTokenMask": false,
-  "tileOpacity": 0,
-  "lightMask": {
-    "blur": 96,
-    "noise": 0.05
+  enabled: true,
+  debug: true,
+  showTokenMask: false,
+  tileOpacity: 0,
+  lightMask: {
+    blur: 96,
+    noise: 0.05,
   },
-  "baseShine": {
-    "enabled": true,
-    "compositing": {
-      "layerBlendMode": 1
+  baseShine: {
+    enabled: true,
+    compositing: {
+      layerBlendMode: 1,
     },
-    "animation": {
-      "globalIntensity": 1.5
+    animation: {
+      globalIntensity: 1.5,
     },
-    "pattern": {
-      "stripes": {
-        "enabled": true,
-        "speed": 0,
-        "angle": 140,
-        "scale": 1,
-        "parallax": 1,
-        "width": 1,
-        "softness": 0.2,
-        "randomWidth": 0.49,
-        "randomIntensity": 1
-      }
-    },
-    "colorCorrection": {
-      "enabled": true,
-      "saturation": 1.25,
-      "brightness": 0.5,
-      "contrast": 3.25,
-      "gamma": 0.3,
-      "tint": {
-        "color": "#FFFFFF",
-        "amount": 0
+    pattern: {
+      stripes: {
+        enabled: true,
+        speed: 0,
+        angle: 140,
+        scale: 1,
+        parallax: 1,
+        width: 1,
+        softness: 0.2,
+        randomWidth: 0.49,
+        randomIntensity: 1,
       },
-      "invert": false
     },
-    "cloudOcclusion": {
-      "enabled": false,
-      "intensity": 0.81
-    }
+    colorCorrection: {
+      enabled: true,
+      saturation: 1.25,
+      brightness: 0.5,
+      contrast: 3.25,
+      gamma: 0.3,
+      tint: {
+        color: "#FFFFFF",
+        amount: 0,
+      },
+      invert: false,
+    },
+    cloudOcclusion: {
+      enabled: false,
+      intensity: 0.81,
+    },
   },
-  "cloudShadows": {
-    "enabled": true,
-    "blendMode": 0,
-    "shadowIntensity": 0.85,
-    "maskBlur": 1,
-    "lightOcclusion": {
-      "enabled": true,
-      "intensity": 1
+  cloudShadows: {
+    enabled: true,
+    blendMode: 0,
+    shadowIntensity: 0.85,
+    maskBlur: 1,
+    lightOcclusion: {
+      enabled: true,
+      intensity: 1,
     },
-    "wind": {
-      "angle": 326,
-      "speed": 0.5074,
-      "linkToWind": true,
-      "linkedWindForce": 0.02094,
-      "linkedMaxSpeed": 0.002,
-      "linkedDrag": 0.54
+    wind: {
+      angle: 326,
+      speed: 0.5074,
+      linkToWind: true,
+      linkedWindForce: 0.02094,
+      linkedMaxSpeed: 0.002,
+      linkedDrag: 0.54,
     },
-    "noise": {
-      "scale": 0.08,
-      "octaves": 7,
-      "persistence": 0.3,
-      "lacunarity": 2.7
+    noise: {
+      scale: 0.08,
+      octaves: 7,
+      persistence: 0.3,
+      lacunarity: 2.7,
     },
-    "shading": {
-      "threshold": 0.29,
-      "softness": 1,
-      "brightness": 0.18,
-      "contrast": 2.1,
-      "gamma": 0.95
+    shading: {
+      threshold: 0.29,
+      softness: 1,
+      brightness: 0.18,
+      contrast: 2.1,
+      gamma: 0.95,
     },
-    "evolutionSpeed": 0.0005,
-    "layers": {
-      "layer1": {
-        "enabled": true,
-        "scale": 4,
-        "speed": 2.5,
-        "stretchX": 3,
-        "stretchY": 1,
-        "octaves": 3,
-        "opacity": 0.3
+    evolutionSpeed: 0.0005,
+    layers: {
+      layer1: {
+        enabled: true,
+        scale: 4,
+        speed: 2.5,
+        stretchX: 3,
+        stretchY: 1,
+        octaves: 3,
+        opacity: 0.3,
       },
-      "layer2": {
-        "enabled": true,
-        "scale": 1.5,
-        "speed": 1.3,
-        "stretchX": 1.5,
-        "stretchY": 1,
-        "octaves": 5,
-        "opacity": 0.5
+      layer2: {
+        enabled: true,
+        scale: 1.5,
+        speed: 1.3,
+        stretchX: 1.5,
+        stretchY: 1,
+        octaves: 5,
+        opacity: 0.5,
       },
-      "layer3": {
-        "enabled": true,
-        "scale": 0.7,
-        "speed": 0.7,
-        "stretchX": 1,
-        "stretchY": 1,
-        "octaves": 6,
-        "opacity": 0.6
+      layer3: {
+        enabled: true,
+        scale: 0.7,
+        speed: 0.7,
+        stretchX: 1,
+        stretchY: 1,
+        octaves: 6,
+        opacity: 0.6,
       },
-      "layer4": {
-        "enabled": true,
-        "scale": 2.5,
-        "speed": 1.8,
-        "stretchX": 1,
-        "stretchY": 1,
-        "octaves": 4,
-        "opacity": 0.4
+      layer4: {
+        enabled: true,
+        scale: 2.5,
+        speed: 1.8,
+        stretchX: 1,
+        stretchY: 1,
+        octaves: 4,
+        opacity: 0.4,
       },
-      "layer5": {
-        "enabled": true,
-        "scale": 5,
-        "speed": 3,
-        "stretchX": 1,
-        "stretchY": 1,
-        "octaves": 2,
-        "opacity": 0.2
-      }
+      layer5: {
+        enabled: true,
+        scale: 5,
+        speed: 3,
+        stretchX: 1,
+        stretchY: 1,
+        octaves: 2,
+        opacity: 0.2,
+      },
+      layer6: {
+        enabled: true,
+        scale: 1.2,
+        speed: 4.5,
+        stretchX: 1.5,
+        stretchY: 1,
+        octaves: 7,
+        opacity: 0.15,
+        warpStrength: 0.3,
+        warpScale: 2.5,
+        additive: true,
+      },
     },
-    "depth": {
-      "enabled": true,
-      "color": "#f6f6f6",
-      "threshold": 0.73,
-      "softness": 0.3,
-      "offsetX": 0,
-      "offsetY": 0,
-      "zoomThresholdMin": 1.57,
-      "zoomThresholdMax": 1.9,
-      "saturation": 1,
-      "brightness": 1,
-      "contrast": 3,
-      "exposure": 0,
-      "gamma": 0.1,
-      "temperature": 0,
-      "tint": 0,
-      "zoomPointMin": 0.3,
-      "zoomPointMid": 0.5,
-      "zoomPointMax": 0.6,
-      "opacityMinZoom": 1,
-      "opacityMidZoom": 0,
-      "opacityMaxZoom": 0
-    }
+    depth: {
+      enabled: true,
+      color: "#f6f6f6",
+      threshold: 0.73,
+      softness: 0.3,
+      offsetX: 0,
+      offsetY: 0,
+      zoomThresholdMin: 1.57,
+      zoomThresholdMax: 1.9,
+      saturation: 1,
+      brightness: 1,
+      contrast: 3,
+      exposure: 0,
+      gamma: 0.1,
+      temperature: 0,
+      tint: 0,
+      zoomPointMin: 0.3,
+      zoomPointMid: 0.5,
+      zoomPointMax: 0.6,
+      opacityMinZoom: 1,
+      opacityMidZoom: 0,
+      opacityMaxZoom: 0,
+    },
   },
-  "iridescence": {
-    "enabled": true,
-    "intensity": 0.9,
-    "speed": 0.01,
-    "scale": 0.7,
-    "parallax": 0,
-    "fbm": {
-      "octaves": 5,
-      "persistence": 0.33,
-      "lacunarity": 1.9,
-      "evolution": 0,
-      "brightness": 0.45,
-      "contrast": 0.8
+  iridescence: {
+    enabled: true,
+    intensity: 0.9,
+    speed: 0.01,
+    scale: 0.7,
+    parallax: 0,
+    fbm: {
+      octaves: 5,
+      persistence: 0.33,
+      lacunarity: 1.9,
+      evolution: 0,
+      brightness: 0.45,
+      contrast: 0.8,
     },
-    "distortion": {
-      "enabled": true,
-      "strength": 5.26
+    distortion: {
+      enabled: true,
+      strength: 5.26,
     },
-    "noise": {
-      "enabled": true,
-      "speed": 0.042,
-      "scale": 9.7,
-      "threshold": 0.47,
-      "brightness": 0.74,
-      "contrast": 2.45,
-      "softness": 0.5
+    noise: {
+      enabled: true,
+      speed: 0.042,
+      scale: 9.7,
+      threshold: 0.47,
+      brightness: 0.74,
+      contrast: 2.45,
+      softness: 0.5,
     },
-    "gradient": {
-      "name": "rainbow",
-      "hueShift": 0,
-      "brightness": 0.04,
-      "contrast": 0.5
-    }
+    gradient: {
+      name: "rainbow",
+      hueShift: 0,
+      brightness: 0.04,
+      contrast: 0.5,
+    },
   },
-  "canopy": {
-    "enabled": true,
-    "shadowIntensity": 0.3,
-    "tint": "#050805",
-    "distortion": {
-      "enabled": true,
-      "strength": 0.004,
-      "speed": 0.005,
-      "scale": 0.01,
-      "evolution": 0.01,
-      "threshold": 0,
-      "brightness": -0.37,
-      "contrast": 1,
-      "softness": 1
-    }
+  canopy: {
+    enabled: true,
+    shadowIntensity: 0.3,
+    tint: "#050805",
+    distortion: {
+      enabled: true,
+      strength: 0.004,
+      speed: 0.005,
+      scale: 0.01,
+      evolution: 0.01,
+      threshold: 0,
+      brightness: -0.37,
+      contrast: 1,
+      softness: 1,
+    },
   },
-  "structuralShadows": {
-    "enabled": true,
-    "intensity": 0.5,
-    "blendMode": 4,
-    "colorCorrection": {
-      "enabled": true,
-      "exposure": 1.8,
-      "saturation": 1,
-      "brightness": 0,
-      "contrast": 1,
-      "gamma": 1,
-      "tint": {
-        "color": "#FFFFFF",
-        "amount": 0
-      }
-    },
-    "rgbSplit": {
-      "enabled": true,
-      "amount": 5,
-      "threshold": 0.2,
-      "softness": 0.5
-    },
-    "metallicPreservation": {
-      "enabled": true,
-      "threshold": 0.5,
-      "blendMode": 1
-    },
-    "cloudOcclusion": {
-      "enabled": true,
-      "intensity": 1,
-      "threshold": 0,
-      "softness": 0.01
-    },
-    "lightOcclusion": {
-      "enabled": true,
-      "intensity": 0.2
-    }
-  },
-  "prism": {
-    "enabled": true,
-    "intensity": 1,
-    "angle": 218,
-    "threshold": 0.1,
-    "softness": 0.5,
-    "distortionStrength": 1.9,
-    "distortionNoise": {
-      "enabled": true,
-      "speed": 0,
-      "scale": 3.83,
-      "evolution": 0,
-      "threshold": 0,
-      "brightness": 0.11,
-      "contrast": 1.85,
-      "softness": 1
-    }
-  },
-  "ambient": {
-    "enabled": false,
-    "texturePath": "",
-    "blendMode": 1,
-    "intensity": 2,
-    "masking": {
-      "enabled": true,
-      "threshold": 0,
-      "softness": 0.25
-    },
-    "tokenMasking": {
-      "enabled": true,
-      "threshold": 0
-    },
-    "colorCorrection": {
-      "enabled": true,
-      "saturation": 1.2,
-      "brightness": 0,
-      "contrast": 1,
-      "gamma": 1,
-      "tint": {
-        "color": "#ff0209",
-        "amount": 0
-      }
-    }
-  },
-  "groundGlow": {
-    "enabled": true,
-    "texturePath": "",
-    "blendMode": 1,
-    "intensity": 1.05,
-    "brightness": 1.2,
-    "saturation": 1.2,
-    "invert": false
-  },
-  "heatDistortion": {
-    "enabled": true,
-    "texturePath": "",
-    "intensity": 0.0005,
-    "noise": {
-      "primary": {
-        "speed": 97,
-        "scale": 0.5,
-        "octaves": 2,
-        "lacunarity": 2.2,
-        "persistence": 0.45
+  structuralShadows: {
+    enabled: true,
+    intensity: 0.5,
+    blendMode: 4,
+    colorCorrection: {
+      enabled: true,
+      exposure: 1.8,
+      saturation: 1,
+      brightness: 0,
+      contrast: 1,
+      gamma: 1,
+      tint: {
+        color: "#FFFFFF",
+        amount: 0,
       },
-      "secondary": {
-        "speed": 79,
-        "scale": 3.5,
-        "octaves": 3,
-        "lacunarity": 3.8,
-        "persistence": 0.3
-      },
-      "rising": {
-        "speed": 0.077,
-        "intensity": 0.4
-      }
-    }
+    },
+    rgbSplit: {
+      enabled: true,
+      amount: 5,
+      threshold: 0.2,
+      softness: 0.5,
+    },
+    metallicPreservation: {
+      enabled: true,
+      threshold: 0.5,
+      blendMode: 1,
+    },
+    cloudOcclusion: {
+      enabled: true,
+      intensity: 1,
+      threshold: 0,
+      softness: 0.01,
+    },
+    lightOcclusion: {
+      enabled: true,
+      intensity: 0.2,
+    },
   },
-  "sceneAppearance": {
-    "transitionDuration": 3500
+  prism: {
+    enabled: true,
+    intensity: 1,
+    angle: 218,
+    threshold: 0.1,
+    softness: 0.5,
+    distortionStrength: 1.9,
+    distortionNoise: {
+      enabled: true,
+      speed: 0,
+      scale: 3.83,
+      evolution: 0,
+      threshold: 0,
+      brightness: 0.11,
+      contrast: 1.85,
+      softness: 1,
+    },
   },
-  "postProcessing": {
-    "enabled": true,
-    "colorCorrection": {
-      "enabled": true,
-      "saturation": 0.7,
-      "brightness": 0,
-      "contrast": 1,
-      "invert": false,
-      "tint": {
-        "color": "#FFFFFF",
-        "amount": 0
+  ambient: {
+    enabled: false,
+    texturePath: "",
+    blendMode: 1,
+    intensity: 2,
+    masking: {
+      enabled: true,
+      threshold: 0,
+      softness: 0.25,
+    },
+    tokenMasking: {
+      enabled: true,
+      threshold: 0,
+    },
+    colorCorrection: {
+      enabled: true,
+      saturation: 1.2,
+      brightness: 0,
+      contrast: 1,
+      gamma: 1,
+      tint: {
+        color: "#ff0209",
+        amount: 0,
       },
-      "exposure": 0,
-      "gamma": 1,
-      "levels": {
-        "inBlack": 0,
-        "inWhite": 1
+    },
+  },
+  groundGlow: {
+    enabled: true,
+    texturePath: "",
+    blendMode: 1,
+    intensity: 1.05,
+    brightness: 1.2,
+    saturation: 1.2,
+    invert: false,
+  },
+  heatDistortion: {
+    enabled: true,
+    texturePath: "",
+    intensity: 0.0005,
+    noise: {
+      primary: {
+        speed: 97,
+        scale: 0.5,
+        octaves: 2,
+        lacunarity: 2.2,
+        persistence: 0.45,
       },
-      "whiteBalance": {
-        "temperature": 0,
-        "tint": 0
+      secondary: {
+        speed: 79,
+        scale: 3.5,
+        octaves: 3,
+        lacunarity: 3.8,
+        persistence: 0.3,
       },
-      "mask": {
-        "enabled": false,
-        "invert": false,
-        "luminanceThreshold": 0.25,
-        "softness": 0.1
+      rising: {
+        speed: 0.077,
+        intensity: 0.4,
       },
-      "selective": {
-        "enabled": false,
-        "color": "#fb0045",
-        "hueRange": 0.09,
-        "saturationRange": 0.5,
-        "luminanceRange": 0.5,
-        "targetLuminance": 0.04,
-        "softness": 0.1,
-        "invert": false,
-        "desaturation": 1,
-        "targetSaturation": 1,
-        "targetBrightness": 0
+    },
+  },
+  sceneAppearance: {
+    transitionDuration: 3500,
+  },
+  postProcessing: {
+    enabled: true,
+    colorCorrection: {
+      enabled: true,
+      saturation: 0.7,
+      brightness: 0,
+      contrast: 1,
+      invert: false,
+      tint: {
+        color: "#FFFFFF",
+        amount: 0,
       },
-      "curves": {
-        "enabled": false,
-        "activeChannel": "rgb",
-        "rgb": {
-          "points": [
+      exposure: 0,
+      gamma: 1,
+      levels: {
+        inBlack: 0,
+        inWhite: 1,
+      },
+      whiteBalance: {
+        temperature: 0,
+        tint: 0,
+      },
+      mask: {
+        enabled: false,
+        invert: false,
+        luminanceThreshold: 0.25,
+        softness: 0.1,
+      },
+      selective: {
+        enabled: false,
+        color: "#fb0045",
+        hueRange: 0.09,
+        saturationRange: 0.5,
+        luminanceRange: 0.5,
+        targetLuminance: 0.04,
+        softness: 0.1,
+        invert: false,
+        desaturation: 1,
+        targetSaturation: 1,
+        targetBrightness: 0,
+      },
+      curves: {
+        enabled: false,
+        activeChannel: "rgb",
+        rgb: {
+          points: [
             {
-              "x": 0,
-              "y": 0
+              x: 0,
+              y: 0,
             },
             {
-              "x": 0.25,
-              "y": 0.25
+              x: 0.25,
+              y: 0.25,
             },
             {
-              "x": 0.75,
-              "y": 0.75
+              x: 0.75,
+              y: 0.75,
             },
             {
-              "x": 1,
-              "y": 1
-            }
-          ]
+              x: 1,
+              y: 1,
+            },
+          ],
         },
-        "red": {
-          "points": [
+        red: {
+          points: [
             {
-              "x": 0,
-              "y": 0
+              x: 0,
+              y: 0,
             },
             {
-              "x": 0.25,
-              "y": 0.25
+              x: 0.25,
+              y: 0.25,
             },
             {
-              "x": 0.75,
-              "y": 0.75
+              x: 0.75,
+              y: 0.75,
             },
             {
-              "x": 1,
-              "y": 1
-            }
-          ]
+              x: 1,
+              y: 1,
+            },
+          ],
         },
-        "green": {
-          "points": [
+        green: {
+          points: [
             {
-              "x": 0,
-              "y": 0
+              x: 0,
+              y: 0,
             },
             {
-              "x": 0.25,
-              "y": 0.25
+              x: 0.25,
+              y: 0.25,
             },
             {
-              "x": 0.75,
-              "y": 0.75
+              x: 0.75,
+              y: 0.75,
             },
             {
-              "x": 1,
-              "y": 1
-            }
-          ]
+              x: 1,
+              y: 1,
+            },
+          ],
         },
-        "blue": {
-          "points": [
+        blue: {
+          points: [
             {
-              "x": 0,
-              "y": 0
+              x: 0,
+              y: 0,
             },
             {
-              "x": 0.25,
-              "y": 0.25
+              x: 0.25,
+              y: 0.25,
             },
             {
-              "x": 0.75,
-              "y": 0.75
+              x: 0.75,
+              y: 0.75,
             },
             {
-              "x": 1,
-              "y": 1
-            }
-          ]
-        }
+              x: 1,
+              y: 1,
+            },
+          ],
+        },
       },
-      "dynamicExposure": {
-        "enabled": false,
-        "intensity": 1.5,
-        "duration": 8000,
-        "resetPeriod": 60000
-      }
+      dynamicExposure: {
+        enabled: false,
+        intensity: 1.5,
+        duration: 8000,
+        resetPeriod: 60000,
+      },
     },
-    "vignette": {
-      "enabled": false,
-      "amount": 0.24,
-      "softness": 0.36
+    vignette: {
+      enabled: false,
+      amount: 0.24,
+      softness: 0.36,
     },
-    "lensDistortion": {
-      "enabled": false,
-      "amount": 0.015,
-      "centerX": 0.5,
-      "centerY": 0.5
+    lensDistortion: {
+      enabled: false,
+      amount: 0.015,
+      centerX: 0.5,
+      centerY: 0.5,
     },
-    "chromaticAberration": {
-      "enabled": false,
-      "amount": 0.001,
-      "centerX": 0.5,
-      "centerY": 0.5
+    chromaticAberration: {
+      enabled: false,
+      amount: 0.001,
+      centerX: 0.5,
+      centerY: 0.5,
     },
-    "tiltShift": {
-      "enabled": false,
-      "blur": 23,
-      "gradientBlur": 3610,
-      "startX": 0,
-      "startY": 0.5,
-      "endX": 1,
-      "endY": 0.5
+    tiltShift: {
+      enabled: false,
+      blur: 23,
+      gradientBlur: 3610,
+      startX: 0,
+      startY: 0.5,
+      endX: 1,
+      endY: 0.5,
     },
-    "grain": {
-      "enabled": false,
-      "intensity": 0.1,
-      "size": 1.5,
-      "monochromatic": true,
-      "luminanceResponse": {
-        "shadows": 0.8,
-        "highlights": 0.2
-      }
+    grain: {
+      enabled: false,
+      intensity: 0.1,
+      size: 1.5,
+      monochromatic: true,
+      luminanceResponse: {
+        shadows: 0.8,
+        highlights: 0.2,
+      },
     },
-    "lut": {
-      "enabled": true,
-      "texturePath": "",
-      "intensity": 1,
-      "presetName": "custom"
-    }
+    lut: {
+      enabled: true,
+      texturePath: "",
+      intensity: 1,
+      presetName: "custom",
+    },
   },
-  "dust": {
-    "enabled": true,
-    "blendMode": 0,
-    "maskThreshold": 0.39,
-    "maskInfluence": 1.48,
-    "particleTexture": "modules/map-shine/assets/particle.webp",
-    "frequency": 0.234,
-    "lifetime": {
-      "min": 4,
-      "max": 12
+  dust: {
+    enabled: true,
+    blendMode: 0,
+    maskThreshold: 0.39,
+    maskInfluence: 1.48,
+    particleTexture: "modules/map-shine/assets/particle.webp",
+    frequency: 0.234,
+    lifetime: {
+      min: 4,
+      max: 12,
     },
-    "colorAlphaGradient": [
+    colorAlphaGradient: [
       {
-        "time": 0,
-        "color": "#ffbc40",
-        "alpha": 0
+        time: 0,
+        color: "#ffbc40",
+        alpha: 0,
       },
       {
-        "time": 0.1,
-        "color": "#ffc242",
-        "alpha": 0.15
+        time: 0.1,
+        color: "#ffc242",
+        alpha: 0.15,
       },
       {
-        "time": 0.97,
-        "color": "#fff955",
-        "alpha": 0.69
+        time: 0.97,
+        color: "#fff955",
+        alpha: 0.69,
       },
       {
-        "time": 1,
-        "color": "#fffb55",
-        "alpha": 0
-      }
+        time: 1,
+        color: "#fffb55",
+        alpha: 0,
+      },
     ],
-    "emissiveGradient": [
+    emissiveGradient: [
       {
-        "time": 0,
-        "color": "#ffbc40",
-        "alpha": 0.51
+        time: 0,
+        color: "#ffbc40",
+        alpha: 0.51,
       },
       {
-        "time": 1,
-        "color": "#fffb55",
-        "alpha": 0.48
-      }
+        time: 1,
+        color: "#fffb55",
+        alpha: 0.48,
+      },
     ],
-    "scale": {
-      "sizeMultiplier": 0.6,
-      "start": 0.9,
-      "end": 1.09,
-      "minMult": 0.86
+    scale: {
+      sizeMultiplier: 0.6,
+      start: 0.9,
+      end: 1.09,
+      minMult: 0.86,
     },
-    "speed": {
-      "start": 3,
-      "end": 6,
-      "minMult": 0.5
+    speed: {
+      start: 3,
+      end: 6,
+      minMult: 0.5,
     },
-    "rotation": {
-      "enabled": false,
-      "minSpeed": 0,
-      "maxSpeed": 20,
-      "accel": 0
-    }
+    rotation: {
+      enabled: false,
+      minSpeed: 0,
+      maxSpeed: 20,
+      accel: 0,
+    },
   },
-  "glint": {
-    "enabled": true,
-    "darknessAffectsIntensity": true,
-    "blendMode": 0,
-    "maskThreshold": 0.9,
-    "maskInfluence": 0.09,
-    "particleTexture": "modules/map-shine/assets/glint.webp",
-    "frequency": 0.932,
-    "lifetime": {
-      "min": 0.8,
-      "max": 2.9
+  glint: {
+    enabled: true,
+    darknessAffectsIntensity: true,
+    blendMode: 0,
+    maskThreshold: 0.9,
+    maskInfluence: 0.09,
+    particleTexture: "modules/map-shine/assets/glint.webp",
+    frequency: 0.932,
+    lifetime: {
+      min: 0.8,
+      max: 2.9,
     },
-    "colorAlphaGradient": [
+    colorAlphaGradient: [
       {
-        "time": 0,
-        "color": "#FFFFFF",
-        "alpha": 0
+        time: 0,
+        color: "#FFFFFF",
+        alpha: 0,
       },
       {
-        "time": 0.055,
-        "color": "#FFFFFF",
-        "alpha": 0.95
+        time: 0.055,
+        color: "#FFFFFF",
+        alpha: 0.95,
       },
       {
-        "time": 1,
-        "color": "#FFFFFF",
-        "alpha": 0
-      }
+        time: 1,
+        color: "#FFFFFF",
+        alpha: 0,
+      },
     ],
-    "emissiveGradient": [
+    emissiveGradient: [
       {
-        "time": 0,
-        "color": "#000000",
-        "alpha": 1
+        time: 0,
+        color: "#000000",
+        alpha: 1,
       },
       {
-        "time": 1,
-        "color": "#000000",
-        "alpha": 1
-      }
+        time: 1,
+        color: "#000000",
+        alpha: 1,
+      },
     ],
-    "scale": {
-      "sizeMultiplier": 9,
-      "start": 1.5,
-      "end": 0.61,
-      "minMult": 0.9
+    scale: {
+      sizeMultiplier: 9,
+      start: 1.5,
+      end: 0.61,
+      minMult: 0.9,
     },
-    "speed": {
-      "start": 0,
-      "end": 0,
-      "minMult": 0.5
+    speed: {
+      start: 0,
+      end: 0,
+      minMult: 0.5,
     },
-    "rotation": {
-      "enabled": false,
-      "minSpeed": 0,
-      "maxSpeed": 20,
-      "accel": 0
+    rotation: {
+      enabled: false,
+      minSpeed: 0,
+      maxSpeed: 20,
+      accel: 0,
     },
-    "rgbSplit": {
-      "enabled": true,
-      "amount": 8.2
-    }
+    rgbSplit: {
+      enabled: true,
+      amount: 8.2,
+    },
   },
-  "metallicGlints": {
-    "enabled": true,
-    "blendMode": 1,
-    "maskThreshold": 0.93,
-    "maskInfluence": 3.92,
-    "particleTexture": "modules/map-shine/assets/glint.webp",
-    "frequency": 0.33,
-    "lifetime": {
-      "min": 4.7,
-      "max": 8.9
+  metallicGlints: {
+    enabled: true,
+    blendMode: 1,
+    maskThreshold: 0.93,
+    maskInfluence: 3.92,
+    particleTexture: "modules/map-shine/assets/glint.webp",
+    frequency: 0.33,
+    lifetime: {
+      min: 4.7,
+      max: 8.9,
     },
-    "colorAlphaGradient": [
+    colorAlphaGradient: [
       {
-        "time": 0,
-        "color": "#FFFFFF",
-        "alpha": 0
+        time: 0,
+        color: "#FFFFFF",
+        alpha: 0,
       },
       {
-        "time": 0.2066580908571582,
-        "color": "#FFFFFF",
-        "alpha": 1
+        time: 0.2066580908571582,
+        color: "#FFFFFF",
+        alpha: 1,
       },
       {
-        "time": 1,
-        "color": "#FFFFFF",
-        "alpha": 0
-      }
+        time: 1,
+        color: "#FFFFFF",
+        alpha: 0,
+      },
     ],
-    "emissiveGradient": [
+    emissiveGradient: [
       {
-        "time": 0,
-        "color": "#000000",
-        "alpha": 1
+        time: 0,
+        color: "#000000",
+        alpha: 1,
       },
       {
-        "time": 0.24097173100375402,
-        "color": "#393939",
-        "alpha": 1
+        time: 0.24097173100375402,
+        color: "#393939",
+        alpha: 1,
       },
       {
-        "time": 1,
-        "color": "#000000",
-        "alpha": 1
-      }
+        time: 1,
+        color: "#000000",
+        alpha: 1,
+      },
     ],
-    "scale": {
-      "sizeMultiplier": 4.1,
-      "start": 0.11,
-      "end": 1.15,
-      "minMult": 0.78
+    scale: {
+      sizeMultiplier: 4.1,
+      start: 0.11,
+      end: 1.15,
+      minMult: 0.78,
     },
-    "speed": {
-      "start": 0,
-      "end": 0,
-      "minMult": 0.1
+    speed: {
+      start: 0,
+      end: 0,
+      minMult: 0.1,
     },
-    "rotation": {
-      "enabled": true,
-      "minSpeed": -2,
-      "maxSpeed": 2,
-      "accel": 0
-    }
+    rotation: {
+      enabled: true,
+      minSpeed: -2,
+      maxSpeed: 2,
+      accel: 0,
+    },
   },
-  "biofilm": {
-    "enabled": true,
-    "blendMode": 0,
-    "maskThreshold": 0.2,
-    "maskUpperThreshold": 0.6,
-    "maskInfluence": 5,
-    "particleTexture": "modules/map-shine/assets/particle.webp",
-    "frequency": 0.097,
-    "lifetime": {
-      "min": 4,
-      "max": 12
+  biofilm: {
+    enabled: true,
+    blendMode: 0,
+    maskThreshold: 0.2,
+    maskUpperThreshold: 0.6,
+    maskInfluence: 5,
+    particleTexture: "modules/map-shine/assets/particle.webp",
+    frequency: 0.097,
+    lifetime: {
+      min: 4,
+      max: 12,
     },
-    "colorAlphaGradient": [
+    colorAlphaGradient: [
       {
-        "time": 0,
-        "color": "#d1d1d1",
-        "alpha": 0
+        time: 0,
+        color: "#d1d1d1",
+        alpha: 0,
       },
       {
-        "time": 0.04,
-        "color": "#c9c9c8",
-        "alpha": 0.92
+        time: 0.04,
+        color: "#c9c9c8",
+        alpha: 0.92,
       },
       {
-        "time": 1,
-        "color": "#232e1f",
-        "alpha": 0
-      }
+        time: 1,
+        color: "#232e1f",
+        alpha: 0,
+      },
     ],
-    "emissiveGradient": [
+    emissiveGradient: [
       {
-        "time": 0,
-        "color": "#000000",
-        "alpha": 1
+        time: 0,
+        color: "#000000",
+        alpha: 1,
       },
       {
-        "time": 1,
-        "color": "#000000",
-        "alpha": 1
-      }
+        time: 1,
+        color: "#000000",
+        alpha: 1,
+      },
     ],
-    "scale": {
-      "sizeMultiplier": 0.6,
-      "start": 0.9,
-      "end": 1.09,
-      "minMult": 0.3
+    scale: {
+      sizeMultiplier: 0.6,
+      start: 0.9,
+      end: 1.09,
+      minMult: 0.3,
     },
-    "speed": {
-      "start": 3,
-      "end": 6,
-      "minMult": 0.5
+    speed: {
+      start: 3,
+      end: 6,
+      minMult: 0.5,
     },
-    "rotation": {
-      "enabled": false,
-      "minSpeed": 0,
-      "maxSpeed": 20,
-      "accel": 0
-    }
+    rotation: {
+      enabled: false,
+      minSpeed: 0,
+      maxSpeed: 20,
+      accel: 0,
+    },
   },
-  "water": {
-    "enabled": true,
-    "depthDisplacement": {
-      "enabled": true,
-      "strength": 0.005,
-      "darken": 0.15,
-      "wallColor": "#0d1a26",
-      "wallIntensity": 0.8,
-      "wallSmearBlend": 0.3
+  water: {
+    enabled: true,
+    depthDisplacement: {
+      enabled: true,
+      strength: 0.005,
+      darken: 0.15,
+      wallColor: "#0d1a26",
+      wallIntensity: 0.8,
+      wallSmearBlend: 0.3,
     },
-    "flow": {
-      "enabled": false,
-      "angle": 45,
-      "speed": 5
+    flow: {
+      enabled: false,
+      angle: 45,
+      speed: 5,
     },
-    "wave": {
-      "enabled": true,
-      "speed": 0.5,
-      "scale": 4.2,
-      "intensity": 0.0025,
-      "biofilmDistortion": {
-        "enabled": false,
-        "intensity": 0.5
-      }
-    },
-    "murkiness": {
-      "enabled": false,
-      "color": "#1a2c22",
-      "wavyNoise": {
-        "strength": 0.8,
-        "scale": 2,
-        "speed": 0.005
+    wave: {
+      enabled: true,
+      speed: 0.5,
+      scale: 4.2,
+      intensity: 0.0025,
+      biofilmDistortion: {
+        enabled: false,
+        intensity: 0.5,
       },
-      "sandyNoise": {
-        "strength": 0.3,
-        "scale": 15,
-        "speed": 0.02,
-        "modulationScale": 3,
-        "modulationSpeed": 0.01,
-        "modulationStrength": 0.5
-      }
     },
-    "surface": {
-      "enabled": true,
-      "foamColor": "#33adff",
-      "foamIntensity": 0,
-      "foamCoverage": 0,
-      "foamSharpness": 0.13,
-      "fbmScale": 15.196,
-      "fbmSpeed": 0.01,
-      "fbmEvolution": 0.03,
-      "fbmOctaves": 5,
-      "fbmLacunarity": 4,
-      "fbmPersistence": 0.1,
-      "specularity": {
-        "enabled": true,
-        "color": "#FFFFFF",
-        "intensity": 0.75,
-        "shininess": 256,
-        "lightAngle": 45,
-        "lightElevation": 60,
-        "cloudOcclusion": {
-          "enabled": true,
-          "intensity": 1
-        }
-      }
-    },
-    "caustics": {
-      "enabled": true,
-      "intensity": 0.033,
-      "scale": 1,
-      "speed": 0.14,
-      "color": "#87CEFA",
-      "lineSharpness": 5,
-      "bloomIntensity": 1,
-      "lineDistortion": 0.1,
-      "lineDistortionScale": 5,
-      "intersectionBoost": 20,
-      "roughnessScale": 4.2,
-      "roughnessIntensity": 0.83,
-      "cloudOcclusion": {
-        "enabled": true,
-        "intensity": 1
-      }
-    },
-    "shoreline": {
-      "enabled": false,
-      "detectionBlur": 1,
-      "foamColor": "#FFFFFF",
-      "foamIntensity": 0.5,
-      "foamPattern": {
-        "scale": 1,
-        "speed": 0,
-        "evolution": 0.01,
-        "octaves": 4,
-        "lacunarity": 2.05,
-        "persistence": 0.15,
-        "brightness": 0.5,
-        "contrast": 1
+    murkiness: {
+      enabled: false,
+      color: "#1a2c22",
+      wavyNoise: {
+        strength: 0.8,
+        scale: 2,
+        speed: 0.005,
       },
-      "displacement": {
-        "enabled": false,
-        "scale": 0.4,
-        "speed": 0.011,
-        "strength": 0.0025
-      }
-    },
-    "glintParticles": {
-      "enabled": true,
-      "blendMode": 9,
-      "maskThreshold": 0.17,
-      "maskInfluence": 1.95,
-      "particleTexture": "modules/map-shine/assets/glint.webp",
-      "frequency": 0.99,
-      "lifetime": {
-        "min": 0.8,
-        "max": 0.8
+      sandyNoise: {
+        strength: 0.3,
+        scale: 15,
+        speed: 0.02,
+        modulationScale: 3,
+        modulationSpeed: 0.01,
+        modulationStrength: 0.5,
       },
-      "colorAlphaGradient": [
+    },
+    surface: {
+      enabled: true,
+      foamColor: "#33adff",
+      foamIntensity: 0,
+      foamCoverage: 0,
+      foamSharpness: 0.13,
+      fbmScale: 15.196,
+      fbmSpeed: 0.01,
+      fbmEvolution: 0.03,
+      fbmOctaves: 5,
+      fbmLacunarity: 4,
+      fbmPersistence: 0.1,
+      specularity: {
+        enabled: true,
+        color: "#FFFFFF",
+        intensity: 0.75,
+        shininess: 256,
+        lightAngle: 45,
+        lightElevation: 60,
+        cloudOcclusion: {
+          enabled: true,
+          intensity: 1,
+        },
+      },
+    },
+    caustics: {
+      enabled: true,
+      intensity: 0.033,
+      scale: 1,
+      speed: 0.14,
+      color: "#87CEFA",
+      lineSharpness: 5,
+      bloomIntensity: 1,
+      lineDistortion: 0.1,
+      lineDistortionScale: 5,
+      intersectionBoost: 20,
+      roughnessScale: 4.2,
+      roughnessIntensity: 0.83,
+      cloudOcclusion: {
+        enabled: true,
+        intensity: 1,
+      },
+    },
+    shoreline: {
+      enabled: false,
+      detectionBlur: 1,
+      foamColor: "#FFFFFF",
+      foamIntensity: 0.5,
+      foamPattern: {
+        scale: 1,
+        speed: 0,
+        evolution: 0.01,
+        octaves: 4,
+        lacunarity: 2.05,
+        persistence: 0.15,
+        brightness: 0.5,
+        contrast: 1,
+      },
+      displacement: {
+        enabled: false,
+        scale: 0.4,
+        speed: 0.011,
+        strength: 0.0025,
+      },
+    },
+    glintParticles: {
+      enabled: true,
+      blendMode: 9,
+      maskThreshold: 0.17,
+      maskInfluence: 1.95,
+      particleTexture: "modules/map-shine/assets/glint.webp",
+      frequency: 0.99,
+      lifetime: {
+        min: 0.8,
+        max: 0.8,
+      },
+      colorAlphaGradient: [
         {
-          "time": 0,
-          "color": "#FFFFFF",
-          "alpha": 0
+          time: 0,
+          color: "#FFFFFF",
+          alpha: 0,
         },
         {
-          "time": 0.1,
-          "color": "#FFFFFF",
-          "alpha": 0.8
+          time: 0.1,
+          color: "#FFFFFF",
+          alpha: 0.8,
         },
         {
-          "time": 1,
-          "color": "#FFFFFF",
-          "alpha": 0
-        }
+          time: 1,
+          color: "#FFFFFF",
+          alpha: 0,
+        },
       ],
-      "emissiveGradient": [
+      emissiveGradient: [
         {
-          "time": 0,
-          "color": "#000000",
-          "alpha": 1
+          time: 0,
+          color: "#000000",
+          alpha: 1,
         },
         {
-          "time": 1,
-          "color": "#000000",
-          "alpha": 1
-        }
+          time: 1,
+          color: "#000000",
+          alpha: 1,
+        },
       ],
-      "scale": {
-        "sizeMultiplier": 1.9,
-        "start": 0.76,
-        "end": 0.82,
-        "minMult": 0.95
+      scale: {
+        sizeMultiplier: 1.9,
+        start: 0.76,
+        end: 0.82,
+        minMult: 0.95,
       },
-      "speed": {
-        "start": 5,
-        "end": 11,
-        "minMult": 0.47
+      speed: {
+        start: 5,
+        end: 11,
+        minMult: 0.47,
       },
-      "rotation": {
-        "enabled": true,
-        "minSpeed": 116,
-        "maxSpeed": 123,
-        "accel": 52
-      }
-    }
+      rotation: {
+        enabled: true,
+        minSpeed: 116,
+        maxSpeed: 123,
+        accel: 52,
+      },
+    },
   },
-  "foam": {
-    "enabled": true,
-    "blendMode": 1,
-    "smallBlur": 2,
-    "largeBlur": 10,
-    "intensity": 1.5,
-    "threshold": 0.2,
-    "softness": 0.1,
-    "color": "#FFFFFF",
-    "noise": {
-      "scale": 15,
-      "speed": 0.02,
-      "evolution": 0.05,
-      "octaves": 4,
-      "lacunarity": 2.2,
-      "persistence": 0.45
+  foam: {
+    enabled: true,
+    blendMode: 1,
+    smallBlur: 2,
+    largeBlur: 10,
+    intensity: 1.5,
+    threshold: 0.2,
+    softness: 0.1,
+    color: "#FFFFFF",
+    noise: {
+      scale: 15,
+      speed: 0.02,
+      evolution: 0.05,
+      octaves: 4,
+      lacunarity: 2.2,
+      persistence: 0.45,
     },
-    "breakupNoise": {
-      "enabled": true,
-      "scale": 2.5,
-      "evolution": 0.01,
-      "octaves": 5,
-      "lacunarity": 2.8,
-      "persistence": 0.35,
-      "brightness": 0.4,
-      "contrast": 1.2
+    breakupNoise: {
+      enabled: true,
+      scale: 2.5,
+      evolution: 0.01,
+      octaves: 5,
+      lacunarity: 2.8,
+      persistence: 0.35,
+      brightness: 0.4,
+      contrast: 1.2,
     },
-    "suppressionNoise": {
-      "enabled": true,
-      "scale": 2.5,
-      "speed": 0.005,
-      "evolution": 0.01,
-      "octaves": 4,
-      "lacunarity": 2,
-      "persistence": 0.5,
-      "brightness": 0.5,
-      "contrast": 1
+    suppressionNoise: {
+      enabled: true,
+      scale: 2.5,
+      speed: 0.005,
+      evolution: 0.01,
+      octaves: 4,
+      lacunarity: 2,
+      persistence: 0.5,
+      brightness: 0.5,
+      contrast: 1,
     },
-    "blurTurbulence": {
-      "strength": 8,
-      "scale": 0.5,
-      "speed": 0.01
+    blurTurbulence: {
+      strength: 8,
+      scale: 0.5,
+      speed: 0.01,
     },
-    "crestFoam": {
-      "enabled": false,
-      "intensity": 1.8,
-      "frequency": 35,
-      "speed": 0.03,
-      "angle": 15,
-      "sharpness": 12,
-      "perturbStrength": 35,
-      "perturbScale": 0.04,
-      "perturbSpeed": 0.01,
-      "perturbOctaves": 4,
-      "crestBreakup": {
-        "scale": 0.35,
-        "speed": 0.08,
-        "octaves": 3,
-        "brightness": 0.45,
-        "contrast": 1.8
-      }
-    }
+    crestFoam: {
+      enabled: false,
+      intensity: 1.8,
+      frequency: 35,
+      speed: 0.03,
+      angle: 15,
+      sharpness: 12,
+      perturbStrength: 35,
+      perturbScale: 0.04,
+      perturbSpeed: 0.01,
+      perturbOctaves: 4,
+      crestBreakup: {
+        scale: 0.35,
+        speed: 0.08,
+        octaves: 3,
+        brightness: 0.45,
+        contrast: 1.8,
+      },
+    },
   },
-  "fire": {
-    "enabled": true,
-    "particles": {
-      "enabled": true,
-      "blendMode": 1,
-      "maskThreshold": 0.4,
-      "maskInfluence": 3.91,
-      "particleTexture": "modules/map-shine/assets/flame.webp",
-      "frequency": 0.027,
-      "lifetime": {
-        "min": 3.1,
-        "max": 3.4
+  fire: {
+    enabled: true,
+    particles: {
+      enabled: true,
+      blendMode: 1,
+      maskThreshold: 0.4,
+      maskInfluence: 3.91,
+      particleTexture: "modules/map-shine/assets/flame.webp",
+      frequency: 0.027,
+      lifetime: {
+        min: 3.1,
+        max: 3.4,
       },
-      "toneCurve": {
-        "enabled": true,
-        "contrast": 1.93,
-        "gamma": 3,
-        "knee": 0.64,
-        "coreClamp": 1.5
+      toneCurve: {
+        enabled: true,
+        contrast: 1.93,
+        gamma: 3,
+        knee: 0.64,
+        coreClamp: 1.5,
       },
-      "colorAlphaGradient": [
+      colorAlphaGradient: [
         {
-          "time": 0,
-          "color": "#FFFFFF",
-          "alpha": 0
+          time: 0,
+          color: "#FFFFFF",
+          alpha: 0,
         },
         {
-          "time": 0.09321555065706419,
-          "color": "#ffac00",
-          "alpha": 0.87
+          time: 0.09321555065706419,
+          color: "#ffac00",
+          alpha: 0.87,
         },
         {
-          "time": 1,
-          "color": "#000000",
-          "alpha": 0
-        }
+          time: 1,
+          color: "#000000",
+          alpha: 0,
+        },
       ],
-      "emissiveGradient": [
+      emissiveGradient: [
         {
-          "time": 0,
-          "color": "#ffe88c",
-          "alpha": 0.84
+          time: 0,
+          color: "#ffe88c",
+          alpha: 0.84,
         },
         {
-          "time": 0.1205898832317438,
-          "color": "#ff9d26",
-          "alpha": 0.31
+          time: 0.1205898832317438,
+          color: "#ff9d26",
+          alpha: 0.31,
         },
         {
-          "time": 0.2237199781512459,
-          "color": "#fb3f00",
-          "alpha": 0.04
+          time: 0.2237199781512459,
+          color: "#fb3f00",
+          alpha: 0.04,
         },
         {
-          "time": 0.8409741765056603,
-          "color": "#000000",
-          "alpha": 0.5195989291312645
+          time: 0.8409741765056603,
+          color: "#000000",
+          alpha: 0.5195989291312645,
         },
         {
-          "time": 1,
-          "color": "#000000",
-          "alpha": 0
-        }
+          time: 1,
+          color: "#000000",
+          alpha: 0,
+        },
       ],
-      "scale": {
-        "sizeMultiplier": 1.1,
-        "start": 0.49,
-        "end": 1.59,
-        "minMult": 0.32
+      scale: {
+        sizeMultiplier: 1.1,
+        start: 0.49,
+        end: 1.59,
+        minMult: 0.32,
       },
-      "speed": {
-        "start": 1,
-        "end": 2,
-        "minMult": 0.5
+      speed: {
+        start: 1,
+        end: 2,
+        minMult: 0.5,
       },
-      "rotation": {
-        "enabled": true,
-        "minSpeed": -180,
-        "maxSpeed": 180,
-        "accel": 75
+      rotation: {
+        enabled: true,
+        minSpeed: -180,
+        maxSpeed: 180,
+        accel: 75,
       },
-      "wind": {
-        "enabled": true,
-        "force": 5,
-        "baseSpeed": 5,
-        "gustSpeed": 15,
-        "gustFrequencyMin": 0.1,
-        "gustFrequencyMax": 30,
-        "gustDurationMin": 0.1,
-        "gustDurationMax": 5,
-        "angleChangeFrequencyMin": 1,
-        "angleChangeFrequencyMax": 60,
-        "angleChangeRange": 2
+      wind: {
+        enabled: true,
+        force: 5,
+        baseSpeed: 5,
+        gustSpeed: 15,
+        gustFrequencyMin: 0.1,
+        gustFrequencyMax: 30,
+        gustDurationMin: 0.1,
+        gustDurationMax: 5,
+        angleChangeFrequencyMin: 1,
+        angleChangeFrequencyMax: 60,
+        angleChangeRange: 2,
       },
-      "colorCorrection": {
-        "enabled": true,
-        "saturation": 1.4,
-        "brightness": 0.2,
-        "contrast": 1,
-        "exposure": 0,
-        "gamma": 1
-      }
-    }
-  },
-  "candleFlame": {
-    "enabled": true,
-    "blendMode": 1,
-    "particleTexture": "modules/map-shine/assets/particle.webp",
-    "frequency": 0.002,
-    "lifetime": {
-      "min": 0.8,
-      "max": 1.2
+      colorCorrection: {
+        enabled: true,
+        saturation: 1.4,
+        brightness: 0.2,
+        contrast: 1,
+        exposure: 0,
+        gamma: 1,
+      },
     },
-    "colorAlphaGradient": [
+  },
+  candleFlame: {
+    enabled: true,
+    blendMode: 1,
+    particleTexture: "modules/map-shine/assets/particle.webp",
+    frequency: 0.002,
+    lifetime: {
+      min: 0.8,
+      max: 1.2,
+    },
+    colorAlphaGradient: [
       {
-        "time": 0,
-        "color": "#FFEFD5",
-        "alpha": 0
+        time: 0,
+        color: "#FFEFD5",
+        alpha: 0,
       },
       {
-        "time": 0.08516129702946203,
-        "color": "#FFD700",
-        "alpha": 0.49
+        time: 0.08516129702946203,
+        color: "#FFD700",
+        alpha: 0.49,
       },
       {
-        "time": 0.16321849401205915,
-        "color": "#ff6000",
-        "alpha": 0.4481915080797534
+        time: 0.16321849401205915,
+        color: "#ff6000",
+        alpha: 0.4481915080797534,
       },
       {
-        "time": 1,
-        "color": "#FFA500",
-        "alpha": 0
-      }
+        time: 1,
+        color: "#FFA500",
+        alpha: 0,
+      },
     ],
-    "emissiveGradient": [
+    emissiveGradient: [
       {
-        "time": 0,
-        "color": "#FFFFFF",
-        "alpha": 0
+        time: 0,
+        color: "#FFFFFF",
+        alpha: 0,
       },
       {
-        "time": 0.08903226507625575,
-        "color": "#ffa94a",
-        "alpha": 0.82
+        time: 0.08903226507625575,
+        color: "#ffa94a",
+        alpha: 0.82,
       },
       {
-        "time": 1,
-        "color": "#FFD700",
-        "alpha": 0
-      }
+        time: 1,
+        color: "#FFD700",
+        alpha: 0,
+      },
     ],
-    "scale": {
-      "sizeMultiplier": 2,
-      "start": 2,
-      "end": 0.92,
-      "minMult": 0.8
+    scale: {
+      sizeMultiplier: 2,
+      start: 2,
+      end: 0.92,
+      minMult: 0.8,
     },
-    "jiggle": {
-      "upwardVelocity": -20,
-      "amplitude": 51,
-      "frequency": 0.6,
-      "risingFactor": 4.2
-    }
+    jiggle: {
+      upwardVelocity: -20,
+      amplitude: 51,
+      frequency: 0.6,
+      risingFactor: 4.2,
+    },
   },
-  "pressurisedSteam": {
-    "enabled": true,
-    "blendMode": 0,
-    "maskThreshold": 0.5,
-    "maskInfluence": 1.5,
-    "particleTexture": "modules/map-shine/assets/steam.webp",
-    "lifetime": {
-      "min": 0.5,
-      "max": 2
+  pressurisedSteam: {
+    enabled: true,
+    blendMode: 0,
+    maskThreshold: 0.5,
+    maskInfluence: 1.5,
+    particleTexture: "modules/map-shine/assets/steam.webp",
+    lifetime: {
+      min: 0.5,
+      max: 2,
     },
-    "colorAlphaGradient": [
+    colorAlphaGradient: [
       {
-        "time": 0,
-        "color": "#ffffff",
-        "alpha": 0
+        time: 0,
+        color: "#ffffff",
+        alpha: 0,
       },
       {
-        "time": 0.1,
-        "color": "#eeeeee",
-        "alpha": 0.8
+        time: 0.1,
+        color: "#eeeeee",
+        alpha: 0.8,
       },
       {
-        "time": 0.7,
-        "color": "#dddddd",
-        "alpha": 0.4
+        time: 0.7,
+        color: "#dddddd",
+        alpha: 0.4,
       },
       {
-        "time": 1,
-        "color": "#cccccc",
-        "alpha": 0
-      }
+        time: 1,
+        color: "#cccccc",
+        alpha: 0,
+      },
     ],
-    "emissiveGradient": [
+    emissiveGradient: [
       {
-        "time": 0,
-        "color": "#000000",
-        "alpha": 1
+        time: 0,
+        color: "#000000",
+        alpha: 1,
       },
       {
-        "time": 1,
-        "color": "#000000",
-        "alpha": 1
-      }
+        time: 1,
+        color: "#000000",
+        alpha: 1,
+      },
     ],
-    "scale": {
-      "sizeMultiplier": 1.8,
-      "start": 0.2,
-      "end": 1.5,
-      "minMult": 0.7
+    scale: {
+      sizeMultiplier: 1.8,
+      start: 0.2,
+      end: 1.5,
+      minMult: 0.7,
     },
-    "speed": {
-      "start": 250,
-      "end": 20,
-      "minMult": 0.8
+    speed: {
+      start: 250,
+      end: 20,
+      minMult: 0.8,
     },
-    "rotation": {
-      "enabled": true,
-      "minSpeed": -60,
-      "maxSpeed": 60,
-      "accel": 0
+    rotation: {
+      enabled: true,
+      minSpeed: -60,
+      maxSpeed: 60,
+      accel: 0,
     },
-    "path": {
-      "angle": {
-        "min": -100,
-        "max": -80
-      }
+    path: {
+      angle: {
+        min: -100,
+        max: -80,
+      },
     },
-    "burst": {
-      "onDuration": 10,
-      "offDuration": 10,
-      "frequency": 0.005
-    }
+    burst: {
+      onDuration: 10,
+      offDuration: 10,
+      frequency: 0.005,
+    },
   },
-  "sparks": {
-    "enabled": true,
-    "blendMode": 1,
-    "maskThreshold": 0.95,
-    "maskInfluence": 1.12,
-    "particleTexture": "modules/map-shine/assets/particle.webp",
-    "frequency": 0.08,
-    "lifetime": {
-      "min": 1.5,
-      "max": 3
+  sparks: {
+    enabled: true,
+    blendMode: 1,
+    maskThreshold: 0.95,
+    maskInfluence: 1.12,
+    particleTexture: "modules/map-shine/assets/particle.webp",
+    frequency: 0.08,
+    lifetime: {
+      min: 1.5,
+      max: 3,
     },
-    "colorAlphaGradient": [
+    colorAlphaGradient: [
       {
-        "time": 0,
-        "color": "#ffbc40",
-        "alpha": 0
+        time: 0,
+        color: "#ffbc40",
+        alpha: 0,
       },
       {
-        "time": 0.10273972817490937,
-        "color": "#b9e4ff",
-        "alpha": 0.94
+        time: 0.10273972817490937,
+        color: "#b9e4ff",
+        alpha: 0.94,
       },
       {
-        "time": 0.5219178191285396,
-        "color": "#aeda49",
-        "alpha": 0.69
+        time: 0.5219178191285396,
+        color: "#aeda49",
+        alpha: 0.69,
       },
       {
-        "time": 0.97,
-        "color": "#fff955",
-        "alpha": 0.69
+        time: 0.97,
+        color: "#fff955",
+        alpha: 0.69,
       },
       {
-        "time": 1,
-        "color": "#fffb55",
-        "alpha": 0
-      }
+        time: 1,
+        color: "#fffb55",
+        alpha: 0,
+      },
     ],
-    "emissiveGradient": [
+    emissiveGradient: [
       {
-        "time": 0,
-        "color": "#000000",
-        "alpha": 1
+        time: 0,
+        color: "#000000",
+        alpha: 1,
       },
       {
-        "time": 0.11095890642890212,
-        "color": "#ffffff",
-        "alpha": 1
+        time: 0.11095890642890212,
+        color: "#ffffff",
+        alpha: 1,
       },
       {
-        "time": 1,
-        "color": "#000000",
-        "alpha": 1
-      }
+        time: 1,
+        color: "#000000",
+        alpha: 1,
+      },
     ],
-    "scale": {
-      "sizeMultiplier": 1.55,
-      "start": 1,
-      "end": 0.1,
-      "minMult": 0.5
+    scale: {
+      sizeMultiplier: 1.55,
+      start: 1,
+      end: 0.1,
+      minMult: 0.5,
     },
-    "path": {
-      "speed": {
-        "start": 114,
-        "end": 27,
-        "minMult": 0.99
+    path: {
+      speed: {
+        start: 114,
+        end: 27,
+        minMult: 0.99,
       },
-      "amplitude": {
-        "min": 10,
-        "max": 100
+      amplitude: {
+        min: 10,
+        max: 100,
       },
-      "frequency": {
-        "min": 40,
-        "max": 189
+      frequency: {
+        min: 40,
+        max: 189,
       },
-      "offset": {
-        "min": 0,
-        "max": 6.28
+      offset: {
+        min: 0,
+        max: 6.28,
       },
-      "damping": 0.05,
-      "angle": {
-        "min": -90,
-        "max": 90
+      damping: 0.05,
+      angle: {
+        min: -90,
+        max: 90,
       },
-      "motionBlur": {
-        "enabled": true,
-        "strength": 0.15,
-        "maxLength": 2.4
+      motionBlur: {
+        enabled: true,
+        strength: 0.15,
+        maxLength: 2.4,
+      },
+    },
+  },
+  lightning: {
+    enabled: true,
+    minDelay: 100,
+    maxDelay: 5000,
+    flickerChance: 0.55,
+    burstMinStrikes: 1,
+    burstMaxStrikes: 10,
+    burstStrikeDuration: 150,
+    burstStrikeDelay: 300,
+    endPointVariationX: 200,
+    endPointVariationY: 200,
+    offPeriodMin: 1,
+    offPeriodMax: 1761,
+    strikeDuration: 1500,
+    flickerInterval: 96,
+    flickerIntensity: 0.51,
+    fadeEasePower: 2,
+    color: "#99DDFF",
+    coreColor: "#FFFFFF",
+    brightness: 2.9,
+    sheathOpacity: 1,
+    coreOpacity: 1,
+    width: {
+      start: 47.5,
+      end: 16.1,
+      variationEnabled: true,
+      variationAmount: 0.5,
+      variationScale: 0.1,
+      variationSpeed: 0.1,
+    },
+    coreWidth: {
+      start: 14.1,
+      end: 4.8,
+    },
+    path: {
+      segments: 100,
+      endPointRandomness: 15,
+    },
+    curve: {
+      startAngleMin: -45,
+      startAngleMax: 45,
+      endAngleMin: 135,
+      endAngleMax: 225,
+      controlPointDistanceMin: 100,
+      controlPointDistanceMax: 160,
+    },
+    fork: {
+      maxDepth: 4,
+      chance: 1,
+      angleRange: 168,
+      lengthFalloff: 0.7,
+      widthFalloff: 0.86,
+    },
+    displacement: {
+      enabled: true,
+      magnitude: 15,
+      speed: 0.2,
+      scale: 0.05,
+    },
+    displacementFine: {
+      enabled: true,
+      magnitude: 5,
+      speed: 0.1,
+      scale: 0.005,
+    },
+  },
+  smellyFlies: {
+    enabled: true,
+    blendMode: 0,
+    particleTexture: "modules/map-shine/assets/fly.webp",
+    maxParticles: 10,
+    flying: {
+      takeoffDuration: 0.5,
+      takeoffSpeedMin: 100,
+      takeoffSpeedMax: 200,
+      noiseStrength: 2000,
+      noiseFrequency: 25,
+      tetherStrength: 15.8,
+      maxSpeed: 1000,
+      drag: 0.8,
+      landChance: 0.05,
+      landingDuration: 1,
+    },
+    walking: {
+      walkSpeed: 60,
+      minIdleTime: 0.5,
+      maxIdleTime: 2.5,
+      minRotateTime: 0.2,
+      maxRotateTime: 0.7,
+      minMoveTime: 0.3,
+      maxMoveTime: 5.3,
+      minMoveDistance: 5,
+      maxMoveDistance: 95,
+      takeoffChance: 0.05,
+    },
+    motionBlur: {
+      enabled: true,
+      strength: 0.03,
+      maxLength: 1.6,
+    },
+  },
+  particleSystems: {
+    enabled: true,
+    globalDensityMultiplier: 1,
+    globalParticleLimit: 3600,
+  },
+  buildingShadows: {
+    enabled: true,
+    intensity: 0.33,
+    maxOffset: 225,
+    maxBlur: 9,
+    sunAngle: 3,
+  },
+  timeOfDay: {
+    enabled: true,
+    syncToSceneDarkness: true,
+    intensity: 1,
+    currentTime: 16.024852297982555,
+    keyframes: {
+      midnight: {
+        time: 0,
+        temperature: -0.22,
+        tint: 0.02,
+        saturation: 0.5,
+        brightness: -0.01,
+        contrast: 0.99,
+        exposure: 0,
+        gamma: 1,
+      },
+      dawn: {
+        time: 6,
+        temperature: 1,
+        tint: -0.25,
+        saturation: 0.5,
+        brightness: 0,
+        contrast: 1,
+        exposure: -0.25,
+        gamma: 1,
+      },
+      midday: {
+        time: 12,
+        temperature: 0,
+        tint: 0,
+        saturation: 1.1,
+        brightness: 0,
+        contrast: 1,
+        exposure: 0.25,
+        gamma: 1,
+      },
+      dusk: {
+        time: 18,
+        temperature: 1,
+        tint: -0.25,
+        saturation: 0.5,
+        brightness: 0,
+        contrast: 1.1,
+        exposure: -0.25,
+        gamma: 1,
+      },
+      twilight: {
+        time: 21,
+        temperature: -0.44,
+        tint: -0.42,
+        saturation: 0.55,
+        brightness: 0,
+        contrast: 1,
+        exposure: -0.55,
+        gamma: 1,
+      },
+    },
+  },
+  diagnostic: {
+    enabled: false,
+    showMasks: true,
+    pixelInspector: false,
+    displaySuffix: "structural",
+  },
+  physicsRope: {
+    enabled: true,
+    rope: {
+      texturePath: "modules/map-shine/assets/rope.webp",
+      segmentLength: 10,
+      animationSpeed: 1,
+      damping: 0.99,
+      windForce: 1,
+      springConstant: 0.8,
+      tapering: 0.5,
+      ropeEndTexturePath: null,
+      ropeEndScale: 1,
+      indoorWindShielding: 0.9,
+      endpointFade: 0,
+      fadeStartDistance: 0.2,
+      fadeEndDistance: 0.2,
+    },
+    chain: {
+      texturePath: "modules/map-shine/assets/rope.webp",
+      segmentLength: 15,
+      animationSpeed: 0.8,
+      damping: 0.95,
+      windForce: 0.3,
+      springConstant: 0.8,
+      tapering: 0.2,
+      ropeEndTexturePath: null,
+      ropeEndScale: 1,
+      indoorWindShielding: 0.7,
+      endpointFade: 0,
+      fadeStartDistance: 0.2,
+      fadeEndDistance: 0.2,
+    },
+    elastic: {
+      texturePath: "modules/map-shine/assets/rope.webp",
+      segmentLength: 8,
+      animationSpeed: 1.2,
+      damping: 0.98,
+      windForce: 1.5,
+      springConstant: 0.8,
+      tapering: 0.7,
+      ropeEndTexturePath: null,
+      ropeEndScale: 1,
+      indoorWindShielding: 0.95,
+      endpointFade: 0,
+      fadeStartDistance: 0.2,
+      fadeEndDistance: 0.2,
+    },
+  },
+  overheadEffect: {
+    enabled: true,
+    blurMinZoom: 0,
+    blurMidZoom: 1.5,
+    blurMaxZoom: 18,
+    opacityMinZoom: 1,
+    opacityMidZoom: 0.5,
+    opacityMaxZoom: 0,
+    zoomPointMin: 0.2,
+    zoomPointMid: 0.65,
+    zoomPointMax: 1.5,
+    timeOfDayStrength: 1,
+    recolor: {
+      enabled: true,
+      intensity: 1,
+      blendMode: 1,
+      cloudShadowDarken: {
+        enabled: true,
+        intensity: 1,
+      },
+    },
+    hoverFadeDuration: 500,
+    tokenMasking: {
+      enabled: true,
+      blurAmount: 10,
+    },
+  },
+  ambientLayerZIndex: 250,
+  weather: {
+    enabled: true,
+    currentState: "clear",
+    transitionDuration: 10000, // milliseconds for state transitions
+    
+    // Rain Shader Configuration
+    rain: {
+      opacity: 0.25,
+      intensity: 1.0,
+      strength: 1.0,
+      rotation: 0, // Offset added to wind-based rotation (radians)
+      resolution: {
+        x: 3200,
+        y: 80
+      },
+      speed: 0.2, // animation speed multiplier
+      tint: {
+        r: 1.0,
+        g: 1.0,
+        b: 1.0
       }
-    }
-  },
-  "lightning": {
-    "enabled": true,
-    "minDelay": 100,
-    "maxDelay": 5000,
-    "flickerChance": 0.55,
-    "burstMinStrikes": 1,
-    "burstMaxStrikes": 10,
-    "burstStrikeDuration": 150,
-    "burstStrikeDelay": 300,
-    "endPointVariationX": 200,
-    "endPointVariationY": 200,
-    "offPeriodMin": 1,
-    "offPeriodMax": 1761,
-    "strikeDuration": 1500,
-    "flickerInterval": 96,
-    "flickerIntensity": 0.51,
-    "fadeEasePower": 2,
-    "color": "#99DDFF",
-    "coreColor": "#FFFFFF",
-    "brightness": 2.9,
-    "sheathOpacity": 1,
-    "coreOpacity": 1,
-    "width": {
-      "start": 47.5,
-      "end": 16.1,
-      "variationEnabled": true,
-      "variationAmount": 0.5,
-      "variationScale": 0.1,
-      "variationSpeed": 0.1
     },
-    "coreWidth": {
-      "start": 14.1,
-      "end": 4.8
-    },
-    "path": {
-      "segments": 100,
-      "endPointRandomness": 15
-    },
-    "curve": {
-      "startAngleMin": -45,
-      "startAngleMax": 45,
-      "endAngleMin": 135,
-      "endAngleMax": 225,
-      "controlPointDistanceMin": 100,
-      "controlPointDistanceMax": 160
-    },
-    "fork": {
-      "maxDepth": 4,
-      "chance": 1,
-      "angleRange": 168,
-      "lengthFalloff": 0.7,
-      "widthFalloff": 0.86
-    },
-    "displacement": {
-      "enabled": true,
-      "magnitude": 15,
-      "speed": 0.2,
-      "scale": 0.05
-    },
-    "displacementFine": {
-      "enabled": true,
-      "magnitude": 5,
-      "speed": 0.1,
-      "scale": 0.005
-    }
-  },
-  "smellyFlies": {
-    "enabled": true,
-    "blendMode": 0,
-    "particleTexture": "modules/map-shine/assets/fly.webp",
-    "maxParticles": 10,
-    "flying": {
-      "takeoffDuration": 0.5,
-      "takeoffSpeedMin": 100,
-      "takeoffSpeedMax": 200,
-      "noiseStrength": 2000,
-      "noiseFrequency": 25,
-      "tetherStrength": 15.8,
-      "maxSpeed": 1000,
-      "drag": 0.8,
-      "landChance": 0.05,
-      "landingDuration": 1
-    },
-    "walking": {
-      "walkSpeed": 60,
-      "minIdleTime": 0.5,
-      "maxIdleTime": 2.5,
-      "minRotateTime": 0.2,
-      "maxRotateTime": 0.7,
-      "minMoveTime": 0.3,
-      "maxMoveTime": 5.3,
-      "minMoveDistance": 5,
-      "maxMoveDistance": 95,
-      "takeoffChance": 0.05
-    },
-    "motionBlur": {
-      "enabled": true,
-      "strength": 0.03,
-      "maxLength": 1.6
-    }
-  },
-  "particleSystems": {
-    "enabled": true,
-    "globalDensityMultiplier": 1,
-    "globalParticleLimit": 3600
-  },
-  "buildingShadows": {
-    "enabled": true,
-    "intensity": 0.33,
-    "maxOffset": 225,
-    "maxBlur": 9,
-    "sunAngle": 3
-  },
-  "timeOfDay": {
-    "enabled": true,
-    "syncToSceneDarkness": true,
-    "intensity": 1,
-    "currentTime": 16.024852297982555,
-    "keyframes": {
-      "midnight": {
-        "time": 0,
-        "temperature": -0.22,
-        "tint": 0.02,
-        "saturation": 0.5,
-        "brightness": -0.01,
-        "contrast": 0.99,
-        "exposure": 0,
-        "gamma": 1
-      },
-      "dawn": {
-        "time": 6,
-        "temperature": 1,
-        "tint": -0.25,
-        "saturation": 0.5,
-        "brightness": 0,
-        "contrast": 1,
-        "exposure": -0.25,
-        "gamma": 1
-      },
-      "midday": {
-        "time": 12,
-        "temperature": 0,
-        "tint": 0,
-        "saturation": 1.1,
-        "brightness": 0,
-        "contrast": 1,
-        "exposure": 0.25,
-        "gamma": 1
-      },
-      "dusk": {
-        "time": 18,
-        "temperature": 1,
-        "tint": -0.25,
-        "saturation": 0.5,
-        "brightness": 0,
-        "contrast": 1.1,
-        "exposure": -0.25,
-        "gamma": 1
-      },
-      "twilight": {
-        "time": 21,
-        "temperature": -0.44,
-        "tint": -0.42,
-        "saturation": 0.55,
-        "brightness": 0,
-        "contrast": 1,
-        "exposure": -0.55,
-        "gamma": 1
-      }
-    }
-  },
-  "diagnostic": {
-    "enabled": false,
-    "showMasks": true,
-    "pixelInspector": false,
-    "displaySuffix": "structural"
-  },
-  "physicsRope": {
-    "enabled": true,
-    "rope": {
-      "texturePath": "modules/map-shine/assets/rope.webp",
-      "segmentLength": 10,
-      "animationSpeed": 1,
-      "damping": 0.99,
-      "windForce": 1,
-      "springConstant": 0.8,
-      "tapering": 0.5,
-      "ropeEndTexturePath": null,
-      "ropeEndScale": 1,
-      "indoorWindShielding": 0.9,
-      "endpointFade": 0,
-      "fadeStartDistance": 0.2,
-      "fadeEndDistance": 0.2
-    },
-    "chain": {
-      "texturePath": "modules/map-shine/assets/rope.webp",
-      "segmentLength": 15,
-      "animationSpeed": 0.8,
-      "damping": 0.95,
-      "windForce": 0.3,
-      "springConstant": 0.8,
-      "tapering": 0.2,
-      "ropeEndTexturePath": null,
-      "ropeEndScale": 1,
-      "indoorWindShielding": 0.7,
-      "endpointFade": 0,
-      "fadeStartDistance": 0.2,
-      "fadeEndDistance": 0.2
-    },
-    "elastic": {
-      "texturePath": "modules/map-shine/assets/rope.webp",
-      "segmentLength": 8,
-      "animationSpeed": 1.2,
-      "damping": 0.98,
-      "windForce": 1.5,
-      "springConstant": 0.8,
-      "tapering": 0.7,
-      "ropeEndTexturePath": null,
-      "ropeEndScale": 1,
-      "indoorWindShielding": 0.95,
-      "endpointFade": 0,
-      "fadeStartDistance": 0.2,
-      "fadeEndDistance": 0.2
-    }
-  },
-  "overheadEffect": {
-    "enabled": true,
-    "blurMinZoom": 0,
-    "blurMidZoom": 1.5,
-    "blurMaxZoom": 18,
-    "opacityMinZoom": 1,
-    "opacityMidZoom": 0.5,
-    "opacityMaxZoom": 0,
-    "zoomPointMin": 0.2,
-    "zoomPointMid": 0.65,
-    "zoomPointMax": 1.5,
-    "timeOfDayStrength": 1,
-    "recolor": {
-      "enabled": true,
-      "intensity": 1,
-      "blendMode": 1,
-      "cloudShadowDarken": {
-        "enabled": true,
-        "intensity": 1
+    
+    // Snow Shader Configuration
+    snow: {
+      direction: 0.5,
+      speed: 2.0,
+      scale: 2.5,
+      animationSpeed: 1.0, // shader animation speed
+      tint: {
+        r: 1.0,
+        g: 1.0,
+        b: 1.0
       }
     },
-    "hoverFadeDuration": 500,
-    "tokenMasking": {
-      "enabled": true,
-      "blurAmount": 10
+    
+    // Fog Shader Configuration
+    fog: {
+      intensity: 0.15,
+      rotation: 0,
+      slope: 1.0,
+      speed: -4.0,
+      animationSpeed: 0.4,
+      tint: {
+        r: 1.0,
+        g: 1.0,
+        b: 1.0
+      }
+    },
+    
+    // Performance Configuration
+    performance: {
+      cullOutsideViewport: false,
+      lodEnabled: false,
+      lodDistanceThreshold: 2000,
+      lodReductionFactor: 0.5
     }
   },
-  "ambientLayerZIndex": 250
 };
 
 // Establish the global namespace for Map Shine to satisfy type checkers.
@@ -2875,58 +2814,8 @@ class SettingsManager {
       default: FM.hint.fontFamily,
     });
 
-    // --- Weather System Settings ---
-    const WS = UNIVERSAL_EFFECT_DEFAULTS.weather;
-    registerUniversalSetting("weather.enabled", {
-      name: "[Universal] Weather System: Enabled",
-      type: Boolean,
-      default: WS.enabled,
-    });
-    registerUniversalSetting("weather.currentState", {
-      name: "[Universal] Weather: Current State",
-      type: String,
-      default: WS.currentState,
-    });
-    registerUniversalSetting("weather.transitionDuration", {
-      name: "[Universal] Weather: Transition Duration (ms)",
-      type: Number,
-      default: WS.transitionDuration,
-    });
-
-    // --- Weather Performance Settings ---
-    registerUniversalSetting("weather.performance.maxParticles", {
-      name: "[Universal] Weather Performance: Max Particles",
-      type: Number,
-      default: 1000,
-      range: { min: 100, max: 5000, step: 100 },
-    });
-    registerUniversalSetting("weather.performance.cullOutsideViewport", {
-      name: "[Universal] Weather Performance: Viewport Culling",
-      hint: "Don't render particles outside the visible area",
-      type: Boolean,
-      default: true,
-    });
-    registerUniversalSetting("weather.performance.lodEnabled", {
-      name: "[Universal] Weather Performance: Level of Detail (LOD)",
-      hint: "Reduce particle count when zoomed out",
-      type: Boolean,
-      default: true,
-    });
-    registerUniversalSetting("weather.performance.lodDistanceThreshold", {
-      name: "[Universal] Weather Performance: LOD Distance Threshold (px)",
-      hint: "Zoom distance at which LOD reduction begins",
-      type: Number,
-      default: 2000,
-      range: { min: 500, max: 5000, step: 100 },
-    });
-    registerUniversalSetting("weather.performance.lodReductionFactor", {
-      name: "[Universal] Weather Performance: LOD Reduction Factor",
-      hint: "Minimum particle count when fully zoomed out (0.5 = 50%)",
-      type: Number,
-      default: 0.5,
-      range: { min: 0.1, max: 1.0, step: 0.1 },
-    });
-
+    // NOTE: Weather settings have been moved to MODULE_DEFAULTS and are now
+    // part of the scene-specific profile system instead of universal settings
     game.settings.register(MODULE_ID, "advanced-ui-mode", {
       name: "Advanced UI Mode",
       hint: "Toggles the advanced, detailed UI for Map Shine. When off, a simplified control panel is shown.",
@@ -7185,6 +7074,10 @@ class OverheadEffectLayer extends ResizableAnimatedCanvasLayer {
       screen.width,
       screen.height
     );
+    // CRITICAL: Make composite sprite non-interactive
+    // Only the individual sprites in the quadtree should respond to hover
+    this.compositeSprite.eventMode = "none";
+    this.compositeSprite.interactiveChildren = false;
     this.addChild(this.compositeSprite);
 
     Hooks.on("createTile", this._boundRefresh);
@@ -7202,7 +7095,9 @@ class OverheadEffectLayer extends ResizableAnimatedCanvasLayer {
     }
     this.activeAnimations.clear();
 
-    for (const tileId of this.overheadSprites.keys()) {
+    // Clean up sprites
+    for (const [tileId, sprite] of this.overheadSprites.entries()) {
+      // Restore original tile mesh visibility
       const tile = canvas.tiles.get(tileId);
       if (tile && tile.isManagedByOverheadLayer) {
         tile.isManagedByOverheadLayer = false;
@@ -7239,6 +7134,7 @@ class OverheadEffectLayer extends ResizableAnimatedCanvasLayer {
 
     this.compositeSprite.visible = true;
 
+    // Update sprite transforms
     for (const [id, sprite] of this.overheadSprites.entries()) {
       const tile = canvas.tiles.get(id);
       if (tile?.texture?.valid) {
@@ -7248,6 +7144,12 @@ class OverheadEffectLayer extends ResizableAnimatedCanvasLayer {
         sprite.rotation = tile.mesh.rotation;
         sprite.texture = tile.texture;
         sprite.anchor.copyFrom(tile.mesh.anchor);
+        
+        // CRITICAL: Continuously enforce hidden state
+        // Foundry's tile refresh system can reset mesh.alpha, so we enforce it every frame
+        if (tile.mesh.alpha !== 0) {
+          tile.mesh.alpha = 0;
+        }
       }
     }
 
@@ -7289,6 +7191,8 @@ class OverheadEffectLayer extends ResizableAnimatedCanvasLayer {
       this.blurFilter.enabled = this.visible && screenBlur > 0.01;
     }
 
+    // Apply zoom-based opacity to the final composite sprite
+    // This is separate from per-sprite hover fade and multiplies with it
     if (this.compositeSprite) {
       this.compositeSprite.alpha = opacity;
     }
@@ -7424,10 +7328,19 @@ class OverheadEffectLayer extends ResizableAnimatedCanvasLayer {
           csdConfig.intensity ?? 0.5;
       }
     }
+    
+    // Refresh overhead tiles to ensure sprites are created/updated
+    this._refreshOverheadTiles();
   }
 
   _refreshOverheadTiles() {
     if (!this.spritesContainer) return;
+    
+    // Guard: Ensure tiles collection exists before attempting refresh
+    if (!canvas.tiles?.placeables) {
+      console.warn('MapShine | OverheadEffectLayer: Tiles not ready yet, deferring refresh');
+      return;
+    }
 
     const currentOverheadIds = new Set();
     for (const tile of canvas.tiles.placeables) {
@@ -7441,13 +7354,15 @@ class OverheadEffectLayer extends ResizableAnimatedCanvasLayer {
         currentOverheadIds.add(tile.id);
         if (!this.overheadSprites.has(tile.id)) {
           const sprite = new PIXI.Sprite(tile.texture);
-          const oeConfig =
-            game.mapShine.profileManager.activeConfig.overheadEffect;
-          const duration = (oeConfig.hoverFadeDuration || 500) / 1000;
-
+          
+          // Setup PIXI pointer events for hover detection
           sprite.eventMode = "static";
           sprite.cursor = "pointer";
-
+          
+          // Get hover fade duration from config
+          const config = game.mapShine.profileManager.activeConfig;
+          const duration = (config.overheadEffect.hoverFadeDuration || 500) / 1000; // Convert ms to seconds
+          
           sprite.on("pointerover", () => {
             const anim = NativeAnimation.to(sprite, {
               key: `overhead-${tile.id}`,
@@ -7457,6 +7372,7 @@ class OverheadEffectLayer extends ResizableAnimatedCanvasLayer {
             });
             this.activeAnimations.set(tile.id, anim);
           });
+          
           sprite.on("pointerout", () => {
             const anim = NativeAnimation.to(sprite, {
               key: `overhead-${tile.id}`,
@@ -7467,29 +7383,56 @@ class OverheadEffectLayer extends ResizableAnimatedCanvasLayer {
             this.activeAnimations.set(tile.id, anim);
           });
 
+          // Add to sprite container
           this.overheadSprites.set(tile.id, sprite);
           this.spritesContainer.addChild(sprite);
+          
+          // Hide original mesh since we're rendering the duplicate
           tile.isManagedByOverheadLayer = true;
           tile.mesh.alpha = 0;
         }
       }
     }
 
+    // Clean up sprites for tiles that are no longer overhead
     for (const [id, sprite] of this.overheadSprites.entries()) {
       if (!currentOverheadIds.has(id)) {
+        // Remove any active animations
         if (this.activeAnimations.has(id)) {
           this.activeAnimations.get(id).kill();
           this.activeAnimations.delete(id);
         }
+        
+        // Restore original tile mesh visibility
         const tile = canvas.tiles.get(id);
         if (tile) {
           tile.isManagedByOverheadLayer = false;
           tile.mesh.alpha = 1.0;
         }
+        
+        // Destroy sprite
         sprite.destroy();
         this.overheadSprites.delete(id);
       }
     }
+  }
+
+  /**
+   * Implements containsCanvasPoint for sprite bounds checking
+   * @param {PIXI.Sprite} sprite - The sprite to check
+   * @param {PIXI.Point} point - Canvas point to test
+   * @returns {boolean} Whether the sprite contains the point
+   */
+  _spriteContainsCanvasPoint(sprite, point) {
+    if (!sprite.visible || !sprite.renderable) return false;
+    
+    // Get sprite bounds in world space
+    const bounds = sprite.getBounds();
+    if (!bounds.contains(point.x, point.y)) return false;
+
+    // For more precise collision, check if the sprite's texture has alpha at this point
+    // For now, use simple bounds check (can be enhanced later with alpha threshold)
+    return true;
   }
 }
 
@@ -7949,6 +7892,26 @@ class MapShineLifecycle {
     }
     ScreenEffectsManager.updateAllFiltersFromConfig(config);
     await loadingManager?.tick("LAYERS_UPDATE_END");
+
+    // Force weather system to apply initial state after all systems are ready
+    // WeatherEffectLayer is not in canvas.layers so needs explicit update
+    if (game.mapShine.weatherSystemManager?.isReady && config.weather?.enabled) {
+      const weatherManager = game.mapShine.weatherSystemManager;
+      const initialState = config.weather.currentState || 'clear';
+      
+      // Apply the state immediately without transition
+      weatherManager.setInitialState(initialState);
+      
+      // Force shader update to ensure visibility
+      if (weatherManager.weatherEffectLayer) {
+        weatherManager.weatherEffectLayer.updateFromConfig(config);
+        
+        // Apply wind settings to shaders (critical for rain rotation/speed)
+        weatherManager._updateWindOnShaders();
+      }
+      
+      console.log(`MapShine | Weather system activated with initial state: ${initialState}`);
+    }
 
     // Await particle systems readiness
     const particleLayer = canvas.layers.find((l) => l instanceof ParticleLayer);
@@ -10119,6 +10082,13 @@ class ParticleEffectController {
     this.emitters = new Map();
     this.pendingTargets = new Map();
     this.config = {};
+    
+    // Rate limiting for UI-triggered rebuilds - prevents rapid slider changes from causing orphaned particles
+    this._lastRebuildTime = 0;
+    this._rebuildCooldown = 5000; // Minimum 5 seconds between rebuilds
+    this._pendingRebuild = null; // Stores pending rebuild request during cooldown
+    this._rebuildDebounceTimer = null; // Debounce timer for rapid changes
+    
     this.rgbSplitFilter = null;
     this.cloudSuppressorFilter = null;
     this.fireToneFilter = null;
@@ -11853,7 +11823,8 @@ class ParticleEffectController {
         await spawnBehavior.shape.compilePoints();
       }
 
-      // Now that the shape is ready, start the emitter.
+      // Enable emission immediately after resources are loaded and shape is compiled
+      // The await statements above ensure BatchRenderer and textures are ready
       emitter.emit = true;
 
       if (spawnMaskSource instanceof PIXI.Texture) {
@@ -11978,7 +11949,8 @@ class ParticleEffectController {
         await spawnBehavior.shape.compilePoints();
       }
 
-      // Now that the shape is ready, start the emitter.
+      // Enable emission immediately after resources are loaded and shape is compiled
+      // The await statements above ensure BatchRenderer and textures are ready
       emitter.emit = true;
 
       emitter.autoUpdate = false;
@@ -12021,19 +11993,31 @@ class ParticleEffectController {
   }
 
   async processAllPendingTargets() {
+    // Batch process all pending targets in parallel for fast initialization
+    // Each _createEmitterForTarget awaits resource loading and shape compilation
+    // so they're safe to process in parallel
     if (this.pendingTargets.size === 0) return;
-
-    const processingPromises = [];
-    for (const [targetId, targetData] of this.pendingTargets.entries()) {
-      processingPromises.push(
-        this._createEmitterForTarget(targetData, targetId).then((success) => {
+    
+    const promises = [];
+    const targetEntries = Array.from(this.pendingTargets.entries());
+    
+    for (const [targetId, targetData] of targetEntries) {
+      promises.push(
+        this._createEmitterForTarget(targetData, targetId).then(success => {
           if (success) {
             this.pendingTargets.delete(targetId);
           }
+          return success;
         })
       );
     }
-    await Promise.all(processingPromises);
+    
+    const results = await Promise.all(promises);
+    const successCount = results.filter(r => r).length;
+    
+    if (successCount > 0) {
+      console.log(`MapShine | ${this.key}: Batch initialized ${successCount}/${targetEntries.length} emitters`);
+    }
   }
 
   async update(deltaTime) {
@@ -12042,13 +12026,23 @@ class ParticleEffectController {
     }
     if (!this.pendingTargets || !this.emitters) return;
 
-    if (this.pendingTargets.size > 0) {
-      // Process one pending target per frame to spread the load.
+    // Process pending targets - batch processing handled by processAllPendingTargets()
+    // This just ensures any stragglers get processed if batch fails
+    if (this.pendingTargets.size > 0 && this.pendingTargets.size < 5) {
       const [targetId, targetData] = this.pendingTargets.entries().next().value;
       const success = await this._createEmitterForTarget(targetData, targetId);
       if (success) {
         this.pendingTargets.delete(targetId);
       }
+    }
+
+    // Reduced frequency orphan cleanup: Every 300 frames (~5 seconds at 60fps)
+    // Only needed as safety net for edge cases
+    if (!this._orphanCleanupFrame) this._orphanCleanupFrame = 0;
+    this._orphanCleanupFrame++;
+    if (this._orphanCleanupFrame >= 300) {
+      this._orphanCleanupFrame = 0;
+      this._cleanupOrphanedParticles();
     }
 
     if (this.displacementFilter) {
@@ -12215,6 +12209,75 @@ class ParticleEffectController {
     }
   }
 
+  /**
+   * Cleans up orphaned particle sprites that are no longer managed by any emitter.
+   * This runs periodically to catch particles that somehow escape proper cleanup.
+   * @private
+   */
+  _cleanupOrphanedParticles() {
+    if (!this.parentContainer && !this.particleOnlyContainer) return;
+
+    // Build a Set of all particle sprites currently managed by active emitters
+    const managedParticles = new Set();
+    for (const { emitter } of this.emitters.values()) {
+      if (!emitter || !emitter._parent) continue;
+      
+      // Walk through all active particles in this emitter
+      let particle = emitter._activeParticlesFirst;
+      while (particle) {
+        managedParticles.add(particle);
+        particle = particle.next;
+      }
+      
+      // Also walk through pooled particles (they shouldn't have parents, but check anyway)
+      particle = emitter._poolFirst;
+      while (particle) {
+        managedParticles.add(particle);
+        particle = particle.next;
+      }
+    }
+
+    // Check both containers for orphaned children
+    const containersToCheck = [];
+    if (this.particleOnlyContainer) {
+      containersToCheck.push(this.particleOnlyContainer);
+    }
+    if (this.parentContainer && !this.particleOnlyContainer) {
+      containersToCheck.push(this.parentContainer);
+    }
+
+    let orphanCount = 0;
+    for (const container of containersToCheck) {
+      if (!container || container.destroyed) continue;
+      
+      // Find children that aren't in our managed set
+      const orphans = [];
+      for (const child of container.children) {
+        // Skip if this child is managed by an emitter
+        if (managedParticles.has(child)) continue;
+        
+        // CRITICAL FIX: Particles HAVE an .emitter property - they're orphaned if they have
+        // an emitter reference but aren't in any emitter's active/pooled lists
+        if (child.emitter && child.constructor.name === 'Sprite') {
+          orphans.push(child);
+        }
+      }
+      
+      // Remove and destroy orphans
+      for (const orphan of orphans) {
+        orphanCount++;
+        container.removeChild(orphan);
+        if (!orphan.destroyed) {
+          orphan.destroy({ children: true, texture: false, baseTexture: false });
+        }
+      }
+    }
+
+    if (orphanCount > 0) {
+      console.log(`MapShine | Cleaned up ${orphanCount} orphaned particle sprites in ${this.key}`);
+    }
+  }
+
   updateFromConfig(fullConfig) {
     // Ensure this.config is updated with the latest settings at the start of this method.
     this.config = foundry.utils.getProperty(
@@ -12222,14 +12285,12 @@ class ParticleEffectController {
       this.definition.configPath
     );
 
-    // CRITICAL: Read performance settings from game.settings
-    // These are universal settings stored separately from profile config
-    // They're needed in update() for viewport culling and LOD
+    // Store performance config from profile
     this.performanceConfig = {
-      cullOutsideViewport: game.settings.get(MODULE_ID, "universal.weather.performance.cullOutsideViewport") ?? false,
-      lodEnabled: game.settings.get(MODULE_ID, "universal.weather.performance.lodEnabled") ?? false,
-      lodDistanceThreshold: game.settings.get(MODULE_ID, "universal.weather.performance.lodDistanceThreshold") ?? 2000,
-      lodReductionFactor: game.settings.get(MODULE_ID, "universal.weather.performance.lodReductionFactor") ?? 0.5,
+      cullOutsideViewport: fullConfig.weather.performance.cullOutsideViewport ?? false,
+      lodEnabled: fullConfig.weather.performance.lodEnabled ?? false,
+      lodDistanceThreshold: fullConfig.weather.performance.lodDistanceThreshold ?? 2000,
+      lodReductionFactor: fullConfig.weather.performance.lodReductionFactor ?? 0.5,
     };
 
     // Force initialization of special resources before configuration is applied.
@@ -12371,6 +12432,70 @@ class ParticleEffectController {
     this.parentContainer.filters = allFilters.length > 0 ? allFilters : null;
   }
 
+  /**
+   * Rate-limited rebuild for UI-triggered changes.
+   * Debounces rapid slider changes and enforces cooldown between rebuilds.
+   * @param {Object} targets - Effect targets from EffectTargetManager
+   * @param {Object} config - Active configuration
+   */
+  requestRebuild(targets, config) {
+    const now = Date.now();
+    const timeSinceLastRebuild = now - this._lastRebuildTime;
+    
+    // Clear existing debounce timer
+    if (this._rebuildDebounceTimer) {
+      clearTimeout(this._rebuildDebounceTimer);
+      this._rebuildDebounceTimer = null;
+    }
+    
+    // Store the pending rebuild request
+    this._pendingRebuild = { targets, config };
+    
+    // Check if we're still in cooldown
+    if (timeSinceLastRebuild < this._rebuildCooldown) {
+      const remainingCooldown = this._rebuildCooldown - timeSinceLastRebuild;
+      console.log(`MapShine | ${this.key}: Rebuild requested but in cooldown (${(remainingCooldown/1000).toFixed(1)}s remaining). Queueing for later.`);
+      
+      // Schedule rebuild for when cooldown expires
+      this._rebuildDebounceTimer = setTimeout(() => {
+        this._executeRebuild();
+      }, remainingCooldown + 100); // Add 100ms buffer
+      
+      ui.notifications.warn(`Particle rebuild on cooldown. Changes will apply in ${Math.ceil(remainingCooldown/1000)}s.`);
+      return;
+    }
+    
+    // Debounce: wait for user to stop changing sliders (500ms)
+    console.log(`MapShine | ${this.key}: Rebuild requested, debouncing for 500ms...`);
+    this._rebuildDebounceTimer = setTimeout(() => {
+      this._executeRebuild();
+    }, 500);
+  }
+  
+  /**
+   * Executes the actual rebuild after debounce/cooldown
+   * @private
+   */
+  _executeRebuild() {
+    if (!this._pendingRebuild) return;
+    
+    const { targets, config } = this._pendingRebuild;
+    const now = Date.now();
+    
+    console.log(`MapShine | ${this.key}: Executing rate-limited rebuild`);
+    
+    // Update timestamp BEFORE rebuild to prevent race conditions
+    this._lastRebuildTime = now;
+    this._pendingRebuild = null;
+    this._rebuildDebounceTimer = null;
+    
+    // Perform the actual rebuild
+    this.destroyAllEmitters();
+    this.updateTargets(targets, config, {});
+    
+    ui.notifications.info(`${this.key} particles rebuilding... (5s cooldown active)`);
+  }
+
   destroyAllEmitters() {
     if (!this.emitters) this.emitters = new Map();
     if (!this.pendingTargets) this.pendingTargets = new Map();
@@ -12384,6 +12509,27 @@ class ParticleEffectController {
     }
     this.emitters.clear();
     this.pendingTargets.clear();
+    
+    // CRITICAL: Clean up any orphaned particle sprites after destroying emitters
+    // This catches particles that escape proper cleanup during batch operations
+    this._cleanupOrphanedParticles();
+    
+    // NUCLEAR OPTION: Force remove ALL children from containers as final safety net
+    // This ensures zero orphans remain, even if detection logic has bugs
+    if (this.particleOnlyContainer && this.particleOnlyContainer.children.length > 0) {
+      console.warn(`MapShine | ${this.key}: Forcibly removing ${this.particleOnlyContainer.children.length} remaining children from particleOnlyContainer`);
+      const removed = this.particleOnlyContainer.removeChildren();
+      removed.forEach(child => {
+        if (child && !child.destroyed) child.destroy({ children: true, texture: false, baseTexture: false });
+      });
+    }
+    if (this.parentContainer && !this.particleOnlyContainer && this.parentContainer.children.length > 0) {
+      console.warn(`MapShine | ${this.key}: Forcibly removing ${this.parentContainer.children.length} remaining children from parentContainer`);
+      const removed = this.parentContainer.removeChildren();
+      removed.forEach(child => {
+        if (child && !child.destroyed) child.destroy({ children: true, texture: false, baseTexture: false });
+      });
+    }
   }
 
   destroy() {
@@ -12638,7 +12784,6 @@ const buildParticleEmitterConfig = (
     // Fire particles have special movement logic for rising.
     if (config.wind?.enabled) {
       // With wind, all movement is handled by the custom WindBehavior.
-      // This behavior includes buoyancy and applies wind forces directly to velocity.
       // We do NOT add moveAcceleration or set emitterConfig.speed, as that would
       // create conflicts with our custom physics simulation.
       behaviors.push({
@@ -13249,14 +13394,15 @@ class ParticleManager {
  * 
  * ## How to Apply Wind Direction
  * 
- * ### For Particle Systems (direct position updates):
+ * ### For PIXI.particles Systems (WindBehavior):
  * ```javascript
+ * // PIXI.particles applies a 90° CCW rotation, so we must apply inverse transform
  * const windAngleRad = windManager.angle * (Math.PI / 180);
- * const velocityX = Math.cos(windAngleRad) * windManager.speed;
- * const velocityY = -Math.sin(windAngleRad) * windManager.speed;  // Negate for screen coords!
+ * const velocityX = -Math.sin(windAngleRad) * windManager.speed;  // Use -sin for X
+ * const velocityY = -Math.cos(windAngleRad) * windManager.speed;  // Use -cos for Y
  * ```
- * The Y component must be negated because sin() produces positive values for upward angles,
- * but screen Y increases downward.
+ * The PIXI.particles system rotates velocity vectors by 90° counter-clockwise,
+ * so we swap X/Y components and apply signs to compensate.
  * 
  * ### For Shader UV Scrolling (cloud patterns, etc.):
  * ```javascript
@@ -13386,8 +13532,10 @@ class WindManager {
     // Only use base speed for smoothed, ignore gusts entirely
     this.smoothedSpeed += (this.config.baseSpeed - this.smoothedSpeed) * 0.001;
     
-    // Smoothed angle changes very slowly, giving clouds inertia
-    this.smoothedAngle += (this._targetAngle - this.smoothedAngle) * 0.002;
+    // CRITICAL FIX: Smoothed angle tracks the gradually-changing 'angle', NOT the jump-prone '_targetAngle'
+    // This creates cascading smoothing: _targetAngle → angle (fast) → smoothedAngle (very slow)
+    // Result: Clouds have massive inertia and take minutes to change direction
+    this.smoothedAngle += (this.angle - this.smoothedAngle) * 0.0001;
   }
 
   _getRandom(min, max) {
@@ -13459,6 +13607,12 @@ class WeatherSystemManager {
     
     // Cloud texture reference for potential future cloud-based intensity modulation
     this.cloudTextureValid = false;
+    
+    // Smoothed gust effect multipliers for rain (prevents abrupt changes)
+    this._smoothedSpeedMultiplier = 1.0;
+    this._smoothedStrengthMultiplier = 1.0;
+    this._smoothedIntensityMultiplier = 1.0;
+    this._smoothedOpacityMultiplier = 1.0;
     
     // State definitions with properties for each weather type
     this.stateDefinitions = this._initializeStateDefinitions();
@@ -13646,6 +13800,10 @@ class WeatherSystemManager {
         const currentWeather = this.getCurrentWeatherState();
         this._updateWeatherShaders(currentWeather);
       }
+      
+      // Apply wind direction and turbulence AFTER shader updates
+      // This ensures wind rotation isn't overwritten by config values
+      this._updateWindOnShaders();
       return;
     }
 
@@ -13666,6 +13824,9 @@ class WeatherSystemManager {
     if (this.weatherEffectLayer) {
       this._updateWeatherShaders(currentWeather);
     }
+    
+    // Apply wind direction and turbulence during transitions
+    this._updateWindOnShaders();
 
     // Complete transition
     if (this.transitionProgress >= 1.0) {
@@ -13681,6 +13842,9 @@ class WeatherSystemManager {
           this.weatherEffectLayer.updateFromConfig(config);
         }
       }
+      
+      // Apply wind after final config update
+      this._updateWindOnShaders();
     }
   }
 
@@ -13832,35 +13996,14 @@ class WeatherSystemManager {
     // ONLY call updateFromConfig when NOT transitioning
     // During transitions, we manually control opacity to avoid binary visibility toggles
     if (!this.isTransitioning) {
-      const config = {
-        weather: {
-          enabled: true,
-          currentState: this.currentState
-        }
-      };
-      this.weatherEffectLayer.updateFromConfig(config);
-      
-      // CRITICAL: Ensure shader.speed is set for active effects so they animate
-      // This is needed when loading a scene with weather already active (not transitioning)
-      const rainEffect = this.weatherEffectLayer.effects.get('rain');
-      const snowEffect = this.weatherEffectLayer.effects.get('snow');
-      const fogEffect = this.weatherEffectLayer.effects.get('fog');
-      
-      const currentStateDef = this.stateDefinitions[this.currentState];
-      
-      // Set animation speed for active precipitation effects
-      if ((currentStateDef.precipitationType === 'rain' || currentStateDef.precipitationType === 'sleet') && rainEffect?.visible) {
-        rainEffect.shader.speed = 0.2; // Rain animation speed
+      // Use full config from profileManager to ensure all weather properties are available
+      const config = game.mapShine?.profileManager?.activeConfig;
+      if (config) {
+        this.weatherEffectLayer.updateFromConfig(config);
       }
       
-      if ((currentStateDef.precipitationType === 'snow' || currentStateDef.precipitationType === 'sleet') && snowEffect?.visible) {
-        snowEffect.shader.speed = 1; // Snow animation speed
-      }
-      
-      // Set animation speed for fog in storm/blizzard
-      if ((this.currentState === 'storm' || this.currentState === 'blizzard') && fogEffect?.visible) {
-        fogEffect.shader.speed = 0.4; // Fog animation speed
-      }
+      // NOTE: shader.speed is now controlled by _updateWindOnShaders()
+      // which applies user settings + gust-based modulation
       
       return; // Exit early when not transitioning
     }
@@ -13877,9 +14020,8 @@ class WeatherSystemManager {
     // Fade out current state's effects
     if (currentStateDef.precipitationType === 'rain' || currentStateDef.precipitationType === 'sleet') {
       if (rainEffect) {
-        // Ensure visible and animating during transition
+        // Ensure visible during transition (speed controlled by _updateWindOnShaders)
         rainEffect.visible = true;
-        rainEffect.shader.speed = 0.2; // Ensure animation continues
         // Determine current opacity
         let currentOpacity = 0.25;
         if (this.currentState === 'drizzle') currentOpacity = 0.15;
@@ -13894,7 +14036,6 @@ class WeatherSystemManager {
     if (currentStateDef.precipitationType === 'snow' || currentStateDef.precipitationType === 'sleet') {
       if (snowEffect) {
         snowEffect.visible = true;
-        snowEffect.shader.speed = 1; // Ensure animation continues
         snowEffect.shader.uniforms.alpha = 1.0 - transitionIntensity;
       }
     }
@@ -13902,9 +14043,8 @@ class WeatherSystemManager {
     // Fade in target state's effects
     if (targetStateDef.precipitationType === 'rain' || targetStateDef.precipitationType === 'sleet') {
       if (rainEffect) {
-        // Ensure visible and animating during transition
+        // Ensure visible during transition (speed controlled by _updateWindOnShaders)
         rainEffect.visible = true;
-        rainEffect.shader.speed = 0.2; // Ensure animation is active
         // Determine target opacity based on target state
         let targetOpacity = 0.25;
         if (this.targetState === 'drizzle') targetOpacity = 0.15;
@@ -13918,16 +14058,15 @@ class WeatherSystemManager {
     
     if (targetStateDef.precipitationType === 'snow' || targetStateDef.precipitationType === 'sleet') {
       if (snowEffect) {
-        // Ensure visible and animating during transition
+        // Ensure visible during transition (speed controlled by _updateWindOnShaders)
         snowEffect.visible = true;
-        snowEffect.shader.speed = 1; // Ensure animation is active
         snowEffect.shader.uniforms.alpha = transitionIntensity;
         
         // Set target speed parameter (this controls fall speed, not animation)
         let targetSpeed = 2;
         if (this.targetState === 'blizzard') targetSpeed = 8;
         else if (this.targetState === 'sleet') targetSpeed = 3;
-        snowEffect.shader.uniforms.speed = targetSpeed; // Keep at full speed for animation
+        snowEffect.shader.uniforms.speed = targetSpeed;
       }
     }
     
@@ -13935,13 +14074,11 @@ class WeatherSystemManager {
     if (this.targetState === 'storm' || this.targetState === 'blizzard') {
       if (fogEffect) {
         fogEffect.visible = true;
-        fogEffect.shader.speed = 0.4; // Ensure animation is active
         fogEffect.shader.uniforms.alpha = transitionIntensity;
       }
     } else if (this.currentState === 'storm' || this.currentState === 'blizzard') {
       if (fogEffect) {
         fogEffect.visible = true;
-        fogEffect.shader.speed = 0.4; // Ensure animation is active
         fogEffect.shader.uniforms.alpha = 1.0 - transitionIntensity;
       }
     }
@@ -13955,6 +14092,120 @@ class WeatherSystemManager {
     if (currentStateDef.precipitationType !== 'snow' && currentStateDef.precipitationType !== 'sleet' &&
         targetStateDef.precipitationType !== 'snow' && targetStateDef.precipitationType !== 'sleet') {
       if (snowEffect) snowEffect.visible = false;
+    }
+  }
+
+  /**
+   * Update wind direction and turbulence on active weather shaders
+   * @private
+   */
+  _updateWindOnShaders() {
+    const windManager = game.mapShine?.windManager;
+    if (!windManager || !this.weatherEffectLayer) return;
+
+    const rainEffect = this.weatherEffectLayer.effects.get('rain');
+    const snowEffect = this.weatherEffectLayer.effects.get('snow');
+    const fogEffect = this.weatherEffectLayer.effects.get('fog');
+
+    // Get weather config once at the top - used by all shader updates
+    const weatherConfig = game.mapShine?.profileManager?.activeConfig?.weather;
+
+    // Convert wind angle (0° = East) to rain rotation in radians
+    // Wind direction represents where wind is blowing TO
+    // Rain should fall at an angle based on wind direction
+    const windAngleRad = (windManager.angle * Math.PI / 180);
+    
+    // Calculate turbulence based on gust strength (0 to 1)
+    const gustStrength = windManager.getNormalizedStrength();
+    const turbulence = gustStrength * 0.3; // Max 0.3 turbulence during peak gusts
+
+    // Update rain shader with wind-based rotation, speed, and turbulence
+    if (rainEffect?.visible && rainEffect.shader) {
+      // Calculate camera center in UV space for rotation pivot
+      // This makes rain rotate around the screen center, not the canvas center
+      const sceneDims = canvas.scene?.dimensions;
+      if (sceneDims) {
+        const cameraX = canvas.stage.pivot.x;
+        const cameraY = canvas.stage.pivot.y;
+        const cameraCenterU = cameraX / sceneDims.width;
+        const cameraCenterV = cameraY / sceneDims.height;
+        rainEffect.shader.uniforms.rotationCenter = [cameraCenterU, cameraCenterV];
+      }
+      
+      // Rain rotation: map wind angle to shader rotation
+      // Add π/2 (90°) to align rain direction with wind
+      const rotationOffset = weatherConfig?.rain?.rotation ?? 0;
+      rainEffect.shader.uniforms.rotation = -windAngleRad + (Math.PI / 2) + rotationOffset;
+      
+      // NEW APPROACH: Don't change resolution - use visual properties instead
+      // During gusts, make rain MORE VISIBLE and FASTER without touching the Voronoi grid
+      // EXAGGERATED VALUES FOR TESTING - Make gusts VERY OBVIOUS
+      
+      // Calculate target multipliers based on current turbulence
+      const targetSpeedMult = 1.0 + (turbulence * 2.0); // EXAGGERATED: Up to 60% faster
+      const targetStrengthMult = 1.0 + (turbulence * 2.0); // EXAGGERATED: Up to 60% stronger
+      const targetIntensityMult = 1.0 + (turbulence * 2.0); // EXAGGERATED: Up to 60% brighter
+      const targetOpacityMult = 1.0 + (turbulence * 1.0); // EXAGGERATED: Up to 30% more opaque
+      
+      // Asymmetric lerp rates: fast ramp-up (~1 second), slow ramp-down (~3-4 seconds)
+      // When ramping up (target > current), use fast lerp rate
+      // When ramping down (target < current), use slow lerp rate
+      const fastLerpRate = 0.05; // ~1 second at 60fps (1 - 0.95^60 ≈ 0.95)
+      const slowLerpRate = 0.015; // ~3-4 seconds at 60fps
+      
+      // Smooth each multiplier with asymmetric lerping
+      const speedLerp = targetSpeedMult > this._smoothedSpeedMultiplier ? fastLerpRate : slowLerpRate;
+      this._smoothedSpeedMultiplier += (targetSpeedMult - this._smoothedSpeedMultiplier) * speedLerp;
+      
+      const strengthLerp = targetStrengthMult > this._smoothedStrengthMultiplier ? fastLerpRate : slowLerpRate;
+      this._smoothedStrengthMultiplier += (targetStrengthMult - this._smoothedStrengthMultiplier) * strengthLerp;
+      
+      const intensityLerp = targetIntensityMult > this._smoothedIntensityMultiplier ? fastLerpRate : slowLerpRate;
+      this._smoothedIntensityMultiplier += (targetIntensityMult - this._smoothedIntensityMultiplier) * intensityLerp;
+      
+      const opacityLerp = targetOpacityMult > this._smoothedOpacityMultiplier ? fastLerpRate : slowLerpRate;
+      this._smoothedOpacityMultiplier += (targetOpacityMult - this._smoothedOpacityMultiplier) * opacityLerp;
+      
+      // Apply smoothed multipliers to rain shader
+      const userBaseSpeed = weatherConfig?.rain?.speed ?? 1.0;
+      const windSpeedNormalized = windManager.speed / 10; // Normalize: baseSpeed=5 -> 0.5, gustSpeed=15 -> 1.5
+      rainEffect.shader.speed = userBaseSpeed * windSpeedNormalized * this._smoothedSpeedMultiplier;
+      
+      const baseStrength = weatherConfig?.rain?.strength ?? 1.0;
+      rainEffect.shader.uniforms.strength = baseStrength * this._smoothedStrengthMultiplier;
+      
+      const baseIntensity = weatherConfig?.rain?.intensity ?? 1.0;
+      rainEffect.shader.uniforms.intensity = baseIntensity * this._smoothedIntensityMultiplier;
+      
+      const baseOpacity = weatherConfig?.rain?.opacity ?? 0.7;
+      rainEffect.shader.uniforms.opacity = baseOpacity * this._smoothedOpacityMultiplier;
+    }
+
+    // Update snow shader with wind-based direction, speed, and turbulence
+    if (snowEffect?.visible && snowEffect.shader) {
+      // Snow direction: 0-2 range where higher = more horizontal drift
+      // Map wind speed to snow drift
+      const windInfluence = (windManager.speed / 100) * (1.0 + turbulence);
+      const baseDirection = weatherConfig?.snow?.direction ?? 0.5;
+      snowEffect.shader.uniforms.direction = baseDirection + windInfluence;
+      
+      // Snow speed: increase with wind and turbulence
+      const baseSpeed = weatherConfig?.snow?.speed ?? 10.0;
+      const speedMultiplier = 1.0 + (windManager.speed / 10) * (1.0 + turbulence);
+      snowEffect.shader.uniforms.speed = baseSpeed * speedMultiplier;
+    }
+
+    // Update fog shader with wind-based speed and rotation
+    if (fogEffect?.visible && fogEffect.shader) {
+      const baseSpeed = weatherConfig?.fog?.speed ?? 10.0;
+      const speedMultiplier = 1.0 + (windManager.speed / 50);
+      fogEffect.shader.uniforms.speed = baseSpeed * speedMultiplier;
+      
+      // Rotate fog slightly based on wind angle and turbulence
+      const baseFogRotation = weatherConfig?.fog?.rotation ?? 0;
+      const windAngleRad = (windManager.angle * Math.PI) / 180;
+      const rotationVariation = turbulence * 0.2; // Add subtle turbulent rotation
+      fogEffect.shader.uniforms.rotation = baseFogRotation + windAngleRad + rotationVariation;
     }
   }
 
@@ -14037,13 +14288,11 @@ class WeatherSystemManager {
     
     // Apply the initial state immediately (no transition)
     if (this.weatherEffectLayer) {
-      const config = {
-        weather: {
-          enabled: true,
-          currentState: this.currentState
-        }
-      };
-      this.weatherEffectLayer.updateFromConfig(config);
+      // Use full config from profileManager to ensure all weather properties are available
+      const config = game.mapShine?.profileManager?.activeConfig;
+      if (config) {
+        this.weatherEffectLayer.updateFromConfig(config);
+      }
     }
   }
 
@@ -14766,6 +15015,10 @@ export class ParticleLayer extends AnimatedCanvasLayer {
     while (this._particleUpdateAccumulator >= this._particleUpdateInterval) {
       if (game.mapShine.windManager) {
         game.mapShine.windManager.update(this._particleUpdateInterval);
+      }
+      
+      if (game.mapShine.weatherSystemManager) {
+        game.mapShine.weatherSystemManager.update(this._particleUpdateInterval);
       }
       
       game.mapShine.particleManager.update(this._particleUpdateInterval);
@@ -15994,10 +16247,6 @@ class WindBehavior {
   constructor(config) {
     this.order = PIXI.particles.behaviors.BehaviorOrder.Normal;
     this.config = config;
-    // Buoyancy can be configured per-particle system
-    // Default: { x: 0, y: -50 } for fire (upward force)
-    // Precipitation uses: { x: 0, y: 0 } (no buoyancy, gravity-only)
-    this.buoyancy = config.buoyancy || { x: 0, y: -50 };
     this.turbulence = config.turbulence || 0; // Turbulence intensity (0-1)
   }
 
@@ -16018,7 +16267,7 @@ class WindBehavior {
   }
 
   /**
-   * Updates a single particle by applying buoyancy and wind forces.
+   * Updates a single particle by applying wind forces and turbulence.
    * @param {PIXI.particles.Particle} particle The particle to update.
    * @param {number} deltaSec The time elapsed in seconds.
    */
@@ -16032,8 +16281,7 @@ class WindBehavior {
     const windAngleRad = windManager.angle * (Math.PI / 180.0);
     const windForce = windManager.speed * this.config.force;
     const windAccelX = Math.cos(windAngleRad) * windForce;
-    // Negate Y for screen coordinates (Y increases downward)
-    const windAccelY = -Math.sin(windAngleRad) * windForce;
+    const windAccelY = -Math.sin(windAngleRad) * windForce;  // Negate for screen Y-axis
 
     // 2. Add turbulence - random chaotic motion scaled by wind speed
     let turbulenceX = 0;
@@ -16048,9 +16296,9 @@ class WindBehavior {
       turbulenceY = Math.cos(particle.turbulencePhase * 1.3) * turbulenceIntensity;
     }
 
-    // 3. Calculate the total acceleration for this frame (buoyancy + wind + turbulence).
-    const totalAccelX = this.buoyancy.x + windAccelX + turbulenceX;
-    const totalAccelY = this.buoyancy.y + windAccelY + turbulenceY;
+    // 3. Calculate the total acceleration for this frame (wind + turbulence).
+    const totalAccelX = windAccelX + turbulenceX;
+    const totalAccelY = windAccelY + turbulenceY;
 
     // 4. Update the particle's velocity based on the total acceleration.
     particle.velocity.x += totalAccelX * deltaSec;
@@ -23357,6 +23605,18 @@ class CloudShadowsFilter extends PIXI.Filter {
         uniform float u_layer5_opacity;
         uniform float u_layer5_parallaxDepth;
 
+        // Layer 6 (Whispy Domain-Warped Edges)
+        uniform bool u_layer6_enabled;
+        uniform float u_layer6_scale;
+        uniform float u_layer6_speed;
+        uniform vec2 u_layer6_stretch;
+        uniform int u_layer6_octaves;
+        uniform float u_layer6_opacity;
+        uniform float u_layer6_parallaxDepth;
+        uniform float u_layer6_warpStrength;
+        uniform float u_layer6_warpScale;
+        uniform bool u_layer6_additive;
+
         // Evolution (shape morphing over time)
         uniform float u_evolutionSpeed;
 
@@ -23503,6 +23763,37 @@ class CloudShadowsFilter extends PIXI.Filter {
                 
                 // Convert shadow (light transmission) to cloud value (shadow amount)
                 shadedCloudValue = 1.0 - shadow;
+                
+                // Layer 6: Whispy domain-warped edges (additive blend for cloud tops only)
+                // This layer creates turbulent vortex-like wisps around the solid clouds
+                // using domain warping where noise displaces itself for high turbulence
+                if (u_layer6_enabled && !u_outputRawCloud) {
+                    // Apply zoom-independent parallax offset in world space
+                    vec2 parallax_offset6 = u_camera_offset * u_layer6_parallaxDepth * 0.001;
+                    vec2 layer6_coord = corrected_coord + parallax_offset6;
+                    vec2 layer6_base_uv = (layer6_coord / 100.0 * u_noise_scale) * u_layer6_scale * u_layer6_stretch;
+                    layer6_base_uv += u_time * u_windDirection * u_layer6_speed;
+                    
+                    // Domain warping: Sample noise at a different scale to displace coordinates
+                    vec2 warp_uv = layer6_base_uv * u_layer6_warpScale;
+                    float warp_x = fbm3d(vec3(warp_uv, evolutionZ * 1.3), 4, u_noise_persistence, u_noise_lacunarity);
+                    float warp_y = fbm3d(vec3(warp_uv + vec2(5.2, 1.3), evolutionZ * 1.3), 4, u_noise_persistence, u_noise_lacunarity);
+                    
+                    // Apply warping displacement to create vortex-like turbulence
+                    vec2 warped_uv = layer6_base_uv + vec2(warp_x, warp_y) * u_layer6_warpStrength;
+                    
+                    // Sample final noise at warped position with high octaves for detail
+                    float layer6_raw = fbm3d(vec3(warped_uv, evolutionZ * 0.15), u_layer6_octaves, u_noise_persistence, u_noise_lacunarity);
+                    float layer6_value = applyShadingControls(layer6_raw);
+                    
+                    // Additive blend: adds wispy edges instead of darkening like shadow layers
+                    if (u_layer6_additive) {
+                        shadedCloudValue = clamp(shadedCloudValue + layer6_value * u_layer6_opacity, 0.0, 1.0);
+                    } else {
+                        // Fallback: multiplicative like other layers
+                        shadedCloudValue = clamp(shadedCloudValue * (1.0 - layer6_value * u_layer6_opacity), 0.0, 1.0);
+                    }
+                }
             }
 
             if (u_outputRawCloud) {
@@ -23614,6 +23905,18 @@ class CloudShadowsFilter extends PIXI.Filter {
       u_layer5_octaves: 2,
       u_layer5_opacity: 0.2,
       u_layer5_parallaxDepth: 0.15,
+
+      // Layer 6: Whispy domain-warped edges
+      u_layer6_enabled: true,
+      u_layer6_scale: 1.2,
+      u_layer6_speed: 4.5,
+      u_layer6_stretch: [1.5, 1.0],
+      u_layer6_octaves: 7,
+      u_layer6_opacity: 0.15,
+      u_layer6_parallaxDepth: 0.0,
+      u_layer6_warpStrength: 0.3,
+      u_layer6_warpScale: 2.5,
+      u_layer6_additive: true,
 
       // Evolution (shape morphing)
       u_evolutionSpeed: 0.001,
@@ -24112,7 +24415,7 @@ class CloudShadowsLayer extends MaskedEffectLayer {
       const windAngleRad = windManager.smoothedAngle * (Math.PI / 180.0);
       // Use smoothedSpeed instead of speed to ignore gusts
       const windForceMagnitude =
-        windManager.smoothedSpeed * (windConfig.linkedWindForce ?? 0.001);
+        windManager.smoothedSpeed * (windConfig.linkedWindForce ?? 0.02);
       const accelX = Math.cos(windAngleRad) * windForceMagnitude;
       // Negate Y for screen coordinates (Y increases downward)
       const accelY = -Math.sin(windAngleRad) * windForceMagnitude;
@@ -24121,7 +24424,7 @@ class CloudShadowsLayer extends MaskedEffectLayer {
       const dragFactor = 1.0 - (windConfig.linkedDrag ?? 0.5) * deltaInSeconds;
       this._cloudVelocity.x *= dragFactor;
       this._cloudVelocity.y *= dragFactor;
-      const maxSpeed = windConfig.linkedMaxSpeed ?? 0.005;
+      const maxSpeed = windConfig.linkedMaxSpeed ?? 0.002;
       const currentSpeedSq =
         this._cloudVelocity.x ** 2 + this._cloudVelocity.y ** 2;
       if (currentSpeedSq > maxSpeed ** 2) {
@@ -24266,6 +24569,21 @@ class CloudShadowsLayer extends MaskedEffectLayer {
       ];
       u.u_layer5_octaves = layers.layer5?.octaves ?? 2;
       u.u_layer5_opacity = layers.layer5?.opacity ?? 0.2;
+
+      // Layer 6 (Whispy domain-warped edges)
+      u.u_layer6_enabled = layers.layer6?.enabled ?? true;
+      u.u_layer6_scale = layers.layer6?.scale ?? 1.2;
+      u.u_layer6_speed = layers.layer6?.speed ?? 4.5;
+      u.u_layer6_stretch = [
+        layers.layer6?.stretchX ?? 1.5,
+        layers.layer6?.stretchY ?? 1.0,
+      ];
+      u.u_layer6_octaves = layers.layer6?.octaves ?? 7;
+      u.u_layer6_opacity = layers.layer6?.opacity ?? 0.15;
+      u.u_layer6_parallaxDepth = layers.layer6?.parallaxDepth ?? 0.0;
+      u.u_layer6_warpStrength = layers.layer6?.warpStrength ?? 0.3;
+      u.u_layer6_warpScale = layers.layer6?.warpScale ?? 2.5;
+      u.u_layer6_additive = layers.layer6?.additive ?? true;
     }
 
     // Evolution speed
@@ -31734,7 +32052,7 @@ class DebuggerUIBuilder {
           <span class="accordion-toggle"></span>
           <div class="summary-control">
             ${DebuggerUIBuilder._createCheckboxHTML(
-              "universal.weather.enabled",
+              "weather.enabled",
               "<strong>Enable Weather System</strong>",
               false,
               "Master toggle for dynamic weather effects."
@@ -31788,7 +32106,7 @@ class DebuggerUIBuilder {
           <div class="control-row">
             <label>Current Weather</label>
             ${DebuggerUIBuilder._createSelectHTML(
-              "universal.weather.currentState",
+              "weather.currentState",
               "",
               {
                 clear: "Clear",
@@ -31804,7 +32122,7 @@ class DebuggerUIBuilder {
           </div>
 
           ${DebuggerUIBuilder._createSliderHTML(
-            "universal.weather.transitionDuration",
+            "weather.transitionDuration",
             "Transition Duration (ms)",
             1000,
             30000,
@@ -31815,18 +32133,114 @@ class DebuggerUIBuilder {
           <!-- Shader Effects Note -->
           <div style="padding: 10px; background: rgba(59,130,246,0.1); border-left: 3px solid #3b82f6; border-radius: 3px; margin: 10px 0;">
             <div style="font-size: 11px; color: #93c5fd; margin-bottom: 4px;">
+{{ ... }
               <strong>🚀 GPU-Accelerated Shaders</strong>
             </div>
             <div style="font-size: 10px; color: #cbd5e1; line-height: 1.4;">
-              Weather effects are now powered by GPU shaders for better performance and visual quality. Controls for Rain, Snow, and Fog shaders will be added in future updates.
+              Weather effects are powered by GPU shaders for better performance and visual quality. Adjust shader parameters below for real-time control of rain, snow, and fog effects.
             </div>
           </div>
 
-          <!-- Shader Effects Sub-Accordion -->
+          <!-- Rain Shader Sub-Accordion -->
           <details style="margin-top: 5px;">
             <summary><span class="accordion-toggle"></span><strong>🌧️ Rain Shader</strong></summary>
             <div style="padding-left: 5px;">
-              <p class="description-text">Control GPU-accelerated rain shader parameters. (Coming Soon)</p>
+              <p class="description-text">Control GPU-accelerated rain shader using Voronoi cells for realistic streaks.</p>
+              
+              ${DebuggerUIBuilder._createSliderHTML(
+                "weather.rain.opacity",
+                "Opacity",
+                0,
+                1,
+                0.05,
+                "Overall visibility of rain effect"
+              )}
+
+              ${DebuggerUIBuilder._createSliderHTML(
+                "weather.rain.intensity",
+                "Intensity",
+                0,
+                3,
+                0.1,
+                "Brightness of rain streaks"
+              )}
+
+              ${DebuggerUIBuilder._createSliderHTML(
+                "weather.rain.strength",
+                "Strength",
+                0.1,
+                3,
+                0.1,
+                "Thickness and visibility of rain drops"
+              )}
+
+              ${DebuggerUIBuilder._createSliderHTML(
+                "weather.rain.rotation",
+                "Rotation (radians)",
+                0,
+                6.28,
+                0.01,
+                "Angle of rain fall (0=vertical, 0.52≈30°)"
+              )}
+
+              ${DebuggerUIBuilder._createSliderHTML(
+                "weather.rain.speed",
+                "Animation Speed",
+                0,
+                2,
+                0.05,
+                "Speed multiplier for rain animation"
+              )}
+
+              <details style="margin-top: 5px;">
+                <summary><span class="accordion-toggle"></span><strong>Advanced</strong></summary>
+                <div style="padding-left: 5px;">
+                  ${DebuggerUIBuilder._createSliderHTML(
+                    "weather.rain.resolution.x",
+                    "Resolution X",
+                    1000,
+                    10000,
+                    100,
+                    "Horizontal density of Voronoi cells"
+                  )}
+
+                  ${DebuggerUIBuilder._createSliderHTML(
+                    "weather.rain.resolution.y",
+                    "Resolution Y",
+                    10,
+                    500,
+                    10,
+                    "Vertical density (lower = longer streaks)"
+                  )}
+
+                  ${DebuggerUIBuilder._createSliderHTML(
+                    "weather.rain.tint.r",
+                    "Tint Red",
+                    0,
+                    1,
+                    0.01,
+                    "Red channel tint (1.0 = white rain)"
+                  )}
+
+                  ${DebuggerUIBuilder._createSliderHTML(
+                    "weather.rain.tint.g",
+                    "Tint Green",
+                    0,
+                    1,
+                    0.01,
+                    "Green channel tint"
+                  )}
+
+                  ${DebuggerUIBuilder._createSliderHTML(
+                    "weather.rain.tint.b",
+                    "Tint Blue",
+                    0,
+                    1,
+                    0.01,
+                    "Blue channel tint"
+                  )}
+                </div>
+              </details>
             </div>
           </details>
 
@@ -31834,7 +32248,75 @@ class DebuggerUIBuilder {
           <details style="margin-top: 5px;">
             <summary><span class="accordion-toggle"></span><strong>❄️ Snow Shader</strong></summary>
             <div style="padding-left: 5px;">
-              <p class="description-text">Control GPU-accelerated snow shader parameters. (Coming Soon)</p>
+              <p class="description-text">Control GPU-accelerated snow shader with 20 layers of procedural snowflakes.</p>
+              
+              ${DebuggerUIBuilder._createSliderHTML(
+                "weather.snow.direction",
+                "Direction",
+                0,
+                2,
+                0.1,
+                "Horizontal drift direction (0.5=slight, 1.2=strong)"
+              )}
+
+              ${DebuggerUIBuilder._createSliderHTML(
+                "weather.snow.speed",
+                "Speed",
+                0,
+                20,
+                0.5,
+                "Fall speed of snowflakes"
+              )}
+
+              ${DebuggerUIBuilder._createSliderHTML(
+                "weather.snow.scale",
+                "Scale",
+                0.5,
+                10,
+                0.5,
+                "Size of snowflakes"
+              )}
+
+              ${DebuggerUIBuilder._createSliderHTML(
+                "weather.snow.animationSpeed",
+                "Animation Speed",
+                0,
+                5,
+                0.1,
+                "Speed multiplier for snow animation"
+              )}
+
+              <details style="margin-top: 5px;">
+                <summary><span class="accordion-toggle"></span><strong>Advanced</strong></summary>
+                <div style="padding-left: 5px;">
+                  ${DebuggerUIBuilder._createSliderHTML(
+                    "weather.snow.tint.r",
+                    "Tint Red",
+                    0,
+                    1,
+                    0.01,
+                    "Red channel tint (1.0 = white snow)"
+                  )}
+
+                  ${DebuggerUIBuilder._createSliderHTML(
+                    "weather.snow.tint.g",
+                    "Tint Green",
+                    0,
+                    1,
+                    0.01,
+                    "Green channel tint"
+                  )}
+
+                  ${DebuggerUIBuilder._createSliderHTML(
+                    "weather.snow.tint.b",
+                    "Tint Blue",
+                    0,
+                    1,
+                    0.01,
+                    "Blue channel tint"
+                  )}
+                </div>
+              </details>
             </div>
           </details>
 
@@ -31842,7 +32324,84 @@ class DebuggerUIBuilder {
           <details style="margin-top: 5px;">
             <summary><span class="accordion-toggle"></span><strong>🌫️ Fog Shader</strong></summary>
             <div style="padding-left: 5px;">
-              <p class="description-text">Control GPU-accelerated fog shader parameters. (Coming Soon)</p>
+              <p class="description-text">Control GPU-accelerated fog shader using Fractional Brownian Motion.</p>
+              
+              ${DebuggerUIBuilder._createSliderHTML(
+                "weather.fog.intensity",
+                "Intensity",
+                0,
+                1,
+                0.01,
+                "Overall visibility of fog effect"
+              )}
+
+              ${DebuggerUIBuilder._createSliderHTML(
+                "weather.fog.slope",
+                "Slope",
+                0,
+                3,
+                0.05,
+                "Density threshold (higher = thicker fog)"
+              )}
+
+              ${DebuggerUIBuilder._createSliderHTML(
+                "weather.fog.rotation",
+                "Rotation (radians)",
+                0,
+                6.28,
+                0.01,
+                "Rotation of fog pattern"
+              )}
+
+              ${DebuggerUIBuilder._createSliderHTML(
+                "weather.fog.speed",
+                "Speed",
+                -100,
+                100,
+                1,
+                "Drift speed of fog (negative = reverse)"
+              )}
+
+              ${DebuggerUIBuilder._createSliderHTML(
+                "weather.fog.animationSpeed",
+                "Animation Speed",
+                0,
+                2,
+                0.05,
+                "Speed multiplier for fog animation"
+              )}
+
+              <details style="margin-top: 5px;">
+                <summary><span class="accordion-toggle"></span><strong>Advanced</strong></summary>
+                <div style="padding-left: 5px;">
+                  ${DebuggerUIBuilder._createSliderHTML(
+                    "weather.fog.tint.r",
+                    "Tint Red",
+                    0,
+                    1,
+                    0.01,
+                    "Red channel tint (0.9/0.85/1.0 = default bluish)"
+                  )}
+
+                  ${DebuggerUIBuilder._createSliderHTML(
+                    "weather.fog.tint.g",
+                    "Tint Green",
+                    0,
+                    1,
+                    0.01,
+                    "Green channel tint"
+                  )}
+
+                  ${DebuggerUIBuilder._createSliderHTML(
+                    "weather.fog.tint.b",
+                    "Tint Blue",
+                    0,
+                    1,
+                    0.01,
+                    "Blue channel tint"
+                  )}
+                </div>
+              </details>
             </div>
           </details>
 
@@ -31860,7 +32419,7 @@ class DebuggerUIBuilder {
               )}
 
               ${DebuggerUIBuilder._createSliderHTML(
-                "universal.weather.impacts.particlesPerImpact.max",
+                "weather.impacts.particlesPerImpact.max",
                 "Max Particles/Impact",
                 1,
                 20,
@@ -31868,7 +32427,7 @@ class DebuggerUIBuilder {
               )}
 
               ${DebuggerUIBuilder._createSliderHTML(
-                "universal.weather.impacts.splashHeight.min",
+                "weather.impacts.splashHeight.min",
                 "Min Splash Height (px)",
                 2,
                 50,
@@ -31876,7 +32435,7 @@ class DebuggerUIBuilder {
               )}
 
               ${DebuggerUIBuilder._createSliderHTML(
-                "universal.weather.impacts.splashHeight.max",
+                "weather.impacts.splashHeight.max",
                 "Max Splash Height (px)",
                 2,
                 50,
@@ -31884,7 +32443,7 @@ class DebuggerUIBuilder {
               )}
 
               ${DebuggerUIBuilder._createSliderHTML(
-                "universal.weather.impacts.splashDuration",
+                "weather.impacts.splashDuration",
                 "Splash Duration (s)",
                 0.1,
                 2,
@@ -31892,7 +32451,7 @@ class DebuggerUIBuilder {
               )}
 
               ${DebuggerUIBuilder._createTextInputHTML(
-                "universal.weather.impacts.surfaceMaskPath",
+                "weather.impacts.surfaceMaskPath",
                 "Surface Mask Path (_Surface)"
               )}
             </div>
@@ -31905,14 +32464,14 @@ class DebuggerUIBuilder {
               <p class="description-text">Gradual snow buildup on rooftops and surfaces.</p>
               
               ${DebuggerUIBuilder._createCheckboxHTML(
-                "universal.weather.accumulation.enabled",
+                "weather.accumulation.enabled",
                 "Enable Snow Accumulation",
                 false,
                 "Render snow buildup on _Rooftops masks"
               )}
 
               ${DebuggerUIBuilder._createSliderHTML(
-                "universal.weather.accumulation.rate",
+                "weather.accumulation.rate",
                 "Accumulation Rate",
                 0.1,
                 2,
@@ -31921,7 +32480,7 @@ class DebuggerUIBuilder {
               )}
 
               ${DebuggerUIBuilder._createSliderHTML(
-                "universal.weather.accumulation.maxDepth",
+                "weather.accumulation.maxDepth",
                 "Max Depth (px)",
                 5,
                 50,
@@ -31930,7 +32489,7 @@ class DebuggerUIBuilder {
               )}
 
               ${DebuggerUIBuilder._createSliderHTML(
-                "universal.weather.accumulation.meltRate",
+                "weather.accumulation.meltRate",
                 "Melt Rate",
                 0,
                 1,
@@ -31939,7 +32498,7 @@ class DebuggerUIBuilder {
               )}
 
               ${DebuggerUIBuilder._createSliderHTML(
-                "universal.weather.accumulation.visualOpacity",
+                "weather.accumulation.visualOpacity",
                 "Visual Opacity",
                 0,
                 1,
@@ -31948,7 +32507,7 @@ class DebuggerUIBuilder {
               )}
 
               ${DebuggerUIBuilder._createTextInputHTML(
-                "universal.weather.accumulation.rooftopMaskPath",
+                "weather.accumulation.rooftopMaskPath",
                 "Rooftop Mask Path (_Rooftops)"
               )}
             </div>
@@ -31961,14 +32520,14 @@ class DebuggerUIBuilder {
               <p class="description-text">Screen flash effects with optional thunder sounds.</p>
               
               ${DebuggerUIBuilder._createCheckboxHTML(
-                "universal.weather.lightning.enabled",
+                "weather.lightning.enabled",
                 "Enable Lightning",
                 false,
                 "Random lightning flash effects during storms"
               )}
 
               ${DebuggerUIBuilder._createSliderHTML(
-                "universal.weather.lightning.frequency.min",
+                "weather.lightning.frequency.min",
                 "Min Frequency (ms)",
                 1000,
                 30000,
@@ -31977,7 +32536,7 @@ class DebuggerUIBuilder {
               )}
 
               ${DebuggerUIBuilder._createSliderHTML(
-                "universal.weather.lightning.frequency.max",
+                "weather.lightning.frequency.max",
                 "Max Frequency (ms)",
                 1000,
                 30000,
@@ -31986,7 +32545,7 @@ class DebuggerUIBuilder {
               )}
 
               ${DebuggerUIBuilder._createSliderHTML(
-                "universal.weather.lightning.flashDuration",
+                "weather.lightning.flashDuration",
                 "Flash Duration (ms)",
                 50,
                 500,
@@ -31994,7 +32553,7 @@ class DebuggerUIBuilder {
               )}
 
               ${DebuggerUIBuilder._createSliderHTML(
-                "universal.weather.lightning.flashIntensity",
+                "weather.lightning.flashIntensity",
                 "Flash Intensity",
                 0,
                 1,
@@ -32003,12 +32562,12 @@ class DebuggerUIBuilder {
               )}
 
               ${DebuggerUIBuilder._createTextInputHTML(
-                "universal.weather.lightning.flashColor",
+                "weather.lightning.flashColor",
                 "Flash Color"
               )}
 
               ${DebuggerUIBuilder._createSliderHTML(
-                "universal.weather.lightning.thunderDelay.min",
+                "weather.lightning.thunderDelay.min",
                 "Min Thunder Delay (ms)",
                 0,
                 5000,
@@ -32017,7 +32576,7 @@ class DebuggerUIBuilder {
               )}
 
               ${DebuggerUIBuilder._createSliderHTML(
-                "universal.weather.lightning.thunderDelay.max",
+                "weather.lightning.thunderDelay.max",
                 "Max Thunder Delay (ms)",
                 0,
                 5000,
@@ -32026,7 +32585,7 @@ class DebuggerUIBuilder {
               )}
 
               ${DebuggerUIBuilder._createCheckboxHTML(
-                "universal.weather.lightning.playThunderSound",
+                "weather.lightning.playThunderSound",
                 "Play Thunder Sound",
                 false,
                 "Play thunder sound effect (requires audio file integration)"
@@ -32041,7 +32600,7 @@ class DebuggerUIBuilder {
               <p class="description-text">Optimize weather particle rendering.</p>
               
               ${DebuggerUIBuilder._createSliderHTML(
-                "universal.weather.performance.maxParticles",
+                "weather.performance.maxParticles",
                 "Max Particles",
                 100,
                 5000,
@@ -32050,21 +32609,21 @@ class DebuggerUIBuilder {
               )}
 
               ${DebuggerUIBuilder._createCheckboxHTML(
-                "universal.weather.performance.cullOutsideViewport",
+                "weather.performance.cullOutsideViewport",
                 "Viewport Culling",
                 true,
                 "Don't render particles outside the visible area"
               )}
 
               ${DebuggerUIBuilder._createCheckboxHTML(
-                "universal.weather.performance.lodEnabled",
+                "weather.performance.lodEnabled",
                 "Level of Detail (LOD)",
                 true,
                 "Reduce particle count when zoomed out"
               )}
 
               ${DebuggerUIBuilder._createSliderHTML(
-                "universal.weather.performance.lodDistanceThreshold",
+                "weather.performance.lodDistanceThreshold",
                 "LOD Distance (px)",
                 500,
                 5000,
@@ -32073,7 +32632,7 @@ class DebuggerUIBuilder {
               )}
 
               ${DebuggerUIBuilder._createSliderHTML(
-                "universal.weather.performance.lodReductionFactor",
+                "weather.performance.lodReductionFactor",
                 "LOD Reduction Factor",
                 0.1,
                 1,
@@ -34986,18 +35545,78 @@ class DebuggerEventHandler {
     const isGameSetting =
       path.startsWith("universal.") || path.startsWith("loading-screen-");
 
-    // Special handling for weather state changes - use shader system only
-    if (path === "universal.weather.currentState") {
+    // Special handling for weather state changes - use profile system
+    if (path === "weather.currentState") {
       const weatherManager = game.mapShine?.weatherSystemManager;
       if (weatherManager) {
-        // Use UNIVERSAL_EFFECT_DEFAULTS.weather as the config base
-        const config = UNIVERSAL_EFFECT_DEFAULTS.weather;
+        const config = this.profileManager.activeConfig.weather;
         
         // Transition to the new state (convert to lowercase to match STATES)
         const stateLowercase = value.toLowerCase();
         weatherManager.transitionToState(stateLowercase, config.transitionDuration || 10000);
-        console.log(`MapShine | Transitioning to weather state: ${stateLowercase} (shader-based)`);
+        console.log(`MapShine | Transitioning to weather state: ${stateLowercase}`);
       }
+      
+      // Continue with normal profile system save
+      await this.profileManager.recordUserChange(path, value);
+      await this.profileManager.updateAllSystemsFromConfig();
+      this.updateAllControls();
+      return;
+    }
+
+    // Handle weather shader parameter changes - update immediately via profile system
+    if (path.startsWith("weather.rain.") || 
+        path.startsWith("weather.snow.") || 
+        path.startsWith("weather.fog.")) {
+      
+      // Save to profile
+      await this.profileManager.recordUserChange(path, value);
+      
+      // Then update the active shader immediately
+      const weatherManager = game.mapShine?.weatherSystemManager;
+      if (weatherManager?.weatherEffectLayer) {
+        const pathParts = path.replace("weather.", "").split(".");
+        const shaderType = pathParts[0]; // rain, snow, or fog
+        const paramPath = pathParts.slice(1); // e.g., ['tint', 'r'] or ['opacity']
+        
+        const effect = weatherManager.weatherEffectLayer.effects.get(shaderType);
+        if (effect?.shader) {
+          // Navigate to the correct property
+          if (paramPath.length === 1) {
+            // Simple property like opacity, intensity, etc.
+            const param = paramPath[0];
+            if (param === 'speed' || param === 'animationSpeed') {
+              // Map 'speed' or 'animationSpeed' to shader.speed
+              effect.shader.speed = value;
+            } else if (param in effect.shader.uniforms) {
+              effect.shader.uniforms[param] = value;
+            } else if (param in effect.shader) {
+              effect.shader[param] = value;
+            }
+            console.log(`MapShine | Updated ${shaderType} shader ${param} = ${value}`);
+          } else if (paramPath.length === 2) {
+            // Nested property like tint.r, resolution.x
+            const parent = paramPath[0];
+            const child = paramPath[1];
+            
+            if (parent === 'tint' && effect.shader.uniforms.tint) {
+              // Tint is an array [r, g, b]
+              const tintIndex = child === 'r' ? 0 : child === 'g' ? 1 : 2;
+              effect.shader.uniforms.tint[tintIndex] = value;
+              console.log(`MapShine | Updated ${shaderType} shader tint[${tintIndex}] = ${value}`);
+            } else if (parent === 'resolution' && effect.shader.uniforms.resolution) {
+              // Resolution is an array [x, y]
+              const resIndex = child === 'x' ? 0 : 1;
+              effect.shader.uniforms.resolution[resIndex] = value;
+              console.log(`MapShine | Updated ${shaderType} shader resolution[${resIndex}] = ${value}`);
+            }
+          }
+        }
+      }
+      
+      // Update UI controls and skip the full system refresh
+      this.updateAllControls();
+      return; // Exit early - don't run the normal setting save/refresh flow
     }
     
     if (isGameSetting) {
@@ -35034,9 +35653,38 @@ class DebuggerEventHandler {
         (l) => l instanceof ParticleLayer
       );
       if (particleLayer && game.mapShine.effectTargetManager.targets) {
-        await particleLayer.updateEffectTargets(
-          game.mapShine.effectTargetManager.targets
+        // Find which particle effect this path belongs to
+        const affectedDefinition = Object.entries(PARTICLE_EFFECT_DEFINITIONS).find(
+          ([key, def]) => path.startsWith(def.configPath)
         );
+        
+        if (affectedDefinition && game.mapShine.particleManager) {
+          const [effectKey, definition] = affectedDefinition;
+          const controller = game.mapShine.particleManager.controllers.get(effectKey);
+          
+          if (controller) {
+            console.log(`MapShine | Rebuilding ${effectKey} particle emitters due to config change: ${path}`);
+            
+            // Use rate-limited rebuild to prevent rapid slider changes from causing orphans
+            // This adds 500ms debounce + 5s cooldown between rebuilds
+            const config = game.mapShine.profileManager.activeConfig;
+            controller.requestRebuild(
+              game.mapShine.effectTargetManager.targets,
+              config
+            );
+            
+            // NOTE: requestRebuild() handles:
+            // 1. Debounce: waits 500ms for user to stop changing sliders
+            // 2. Cooldown: enforces 5s minimum between rebuilds
+            // 3. Queueing: if in cooldown, queues rebuild for later
+            // 4. Proper cleanup: destroyAllEmitters() + updateTargets()
+          }
+        } else {
+          // For global particle settings, update all effects
+          await particleLayer.updateEffectTargets(
+            game.mapShine.effectTargetManager.targets
+          );
+        }
       }
     }
   }

@@ -292,6 +292,48 @@ export class WeatherEffectLayer extends PIXI.Container {
     // Stop all effects first
     this.stopAllEffects();
 
+    // Get shader configurations from profile config
+    const weatherConfig = config.weather;
+    const rainConfig = {
+      opacity: weatherConfig.rain.opacity,
+      intensity: weatherConfig.rain.intensity,
+      strength: weatherConfig.rain.strength,
+      rotation: weatherConfig.rain.rotation,
+      resolution: [
+        weatherConfig.rain.resolution.x,
+        weatherConfig.rain.resolution.y
+      ],
+      speed: weatherConfig.rain.speed,
+      tint: [
+        weatherConfig.rain.tint.r,
+        weatherConfig.rain.tint.g,
+        weatherConfig.rain.tint.b
+      ]
+    };
+    
+    const snowConfig = {
+      direction: weatherConfig.snow.direction,
+      speed: weatherConfig.snow.speed,
+      scale: weatherConfig.snow.scale,
+      tint: [
+        weatherConfig.snow.tint.r,
+        weatherConfig.snow.tint.g,
+        weatherConfig.snow.tint.b
+      ]
+    };
+    
+    const fogConfig = {
+      intensity: weatherConfig.fog.intensity,
+      rotation: weatherConfig.fog.rotation,
+      slope: weatherConfig.fog.slope,
+      speed: weatherConfig.fog.speed,
+      tint: [
+        weatherConfig.fog.tint.r,
+        weatherConfig.fog.tint.g,
+        weatherConfig.fog.tint.b
+      ]
+    };
+
     // Determine which effect(s) to play based on weather state
     const state = config.weather.currentState;
     
@@ -302,65 +344,63 @@ export class WeatherEffectLayer extends PIXI.Container {
       
       case 'drizzle':
         this.playEffect('rain', {
-          opacity: 0.15,
-          intensity: 0.6,
-          strength: 0.8
+          ...rainConfig,
+          opacity: rainConfig.opacity * 0.6, // Reduced opacity for drizzle
+          intensity: rainConfig.intensity * 0.6,
+          strength: rainConfig.strength * 0.8
         });
         break;
       
       case 'rain':
-        this.playEffect('rain', {
-          opacity: 0.25,
-          intensity: 1.0,
-          strength: 1.0
-        });
+        this.playEffect('rain', rainConfig);
         break;
       
       case 'storm':
         this.playEffect('rain', {
-          opacity: 0.45,
-          intensity: 1.5,
-          strength: 1.5,
-          rotation: 0.5236
+          ...rainConfig,
+          opacity: rainConfig.opacity * 1.8,
+          intensity: rainConfig.intensity * 1.5,
+          strength: rainConfig.strength * 1.5
+          // Note: rotation is now controlled by WindManager
         });
         this.playEffect('fog', {
-          slope: 1.5,
-          intensity: 0.05,
-          speed: -55.0
+          ...fogConfig,
+          slope: fogConfig.slope * 3.3,
+          intensity: fogConfig.intensity * 0.33,
+          speed: fogConfig.speed * 13.75
         });
         break;
       
       case 'snow':
-        this.playEffect('snow', {
-          direction: 0.5,
-          speed: 2,
-          scale: 2.5
-        });
+        this.playEffect('snow', snowConfig);
         break;
       
       case 'blizzard':
         this.playEffect('snow', {
-          direction: 0.80,
-          speed: 8,
-          scale: 2.5
+          ...snowConfig,
+          direction: snowConfig.direction * 1.6,
+          speed: snowConfig.speed * 4
         });
         this.playEffect('fog', {
-          slope: 1.0,
-          intensity: 0.15,
-          speed: -4.0
+          ...fogConfig,
+          slope: fogConfig.slope * 2.2,
+          intensity: fogConfig.intensity,
+          speed: fogConfig.speed
         });
         break;
       
       case 'sleet':
         // Mix of rain and snow
         this.playEffect('rain', {
-          opacity: 0.15,
-          intensity: 0.8
+          ...rainConfig,
+          opacity: rainConfig.opacity * 0.6,
+          intensity: rainConfig.intensity * 0.8
         });
         this.playEffect('snow', {
-          direction: 0.7,
-          speed: 3,
-          scale: 2.0
+          ...snowConfig,
+          direction: snowConfig.direction * 1.4,
+          speed: snowConfig.speed * 1.5,
+          scale: snowConfig.scale * 0.8
         });
         break;
     }

@@ -2,7 +2,7 @@
   "id": "map-shine",
   "title": "Map Shine",
   "description": "This module allows for a new and user-friendly way to add special effects, filters, and animations to maps in Foundry VTT.",
-  "version": "1.1.52",
+  "version": "1.1.58",
   "library": false,
   "compatibility": {
     "minimum": 13,

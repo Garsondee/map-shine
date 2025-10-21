@@ -14,7 +14,8 @@ export class RainShader extends WeatherShaderBase {
     intensity: 1,
     strength: 1,
     rotation: 0.5,
-    resolution: [3200, 80] // Resolution for voronoi cells (vertical streaks)
+    resolution: [3200, 80], // Resolution for voronoi cells (vertical streaks)
+    rotationCenter: [0.5, 0.5] // Rotation pivot point in UV space (screen center)
   };
 
   /**
@@ -33,11 +34,13 @@ export class RainShader extends WeatherShaderBase {
     uniform float strength;
     uniform float rotation;
     uniform vec2 resolution;
+    uniform vec2 rotationCenter;
 
     // Compute rain according to uv and dimensions for layering
     float computeRain(in vec2 uv, in float t) {
       vec2 tuv = uv;
-      vec2 ruv = ((tuv + 0.5) * rot(rotation)) - 0.5;
+      // Rotate around rotationCenter instead of (0.5, 0.5)
+      vec2 ruv = ((tuv - rotationCenter) * rot(rotation)) + rotationCenter;
       ruv.y -= t * 0.8;
       vec2 st = ruv * resolution;
       vec3 d2 = voronoi(vec3(st - t * 0.5, t * 0.8), 10.0);
