@@ -29,55 +29,107 @@ export class TextureLoader {
      * Load a texture with automatic resolution scaling for _Suffixed textures
      * @param {string} src - Texture path
      * @param {object} options - Loading options
-     * @returns {Promise<PIXI.Texture>}
+     * @returns {Promise<PIXI.Texture|PIXI.Spritesheet>}
      */
     static async loadTexture(src, options = {}) {
         // Check if this is a _Suffixed texture (not the background)
         const isSuffixedTexture = this.DOWNSCALE_SUFFIXES.some(suffix => src.includes(suffix));
         
         if (isSuffixedTexture) {
-            // Check our cache first
+            // Check our cache FIRST (before PIXI cache) to ensure we return downscaled version
             if (this._textureCache.has(src)) {
-                // console.log(`Map Shine | Using cached 0.5x texture: ${src.split('/').pop()}`);
-                return this._textureCache.get(src);
+                const cached = this._textureCache.get(src);
+                // Update Foundry's access time for TTL tracking
+                // Note: Foundry's setCache expects BaseTexture or Spritesheet, not Texture
+                if (foundry.canvas.TextureLoader?.loader?.setCache && cached.baseTexture) {
+                    foundry.canvas.TextureLoader.loader.setCache(src, cached.baseTexture);
+                }
+                return cached;
             }
 
-            // Check if already in PIXI cache - if so, just return it (unless it's destroyed)
+            // Check if already in PIXI cache (might be a downscaled version from previous load)
             const cachedTexture = PIXI.utils.TextureCache[src];
             if (cachedTexture && cachedTexture.baseTexture && cachedTexture.baseTexture.valid) {
-                // console.log(`Map Shine | Texture already loaded (using existing): ${src.split('/').pop()}`);
+                // Verify it's actually downscaled by checking our internal cache
+                // If it's in PIXI but not our cache, it might be the full-size version
+                this._textureCache.set(src, cachedTexture);
                 return cachedTexture;
             }
 
-            // NEW APPROACH: Force a clean load with downsampling
-            const fullTexture = await foundry.canvas.loadTexture(src, { ...options, cacheAsBitmap: false });
+            // Load full texture from Foundry (can return Texture or Spritesheet)
+            let fullAsset;
+            try {
+                fullAsset = await foundry.canvas.loadTexture(src, { ...options, cacheAsBitmap: false });
+            } catch (err) {
+                console.warn(`Map Shine | Texture load failed (file may not exist): ${src.split('/').pop()}`, err.message);
+                return PIXI.Texture.EMPTY;
+            }
             
-            // CRITICAL: Foundry caches textures under MULTIPLE keys (full URL + relative path)
-            // We need to find and delete ALL cache entries for this texture
+            // Handle spritesheet case (extract base texture as a Texture)
+            let fullTexture;
+            if (fullAsset instanceof PIXI.Spritesheet) {
+                fullTexture = new PIXI.Texture(fullAsset.baseTexture);
+            } else {
+                fullTexture = fullAsset;
+            }
+            
+            // Validate the loaded texture
+            if (!fullTexture || !fullTexture.baseTexture || !fullTexture.baseTexture.valid) {
+                console.warn(`Map Shine | Texture invalid or not found (this is normal if the file doesn't exist): ${src.split('/').pop()}`);
+                return PIXI.Texture.EMPTY;
+            }
+            
+            // Get all cache keys for this texture
             const baseTexture = fullTexture.baseTexture;
             const cacheIds = baseTexture.textureCacheIds || [];
             
-            // Create downsampled version FIRST, while original is still valid
+            // Create downsampled version
             const scaledTexture = this._downsampleTexture(fullTexture, 0.5, src);
             
-            // Remove ALL cache entries pointing to the full-size texture
+            // Validate downsampled texture
+            if (!scaledTexture || !scaledTexture.baseTexture || !scaledTexture.baseTexture.valid) {
+                console.error(`Map Shine | Downsampling failed for: ${src}`);
+                return fullTexture; // Return original as fallback
+            }
+            
+            // Remove full-size texture from PIXI cache
             for (const cacheId of cacheIds) {
                 delete PIXI.utils.TextureCache[cacheId];
                 delete PIXI.utils.BaseTextureCache[cacheId];
             }
             
-            // Add the downsampled version to cache under ALL the original keys
+            // Add downsampled version to PIXI cache under all keys
             for (const cacheId of cacheIds) {
                 PIXI.utils.TextureCache[cacheId] = scaledTexture;
                 PIXI.utils.BaseTextureCache[cacheId] = scaledTexture.baseTexture;
             }
             
-            // Also add to our internal cache
+            // Add to our internal cache
             this._textureCache.set(src, scaledTexture);
             
-            // DON'T destroy the original - let it be garbage collected naturally
-            // Destroying it breaks references that may have been created during downsampling
-            // The memory will be freed when nothing references it anymore
+            // ✅ P1: Register with Foundry's memory tracking system
+            // This makes the downscaled texture visible to Foundry's TTL-based expiration
+            // and memory-limit-based eviction systems
+            // Note: Foundry's setCache expects BaseTexture or Spritesheet, not Texture
+            if (foundry.canvas.TextureLoader?.loader?.setCache) {
+                foundry.canvas.TextureLoader.loader.setCache(src, scaledTexture.baseTexture);
+            }
+            
+            // Properly destroy the full-size texture to free VRAM immediately
+            // The downsampling process has already copied the data we need
+            try {
+                fullTexture.destroy(false); // Don't destroy baseTexture (it might be shared)
+                if (baseTexture && !baseTexture.destroyed && baseTexture.resource) {
+                    // Only destroy baseTexture if no other textures reference it
+                    const hasOtherReferences = Object.values(PIXI.utils.TextureCache)
+                        .some(tex => tex?.baseTexture === baseTexture);
+                    if (!hasOtherReferences) {
+                        baseTexture.destroy();
+                    }
+                }
+            } catch (err) {
+                console.warn(`Map Shine | Error destroying full texture: ${err.message}`);
+            }
             
             console.log(`Map Shine | Loaded & downsampled texture (-> ${scaledTexture.width}x${scaledTexture.height}) with ${cacheIds.length} cache keys: ${src.split('/').pop()}`);
             
@@ -195,7 +247,14 @@ export class TextureLoader {
      * Clear the texture cache (useful when changing scenes)
      */
     static clearCache() {
+        let clearedCount = 0;
+        
         for (const [src, texture] of this._textureCache.entries()) {
+            // Skip if texture is already destroyed
+            if (!texture || texture.destroyed) {
+                continue;
+            }
+            
             // Remove from PIXI's cache before destroying to prevent returning destroyed textures
             const baseTexture = texture.baseTexture;
             if (baseTexture && baseTexture.textureCacheIds) {
@@ -205,11 +264,25 @@ export class TextureLoader {
                 }
             }
             
+            // ✅ P1: Let Foundry know we're unloading this texture
+            // This allows Foundry to clean up its internal tracking
+            // Note: We don't use PIXI.Assets.unload() because it's async and might
+            // interfere with scene transitions. Manual cleanup is safer here.
+            
             // Now safe to destroy
-            texture.destroy(true);
+            try {
+                texture.destroy(true);
+                clearedCount++;
+            } catch (err) {
+                console.warn(`Map Shine | Error destroying cached texture ${src}: ${err.message}`);
+            }
         }
+        
         this._textureCache.clear();
         this._optimizationStats = { total: 0, completed: 0 };
-        console.log("Map Shine | Texture cache cleared");
+        
+        if (clearedCount > 0) {
+            console.log(`Map Shine | Texture cache cleared (${clearedCount} textures destroyed)`);
+        }
     }
 }

@@ -4,8 +4,8 @@
  * Based on Foundry VTT's WeatherEffects layer architecture
  */
 import { WeatherShaderEffect } from './WeatherShaderEffect.js';
-import { RainShader } from './RainShader.js';
-import { SnowShader } from './SnowShader.js';
+import { RainShaderAdvanced } from './RainShaderAdvanced.js';
+import { SnowShaderAdvanced } from './SnowShaderAdvanced.js';
 import { FogShader } from './FogShader.js';
 
 export class WeatherEffectLayer extends PIXI.Container {
@@ -50,27 +50,28 @@ export class WeatherEffectLayer extends PIXI.Container {
    * @private
    */
   _createEffectInstances() {
-    // Create rain effect
+    // Create rain effect with pure top-down orthographic shader
+    // NOTE: DO NOT hardcode shader uniforms here - they are set by config system in updateFromConfig()
     const rainEffect = new WeatherShaderEffect({
-      opacity: 0.25,
-      tint: [0.7, 0.9, 1.0],
-      intensity: 1,
-      strength: 1,
-      rotation: 0.2618,
+      windDirection: [0, -1],    // Default: south (top-down view)
+      windStrength: 0.5,
       speed: 0.2
-    }, RainShader);
+    }, RainShaderAdvanced);
     rainEffect.blendMode = PIXI.BLEND_MODES.SCREEN;
     rainEffect.zIndex = 0;
     this.weatherEffects.addChild(rainEffect);
     this.effects.set('rain', rainEffect);
 
-    // Create snow effect
+    // Create snow effect with pure top-down orthographic shader
     const snowEffect = new WeatherShaderEffect({
+      opacity: 0.8,
       tint: [0.85, 0.95, 1],
-      direction: 0.5,
-      speed: 2,
-      scale: 2.5
-    }, SnowShader);
+      windDirection: [0, -1],    // Default: south (top-down view)
+      windStrength: 0.5,
+      snowDensity: 1.0,          // Overall snow amount
+      driftAmount: 1.0,          // Wind drift intensity (like rain speed)
+      speed: 0.5
+    }, SnowShaderAdvanced);
     snowEffect.blendMode = PIXI.BLEND_MODES.SCREEN;
     snowEffect.zIndex = 1;
     this.weatherEffects.addChild(snowEffect);
@@ -299,11 +300,14 @@ export class WeatherEffectLayer extends PIXI.Container {
       intensity: weatherConfig.rain.intensity,
       strength: weatherConfig.rain.strength,
       rotation: weatherConfig.rain.rotation,
-      resolution: [
-        weatherConfig.rain.resolution.x,
-        weatherConfig.rain.resolution.y
-      ],
+      rainDensity: weatherConfig.rain.rainDensity ?? 1.0,
+      gridSize: weatherConfig.rain.gridSize ?? 150,
+      streakLength: weatherConfig.rain.streakLength ?? 80,
       speed: weatherConfig.rain.speed,
+      splashIntensity: weatherConfig.rain.splashIntensity ?? 0.5,
+      waveMaskIntensity: weatherConfig.rain.waveMaskIntensity ?? 0.7,
+      curtainIntensity: weatherConfig.rain.curtainIntensity ?? 0.5,
+      worleySpeed: weatherConfig.rain.worleySpeed ?? 1.0,
       tint: [
         weatherConfig.rain.tint.r,
         weatherConfig.rain.tint.g,
@@ -335,7 +339,7 @@ export class WeatherEffectLayer extends PIXI.Container {
     };
 
     // Determine which effect(s) to play based on weather state
-    const state = config.weather.currentState;
+    const state = config.weather.currentState?.toLowerCase() || 'clear';
     
     switch (state) {
       case 'clear':
@@ -343,32 +347,18 @@ export class WeatherEffectLayer extends PIXI.Container {
         break;
       
       case 'drizzle':
-        this.playEffect('rain', {
-          ...rainConfig,
-          opacity: rainConfig.opacity * 0.6, // Reduced opacity for drizzle
-          intensity: rainConfig.intensity * 0.6,
-          strength: rainConfig.strength * 0.8
-        });
-        break;
-      
       case 'rain':
-        this.playEffect('rain', rainConfig);
-        break;
-      
       case 'storm':
-        this.playEffect('rain', {
-          ...rainConfig,
-          opacity: rainConfig.opacity * 1.8,
-          intensity: rainConfig.intensity * 1.5,
-          strength: rainConfig.strength * 1.5
-          // Note: rotation is now controlled by WindManager
-        });
-        this.playEffect('fog', {
-          ...fogConfig,
-          slope: fogConfig.slope * 3.3,
-          intensity: fogConfig.intensity * 0.33,
-          speed: fogConfig.speed * 13.75
-        });
+        // Rain effects - WeatherSystemManager will apply state-specific values
+        this.playEffect('rain', rainConfig);
+        if (state === 'storm') {
+          this.playEffect('fog', {
+            ...fogConfig,
+            slope: fogConfig.slope * 3.3,
+            intensity: fogConfig.intensity * 0.33,
+            speed: fogConfig.speed * 13.75
+          });
+        }
         break;
       
       case 'snow':
@@ -390,12 +380,8 @@ export class WeatherEffectLayer extends PIXI.Container {
         break;
       
       case 'sleet':
-        // Mix of rain and snow
-        this.playEffect('rain', {
-          ...rainConfig,
-          opacity: rainConfig.opacity * 0.6,
-          intensity: rainConfig.intensity * 0.8
-        });
+        // Mix of rain and snow - WeatherSystemManager handles rain values
+        this.playEffect('rain', rainConfig);
         this.playEffect('snow', {
           ...snowConfig,
           direction: snowConfig.direction * 1.4,
