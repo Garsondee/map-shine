@@ -366,11 +366,20 @@ export class LoadingUI {
    * @param {string} [options.easing='cubic-bezier(0.4, 0, 0.2, 1)'] - CSS easing function
    */
   setProgress(progress, message, options = {}) {
-    if (!this.fillElement) return;
+    if (!this.fillElement) {
+      console.warn("[LoadingUI] setProgress called but fillElement is null!", {
+        hasElement: !!this.element,
+        progress,
+        message
+      });
+      return;
+    }
     
     const p = Math.min(100, Math.max(0, progress));
     const duration = options.duration ?? 300;
     const easing = options.easing ?? 'cubic-bezier(0.4, 0, 0.2, 1)';
+    
+    console.log(`[LoadingUI] setProgress: ${p}% - ${message || '(no message)'}`);
     
     // Apply smooth transition for progress bar animation
     this.fillElement.style.transition = `width ${duration}ms ${easing}`;
