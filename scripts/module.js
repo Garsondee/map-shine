@@ -21,7 +21,7 @@
  * @author Mythica Machina - Ingram Blakelock
  * 
  * Remember that you will need to update the module.json file in the root too when changing version.
- * @version 1.1.83 - Performance: Lazy accordion rendering system reduces DOM from 6,862 to ~500 elements (92% reduction)
+ * @version 1.1.92 - Loading Optimization: Fixed missing waypoints + added prewarming diagnostics
  *
  * @requires foundry ^13+
  * @requires pixi.js ^7.4.3
@@ -231,27 +231,27 @@ export const MODULE_DEFAULTS = {
       "layerBlendMode": 1
     },
     "animation": {
-      "globalIntensity": 1.5
+      "globalIntensity": 0.8
     },
     "pattern": {
       "stripes": {
         "enabled": true,
         "speed": 0,
         "angle": 140,
-        "scale": 1,
+        "scale": 0.077,
         "parallax": 1,
         "width": 1,
-        "softness": 0.2,
+        "softness": 0.5,
         "randomWidth": 0.49,
         "randomIntensity": 1
       }
     },
     "colorCorrection": {
       "enabled": true,
-      "saturation": 1.25,
-      "brightness": 0.5,
+      "saturation": 1,
+      "brightness": 0,
       "contrast": 3.25,
-      "gamma": 0.3,
+      "gamma": 0.5,
       "tint": {
         "color": "#FFFFFF",
         "amount": 0
@@ -266,7 +266,7 @@ export const MODULE_DEFAULTS = {
   "cloudShadows": {
     "enabled": true,
     "blendMode": 0,
-    "shadowIntensity": 0.85,
+    "shadowIntensity": 0.5,
     "maskBlur": 1,
     "lightOcclusion": {
       "enabled": true,
@@ -277,23 +277,23 @@ export const MODULE_DEFAULTS = {
       "speed": 0.5074,
       "linkToWind": true,
       "linkedWindForce": 1,
-      "linkedMaxSpeed": 30,  // Was 0.003, now x10000 for UI (0-100 range)
+      "linkedMaxSpeed": 4,
       "linkedDrag": 0.96
     },
     "noise": {
-      "scale": 8,  // Was 0.08, now x100 for UI (0-100 range)
-      "octaves": 7,
-      "persistence": 0.3,
-      "lacunarity": 2.7
+      "scale": 2.7,
+      "octaves": 8,
+      "persistence": 0.4,
+      "lacunarity": 2.4
     },
     "shading": {
-      "threshold": 0.29,
-      "softness": 1,
+      "threshold": 0.59,
+      "softness": 0.54,
       "brightness": 0.18,
       "contrast": 2.1,
       "gamma": 0.95
     },
-    "evolutionSpeed": 5,  // Was 0.0005, now x10000 for UI (0-100 range)
+    "evolutionSpeed": 4.1,
     "layers": {
       "layer1": {
         "enabled": true,
@@ -427,6 +427,32 @@ export const MODULE_DEFAULTS = {
       "softness": 1
     }
   },
+  "bush": {
+    "enabled": true,
+    "rustleScale": 0.06,
+    "rustleSpeed": 33.4,
+    "rustleFrequency": 0.9,
+    "rustleIntensity": 1.85,
+    "swayScale": 12.1,
+    "swaySpeed": 22.5,
+    "swayFrequency": 0.21,
+    "swayIntensity": 1.35,
+    "swayWindMultiplier": 3,
+    "perpendicularMix": 1
+  },
+  "tree": {
+    "enabled": true,
+    "rustleScale": 3.7,
+    "rustleSpeed": 45,
+    "rustleFrequency": 5.8,
+    "rustleIntensity": 1,
+    "swayScale": 20,
+    "swaySpeed": 15,
+    "swayFrequency": 0.24,
+    "swayIntensity": 2,
+    "swayWindMultiplier": 1.5,
+    "perpendicularMix": 1
+  },
   "structuralShadows": {
     "enabled": true,
     "intensity": 0.5,
@@ -456,7 +482,7 @@ export const MODULE_DEFAULTS = {
     },
     "cloudOcclusion": {
       "enabled": true,
-      "intensity": 1,
+      "intensity": 0.4,
       "threshold": 0,
       "softness": 0.01
     },
@@ -911,12 +937,12 @@ export const MODULE_DEFAULTS = {
     }
   },
   "biofilm": {
-    "enabled": true,
-    "blendMode": 0,
+    "enabled": false,
+    "blendMode": 1,
     "maskThreshold": 0.2,
     "maskUpperThreshold": 0.6,
     "maskInfluence": 5,
-    "particleTexture": "modules/map-shine/assets/particle.webp",
+    "particleTexture": "modules/map-shine/assets/foam.webp",
     "frequency": 0.097,
     "lifetime": {
       "min": 4,
@@ -973,11 +999,11 @@ export const MODULE_DEFAULTS = {
     "enabled": true,
     "depthDisplacement": {
       "enabled": true,
-      "strength": 0.005,
-      "darken": 0.15,
-      "wallColor": "#0d1a26",
-      "wallIntensity": 0.8,
-      "wallSmearBlend": 0.3
+      "strength": 0,
+      "darken": 0.23,
+      "wallColor": "#0a2914",
+      "wallIntensity": 1,
+      "wallSmearBlend": 0.5
     },
     "flow": {
       "enabled": false,
@@ -987,25 +1013,25 @@ export const MODULE_DEFAULTS = {
     "wave": {
       "enabled": true,
       "speed": 0.5,
-      "scale": 4.2,
-      "intensity": 0.0025,
+      "scale": 1,
+      "intensity": 0.01,
       "biofilmDistortion": {
         "enabled": false,
         "intensity": 0.5
       }
     },
     "murkiness": {
-      "enabled": false,
+      "enabled": true,
       "color": "#1a2c22",
       "wavyNoise": {
-        "strength": 0.8,
-        "scale": 2,
-        "speed": 0.005
+        "strength": 0.48,
+        "scale": 0.28,
+        "speed": 0.04
       },
       "sandyNoise": {
-        "strength": 0.3,
-        "scale": 15,
-        "speed": 0.02,
+        "strength": 0.12,
+        "scale": 44.5,
+        "speed": 1,
         "modulationScale": 3,
         "modulationSpeed": 0.01,
         "modulationStrength": 0.5
@@ -1013,10 +1039,10 @@ export const MODULE_DEFAULTS = {
     },
     "surface": {
       "enabled": true,
-      "foamColor": "#33adff",
-      "foamIntensity": 0,
-      "foamCoverage": 0,
-      "foamSharpness": 0.13,
+      "foamColor": "#eff1f0",
+      "foamIntensity": 2,
+      "foamCoverage": 0.33,
+      "foamSharpness": 0.34,
       "fbmScale": 15.196,
       "fbmSpeed": 0.01,
       "fbmEvolution": 0.03,
@@ -1026,10 +1052,10 @@ export const MODULE_DEFAULTS = {
       "specularity": {
         "enabled": true,
         "color": "#FFFFFF",
-        "intensity": 0.75,
-        "shininess": 256,
-        "lightAngle": 45,
-        "lightElevation": 60,
+        "intensity": 0.15,
+        "shininess": 44,
+        "lightAngle": 87,
+        "lightElevation": 12,
         "cloudOcclusion": {
           "enabled": true,
           "intensity": 1
@@ -1038,11 +1064,11 @@ export const MODULE_DEFAULTS = {
     },
     "caustics": {
       "enabled": true,
-      "intensity": 0.033,
-      "scale": 1,
+      "intensity": 0.004,
+      "scale": 0.4,
       "speed": 0.14,
-      "color": "#87CEFA",
-      "lineSharpness": 5,
+      "color": "#bbffbe",
+      "lineSharpness": 1,
       "bloomIntensity": 1,
       "lineDistortion": 0.1,
       "lineDistortionScale": 5,
@@ -1077,7 +1103,7 @@ export const MODULE_DEFAULTS = {
       }
     },
     "glintParticles": {
-      "enabled": true,
+      "enabled": false,
       "blendMode": 9,
       "maskThreshold": 0.17,
       "maskInfluence": 1.95,
@@ -1138,16 +1164,16 @@ export const MODULE_DEFAULTS = {
   "foam": {
     "enabled": true,
     "blendMode": 1,
-    "smallBlur": 2,
-    "largeBlur": 10,
-    "intensity": 1.5,
-    "threshold": 0.2,
-    "softness": 0.1,
+    "smallBlur": 9,
+    "largeBlur": 75,
+    "intensity": 4.15,
+    "threshold": 0.07,
+    "softness": 0.26,
     "color": "#FFFFFF",
     "noise": {
       "scale": 15,
       "speed": 0.02,
-      "evolution": 0.05,
+      "evolution": 0.076,
       "octaves": 4,
       "lacunarity": 2.2,
       "persistence": 0.45
@@ -1176,7 +1202,7 @@ export const MODULE_DEFAULTS = {
     "blurTurbulence": {
       "strength": 8,
       "scale": 0.5,
-      "speed": 0.01
+      "speed": 0.029
     },
     "crestFoam": {
       "enabled": false,
@@ -1203,31 +1229,51 @@ export const MODULE_DEFAULTS = {
     "particles": {
       "enabled": true,
       "blendMode": 1,
-      "maskThreshold": 0.4,
-      "maskInfluence": 3.91,
+      "maskThreshold": 0.03,
+      "maskInfluence": 0.31,
       "particleTexture": "modules/map-shine/assets/flame.webp",
-      "frequency": 0.027,
+      "frequency": 0.019,
       "lifetime": {
-        "min": 3.1,
-        "max": 3.4
+        "min": 0.1,
+        "max": 2.5
       },
       "toneCurve": {
         "enabled": true,
-        "contrast": 1.93,
-        "gamma": 3,
-        "knee": 0.64,
-        "coreClamp": 1.5
+        "contrast": 0.7,
+        "gamma": 0.82,
+        "knee": 0.9,
+        "coreClamp": 0.78
       },
       "colorAlphaGradient": [
         {
           "time": 0,
-          "color": "#FFFFFF",
+          "color": "#FFDD88",
           "alpha": 0
         },
         {
-          "time": 0.09321555065706419,
-          "color": "#ffac00",
-          "alpha": 0.87
+          "time": 0.027615594909811518,
+          "color": "#ffd782",
+          "alpha": 0.04
+        },
+        {
+          "time": 0.1554999458709611,
+          "color": "#ff731e",
+          "alpha": 0.12
+        },
+        {
+          "time": 0.46143798828125,
+          "color": "#9e4712",
+          "alpha": 0.06
+        },
+        {
+          "time": 0.671140900715665,
+          "color": "#000000",
+          "alpha": 0.02
+        },
+        {
+          "time": 0.840843686122106,
+          "color": "#000000",
+          "alpha": 0.01
         },
         {
           "time": 1,
@@ -1238,23 +1284,33 @@ export const MODULE_DEFAULTS = {
       "emissiveGradient": [
         {
           "time": 0,
-          "color": "#ffe88c",
-          "alpha": 0.84
+          "color": "#ffffff",
+          "alpha": 0
         },
         {
-          "time": 0.1205898832317438,
-          "color": "#ff9d26",
-          "alpha": 0.31
+          "time": 0.08507088302279178,
+          "color": "#ff9c09",
+          "alpha": 0.92
         },
         {
-          "time": 0.2237199781512459,
-          "color": "#fb3f00",
-          "alpha": 0.04
+          "time": 0.16106013504318503,
+          "color": "#fff29b",
+          "alpha": 0.9409804985762131
         },
         {
-          "time": 0.8409741765056603,
+          "time": 0.22994685295145176,
+          "color": "#ffb340",
+          "alpha": 0.96
+        },
+        {
+          "time": 0.32901698049752587,
+          "color": "#ff6a11",
+          "alpha": 0.78
+        },
+        {
+          "time": 0.999,
           "color": "#000000",
-          "alpha": 0.5195989291312645
+          "alpha": 0
         },
         {
           "time": 1,
@@ -1263,10 +1319,10 @@ export const MODULE_DEFAULTS = {
         }
       ],
       "scale": {
-        "sizeMultiplier": 1.1,
-        "start": 0.49,
-        "end": 1.59,
-        "minMult": 0.32
+        "sizeMultiplier": 1.5,
+        "start": 0.25,
+        "end": 0.45,
+        "minMult": 0.84
       },
       "speed": {
         "start": 1,
@@ -1275,35 +1331,35 @@ export const MODULE_DEFAULTS = {
       },
       "rotation": {
         "enabled": true,
-        "minSpeed": -180,
-        "maxSpeed": 180,
-        "accel": 75
+        "minSpeed": -42,
+        "maxSpeed": 42,
+        "accel": -2
       },
       "wind": {
         "enabled": true,
-        "force": 5,
-        "baseSpeed": 5,
-        "gustSpeed": 8,
-        "gustFrequencyMin": 0.1,
-        "gustFrequencyMax": 30,
+        "force": 3,
+        "baseSpeed": 34,
+        "gustSpeed": 99,
+        "gustFrequencyMin": 1,
+        "gustFrequencyMax": 26.4,
         "gustDurationMin": 0.4,
-        "gustDurationMax": 5,
+        "gustDurationMax": 1.6,
         "angleChangeFrequencyMin": 3,
-        "angleChangeFrequencyMax": 6,
-        "angleChangeRange": 25
+        "angleChangeFrequencyMax": 57,
+        "angleChangeRange": 5
       },
       "colorCorrection": {
         "enabled": true,
-        "saturation": 1.4,
-        "brightness": 0.2,
+        "saturation": 1.8,
+        "brightness": 0,
         "contrast": 1,
-        "exposure": 0,
+        "exposure": 1.8,
         "gamma": 1
       }
     }
   },
   "candleFlame": {
-    "enabled": true,
+    "enabled": false,
     "blendMode": 1,
     "particleTexture": "modules/map-shine/assets/particle.webp",
     "frequency": 0.002,
@@ -1364,10 +1420,10 @@ export const MODULE_DEFAULTS = {
     }
   },
   "pressurisedSteam": {
-    "enabled": true,
-    "blendMode": 0,
+    "enabled": false,
+    "blendMode": 1,
     "maskThreshold": 0.5,
-    "maskInfluence": 1.5,
+    "maskInfluence": 0.24,
     "particleTexture": "modules/map-shine/assets/steam.webp",
     "lifetime": {
       "min": 0.5,
@@ -1437,7 +1493,7 @@ export const MODULE_DEFAULTS = {
     }
   },
   "sparks": {
-    "enabled": true,
+    "enabled": false,
     "blendMode": 1,
     "maskThreshold": 0.95,
     "maskInfluence": 1.12,
@@ -1630,13 +1686,13 @@ export const MODULE_DEFAULTS = {
   },
   "particleSystems": {
     "enabled": true,
-    "globalDensityMultiplier": 1,
+    "globalDensityMultiplier": 0.95,
     "globalParticleLimit": 3500
   },
   "buildingShadows": {
-    "enabled": true,
+    "enabled": false,
     "intensity": 0.33,
-    "maxOffset": 225,
+    "maxOffset": 25,
     "maxBlur": 9,
     "sunAngle": 3
   },
@@ -1644,7 +1700,7 @@ export const MODULE_DEFAULTS = {
     "enabled": true,
     "syncToSceneDarkness": true,
     "intensity": 1,
-    "currentTime": 15.441765877649871,
+    "currentTime": 13.359496489753496,
     "keyframes": {
       "midnight": {
         "time": 0,
@@ -1754,16 +1810,16 @@ export const MODULE_DEFAULTS = {
   },
   "overheadEffect": {
     "enabled": true,
-    "blurMinZoom": 0.5,
-    "blurMidZoom": 0.5,
-    "blurMaxZoom": 1,
+    "blurMinZoom": 0,
+    "blurMidZoom": 0,
+    "blurMaxZoom": 0,
     "opacityMinZoom": 1,
-    "opacityMidZoom": 0.5,
+    "opacityMidZoom": 1,
     "opacityMaxZoom": 1,
     "zoomPointMin": 0.2,
-    "zoomPointMid": 0.65,
+    "zoomPointMid": 0.3,
     "zoomPointMax": 1.5,
-    "timeOfDayStrength": 1,
+    "timeOfDayStrength": 0,
     "recolor": {
       "enabled": true,
       "intensity": 1,
@@ -1782,8 +1838,8 @@ export const MODULE_DEFAULTS = {
   "ambientLayerZIndex": 250,
   "weather": {
     "enabled": true,
-    "currentState": "clear",
-    "transitionDuration": 10000,
+    "currentState": "Clear",
+    "transitionDuration": 1000,
     "statePresets": {
       "clear": {
         "name": "Clear",
@@ -1794,7 +1850,11 @@ export const MODULE_DEFAULTS = {
         "precipitationType": "none",
         "particleCount": 0,
         "windSpeedMultiplier": 0.5,
-        "atmosphericTint": { "r": 1.0, "g": 1.0, "b": 1.0 },
+        "atmosphericTint": {
+          "r": 1,
+          "g": 1,
+          "b": 1
+        },
         "description": "Sunny day with minimal cloud coverage",
         "wind": {
           "baseSpeed": 20,
@@ -1818,7 +1878,11 @@ export const MODULE_DEFAULTS = {
         "precipitationType": "rain",
         "particleCount": 200,
         "windSpeedMultiplier": 0.7,
-        "atmosphericTint": { "r": 0.95, "g": 0.95, "b": 1.0 },
+        "atmosphericTint": {
+          "r": 0.95,
+          "g": 0.95,
+          "b": 1
+        },
         "description": "Light rain with moderate cloud coverage",
         "wind": {
           "baseSpeed": 40,
@@ -1841,8 +1905,12 @@ export const MODULE_DEFAULTS = {
         "precipitationIntensity": 0.6,
         "precipitationType": "rain",
         "particleCount": 500,
-        "windSpeedMultiplier": 1.0,
-        "atmosphericTint": { "r": 0.9, "g": 0.9, "b": 0.95 },
+        "windSpeedMultiplier": 1,
+        "atmosphericTint": {
+          "r": 0.9,
+          "g": 0.9,
+          "b": 0.95
+        },
         "description": "Steady rainfall with heavy clouds",
         "wind": {
           "baseSpeed": 60,
@@ -1854,7 +1922,7 @@ export const MODULE_DEFAULTS = {
         "cloudWind": {
           "maxSpeed": 8,
           "force": 0.65,
-          "drag": 0.70
+          "drag": 0.7
         }
       },
       "storm": {
@@ -1866,7 +1934,11 @@ export const MODULE_DEFAULTS = {
         "precipitationType": "rain",
         "particleCount": 800,
         "windSpeedMultiplier": 1.5,
-        "atmosphericTint": { "r": 0.7, "g": 0.75, "b": 0.8 },
+        "atmosphericTint": {
+          "r": 0.7,
+          "g": 0.75,
+          "b": 0.8
+        },
         "description": "Heavy rain with strong wind and dark storm clouds",
         "wind": {
           "baseSpeed": 100,
@@ -1878,7 +1950,7 @@ export const MODULE_DEFAULTS = {
         "cloudWind": {
           "maxSpeed": 15,
           "force": 0.9,
-          "drag": 0.50
+          "drag": 0.5
         }
       },
       "sleet": {
@@ -1890,7 +1962,11 @@ export const MODULE_DEFAULTS = {
         "precipitationType": "sleet",
         "particleCount": 600,
         "windSpeedMultiplier": 1.2,
-        "atmosphericTint": { "r": 0.85, "g": 0.9, "b": 1.0 },
+        "atmosphericTint": {
+          "r": 0.85,
+          "g": 0.9,
+          "b": 1
+        },
         "description": "Mixed rain and snow with cold atmosphere",
         "wind": {
           "baseSpeed": 75,
@@ -1914,7 +1990,11 @@ export const MODULE_DEFAULTS = {
         "precipitationType": "snow",
         "particleCount": 400,
         "windSpeedMultiplier": 0.8,
-        "atmosphericTint": { "r": 0.95, "g": 0.97, "b": 1.0 },
+        "atmosphericTint": {
+          "r": 0.95,
+          "g": 0.97,
+          "b": 1
+        },
         "description": "Snowfall with dense white clouds",
         "wind": {
           "baseSpeed": 50,
@@ -1926,7 +2006,7 @@ export const MODULE_DEFAULTS = {
         "cloudWind": {
           "maxSpeed": 6,
           "force": 0.55,
-          "drag": 0.80
+          "drag": 0.8
         }
       },
       "blizzard": {
@@ -1934,11 +2014,15 @@ export const MODULE_DEFAULTS = {
         "cloudDensity": 0.9,
         "cloudThreshold": 0.25,
         "cloudSoftness": 0.7,
-        "precipitationIntensity": 1.0,
+        "precipitationIntensity": 1,
         "precipitationType": "snow",
         "particleCount": 1000,
-        "windSpeedMultiplier": 2.0,
-        "atmosphericTint": { "r": 0.9, "g": 0.92, "b": 1.0 },
+        "windSpeedMultiplier": 2,
+        "atmosphericTint": {
+          "r": 0.9,
+          "g": 0.92,
+          "b": 1
+        },
         "description": "Heavy snow with strong wind and thick cloud coverage",
         "wind": {
           "baseSpeed": 150,
@@ -1949,34 +2033,34 @@ export const MODULE_DEFAULTS = {
         },
         "cloudWind": {
           "maxSpeed": 20,
-          "force": 1.0,
-          "drag": 0.30
+          "force": 1,
+          "drag": 0.3
         }
       }
     },
     "rain": {
-      "opacity": 0.50,
-      "intensity": 1.00,
-      "strength": 0.85,
+      "opacity": 1,
+      "intensity": 3,
+      "strength": 0.55,
       "speed": 0.15,
-      "rainDensity": 25.0,
-      "gridSize": 125,
-      "streakLength": 40,
-      "splashIntensity": 0.50,
-      "waveMaskIntensity": 0.75,
-      "curtainIntensity": 0.65,
-      "worleySpeed": 1.0,
+      "rainDensity": 100,
+      "gridSize": 165,
+      "streakLength": 90,
+      "splashIntensity": 0.1,
+      "waveMaskIntensity": 1,
+      "curtainIntensity": 1,
+      "worleySpeed": 1,
       "tint": {
         "r": 0.7,
         "g": 0.9,
-        "b": 1.0
+        "b": 0.99
       }
     },
     "snow": {
       "direction": 0.5,
       "speed": 2,
-      "scale": 2.5,
-      "animationSpeed": 1,
+      "scale": 2,
+      "animationSpeed": 0.9,
       "tint": {
         "r": 1,
         "g": 1,
@@ -1984,93 +2068,83 @@ export const MODULE_DEFAULTS = {
       }
     },
     "fog": {
-      "intensity": 0.35,
+      "intensity": 0.75,
       "rotation": 0,
-      "slope": 0.45,
-      "speed": 0.4,
+      "slope": 2,
+      "speed": -4,
       "animationSpeed": 0.4,
       "tint": {
-        "r": 0.9,
-        "g": 0.9,
-        "b": 1.0
+        "r": 1,
+        "g": 1,
+        "b": 1
       }
     },
     "edgeDroplets": {
-      "enabled": true,
-      "maxParticles": 600,
+      "enabled": false,
+      "maxParticles": 500,
       "spawnRate": 200,
       "edgeDetectionMethod": "grid",
-      "gridSize": 32,
-      "edgeThreshold": 0.5,
-      "outdoorThreshold": 0.5,
-      "spreadRadius": 20,
-      "edgeUpdateFrequency": 2.0,
-      "updateFrequency": 0.2,
-      "frequency": 0.005,
-      "emitDuration": 1.0,
+      "gridSize": 8,
+      "edgeThreshold": 1,
+      "outdoorThreshold": 1,
+      "spreadRadius": 16,
+      "edgeUpdateFrequency": 10,
+      "updateFrequency": 0.85,
+      "frequency": 0.02,
+      "emitDuration": 0.2,
       "autoUpdate": false,
-      "opacity": 0.8,
-      "fadeInDuration": 0.05,
-      "fadeOutStart": 0.9,
+      "opacity": 0.2,
+      "fadeInDuration": 0.2,
+      "fadeOutStart": 0.94,
       "splashOpacity": 0.3,
       "lifetime": {
-        "min": 6.0,
-        "max": 10.0
+        "min": 4.5,
+        "max": 9.6
       },
       "size": {
-        "min": 0.16,
-        "max": 0.30
+        "min": 0.23,
+        "max": 0.84
       },
-      "sizeVariation": 0.7,
+      "sizeVariation": 4.25,
       "color": {
-        "r": 0.82,
+        "r": 0.81,
         "g": 0.91,
-        "b": 1.0
+        "b": 1
       },
-      "matchRainTint": false,
-      "matchRainOpacity": false,
-      "windForce": 0.30,
-      "windAccelerationTime": 2.0,
+      "matchRainTint": true,
+      "matchRainOpacity": true,
+      "windForce": 1,
+      "windAccelerationTime": 15,
       "turbulence": 0.5,
-      "groundCollisionAge": 0.90,
+      "groundCollisionAge": 0.95,
       "enableGroundCollision": true,
       "velocityStopAge": 0.9,
-      "windInfluence": 2.0,
+      "windInfluence": 2,
       "initialVelocity": 0,
       "motionBlur": {
-        "strength": 2.0,
-        "maxLength": 8.0
+        "strength": 5,
+        "maxLength": 30
       },
-      "splashSizeMultiplier": 26.0,
+      "splashSizeMultiplier": 26,
       "splashTransitionTime": 0.001
     },
     "orchestrator": {
       "enabled": false,
-      
-      // Parameter ranges
       "temperatureMin": 10,
       "temperatureMax": 25,
       "humidityMin": 40,
       "humidityMax": 80,
-      
-      // Current state (persisted)
       "temperatureCurrent": 18,
       "humidityCurrent": 60,
       "tempMomentum": 0,
       "humidityMomentum": 0,
-      
-      // Engine settings
       "tickInterval": 60,
       "tempStepSize": 0.5,
-      "humidityStepSize": 2.0,
+      "humidityStepSize": 2,
       "momentum": 0.7,
       "transitionDuration": 10000,
-      
-      // Advanced
       "seasonalBias": false,
       "diceType": "2d6",
-      
-      // Narrative override
       "narrativeOverride": {
         "enabled": false,
         "targetState": "storm",
@@ -2386,13 +2460,20 @@ class MapShineInitialiser {
           TEXTURE_OPTIMIZATION_END: 44.8,
           SHADER_PREWARM_START: 44.85,
           SHADER_PREWARM_END: 44.95,
+          WATER_PREWARM_START: 44.96,
+          WATER_PREWARM_END: 44.99,
           SETUP_START: 45,
           RESOURCE_MANAGER_INIT: 48,
           PROFILES_INIT: 50,
           FIRE_WIND_INIT: 52,
+          WIND_INIT: 52.5,
+          WEATHER_SYSTEM_INIT: 53,
+          WEATHER_ORCHESTRATOR_INIT: 54,
           CONFIG_FINALIZE: 55,
           LAYERS_UPDATE_START: 60,
           LAYERS_UPDATE_END: 70,
+          MASKED_LAYERS_PREWARM_START: 70.1,
+          MASKED_LAYERS_PREWARM_END: 70.5,
           PARTICLES_SETUP_START: 71,
           PARTICLES_SETUP_END: 74,
           SCREEN_FX_INIT: 75,
@@ -2420,9 +2501,14 @@ class MapShineInitialiser {
           RESOURCE_MANAGER_INIT: "Initializing resource manager...",
           PROFILES_INIT: "Loading profiles...",
           FIRE_WIND_INIT: "Initializing fire & wind effects...",
+          WIND_INIT: "Initializing wind system...",
+          WEATHER_SYSTEM_INIT: "Initializing weather system...",
+          WEATHER_ORCHESTRATOR_INIT: "Initializing weather orchestrator...",
           CONFIG_FINALIZE: "Finalizing configuration...",
           LAYERS_UPDATE_START: "Updating effect layers...",
           LAYERS_UPDATE_END: "Effect layers updated.",
+          MASKED_LAYERS_PREWARM_START: "Pre-warming layer masks...",
+          MASKED_LAYERS_PREWARM_END: "Layer masks ready.",
           PARTICLES_SETUP_START: "Initializing particle systems...",
           PARTICLES_SETUP_END: "Particle systems ready.",
           SCREEN_FX_INIT: "Initializing screen effects...",
@@ -3253,6 +3339,16 @@ class LayerManager {
         layerClass: CanopyLayer,
         group: "environment",
         zIndex: 110, // Environment effect, appears over tokens.
+      },
+      bush: {
+        layerClass: BushLayer,
+        group: "environment",
+        zIndex: 115, // Wind-driven foliage distortion
+      },
+      tree: {
+        layerClass: TreeLayer,
+        group: "environment",
+        zIndex: 116, // Wind-driven foliage distortion  
       },
       cloudShadows: {
         layerClass: CloudShadowsLayer,
@@ -7729,6 +7825,7 @@ class OverheadEffectLayer extends ResizableAnimatedCanvasLayer {
         this.overheadSprites.delete(id);
       }
     }
+    
   }
 
   /**
@@ -8036,6 +8133,17 @@ class MapShineLifecycle {
           console.warn("Map Shine | Shader prewarming timed out, continuing anyway:", error);
         }
 
+        // Pre-warm water system render textures to eliminate first-frame stalls
+        try {
+          await this.withTimeout(
+            this._prewarmWaterSystem(),
+            8000,
+            "Water System Prewarming"
+          );
+        } catch (error) {
+          console.warn("Map Shine | Water system prewarming timed out, continuing anyway:", error);
+        }
+
         // Wrap full setup with timeout
         try {
           await this.withTimeout(
@@ -8228,6 +8336,19 @@ class MapShineLifecycle {
     ScreenEffectsManager.updateAllFiltersFromConfig(config);
     await loadingManager?.tick("LAYERS_UPDATE_END");
 
+    // Pre-warm masked effect layers to eliminate first-frame mask rendering stalls
+    console.log("Map Shine | Starting masked layers prewarm...");
+    try {
+      await this.withTimeout(
+        this._prewarmMaskedLayers(),
+        5000,
+        "Masked Layers Prewarming"
+      );
+      console.log("Map Shine | Masked layers prewarm completed");
+    } catch (error) {
+      console.warn("Map Shine | Masked layers prewarming timed out, continuing anyway:", error);
+    }
+
     // Force weather system to apply initial state after all systems are ready
     // WeatherEffectLayer is not in canvas.layers so needs explicit update
     console.warn('MapShine | 🌦️ WEATHER AUTO-START DEBUG:');
@@ -8278,6 +8399,10 @@ class MapShineLifecycle {
 
     // Await particle systems readiness
     const particleLayer = canvas.layers.find((l) => l instanceof ParticleLayer);
+    console.log("Map Shine | Particle setup check:", {
+      hasLayer: !!particleLayer,
+      hasMethod: particleLayer && typeof particleLayer.awaitParticleSetup === "function"
+    });
     if (
       particleLayer &&
       typeof particleLayer.awaitParticleSetup === "function"
@@ -8285,6 +8410,8 @@ class MapShineLifecycle {
       await loadingManager?.tick("PARTICLES_SETUP_START");
       await particleLayer.awaitParticleSetup();
       await loadingManager?.tick("PARTICLES_SETUP_END");
+    } else {
+      console.warn("Map Shine | Particle setup skipped - layer or method not available");
     }
 
     // 6. Initialize the global screen filters.
@@ -8819,6 +8946,181 @@ class MapShineLifecycle {
     }
 
     await loadingManager?.tick("SHADER_PREWARM_END");
+  }
+
+  /**
+   * Pre-warms water system render textures to eliminate first-frame stalls.
+   * 
+   * CRITICAL: Water effects require 4 expensive render passes that were previously
+   * deferred until the first animation frame, causing 45-65ms stalls:
+   * - Displacement texture (10-15ms)
+   * - Blurred water mask (15-20ms)  
+   * - Shoreline mask (10-15ms)
+   * - Caustics mask (10-15ms)
+   * 
+   * By performing these renders during the loading screen, we achieve smooth scene start.
+   */
+  static async _prewarmWaterSystem() {
+    const loadingManager = game.mapShine.loadingManager;
+    await loadingManager?.tick("WATER_PREWARM_START");
+
+    console.log("Map Shine | Pre-warming water system render textures...");
+
+    try {
+      const layer = canvas.layers.find(l => l instanceof WaterFXLayer);
+      if (!layer) {
+        console.log("Map Shine | No WaterFXLayer found, skipping water prewarm");
+        await loadingManager?.tick("WATER_PREWARM_END");
+        return;
+      }
+
+      // Validate that render textures were created
+      if (!layer.displacementTexture?.valid || !layer.blurredWaterMaskTexture?.valid) {
+        console.warn("Map Shine | Water render textures not valid, skipping prewarm");
+        await loadingManager?.tick("WATER_PREWARM_END");
+        return;
+      }
+
+      let prewarmedCount = 0;
+
+      // 1. Render shoreline mask if needed
+      if (layer._needsShorelineMaskUpdate && layer.shorelineMaskTexture?.valid && layer.shorelineMaskContainer) {
+        canvas.app.renderer.render(layer.shorelineMaskContainer, {
+          renderTexture: layer.shorelineMaskTexture,
+          transform: canvas.stage.transform.worldTransform,
+          clear: true
+        });
+        layer._needsShorelineMaskUpdate = false;
+        prewarmedCount++;
+      }
+
+      // 2. Render caustics mask if needed
+      if (layer._needsCausticsMaskUpdate && layer.combinedCausticsMaskTexture?.valid && layer.causticsMaskContainer) {
+        canvas.app.renderer.render(layer.causticsMaskContainer, {
+          renderTexture: layer.combinedCausticsMaskTexture,
+          transform: canvas.stage.transform.worldTransform,
+          clear: true
+        });
+        layer._needsCausticsMaskUpdate = false;
+        prewarmedCount++;
+      }
+
+      // 3. Render displacement texture
+      if (layer.displacementFilter && layer.displacementSprite) {
+        // Set initial time
+        layer.displacementFilter.uniforms.u_time = 0;
+        
+        // Apply coordinate uniforms
+        if (game.mapShine.coordinateManager) {
+          const coordUniforms = CoordinateManager.getShaderUniforms();
+          Object.assign(layer.displacementFilter.uniforms, coordUniforms);
+        }
+        
+        canvas.app.renderer.render(layer.displacementSprite, {
+          renderTexture: layer.displacementTexture,
+          clear: true
+        });
+        prewarmedCount++;
+      }
+
+      // 4. Render blurred water mask
+      if (layer.blurSourceSprite && layer.blurredWaterMaskTexture?.valid) {
+        // Get base water mask texture
+        const baseMask = layer.getMaskTexture?.() || layer.effectMaskTexture;
+        if (baseMask?.valid) {
+          layer.blurSourceSprite.texture = baseMask;
+          canvas.app.renderer.render(layer.blurSourceSprite, {
+            renderTexture: layer.blurredWaterMaskTexture,
+            clear: true
+          });
+          prewarmedCount++;
+        }
+      }
+
+      console.log(`Map Shine | Water system prewarmed successfully (${prewarmedCount} render passes)`);
+
+    } catch (error) {
+      console.warn("Map Shine | Error during water system prewarm:", error);
+      // Don't halt loading if prewarm fails
+    }
+
+    await loadingManager?.tick("WATER_PREWARM_END");
+  }
+
+  /**
+   * Pre-warms masked effect layer render textures to eliminate first-frame stalls.
+   * 
+   * CRITICAL: MaskedEffectLayer subclasses defer their initial mask rendering until
+   * the first animation frame via the _needsMaskUpdate flag. This causes 14-35ms stalls
+   * across 7 affected layers:
+   * - CloudShadowsLayer (2-5ms)
+   * - CanopyLayer (2-5ms)
+   * - IridescenceLayer (2-5ms)
+   * - PrismLayer (2-5ms)
+   * - WaterFXLayer (2-5ms)
+   * - BuildingShadowsLayer (2-5ms)
+   * - TimeOfDayLayer (2-5ms)
+   * 
+   * Note: StructuralShadowsLayer is already prewarmed separately in runFullSetup().
+   * 
+   * By calling renderMask() during loading, we eliminate the first-frame rendering cost.
+   */
+  static async _prewarmMaskedLayers() {
+    const loadingManager = game.mapShine.loadingManager;
+    await loadingManager?.tick("MASKED_LAYERS_PREWARM_START");
+
+    console.log("Map Shine | Pre-warming masked effect layers...");
+
+    try {
+      // Define layer types to prewarm (excluding StructuralShadowsLayer - already done)
+      const layerTypes = [
+        { type: CloudShadowsLayer, name: "CloudShadowsLayer" },
+        { type: CanopyLayer, name: "CanopyLayer" },
+        { type: IridescenceLayer, name: "IridescenceLayer" },
+        { type: PrismLayer, name: "PrismLayer" },
+        { type: WaterFXLayer, name: "WaterFXLayer" },
+        { type: BuildingShadowsLayer, name: "BuildingShadowsLayer" },
+        { type: TimeOfDayLayer, name: "TimeOfDayLayer" }
+      ];
+
+      let prewarmedCount = 0;
+
+      for (const { type, name } of layerTypes) {
+        const layer = canvas.layers.find(l => l instanceof type);
+        
+        if (!layer) {
+          continue; // Layer doesn't exist on this scene
+        }
+
+        // Validate that the layer has the required mask rendering infrastructure
+        if (!layer.maskContainer || !layer.combinedMaskTexture?.valid) {
+          console.warn(`Map Shine | ${name} missing mask infrastructure, skipping prewarm`);
+          continue;
+        }
+
+        // Check if mask update is actually needed
+        if (!layer._needsMaskUpdate) {
+          continue; // Already rendered, no need to prewarm
+        }
+
+        // Pre-render the mask
+        try {
+          layer.renderMask();
+          layer._needsMaskUpdate = false;
+          prewarmedCount++;
+        } catch (error) {
+          console.warn(`Map Shine | Failed to prewarm ${name}:`, error);
+        }
+      }
+
+      console.log(`Map Shine | Masked effect layers prewarmed successfully (${prewarmedCount} layers)`);
+
+    } catch (error) {
+      console.warn("Map Shine | Error during masked layers prewarm:", error);
+      // Don't halt loading if prewarm fails
+    }
+
+    await loadingManager?.tick("MASKED_LAYERS_PREWARM_END");
   }
 }
 
@@ -9618,6 +9920,8 @@ class TextureAutoLoader {
     dust: "_Dust",
     outdoors: "_Outdoors",
     canopy: "_Canopy",
+    bush: "_Bush",
+    tree: "_Tree",
     structural: "_Structural",
     prism: "_Prism",
     water: "_Water",
@@ -16129,6 +16433,47 @@ export class ParticleLayer extends AnimatedCanvasLayer {
           this.updateEffectTargets(targets);
         }
       }
+    }
+  }
+
+  /**
+   * Awaits particle system setup during loading to batch-initialize all emitters.
+   * 
+   * CRITICAL: Without this, particle emitters are created one-by-one during animation
+   * frames, causing 5-10ms stalls per effect type (dust, glints, etc.). By batch
+   * processing during loading, we:
+   * - Load all textures in parallel
+   * - Compile all spawn shapes in parallel
+   * - Initialize BatchRenderer with all textures at once
+   * - Eliminate first-frame stutters
+   * 
+   * This is called during the loading screen after effect targets are discovered.
+   */
+  async awaitParticleSetup() {
+    if (!game.mapShine.particleManager) {
+      console.warn("Map Shine | No particle manager available for setup");
+      return;
+    }
+
+    const startTime = performance.now();
+    
+    try {
+      // Batch process all pending particle targets in parallel
+      // This includes texture loading, shape compilation, and emitter creation
+      await game.mapShine.particleManager.processAllPendingTargets();
+      
+      const elapsed = (performance.now() - startTime).toFixed(1);
+      const controllerCount = game.mapShine.particleManager.controllers.size;
+      let totalEmitters = 0;
+      
+      for (const controller of game.mapShine.particleManager.controllers.values()) {
+        totalEmitters += controller.emitters.size;
+      }
+      
+      console.log(`Map Shine | Particle setup complete: ${totalEmitters} emitters across ${controllerCount} controllers (${elapsed}ms)`);
+    } catch (error) {
+      console.error("Map Shine | Error during particle setup:", error);
+      // Don't halt loading if particle setup fails
     }
   }
 }
@@ -26950,6 +27295,526 @@ class StructuralFilter extends PIXI.Filter {
 }
 
 /**
+ * FoliageDistortionFilter - Dual-layer wind-driven distortion shader
+ * 
+ * Creates realistic foliage movement with two distinct noise layers:
+ * 1. RUSTLE: Small-scale, high-frequency noise for constant leaf/branch movement
+ * 2. SWAY: Large-scale, low-frequency noise for wind-driven whole-plant movement
+ * 
+ * The rustle layer runs continuously at a constant speed, simulating natural
+ * micro-movements. The sway layer scales with wind strength and follows wind
+ * direction, creating pronounced movement during gusts.
+ * 
+ * @extends PIXI.Filter
+ */
+class FoliageDistortionFilter extends PIXI.Filter {
+  constructor(options = {}) {
+    
+    const fragmentSrc = `
+      precision mediump float;
+      varying vec2 vTextureCoord;
+      
+      uniform sampler2D uSampler;
+      uniform float u_time;
+      uniform vec2 u_windDirection;
+      uniform float u_windStrength;
+      
+      // World-space coordinate uniforms - tile position
+      uniform vec2 u_tileWorldPos;
+      uniform vec2 u_tileWorldSize;
+      
+      // Rustle layer (small-scale, constant)
+      uniform float u_rustleScale;
+      uniform float u_rustleSpeed;
+      uniform float u_rustleFrequency;
+      uniform float u_rustleIntensity;
+      
+      // Sway layer (large-scale, wind-driven)
+      uniform float u_swayScale;
+      uniform float u_swaySpeed;
+      uniform float u_swayFrequency;
+      uniform float u_swayIntensity;
+      uniform float u_swayWindMultiplier;
+      
+      // Mixing
+      uniform float u_perpendicularMix;
+      
+      // Fast value noise
+      float random(vec2 st) {
+        return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
+      }
+      
+      float value_noise(vec2 st) {
+        vec2 i = floor(st);
+        vec2 f = fract(st);
+        
+        float a = random(i);
+        float b = random(i + vec2(1.0, 0.0));
+        float c = random(i + vec2(0.0, 1.0));
+        float d = random(i + vec2(1.0, 1.0));
+        
+        vec2 u = f * f * (3.0 - 2.0 * f); // Smoothstep
+        return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+      }
+      
+      // Asymmetric easing for spring-like motion
+      // Creates fast push (wind force) and slower spring-back (recovery)
+      float applySpringMotion(float noise) {
+        // Convert noise [0,1] to phase [-1,1] centered at 0
+        float phase = (noise - 0.5) * 2.0;
+        
+        // Asymmetric smoothstep: fast push (positive), gentle return (negative)
+        if (phase > 0.0) {
+          // Wind push: steep curve (aggressive acceleration)
+          float t = phase;
+          return smoothstep(0.0, 1.0, t) * 0.7; // 70% max displacement
+        } else {
+          // Spring return: gentle curve with overshoot damping
+          float t = -phase;
+          float overshoot = 1.0 + (0.15 * (1.0 - t)); // 15% overshoot that fades
+          return -smoothstep(0.0, 1.0, t) * 0.5 * overshoot; // 50% return strength
+        }
+      }
+      
+      void main() {
+        // Calculate world-space position directly from tile position and UV coordinates
+        // This is zoom-stable since tile world position doesn't change with zoom
+        vec2 worldPos = u_tileWorldPos + (vTextureCoord * u_tileWorldSize);
+        
+        // Use world-space coordinates for noise sampling
+        vec2 noisePos = worldPos * 0.01; // Scale down world coords for reasonable noise frequency
+        vec2 perpWind = vec2(-u_windDirection.y, u_windDirection.x);
+        vec2 totalDisplacement = vec2(0.0);
+        
+        // === RUSTLE LAYER (small-scale, always active) ===
+        // Primary rustle noise
+        vec2 rustleCoord1 = noisePos * u_rustleFrequency;
+        rustleCoord1 += u_windDirection * u_time * u_rustleSpeed;
+        float rustleNoise1 = value_noise(rustleCoord1);
+        
+        // Perpendicular rustle turbulence
+        vec2 rustleCoord2 = noisePos * u_rustleFrequency * 1.3;
+        rustleCoord2 += perpWind * u_time * u_rustleSpeed * 0.8;
+        float rustleNoise2 = value_noise(rustleCoord2);
+        
+        // Apply spring motion for natural push/pull
+        float rustleSpring1 = applySpringMotion(rustleNoise1);
+        float rustleSpring2 = applySpringMotion(rustleNoise2);
+        
+        // Combine rustle noises with spring behavior
+        vec2 rustleDisplacement = u_windDirection * rustleSpring1;
+        rustleDisplacement += perpWind * rustleSpring2 * u_perpendicularMix;
+        rustleDisplacement *= u_rustleScale * u_rustleIntensity;
+        
+        totalDisplacement += rustleDisplacement;
+        
+        // === SWAY LAYER (large-scale, wind-driven) ===
+        // Primary sway noise (follows wind)
+        vec2 swayCoord1 = noisePos * u_swayFrequency;
+        swayCoord1 += u_windDirection * u_time * u_swaySpeed;
+        float swayNoise1 = value_noise(swayCoord1);
+        
+        // Perpendicular sway turbulence
+        vec2 swayCoord2 = noisePos * u_swayFrequency * 1.5;
+        swayCoord2 += perpWind * u_time * u_swaySpeed * 0.6;
+        float swayNoise2 = value_noise(swayCoord2);
+        
+        // Apply spring motion with momentum for large-scale movement
+        float swaySpring1 = applySpringMotion(swayNoise1);
+        float swaySpring2 = applySpringMotion(swayNoise2);
+        
+        // Add subtle secondary motion for more organic feel
+        vec2 swayCoord3 = noisePos * u_swayFrequency * 0.5; // Slower frequency
+        swayCoord3 += u_windDirection * u_time * u_swaySpeed * 0.3;
+        float swayNoise3 = value_noise(swayCoord3);
+        float swaySpring3 = applySpringMotion(swayNoise3) * 0.3; // 30% contribution
+        
+        // Combine sway with spring behavior and secondary motion
+        vec2 swayDisplacement = u_windDirection * (swaySpring1 + swaySpring3);
+        swayDisplacement += perpWind * swaySpring2 * u_perpendicularMix;
+        
+        // Scale sway by wind strength and intensity
+        float windEffect = u_windStrength * u_swayWindMultiplier;
+        swayDisplacement *= u_swayScale * u_swayIntensity * windEffect;
+        
+        totalDisplacement += swayDisplacement;
+        
+        // Convert world-space displacement to UV-space displacement
+        // In UV space, 1.0 = full texture width/height
+        // Divide by tile size to convert from world units to UV units
+        vec2 displacementUV = totalDisplacement / u_tileWorldSize;
+        
+        // Sample displaced texture
+        vec2 distortedUV = vTextureCoord + displacementUV;
+        vec4 color = texture2D(uSampler, distortedUV);
+        
+        gl_FragColor = color;
+      }
+    `;
+
+    super(PIXI.Filter.defaultVertexSrc, fragmentSrc, {
+      u_time: 0,
+      u_windDirection: [1, 0],
+      u_windStrength: 0,
+      
+      // World-space uniforms (tile position and size)
+      u_tileWorldPos: [0, 0],
+      u_tileWorldSize: [1, 1],
+      
+      // Rustle defaults
+      u_rustleScale: options.u_rustleScale || 3.0,
+      u_rustleSpeed: options.u_rustleSpeed || 1.5,
+      u_rustleFrequency: options.u_rustleFrequency || 8.0,
+      u_rustleIntensity: options.u_rustleIntensity || 1.0,
+      
+      // Sway defaults
+      u_swayScale: options.u_swayScale || 15.0,
+      u_swaySpeed: options.u_swaySpeed || 0.4,
+      u_swayFrequency: options.u_swayFrequency || 1.5,
+      u_swayIntensity: options.u_swayIntensity || 1.0,
+      u_swayWindMultiplier: options.u_swayWindMultiplier || 1.0,
+      
+      // Mixing
+      u_perpendicularMix: options.u_perpendicularMix || 0.3
+    });
+  }
+}
+
+/**
+ * BushLayer - Wind-driven distortion for bush foliage
+ * 
+ * Applies small-scale wind distortion to tiles with _Bush in their texture path.
+ * Creates gentle swaying motion synchronized with wind system.
+ * 
+ * @extends AnimatedCanvasLayer
+ */
+class BushLayer extends AnimatedCanvasLayer {
+  constructor() {
+    super();
+    this.affectedTiles = new Map(); // Map of tile ID -> filter instance
+    this._smoothedWindStrength = 0; // Inertia for wind gusts (prevents instant on/off)
+  }
+
+  static getSettingsHTML() {
+    const effectKey = "bush";
+    const content = `
+      <p class="description-text">Wind-driven distortion for bushes with rustle and sway layers.</p>
+      
+      ${DebuggerUIBuilder._createSliderHTML("bush.rustleScale", "Rustle Distance", 0, 1, 0.01)}
+      ${DebuggerUIBuilder._createSliderHTML("bush.rustleSpeed", "Rustle Speed", 0, 45, 0.1)}
+      ${DebuggerUIBuilder._createSliderHTML("bush.rustleFrequency", "Rustle Frequency", 0.1, 15, 0.1)}
+      ${DebuggerUIBuilder._createSliderHTML("bush.rustleIntensity", "Rustle Intensity", 0, 2, 0.05)}
+      ${DebuggerUIBuilder._createSliderHTML("bush.swayScale", "Sway Distance", 0, 20, 0.01)}
+      ${DebuggerUIBuilder._createSliderHTML("bush.swaySpeed", "Sway Speed", 0, 22.5, 0.1)}
+      ${DebuggerUIBuilder._createSliderHTML("bush.swayFrequency", "Sway Frequency", 0.01, 5, 0.05)}
+      ${DebuggerUIBuilder._createSliderHTML("bush.swayIntensity", "Sway Intensity", 0, 2, 0.05)}
+      ${DebuggerUIBuilder._createSliderHTML("bush.swayWindMultiplier", "Wind Response", 0, 3, 0.1)}
+      ${DebuggerUIBuilder._createSliderHTML("bush.perpendicularMix", "Turbulence Mix", 0, 1, 0.05)}
+    `;
+    return DebuggerUIBuilder._createAccordionHTML(effectKey, "🌿 Bush Distortion", content);
+  }
+
+  async _draw(options) {
+    await super._draw(options);
+    this._findAndApplyFilters();
+  }
+
+  _findAndApplyFilters() {
+    if (!canvas.tiles?.placeables) return;
+    
+    // Find tiles with _Bush in their texture path
+    for (const tile of canvas.tiles.placeables) {
+      const texturePath = tile.document.texture.src;
+      if (texturePath && texturePath.includes('_Bush')) {
+        if (!this.affectedTiles.has(tile.id)) {
+          const config = game.mapShine.profileManager?.activeConfig?.bush || {};
+          const filter = new FoliageDistortionFilter({
+            u_rustleScale: config.rustleScale || 3.0,
+            u_rustleSpeed: config.rustleSpeed || 3.0,
+            u_rustleFrequency: config.rustleFrequency || 8.0,
+            u_rustleIntensity: config.rustleIntensity || 1.0,
+            u_swayScale: config.swayScale || 12.0,
+            u_swaySpeed: config.swaySpeed || 1.0,
+            u_swayFrequency: config.swayFrequency || 1.5,
+            u_swayIntensity: config.swayIntensity || 1.0,
+            u_swayWindMultiplier: config.swayWindMultiplier || 1.0,
+            u_perpendicularMix: config.perpendicularMix || 0.3
+          });
+          
+          // Set tile world position and size for world-space noise calculation
+          filter.uniforms.u_tileWorldPos = [tile.document.x, tile.document.y];
+          filter.uniforms.u_tileWorldSize = [tile.document.width, tile.document.height];
+          
+          // Check if tile is managed by overhead layer
+          const overheadLayer = canvas.overheadEffect;
+          const overheadSprite = overheadLayer?.overheadSprites?.get(tile.id);
+          
+          if (tile.isManagedByOverheadLayer && overheadSprite) {
+            // Apply filter to overhead sprite instead
+            overheadSprite.filters = [...(overheadSprite.filters || []), filter];
+            console.log(`MapShine | Applied bush distortion to overhead sprite: ${tile.id}`);
+          } else if (tile.mesh) {
+            // Apply filter to regular tile mesh
+            tile.mesh.filters = [...(tile.mesh.filters || []), filter];
+            console.log(`MapShine | Applied bush distortion to tile mesh: ${tile.id}`);
+          }
+          
+          this.affectedTiles.set(tile.id, filter);
+        }
+      }
+    }
+  }
+
+  _onAnimate(deltaTime) {
+    if (this._destroyed) return;
+    if (game.mapShine?.transitionActive) return;
+    
+    const config = game.mapShine.profileManager?.activeConfig;
+    if (!config?.bush?.enabled) {
+      // Disable all filters
+      for (const filter of this.affectedTiles.values()) {
+        filter.enabled = false;
+      }
+      return;
+    }
+    
+    const bushConfig = config.bush;
+    const windManager = game.mapShine?.windManager;
+    
+    // Update all bush filters
+    for (const filter of this.affectedTiles.values()) {
+      filter.enabled = true;
+      
+      // Update wind
+      if (windManager) {
+        const windAngleRad = windManager.angle * (Math.PI / 180);
+        // Calculate wind velocity in world coordinates
+        const velocityX = Math.cos(windAngleRad);
+        const velocityY = -Math.sin(windAngleRad);  // Screen Y increases downward
+        // NEGATE for shaders that ADD to UV (shader scrolls opposite to wind vector)
+        filter.uniforms.u_windDirection = [-velocityX, -velocityY];
+        
+        // Apply wind strength with inertia (bushes have moderate response time)
+        // Lerp rate: 0.04 = ~1-1.5 second ramp up/down (faster than trees, slower than instant)
+        const targetWindStrength = windManager.getNormalizedStrength();
+        this._smoothedWindStrength += (targetWindStrength - this._smoothedWindStrength) * 0.04;
+        filter.uniforms.u_windStrength = this._smoothedWindStrength;
+      }
+      
+      // Update time
+      filter.uniforms.u_time += deltaTime / 1000;
+      
+      // Update rustle layer
+      filter.uniforms.u_rustleScale = bushConfig.rustleScale;
+      filter.uniforms.u_rustleSpeed = bushConfig.rustleSpeed;
+      filter.uniforms.u_rustleFrequency = bushConfig.rustleFrequency;
+      filter.uniforms.u_rustleIntensity = bushConfig.rustleIntensity;
+      
+      // Update sway layer
+      filter.uniforms.u_swayScale = bushConfig.swayScale;
+      filter.uniforms.u_swaySpeed = bushConfig.swaySpeed;
+      filter.uniforms.u_swayFrequency = bushConfig.swayFrequency;
+      filter.uniforms.u_swayIntensity = bushConfig.swayIntensity;
+      filter.uniforms.u_swayWindMultiplier = bushConfig.swayWindMultiplier;
+      
+      // Update mixing
+      filter.uniforms.u_perpendicularMix = bushConfig.perpendicularMix;
+    }
+  }
+
+  async updateFromConfig(config) {
+    // Re-scan for tiles in case new ones were added
+    this._findAndApplyFilters();
+  }
+
+  async _tearDown(options) {
+    // Remove filters from tiles and overhead sprites
+    for (const [tileId, filter] of this.affectedTiles.entries()) {
+      const tile = canvas.tiles?.get(tileId);
+      const overheadLayer = canvas.effects?.children?.find(l => l instanceof OverheadEffectLayer);
+      const overheadSprite = overheadLayer?.overheadSprites?.get(tileId);
+      
+      if (overheadSprite) {
+        overheadSprite.filters = (overheadSprite.filters || []).filter(f => f !== filter);
+      }
+      if (tile?.mesh) {
+        tile.mesh.filters = (tile.mesh.filters || []).filter(f => f !== filter);
+      }
+      filter.destroy();
+    }
+    this.affectedTiles.clear();
+    await super._tearDown(options);
+  }
+}
+
+/**
+ * TreeLayer - Wind-driven distortion for tree foliage
+ * 
+ * Applies large-scale wind distortion to tiles with _Tree in their texture path.
+ * Creates more pronounced swaying motion for taller vegetation.
+ * 
+ * @extends AnimatedCanvasLayer
+ */
+class TreeLayer extends AnimatedCanvasLayer {
+  constructor() {
+    super();
+    this.affectedTiles = new Map(); // Map of tile ID -> filter instance
+    this._smoothedWindStrength = 0; // Inertia for wind gusts (prevents instant on/off)
+  }
+
+  static getSettingsHTML() {
+    const effectKey = "tree";
+    const content = `
+      <p class="description-text">Wind-driven distortion for trees with rustle and sway layers.</p>
+      
+      ${DebuggerUIBuilder._createSliderHTML("tree.rustleScale", "Rustle Distance", 0, 15, 0.01)}
+      ${DebuggerUIBuilder._createSliderHTML("tree.rustleSpeed", "Rustle Speed", 0, 45, 0.1)}
+      ${DebuggerUIBuilder._createSliderHTML("tree.rustleFrequency", "Rustle Frequency", 0.1, 12, 0.1)}
+      ${DebuggerUIBuilder._createSliderHTML("tree.rustleIntensity", "Rustle Intensity", 0, 2, 0.05)}
+      ${DebuggerUIBuilder._createSliderHTML("tree.swayScale", "Sway Distance", 0, 20, 0.01)}
+      ${DebuggerUIBuilder._createSliderHTML("tree.swaySpeed", "Sway Speed", 0, 15.0, 0.1)}
+      ${DebuggerUIBuilder._createSliderHTML("tree.swayFrequency", "Sway Frequency", 0.01, 3, 0.01)}
+      ${DebuggerUIBuilder._createSliderHTML("tree.swayIntensity", "Sway Intensity", 0, 2, 0.05)}
+      ${DebuggerUIBuilder._createSliderHTML("tree.swayWindMultiplier", "Wind Response", 0, 3, 0.1)}
+      ${DebuggerUIBuilder._createSliderHTML("tree.perpendicularMix", "Turbulence Mix", 0, 1, 0.05)}
+    `;
+    return DebuggerUIBuilder._createAccordionHTML(effectKey, "🌲 Tree Distortion", content);
+  }
+
+  async _draw(options) {
+    await super._draw(options);
+    this._findAndApplyFilters();
+  }
+
+  _findAndApplyFilters() {
+    if (!canvas.tiles?.placeables) return;
+    
+    // Find tiles with _Tree in their texture path
+    for (const tile of canvas.tiles.placeables) {
+      const texturePath = tile.document.texture.src;
+      if (texturePath && texturePath.includes('_Tree')) {
+        if (!this.affectedTiles.has(tile.id)) {
+          const config = game.mapShine.profileManager?.activeConfig?.tree || {};
+          const filter = new FoliageDistortionFilter({
+            u_rustleScale: config.rustleScale || 4.0,
+            u_rustleSpeed: config.rustleSpeed || 2.5,
+            u_rustleFrequency: config.rustleFrequency || 6.0,
+            u_rustleIntensity: config.rustleIntensity || 0.8,
+            u_swayScale: config.swayScale || 25.0,
+            u_swaySpeed: config.swaySpeed || 0.6,
+            u_swayFrequency: config.swayFrequency || 0.8,
+            u_swayIntensity: config.swayIntensity || 1.2,
+            u_swayWindMultiplier: config.swayWindMultiplier || 1.5,
+            u_perpendicularMix: config.perpendicularMix || 0.25
+          });
+          
+          // Set tile world position and size for world-space noise calculation
+          filter.uniforms.u_tileWorldPos = [tile.document.x, tile.document.y];
+          filter.uniforms.u_tileWorldSize = [tile.document.width, tile.document.height];
+          
+          // Check if tile is managed by overhead layer
+          const overheadLayer = canvas.overheadEffect;
+          const overheadSprite = overheadLayer?.overheadSprites?.get(tile.id);
+          
+          if (tile.isManagedByOverheadLayer && overheadSprite) {
+            // Apply filter to overhead sprite instead
+            overheadSprite.filters = [...(overheadSprite.filters || []), filter];
+            console.log(`MapShine | Applied tree distortion to overhead sprite: ${tile.id}`);
+          } else if (tile.mesh) {
+            // Apply filter to regular tile mesh
+            tile.mesh.filters = [...(tile.mesh.filters || []), filter];
+            console.log(`MapShine | Applied tree distortion to tile mesh: ${tile.id}`);
+          }
+          
+          this.affectedTiles.set(tile.id, filter);
+        }
+      }
+    }
+  }
+
+  _onAnimate(deltaTime) {
+    if (this._destroyed) return;
+    if (game.mapShine?.transitionActive) return;
+    
+    const config = game.mapShine.profileManager?.activeConfig;
+    if (!config?.tree?.enabled) {
+      // Disable all filters
+      for (const filter of this.affectedTiles.values()) {
+        filter.enabled = false;
+      }
+      return;
+    }
+    
+    const treeConfig = config.tree;
+    const windManager = game.mapShine?.windManager;
+    
+    // Update all tree filters
+    for (const filter of this.affectedTiles.values()) {
+      filter.enabled = true;
+      
+      // Update wind
+      if (windManager) {
+        const windAngleRad = windManager.angle * (Math.PI / 180);
+        // Calculate wind velocity in world coordinates
+        const velocityX = Math.cos(windAngleRad);
+        const velocityY = -Math.sin(windAngleRad);  // Screen Y increases downward
+        // NEGATE for shaders that ADD to UV (shader scrolls opposite to wind vector)
+        filter.uniforms.u_windDirection = [-velocityX, -velocityY];
+        
+        // Apply wind strength with heavy inertia (trees are slow to respond)
+        // Lerp rate: 0.02 = ~2-3 second ramp up/down (much slower than instant)
+        const targetWindStrength = windManager.getNormalizedStrength();
+        this._smoothedWindStrength += (targetWindStrength - this._smoothedWindStrength) * 0.02;
+        filter.uniforms.u_windStrength = this._smoothedWindStrength;
+      }
+      
+      // Update time
+      filter.uniforms.u_time += deltaTime / 1000;
+      
+      // Update rustle layer
+      filter.uniforms.u_rustleScale = treeConfig.rustleScale;
+      filter.uniforms.u_rustleSpeed = treeConfig.rustleSpeed;
+      filter.uniforms.u_rustleFrequency = treeConfig.rustleFrequency;
+      filter.uniforms.u_rustleIntensity = treeConfig.rustleIntensity;
+      
+      // Update sway layer
+      filter.uniforms.u_swayScale = treeConfig.swayScale;
+      filter.uniforms.u_swaySpeed = treeConfig.swaySpeed;
+      filter.uniforms.u_swayFrequency = treeConfig.swayFrequency;
+      filter.uniforms.u_swayIntensity = treeConfig.swayIntensity;
+      filter.uniforms.u_swayWindMultiplier = treeConfig.swayWindMultiplier;
+      
+      // Update mixing
+      filter.uniforms.u_perpendicularMix = treeConfig.perpendicularMix;
+    }
+  }
+
+  async updateFromConfig(config) {
+    // Re-scan for tiles in case new ones were added
+    this._findAndApplyFilters();
+  }
+
+  async _tearDown(options) {
+    // Remove filters from tiles and overhead sprites
+    for (const [tileId, filter] of this.affectedTiles.entries()) {
+      const tile = canvas.tiles?.get(tileId);
+      const overheadLayer = canvas.effects?.children?.find(l => l instanceof OverheadEffectLayer);
+      const overheadSprite = overheadLayer?.overheadSprites?.get(tileId);
+      
+      if (overheadSprite) {
+        overheadSprite.filters = (overheadSprite.filters || []).filter(f => f !== filter);
+      }
+      if (tile?.mesh) {
+        tile.mesh.filters = (tile.mesh.filters || []).filter(f => f !== filter);
+      }
+      filter.destroy();
+    }
+    this.affectedTiles.clear();
+    await super._tearDown(options);
+  }
+}
+
+/**
  * Structural Shadows Layer - Creates animated interior lighting from windows using _Structural masks.
  *
  * PURPOSE:
@@ -26964,19 +27829,6 @@ class StructuralFilter extends PIXI.Filter {
  * - Color information = Tint of the window light (e.g., stained glass, time of day)
  *
  * INTENDED USE:
- * ✓ Window light casting into interior spaces
- * ✓ Natural light that should be affected by clouds passing overhead
- * ✓ Animated lighting patterns (sunrise/sunset through windows)
- * ✓ Environmental lighting that changes with weather
- *
- * NOT INTENDED FOR:
- * ✗ Artificial interior light sources (torches, lamps, candles, etc.)
- * ✗ Light that should remain constant regardless of exterior conditions
- * ✗ Light sources that shouldn't disappear when clouds pass overhead
- *
- * TECHNICAL DETAILS:
- * - Applied as a filter to canvas.primary
- * - Supports cloud occlusion (rooms darken when clouds block the sun)
  * - Supports light occlusion (artificial lights can "cut out" shadows)
  * - Uses _Outdoors mask to limit effect to indoor areas
  * - Fully configurable color correction, blending, and intensity
@@ -36398,6 +37250,8 @@ class DebuggerUIBuilder {
       IridescenceLayer.getSettingsHTML(),
       HeatDistortionLayer.getSettingsHTML(),
       CanopyLayer.getSettingsHTML(),
+      BushLayer.getSettingsHTML(),
+      TreeLayer.getSettingsHTML(),
       StructuralShadowsLayer.getSettingsHTML(),
       AmbientLayer.getSettingsHTML(),
       GroundGlowLayer.getSettingsHTML(),
@@ -36977,6 +37831,7 @@ class DebuggerEventHandler {
     this.allLutPresets = {};
     this._isDebuggerClockDragging = false;
     this._onTimeChangedBound = this._onTimeChanged.bind(this);
+    this._lastTimeChangedUpdate = 0; // Throttle time-based UI updates
     this.uiClock = null;
 
     // --- NEW: State for Gradient Editor ---
@@ -38438,6 +39293,16 @@ class DebuggerEventHandler {
   }
 
   _onTimeChanged(time) {
+    // Throttle UI updates to max once per 150ms during transitions
+    // Prevents 60fps hook spam from overwhelming UI updates
+    const now = Date.now();
+    const timeSinceLastUpdate = now - this._lastTimeChangedUpdate;
+    
+    if (timeSinceLastUpdate < 150) {
+      return; // Skip this update
+    }
+    
+    this._lastTimeChangedUpdate = now;
     this.updateAllControls(time);
   }
 

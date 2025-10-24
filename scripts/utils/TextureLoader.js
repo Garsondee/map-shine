@@ -7,7 +7,7 @@ export class TextureLoader {
      */
     static DOWNSCALE_SUFFIXES = [
         "_Specular", "_Ambient", "_Iridescence", "_GroundGlow", "_Heat", "_Fire",
-        "_Sparks", "_Dust", "_Outdoors", "_Canopy", "_Structural", "_Prism",
+        "_Sparks", "_Dust", "_Outdoors", "_Canopy", "_Bush", "_Tree", "_Structural", "_Prism",
         "_Water", "_Caustics", "_Shoreline", "_Steam", "_Normal", "_Roughness"
     ];
 
