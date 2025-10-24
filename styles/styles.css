@@ -1281,6 +1281,12 @@
       border-radius: 4px;
       cursor: pointer;
       &:hover { background: #555; }
+      
+      &.disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        pointer-events: none;
+      }
     }
   
     .time-display-input {
@@ -1292,6 +1298,43 @@
       color: white;
       border: 1px solid #666;
       border-radius: 4px;
+      
+      &.disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        pointer-events: none;
+      }
+    }
+  }
+  
+  .time-mode-toggle {
+    width: 100%;
+    margin-top: 8px;
+    
+    button {
+      width: 100%;
+      padding: 6px 12px;
+      font-size: 0.9em;
+      font-weight: normal;
+      background: #3a3a3a;
+      border: 1px solid #666;
+      color: #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.2s;
+      
+      &:hover {
+        background: #555;
+      }
+      
+      &.foundry-mode {
+        background: #2a5a2a;
+        border-color: #4a8a4a;
+        
+        &:hover {
+          background: #356835;
+        }
+      }
     }
   }
   

@@ -115,20 +115,16 @@ export class TextureLoader {
                 foundry.canvas.TextureLoader.loader.setCache(src, scaledTexture.baseTexture);
             }
             
-            // Properly destroy the full-size texture to free VRAM immediately
-            // The downsampling process has already copied the data we need
+            // Clean up the full-size texture wrapper (but NOT the baseTexture)
+            // CRITICAL: We must NOT destroy the original baseTexture because:
+            // 1. Foundry's PlaceableObjects (Tiles, etc.) may still reference it
+            // 2. Destroying baseTexture nullifies its .resource property
+            // 3. This causes "can't access property 'source', resource is null" errors during Foundry's teardown
+            // 4. Only Foundry should destroy baseTextures it loaded
             try {
-                fullTexture.destroy(false); // Don't destroy baseTexture (it might be shared)
-                if (baseTexture && !baseTexture.destroyed && baseTexture.resource) {
-                    // Only destroy baseTexture if no other textures reference it
-                    const hasOtherReferences = Object.values(PIXI.utils.TextureCache)
-                        .some(tex => tex?.baseTexture === baseTexture);
-                    if (!hasOtherReferences) {
-                        baseTexture.destroy();
-                    }
-                }
+                fullTexture.destroy(false); // Don't destroy baseTexture - only the Texture wrapper
             } catch (err) {
-                console.warn(`Map Shine | Error destroying full texture: ${err.message}`);
+                console.warn(`Map Shine | Error destroying full texture wrapper: ${err.message}`);
             }
             
             console.log(`Map Shine | Loaded & downsampled texture (-> ${scaledTexture.width}x${scaledTexture.height}) with ${cacheIds.length} cache keys: ${src.split('/').pop()}`);

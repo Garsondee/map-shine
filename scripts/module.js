@@ -21,7 +21,7 @@
  * @author Mythica Machina - Ingram Blakelock
  * 
  * Remember that you will need to update the module.json file in the root too when changing version.
- * @version 1.1.93 - Loading Optimization: Added GeometryMaskManager prewarming (P3)
+ * @version 1.2.0 - Feature: Foundry Time Sync for Day/Night Clock
  *
  * @requires foundry ^13+
  * @requires pixi.js ^7.4.3
@@ -1699,6 +1699,7 @@ export const MODULE_DEFAULTS = {
   "timeOfDay": {
     "enabled": true,
     "syncToSceneDarkness": true,
+    "syncFromFoundryTime": false,
     "intensity": 1,
     "currentTime": 13.359496489753496,
     "keyframes": {
@@ -1833,6 +1834,10 @@ export const MODULE_DEFAULTS = {
     "tokenMasking": {
       "enabled": true,
       "blurAmount": 10
+    },
+    "buildingShadows": {
+      "enabled": true,
+      "intensity": 0.6
     }
   },
   "ambientLayerZIndex": 250,
@@ -4084,40 +4089,58 @@ class SceneChangeManager {
   }
 
   _createOverlay() {
-    if (this.transitionOverlay) return;
+    if (this.transitionOverlay) {
+      console.log(`[MapShine Transition] Overlay already exists, skipping creation`);
+      return;
+    }
 
     console.log(`[MapShine Transition] Creating overlay element.`);
 
-    // Create unified LoadingUI instance
-    this.ui = new LoadingUI({
-      elementId: "map-shine-scene-transition",
-      title: "Loading Scene...",
-      fadeOutDuration: 1500,
-      defaults: {
-        randomHints: UNIVERSAL_EFFECT_DEFAULTS.sceneTransition.randomHints,
-      },
-    });
+    try {
+      // Create unified LoadingUI instance
+      this.ui = new LoadingUI({
+        elementId: "map-shine-scene-transition",
+        title: "Loading Scene...",
+        fadeOutDuration: 1500,
+        defaults: {
+          randomHints: UNIVERSAL_EFFECT_DEFAULTS.sceneTransition.randomHints,
+          subheading: UNIVERSAL_EFFECT_DEFAULTS.sceneTransition.subheading,
+        },
+      });
+      console.log(`[MapShine Transition] LoadingUI instance created`);
 
-    // Connect this UI to the loading manager for progress updates
-    if (game.mapShine.loadingManager) {
-      game.mapShine.loadingManager.screen = this.ui;
-      console.log(
-        `[MapShine Transition] Connected overlay to loading manager for progress updates`
-      );
+      // Connect this UI to the loading manager for progress updates
+      if (game.mapShine.loadingManager) {
+        game.mapShine.loadingManager.screen = this.ui;
+        console.log(
+          `[MapShine Transition] Connected overlay to loading manager for progress updates`
+        );
+      }
+
+      // Show the UI
+      this.ui.show();
+      console.log(`[MapShine Transition] UI.show() called`);
+      console.log(`[MapShine Transition] Element exists:`, !!this.ui.element);
+      console.log(`[MapShine Transition] Element ID:`, this.ui.element?.id);
+      console.log(`[MapShine Transition] transitionOverlay getter returns:`, !!this.transitionOverlay);
+
+      console.log(`[MapShine Transition] Overlay appended to DOM successfully`);
+    } catch (error) {
+      console.error(`[MapShine Transition] Failed to create overlay:`, error);
+      throw error;
     }
-
-    // Show the UI
-    this.ui.show();
-
-    console.log(`[MapShine Transition] Overlay appended to DOM successfully`);
   }
 
   /**
    * Show a non-destructive preview of the transition overlay with a minimal toolbar.
    */
   showPreviewOverlay() {
+    console.log(`[MapShine Preview] Starting preview mode`);
     try {
-      if (this.previewActive) return;
+      if (this.previewActive) {
+        console.log(`[MapShine Preview] Preview already active, skipping`);
+        return;
+      }
       // Snapshot settings for cancel
       this._previewSnapshot = {
         overlayOpacity: game.settings.get(
@@ -4139,11 +4162,25 @@ class SceneChangeManager {
       };
 
       this._createOverlay();
-      if (!this.transitionOverlay) return;
+      console.log(`[MapShine Preview] After _createOverlay, transitionOverlay exists:`, !!this.transitionOverlay);
+      if (!this.transitionOverlay) {
+        console.error(`[MapShine Preview] transitionOverlay is null! Cannot show preview.`);
+        ui.notifications?.error?.('Failed to create preview overlay. Check console for details.');
+        return;
+      }
 
       this.previewActive = true;
+      
+      // Force instant appearance (bypass CSS transition)
+      this.transitionOverlay.style.transition = "none";
       this.transitionOverlay.style.opacity = "1";
       this.transitionOverlay.style.pointerEvents = "auto";
+      
+      // Force reflow to apply instant opacity change
+      void this.transitionOverlay.offsetHeight;
+      
+      // Re-enable transitions for interactive elements
+      this.transitionOverlay.style.transition = "";
 
       // Mark title as Preview
       const titleElement =
@@ -4168,6 +4205,7 @@ class SceneChangeManager {
    * @param {{apply:boolean}} opts
    */
   async hidePreviewOverlay({ apply }) {
+    console.log(`[MapShine Preview] Hiding preview overlay, apply=${apply}`);
     try {
       if (!this.previewActive) return;
       document.removeEventListener("keydown", this._onEsc);
@@ -4223,6 +4261,13 @@ class SceneChangeManager {
       this._destroyOverlay();
       this.previewActive = false;
       this._previewSnapshot = null;
+
+      // Re-render debugger UI to restore all content
+      const debugUI = game.mapShine?.debugger;
+      if (debugUI && typeof debugUI.render === "function") {
+        debugUI.render();
+        console.log(`[MapShine Preview] Re-rendered debugger UI after closing preview`);
+      }
     } catch (e) {
       console.warn("[MapShine Transition] Failed to exit Preview Mode:", e);
     }
@@ -4485,11 +4530,17 @@ class SceneChangeManager {
     console.log(
       `[MapShine Transition] Fading out for scene: ${displayName} (navigation name: ${
         scene?.navName || "not set"
-      }, actual name: ${scene?.name})`
+      }, actual name: ${scene?.name}), showSceneName: ${transitionConfig.showSceneName}`
     );
 
-    // Update the title
-    this.ui.setTitle(displayName);
+    // Update the title - check showSceneName setting
+    if (transitionConfig.showSceneName) {
+      this.ui.setTitle(displayName);
+    } else {
+      // Use the configured heading instead of scene name
+      const heading = transitionConfig.heading || "Loading...";
+      this.ui.setTitle(heading);
+    }
 
     // Fade in the overlay (show black screen)
     // Progress will be managed by the loading manager during setup
@@ -5272,6 +5323,9 @@ class ResourceManager {
           */
   getOutdoorsMask() {
     if (this._destroyed) return null;
+    
+    // CRITICAL: Skip rendering during scene transitions to prevent accessing destroyed objects
+    if (game.mapShine?.transitionActive) return null;
 
     if (this._frameCache.outdoorsMask) {
       return this._frameCache.outdoorsMask;
@@ -7663,6 +7717,31 @@ class OverheadEffectLayer extends ResizableAnimatedCanvasLayer {
       const oeConfig = config.overheadEffect;
       this.recolorFilter.uniforms.uToDOverheadStrength =
         oeConfig.timeOfDayStrength ?? 0.5;
+      
+      // Pass building shadow data from BuildingShadowsLayer
+      const buildingShadowsLayer = canvas.buildingShadows;
+      if (buildingShadowsLayer && oeConfig.buildingShadows?.enabled) {
+        const shadowFilter = buildingShadowsLayer.filter;
+        this.recolorFilter.uniforms.uBuildingShadowsEnabled = 
+          shadowFilter?.enabled ?? false;
+        this.recolorFilter.uniforms.uBuildingShadowMask = 
+          buildingShadowsLayer.getBlurredOutdoorsMask() ?? PIXI.Texture.EMPTY;
+        this.recolorFilter.uniforms.uShadowOffset = 
+          shadowFilter?.uniforms?.uShadowOffset ?? [0, 0];
+        this.recolorFilter.uniforms.uShadowIntensity = 
+          oeConfig.buildingShadows?.intensity ?? 0.6;
+        
+        // Update texel size and canvas scale
+        const screen = canvas.app.renderer.screen;
+        this.recolorFilter.uniforms.uTexelSize = [
+          1.0 / screen.width,
+          1.0 / screen.height
+        ];
+        const canvasScale = CoordinateManager.getCanvasScale();
+        this.recolorFilter.uniforms.uCanvasScale = [canvasScale, canvasScale];
+      } else {
+        this.recolorFilter.uniforms.uBuildingShadowsEnabled = false;
+      }
     }
 
     const renderer = canvas.app.renderer;
@@ -7868,6 +7947,8 @@ class LoadingScreen {
       fadeOutDuration: this.fadeOutDuration,
       defaults: {
         randomHints: UNIVERSAL_EFFECT_DEFAULTS.sceneTransition.randomHints,
+        // Note: subheading will fall back to loading-screen-subheading setting
+        // This is intentional - initial loading uses different setting than transitions
       },
     });
   }
@@ -15398,27 +15479,6 @@ class WeatherSystemManager {
   }
 
   /**
-   * Update edge droplet system based on current weather state
-   * @private
-   */
-  _updateEdgeDroplets(deltaTime) {
-    if (!this.edgeDropletController) return;
-    
-    // TEMPORARY: Always update for testing (bypass weather check)
-    this.edgeDropletController.update(deltaTime);
-    
-    // TODO: Re-enable weather gating after testing
-    // const rainStates = ['drizzle', 'rain', 'storm'];
-    // const shouldRun = rainStates.includes(this.currentState) || 
-    //                   (this.isTransitioning && rainStates.includes(this.targetState));
-    // if (shouldRun) {
-    //   this.edgeDropletController.update(deltaTime);
-    // } else {
-    //   this.edgeDropletController.stop();
-    // }
-  }
-
-  /**
    * Update wind direction and turbulence on active weather shaders
    * @private
    */
@@ -15539,6 +15599,25 @@ class WeatherSystemManager {
       const windAngleRad = (windManager.angle * Math.PI) / 180;
       const rotationVariation = turbulence * 0.2; // Add subtle turbulent rotation
       fogEffect.shader.uniforms.rotation = baseFogRotation + windAngleRad + rotationVariation;
+    }
+  }
+
+  /**
+   * Update edge droplet system (only during rain states for performance)
+   * @param {number} deltaTime - Time delta in seconds
+   * @private
+   */
+  _updateEdgeDroplets(deltaTime) {
+    if (!this.edgeDropletController) return;
+    
+    // Only run edge droplets during rain states (performance optimization)
+    const rainStates = ['drizzle', 'rain', 'storm'];
+    const shouldRun = rainStates.includes(this.currentState) || 
+                      (this.isTransitioning && rainStates.includes(this.targetState));
+    if (shouldRun) {
+      this.edgeDropletController.update(deltaTime);
+    } else {
+      this.edgeDropletController.stop();
     }
   }
 
@@ -20918,15 +20997,31 @@ export class ScreenEffectsManager {
 
   static tearDown() {
     if (!this._container) return;
+    
+    // Clean up curve LUT texture if it exists
+    try {
+      if (this._curveLut) {
+        this._curveLut.destroy(true);
+        this._curveLut = null;
+      }
+    } catch (err) {
+      console.warn("Map Shine | Error destroying curve LUT:", err);
+    }
+    
+    // Destroy filters with defensive error handling
     for (const filter of this._filters.values()) {
-      filter?.destroy();
+      try {
+        filter?.destroy();
+      } catch (err) {
+        console.warn("Map Shine | Error destroying filter:", err);
+      }
     }
     this._filters.clear();
 
     if (this._container.filters) {
       this._container.filters = null;
     }
-    this._container = null; // Still need this from previous fix
+    this._container = null;
     console.log(
       "Map Shine | ScreenEffectsManager fully torn down for scene transition."
     );
@@ -22491,7 +22586,7 @@ class MaskedEffectLayer extends ResizableAnimatedCanvasLayer {
     if (this._destroyed) return;
     
     // CRITICAL: Skip all updates during scene transitions
-    if (game.mapShine.transitionActive) return;
+    if (game.mapShine?.transitionActive) return;
 
     if (this._needsMaskUpdate) {
       this.renderMask();
@@ -22523,6 +22618,10 @@ class MaskedEffectLayer extends ResizableAnimatedCanvasLayer {
    */
   renderMask() {
     if (!this.maskContainer || !this.combinedMaskTexture) return;
+    
+    // CRITICAL: Skip rendering during scene transitions to prevent accessing destroyed objects
+    if (game.mapShine?.transitionActive) return;
+    
     const renderer = canvas.app.renderer;
 
     // CRITICAL: Check if BatchRenderer is ready before rendering
@@ -27688,6 +27787,28 @@ class BushLayer extends AnimatedCanvasLayer {
   async updateFromConfig(config) {
     // Re-scan for tiles in case new ones were added
     this._findAndApplyFilters();
+    
+    // Update existing filter uniforms with new config values
+    const bushConfig = config.bush;
+    if (!bushConfig) return;
+    
+    for (const filter of this.affectedTiles.values()) {
+      // Update rustle layer
+      filter.uniforms.u_rustleScale = bushConfig.rustleScale;
+      filter.uniforms.u_rustleSpeed = bushConfig.rustleSpeed;
+      filter.uniforms.u_rustleFrequency = bushConfig.rustleFrequency;
+      filter.uniforms.u_rustleIntensity = bushConfig.rustleIntensity;
+      
+      // Update sway layer
+      filter.uniforms.u_swayScale = bushConfig.swayScale;
+      filter.uniforms.u_swaySpeed = bushConfig.swaySpeed;
+      filter.uniforms.u_swayFrequency = bushConfig.swayFrequency;
+      filter.uniforms.u_swayIntensity = bushConfig.swayIntensity;
+      filter.uniforms.u_swayWindMultiplier = bushConfig.swayWindMultiplier;
+      
+      // Update mixing
+      filter.uniforms.u_perpendicularMix = bushConfig.perpendicularMix;
+    }
   }
 
   async _tearDown(options) {
@@ -27855,6 +27976,28 @@ class TreeLayer extends AnimatedCanvasLayer {
   async updateFromConfig(config) {
     // Re-scan for tiles in case new ones were added
     this._findAndApplyFilters();
+    
+    // Update existing filter uniforms with new config values
+    const treeConfig = config.tree;
+    if (!treeConfig) return;
+    
+    for (const filter of this.affectedTiles.values()) {
+      // Update rustle layer
+      filter.uniforms.u_rustleScale = treeConfig.rustleScale;
+      filter.uniforms.u_rustleSpeed = treeConfig.rustleSpeed;
+      filter.uniforms.u_rustleFrequency = treeConfig.rustleFrequency;
+      filter.uniforms.u_rustleIntensity = treeConfig.rustleIntensity;
+      
+      // Update sway layer
+      filter.uniforms.u_swayScale = treeConfig.swayScale;
+      filter.uniforms.u_swaySpeed = treeConfig.swaySpeed;
+      filter.uniforms.u_swayFrequency = treeConfig.swayFrequency;
+      filter.uniforms.u_swayIntensity = treeConfig.swayIntensity;
+      filter.uniforms.u_swayWindMultiplier = treeConfig.swayWindMultiplier;
+      
+      // Update mixing
+      filter.uniforms.u_perpendicularMix = treeConfig.perpendicularMix;
+    }
   }
 
   async _tearDown(options) {
@@ -28913,9 +29056,6 @@ class IridescenceLayer extends MaskedEffectLayer {
     await super._tearDown(options);
   }
 }
-
-// AmbientLayer has been moved to scripts/layers/AmbientLayer.js
-// TODO: Re-enable import once dependencies are resolved
 
 /**
  * Ground Glow Layer - Displays the _GroundGlow texture only in DARK areas of the scene.
@@ -32369,6 +32509,14 @@ class OverheadRecolorFilter extends PIXI.Filter {
                 // Outdoors mask uniform
                 uniform sampler2D uOutdoorsMask;
 
+                // Building shadows uniforms
+                uniform sampler2D uBuildingShadowMask;
+                uniform vec2 uShadowOffset;
+                uniform float uShadowIntensity;
+                uniform bool uBuildingShadowsEnabled;
+                uniform vec2 uTexelSize;
+                uniform vec2 uCanvasScale;
+
                 // Scene darkness uniform
                 uniform float uDarkness;
 
@@ -32431,6 +32579,20 @@ class OverheadRecolorFilter extends PIXI.Filter {
                     // Sample the _Outdoors mask to determine if this pixel is outdoors
                     float outdoorsMask = texture2D(uOutdoorsMask, vTextureCoord).r;
 
+                    // Apply building shadows to outdoor overhead pixels
+                    if (uBuildingShadowsEnabled && outdoorsMask > 0.5) {
+                        // Calculate shadow sample coordinate with offset
+                        vec2 uvOffset = (uShadowOffset * uCanvasScale) * uTexelSize;
+                        vec2 shadowCoord = vTextureCoord - uvOffset;
+                        
+                        // Sample the pre-blurred building shadow mask
+                        float shadowFactor = texture2D(uBuildingShadowMask, shadowCoord).r;
+                        
+                        // Apply shadow darkening (shadowFactor = 1.0 means no shadow, 0.0 means full shadow)
+                        float shadowMultiplier = mix(1.0 - uShadowIntensity, 1.0, shadowFactor);
+                        workingColor *= shadowMultiplier;
+                    }
+
                     // Apply Time of Day color correction only to outdoor areas (where mask is white)
                     if (uToDIntensity > 0.0 && uToDOverheadStrength > 0.0 && outdoorsMask > 0.1) {
                         // Store original color for blending
@@ -32476,8 +32638,16 @@ class OverheadRecolorFilter extends PIXI.Filter {
       uCloudShadowDarkenEnabled: false,
 
       uOutdoorsMask: PIXI.Texture.WHITE,
-      // Darkness uniform
 
+      // Building shadows uniforms
+      uBuildingShadowMask: PIXI.Texture.EMPTY,
+      uShadowOffset: [0, 0],
+      uShadowIntensity: 0.6,
+      uBuildingShadowsEnabled: false,
+      uTexelSize: [1.0 / (window.innerWidth || 1), 1.0 / (window.innerHeight || 1)],
+      uCanvasScale: [1.0, 1.0],
+
+      // Darkness uniform
       uDarkness: 0.0,
       // Time of Day uniforms
 
@@ -32533,12 +32703,20 @@ class MapShineClock {
     this.currentTime =
       game.mapShine?.profileManager?.activeConfig?.timeOfDay?.currentTime ??
       12.0;
+    
+    // Mode tracking: 'manual' or 'foundry'
+    this.timeMode = 
+      game.mapShine?.profileManager?.activeConfig?.timeOfDay?.syncFromFoundryTime
+      ? 'foundry' : 'manual';
+    
     this._isDragging = false;
     this._dragData = {};
 
     this._onExternalTimeChangeBound = this._onExternalTimeChange.bind(this);
+    this._onFoundryTimeUpdateBound = this._onFoundryTimeUpdate.bind(this);
 
     Hooks.on("mapShine:timeChanged", this._onExternalTimeChangeBound);
+    Hooks.on("updateWorldTime", this._onFoundryTimeUpdateBound);
 
     this.render();
 
@@ -32601,6 +32779,16 @@ class MapShineClock {
     const dragHandleHTML = this.options.showDragHandle
       ? '<div class="clock-drag-handle"></div>'
       : "";
+    
+    // Mode toggle button
+    const modeToggleHTML = `
+      <div class="time-mode-toggle">
+        <button data-action="toggle-time-mode" title="${this.timeMode === 'foundry' ? 'Switch to Manual Time Control' : 'Sync to Foundry World Time'}">
+          ${this.timeMode === 'foundry' ? '🔗 Foundry Time' : '✋ Manual'}
+        </button>
+      </div>
+    `;
+    
     const disclaimerHTML = this.options.showDisclaimer
       ? '<p class="clock-disclaimer">Controls scene visuals only. Does not change Foundry\'s world time.</p>'
       : "";
@@ -32669,7 +32857,11 @@ class MapShineClock {
                   .clock-controls { display: flex; align-items: center; justify-content: center; gap: 5px; width: 100%; margin-top: 5px; }
                   .clock-controls button { width: 30px; height: 30px; font-size: 1.2em; font-weight: bold; background: #3a3a3a; border: 1px solid #666; color: #ccc; border-radius: 4px; cursor: pointer; }
                   .clock-controls button:hover { background: #555; }
+                  .clock-controls button:disabled { opacity: 0.3; cursor: not-allowed; }
                   .clock-controls .time-display-input { width: 60px; height: 30px; text-align: center; font-size: 1.1em; background: #2a2a2a; color: white; border: 1px solid #666; border-radius: 4px; }
+                  .clock-controls .time-display-input:disabled { opacity: 0.5; cursor: not-allowed; }
+                  .clock-mode-toggle { width: auto !important; padding: 4px 8px; font-size: 0.9em; margin-top: 4px; background: #2a4a2a; border: 1px solid #4a8a4a; color: #aaffaa; }
+                  .clock-mode-toggle:hover { background: #3a5a3a; }
                   .clock-disclaimer { font-size: 11px; color: #aaa; text-align: center; margin: 8px 0 0 0; max-width: 160px; line-height: 1.3; }
                 </style>
                 <div class="day-night-clock-component">
@@ -32683,12 +32875,13 @@ class MapShineClock {
                         </div>
                     </div>
                     <div class="clock-controls">
-                        <button data-action="adjust-time" data-amount="-0.25" title="Subtract 15 Minutes">-</button>
+                        <button data-action="adjust-time" data-amount="-0.25" title="Subtract 15 Minutes" ${this.timeMode === 'foundry' ? 'disabled' : ''}>-</button>
                         <input type="text" class="time-display-input" value="${MapShineClock._formatTime(
                           this.currentTime
-                        )}">
-                        <button data-action="adjust-time" data-amount="0.25" title="Add 15 Minutes">+</button>
+                        )}" ${this.timeMode === 'foundry' ? 'disabled' : ''}>
+                        <button data-action="adjust-time" data-amount="0.25" title="Add 15 Minutes" ${this.timeMode === 'foundry' ? 'disabled' : ''}>+</button>
                     </div>
+                    ${modeToggleHTML}
                     ${disclaimerHTML}
                 </div>
             `;
@@ -32701,10 +32894,13 @@ class MapShineClock {
     this._onDragEndBound = this._onDragEnd.bind(this);
 
     clockContainer.on("mousedown", (event) => {
-      this._isDragging = true;
-      this._onDrag(event);
-      $(window).on("mousemove.daynightclock", this._onDragBound);
-      $(window).on("mouseup.daynightclock", this._onDragEndBound);
+      // Only allow dragging in manual mode
+      if (this.timeMode === 'manual') {
+        this._isDragging = true;
+        this._onDrag(event);
+        $(window).on("mousemove.daynightclock", this._onDragBound);
+        $(window).on("mouseup.daynightclock", this._onDragEndBound);
+      }
     });
 
     if (this.options.showDragHandle && this.application) {
@@ -32715,35 +32911,103 @@ class MapShineClock {
       });
     }
 
-    this.element
-      .find('button[data-action="adjust-time"]')
-      .on("click", (event) => {
-        const amount = parseFloat(event.currentTarget.dataset.amount);
-        this._updateTime(this.currentTime + amount);
-      });
-
-    this.element.find(".time-display-input").on("change", (event) => {
-      const inputVal = event.currentTarget.value;
-      const parts = inputVal.split(":");
-      if (parts.length === 2) {
-        const hour = parseInt(parts[0], 10);
-        const minute = parseInt(parts[1], 10);
-        if (!isNaN(hour) && !isNaN(minute)) {
-          const newTime = hour + minute / 60;
-          this._updateTime(newTime);
+    // Time adjustment buttons
+    this.element.on("click", "[data-action='adjust-time']", (event) => {
+      // Only allow in manual mode
+      if (this.timeMode === 'manual') {
+        const amountStr = event.currentTarget.dataset.amount;
+        const amount = parseFloat(amountStr);
+        if (!isNaN(amount)) {
+          this.adjustTime(amount);
         }
       }
     });
+
+    // Mode toggle button
+    this.element.on("click", "[data-action='toggle-time-mode']", (event) => {
+      event.preventDefault();
+      this.toggleTimeMode();
+    });
+
+    // Time display input
+    this.element.find(".time-display-input").on("change", (event) => {
+      // Only allow in manual mode
+      if (this.timeMode === 'manual') {
+        const inputVal = event.currentTarget.value;
+        const parts = inputVal.split(":");
+        if (parts.length === 2) {
+          const hour = parseInt(parts[0], 10);
+          const minute = parseInt(parts[1], 10);
+          if (!isNaN(hour) && !isNaN(minute)) {
+            const newTime = hour + minute / 60;
+            this._updateTime(newTime);
+          }
+        }
+      }
+    });
+
+    // Initialize UI state based on current mode
+    this.updateUIState();
   }
 
   destroy() {
     Hooks.off("mapShine:timeChanged", this._onExternalTimeChangeBound);
+    Hooks.off("updateWorldTime", this._onFoundryTimeUpdateBound);
     $(window).off(".daynightclock");
 
     if (this._animationFrameId) {
       cancelAnimationFrame(this._animationFrameId);
       this._animationFrameId = null;
     }
+  }
+
+  adjustTime(amount) {
+    const newTime = (this.currentTime + amount + 24) % 24;
+    this._updateTime(newTime);
+  }
+
+  async toggleTimeMode() {
+    this.timeMode = this.timeMode === 'manual' ? 'foundry' : 'manual';
+    
+    // Update the profile config
+    const syncFromFoundry = this.timeMode === 'foundry';
+    await game.mapShine.profileManager.recordUserChange(
+      'timeOfDay.syncFromFoundryTime',
+      syncFromFoundry
+    );
+    
+    // If switching to foundry mode, sync immediately from current Foundry time
+    if (syncFromFoundry) {
+      const secondsPerDay = 86400;
+      const hours = (game.time.worldTime % secondsPerDay) / 3600;
+      this._updateTime(hours, { fromHook: true });
+    }
+    
+    this.updateUIState();
+  }
+
+  updateUIState() {
+    if (!this.element) return;
+    
+    const isManual = this.timeMode === 'manual';
+    
+    // Update button disabled states
+    const buttons = this.element.find('[data-action="adjust-time"]');
+    buttons.prop('disabled', !isManual);
+    
+    // Update input disabled state
+    const input = this.element.find('.time-display-input');
+    input.prop('disabled', !isManual);
+    
+    // Update toggle button text
+    const toggleButton = this.element.find('[data-action="toggle-time-mode"]');
+    const buttonText = isManual ? '✋ Manual' : '🔗 Foundry Time';
+    toggleButton.text(buttonText);
+    toggleButton.attr('title', isManual ? 'Sync to Foundry World Time' : 'Switch to Manual Time Control');
+    
+    // Update clock container cursor
+    const clockContainer = this.element.find('.clock-container');
+    clockContainer.css('cursor', isManual ? 'grab' : 'default');
   }
 
   static _formatTime(time) {
@@ -32944,7 +33208,8 @@ class MapShineClock {
     if (icon.attr("src") !== newIconSrc) {
       icon.attr("src", newIconSrc);
     }
-    if (!fromHook) {
+    // Only notify the system if this update is from manual mode (not from a hook)
+    if (!fromHook && this.timeMode === 'manual') {
       game.mapShine.updateTimeOfDay(this.currentTime);
     }
   }
@@ -32952,6 +33217,20 @@ class MapShineClock {
   _onExternalTimeChange(time) {
     if (Math.abs(this.currentTime - time) > 0.01) {
       this._updateTime(time, { fromHook: true });
+    }
+  }
+
+  _onFoundryTimeUpdate(worldTime, dt) {
+    // Only sync from Foundry time when in 'foundry' mode
+    if (this.timeMode !== 'foundry') return;
+    
+    // Convert Foundry world time (seconds) to 0-24 hour format
+    const secondsPerDay = 86400; // 24 hours * 60 minutes * 60 seconds
+    const hours = (worldTime % secondsPerDay) / 3600;
+    
+    // Only update if there's a meaningful difference
+    if (Math.abs(this.currentTime - hours) > 0.01) {
+      this._updateTime(hours, { fromHook: true });
     }
   }
 
@@ -34054,11 +34333,18 @@ class DebuggerUIBuilder {
   }
 
   _buildLoadingScreenSection() {
+    // Check preview state to determine button text
+    const mgr = game.mapShine?.sceneChangeManager;
+    const isPreviewActive = mgr?.previewActive || false;
+    const buttonText = isPreviewActive 
+      ? `<i class="fas fa-eye-slash"></i> End Transition Preview`
+      : `<i class="fas fa-film"></i> Preview Transition`;
+    
     const content = `
           <p class="description-text">Configure the initial world loading screen and scene-to-scene transitions.</p>
           <div class="control-row" style="display:flex; justify-content:flex-end; gap:8px; margin: 6px 0 8px 0;">
             <button data-action="preview-transition" id="preview-transition-btn" class="ms-preview-transition-btn">
-              <i class="fas fa-film"></i> Preview Transition
+              ${buttonText}
             </button>
           </div>
           
@@ -37490,6 +37776,24 @@ class DebuggerUIBuilder {
                             )}
                         </div>
                     </details>
+                    <details id="details-overheadEffect-buildingShadows">
+                        <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                          "overheadEffect.buildingShadows.enabled",
+                          "Apply Building Shadows",
+                          true
+                        )}</div></summary>
+                        <div style="padding-left: 5px;">
+                            <p class="description-text">Casts building shadows onto outdoor overhead tiles (roofs, tree canopies). Reuses the shadow calculation from the Building Shadows effect. Requires Building Shadows effect to be active.</p>
+                            ${DebuggerUIBuilder._createSliderHTML(
+                              "overheadEffect.buildingShadows.intensity",
+                              "Shadow Intensity",
+                              0,
+                              1,
+                              0.05,
+                              "Controls how dark the shadows appear on overhead tiles"
+                            )}
+                        </div>
+                    </details>
                 </div>
             </details>
             `
@@ -38840,7 +39144,13 @@ class DebuggerEventHandler {
     // Logo and text content bindings (update DOM directly on the overlay)
     bindIfNeeded(logoPathEl, "input", () => {
       const img = mgr.transitionOverlay?.querySelector(".loading-logo");
-      if (img && logoPathEl.value) img.setAttribute("src", logoPathEl.value);
+      if (img) {
+        // Use fallback if value is empty
+        const logoPath = (logoPathEl.value && logoPathEl.value.trim() !== "")
+          ? logoPathEl.value
+          : "modules/map-shine/assets/fvtt.png";
+        img.setAttribute("src", logoPath);
+      }
     });
     bindIfNeeded(headingEl, "input", () => {
       const title = mgr.transitionOverlay?.querySelector(".loading-title");
@@ -40484,11 +40794,14 @@ class DebuggerEventHandler {
       if (mgr.previewActive) {
         // Hide preview overlay without applying settings changes.
         await mgr.hidePreviewOverlay({ apply: false });
-        btn.innerHTML = `<i class="fas fa-film"></i> Preview Transition`;
+        // Button text updates automatically via render()
       } else {
         // Show non-destructive preview overlay.
         mgr.showPreviewOverlay();
-        btn.innerHTML = `<i class="fas fa-eye-slash"></i> End Transition Preview`;
+        // Update UI to reflect new state
+        if (game.mapShine?.debugger) {
+          game.mapShine.debugger.render();
+        }
       }
     } catch (err) {
       console.error("MapShine | Preview Transition toggle failed:", err);
@@ -41806,7 +42119,21 @@ class MaterialEditorDebugger {
     this.element.querySelector("#material-editor-profiles-section").innerHTML =
       profileSectionHTML;
 
-    // Rebuild effect sections (including Point Groups) in columns 2 & 3
+    // Rebuild ALL effect columns (1, 2, 3) to ensure button states update
+    const managedEffects = ScreenEffectsManager.getManagedEffectsHTML();
+    const loadingScreenHTML = this.uiBuilder._buildLoadingScreenSection();
+    const pauseEffectHTML = this.uiBuilder._buildPauseEffectSection();
+    
+    const column1 = this.element.querySelector("#fx-column-1");
+    if (column1) {
+      column1.innerHTML = managedEffects.postProcessing;
+      column1.innerHTML += this.uiBuilder._buildParticleSystemSection();
+      column1.innerHTML += this.uiBuilder._buildWeatherSystemSection();
+      column1.innerHTML += this.uiBuilder._buildFontManagerSection();
+      column1.innerHTML += loadingScreenHTML;
+      column1.innerHTML += pauseEffectHTML;
+    }
+
     const otherEffectSections = this.uiBuilder._getEffectSections();
     const midPoint = Math.ceil(otherEffectSections.length / 2);
     const column2Effects = otherEffectSections.slice(0, midPoint);

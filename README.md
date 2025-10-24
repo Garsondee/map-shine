@@ -6,7 +6,7 @@
 [![Watch the video](https://img.youtube.com/vi/ddRhagP3Hlg/0.jpg)](https://www.youtube.com/watch?v=ddRhagP3Hlg)
 
 
-![Version](https://img.shields.io/badge/Version-1.0.15-blue)![Foundry VTT Compatibility](https://img.shields.io/badge/Foundry%20VTT-v13+-green)
+![Version](https://img.shields.io/badge/Version-1.2.0-blue)![Foundry VTT Compatibility](https://img.shields.io/badge/Foundry%20VTT-v13+-green)
 
 <p align="center">
   <img src="https://i.imgur.com/RZQS4qV.jpeg" alt="Map Shine UI">

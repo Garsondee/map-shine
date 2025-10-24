@@ -5,7 +5,7 @@
  * throughout the codebase. Extracted for better modularity and maintainability.
  * 
  * @author Mythica Machina - Ingram Blakelock
- * @version 1.1.52
+ * @version 1.2.0
  * @since 1.0.0
  */
 

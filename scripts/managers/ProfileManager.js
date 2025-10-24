@@ -19,6 +19,8 @@ const CONFIG_SYSTEM_MAP = {
   groundGlow: { type: 'layer', layerClass: 'GroundGlowLayer' },
   heatDistortion: { type: 'layer', layerClass: 'HeatDistortionLayer' },
   physicsRope: { type: 'layer', layerClass: 'PhysicsRopeLayer' },
+  bush: { type: 'layer', layerClass: 'BushLayer' },
+  tree: { type: 'layer', layerClass: 'TreeLayer' },
   
   // Post-processing filters
   postProcessing: { type: 'filter', filterName: 'postProcessing' },

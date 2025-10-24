@@ -153,11 +153,11 @@ export class LoadingUI {
       this.element.style.backgroundPosition = "center center";
     }
 
-    // Get subheading
-    const subheading = game.settings.get(
-      MODULE_ID,
-      "loading-screen-subheading"
-    );
+    // Get subheading (priority: defaults > sceneTransition setting > loading-screen setting)
+    const subheading = this.defaults.subheading ||
+      game.settings.get(MODULE_ID, "universal.sceneTransition.subheading") ||
+      game.settings.get(MODULE_ID, "loading-screen-subheading") ||
+      "";
 
     // Calculate gradient opacity
     const maxOpacity = overlayOpacity;
@@ -175,12 +175,18 @@ export class LoadingUI {
       this.fadeOutDuration
     );
 
+    // Get logo path from settings (explicitly check for empty string)
+    const logoPathSetting = game.settings.get(MODULE_ID, "universal.sceneTransition.logoPath");
+    const logoPath = (logoPathSetting && logoPathSetting.trim() !== "") 
+      ? logoPathSetting 
+      : "modules/map-shine/assets/fvtt.png";
+
     // Generate HTML
     this.element.innerHTML = `
       ${inlineCSS}
       <div class="loading-background-overlay"></div>
       <div class="loading-content">
-        <img src="modules/map-shine/assets/fvtt.png" class="loading-logo slide-from-above" alt="Foundry VTT Logo">
+        <img src="${logoPath}" class="loading-logo slide-from-above" alt="Logo">
         <h2 class="loading-subhead slide-from-above">${subheading}</h2>
         <h1 class="loading-title slide-from-above">${this.title}</h1>
         <div class="loading-bar-container slide-from-below">

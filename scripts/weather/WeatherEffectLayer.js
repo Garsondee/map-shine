@@ -270,6 +270,9 @@ export class WeatherEffectLayer extends PIXI.Container {
    * ⚠️ WARNING: THIS RUNS EVERY FRAME - DO NOT ADD CONSOLE.LOG HERE!
    */
   update() {
+    // CRITICAL: Skip all updates during scene transitions to prevent rendering destroyed objects
+    if (game.mapShine?.transitionActive) return;
+    
     // Update outdoor masking each frame to handle camera movement
     this._updateOutdoorMasking();
   }
