@@ -21,7 +21,7 @@
  * @author Mythica Machina - Ingram Blakelock
  * 
  * Remember that you will need to update the module.json file in the root too when changing version.
- * @version 1.1.92 - Loading Optimization: Fixed missing waypoints + added prewarming diagnostics
+ * @version 1.1.93 - Loading Optimization: Added GeometryMaskManager prewarming (P3)
  *
  * @requires foundry ^13+
  * @requires pixi.js ^7.4.3
@@ -2474,6 +2474,8 @@ class MapShineInitialiser {
           LAYERS_UPDATE_END: 70,
           MASKED_LAYERS_PREWARM_START: 70.1,
           MASKED_LAYERS_PREWARM_END: 70.5,
+          GEOMETRY_MASKS_PREWARM_START: 70.6,
+          GEOMETRY_MASKS_PREWARM_END: 70.9,
           PARTICLES_SETUP_START: 71,
           PARTICLES_SETUP_END: 74,
           SCREEN_FX_INIT: 75,
@@ -2509,6 +2511,8 @@ class MapShineInitialiser {
           LAYERS_UPDATE_END: "Effect layers updated.",
           MASKED_LAYERS_PREWARM_START: "Pre-warming layer masks...",
           MASKED_LAYERS_PREWARM_END: "Layer masks ready.",
+          GEOMETRY_MASKS_PREWARM_START: "Pre-warming geometry masks...",
+          GEOMETRY_MASKS_PREWARM_END: "Geometry masks ready.",
           PARTICLES_SETUP_START: "Initializing particle systems...",
           PARTICLES_SETUP_END: "Particle systems ready.",
           SCREEN_FX_INIT: "Initializing screen effects...",
@@ -8349,6 +8353,21 @@ class MapShineLifecycle {
       console.warn("Map Shine | Masked layers prewarming timed out, continuing anyway:", error);
     }
 
+    // Prewarm geometry masks to prevent first-frame render stalls
+    await loadingManager?.tick("GEOMETRY_MASKS_PREWARM_START");
+    console.log("Map Shine | Starting geometry masks prewarm...");
+    try {
+      await this.withTimeout(
+        this._prewarmGeometryMasks(),
+        3000,
+        "Geometry Masks Prewarming"
+      );
+      console.log("Map Shine | Geometry masks prewarm completed");
+    } catch (error) {
+      console.warn("Map Shine | Geometry masks prewarming timed out, continuing anyway:", error);
+    }
+    await loadingManager?.tick("GEOMETRY_MASKS_PREWARM_END");
+
     // Force weather system to apply initial state after all systems are ready
     // WeatherEffectLayer is not in canvas.layers so needs explicit update
     console.warn('MapShine | 🌦️ WEATHER AUTO-START DEBUG:');
@@ -9121,6 +9140,50 @@ class MapShineLifecycle {
     }
 
     await loadingManager?.tick("MASKED_LAYERS_PREWARM_END");
+  }
+
+  /**
+   * Pre-warms GeometryMaskManager render textures to eliminate first-frame stalls.
+   * 
+   * CRITICAL: GeometryMaskManager creates 10+ render textures during initialization
+   * but defers all mask rendering until the first update() call. This causes a
+   * 20-30ms stall on first frame as it renders all geometry masks at once.
+   * 
+   * Affected textures (created on-demand):
+   * - outdoorsMask, canopyMask, bushMask, treeMask, structuralMask
+   * - roughnessMask, normalMask (2x resolution), and others
+   * 
+   * By calling _renderAllMasks() during loading, we eliminate the first-frame cost.
+   */
+  static async _prewarmGeometryMasks() {
+    console.log("Map Shine | Pre-warming geometry masks...");
+
+    try {
+      const geometryManager = game.mapShine?.geometryMaskManager;
+
+      if (!geometryManager) {
+        console.warn("Map Shine | GeometryMaskManager not available, skipping prewarm");
+        return;
+      }
+
+      // Check if there are any map points to render
+      const groups = MapPointsManager.getGroups();
+      if (foundry.utils.isEmpty(groups)) {
+        console.log("Map Shine | No map points found, skipping geometry masks prewarm");
+        return;
+      }
+
+      // Force the initial render of all geometry masks
+      // This normally happens on first update() call, causing a first-frame stall
+      geometryManager._renderAllMasks();
+      geometryManager._needsUpdate = false; // Clear flag since we just rendered
+
+      console.log("Map Shine | Geometry masks prewarmed successfully");
+
+    } catch (error) {
+      console.warn("Map Shine | Error during geometry masks prewarm:", error);
+      // Don't halt loading if prewarm fails
+    }
   }
 }
 
