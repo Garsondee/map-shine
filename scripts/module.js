@@ -21,7 +21,7 @@
  * @author Mythica Machina - Ingram Blakelock
  * 
  * Remember that you will need to update the module.json file in the root too when changing version.
- * @version 1.2.1 - Feature: Added rain ripple system to make water ripple during storm and rain weather events.
+ * @version 1.2.8 - Fixed zoom-based masking for weather and cloud systems. Weather and cloud shadows now render everywhere when zoomed out.
  *
  * @requires foundry ^13+
  * @requires pixi.js ^7.4.3
@@ -356,20 +356,20 @@ export const MODULE_DEFAULTS = {
     },
     "depth": {
       "enabled": true,
-      "color": "#f6f6f6",
-      "threshold": 0.73,
-      "softness": 0.3,
+      "color": "#FFFFFF",
+      "threshold": 0.3,
+      "softness": 0.2,
       "offsetX": 0,
       "offsetY": 0,
       "zoomThresholdMin": 1.57,
       "zoomThresholdMax": 1.9,
-      "saturation": 1,
-      "brightness": 1,
-      "contrast": 3,
-      "exposure": 0,
-      "gamma": 0.1,
-      "temperature": 0,
-      "tint": 0,
+      "saturation": 1.0,
+      "brightness": 0.0,
+      "contrast": 1.2,
+      "exposure": 0.0,
+      "gamma": 1.0,
+      "temperature": 0.0,
+      "tint": 0.0,
       "zoomPointMin": 0.3,
       "zoomPointMid": 0.5,
       "zoomPointMax": 0.6,
@@ -1852,6 +1852,7 @@ export const MODULE_DEFAULTS = {
     "enabled": true,
     "currentState": "Clear",
     "transitionDuration": 1000,
+    "windIntensityMultiplier": 0.5,
     "statePresets": {
       "clear": {
         "name": "Clear",
@@ -1861,20 +1862,29 @@ export const MODULE_DEFAULTS = {
         "precipitationIntensity": 0,
         "precipitationType": "none",
         "particleCount": 0,
-        "windSpeedMultiplier": 0.5,
         "atmosphericTint": {
           "r": 1,
           "g": 1,
           "b": 1
         },
-        "description": "Sunny day with minimal cloud coverage",
-        "wind": {
-          "baseSpeed": 20,
-          "gustSpeed": 35,
-          "gustFrequencyMin": 10,
-          "gustFrequencyMax": 20,
-          "angleChangeRange": 15
+        "colorCorrection": {
+          "saturation": 1.0,
+          "contrast": 1.0,
+          "brightness": 1.0
         },
+        "windMultipliers": {
+          "baseSpeed": 0.6,
+          "gustSpeed": 0.7,
+          "gustFrequency": 1.2,
+          "gustDuration": 1.0,
+          "angleChangeFrequency": 1.2,
+          "angleChangeRange": 0.8
+        },
+        "foliageMultipliers": {
+          "rustleSpeed": 0.7,
+          "swaySpeed": 0.6
+        },
+        "description": "Sunny day with minimal cloud coverage",
         "cloudWind": {
           "maxSpeed": 3,
           "force": 0.4,
@@ -1889,20 +1899,29 @@ export const MODULE_DEFAULTS = {
         "precipitationIntensity": 0.3,
         "precipitationType": "rain",
         "particleCount": 200,
-        "windSpeedMultiplier": 0.7,
         "atmosphericTint": {
           "r": 0.95,
           "g": 0.95,
           "b": 1
         },
-        "description": "Light rain with moderate cloud coverage",
-        "wind": {
-          "baseSpeed": 40,
-          "gustSpeed": 60,
-          "gustFrequencyMin": 8,
-          "gustFrequencyMax": 15,
-          "angleChangeRange": 20
+        "colorCorrection": {
+          "saturation": 0.95,
+          "contrast": 0.98,
+          "brightness": 1.0
         },
+        "windMultipliers": {
+          "baseSpeed": 0.8,
+          "gustSpeed": 0.85,
+          "gustFrequency": 1.1,
+          "gustDuration": 1.0,
+          "angleChangeFrequency": 1.0,
+          "angleChangeRange": 1.0
+        },
+        "foliageMultipliers": {
+          "rustleSpeed": 0.9,
+          "swaySpeed": 0.85
+        },
+        "description": "Light rain with moderate cloud coverage",
         "cloudWind": {
           "maxSpeed": 5,
           "force": 0.5,
@@ -1917,20 +1936,29 @@ export const MODULE_DEFAULTS = {
         "precipitationIntensity": 0.6,
         "precipitationType": "rain",
         "particleCount": 500,
-        "windSpeedMultiplier": 1,
         "atmosphericTint": {
           "r": 0.9,
           "g": 0.9,
           "b": 0.95
         },
-        "description": "Steady rainfall with heavy clouds",
-        "wind": {
-          "baseSpeed": 60,
-          "gustSpeed": 90,
-          "gustFrequencyMin": 5,
-          "gustFrequencyMax": 12,
-          "angleChangeRange": 25
+        "colorCorrection": {
+          "saturation": 0.85,
+          "contrast": 0.95,
+          "brightness": 0.98
         },
+        "windMultipliers": {
+          "baseSpeed": 1.0,
+          "gustSpeed": 1.0,
+          "gustFrequency": 1.0,
+          "gustDuration": 1.0,
+          "angleChangeFrequency": 1.0,
+          "angleChangeRange": 1.0
+        },
+        "foliageMultipliers": {
+          "rustleSpeed": 1.0,
+          "swaySpeed": 1.0
+        },
+        "description": "Steady rainfall with heavy clouds",
         "cloudWind": {
           "maxSpeed": 8,
           "force": 0.65,
@@ -1945,20 +1973,29 @@ export const MODULE_DEFAULTS = {
         "precipitationIntensity": 0.9,
         "precipitationType": "rain",
         "particleCount": 800,
-        "windSpeedMultiplier": 1.5,
         "atmosphericTint": {
           "r": 0.7,
           "g": 0.75,
           "b": 0.8
         },
-        "description": "Heavy rain with strong wind and dark storm clouds",
-        "wind": {
-          "baseSpeed": 100,
-          "gustSpeed": 180,
-          "gustFrequencyMin": 3,
-          "gustFrequencyMax": 8,
-          "angleChangeRange": 40
+        "colorCorrection": {
+          "saturation": 0.6,
+          "contrast": 0.85,
+          "brightness": 0.92
         },
+        "windMultipliers": {
+          "baseSpeed": 1.4,
+          "gustSpeed": 1.6,
+          "gustFrequency": 0.4,
+          "gustDuration": 1.3,
+          "angleChangeFrequency": 0.7,
+          "angleChangeRange": 1.8
+        },
+        "foliageMultipliers": {
+          "rustleSpeed": 7.0,
+          "swaySpeed": 8.0
+        },
+        "description": "Heavy rain with strong wind and dark storm clouds",
         "cloudWind": {
           "maxSpeed": 15,
           "force": 0.9,
@@ -1973,20 +2010,29 @@ export const MODULE_DEFAULTS = {
         "precipitationIntensity": 0.7,
         "precipitationType": "sleet",
         "particleCount": 600,
-        "windSpeedMultiplier": 1.2,
         "atmosphericTint": {
           "r": 0.85,
           "g": 0.9,
           "b": 1
         },
-        "description": "Mixed rain and snow with cold atmosphere",
-        "wind": {
-          "baseSpeed": 75,
-          "gustSpeed": 120,
-          "gustFrequencyMin": 4,
-          "gustFrequencyMax": 10,
-          "angleChangeRange": 30
+        "colorCorrection": {
+          "saturation": 0.75,
+          "contrast": 0.92,
+          "brightness": 0.96
         },
+        "windMultipliers": {
+          "baseSpeed": 1.1,
+          "gustSpeed": 1.2,
+          "gustFrequency": 0.9,
+          "gustDuration": 1.1,
+          "angleChangeFrequency": 0.9,
+          "angleChangeRange": 1.2
+        },
+        "foliageMultipliers": {
+          "rustleSpeed": 1.3,
+          "swaySpeed": 1.4
+        },
+        "description": "Mixed rain and snow with cold atmosphere",
         "cloudWind": {
           "maxSpeed": 10,
           "force": 0.7,
@@ -2001,20 +2047,29 @@ export const MODULE_DEFAULTS = {
         "precipitationIntensity": 0.5,
         "precipitationType": "snow",
         "particleCount": 400,
-        "windSpeedMultiplier": 0.8,
         "atmosphericTint": {
           "r": 0.95,
           "g": 0.97,
           "b": 1
         },
-        "description": "Snowfall with dense white clouds",
-        "wind": {
-          "baseSpeed": 50,
-          "gustSpeed": 75,
-          "gustFrequencyMin": 7,
-          "gustFrequencyMax": 15,
-          "angleChangeRange": 20
+        "colorCorrection": {
+          "saturation": 0.80,
+          "contrast": 0.95,
+          "brightness": 1.02
         },
+        "windMultipliers": {
+          "baseSpeed": 0.9,
+          "gustSpeed": 0.9,
+          "gustFrequency": 1.2,
+          "gustDuration": 0.9,
+          "angleChangeFrequency": 1.1,
+          "angleChangeRange": 0.7
+        },
+        "foliageMultipliers": {
+          "rustleSpeed": 0.8,
+          "swaySpeed": 0.75
+        },
+        "description": "Snowfall with calm air and heavy cloud coverage",
         "cloudWind": {
           "maxSpeed": 6,
           "force": 0.55,
@@ -2029,20 +2084,29 @@ export const MODULE_DEFAULTS = {
         "precipitationIntensity": 1,
         "precipitationType": "snow",
         "particleCount": 1000,
-        "windSpeedMultiplier": 2,
         "atmosphericTint": {
           "r": 0.9,
           "g": 0.92,
           "b": 1
         },
-        "description": "Heavy snow with strong wind and thick cloud coverage",
-        "wind": {
-          "baseSpeed": 150,
-          "gustSpeed": 280,
-          "gustFrequencyMin": 1,
-          "gustFrequencyMax": 4,
-          "angleChangeRange": 60
+        "colorCorrection": {
+          "saturation": 0.65,
+          "contrast": 0.88,
+          "brightness": 0.95
         },
+        "windMultipliers": {
+          "baseSpeed": 1.5,
+          "gustSpeed": 1.7,
+          "gustFrequency": 0.35,
+          "gustDuration": 1.4,
+          "angleChangeFrequency": 0.6,
+          "angleChangeRange": 2.0
+        },
+        "foliageMultipliers": {
+          "rustleSpeed": 7.6,
+          "swaySpeed": 8.4
+        },
+        "description": "Heavy snowfall with fierce wind and near-zero visibility",
         "cloudWind": {
           "maxSpeed": 20,
           "force": 1,
@@ -2092,7 +2156,7 @@ export const MODULE_DEFAULTS = {
       }
     },
     "edgeDroplets": {
-      "enabled": false,
+      "enabled": true,
       "maxParticles": 500,
       "spawnRate": 200,
       "edgeDetectionMethod": "grid",
@@ -2102,7 +2166,7 @@ export const MODULE_DEFAULTS = {
       "spreadRadius": 16,
       "edgeUpdateFrequency": 10,
       "updateFrequency": 0.85,
-      "frequency": 0.02,
+      "frequency": 0.003,
       "emitDuration": 0.2,
       "autoUpdate": false,
       "opacity": 0.2,
@@ -7501,6 +7565,7 @@ class OverheadEffectLayer extends ResizableAnimatedCanvasLayer {
     this.compositeTexture = null;
     this.compositeSprite = null;
     this.activeAnimations = new Map();
+    
     // Blur properties
     this.blurMinZoom = 0;
     this.blurMidZoom = 2;
@@ -7758,13 +7823,15 @@ class OverheadEffectLayer extends ResizableAnimatedCanvasLayer {
       return; // Defer rendering until BatchRenderer is initialized
     }
     
+    // Render the composite
     renderer.render(this.spritesContainer, {
       renderTexture: this.compositeTexture,
       clear: true,
       transform: canvas.stage.transform.worldTransform,
     });
 
-    // This is the corrected logic for positioning and scaling the final composite sprite.
+    // Make our final composite sprite visible
+    this.compositeSprite.visible = true;
     // Instead of setting width/height, we set the scale directly. This is more robust.
     // The texture of compositeSprite is screen-sized. To make the sprite have a world-size
     // that perfectly matches the viewport, we need to scale it by 1 / canvasScale.
@@ -8468,7 +8535,7 @@ class MapShineLifecycle {
       const weatherManager = game.mapShine.weatherSystemManager;
       const initialState = config.weather.currentState || 'clear';
       
-      console.warn('  - ✅ Conditions met, applying initial state...');
+      console.warn('  - Conditions met, applying initial state...');
       
       // Apply the state immediately without transition
       weatherManager.setInitialState(initialState);
@@ -8485,15 +8552,20 @@ class MapShineLifecycle {
           console.warn(`    - ${type}: visible=${effect.visible}, alpha=${effect.shader?.uniforms?.alpha}, opacity=${effect.shader?.uniforms?.opacity}`);
         }
         
+        // CRITICAL: Apply all weather multipliers (wind, foliage, color correction)
+        // This ensures storm/weather states apply their effects on initial load
+        const currentWeather = weatherManager.getCurrentWeatherState();
+        weatherManager._updateWeatherShaders(currentWeather);
+        
         // Apply wind settings to shaders (critical for rain rotation/speed)
         weatherManager._updateWindOnShaders();
       } else {
-        console.warn('  - ❌ WeatherEffectLayer is NULL!');
+        console.warn('  - WeatherEffectLayer is NULL!');
       }
       
       console.log(`MapShine | Weather system activated with initial state: ${initialState}`);
     } else {
-      console.warn('  - ❌ Conditions NOT met:');
+      console.warn('  - Conditions NOT met:');
       if (!game.mapShine.weatherSystemManager) {
         console.warn('    - WeatherSystemManager does not exist');
       } else if (!game.mapShine.weatherSystemManager.isReady) {
@@ -14530,6 +14602,19 @@ class WeatherEdgeDropletController {
     
     // Mask sprite for GPU-based indoor hiding
     this.maskSprite = null;
+    
+    // Fade system for realistic rain start/stop
+    this.baseFrequency = config.frequency || 0.003;
+    
+    // Fade-out: "dripping from rooftops" after rain stops (2x transition time)
+    this.isFadingOut = false;
+    this.fadeOutStartTime = 0;
+    this.fadeOutDuration = 0;
+    
+    // Fade-in: gradual ramp-up when rain starts (normal transition time)
+    this.isFadingIn = false;
+    this.fadeInStartTime = 0;
+    this.fadeInDuration = 0;
   }
 
   /**
@@ -14581,7 +14666,7 @@ class WeatherEdgeDropletController {
           min: cfg.lifetime.min ?? 4.0,
           max: cfg.lifetime.max ?? 6.5
         },
-        frequency: cfg.frequency ?? 0.005,
+        frequency: cfg.frequency ?? 0.003,
         maxParticles: cfg.maxParticles ?? 600,
         pos: {
           x: 0,   // Emitter position (edge points are relative to this)
@@ -14702,11 +14787,18 @@ class WeatherEdgeDropletController {
       // Set initial position to world origin (edge points are in world coords)
       this.emitter.updateOwnerPos(0, 0);
       
-      // Start emitting immediately for testing
-      this.emitter.emit = true;
+      // Check current weather state - start at full strength if already raining
+      const weatherManager = game.mapShine?.weatherSystemManager;
+      const currentState = weatherManager?.currentState || 'clear';
+      const rainStates = ['drizzle', 'rain', 'storm'];
+      const shouldEmit = rainStates.includes(currentState);
+      
+      // Set both emit flag AND frequency (critical for particles to spawn)
+      this.emitter.emit = shouldEmit;
+      this.emitter.frequency = shouldEmit ? this.baseFrequency : 0;
       
       this.isInitialized = true;
-      console.log('MapShine | EdgeDroplets: ✅ MINIMAL initialization complete');
+      console.log(`MapShine | EdgeDroplets: ✅ MINIMAL initialization complete (emit=${shouldEmit}, frequency=${this.emitter.frequency}, state=${currentState})`);
       
     } catch (error) {
       console.error('MapShine | EdgeDroplets: ❌ Initialization failed', error);
@@ -14723,6 +14815,48 @@ class WeatherEdgeDropletController {
     
     // Update _Outdoors mask for GPU-based indoor culling
     this._updateOutdoorsMask();
+    
+    // Handle fade-in (gradual ramp-up when rain starts)
+    if (this.isFadingIn) {
+      const elapsed = Date.now() - this.fadeInStartTime;
+      const fadeProgress = Math.min(elapsed / this.fadeInDuration, 1.0);
+      
+      // Gradually increase spawn frequency from 0 to base
+      const currentFrequency = this.baseFrequency * fadeProgress;
+      this.emitter.frequency = currentFrequency;
+      
+      // Fade-in complete - resume normal operation
+      if (fadeProgress >= 1.0) {
+        this.isFadingIn = false;
+        this.emitter.frequency = this.baseFrequency;
+        console.log('MapShine | EdgeDroplets: Fade-in complete - at full spawn rate');
+      }
+    }
+    // Handle fade-out (dripping from rooftops effect)
+    else if (this.isFadingOut) {
+      const elapsed = Date.now() - this.fadeOutStartTime;
+      const fadeProgress = Math.min(elapsed / this.fadeOutDuration, 1.0);
+      
+      // Gradually reduce spawn frequency from base to 0
+      const currentFrequency = this.baseFrequency * (1.0 - fadeProgress);
+      this.emitter.frequency = currentFrequency;
+      
+      // Log fade-out progress periodically
+      if (!this._fadeOutLogTimer) this._fadeOutLogTimer = 0;
+      this._fadeOutLogTimer += deltaTime;
+      if (this._fadeOutLogTimer >= 2.0) {  // Log every 2 seconds
+        console.log(`MapShine | EdgeDroplets: Fade-out progress ${(fadeProgress * 100).toFixed(1)}% - frequency: ${currentFrequency.toFixed(4)} (particles: ${this.emitter.particleCount})`);
+        this._fadeOutLogTimer = 0;
+      }
+      
+      // Stop emitting completely when fade-out is done
+      if (fadeProgress >= 1.0) {
+        this.emitter.emit = false;
+        this.isFadingOut = false;
+        this._fadeOutLogTimer = 0;
+        console.log('MapShine | EdgeDroplets: Fade-out complete - stopped emitting');
+      }
+    }
     
     // Update edge points if wind direction has changed significantly
     const windManager = game.mapShine?.windManager;
@@ -14746,7 +14880,8 @@ class WeatherEdgeDropletController {
   Wind Angle: ${windManager.angle.toFixed(1)}°
   Edge Points: ${newEdgePoints.length}
   Active Particles: ${this.emitter.particleCount}
-  Emitting: ${this.emitter.emit}`);
+  Emitting: ${this.emitter.emit}
+  Fading Out: ${this.isFadingOut}`);
             this._diagFrameCount = 0;
           }
         } else {
@@ -14818,23 +14953,66 @@ class WeatherEdgeDropletController {
   }
   
   /**
-   * Start emitting particles
+   * Start emitting particles (immediately at full frequency)
    */
   start() {
     if (this.emitter) {
+      // Cancel any active fades
+      this.isFadingOut = false;
+      this.isFadingIn = false;
+      
+      // Reset to full spawn frequency
+      this.emitter.frequency = this.baseFrequency;
       this.emitter.emit = true;
-      console.log('MapShine | EdgeDroplets: Started emitting');
+      console.log('MapShine | EdgeDroplets: Started emitting at full rate');
     }
   }
 
   /**
-   * Stop emitting particles
+   * Stop emitting particles immediately (hard stop)
    */
   stop() {
     if (this.emitter) {
       this.emitter.emit = false;
-      console.log('MapShine | EdgeDroplets: Stopped emitting');
+      this.isFadingOut = false;
+      this.isFadingIn = false;
+      console.log('MapShine | EdgeDroplets: Stopped emitting (hard stop)');
     }
+  }
+  
+  /**
+   * Begin gradual fade-in (ramp up spawn rate when rain starts)
+   * @param {number} durationMs - Fade-in duration in milliseconds
+   */
+  beginFadeIn(durationMs) {
+    if (!this.emitter) return;
+    
+    // Cancel any active fade-out
+    this.isFadingOut = false;
+    
+    // Start fade-in from 0 frequency
+    this.isFadingIn = true;
+    this.fadeInStartTime = Date.now();
+    this.fadeInDuration = durationMs;
+    this.emitter.frequency = 0; // Start at zero
+    this.emitter.emit = true;    // Enable emitter (even though frequency is 0)
+    console.log(`MapShine | EdgeDroplets: Beginning fade-in over ${durationMs}ms`);
+  }
+  
+  /**
+   * Begin gradual fade-out (for "dripping from rooftops" effect)
+   * @param {number} durationMs - Fade-out duration in milliseconds
+   */
+  beginFadeOut(durationMs) {
+    if (!this.emitter || !this.emitter.emit) return;
+    
+    // Cancel any active fade-in
+    this.isFadingIn = false;
+    
+    this.isFadingOut = true;
+    this.fadeOutStartTime = Date.now();
+    this.fadeOutDuration = durationMs;
+    console.log(`MapShine | EdgeDroplets: Beginning fade-out over ${durationMs}ms`);
   }
 
   /**
@@ -14956,7 +15134,14 @@ class WeatherSystemManager {
           precipitationIntensity: 0,
           precipitationType: 'none',
           particleCount: 0,
-          windSpeedMultiplier: 0.5,
+          windMultipliers: {
+            baseSpeed: 1.0,
+            gustSpeed: 1.0,
+            gustFrequency: 1.0,
+            gustDuration: 1.0,
+            angleChangeFrequency: 1.0,
+            angleChangeRange: 1.0
+          },
           atmosphericTint: { r: 1.0, g: 1.0, b: 1.0 }
         }
       };
@@ -14986,11 +15171,27 @@ class WeatherSystemManager {
       precipitationIntensity: this._lerp(current.precipitationIntensity, target.precipitationIntensity, t),
       precipitationType: t < 0.5 ? current.precipitationType : target.precipitationType,
       particleCount: Math.floor(this._lerp(current.particleCount, target.particleCount, t)),
-      windSpeedMultiplier: this._lerp(current.windSpeedMultiplier, target.windSpeedMultiplier, t),
+      windMultipliers: {
+        baseSpeed: this._lerp(current.windMultipliers?.baseSpeed ?? 1.0, target.windMultipliers?.baseSpeed ?? 1.0, t),
+        gustSpeed: this._lerp(current.windMultipliers?.gustSpeed ?? 1.0, target.windMultipliers?.gustSpeed ?? 1.0, t),
+        gustFrequency: this._lerp(current.windMultipliers?.gustFrequency ?? 1.0, target.windMultipliers?.gustFrequency ?? 1.0, t),
+        gustDuration: this._lerp(current.windMultipliers?.gustDuration ?? 1.0, target.windMultipliers?.gustDuration ?? 1.0, t),
+        angleChangeFrequency: this._lerp(current.windMultipliers?.angleChangeFrequency ?? 1.0, target.windMultipliers?.angleChangeFrequency ?? 1.0, t),
+        angleChangeRange: this._lerp(current.windMultipliers?.angleChangeRange ?? 1.0, target.windMultipliers?.angleChangeRange ?? 1.0, t)
+      },
+      foliageMultipliers: {
+        rustleSpeed: this._lerp(current.foliageMultipliers?.rustleSpeed ?? 1.0, target.foliageMultipliers?.rustleSpeed ?? 1.0, t),
+        swaySpeed: this._lerp(current.foliageMultipliers?.swaySpeed ?? 1.0, target.foliageMultipliers?.swaySpeed ?? 1.0, t)
+      },
       atmosphericTint: {
         r: this._lerp(current.atmosphericTint.r, target.atmosphericTint.r, t),
         g: this._lerp(current.atmosphericTint.g, target.atmosphericTint.g, t),
         b: this._lerp(current.atmosphericTint.b, target.atmosphericTint.b, t)
+      },
+      colorCorrection: {
+        saturation: this._lerp(current.colorCorrection?.saturation ?? 1.0, target.colorCorrection?.saturation ?? 1.0, t),
+        contrast: this._lerp(current.colorCorrection?.contrast ?? 1.0, target.colorCorrection?.contrast ?? 1.0, t),
+        brightness: this._lerp(current.colorCorrection?.brightness ?? 1.0, target.colorCorrection?.brightness ?? 1.0, t)
       },
       description: current.description,
       isTransitioning: true,
@@ -15134,6 +15335,11 @@ class WeatherSystemManager {
         }
       }
       
+      // CRITICAL: Apply weather state after transition completes
+      // This ensures wind/foliage multipliers remain active in the new state
+      const currentWeather = this.getCurrentWeatherState();
+      this._updateWeatherShaders(currentWeather);
+      
       // Apply wind after final config update
       this._updateWindOnShaders();
     }
@@ -15267,6 +15473,125 @@ class WeatherSystemManager {
   }
 
   /**
+   * Apply weather-based color correction to global ColorCorrectionFilter
+   * Multiplies user's base color correction values by weather-specific multipliers
+   * @param {object} weather - Current weather state with interpolated values
+   * @private
+   */
+  _applyWeatherColorCorrection(weather) {
+    // Get the global ColorCorrectionFilter from ScreenEffectsManager
+    const ccFilter = ScreenEffectsManager.getFilter('colorCorrection');
+    if (!ccFilter || !(ccFilter instanceof ColorCorrectionFilter)) {
+      return; // Filter not available
+    }
+
+    // Get user's base color correction config
+    const config = game.mapShine?.profileManager?.activeConfig;
+    if (!config?.postProcessing?.colorCorrection) return;
+    
+    const baseCCConfig = config.postProcessing.colorCorrection;
+    
+    // Get weather multipliers (defaults to 1.0 if not specified)
+    const weatherCC = weather.colorCorrection || { saturation: 1.0, contrast: 1.0, brightness: 1.0 };
+    
+    // Apply weather multipliers to user's base values
+    // This preserves user's look but modifies it for weather atmosphere
+    const u = ccFilter.uniforms;
+    u.uSaturation = baseCCConfig.saturation * weatherCC.saturation;
+    u.uContrast = baseCCConfig.contrast * weatherCC.contrast;
+    u.uBrightness = baseCCConfig.brightness * weatherCC.brightness;
+    
+    // Note: We only modify saturation, contrast, brightness
+    // Other color correction properties (exposure, gamma, etc.) remain unchanged
+    // This keeps weather effects subtle and focused on atmospheric mood
+  }
+
+  /**
+   * Apply weather-based wind multipliers to WindManager
+   * Multiplies user's base wind config values by weather-specific multipliers
+   * @param {object} weather - Current weather state with interpolated values
+   * @private
+   */
+  _applyWeatherWindMultipliers(weather) {
+    const windManager = game.mapShine?.windManager;
+    if (!windManager) return;
+
+    // Get user's base wind config
+    const config = game.mapShine?.profileManager?.activeConfig;
+    if (!config?.fire?.particles?.wind) return;
+    
+    const baseWindConfig = config.fire.particles.wind;
+    
+    // Get weather multipliers (defaults to 1.0 if not specified)
+    const weatherWind = weather.windMultipliers || {
+      baseSpeed: 1.0,
+      gustSpeed: 1.0,
+      gustFrequency: 1.0,
+      gustDuration: 1.0,
+      angleChangeFrequency: 1.0,
+      angleChangeRange: 1.0
+    };
+    
+    // Create modified config by multiplying base values with weather multipliers
+    const modifiedConfig = {
+      enabled: baseWindConfig.enabled,
+      baseSpeed: baseWindConfig.baseSpeed * weatherWind.baseSpeed,
+      gustSpeed: baseWindConfig.gustSpeed * weatherWind.gustSpeed,
+      gustFrequencyMin: baseWindConfig.gustFrequencyMin * weatherWind.gustFrequency,
+      gustFrequencyMax: baseWindConfig.gustFrequencyMax * weatherWind.gustFrequency,
+      gustDurationMin: baseWindConfig.gustDurationMin * weatherWind.gustDuration,
+      gustDurationMax: baseWindConfig.gustDurationMax * weatherWind.gustDuration,
+      angleChangeFrequencyMin: baseWindConfig.angleChangeFrequencyMin * weatherWind.angleChangeFrequency,
+      angleChangeFrequencyMax: baseWindConfig.angleChangeFrequencyMax * weatherWind.angleChangeFrequency,
+      angleChangeRange: baseWindConfig.angleChangeRange * weatherWind.angleChangeRange
+    };
+    
+    // Apply the modified config to WindManager
+    windManager.updateFromConfig(modifiedConfig);
+  }
+
+  /**
+   * Apply weather-based foliage multipliers to Bush and Tree distortion effects
+   * Multiplies the user's base rustle/sway speeds by weather-specific multipliers
+   * @param {object} weather - Current weather state with interpolated values
+   * @private
+   */
+  _applyWeatherFoliageMultipliers(weather) {
+    // Get weather multipliers (defaults to 1.0 if not specified)
+    const foliageMult = weather.foliageMultipliers || {
+      rustleSpeed: 1.0,
+      swaySpeed: 1.0
+    };
+    
+    // Only log when values actually change (or during transitions)
+    if (!this._lastFoliageMult || 
+        this.isTransitioning ||
+        Math.abs(this._lastFoliageMult.rustleSpeed - foliageMult.rustleSpeed) > 0.01 ||
+        Math.abs(this._lastFoliageMult.swaySpeed - foliageMult.swaySpeed) > 0.01) {
+      console.log(`MapShine | Applying foliage multipliers: rustle=${foliageMult.rustleSpeed.toFixed(2)}, sway=${foliageMult.swaySpeed.toFixed(2)} (state: ${this.currentState}, transitioning: ${this.isTransitioning})`);
+      this._lastFoliageMult = { ...foliageMult };
+    }
+    
+    // Apply to Bush layer
+    const bushLayer = canvas.layers?.find(l => l instanceof BushLayer);
+    if (bushLayer) {
+      bushLayer.weatherMultipliers = {
+        rustleSpeed: foliageMult.rustleSpeed,
+        swaySpeed: foliageMult.swaySpeed
+      };
+    }
+    
+    // Apply to Tree layer
+    const treeLayer = canvas.layers?.find(l => l instanceof TreeLayer);
+    if (treeLayer) {
+      treeLayer.weatherMultipliers = {
+        rustleSpeed: foliageMult.rustleSpeed,
+        swaySpeed: foliageMult.swaySpeed
+      };
+    }
+  }
+
+  /**
    * Start the target weather shaders at 0% intensity
    * @param {string} targetState - The target weather state
    * @private
@@ -15359,6 +15684,15 @@ class WeatherSystemManager {
     this._configureEffect('rain', currentStateDef, targetStateDef, transitionIntensity, config);
     this._configureEffect('snow', currentStateDef, targetStateDef, transitionIntensity, config);
     this._configureEffect('fog', currentStateDef, targetStateDef, transitionIntensity, config);
+    
+    // Apply weather-based color correction to global filter
+    this._applyWeatherColorCorrection(weather);
+    
+    // Apply weather-based wind multipliers to WindManager
+    this._applyWeatherWindMultipliers(weather);
+    
+    // Apply weather-based foliage multipliers to Bush and Tree layers
+    this._applyWeatherFoliageMultipliers(weather);
   }
 
   /**
@@ -15455,6 +15789,7 @@ class WeatherSystemManager {
     const baseSplashIntensity = weatherConfig.rain.splashIntensity ?? 0.50;
     const baseWaveMaskIntensity = weatherConfig.rain.waveMaskIntensity ?? 0.75;
     const baseCurtainIntensity = weatherConfig.rain.curtainIntensity ?? 0.65;
+    const baseWorleySpeed = weatherConfig.rain.worleySpeed ?? 1.0;
     
     // Determine which state we're in (handle transitions)
     const stateName = this.isTransitioning ? 
@@ -15514,6 +15849,7 @@ class WeatherSystemManager {
     effect.shader.uniforms.splashIntensity = baseSplashIntensity * splashMult;
     effect.shader.uniforms.waveMaskIntensity = baseWaveMaskIntensity * waveMaskMult;
     effect.shader.uniforms.curtainIntensity = baseCurtainIntensity * curtainMult;
+    effect.shader.uniforms.worleySpeed = baseWorleySpeed;  // Pass uniform but don't use in shader
     effect.alpha = alpha;
   }
 
@@ -15723,12 +16059,47 @@ class WeatherSystemManager {
     
     // Only run edge droplets during rain states (performance optimization)
     const rainStates = ['drizzle', 'rain', 'storm'];
-    const shouldRun = rainStates.includes(this.currentState) || 
-                      (this.isTransitioning && rainStates.includes(this.targetState));
+    const isCurrentlyRaining = rainStates.includes(this.currentState);
+    const isTransitioningToRain = this.isTransitioning && rainStates.includes(this.targetState) && !rainStates.includes(this.currentState);
+    const isTransitioningFromRain = this.isTransitioning && rainStates.includes(this.currentState) && !rainStates.includes(this.targetState);
+    const shouldRun = isCurrentlyRaining || isTransitioningToRain;
+    
     if (shouldRun) {
+      // Handle START of transition into rain state (gradual ramp-up)
+      if (isTransitioningToRain && !this.edgeDropletController.emitter.emit && !this.edgeDropletController.isFadingIn) {
+        const fadeInDuration = this.transitionDuration;
+        this.edgeDropletController.beginFadeIn(fadeInDuration);
+      }
+      // Handle STEADY rain state - ensure emitter is at full strength if not transitioning
+      else if (isCurrentlyRaining && !this.isTransitioning && !this.edgeDropletController.emitter.emit) {
+        // We're in a rain state but not emitting (e.g., scene just loaded in storm)
+        // Start immediately at full strength (no fade-in needed, we're already in the state)
+        this.edgeDropletController.start();
+      }
+      // Update emitter (handles fades and particle simulation)
+      this.edgeDropletController.update(deltaTime);
+    } else if (isTransitioningFromRain && !this.edgeDropletController.isFadingOut) {
+      // Transitioning OUT of rain state - begin gradual fade-out over 2x transition duration
+      const fadeOutDuration = this.transitionDuration * 2;
+      this.edgeDropletController.beginFadeOut(fadeOutDuration);
+      this.edgeDropletController.update(deltaTime);
+    } else if (this.edgeDropletController.isFadingOut || this.edgeDropletController.isFadingIn) {
+      // Continue updating during any active fade
       this.edgeDropletController.update(deltaTime);
     } else {
-      this.edgeDropletController.stop();
+      // Not in rain state - stop emitting but continue updating existing particles
+      if (this.edgeDropletController.emitter) {
+        // Stop emitting new particles (if not already stopped)
+        if (this.edgeDropletController.emitter.emit) {
+          this.edgeDropletController.stop();
+        }
+        
+        // CRITICAL: Continue calling update() to let existing particles finish their lifetime
+        // Without this, particles freeze in place when transition completes
+        if (this.edgeDropletController.emitter.particleCount > 0) {
+          this.edgeDropletController.update(deltaTime);
+        }
+      }
     }
   }
 
@@ -15762,6 +16133,7 @@ class WeatherSystemManager {
       isReady: this.isReady,
       cloudTextureValid: this.cloudTextureValid,
       cloudTextureStatus: cloudTextureStatus,
+      currentState: this.currentState,  // Add current state key for diagnostics UI
       targetState: this.targetState,
       isTransitioning: this.isTransitioning,
       transitionProgress: this.isTransitioning ? `${(this.transitionProgress * 100).toFixed(1)}%` : 'N/A',
@@ -15780,8 +16152,16 @@ class WeatherSystemManager {
       lastError: this.lastError,
       lastErrorTime: this.lastError ? new Date(this.lastErrorTime).toLocaleTimeString() : null,
       
-      // Performance
-      windMultiplier: weather.windSpeedMultiplier.toFixed(2)
+      // Wind multipliers (from weather state)
+      windBase: weather.windMultipliers?.baseSpeed?.toFixed(2) ?? '1.00',
+      windGust: weather.windMultipliers?.gustSpeed?.toFixed(2) ?? '1.00',
+      windGustFreq: weather.windMultipliers?.gustFrequency?.toFixed(2) ?? '1.00',
+      
+      // Actual wind values (from WindManager)
+      windManagerSpeed: game.mapShine?.windManager?.speed?.toFixed(1) ?? 'N/A',
+      windManagerBaseSpeed: game.mapShine?.windManager?.config?.baseSpeed?.toFixed(1) ?? 'N/A',
+      windManagerGustSpeed: game.mapShine?.windManager?.config?.gustSpeed?.toFixed(1) ?? 'N/A',
+      windManagerIsGusting: game.mapShine?.windManager?._isGusting ? 'Yes' : 'No'
     };
   }
 
@@ -15894,21 +16274,27 @@ class WeatherSystemManager {
       await this.weatherEffectLayer.initialize();
       console.warn('  - WeatherEffectLayer initialized');
       
-      // Add the layer to canvas (above background, below tokens)
-      if (canvas.primary) {
-        // Find a good insertion point (after effects layer if it exists)
-        const effectsLayer = canvas.layers.find(l => l.constructor.name === 'EffectsLayer');
-        if (effectsLayer) {
-          const index = canvas.primary.children.indexOf(effectsLayer);
-          canvas.primary.addChildAt(this.weatherEffectLayer, index + 1);
-          console.warn(`  - Weather layer added at index ${index + 1}`);
-        } else {
-          canvas.primary.addChild(this.weatherEffectLayer);
-          console.warn('  - Weather layer added to canvas.primary');
-        }
-        console.log('MapShine | WeatherSystemManager: Weather shader layer added to canvas');
+      // Add the layer to canvas (ABOVE overhead tiles/effects)
+      // The _Outdoors mask in the shader will hide weather in indoor areas
+      // 
+      // CRITICAL: OverheadEffectLayer, BushLayer, TreeLayer are in canvas.environment (zIndex 700, 115, 116)
+      // Foundry renders canvas.primary FIRST, then canvas.environment SECOND
+      // We MUST add weather to canvas.environment with zIndex > 700 to render above overhead tiles
+      if (canvas.environment) {
+        // Enable sortableChildren so zIndex is respected
+        canvas.environment.sortableChildren = true;
+        
+        // Set weather layer to HIGH zIndex (800) to render above OverheadEffectLayer (zIndex 700)
+        this.weatherEffectLayer.zIndex = 800;
+        
+        // Add weather layer to canvas.environment (NOT canvas.primary)
+        canvas.environment.addChild(this.weatherEffectLayer);
+        const weatherIndex = canvas.environment.children.indexOf(this.weatherEffectLayer);
+        console.warn(`  - Weather layer added to canvas.environment at index ${weatherIndex} with zIndex=800`);
+        console.warn(`  - This places weather ABOVE OverheadEffectLayer (zIndex=700), BushLayer (115), TreeLayer (116)`);
+        console.log('MapShine | WeatherSystemManager: Weather shader layer positioned above overhead tiles');
       } else {
-        console.warn('  - ❌ canvas.primary is NULL!');
+        console.warn('  - ❌ canvas.environment is NULL!');
       }
       
       // Edge droplet system (raindrop particles from building edges)
@@ -16642,25 +17028,25 @@ export class ParticleLayer extends AnimatedCanvasLayer {
       this._particleUpdateAccumulator -= this._particleUpdateInterval;
     }
 
-    // TEMP DIAGNOSTIC: Completely disable throttled UI updates to test if they're causing FPS drop
-    if (false) { // Set to true to re-enable
-      // Throttle UI updates for performance.
+    // Throttled UI updates for diagnostic panels
+    // Only runs when debugger is visible to avoid FPS drops
+    if (game.mapShine.debugger?.eventHandler && game.mapShine.debugger?.element?.style.display !== 'none') {
       this._uiUpdateCounter++;
       if (this._uiUpdateCounter >= this._uiUpdateFrequency) {
         this._uiUpdateCounter = 0;
-        // CRITICAL FPS FIX: Only update UI if it's visible
-        // These DOM updates were causing massive FPS drops even when throttled
-        if (game.mapShine.debugger?.eventHandler && game.mapShine.debugger?.element?.style.display !== 'none') {
-          const count = game.mapShine.particleManager.totalParticleCount;
-          const limit =
-            game.mapShine.profileManager.activeConfig.particleSystems
-              .globalParticleLimit;
-          game.mapShine.debugger.eventHandler.updateParticleCount(count, limit);
-          // Update the zoom display for the overhead effect UI.
-          game.mapShine.debugger.eventHandler.updateZoomDisplay();
-          // Update weather system diagnostics
-          game.mapShine.debugger.eventHandler.updateWeatherDiagnostics();
-        }
+        
+        // Update particle count display
+        const count = game.mapShine.particleManager.totalParticleCount;
+        const limit =
+          game.mapShine.profileManager.activeConfig.particleSystems
+            .globalParticleLimit;
+        game.mapShine.debugger.eventHandler.updateParticleCount(count, limit);
+        
+        // Update the zoom display for the overhead effect UI
+        game.mapShine.debugger.eventHandler.updateZoomDisplay();
+        
+        // Update weather system diagnostics
+        game.mapShine.debugger.eventHandler.updateWeatherDiagnostics();
       }
     }
   }
@@ -25360,7 +25746,394 @@ class MetallicShineLayer extends ResizableAnimatedCanvasLayer {
   }
 }
 
-class CloudShadowsFilter extends PIXI.Filter {
+/**
+ * CloudShadowsFilterEnhanced - Enhanced FBM cloud filter with weather and time of day integration
+ * 
+ * This filter generates realistic clouds using Fractional Brownian Motion (FBM) with domain warping,
+ * integrating with weather states and time of day for dynamic cloud appearance.
+ */
+class CloudShadowsFilterEnhanced extends PIXI.Filter {
+  constructor(_options = {}) {
+    const vertexSrc = `
+      attribute vec2 aVertexPosition;
+      attribute vec2 aTextureCoord;
+      uniform mat3 projectionMatrix;
+      varying vec2 vTextureCoord;
+      varying vec2 vScreenCoord;
+
+      void main(void) {
+        gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
+        vTextureCoord = aTextureCoord;
+        vScreenCoord = gl_Position.xy * 0.5 + 0.5;
+      }
+    `;
+
+    const fragmentSrc = `
+      precision mediump float;
+      varying vec2 vTextureCoord;
+      varying vec2 vScreenCoord;
+
+      uniform sampler2D uSampler;
+      uniform sampler2D uOutdoorsMask;
+      uniform sampler2D uLightPolygonMask;
+
+      // World & Camera
+      uniform float u_time;
+      uniform vec2 u_camera_offset;
+      uniform vec2 u_view_size;
+      uniform vec2 u_windDirection;
+      uniform vec4 uSceneRectNorm;
+
+      // Weather Integration
+      uniform float u_weatherDensity;
+      uniform float u_weatherCoverage;
+      uniform float u_weatherBrightness;
+      uniform float u_weatherDarkness;
+      uniform float u_gustStrength;
+
+      // Time of Day Integration
+      uniform vec3 u_timeOfDayTint;
+      uniform float u_timeOfDayIntensity;
+
+      // Noise & Shading
+      uniform float u_noise_scale;
+      uniform int u_noise_octaves;
+      uniform float u_noise_persistence;
+      uniform float u_noise_lacunarity;
+      uniform float u_shading_threshold;
+      uniform float u_shading_softness;
+      uniform float u_shading_brightness;
+      uniform float u_shading_contrast;
+      uniform float u_shading_gamma;
+      uniform float u_shadowIntensity;
+      uniform bool u_outputRawCloud;
+
+      // Light Occlusion
+      uniform bool u_occlusionEnabled;
+      uniform float u_occlusionIntensity;
+
+      // Layer Configuration
+      uniform bool u_layer1_enabled;
+      uniform float u_layer1_scale;
+      uniform float u_layer1_speed;
+      uniform vec2 u_layer1_stretch;
+      uniform int u_layer1_octaves;
+      uniform float u_layer1_opacity;
+      uniform float u_layer1_parallaxDepth;
+
+      uniform bool u_layer2_enabled;
+      uniform float u_layer2_scale;
+      uniform float u_layer2_speed;
+      uniform vec2 u_layer2_stretch;
+      uniform int u_layer2_octaves;
+      uniform float u_layer2_opacity;
+      uniform float u_layer2_parallaxDepth;
+
+      uniform bool u_layer3_enabled;
+      uniform float u_layer3_scale;
+      uniform float u_layer3_speed;
+      uniform vec2 u_layer3_stretch;
+      uniform int u_layer3_octaves;
+      uniform float u_layer3_opacity;
+      uniform float u_layer3_parallaxDepth;
+
+      uniform bool u_layer4_enabled;
+      uniform float u_layer4_scale;
+      uniform float u_layer4_speed;
+      uniform vec2 u_layer4_stretch;
+      uniform int u_layer4_octaves;
+      uniform float u_layer4_opacity;
+      uniform float u_layer4_parallaxDepth;
+
+      uniform bool u_layer5_enabled;
+      uniform float u_layer5_scale;
+      uniform float u_layer5_speed;
+      uniform vec2 u_layer5_stretch;
+      uniform int u_layer5_octaves;
+      uniform float u_layer5_opacity;
+      uniform float u_layer5_parallaxDepth;
+
+      uniform bool u_layer6_enabled;
+      uniform float u_layer6_scale;
+      uniform float u_layer6_speed;
+      uniform vec2 u_layer6_stretch;
+      uniform int u_layer6_octaves;
+      uniform float u_layer6_opacity;
+      uniform float u_layer6_parallaxDepth;
+      uniform float u_layer6_warpStrength;
+      uniform float u_layer6_warpScale;
+      uniform bool u_layer6_additive;
+
+      uniform float u_evolutionSpeed;
+
+      float random(vec2 st) { return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123); }
+      float random3d(vec3 st) { return fract(sin(dot(st.xyz, vec3(12.9898, 78.233, 45.164))) * 43758.5453123); }
+      
+      float noise(vec2 st) {
+        vec2 i = floor(st); vec2 f = fract(st);
+        float a = random(i); float b = random(i + vec2(1.0, 0.0));
+        float c = random(i + vec2(0.0, 1.0)); float d = random(i + vec2(1.0, 1.0));
+        vec2 u = f * f * (3.0 - 2.0 * f);
+        return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.y * u.x;
+      }
+      
+      float noise3d(vec3 st) {
+        vec3 i = floor(st); vec3 f = fract(st);
+        float a = random3d(i);
+        float b = random3d(i + vec3(1.0, 0.0, 0.0));
+        float c = random3d(i + vec3(0.0, 1.0, 0.0));
+        float d = random3d(i + vec3(1.0, 1.0, 0.0));
+        float e = random3d(i + vec3(0.0, 0.0, 1.0));
+        float f2 = random3d(i + vec3(1.0, 0.0, 1.0));
+        float g = random3d(i + vec3(0.0, 1.0, 1.0));
+        float h = random3d(i + vec3(1.0, 1.0, 1.0));
+        vec3 u = f * f * (3.0 - 2.0 * f);
+        return mix(mix(mix(a, b, u.x), mix(c, d, u.x), u.y),
+                   mix(mix(e, f2, u.x), mix(g, h, u.x), u.y), u.z);
+      }
+
+      float fbm3d(vec3 st, int octaves, float persistence, float lacunarity) {
+        float value = 0.0; float amplitude = 0.5;
+        for (int i = 0; i < 10; i++) {
+          if (i >= octaves) break;
+          value += amplitude * noise3d(st);
+          st *= lacunarity;
+          amplitude *= persistence;
+        }
+        return value;
+      }
+
+      // Enhanced cloud FBM with domain warping and gust turbulence
+      float cloudFBM(vec3 position, int octaves, float persistence, float lacunarity) {
+        float warpScale = 0.5 + u_gustStrength * 1.5;
+        vec3 warpOffset = vec3(
+          fbm3d(position * warpScale, 3, 0.5, 2.0),
+          fbm3d(position * warpScale + vec3(5.2, 1.3, 0.0), 3, 0.5, 2.0),
+          fbm3d(position * warpScale + vec3(0.0, 5.2, 1.3), 3, 0.5, 2.0)
+        ) * 0.3 * (0.5 + u_gustStrength * 0.5);
+        
+        vec3 warpedPosition = position + warpOffset;
+        return fbm3d(warpedPosition, octaves, persistence, lacunarity);
+      }
+
+      float applyShadingControls(float value) {
+        value += u_shading_brightness + (u_weatherBrightness - 1.0) * 0.3;
+        value = (value - 0.5) * u_shading_contrast + 0.5;
+        float adjustedThreshold = u_shading_threshold * (1.0 - u_weatherCoverage * 0.3);
+        value = smoothstep(adjustedThreshold, adjustedThreshold + u_shading_softness, value);
+        if (u_shading_gamma > 0.0) { value = pow(value, u_shading_gamma); }
+        value *= u_weatherDensity;
+        return clamp(value, 0.0, 1.0);
+      }
+
+      void main() {
+        vec2 sceneMin = uSceneRectNorm.xy;
+        vec2 sceneMax = uSceneRectNorm.xy + uSceneRectNorm.zw;
+        if (vScreenCoord.x < sceneMin.x || vScreenCoord.x > sceneMax.x ||
+            vScreenCoord.y < sceneMin.y || vScreenCoord.y > sceneMax.y) {
+          gl_FragColor = texture2D(uSampler, vTextureCoord);
+          return;
+        }
+
+        float maskValue = texture2D(uOutdoorsMask, vTextureCoord).r;
+        if (maskValue < 0.01 && !u_outputRawCloud) {
+          gl_FragColor = texture2D(uSampler, vTextureCoord);
+          return;
+        }
+
+        float shadedCloudValue = 0.0;
+        {
+          vec2 canvasScreenCoord = vScreenCoord * u_view_size;
+          vec2 worldCoord = canvasScreenCoord + u_camera_offset;
+          vec2 corrected_coord = worldCoord;
+          float evolutionZ = u_time * u_evolutionSpeed;
+          float shadow = 1.0;
+
+          if (u_layer1_enabled) {
+            vec2 parallax_offset1 = u_camera_offset * u_layer1_parallaxDepth * 0.001;
+            vec2 layer1_coord = corrected_coord + parallax_offset1;
+            vec2 layer1_uv = (layer1_coord / 100.0 * u_noise_scale) * u_layer1_scale * u_layer1_stretch;
+            layer1_uv += u_time * u_windDirection * u_layer1_speed;
+            float layer1_raw = cloudFBM(vec3(layer1_uv, evolutionZ), u_layer1_octaves, u_noise_persistence, u_noise_lacunarity);
+            float layer1_value = applyShadingControls(layer1_raw);
+            shadow *= (1.0 - layer1_value * u_layer1_opacity);
+          }
+
+          if (u_layer2_enabled) {
+            vec2 parallax_offset2 = u_camera_offset * u_layer2_parallaxDepth * 0.001;
+            vec2 layer2_coord = corrected_coord + parallax_offset2;
+            vec2 layer2_uv = (layer2_coord / 100.0 * u_noise_scale) * u_layer2_scale * u_layer2_stretch;
+            layer2_uv += u_time * u_windDirection * u_layer2_speed;
+            float layer2_raw = cloudFBM(vec3(layer2_uv, evolutionZ * 0.8), u_layer2_octaves, u_noise_persistence, u_noise_lacunarity);
+            float layer2_value = applyShadingControls(layer2_raw);
+            shadow *= (1.0 - layer2_value * u_layer2_opacity);
+          }
+
+          if (u_layer3_enabled) {
+            vec2 parallax_offset3 = u_camera_offset * u_layer3_parallaxDepth * 0.001;
+            vec2 layer3_coord = corrected_coord + parallax_offset3;
+            vec2 layer3_uv = (layer3_coord / 100.0 * u_noise_scale) * u_layer3_scale * u_layer3_stretch;
+            layer3_uv += u_time * u_windDirection * u_layer3_speed;
+            float layer3_raw = cloudFBM(vec3(layer3_uv, evolutionZ * 0.6), u_layer3_octaves, u_noise_persistence, u_noise_lacunarity);
+            float layer3_value = applyShadingControls(layer3_raw);
+            shadow *= (1.0 - layer3_value * u_layer3_opacity);
+          }
+
+          if (u_layer4_enabled) {
+            vec2 parallax_offset4 = u_camera_offset * u_layer4_parallaxDepth * 0.001;
+            vec2 layer4_coord = corrected_coord + parallax_offset4;
+            vec2 layer4_uv = (layer4_coord / 100.0 * u_noise_scale) * u_layer4_scale * u_layer4_stretch;
+            layer4_uv += u_time * u_windDirection * u_layer4_speed;
+            float layer4_raw = cloudFBM(vec3(layer4_uv, evolutionZ * 0.4), u_layer4_octaves, u_noise_persistence, u_noise_lacunarity);
+            float layer4_value = applyShadingControls(layer4_raw);
+            shadow *= (1.0 - layer4_value * u_layer4_opacity);
+          }
+
+          if (u_layer5_enabled) {
+            vec2 parallax_offset5 = u_camera_offset * u_layer5_parallaxDepth * 0.001;
+            vec2 layer5_coord = corrected_coord + parallax_offset5;
+            vec2 layer5_uv = (layer5_coord / 100.0 * u_noise_scale) * u_layer5_scale * u_layer5_stretch;
+            layer5_uv += u_time * u_windDirection * u_layer5_speed;
+            float layer5_raw = cloudFBM(vec3(layer5_uv, evolutionZ * 0.2), u_layer5_octaves, u_noise_persistence, u_noise_lacunarity);
+            float layer5_value = applyShadingControls(layer5_raw);
+            shadow *= (1.0 - layer5_value * u_layer5_opacity);
+          }
+
+          shadedCloudValue = 1.0 - shadow;
+
+          if (u_layer6_enabled && !u_outputRawCloud) {
+            vec2 parallax_offset6 = u_camera_offset * u_layer6_parallaxDepth * 0.001;
+            vec2 layer6_coord = corrected_coord + parallax_offset6;
+            vec2 layer6_base_uv = (layer6_coord / 100.0 * u_noise_scale) * u_layer6_scale * u_layer6_stretch;
+            layer6_base_uv += u_time * u_windDirection * u_layer6_speed;
+            vec2 warp_uv = layer6_base_uv * u_layer6_warpScale;
+            float warp_x = fbm3d(vec3(warp_uv, evolutionZ * 1.3), 4, u_noise_persistence, u_noise_lacunarity);
+            float warp_y = fbm3d(vec3(warp_uv + vec2(5.2, 1.3), evolutionZ * 1.3), 4, u_noise_persistence, u_noise_lacunarity);
+            vec2 warped_uv = layer6_base_uv + vec2(warp_x, warp_y) * u_layer6_warpStrength;
+            float layer6_raw = fbm3d(vec3(warped_uv, evolutionZ * 0.15), u_layer6_octaves, u_noise_persistence, u_noise_lacunarity);
+            float layer6_value = applyShadingControls(layer6_raw);
+            if (u_layer6_additive) {
+              shadedCloudValue = clamp(shadedCloudValue + layer6_value * u_layer6_opacity, 0.0, 1.0);
+            } else {
+              shadedCloudValue = clamp(shadedCloudValue * (1.0 - layer6_value * u_layer6_opacity), 0.0, 1.0);
+            }
+          }
+        }
+
+        if (u_outputRawCloud) {
+          gl_FragColor = vec4(vec3(shadedCloudValue), 1.0);
+          return;
+        }
+
+        vec4 originalColor = texture2D(uSampler, vTextureCoord);
+        if (maskValue < 0.01) {
+          gl_FragColor = originalColor;
+          return;
+        }
+
+        float shadowAmount = shadedCloudValue * maskValue * u_shadowIntensity * u_weatherDarkness;
+
+        if (u_occlusionEnabled) {
+          float lightMaskValue = texture2D(uLightPolygonMask, vScreenCoord).r;
+          shadowAmount *= (1.0 - lightMaskValue * u_occlusionIntensity);
+        }
+
+        shadowAmount = clamp(shadowAmount, 0.0, 1.0);
+        vec3 finalColor = originalColor.rgb * (1.0 - shadowAmount);
+        
+        if (u_timeOfDayIntensity > 0.0) {
+          vec3 tintedShadow = mix(vec3(0.0), u_timeOfDayTint, u_timeOfDayIntensity);
+          finalColor = mix(finalColor, finalColor * (1.0 + tintedShadow * shadowAmount), shadowAmount);
+        }
+        
+        gl_FragColor = vec4(finalColor, originalColor.a);
+      }
+    `;
+
+    super(vertexSrc, fragmentSrc, {
+      uOutdoorsMask: PIXI.Texture.EMPTY,
+      uLightPolygonMask: PIXI.Texture.EMPTY,
+      u_time: 0.0,
+      u_camera_offset: [0, 0],
+      u_view_size: [0, 0],
+      uSceneRectNorm: [0, 0, 1, 1],
+      u_windDirection: [0.01, 0.01],
+      u_weatherDensity: 0.5,
+      u_weatherCoverage: 0.5,
+      u_weatherBrightness: 1.0,
+      u_weatherDarkness: 0.5,
+      u_gustStrength: 0.0,
+      u_timeOfDayTint: [1.0, 1.0, 1.0],
+      u_timeOfDayIntensity: 0.0,
+      u_noise_scale: 0.1,
+      u_noise_octaves: 5,
+      u_noise_persistence: 0.5,
+      u_noise_lacunarity: 2.5,
+      u_shading_threshold: 1.0,
+      u_shading_softness: 0.2,
+      u_shading_brightness: 0.51,
+      u_shading_contrast: 1.0,
+      u_shading_gamma: 1.0,
+      u_shadowIntensity: 0.5,
+      u_outputRawCloud: false,
+      u_occlusionEnabled: true,
+      u_occlusionIntensity: 1.0,
+      u_layer1_enabled: true,
+      u_layer1_scale: 4.0,
+      u_layer1_speed: 2.5,
+      u_layer1_stretch: [1.0, 1.0],
+      u_layer1_octaves: 3,
+      u_layer1_opacity: 0.3,
+      u_layer1_parallaxDepth: 0.1,
+      u_layer2_enabled: true,
+      u_layer2_scale: 1.5,
+      u_layer2_speed: 1.3,
+      u_layer2_stretch: [1.0, 1.0],
+      u_layer2_octaves: 5,
+      u_layer2_opacity: 0.5,
+      u_layer2_parallaxDepth: 0.3,
+      u_layer3_enabled: true,
+      u_layer3_scale: 0.7,
+      u_layer3_speed: 0.7,
+      u_layer3_stretch: [1.0, 1.0],
+      u_layer3_octaves: 6,
+      u_layer3_opacity: 0.6,
+      u_layer3_parallaxDepth: 0.5,
+      u_layer4_enabled: true,
+      u_layer4_scale: 2.5,
+      u_layer4_speed: 1.8,
+      u_layer4_stretch: [1.0, 1.0],
+      u_layer4_octaves: 4,
+      u_layer4_opacity: 0.4,
+      u_layer4_parallaxDepth: 0.2,
+      u_layer5_enabled: true,
+      u_layer5_scale: 5.0,
+      u_layer5_speed: 3.0,
+      u_layer5_stretch: [1.0, 1.0],
+      u_layer5_octaves: 2,
+      u_layer5_opacity: 0.2,
+      u_layer5_parallaxDepth: 0.15,
+      u_layer6_enabled: true,
+      u_layer6_scale: 1.2,
+      u_layer6_speed: 4.5,
+      u_layer6_stretch: [1.5, 1.0],
+      u_layer6_octaves: 7,
+      u_layer6_opacity: 0.15,
+      u_layer6_parallaxDepth: 0.0,
+      u_layer6_warpStrength: 0.3,
+      u_layer6_warpScale: 2.5,
+      u_layer6_additive: true,
+      u_evolutionSpeed: 0.001,
+    });
+  }
+}
+
+// Use enhanced FBM cloud filter with weather and time of day integration
+const CloudShadowsFilter = CloudShadowsFilterEnhanced;
+
+// Legacy CloudShadowsFilter class replaced by CloudShadowsFilterEnhanced (preserved for reference)
+/*
+class CloudShadowsFilter_LEGACY extends PIXI.Filter {
   constructor(_options = {}) {
     const vertexSrc = `
         attribute vec2 aVertexPosition;
@@ -25772,6 +26545,8 @@ class CloudShadowsFilter extends PIXI.Filter {
     });
   }
 }
+*/
+// End of legacy CloudShadowsFilter class
 
 class CloudShadowsLayer extends MaskedEffectLayer {
   constructor() {
@@ -26253,11 +27028,104 @@ class CloudShadowsLayer extends MaskedEffectLayer {
     const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
     const u = this.cloudFilter.uniforms;
 
-    const mainOutdoorsMask = this.getMaskTexture();
+    // Get the outdoors mask, but apply zoom-based override
+    const currentZoom = CoordinateManager.getCanvasScale();
+    const ZOOM_MASKING_THRESHOLD = 0.3; // Below this zoom, disable masking (matching weather effects)
+    
+    let mainOutdoorsMask;
+    if (currentZoom <= ZOOM_MASKING_THRESHOLD) {
+      // Zoomed out far - use white texture to disable masking (clouds render everywhere)
+      mainOutdoorsMask = PIXI.Texture.WHITE;
+    } else {
+      // Zoomed in normally - use actual outdoors mask
+      mainOutdoorsMask = this.getMaskTexture();
+    }
 
     const csConfig = game.mapShine.profileManager.activeConfig.cloudShadows;
     const windConfig = csConfig.wind;
     const deltaInSeconds = deltaTime / 1000;
+    
+    // === WEATHER STATE INTEGRATION ===
+    // Get current weather state for cloud appearance modulation
+    const weatherManager = game.mapShine.weatherSystemManager;
+    if (weatherManager) {
+      const weatherState = weatherManager.getCurrentWeatherState();
+      
+      // Weather state to cloud parameter mapping
+      const weatherCloudParams = {
+        clear: { density: 0.2, coverage: 0.15, brightness: 1.0, darkness: 0.1 },
+        drizzle: { density: 0.5, coverage: 0.7, brightness: 0.8, darkness: 0.3 },
+        rain: { density: 0.7, coverage: 0.85, brightness: 0.6, darkness: 0.5 },
+        storm: { density: 0.9, coverage: 0.98, brightness: 0.4, darkness: 0.8 },
+        sleet: { density: 0.6, coverage: 0.8, brightness: 0.7, darkness: 0.5 },
+        snow: { density: 0.65, coverage: 0.75, brightness: 0.9, darkness: 0.2 },
+        blizzard: { density: 0.85, coverage: 0.95, brightness: 0.5, darkness: 0.6 }
+      };
+      
+      // Use interpolated values during transitions
+      let params;
+      if (weatherManager.isTransitioning && weatherManager.targetState) {
+        // Interpolate between current and target states
+        const fromParams = weatherCloudParams[weatherManager.currentState] || weatherCloudParams.clear;
+        const toParams = weatherCloudParams[weatherManager.targetState] || weatherCloudParams.clear;
+        const t = weatherManager.transitionProgress;
+        
+        // Apply same easing as WeatherSystemManager for smooth transitions
+        const easedT = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        
+        params = {
+          density: fromParams.density + (toParams.density - fromParams.density) * easedT,
+          coverage: fromParams.coverage + (toParams.coverage - fromParams.coverage) * easedT,
+          brightness: fromParams.brightness + (toParams.brightness - fromParams.brightness) * easedT,
+          darkness: fromParams.darkness + (toParams.darkness - fromParams.darkness) * easedT
+        };
+      } else {
+        // Not transitioning - use current state parameters
+        params = weatherCloudParams[weatherManager.currentState] || weatherCloudParams.clear;
+      }
+      
+      // Apply weather parameters to shader
+      u.u_weatherDensity = params.density;
+      u.u_weatherCoverage = params.coverage;
+      u.u_weatherBrightness = params.brightness;
+      u.u_weatherDarkness = params.darkness;
+      
+      // Gust strength for turbulence modulation (from windManager)
+      if (game.mapShine.windManager) {
+        const gustNormalized = Math.min(1.0, game.mapShine.windManager.speed / 200.0);
+        u.u_gustStrength = gustNormalized;
+      }
+    }
+    
+    // === TIME OF DAY INTEGRATION ===
+    // Get atmospheric color from TimeOfDayLayer
+    const timeOfDayLayer = canvas.timeOfDay;
+    if (timeOfDayLayer && typeof timeOfDayLayer.getAtmosphericColor === 'function') {
+      const atmosColor = timeOfDayLayer.getAtmosphericColor();
+      
+      // Weather-based modulation: storms mute time-of-day colors, clear shows them fully
+      const weatherTimeInfluence = {
+        clear: 1.0,       // Full color influence
+        drizzle: 0.7,     // Moderate muting
+        rain: 0.5,        // Significant muting
+        storm: 0.3,       // Heavy muting (storm clouds block sunlight)
+        sleet: 0.6,       // Moderate-heavy muting
+        snow: 0.6,        // Moderate (snow reflects light)
+        blizzard: 0.4     // Heavy muting
+      };
+      
+      const currentWeatherState = weatherManager ? weatherManager.currentState : 'clear';
+      const weatherInfluence = weatherTimeInfluence[currentWeatherState] ?? 0.7;
+      
+      u.u_timeOfDayTint = [atmosColor.r, atmosColor.g, atmosColor.b];
+      u.u_timeOfDayIntensity = atmosColor.intensity * weatherInfluence;
+    } else {
+      // Fallback if TimeOfDayLayer not available
+      u.u_timeOfDayTint = [1.0, 1.0, 1.0];
+      u.u_timeOfDayIntensity = 0.0;
+    }
+    
+    // === WIND INTEGRATION ===
     if (windConfig.linkToWind && game.mapShine.windManager?.config?.enabled) {
       const windManager = game.mapShine.windManager;
       // Use smoothedAngle for clouds to give them inertia and steady drift
@@ -26477,17 +27345,21 @@ class CloudDepthRecolorFilter extends PIXI.Filter {
       attribute vec2 aTextureCoord;
       uniform mat3 projectionMatrix;
       varying vec2 vTextureCoord;
+      varying vec2 vScreenCoord;
 
       void main(void) {
         gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
         vTextureCoord = aTextureCoord;
+        vScreenCoord = gl_Position.xy * 0.5 + 0.5;
       }
     `;
 
     const fragmentSrc = `
       precision mediump float;
       varying vec2 vTextureCoord;
+      varying vec2 vScreenCoord;
       uniform sampler2D uSampler;
+      uniform vec4 uSceneRectNorm;
       uniform vec3 u_cloudColor;
       uniform float u_threshold;
       uniform float u_softness;
@@ -26514,6 +27386,15 @@ class CloudDepthRecolorFilter extends PIXI.Filter {
       }
 
       void main() {
+        // Scene bounds check - prevent rendering outside scene area
+        vec2 sceneMin = uSceneRectNorm.xy;
+        vec2 sceneMax = uSceneRectNorm.xy + uSceneRectNorm.zw;
+        if (vScreenCoord.x < sceneMin.x || vScreenCoord.x > sceneMax.x ||
+            vScreenCoord.y < sceneMin.y || vScreenCoord.y > sceneMax.y) {
+          gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+          return;
+        }
+        
         vec4 texColor = texture2D(uSampler, vTextureCoord);
         
         // Raw cloud texture has bright areas where clouds are present
@@ -26528,6 +27409,11 @@ class CloudDepthRecolorFilter extends PIXI.Filter {
           return;
         }
         
+        // === EDGE DETECTION FOR GOLDEN HOUR EFFECTS ===
+        // Thin wispy cloud edges get MORE color than thick centers
+        // Edge strength: 0.0 = thick center, 1.0 = thin edge
+        float edgeStrength = 1.0 - smoothstep(0.3, 0.7, cloudIntensity);
+        
         // Calculate darkness factor: 0.25 at full darkness (75% darker), 1.0 at no darkness
         float darknessFactor = 1.0 - (u_darkness * 0.75);
         
@@ -26535,28 +27421,66 @@ class CloudDepthRecolorFilter extends PIXI.Filter {
         // IMPORTANT: Use alpha to ensure we only work with cloud areas
         vec3 workingColor = u_cloudColor * alpha * darknessFactor;
         
-        // === FULL COLOR CORRECTION PIPELINE ===
+        // === REORDERED COLOR CORRECTION PIPELINE ===
+        // First normalize to white, THEN apply time-of-day colors
         
-        // 1. Exposure
-        workingColor *= pow(2.0, u_exposure);
+        // 1. Brightness (normalize shadow map to white clouds FIRST)
+        workingColor += u_brightness * alpha;
         
-        // 2. White Balance (Temperature & Tint)
-        workingColor = applyWhiteBalance(workingColor, u_temperature, u_tint);
+        // 2. Contrast (shape the cloud form)
+        workingColor = (workingColor - alpha * 0.5) * u_contrast + alpha * 0.5;
         
-        // 3. Gamma
+        // 3. Gamma (tonal adjustments)
         if (u_gamma > 0.0) {
           workingColor = pow(max(workingColor, 0.0), vec3(1.0 / u_gamma));
         }
         
-        // 4. Brightness (apply proportionally to alpha to avoid affecting transparent areas)
-        workingColor += u_brightness * alpha;
-        
-        // 5. Contrast (apply around cloud intensity, not midpoint)
-        workingColor = (workingColor - alpha * 0.5) * u_contrast + alpha * 0.5;
-        
-        // 6. Saturation
+        // 4. Saturation (before color grading)
         float luminance = dot(workingColor, lum_weights);
         workingColor = mix(vec3(luminance), workingColor, u_saturation);
+        
+        // === NOW apply time-of-day colors to the WHITE clouds ===
+        
+        // 5. Exposure (time-of-day brightness)
+        workingColor *= pow(2.0, u_exposure);
+        
+        // 6. White Balance (Temperature & Tint) with GOLDEN HOUR EDGE ENHANCEMENT
+        // Detect golden hour with STRICT conditions:
+        // - High temperature (warm red/orange), excludes neutral midday
+        // - Low exposure (sun near horizon), excludes high midday sun
+        // - Creates 0.0-1.0 strength that peaks at sunrise/sunset only
+        float tempStrength = smoothstep(0.3, 1.0, max(0.0, u_temperature)); // Needs strong warmth
+        float exposureGate = 1.0 - smoothstep(-0.5, 0.5, u_exposure);        // Low at horizon, zero at midday
+        float goldenHourStrength = tempStrength * exposureGate;
+        goldenHourStrength = clamp(goldenHourStrength * 1.5, 0.0, 1.0);
+        
+        // Amplify temperature/tint on edges during golden hour
+        float edgeColorBoost = 1.0 + (edgeStrength * goldenHourStrength * 2.5);
+        float amplifiedTemp = u_temperature * edgeColorBoost;
+        float amplifiedTint = u_tint * edgeColorBoost;
+        
+        workingColor = applyWhiteBalance(workingColor, amplifiedTemp, amplifiedTint);
+        
+        // Add extra saturation + yellows/oranges to edges during golden hour
+        if (goldenHourStrength > 0.1 && edgeStrength > 0.2) {
+          // Variable golden colors based on edge thickness
+          // Thin edges: bright yellow-orange (1.0, 0.85, 0.5)
+          // Thick edges: deep red-orange (1.0, 0.5, 0.2)
+          vec3 goldenTint = mix(
+            vec3(1.0, 0.5, 0.2),   // Deep orange for thicker parts
+            vec3(1.0, 0.85, 0.5),  // Bright yellow for thin wisps
+            edgeStrength
+          );
+          
+          // Add golden tint with edge-based variation
+          float tintStrength = edgeStrength * goldenHourStrength * 0.4;
+          workingColor = mix(workingColor, workingColor * goldenTint, tintStrength);
+          
+          // Extra saturation for fiery effect
+          float edgeLuminance = dot(workingColor, lum_weights);
+          float extraSaturation = 1.0 + (edgeStrength * goldenHourStrength * 0.8);
+          workingColor = mix(vec3(edgeLuminance), workingColor, extraSaturation);
+        }
         
         // Clamp final color
         vec3 finalColor = clamp(workingColor, 0.0, 1.0);
@@ -26568,6 +27492,7 @@ class CloudDepthRecolorFilter extends PIXI.Filter {
     `;
 
     super(vertexSrc, fragmentSrc, {
+      uSceneRectNorm: [0, 0, 1, 1], // Scene bounds in normalized screen coordinates
       u_cloudColor: [1.0, 1.0, 1.0], // White by default
       u_threshold: 0.3, // Threshold for cloud detection
       u_softness: 0.2, // Soft edge falloff
@@ -26794,14 +27719,39 @@ class CloudDepthLayer extends AnimatedCanvasLayer {
       // Update darkness level from scene
       u.u_darkness = canvas.scene?.environment?.darknessLevel ?? 0;
 
-      // Full Color Correction Suite
+      // Update scene bounds from CoordinateManager
+      u.uSceneRectNorm = CoordinateManager.getSceneRectNormalizedArray();
+
+      // === TIME OF DAY INTEGRATION FOR CLOUD TOPS ===
+      // Get atmospheric color from TimeOfDayLayer (same as CloudShadowsLayer)
+      const timeOfDayLayer = canvas.timeOfDay;
+      if (timeOfDayLayer && typeof timeOfDayLayer.getAtmosphericColor === 'function') {
+        const atmosColor = timeOfDayLayer.getAtmosphericColor();
+        
+        // Use the raw interpolated temperature, tint, and exposure values directly
+        // This ensures cloud coloration matches the ground and time-of-day filter
+        u.u_temperature = atmosColor.temperature ?? 0.0;
+        u.u_tint = atmosColor.tint ?? 0.0;
+        
+        // Apply time-of-day influenced exposure
+        // FIXED: Old formula Math.log2(intensity * 0.5 + 0.5) was backwards!
+        // - At intensity=1.0 it gave exposure=0.0 (neutral)
+        // - At intensity=0.087 it gave exposure=-0.880 (darken!)
+        // New formula: Linear mapping where intensity=0.5 → neutral
+        const timeExposure = (atmosColor.intensity - 0.5) * 2.0;
+        u.u_exposure = timeExposure;
+      } else {
+        // Fallback to config values if TimeOfDayLayer not available
+        u.u_exposure = config.exposure ?? 0.0;
+        u.u_temperature = config.temperature ?? 0.0;
+        u.u_tint = config.tint ?? 0.0;
+      }
+
+      // Full Color Correction Suite (non-time-of-day params)
       u.u_saturation = config.saturation ?? 1.0;
       u.u_brightness = config.brightness ?? 0.0;
       u.u_contrast = config.contrast ?? 1.0;
-      u.u_exposure = config.exposure ?? 0.0;
       u.u_gamma = config.gamma ?? 1.0;
-      u.u_temperature = config.temperature ?? 0.0;
-      u.u_tint = config.tint ?? 0.0;
     }
   }
 
@@ -27661,13 +28611,14 @@ class FoliageDistortionFilter extends PIXI.Filter {
         
         // === RUSTLE LAYER (small-scale, always active) ===
         // Primary rustle noise
+        // NOTE: u_rustleSpeed is NOT multiplied here - speed is baked into u_time accumulation
         vec2 rustleCoord1 = noisePos * u_rustleFrequency;
-        rustleCoord1 += u_windDirection * u_time * u_rustleSpeed;
+        rustleCoord1 += u_windDirection * u_time;
         float rustleNoise1 = value_noise(rustleCoord1);
         
         // Perpendicular rustle turbulence
         vec2 rustleCoord2 = noisePos * u_rustleFrequency * 1.3;
-        rustleCoord2 += perpWind * u_time * u_rustleSpeed * 0.8;
+        rustleCoord2 += perpWind * u_time * 0.8;
         float rustleNoise2 = value_noise(rustleCoord2);
         
         // Apply spring motion for natural push/pull
@@ -27683,13 +28634,14 @@ class FoliageDistortionFilter extends PIXI.Filter {
         
         // === SWAY LAYER (large-scale, wind-driven) ===
         // Primary sway noise (follows wind)
+        // NOTE: u_swaySpeed is NOT multiplied here - speed is baked into u_time accumulation
         vec2 swayCoord1 = noisePos * u_swayFrequency;
-        swayCoord1 += u_windDirection * u_time * u_swaySpeed;
+        swayCoord1 += u_windDirection * u_time;
         float swayNoise1 = value_noise(swayCoord1);
         
         // Perpendicular sway turbulence
         vec2 swayCoord2 = noisePos * u_swayFrequency * 1.5;
-        swayCoord2 += perpWind * u_time * u_swaySpeed * 0.6;
+        swayCoord2 += perpWind * u_time * 0.6;
         float swayNoise2 = value_noise(swayCoord2);
         
         // Apply spring motion with momentum for large-scale movement
@@ -27698,7 +28650,7 @@ class FoliageDistortionFilter extends PIXI.Filter {
         
         // Add subtle secondary motion for more organic feel
         vec2 swayCoord3 = noisePos * u_swayFrequency * 0.5; // Slower frequency
-        swayCoord3 += u_windDirection * u_time * u_swaySpeed * 0.3;
+        swayCoord3 += u_windDirection * u_time * 0.3;
         float swayNoise3 = value_noise(swayCoord3);
         float swaySpring3 = applySpringMotion(swayNoise3) * 0.3; // 30% contribution
         
@@ -27874,18 +28826,27 @@ class BushLayer extends AnimatedCanvasLayer {
         filter.uniforms.u_windStrength = this._smoothedWindStrength;
       }
       
-      // Update time
-      filter.uniforms.u_time += deltaTime / 1000;
+      // Get weather multipliers for foliage (applied by WeatherSystemManager)
+      const weatherMult = this.weatherMultipliers || { rustleSpeed: 1.0, swaySpeed: 1.0 };
       
-      // Update rustle layer
+      // Calculate combined speed for time accumulation (prevents jumps during weather transitions)
+      // Average rustle and sway speeds weighted by their typical contribution
+      const rustleSpeedScaled = bushConfig.rustleSpeed * weatherMult.rustleSpeed;
+      const swaySpeedScaled = bushConfig.swaySpeed * weatherMult.swaySpeed;
+      const combinedSpeed = (rustleSpeedScaled + swaySpeedScaled) * 0.5;
+      
+      // Update time with combined speed baked in
+      filter.uniforms.u_time += (deltaTime / 1000) * combinedSpeed;
+      
+      // Update rustle layer (speeds no longer used in shader)
       filter.uniforms.u_rustleScale = bushConfig.rustleScale;
-      filter.uniforms.u_rustleSpeed = bushConfig.rustleSpeed;
+      filter.uniforms.u_rustleSpeed = rustleSpeedScaled;  // Keep for reference but not used in shader
       filter.uniforms.u_rustleFrequency = bushConfig.rustleFrequency;
       filter.uniforms.u_rustleIntensity = bushConfig.rustleIntensity;
       
-      // Update sway layer
+      // Update sway layer (speeds no longer used in shader)
       filter.uniforms.u_swayScale = bushConfig.swayScale;
-      filter.uniforms.u_swaySpeed = bushConfig.swaySpeed;
+      filter.uniforms.u_swaySpeed = swaySpeedScaled;  // Keep for reference but not used in shader
       filter.uniforms.u_swayFrequency = bushConfig.swayFrequency;
       filter.uniforms.u_swayIntensity = bushConfig.swayIntensity;
       filter.uniforms.u_swayWindMultiplier = bushConfig.swayWindMultiplier;
@@ -28063,18 +29024,27 @@ class TreeLayer extends AnimatedCanvasLayer {
         filter.uniforms.u_windStrength = this._smoothedWindStrength;
       }
       
-      // Update time
-      filter.uniforms.u_time += deltaTime / 1000;
+      // Get weather multipliers for foliage (applied by WeatherSystemManager)
+      const weatherMult = this.weatherMultipliers || { rustleSpeed: 1.0, swaySpeed: 1.0 };
       
-      // Update rustle layer
+      // Calculate combined speed for time accumulation (prevents jumps during weather transitions)
+      // Average rustle and sway speeds weighted by their typical contribution
+      const rustleSpeedScaled = treeConfig.rustleSpeed * weatherMult.rustleSpeed;
+      const swaySpeedScaled = treeConfig.swaySpeed * weatherMult.swaySpeed;
+      const combinedSpeed = (rustleSpeedScaled + swaySpeedScaled) * 0.5;
+      
+      // Update time with combined speed baked in
+      filter.uniforms.u_time += (deltaTime / 1000) * combinedSpeed;
+      
+      // Update rustle layer (speeds no longer used in shader)
       filter.uniforms.u_rustleScale = treeConfig.rustleScale;
-      filter.uniforms.u_rustleSpeed = treeConfig.rustleSpeed;
+      filter.uniforms.u_rustleSpeed = rustleSpeedScaled;  // Keep for reference but not used in shader
       filter.uniforms.u_rustleFrequency = treeConfig.rustleFrequency;
       filter.uniforms.u_rustleIntensity = treeConfig.rustleIntensity;
       
-      // Update sway layer
+      // Update sway layer (speeds no longer used in shader)
       filter.uniforms.u_swayScale = treeConfig.swayScale;
-      filter.uniforms.u_swaySpeed = treeConfig.swaySpeed;
+      filter.uniforms.u_swaySpeed = swaySpeedScaled;  // Keep for reference but not used in shader
       filter.uniforms.u_swayFrequency = treeConfig.swayFrequency;
       filter.uniforms.u_swayIntensity = treeConfig.swayIntensity;
       filter.uniforms.u_swayWindMultiplier = treeConfig.swayWindMultiplier;
@@ -31741,7 +32711,11 @@ class WaterFXLayer extends MaskedEffectLayer {
     const timeFactor = game.mapShine.timeControl.timeFactor ?? 1.0;
     // Use elapsedMS for a more reliable time delta from the ticker
     const deltaInSeconds = (canvas.app.ticker.elapsedMS / 1000) * timeFactor;
-    this.time += deltaInSeconds;
+    
+    // Apply speed scaling during time accumulation (not in shader)
+    // This prevents visual "jumps" when u_speed changes during weather transitions
+    const currentSpeed = this.displacementFilter?.uniforms?.u_speed ?? 1.0;
+    this.time += deltaInSeconds * currentSpeed;
 
     const renderer = canvas.app.renderer;
     const stage = canvas.stage;
@@ -32126,7 +33100,9 @@ class WaveDisplacementFilter extends PIXI.Filter {
                                 // Calculate world coordinates from the reliable screen coordinates
                                 vec2 world_coord = u_camera_offset + (vScreenCoord * u_view_size);
 
-                                float time = u_time * u_speed;
+                                // Use u_time directly (speed is already baked into time accumulation)
+                                // This prevents visual jumps when u_speed changes
+                                float time = u_time;
                                 vec2 uv1 = world_coord * u_scale * 0.01 + vec2(time * 0.5, time * 0.2);
                                 vec2 uv2 = world_coord * u_scale * 0.015 - vec2(time * -0.2, time * 0.5);
 
@@ -33361,8 +34337,13 @@ class MapShineClock {
     if (icon.attr("src") !== newIconSrc) {
       icon.attr("src", newIconSrc);
     }
-    // Only notify the system if this update is from manual mode (not from a hook)
-    if (!fromHook && this.timeMode === 'manual') {
+    // Notify the system to update visuals based on the mode:
+    // - Manual mode: only update when user interacts (not from external hooks)
+    // - Foundry mode: only update when Foundry time changes (from hooks)
+    const shouldUpdate = (this.timeMode === 'manual' && !fromHook) || 
+                         (this.timeMode === 'foundry' && fromHook);
+    
+    if (shouldUpdate) {
       game.mapShine.updateTimeOfDay(this.currentTime);
     }
   }
@@ -33488,17 +34469,26 @@ class TimeOfDayColorFilter extends PIXI.Filter {
                 const vec3 lum_weights = vec3(0.299, 0.587, 0.114);
 
                 vec3 applyWhiteBalance(vec3 color, float temperature, float tint) {
-                    // A subtle white balance adjustment
+                    // Enhanced white balance to match cloud coloration intensity
                     // Temperature: > 0 is warmer (orange/yellow), < 0 is cooler (blue).
-                    color.r += temperature * 0.15;
-                    color.g += temperature * 0.075;
-                    color.b -= temperature * 0.15;
-
-                    // Tint: > 0 is greener, < 0 is magenter.
-                    color.g += tint * 0.15;
-                    color.r -= tint * 0.075;
-                    color.b -= tint * 0.075;
-
+                    // CRITICAL: Use multiplicative approach to match cloud RGB tint strength
+                    const float STRENGTH = 0.3;
+                    
+                    // Convert temperature to RGB multipliers (matching cloud system)
+                    float tempR = 1.0 + (temperature * STRENGTH);
+                    float tempG = 1.0 + (temperature * STRENGTH * 0.5);  // Half effect on green
+                    float tempB = 1.0 - (temperature * STRENGTH);
+                    
+                    // Apply tint (green-magenta axis)
+                    float tintG = 1.0 + (tint * STRENGTH * 0.4);
+                    float tintR = 1.0 - (tint * STRENGTH * 0.2);
+                    float tintB = 1.0 - (tint * STRENGTH * 0.2);
+                    
+                    // Combine multipliers and apply
+                    color.r *= tempR * tintR;
+                    color.g *= tempG * tintG;
+                    color.b *= tempB * tintB;
+                    
                     return color;
                 }
 
@@ -33523,19 +34513,20 @@ class TimeOfDayColorFilter extends PIXI.Filter {
                     float temperature = mix(uFromTemperature, uToTemperature, uBlendFactor);
                     float tint = mix(uFromTint, uToTint, uBlendFactor);
 
-                    // --- 2. Apply tonal and color corrections ---
-                    // Tonal corrections
+                    // --- 2. Apply color corrections in optimal order ---
+                    // CRITICAL: Apply white balance FIRST on brighter colors before tonal corrections
+                    // This ensures temperature shifts have maximum effect before exposure darkens the image
+                    workingColor = applyWhiteBalance(workingColor, temperature, tint);
+
+                    // Tonal corrections (applied after white balance)
                     workingColor *= pow(2.0, exposure);
                     if (gamma > 0.0) workingColor = pow(max(workingColor, 0.0), vec3(1.0 / gamma));
                     workingColor += brightness;
                     workingColor = (workingColor - 0.5) * contrast + 0.5;
 
-                    // Saturation
+                    // Saturation (applied last to preserve color balance)
                     float luminance = dot(workingColor, lum_weights);
                     workingColor = mix(vec3(luminance), workingColor, saturation);
-
-                    // White Balance
-                    workingColor = applyWhiteBalance(workingColor, temperature, tint);
 
                     // --- 3. Mix the final result based on intensity and outdoors mask ---
                     // The mix is done between the original straight color and the corrected straight color
@@ -33747,14 +34738,18 @@ class TimeOfDayLayer extends MaskedEffectLayer {
   }
 
   _updateFilterUniforms() {
-    if (!this.filter) return;
+    if (!this.filter) {
+      return;
+    }
 
     const config = game.mapShine.profileManager.activeConfig;
     const todConfig = config.timeOfDay;
     const hasActiveMasks = this.maskSprites.size > 0;
 
     this.filter.enabled = config.enabled && todConfig.enabled && hasActiveMasks;
-    if (!this.filter.enabled) return;
+    if (!this.filter.enabled) {
+      return;
+    }
 
     const u = this.filter.uniforms;
     u.uIntensity = todConfig.intensity ?? 1.0;
@@ -33816,6 +34811,57 @@ class TimeOfDayLayer extends MaskedEffectLayer {
     u.uToGamma = toFrame.gamma ?? defaults.gamma;
     u.uToTemperature = toFrame.temperature ?? defaults.temperature;
     u.uToTint = toFrame.tint ?? defaults.tint;
+  }
+
+  /**
+   * Get atmospheric color tint for clouds and other effects
+   * Converts temperature and tint values to RGB color
+   * @returns {Object} { r, g, b, intensity, temperature, tint, exposure } - RGB values, intensity, and raw color grading params
+   */
+  getAtmosphericColor() {
+    if (!this.filter || !this.filter.enabled || this._sortedKeyframes.length < 2) {
+      return { r: 1.0, g: 1.0, b: 1.0, intensity: 0.0, temperature: 0.0, tint: 0.0, exposure: 0.0 };
+    }
+    
+    const u = this.filter.uniforms;
+    const blendFactor = u.uBlendFactor ?? 0;
+    
+    // Interpolate temperature and tint
+    const temperature = u.uFromTemperature + (u.uToTemperature - u.uFromTemperature) * blendFactor;
+    const tint = u.uFromTint + (u.uToTint - u.uFromTint) * blendFactor;
+    const exposure = u.uFromExposure + (u.uToExposure - u.uFromExposure) * blendFactor;
+    
+    // Convert temperature to RGB (warm = orange, cool = blue)
+    let r = 1.0, g = 1.0, b = 1.0;
+    
+    // Temperature: >0 = warm (orange/yellow), <0 = cool (blue)
+    r += temperature * 0.3;
+    g += temperature * 0.15;
+    b -= temperature * 0.3;
+    
+    // Tint: >0 = green, <0 = magenta
+    g += tint * 0.2;
+    r -= tint * 0.1;
+    b -= tint * 0.1;
+    
+    // Exposure affects overall intensity
+    const intensityFromExposure = Math.pow(2.0, exposure);
+    r *= intensityFromExposure;
+    g *= intensityFromExposure;
+    b *= intensityFromExposure;
+    
+    // Clamp to valid range
+    r = Math.max(0.1, Math.min(2.0, r));
+    g = Math.max(0.1, Math.min(2.0, g));
+    b = Math.max(0.1, Math.min(2.0, b));
+    
+    // Calculate overall intensity based on exposure (sky brightness)
+    // exposure = 0 → intensity = 0.5 (neutral)
+    // exposure = +1 → intensity = 1.0 (bright midday)
+    // exposure = -1 → intensity = 0.0 (dark night)
+    const intensity = Math.max(0.0, Math.min(1.0, exposure * 0.5 + 0.5));
+    
+    return { r, g, b, intensity, temperature, tint, exposure };
   }
 
   _onAnimate(deltaTime) {
@@ -34729,6 +35775,34 @@ class DebuggerUIBuilder {
               <span id="weather-diag-ready" style="color: #10b981;">✓ Yes</span>
             </div>
             
+            <!-- Wind System -->
+            <div style="font-weight: bold; margin-top: 10px; margin-bottom: 4px; padding-top: 8px; border-top: 1px solid rgba(148,163,184,0.2); color: #94a3b8;">Wind System</div>
+            
+            <div class="diagnostic-row" style="display: flex; justify-content: space-between; padding: 3px 0; font-size: 11px;">
+              <span style="color: #94a3b8;">Current Speed:</span>
+              <span id="weather-diag-wind-speed" style="color: #fff;">N/A</span>
+            </div>
+            
+            <div class="diagnostic-row" style="display: flex; justify-content: space-between; padding: 3px 0; font-size: 11px;">
+              <span style="color: #94a3b8;">Gusting:</span>
+              <span id="weather-diag-wind-gusting" style="color: #fff;">No</span>
+            </div>
+            
+            <div class="diagnostic-row" style="display: flex; justify-content: space-between; padding: 3px 0; font-size: 11px;">
+              <span style="color: #94a3b8;">Base Speed Config:</span>
+              <span id="weather-diag-wind-base-cfg" style="color: #94a3b8; font-size: 10px;">N/A</span>
+            </div>
+            
+            <div class="diagnostic-row" style="display: flex; justify-content: space-between; padding: 3px 0; font-size: 11px;">
+              <span style="color: #94a3b8;">Gust Speed Config:</span>
+              <span id="weather-diag-wind-gust-cfg" style="color: #94a3b8; font-size: 10px;">N/A</span>
+            </div>
+            
+            <div class="diagnostic-row" style="display: flex; justify-content: space-between; padding: 3px 0; font-size: 11px;">
+              <span style="color: #94a3b8;">Weather Multiplier:</span>
+              <span id="weather-diag-wind-mult" style="color: #fbbf24; font-size: 10px;">1.00x</span>
+            </div>
+            
             <div id="weather-diag-error" style="display: none; margin-top: 6px; padding: 6px; background: rgba(239,68,68,0.2); border-radius: 3px; border-left: 2px solid #ef4444;">
               <div style="font-size: 10px; color: #fca5a5; font-weight: bold;">⚠ ERROR</div>
               <div id="weather-diag-error-msg" style="font-size: 10px; color: #fecaca; margin-top: 2px;"></div>
@@ -35192,7 +36266,7 @@ class DebuggerUIBuilder {
                     0.001,
                     0.02,
                     0.001,
-                    "Particles spawned per frame (0.001=slow, 0.01=fast)"
+                    "Particles spawned per frame (0.002=sparse, 0.003=normal, 0.01=heavy)"
                   )}
 
                   ${DebuggerUIBuilder._createSliderHTML(
@@ -39709,6 +40783,41 @@ class DebuggerEventHandler {
         }
       }
 
+      // Update wind system display
+      const windSpeedEl = this.element.querySelector("#weather-diag-wind-speed");
+      if (windSpeedEl) {
+        windSpeedEl.textContent = diag.windManagerSpeed;
+        // Highlight if speed is high
+        const speed = parseFloat(diag.windManagerSpeed);
+        if (!isNaN(speed) && speed > 30) {
+          windSpeedEl.style.color = "#fbbf24";
+        } else {
+          windSpeedEl.style.color = "#fff";
+        }
+      }
+      
+      const windGustingEl = this.element.querySelector("#weather-diag-wind-gusting");
+      if (windGustingEl) {
+        windGustingEl.textContent = diag.windManagerIsGusting;
+        windGustingEl.style.color = diag.windManagerIsGusting === 'Yes' ? "#fbbf24" : "#94a3b8";
+      }
+      
+      const windBaseCfgEl = this.element.querySelector("#weather-diag-wind-base-cfg");
+      if (windBaseCfgEl) {
+        windBaseCfgEl.textContent = diag.windManagerBaseSpeed;
+      }
+      
+      const windGustCfgEl = this.element.querySelector("#weather-diag-wind-gust-cfg");
+      if (windGustCfgEl) {
+        windGustCfgEl.textContent = diag.windManagerGustSpeed;
+      }
+      
+      const windMultEl = this.element.querySelector("#weather-diag-wind-mult");
+      if (windMultEl) {
+        const multText = `${diag.windBase}x base / ${diag.windGust}x gust / ${diag.windGustFreq}x freq`;
+        windMultEl.textContent = multText;
+      }
+      
       // Update error display
       const errorContainer = this.element.querySelector("#weather-diag-error");
       const errorMsgEl = this.element.querySelector("#weather-diag-error-msg");

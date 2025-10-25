@@ -144,14 +144,39 @@ export class WeatherEffectLayer extends PIXI.Container {
 
   /**
    * Update _Outdoors masking for all weather effects
-   * This ensures weather only renders in outdoor areas
+   * This ensures weather only renders in outdoor areas when zoomed in
+   * When zoomed out, masking is disabled to show weather everywhere
    * 
    * ⚠️ WARNING: DO NOT ADD CONSOLE.LOG HERE - THIS RUNS EVERY FRAME!
    * 
    * @private
    */
   _updateOutdoorMasking() {
-    // Get the _Outdoors mask from ResourceManager
+    // Get current zoom level to determine masking behavior
+    const coordinateManager = game.mapShine?.coordinateManager;
+    if (!coordinateManager) {
+      // Fallback: disable masking if CoordinateManager not available
+      for (const [type, effect] of this.effects.entries()) {
+        effect.shader.uniforms.useTerrain = false;
+      }
+      return;
+    }
+    
+    const currentZoom = coordinateManager.getCanvasScale();
+    
+    // Disable masking when zoomed out far (matching overhead layer visibility logic)
+    // At these zoom levels, overhead tiles are fully visible, so weather should render everywhere
+    const ZOOM_MASKING_THRESHOLD = 0.3; // Below this zoom, disable masking
+    
+    if (currentZoom <= ZOOM_MASKING_THRESHOLD) {
+      // Zoomed out far - disable terrain masking for all effects
+      for (const [type, effect] of this.effects.entries()) {
+        effect.shader.uniforms.useTerrain = false;
+      }
+      return;
+    }
+    
+    // Zoomed in normally - apply _Outdoors masking
     const resourceManager = game.mapShine?.resourceManager;
     if (!resourceManager) {
       // Only warn once, not every frame

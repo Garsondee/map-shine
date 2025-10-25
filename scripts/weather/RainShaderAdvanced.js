@@ -192,8 +192,9 @@ export class RainShaderAdvanced extends WeatherShaderBase {
     // WIND DIRECTION: Splashes move in wind direction, ignoring speed/gusts
     float computeGroundSplashes(in vec2 uv) {
       // === FIRST WORLEY LAYER ===
-      // Animate splash UV in wind direction with configurable speed
-      vec2 splashUV1 = uv * 3.0 - windDirection * time * 0.3 * worleySpeed;
+      // Animate splash UV in wind direction
+      // NOTE: worleySpeed NOT multiplied by time here - speed baked into time accumulation
+      vec2 splashUV1 = uv * 3.0 - windDirection * time * 0.3;
       
       // MAXIMUM CHAOTIC DISTORTION: Multi-scale noise for fuzzy, rough splashes
       // Large-scale chaos
@@ -213,7 +214,8 @@ export class RainShaderAdvanced extends WeatherShaderBase {
       worley1 = smoothstep(0.3, 0.8, worley1);  // Wider, softer range
       
       // === SECOND WORLEY LAYER (offset seed and different animation) ===
-      vec2 splashUV2 = uv * 3.2 - windDirection * time * 0.26 * worleySpeed + vec2(137.5, 249.8);  // Large offset for different seed, slightly different speed
+      // NOTE: worleySpeed NOT multiplied by time here - speed baked into time accumulation
+      vec2 splashUV2 = uv * 3.2 - windDirection * time * 0.26 + vec2(137.5, 249.8);  // Large offset for different seed, slightly different speed
       
       // Different distortion pattern for variety
       float distort5 = smoothNoise(uv * 2.0 - time * 1.5) * 0.35;
@@ -237,7 +239,8 @@ export class RainShaderAdvanced extends WeatherShaderBase {
       
       // VISIBILITY MASKING: Hide ~50% of splashes using animated noise
       // Creates natural variation where splashes appear/disappear
-      vec2 maskUV = uv * 2.5 - windDirection * time * 0.16 * worleySpeed + vec2(500.0, 500.0);  // Offset for different pattern, moves with wind
+      // NOTE: worleySpeed NOT multiplied by time here - speed baked into time accumulation
+      vec2 maskUV = uv * 2.5 - windDirection * time * 0.16 + vec2(500.0, 500.0);  // Offset for different pattern, moves with wind
       float visibilityMask = smoothNoise(maskUV + time * 0.5);
       visibilityMask += smoothNoise(maskUV * 2.0 - time * 0.7) * 0.5;  // Add detail layer
       visibilityMask = smoothstep(0.3, 0.7, visibilityMask);  // Soft transitions, targets ~50% visibility
@@ -255,7 +258,8 @@ export class RainShaderAdvanced extends WeatherShaderBase {
     // WIND DIRECTION: Gaps move in wind direction, ignoring speed/gusts
     float computeWavySheetMask(in vec2 uv) {
       // Large-scale UV for broad rain gaps (offset from splash UV space)
-      vec2 maskUV = uv * 1.2 - windDirection * time * 0.05 * worleySpeed + vec2(100.0, 100.0);  // Offset by 100 for different pattern, moves with wind
+      // NOTE: worleySpeed NOT multiplied by time here - speed baked into time accumulation
+      vec2 maskUV = uv * 1.2 - windDirection * time * 0.05 + vec2(100.0, 100.0);  // Offset by 100 for different pattern, moves with wind
       
       // Add organic distortion to mask edges
       float drift1 = smoothNoise(uv * 0.8 + time * 0.3) * 0.3;

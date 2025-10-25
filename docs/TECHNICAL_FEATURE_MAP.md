@@ -1,7 +1,7 @@
 # Map Shine - Technical Feature Map
 
-**Version:** 1.2.1  
-**Last Updated:** 2025-01-25
+**Version:** 1.2.9  
+**Last Updated:** 2025-10-25
 
 > **Purpose:** Comprehensive technical reference for all module systems, layers, managers, and features.  
 > **Location Reference:** Add `docs/TECHNICAL_FEATURE_MAP.md` to your AI instructions for quick feature lookup.
@@ -198,6 +198,8 @@ clearFrameCache()           // Per-frame cleanup
 | **WaterEffectLayer** | Masked | _Water | Animated caustics, refraction, cloud occlusion | 27800-28800 |
 | **IridescenceLayer** | Masked | _Iridescence | Rainbow shimmer, color shifting | 24700-25400 |
 | **CanopyLayer** | Masked | _Canopy | Leaf distortion, wind movement | 28800-29400 |
+| **BushLayer** | Animated | _Bush (tile detection) | Wind-driven foliage distortion, weather multipliers | 28716-28904 |
+| **TreeLayer** | Animated | _Tree (tile detection) | Wind-driven foliage distortion, weather multipliers | 28914-29055 |
 | **PrismLayer** | Masked | _Prism | Spectral dispersion, rainbow patterns | 29400-30000 |
 | **BuildingShadowsLayer** | Masked | _Outdoors | Time-based shadows, 2-pass Kawase blur, erosion filtering, edge safety | 32061-32394 |
 | **TimeOfDayLayer** | Masked | _TimeOfDay | 24hr cycle, darkness sync, sunrise/sunset | 31200-32000 |
@@ -299,15 +301,15 @@ clearFrameCache()           // Per-frame cleanup
 ### States (7 Total)
 **Manager:** WeatherSystemManager
 
-| State | Effects | Config |
-|-------|---------|--------|
-| **CLEAR** | None | - |
-| **DRIZZLE** | Light rain | opacity 0.15, intensity 0.6 |
-| **RAIN** | Moderate rain | opacity 0.25, intensity 1.0 |
-| **STORM** | Heavy rain + fog | opacity 0.45, intensity 1.5, fog |
-| **SNOW** | Snowfall | direction 0.5, speed 2 |
-| **BLIZZARD** | Heavy snow + fog | direction 0.80, speed 8, fog |
-| **SLEET** | Mixed rain/snow | Blended properties |
+| State | Effects | Foliage Multipliers | Config |
+|-------|---------|---------------------|--------|
+| **CLEAR** | None | Rustle 0.7×, Sway 0.6× | Gentle breeze |
+| **DRIZZLE** | Light rain | Rustle 0.9×, Sway 0.85× | opacity 0.15, intensity 0.6 |
+| **RAIN** | Moderate rain | Rustle 1.0×, Sway 1.0× | opacity 0.25, intensity 1.0 |
+| **STORM** | Heavy rain + fog | **Rustle 7.0×, Sway 8.0×** | opacity 0.45, intensity 1.5, fog, **violent thrashing** |
+| **SLEET** | Mixed rain/snow | Rustle 1.3×, Sway 1.4× | Blended properties |
+| **SNOW** | Snowfall | Rustle 0.8×, Sway 0.75× | direction 0.5, speed 2 |
+| **BLIZZARD** | Heavy snow + fog | **Rustle 7.6×, Sway 8.4×** | direction 0.80, speed 8, fog, **maximum chaos** |
 
 ### Shaders
 
@@ -698,7 +700,9 @@ map-shine/
 ├── languages/
 │   └── en.json
 ├── docs/
-│   └── TECHNICAL_FEATURE_MAP.md     # This file
+│   ├── TECHNICAL_FEATURE_MAP.md     # This file
+│   ├── FUTURE_CONSIDERATIONS.md     # Planned features & improvements
+│   └── Version History Main Document.md
 └── module.json
 ```
 
@@ -827,6 +831,11 @@ Foliage Tiles → Alpha Threshold → Mask Texture
 
 ## Version History Highlights
 
+- **1.2.9** - Extreme weather foliage distortion (storm/blizzard multipliers doubled)
+- **1.2.8** - Zoom-based weather and cloud masking fix
+- **1.2.7** - Overhead-aware weather masking (Phase 1 & 2)
+- **1.2.6** - Weather effects rendering order fix
+- **1.2.5** - Time of Day integration for cloud shadows
 - **1.2.0** - Foundry World Time synchronization for Day/Night Clock
 - **1.1.99** - Critical scene transition error fix (baseTexture destruction)
 - **1.1.98** - Low-hanging fruit code cleanup (weather gating, comment removal)
@@ -861,15 +870,20 @@ Foliage Tiles → Alpha Threshold → Mask Texture
 ## Future Enhancements
 
 ### Planned Features
+- **Weather Orchestrator UI** - See `docs/FUTURE_CONSIDERATIONS.md` for full specification
 - Fog of War performance optimization (Phase 2) # USER ALERT - BEWARE, THIS FEATURE HAS BEEN ATTEMPTED TWICE AND RESULTED IN FAILURE AND REVERTING
 - GeometryMaskManager texture atlas (Phase 3)
 - Additional weather shaders (hail, sandstorm, aurora)
 - Enhanced particle masking
 - More texture-based effects
 
+### Documentation
+- **FUTURE_CONSIDERATIONS.md** - Tracks planned improvements and technical debt
+- **Version History Main Document.md** - Complete changelog of all releases
+
 ### Low-Hanging Fruit
 - See `user_global` memory for opportunities
-- Check `Version History Main Document.md` for recent additions
+- Check `FUTURE_CONSIDERATIONS.md` for tracked enhancements
 
 ---
 
