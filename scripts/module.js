@@ -21,15 +21,16 @@
  * @author Mythica Machina - Ingram Blakelock
  * 
  * Remember that you will need to update the module.json file in the root too when changing version.
- * @version 1.2.0 - Feature: Foundry Time Sync for Day/Night Clock
+ * @version 1.2.1 - Feature: Added rain ripple system to make water ripple during storm and rain weather events.
  *
  * @requires foundry ^13+
  * @requires pixi.js ^7.4.3
  *
+ * 
  * @TODO: FUN IDEA - Horror world vision. Basically the ability to quickly swap the appearance of the background with a different background for a horror vibe.
  * @TODO: Screen Overlay effects, should be able to happen on only one player or something like that.
  *
- *
+ * @TODO: IMPORTANT. Make a video showing off your maps and get on the artist commision websites. You could make a mint.
  *
  */
 
@@ -1018,6 +1019,12 @@ export const MODULE_DEFAULTS = {
       "biofilmDistortion": {
         "enabled": false,
         "intensity": 0.5
+      },
+      "rainRipple": {
+        "enabled": true,
+        "speed": 9.0,
+        "scale": 2.1,
+        "intensity": 0.019
       }
     },
     "murkiness": {
@@ -15075,6 +15082,10 @@ class WeatherSystemManager {
       // This ensures wind rotation isn't overwritten by config values
       this._updateWindOnShaders();
       
+      // Apply rain ripples to outdoor water surfaces
+      const currentWeather = this.getCurrentWeatherState();
+      this._applyRainRipples(currentWeather);
+      
       // Update edge droplet system
       this._updateEdgeDroplets(deltaTime);
       
@@ -15101,6 +15112,9 @@ class WeatherSystemManager {
     
     // Apply wind direction and turbulence during transitions
     this._updateWindOnShaders();
+
+    // Apply rain ripples to outdoor water surfaces during transitions
+    this._applyRainRipples(currentWeather);
 
     // Update edge droplet system during transitions
     this._updateEdgeDroplets(deltaTime);
@@ -15153,6 +15167,103 @@ class WeatherSystemManager {
 
     // Update cloud appearance via config changes would happen here
     // This will be implemented when we integrate with the cloud system
+  }
+
+  /**
+   * Compute and apply rain ripple parameters to outdoor water surfaces
+   * Only affects water in outdoor areas (white regions of _Outdoors mask)
+   * @param {object} weather - Current weather state
+   * @private
+   */
+  _applyRainRipples(weather) {
+    const waterLayer = canvas.layers.find(l => l instanceof WaterFXLayer);
+    if (!waterLayer || !waterLayer.displacementFilter) return;
+
+    const config = game.mapShine?.profileManager?.activeConfig;
+    if (!config?.water?.wave?.rainRipple?.enabled) return;
+
+    const rainRippleConfig = config.water.wave.rainRipple;
+    const baseWaveConfig = config.water.wave;
+
+    // Determine rain intensity based on current weather state
+    let rainIntensity = 0;
+    switch (this.currentState) {
+      case WeatherSystemManager.STATES.DRIZZLE:
+        rainIntensity = 0.3;
+        break;
+      case WeatherSystemManager.STATES.RAIN:
+        rainIntensity = 1.0;
+        break;
+      case WeatherSystemManager.STATES.STORM:
+        rainIntensity = 1.8;
+        break;
+      case WeatherSystemManager.STATES.SLEET:
+        rainIntensity = 0.6;
+        break;
+      default:
+        rainIntensity = 0;
+    }
+
+    // Apply smooth transition during weather state changes
+    if (this.isTransitioning) {
+      const targetIntensity = this._getTargetRainIntensity();
+      rainIntensity = this._lerp(rainIntensity, targetIntensity, this.transitionProgress);
+    }
+
+    // Store the original wave parameters if this is the first time applying rain ripples
+    if (!waterLayer._originalWaveParams) {
+      waterLayer._originalWaveParams = {
+        speed: baseWaveConfig.speed,
+        scale: baseWaveConfig.scale,
+        intensity: baseWaveConfig.intensity
+      };
+    }
+
+    // ADDITIVE APPROACH: Rain ripples add to base wave, not replace it
+    // Speed: Blend between base and rain speed (faster animation during rain)
+    const targetSpeed = this._lerp(
+      waterLayer._originalWaveParams.speed,
+      rainRippleConfig.speed,
+      rainIntensity
+    );
+    
+    // Scale: Blend between base and rain scale (smaller, more chaotic ripples during rain)
+    const targetScale = this._lerp(
+      waterLayer._originalWaveParams.scale,
+      rainRippleConfig.scale,
+      rainIntensity
+    );
+    
+    // Intensity: ADD rain ripple intensity to base wave intensity (this is key!)
+    // Base wave always present + rain ripples on top
+    const rainRippleAmount = rainRippleConfig.intensity * rainIntensity;
+    const targetIntensity = waterLayer._originalWaveParams.intensity + rainRippleAmount;
+
+    // Apply the blended parameters to the displacement filter
+    waterLayer.displacementFilter.uniforms.u_speed = targetSpeed;
+    waterLayer.displacementFilter.uniforms.u_scale = targetScale;
+    
+    // Store for WaterFXLayer to use when updating wave intensity (ADDITIVE)
+    waterLayer._rainRippleIntensity = targetIntensity;
+  }
+
+  /**
+   * Get target rain intensity for transition
+   * @private
+   */
+  _getTargetRainIntensity() {
+    switch (this.targetState) {
+      case WeatherSystemManager.STATES.DRIZZLE:
+        return 0.3;
+      case WeatherSystemManager.STATES.RAIN:
+        return 1.0;
+      case WeatherSystemManager.STATES.STORM:
+        return 1.8;
+      case WeatherSystemManager.STATES.SLEET:
+        return 0.6;
+      default:
+        return 0;
+    }
   }
 
   /**
@@ -30283,7 +30394,11 @@ class WaterEffectsFilter extends PIXI.Filter {
                                 // --- UNIFIED DISTORTION CALCULATION ---
                                 vec2 wave_uv_offset = vec2(0.0);
                                 if (u_wave_enabled) {
-                                    wave_uv_offset = (texture2D(u_displacementMap, vTextureCoord).xy - 0.5) * 2.0 * u_wave_intensity;
+                                    // Sample outdoor mask to modulate wave intensity
+                                    float outdoorsMaskValue = texture2D(u_outdoorsMask, vTextureCoord).r;
+                                    // Apply wave distortion, modulated by outdoor mask
+                                    // Indoor water (mask=0) gets no wave distortion, outdoor water (mask=1) gets full intensity
+                                    wave_uv_offset = (texture2D(u_displacementMap, vTextureCoord).xy - 0.5) * 2.0 * u_wave_intensity * outdoorsMaskValue;
                                 }
 
                                 vec2 swirl_world_offset = vec2(0.0);
@@ -30748,6 +30863,40 @@ class WaterFXLayer extends MaskedEffectLayer {
                                       0.0001,
                                       "The strength of the distortion. Higher values push the pixels further."
                                     )}
+                                    <details id="details-water-rain-ripple">
+                                        <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                                          "water.wave.rainRipple.enabled",
+                                          "Rain Ripples (Weather)",
+                                          true
+                                        )}</div></summary>
+                                        <div style="padding-left: 5px;">
+                                            <p class="description-text">Automatically adjust wave parameters during rain/storm weather. Only affects outdoor water areas (uses _Outdoors mask).</p>
+                                            ${DebuggerUIBuilder._createSliderHTML(
+                                              "water.wave.rainRipple.speed",
+                                              "Rain Speed",
+                                              0,
+                                              25,
+                                              0.1,
+                                              "Wave animation speed during rain. Higher values create faster, more chaotic ripples."
+                                            )}
+                                            ${DebuggerUIBuilder._createSliderHTML(
+                                              "water.wave.rainRipple.scale",
+                                              "Rain Scale",
+                                              0.1,
+                                              40,
+                                              0.1,
+                                              "Wave noise scale during rain. Higher values create smaller, more frequent rain ripples."
+                                            )}
+                                            ${DebuggerUIBuilder._createSliderHTML(
+                                              "water.wave.rainRipple.intensity",
+                                              "Rain Intensity",
+                                              0,
+                                              0.05,
+                                              0.0001,
+                                              "Wave distortion strength during rain. This will be blended based on weather state intensity (drizzle/rain/storm)."
+                                            )}
+                                        </div>
+                                    </details>
                                 </div>
                             </details>
                             <details id="details-water-depth-displacement">
@@ -31650,8 +31799,12 @@ class WaterFXLayer extends MaskedEffectLayer {
     const u = waterEffectsFilter.uniforms;
     const wConfig = game.mapShine.profileManager.activeConfig.water;
     if (wConfig?.wave) {
-      u.u_wave_intensity =
-        wConfig.wave.intensity * CoordinateManager.getCanvasScale();
+      // Use rain ripple intensity if set by WeatherSystemManager, otherwise use base config
+      const baseIntensity = wConfig.wave.intensity;
+      const effectiveIntensity = this._rainRippleIntensity !== undefined 
+        ? this._rainRippleIntensity 
+        : baseIntensity;
+      u.u_wave_intensity = effectiveIntensity * CoordinateManager.getCanvasScale();
     }
 
     const rect = canvas.scene.dimensions.sceneRect;
@@ -38448,6 +38601,25 @@ class DebuggerEventHandler {
         }
       }
     }, true); // Use capture to ensure we catch all toggle events
+
+    // Gradient editor event handlers - CRITICAL for particle appearance controls
+    this.element.addEventListener('mousedown', (e) => {
+      if (e.target.closest('.gradient-stop')) {
+        this._boundGradientStopMouseDown(e);
+      }
+    });
+
+    this.element.addEventListener('contextmenu', (e) => {
+      if (e.target.closest('.gradient-stop')) {
+        this._boundGradientStopContextMenu(e);
+      }
+    });
+
+    this.element.addEventListener('dblclick', (e) => {
+      if (e.target.closest('.gradient-bar-container')) {
+        this._boundGradientBarDoubleClick(e);
+      }
+    });
 
     // Set up dynamic column resizing
     this._setupDynamicColumnResizing();

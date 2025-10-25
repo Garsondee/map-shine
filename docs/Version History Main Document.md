@@ -1,3 +1,83 @@
+Version: 1.2.1
+
+**FEATURE - Rain Ripple Water Effects System**
+
+Implemented automatic rain ripple effects for water surfaces during rain/storm weather events. Rain ripples are now additive to base wave distortion and automatically transition smoothly when weather state changes.
+
+**Implementation:**
+1. **WeatherSystemManager Integration** (Lines 15177-15247)
+   - Added `_applyRainRipples()` method called every frame during weather updates
+   - Calculates rain intensity based on weather state (drizzle: 0.3×, rain: 1.0×, storm: 1.8×, sleet: 0.6×)
+   - Smooth interpolation during weather transitions using `transitionProgress`
+   - Stores original wave parameters for baseline calculations
+
+2. **Additive Wave Distortion**
+   - Rain ripples ADD to base wave intensity instead of replacing it
+   - Speed: Blends between base and rain speed (faster during rain)
+   - Scale: Blends between base and rain scale (smaller, more chaotic ripples)
+   - Intensity: `baseWaveIntensity + (rainRippleIntensity × rainIntensity)` - always additive!
+
+3. **Outdoor-Only Masking** (Shader Lines 30393-30401)
+   - Samples `_Outdoors` mask texture in fragment shader
+   - Multiplies wave distortion by outdoor mask value
+   - Indoor water (mask=0) remains calm
+   - Outdoor water (mask=1) receives full rain ripple effects
+
+4. **UI Controls** (Lines 30862-30895)
+   - New "Rain Ripples (Weather)" accordion under Wave Distortion section
+   - Speed slider (0-25): Animation speed during rain
+   - Scale slider (0.1-40): Ripple frequency/size
+   - Intensity slider (0-0.05): Distortion strength
+   - Enable toggle: Turn system on/off
+
+**Technical Details:**
+- Transition logic: `_getTargetRainIntensity()` provides smooth state changes
+- WaterFXLayer integration: Uses `_rainRippleIntensity` property (lines 31800-31806)
+- Parameter storage: `waterLayer._originalWaveParams` preserves base config
+- Linear interpolation: `_lerp()` utility for smooth blending
+
+**Benefits:**
+- ✅ Automatic weather integration - no manual control needed
+- ✅ Smooth transitions - rain ripples fade in/out naturally
+- ✅ Additive approach - base wave always present
+- ✅ Outdoor-only - indoor water unaffected by weather
+- ✅ Configurable - UI controls for customization
+- ✅ State-aware - different intensities for drizzle/rain/storm
+
+**Files Modified:**
+- `scripts/module.js` (WeatherSystemManager, WaterEffectsFilter shader, WaterFXLayer, UI builder)
+- `docs/RAIN_RIPPLE_SYSTEM.md` (comprehensive documentation)
+
+---
+
+**BUG FIX - Particle Appearance Gradient Editors Non-Functional**
+
+Fixed critical bug where all gradient editor controls ("Color & Alpha Over Life" and "Emissive Colour Over Life") in Particle Appearance sections were completely non-functional.
+
+**Root Cause:**
+Gradient editor event listeners were created and bound but never attached to the DOM. The `addEventListeners()` method only set up delegation for input, change, click, and toggle events, completely omitting the mousedown, contextmenu, and dblclick events required for gradient interaction.
+
+**Fix Applied:**
+Added three missing event listeners to `addEventListeners()` method (lines 38452-38469):
+1. **mousedown** on `.gradient-stop` - Allows users to select gradient stops and display color/alpha controls
+2. **contextmenu** on `.gradient-stop` - Allows users to right-click to delete gradient stops  
+3. **dblclick** on `.gradient-bar-container` - Allows users to double-click to add new gradient stops
+
+**Affected Systems:**
+- Sparks particles (Color & Alpha, Emissive Brightness)
+- Fire particles (Color & Alpha, Emissive)
+- Candle particles (Color & Alpha, Emissive)
+- Steam particles (Color & Alpha, Emissive Brightness)
+- All other particle effects using gradient editors
+
+**Result:**
+Users can now properly interact with gradient editors to customize particle appearance over their lifetime. Controls become visible when clicking on gradient stops, colors/brightness can be edited, and new stops can be added or removed.
+
+**File Modified:**
+- `scripts/module.js` (DebuggerEventHandler.addEventListeners method)
+
+---
+
 Version: 1.2.0
 
 **FEATURE - Foundry World Time Synchronization for Day/Night Clock**

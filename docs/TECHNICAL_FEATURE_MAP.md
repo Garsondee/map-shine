@@ -1,7 +1,7 @@
 # Map Shine - Technical Feature Map
 
-**Version:** 1.2.0  
-**Last Updated:** 2025-01-24
+**Version:** 1.2.1  
+**Last Updated:** 2025-01-25
 
 > **Purpose:** Comprehensive technical reference for all module systems, layers, managers, and features.  
 > **Location Reference:** Add `docs/TECHNICAL_FEATURE_MAP.md` to your AI instructions for quick feature lookup.
