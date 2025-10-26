@@ -1,10 +1,14 @@
 # Map Shine - Technical Feature Map
 
-**Version:** 1.2.9  
-**Last Updated:** 2025-10-25
+**Version:** 1.2.10  
+**Last Updated:** 2025-10-26
 
 > **Purpose:** Comprehensive technical reference for all module systems, layers, managers, and features.  
 > **Location Reference:** Add `docs/TECHNICAL_FEATURE_MAP.md` to your AI instructions for quick feature lookup.
+
+> ⚠️ **PERFORMANCE AUDIT ALERT (2025-10-26):** Critical inefficiency identified - module initializes all 43 systems in blank scenes, wasting 5.5ms/frame + 74MB VRAM. Standby Mode system planned for v1.2.11. See `docs/STANDBY_MODE_AUDIT.md` for details.
+
+> 🔴 **UI FUNCTIONALITY ALERT (2025-10-26):** 35+ enable/disable checkboxes are disconnected - they change config values but don't actually disable effects. MaskedEffectLayer (8 layers), direct extensions (6 layers), and ParticleLayer (8 effects) continue rendering when `enabled: false`. See `docs/CHECKBOX_AUDIT.md` for fixes.
 
 ---
 

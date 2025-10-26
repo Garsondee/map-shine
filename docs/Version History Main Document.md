@@ -1,3 +1,122 @@
+Version: 1.2.11 (Planned)
+
+**UI AUDIT - Enable/Disable Checkbox Functionality**
+
+Comprehensive audit revealed 35+ enable/disable checkboxes that change config values but don't actually disable their effects. Layers and managers continue rendering even when their `enabled` flag is false.
+
+**Critical Issues Identified:**
+
+1. **MaskedEffectLayer (8 layers)** - Never checks `enabled` flag in `_onAnimate()`: CloudShadows, Canopy, Structural, Iridescence, Prism, Water, BuildingShadows, TimeOfDay
+2. **Direct Layer Extensions (6 layers)** - Same issue: MetallicShine, GroundGlow, OverheadEffect, Foam, HeatDistortion, Ambient
+3. **ParticleLayer** - Creates all controllers regardless of enabled flags (dust, fire, biofilm, glints, sparks, steam)
+4. **Sub-Feature Flags (10+)** - Rotation, toneCurve, colorCorrection, motionBlur, rgbSplit don't check enabled
+
+**Root Cause:** Layers/managers read `updateFromConfig()` but don't skip rendering when `enabled === false`
+
+**Proposed Fixes:**
+
+1. **MaskedEffectLayer Base Class** - Add enabled check to base `_onAnimate()` (automatically fixes 8 layers)
+2. **Direct Extensions** - Add enabled check to each layer's `_onAnimate()`
+3. **ParticleLayer** - Conditional controller creation based on enabled flags
+4. **Master Disable Switch** - NEW top-level checkbox to disable ALL Map Shine effects instantly
+
+**Implementation Timeline:** 34 hours (5 days) across 4 weeks
+
+**Documentation Created:**
+- `docs/CHECKBOX_AUDIT.md` - Complete audit with fix implementations
+
+**Status:** Planning phase, fixes ready to implement
+
+---
+
+**PERFORMANCE AUDIT - Standby Mode System**
+
+Comprehensive audit identified critical performance waste in scenes without effect maps. Map Shine currently initializes 43 systems and runs 15+ animation loops even in blank scenes with zero textures, consuming 5.5ms per frame and 74MB VRAM unnecessarily.
+
+**Critical Issues Identified:**
+
+1. **DynamicTokenMaskManager** - Renders token silhouettes every 30 frames even when no particles exist (0.3ms + 2MB VRAM + 3 hooks)
+2. **WeatherSystemManager** - Compiles weather shaders even when weather disabled (1.2ms + 8MB VRAM)
+3. **LightMaskManager** - Creates 12MB render textures even when no effects need light masking (12MB VRAM + 7 hooks)
+4. **19 Canvas Layers** - All initialize and bind animation loops regardless of texture availability (1.5ms + 24MB VRAM)
+
+**Proposed Solution: 3-Tier Activation System**
+
+- **Tier 1 (Always Active):** Core infrastructure only (RenderTexturePool, ResourceManager, ProfileManager, CoordinateManager)
+- **Tier 2 (Conditional):** Systems activate only when textures/features discovered (MetallicShineLayer only if _Specular exists, ParticleLayer only if particles enabled, etc.)
+- **Tier 3 (User-Controlled):** Optional systems respect enabled flags (ScreenEffectsManager, CombatEffectManager, etc.)
+
+**Expected Improvements:**
+- Blank scene: 5.5ms → 0.5ms (91% reduction), 74MB → 8MB VRAM (89% reduction)
+- Minimal scene (3 effects): 5.5ms → 2.5ms (55% reduction), 74MB → 32MB VRAM (57% reduction)
+- Full scene: No change (0% regression - only benefits minimal scenes)
+
+**Implementation Timeline:** 2-3 weeks across 4 phases
+
+**Documentation Created:**
+- `docs/STANDBY_MODE_AUDIT.md` - Full technical audit (24,000+ words)
+- `docs/STANDBY_MODE_IMPLEMENTATION_SUMMARY.md` - Quick reference guide
+
+**Status:** Planning phase, implementation pending
+
+---
+
+Version: 1.2.10
+
+**FEATURE - Puddles Production Release**
+
+Puddle system now production-ready with smooth water specular highlights, proper raindrop fade-in/out transitions, and cleaned debug logging.
+
+**Changes Implemented:**
+
+**1. Puddle Specular Highlights Fixed (Lines 31713-31737)**
+- Removed metallic stripe pattern system from puddles
+- Puddles now use the same smooth water specular calculation as main water effects
+- Large, natural highlights instead of 5-6 tiny diagonal bands
+- Proper outdoor masking and cloud occlusion
+- Consistent scale and intensity with main water
+
+**Before:**
+```glsl
+float stripeValue = smoothstep(...);  // Generated diagonal bands
+float combinedShine = specularity * stripeValue;  // Most areas had no shine
+```
+
+**After:**
+```glsl
+float specularity = pow(specAngle, u_specularity_shininess);
+vec3 puddleSpecular = u_specularity_color * specularity * u_specularity_intensity * effectivePuddleIntensity * outdoorsMaskValue;
+```
+
+**2. Rain Fade-In/Out Transitions (Lines 15982-15987)**
+- Rain particle count now ramps up during Clear→Storm transitions (0→100%)
+- Previously all raindrops spawned immediately at 0% opacity (harsh appearance)
+- Applied `alpha` multiplier to:
+  - `rainDensity` - Particle count fade-in/out
+  - `splashIntensity` - Ground splash fade-in/out
+  - `waveMaskIntensity` - Wave gap fade-in/out
+  - `curtainIntensity` - Rain curtain fade-in/out
+
+**3. Debug Log Cleanup (Lines 15561, 15583, 15705)**
+- Commented out foliage multiplier console spam during transitions
+- Commented out puddle drying lifecycle logs
+- System remains functional, logging only disabled
+
+**Result:**
+- ✅ Puddles have large, smooth water highlights (not tiny stripes)
+- ✅ Rain gradually builds up instead of appearing all at once
+- ✅ Clean console during weather transitions
+- ✅ All effects fade gracefully in/out
+- ✅ Production-ready puddle system
+
+**Files Modified:**
+- `scripts/module.js` - Puddle specular fix, rain fade-in/out, debug log cleanup
+- `package.json` - Version 1.2.10
+- `module.json` - Version 1.2.10, download URLs updated
+- `docs/TECHNICAL_FEATURE_MAP.md` - Version and date updated
+
+---
+
 Version: 1.2.9
 
 **FEATURE - Extreme Weather Foliage Distortion Enhancement**

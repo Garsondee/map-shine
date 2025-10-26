@@ -21,7 +21,7 @@
  * @author Mythica Machina - Ingram Blakelock
  * 
  * Remember that you will need to update the module.json file in the root too when changing version.
- * @version 1.2.8 - Fixed zoom-based masking for weather and cloud systems. Weather and cloud shadows now render everywhere when zoomed out.
+ * @version 1.2.10 - Production release: Puddles with smooth water specular highlights, rain fade-in/out transitions, and debug log cleanup.
  *
  * @requires foundry ^13+
  * @requires pixi.js ^7.4.3
@@ -1108,6 +1108,11 @@ export const MODULE_DEFAULTS = {
         "speed": 0.011,
         "strength": 0.0025
       }
+    },
+    "puddles": {
+      "enabled": true,
+      "darkening": 0.2,
+      "dryingTimeMinutes": 5
     },
     "glintParticles": {
       "enabled": false,
@@ -2521,6 +2526,7 @@ class MapShineInitialiser {
         timeFactor: 1.0,
       },
       systemsReady: false,
+      MODULE_DEFAULTS: MODULE_DEFAULTS,  // Expose for UI generation
       loadingScreen: null,
       loadingManager: {
         screen: null,
@@ -10150,6 +10156,7 @@ class TextureAutoLoader {
     water: "_Water",
     caustics: "_Caustics",
     shoreline: "_Shoreline",
+    puddle: "_Puddle",
     steam: "_Steam",
   };
 
@@ -15105,6 +15112,11 @@ class WeatherSystemManager {
     this.orchestratorActive = false; // Track if orchestrator controls this manager
     this._intensityOverride = undefined; // Intensity override from orchestrator (0-1)
     
+    // Puddle drying management
+    this._puddleMaxIntensity = 0; // Peak intensity reached during rain
+    this._puddleDryingStartTime = null; // When rain stopped (puddles start drying)
+    this._isPuddleDrying = false; // Whether puddles are currently drying
+    
     // State definitions with properties for each weather type
     this.stateDefinitions = this._initializeStateDefinitions();
     
@@ -15287,6 +15299,9 @@ class WeatherSystemManager {
       const currentWeather = this.getCurrentWeatherState();
       this._applyRainRipples(currentWeather);
       
+      // Apply puddle intensity based on weather state
+      this._applyPuddleIntensity(currentWeather);
+      
       // Update edge droplet system
       this._updateEdgeDroplets(deltaTime);
       
@@ -15316,6 +15331,9 @@ class WeatherSystemManager {
 
     // Apply rain ripples to outdoor water surfaces during transitions
     this._applyRainRipples(currentWeather);
+
+    // Apply puddle intensity during transitions
+    this._applyPuddleIntensity(currentWeather);
 
     // Update edge droplet system during transitions
     this._updateEdgeDroplets(deltaTime);
@@ -15473,6 +15491,123 @@ class WeatherSystemManager {
   }
 
   /**
+   * Apply puddle intensity based on current weather state.
+   * Puddles gradually appear during rain/storm and fade out when weather clears.
+   * After rain stops, puddles persist and slowly dry over configurable time (default 5 minutes).
+   * @param {object} weather - Current weather state
+   * @private
+   */
+  _applyPuddleIntensity(weather) {
+    const waterLayer = canvas.layers.find(l => l instanceof WaterFXLayer);
+    if (!waterLayer) return;
+
+    const config = game.mapShine?.profileManager?.activeConfig;
+    if (!config?.water?.puddles?.enabled) {
+      // If puddles are disabled, ensure intensity is 0
+      waterLayer._puddleIntensity = 0;
+      this._isPuddleDrying = false;
+      this._puddleDryingStartTime = null;
+      return;
+    }
+
+    // Determine base puddle intensity based on current weather state
+    let puddleIntensity = 0;
+    switch (this.currentState) {
+      case WeatherSystemManager.STATES.DRIZZLE:
+        puddleIntensity = 0.4;
+        break;
+      case WeatherSystemManager.STATES.RAIN:
+        puddleIntensity = 0.8;
+        break;
+      case WeatherSystemManager.STATES.STORM:
+        puddleIntensity = 1.0;
+        break;
+      case WeatherSystemManager.STATES.SLEET:
+        puddleIntensity = 0.3;
+        break;
+      default:
+        puddleIntensity = 0;
+    }
+
+    // Apply smooth transition during weather state changes
+    // BUT: Don't fade puddles out during transition - keep them at peak until transition completes
+    if (this.isTransitioning) {
+      const targetIntensity = this._getTargetPuddleIntensity();
+      
+      // If transitioning TO rain (clear → rain), interpolate normally
+      if (targetIntensity > puddleIntensity) {
+        puddleIntensity = this._lerp(puddleIntensity, targetIntensity, this.transitionProgress);
+      }
+      // If transitioning AWAY from rain (rain → clear), keep at current intensity during transition
+      // Drying will start AFTER transition completes
+    }
+
+    // Track maximum puddle intensity during rain for drying reference
+    if (puddleIntensity > this._puddleMaxIntensity) {
+      this._puddleMaxIntensity = puddleIntensity;
+      // Reset drying if rain resumes
+      this._isPuddleDrying = false;
+      this._puddleDryingStartTime = null;
+    }
+
+    // Detect when rain stops (transitioning from rainy to clear weather)
+    const isRaining = puddleIntensity > 0;
+    const wasRaining = this._puddleMaxIntensity > 0;
+    
+    if (!isRaining && wasRaining && !this._isPuddleDrying) {
+      // Rain just stopped - start drying process
+      this._isPuddleDrying = true;
+      this._puddleDryingStartTime = Date.now();
+      // console.log(`MapShine | Puddles: Rain stopped. Beginning drying period from intensity ${this._puddleMaxIntensity.toFixed(2)}`);
+    }
+
+    // Apply gradual drying if rain has stopped
+    if (this._isPuddleDrying && this._puddleDryingStartTime) {
+      const dryingTimeMinutes = config.water.puddles.dryingTimeMinutes ?? 5;
+      const dryingTimeMs = dryingTimeMinutes * 60 * 1000; // Convert minutes to milliseconds
+      const elapsedMs = Date.now() - this._puddleDryingStartTime;
+      const dryingProgress = Math.min(elapsedMs / dryingTimeMs, 1.0);
+      
+      // Apply ease-out curve for natural drying (fast at first, slower as it dries)
+      const easedProgress = 1.0 - Math.pow(1.0 - dryingProgress, 2);
+      
+      // Decay from max intensity to 0 over drying period
+      puddleIntensity = this._puddleMaxIntensity * (1.0 - easedProgress);
+      
+      // When fully dried, reset tracking
+      if (dryingProgress >= 1.0) {
+        this._isPuddleDrying = false;
+        this._puddleDryingStartTime = null;
+        this._puddleMaxIntensity = 0;
+        puddleIntensity = 0;
+        // console.log('MapShine | Puddles: Fully dried');
+      }
+    }
+
+    // Store puddle intensity for WaterFXLayer to use in shader
+    waterLayer._puddleIntensity = puddleIntensity;
+  }
+
+  /**
+   * Get target puddle intensity for transition
+   * @private
+   */
+  _getTargetPuddleIntensity() {
+    switch (this.targetState) {
+      case WeatherSystemManager.STATES.DRIZZLE:
+        return 0.4;
+      case WeatherSystemManager.STATES.RAIN:
+        return 0.8;
+      case WeatherSystemManager.STATES.STORM:
+        return 1.0;
+      case WeatherSystemManager.STATES.SLEET:
+        return 0.3;
+      default:
+        return 0;
+    }
+  }
+
+  /**
    * Apply weather-based color correction to global ColorCorrectionFilter
    * Multiplies user's base color correction values by weather-specific multipliers
    * @param {object} weather - Current weather state with interpolated values
@@ -15563,12 +15698,11 @@ class WeatherSystemManager {
       swaySpeed: 1.0
     };
     
-    // Only log when values actually change (or during transitions)
+    // Only log when values actually change by more than 0.01
     if (!this._lastFoliageMult || 
-        this.isTransitioning ||
         Math.abs(this._lastFoliageMult.rustleSpeed - foliageMult.rustleSpeed) > 0.01 ||
         Math.abs(this._lastFoliageMult.swaySpeed - foliageMult.swaySpeed) > 0.01) {
-      console.log(`MapShine | Applying foliage multipliers: rustle=${foliageMult.rustleSpeed.toFixed(2)}, sway=${foliageMult.swaySpeed.toFixed(2)} (state: ${this.currentState}, transitioning: ${this.isTransitioning})`);
+      // console.log(`MapShine | Applying foliage multipliers: rustle=${foliageMult.rustleSpeed.toFixed(2)}, sway=${foliageMult.swaySpeed.toFixed(2)} (state: ${this.currentState}, transitioning: ${this.isTransitioning})`);
       this._lastFoliageMult = { ...foliageMult };
     }
     
@@ -15840,15 +15974,16 @@ class WeatherSystemManager {
     }
 
     // Apply parameters with state multipliers and alpha
+    // NOTE: rainDensity, splashes, waves, and curtains are multiplied by alpha to fade in/out during transitions
     effect.shader.uniforms.opacity = baseOpacity * opacityMult * alpha;
     effect.shader.uniforms.intensity = baseIntensity * intensityMult;
     effect.shader.uniforms.strength = baseStrength * strengthMult;
-    effect.shader.uniforms.rainDensity = baseRainDensity * rainDensityMult;
+    effect.shader.uniforms.rainDensity = baseRainDensity * rainDensityMult * alpha; // Ramp up particle count during transitions
     effect.shader.uniforms.gridSize = baseGridSize * gridSizeMult;
     effect.shader.uniforms.streakLength = baseStreakLength * streakLengthMult;
-    effect.shader.uniforms.splashIntensity = baseSplashIntensity * splashMult;
-    effect.shader.uniforms.waveMaskIntensity = baseWaveMaskIntensity * waveMaskMult;
-    effect.shader.uniforms.curtainIntensity = baseCurtainIntensity * curtainMult;
+    effect.shader.uniforms.splashIntensity = baseSplashIntensity * splashMult * alpha; // Fade in splashes
+    effect.shader.uniforms.waveMaskIntensity = baseWaveMaskIntensity * waveMaskMult * alpha; // Fade in wave gaps
+    effect.shader.uniforms.curtainIntensity = baseCurtainIntensity * curtainMult * alpha; // Fade in curtains
     effect.shader.uniforms.worleySpeed = baseWorleySpeed;  // Pass uniform but don't use in shader
     effect.alpha = alpha;
   }
@@ -31182,11 +31317,14 @@ class WaterEffectsFilter extends PIXI.Filter {
                             uniform sampler2D u_blurredWaterMask;
                             uniform sampler2D u_cloudShadows;
                             uniform sampler2D u_outdoorsMask;
+                            uniform sampler2D u_puddleMask;
 
                             // Uniforms for toggles and parameters
                             uniform bool u_useShorelineMask;
+                            uniform bool u_usePuddleMask;
                             uniform vec2 u_camera_offset;
                             uniform vec2 u_view_size;
+                            uniform float u_canvas_scale;
                             uniform float u_time;
                             uniform vec4 uSceneRectNorm;
 
@@ -31281,6 +31419,11 @@ class WaterEffectsFilter extends PIXI.Filter {
                             uniform float u_sandy_modulation_speed;
                             uniform float u_sandy_modulation_strength;
 
+                            // Puddles
+                            uniform bool u_puddles_enabled;
+                            uniform float u_puddleIntensity;
+                            uniform float u_puddleDarkening;
+
                             vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 289.0);}
                             vec4 taylorInvSqrt(vec4 r){return 1.79284291400159 - 0.85373472095314 * r;}
                             float snoise(vec3 v) {
@@ -31351,8 +31494,14 @@ class WaterEffectsFilter extends PIXI.Filter {
                                 float waterMaskValue = texture2D(u_waterMask, vTextureCoord).r;
                                 float causticsMaskValue = u_hasCausticsMask ? texture2D(u_causticsMask, vTextureCoord).r : 0.0;
                                 float combinedWaterAndCausticsMask = max(waterMaskValue, causticsMaskValue);
+                                
+                                // Check for puddles to prevent early exit when only puddles are present
+                                float puddleCheckValue = (u_puddles_enabled && u_puddleIntensity > 0.0 && u_usePuddleMask) 
+                                    ? texture2D(u_puddleMask, vTextureCoord).r 
+                                    : 0.0;
+                                float combinedMask = max(combinedWaterAndCausticsMask, puddleCheckValue);
 
-                                if (combinedWaterAndCausticsMask < 0.01) {
+                                if (combinedMask < 0.01) {
                                     gl_FragColor = texture2D(uSampler, vTextureCoord);
                                     return;
                                 }
@@ -31468,7 +31617,12 @@ class WaterEffectsFilter extends PIXI.Filter {
                                         caustics *= occlusionFactor;
                                     }
 
+                                    // Exclude caustics from puddle areas
                                     float causticsArea = max(waterMaskValue, causticsMaskValue);
+                                    if (u_puddles_enabled && u_usePuddleMask) {
+                                        float puddleMaskValue = texture2D(u_puddleMask, vTextureCoord).r;
+                                        causticsArea *= (1.0 - puddleMaskValue * u_puddleIntensity);
+                                    }
                                     finalColor += caustics * causticsArea;
                                 }
 
@@ -31541,6 +31695,51 @@ class WaterEffectsFilter extends PIXI.Filter {
                                     finalColor *= (1.0 - (waterMaskValue * u_depthDisplacementDarken));
                                 }
 
+                                // --- PUDDLES ---
+                                if (u_puddles_enabled && u_puddleIntensity > 0.0) {
+                                    float puddleMaskValue = u_usePuddleMask ? texture2D(u_puddleMask, vTextureCoord).r : 0.0;
+                                    if (puddleMaskValue > 0.01) {
+                                        float effectivePuddleIntensity = puddleMaskValue * u_puddleIntensity;
+                                        
+                                        // Apply water distortion to puddles (like real water)
+                                        // Mix between undistorted and distorted based on puddle intensity
+                                        vec2 puddleDistortedUV = mix(vTextureCoord, final_distorted_uv, effectivePuddleIntensity * 0.5);
+                                        vec4 distortedScene = texture2D(uSampler, puddleDistortedUV);
+                                        
+                                        // Apply darkening beneath puddles
+                                        vec3 puddleColor = distortedScene.rgb * (1.0 - (effectivePuddleIntensity * u_puddleDarkening));
+                                        
+                                        // Apply smooth water specular highlights on puddles (same as main water, not metallic stripes!)
+                                        if (u_specularity_enabled) {
+                                            vec2 normal_xy = texture2D(u_displacementMap, final_distorted_uv).rg * 2.0 - 1.0;
+                                            vec3 normal = normalize(vec3(normal_xy, sqrt(1.0 - clamp(dot(normal_xy, normal_xy), 0.0, 1.0))));
+                                            vec3 viewDir = vec3(0.0, 0.0, 1.0);
+                                            vec3 lightDir = normalize(u_specularity_light_direction);
+                                            vec3 halfwayDir = normalize(lightDir + viewDir);
+                                            float specAngle = max(dot(normal, halfwayDir), 0.0);
+                                            float specularity = pow(specAngle, u_specularity_shininess);
+                                            
+                                            // Apply outdoor mask modulation (puddles in shaded areas should have less shine)
+                                            float outdoorsMaskValue = texture2D(u_outdoorsMask, vTextureCoord).r;
+                                            
+                                            // Use same specular calculation as main water (no stripes)
+                                            vec3 puddleSpecular = u_specularity_color * specularity * u_specularity_intensity * effectivePuddleIntensity * outdoorsMaskValue;
+                                            
+                                            // Apply cloud occlusion to puddle specularity
+                                            if (u_specularityCloudOcclusionEnabled) {
+                                                float cloudValue = texture2D(u_cloudShadows, vScreenCoord).r;
+                                                float occlusionFactor = 1.0 - (cloudValue * u_specularityCloudOcclusionIntensity);
+                                                puddleSpecular *= occlusionFactor;
+                                            }
+                                            
+                                            puddleColor += puddleSpecular;
+                                        }
+                                        
+                                        // Blend puddle effect with original scene
+                                        finalColor = mix(finalColor, puddleColor, effectivePuddleIntensity);
+                                    }
+                                }
+
                                 gl_FragColor = vec4(clamp(finalColor, 0.0, 1.0), sceneColor.a);
                             }
                         `;
@@ -31555,8 +31754,15 @@ class WaterEffectsFilter extends PIXI.Filter {
       u_blurredWaterMask: options.u_blurredWaterMask ?? PIXI.Texture.EMPTY,
       u_cloudShadows: options.u_cloudShadows ?? PIXI.Texture.EMPTY,
       u_outdoorsMask: options.u_outdoorsMask ?? PIXI.Texture.WHITE,
+      u_puddleMask: options.u_puddleMask ?? PIXI.Texture.EMPTY,
+      u_usePuddleMask: options.u_usePuddleMask ?? false,
 
       uSceneRectNorm: [0, 0, 1, 1],
+      u_canvas_scale: 1.0,
+      
+      u_puddles_enabled: false,
+      u_puddleIntensity: 0.0,
+      u_puddleDarkening: 0.2,
 
       u_depthDisplacementEnabled: true,
 
@@ -31667,9 +31873,14 @@ class WaterFXLayer extends MaskedEffectLayer {
     this.causticsMaskContainer = null;
     this.combinedCausticsMaskTexture = null;
     this.causticsMaskSprites = new Map();
+    this.puddleMaskContainer = null;
+    this.puddleMaskTexture = null;
+    this.puddleMaskSprites = new Map();
     this._needsShorelineMaskUpdate = true;
     this._needsCausticsMaskUpdate = true;
+    this._needsPuddleMaskUpdate = true;
     this.time = 0;
+    this._puddleIntensity = 0; // Weather-driven puddle intensity (0-1)
   }
 
   static getSettingsHTML() {
@@ -32311,6 +32522,36 @@ class WaterFXLayer extends MaskedEffectLayer {
 
                                 </div>
                             </details>
+                            <details id="details-water-puddles">
+                                <summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
+                                  "water.puddles.enabled",
+                                  "Rain Puddles",
+                                  true
+                                )}</div></summary>
+                                <div style="padding-left: 5px;">
+                                    ${DebuggerUIBuilder._createTextureInputHTML(
+                                      "puddle",
+                                      "Puddle Locations (_Puddle)"
+                                    )}
+                                    <p class="description-text">Dynamic puddles that appear during rain/storms. Requires a _Puddle.webp mask. Intensity is automatically controlled by weather.</p>
+                                    ${DebuggerUIBuilder._createSliderHTML(
+                                      "water.puddles.darkening",
+                                      "Darkening",
+                                      0,
+                                      1,
+                                      0.01,
+                                      "How much puddles darken the underlying surface."
+                                    )}
+                                    ${DebuggerUIBuilder._createSliderHTML(
+                                      "water.puddles.dryingTimeMinutes",
+                                      "Drying Time (Minutes)",
+                                      0,
+                                      30,
+                                      0.5,
+                                      "How long puddles take to completely dry after rain stops. Set to 0 for instant removal."
+                                    )}
+                                </div>
+                            </details>
                             <details id="details-water-glint-particles">
                                 <summary><span class="accordion-toggle"></span>
                                     <div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
@@ -32573,6 +32814,13 @@ class WaterFXLayer extends MaskedEffectLayer {
       height: renderer.screen.height,
     });
 
+    this.puddleMaskContainer = new PIXI.Container();
+
+    this.puddleMaskTexture = PIXI.RenderTexture.create({
+      width: renderer.screen.width,
+      height: renderer.screen.height,
+    });
+
     await this.updateFromConfig(game.mapShine.profileManager.activeConfig);
   }
 
@@ -32694,6 +32942,13 @@ class WaterFXLayer extends MaskedEffectLayer {
     u.u_shorelinePatternPersistence = foamPatternConfig.persistence;
     u.u_shorelinePatternBrightness = foamPatternConfig.brightness;
     u.u_shorelinePatternContrast = foamPatternConfig.contrast;
+
+    // Puddles
+    if (wConfig.puddles) {
+      u.u_puddles_enabled = wConfig.puddles.enabled;
+      u.u_puddleIntensity = this._puddleIntensity ?? 0.0;
+      u.u_puddleDarkening = wConfig.puddles.darkening ?? 0.2;
+    }
   }
 
   _onAnimate(deltaTime) {
@@ -32721,20 +32976,14 @@ class WaterFXLayer extends MaskedEffectLayer {
     const stage = canvas.stage;
     const screen = renderer.screen;
 
-    const topLeft = stage.toLocal({
-      x: 0,
-      y: 0,
-    });
-    const viewSize = [
-      screen.width / stage.scale.x,
-      screen.height / stage.scale.y,
-    ];
+    // Use CoordinateManager for consistent coordinate handling across all effects
+    const coordUniforms = CoordinateManager.getShaderUniforms();
 
     // The uniforms for the displacement filter must be updated BEFORE it is rendered.
     this.displacementFilter.uniforms.u_time = this.time;
     Object.assign(
       this.displacementFilter.uniforms,
-      CoordinateManager.getShaderUniforms()
+      coordUniforms
     );
 
     const resourceManager = game.mapShine.resourceManager;
@@ -32761,6 +33010,15 @@ class WaterFXLayer extends MaskedEffectLayer {
       this._needsCausticsMaskUpdate = false;
     }
 
+    if (this._needsPuddleMaskUpdate) {
+      renderer.render(this.puddleMaskContainer, {
+        renderTexture: this.puddleMaskTexture,
+        transform: canvas.stage.transform.worldTransform,
+        clear: true,
+      });
+      this._needsPuddleMaskUpdate = false;
+    }
+
     this.blurSourceSprite.texture = this.getMaskTexture();
     renderer.render(this.blurSourceSprite, {
       renderTexture: this.blurredWaterMaskTexture,
@@ -32769,16 +33027,24 @@ class WaterFXLayer extends MaskedEffectLayer {
 
     const useShorelineMask = this.shorelineMaskSprites.size > 0;
     const useCausticsMask = this.causticsMaskSprites.size > 0;
+    const usePuddleMask = this.puddleMaskSprites.size > 0;
 
     const u = waterEffectsFilter.uniforms;
     const wConfig = game.mapShine.profileManager.activeConfig.water;
+    const canvasScale = CoordinateManager.getCanvasScale();
+    
     if (wConfig?.wave) {
       // Use rain ripple intensity if set by WeatherSystemManager, otherwise use base config
       const baseIntensity = wConfig.wave.intensity;
       const effectiveIntensity = this._rainRippleIntensity !== undefined 
         ? this._rainRippleIntensity 
         : baseIntensity;
-      u.u_wave_intensity = effectiveIntensity * CoordinateManager.getCanvasScale();
+      u.u_wave_intensity = effectiveIntensity * canvasScale;
+    }
+
+    // Update puddle intensity every frame (set by WeatherSystemManager during rain/storm)
+    if (wConfig?.puddles?.enabled) {
+      u.u_puddleIntensity = this._puddleIntensity ?? 0.0;
     }
 
     const rect = canvas.scene.dimensions.sceneRect;
@@ -32813,8 +33079,13 @@ class WaterFXLayer extends MaskedEffectLayer {
     u.u_useShorelineMask = useShorelineMask;
     u.u_causticsMask = this.combinedCausticsMaskTexture;
     u.u_hasCausticsMask = useCausticsMask;
-    u.u_camera_offset = [topLeft.x, topLeft.y];
-    u.u_view_size = viewSize;
+    u.u_puddleMask = this.puddleMaskTexture;
+    u.u_usePuddleMask = usePuddleMask;
+    
+    // Use CoordinateManager uniforms for consistency
+    u.u_camera_offset = coordUniforms.u_camera_offset;
+    u.u_view_size = coordUniforms.u_view_size;
+    u.u_canvas_scale = canvasScale;
 
     // Set the _Outdoors mask texture for specular highlight modulation
     if (resourceManager) {
@@ -32852,6 +33123,7 @@ class WaterFXLayer extends MaskedEffectLayer {
     super._onPan();
     this._needsShorelineMaskUpdate = true;
     this._needsCausticsMaskUpdate = true;
+    this._needsPuddleMaskUpdate = true;
   }
 
   _onResize() {
@@ -32873,6 +33145,10 @@ class WaterFXLayer extends MaskedEffectLayer {
       renderer.screen.width,
       renderer.screen.height
     );
+    this.puddleMaskTexture?.resize(
+      renderer.screen.width,
+      renderer.screen.height
+    );
 
     if (this.displacementSprite) {
       this.displacementSprite.width = halfWidth;
@@ -32881,14 +33157,16 @@ class WaterFXLayer extends MaskedEffectLayer {
 
     this._needsShorelineMaskUpdate = true;
     this._needsCausticsMaskUpdate = true;
+    this._needsPuddleMaskUpdate = true;
   }
 
   async updateEffectTargets(targets) {
     await super.updateEffectTargets(targets);
-    if (!this.shorelineMaskContainer || !this.causticsMaskContainer) return;
+    if (!this.shorelineMaskContainer || !this.causticsMaskContainer || !this.puddleMaskContainer) return;
 
     const validShorelineIds = new Set();
     const validCausticIds = new Set();
+    const validPuddleIds = new Set();
     const allTargets = new Map([
       ["background", targets.background],
       ...targets.tiles.entries(),
@@ -32924,6 +33202,21 @@ class WaterFXLayer extends MaskedEffectLayer {
           targetData.rect
         );
       }
+
+      if (targetData?.puddle) {
+        validPuddleIds.add(id);
+        let sprite = this.puddleMaskSprites.get(id);
+        if (!sprite) {
+          sprite = new PIXI.Sprite(PIXI.Texture.EMPTY);
+          this.puddleMaskSprites.set(id, sprite);
+          this.puddleMaskContainer.addChild(sprite);
+        }
+        await this._updateSpriteTransform(
+          sprite,
+          targetData.puddle,
+          targetData.rect
+        );
+      }
     }
 
     for (const [id, sprite] of this.shorelineMaskSprites.entries()) {
@@ -32940,8 +33233,16 @@ class WaterFXLayer extends MaskedEffectLayer {
       }
     }
 
+    for (const [id, sprite] of this.puddleMaskSprites.entries()) {
+      if (!validPuddleIds.has(id)) {
+        sprite.destroy();
+        this.puddleMaskSprites.delete(id);
+      }
+    }
+
     this._needsShorelineMaskUpdate = true;
     this._needsCausticsMaskUpdate = true;
+    this._needsPuddleMaskUpdate = true;
   }
 
   async _tearDown(options) {
@@ -32976,6 +33277,14 @@ class WaterFXLayer extends MaskedEffectLayer {
     this.combinedCausticsMaskTexture?.destroy(true);
     this.causticsMaskSprites.clear();
 
+    this.puddleMaskContainer?.destroy({
+      children: true,
+      texture: true,
+      baseTexture: true,
+    });
+    this.puddleMaskTexture?.destroy(true);
+    this.puddleMaskSprites.clear();
+
     this.displacementFilter = null;
     this.displacementSprite = null;
     this.displacementTexture = null;
@@ -32984,6 +33293,8 @@ class WaterFXLayer extends MaskedEffectLayer {
     this.blurredWaterMaskTexture = null;
     this.shorelineMaskContainer = null;
     this.shorelineMaskTexture = null;
+    this.puddleMaskContainer = null;
+    this.puddleMaskTexture = null;
     this.causticsMaskContainer = null;
     this.combinedCausticsMaskTexture = null;
 
@@ -43435,6 +43746,9 @@ class MaterialEditorDebugger {
 
     // Re-attach listeners and update all control values for the newly created elements
     this.eventHandler.rebindDynamicControls();
+    
+    // Repopulate texture indicators and values after re-render
+    this._populateAllIndicators();
     
     // Re-apply lazy accordion optimization after re-render
     // This strips out accordion content from DOM for performance

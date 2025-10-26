@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
   "name": "map-shine",
-  "version": "1.2.8",
+  "version": "1.2.10",
   "description": "A module to make the map shine.",
   "main": "dist/module.js",
   "scripts": {
