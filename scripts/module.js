@@ -21,7 +21,7 @@
  * @author Mythica Machina - Ingram Blakelock
  * 
  * Remember that you will need to update the module.json file in the root too when changing version.
- * @version 1.2.10 - Production release: Puddles with smooth water specular highlights, rain fade-in/out transitions, and debug log cleanup.
+ * @version 1.2.28 - Critical Bug Fixes: Fixed three initialization-breaking bugs: (1) BushLayer/TreeLayer null spread operator errors when cleanFilterArray returns null, (2) ScreenEffectsManager undefined 'key' variable in filter pipeline, (3) FilmGrainFilter missing from managedFilterClasses causing 18+ corrupt filter accumulation. All systems now initialize cleanly.
  *
  * @requires foundry ^13+
  * @requires pixi.js ^7.4.3
@@ -51,6 +51,164 @@ import { GRADIENT_PRESETS, LUT_PRESETS, EFFECT_SOURCE_OPTIONS, ROPE_TYPE_PRESETS
 import { FONT_CHOICES } from "./config/fonts.js";
 import { COLOR_CORRECTION_PRESETS } from "./config/color-correction-presets.js";
 import { UNIVERSAL_EFFECT_DEFAULTS } from "./config/universal-defaults.js";
+
+// Console log to announce the module and module version
+console.log("Map Shine v1.2.28", "color: #00b3ff; font-size: 16px; font-weight: bold;");
+
+/***************************************************************************************
+ *
+ *                      FILTER CORRUPTION PROTECTION UTILITIES
+ *
+ *  PURPOSE:
+ *  Protects the module from corrupt or improperly initialized PIXI filters that would
+ *  otherwise crash the entire rendering pipeline. These utilities validate filter state
+ *  before they're applied to the render pipeline.
+ *
+ *  ROOT CAUSE:
+ *  Scene/world data corruption or improper lifecycle management can result in filters
+ *  with null uniformGroup properties. When PIXI's FilterSystem tries to apply these
+ *  filters, it accesses uniformGroup.uniforms and crashes with:
+ *  "TypeError: can't access property 'uniforms', this.uniformGroup is null"
+ *
+ *  DEFENSE STRATEGY:
+ *  1. Validate filters before adding them to filter arrays
+ *  2. Wrap filter creation in try-catch blocks
+ *  3. Clean invalid filters from existing filter arrays
+ *  4. Log corruption for debugging without crashing
+ *
+ ***************************************************************************************/
+
+/**
+ * Validates that a PIXI filter is in a valid state for rendering.
+ * @param {PIXI.Filter} filter - The filter to validate
+ * @param {string} context - Context string for error logging
+ * @returns {boolean} True if filter is valid and safe to use
+ */
+function validateFilter(filter, context = "Unknown") {
+  if (!filter) {
+    console.warn(`Map Shine | Filter validation (${context}): Filter is null or undefined`);
+    return false;
+  }
+
+  // Check if filter has been destroyed
+  if (filter._destroyed || filter.destroyed) {
+    console.warn(`Map Shine | Filter validation (${context}): Filter has been destroyed`);
+    return false;
+  }
+
+  // Critical check: uniformGroup must exist for rendering
+  if (!filter.uniformGroup) {
+    console.error(
+      `Map Shine | Filter validation (${context}): Filter has null uniformGroup (CORRUPTION DETECTED)`,
+      { filterType: filter.constructor?.name, filter }
+    );
+    return false;
+  }
+
+  // Verify uniforms object exists
+  if (!filter.uniforms && !filter.uniformGroup.uniforms) {
+    console.warn(`Map Shine | Filter validation (${context}): Filter uniforms not accessible`);
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Safely creates a filter with error handling to prevent corruption crashes.
+ * @param {Function} filterConstructor - The filter class constructor
+ * @param {object|Array} options - Options object or array of positional arguments to pass to constructor
+ * @param {string} context - Context string for error logging
+ * @returns {PIXI.Filter|null} The created filter or null if creation failed
+ */
+function safeCreateFilter(filterConstructor, options = {}, context = "Unknown") {
+  try {
+    // Support both object options and positional arguments (as array)
+    const filter = Array.isArray(options) 
+      ? new filterConstructor(...options)
+      : new filterConstructor(options);
+    
+    // Validate immediately after creation
+    if (!validateFilter(filter, `${context} (creation)`)) {
+      console.error(`Map Shine | Failed to create valid filter: ${context}`);
+      try {
+        filter?.destroy?.();
+      } catch (e) {
+        // Ignore destruction errors
+      }
+      return null;
+    }
+    
+    return filter;
+  } catch (error) {
+    console.error(`Map Shine | Exception creating filter: ${context}`, error);
+    return null;
+  }
+}
+
+/**
+ * Cleans an array of filters, removing any that are invalid or corrupted.
+ * @param {Array<PIXI.Filter>} filters - Array of filters to clean
+ * @param {string} context - Context string for error logging
+ * @returns {Array<PIXI.Filter>} Cleaned array with only valid filters
+ */
+function cleanFilterArray(filters, context = "Unknown") {
+  if (!Array.isArray(filters)) {
+    return null;
+  }
+
+  const validFilters = filters.filter((filter, index) => {
+    const isValid = validateFilter(filter, `${context}[${index}]`);
+    if (!isValid) {
+      console.warn(`Map Shine | Removed invalid filter from ${context} at index ${index}`);
+      try {
+        filter?.destroy?.();
+      } catch (e) {
+        // Ignore destruction errors for corrupt filters
+      }
+    }
+    return isValid;
+  });
+
+  return validFilters.length > 0 ? validFilters : null;
+}
+
+/**
+ * Safely applies filters to a PIXI container with validation.
+ * @param {PIXI.Container} container - The container to apply filters to
+ * @param {Array<PIXI.Filter>} filters - Filters to apply
+ * @param {string} context - Context string for error logging
+ * @returns {boolean} True if filters were successfully applied
+ */
+function safeApplyFilters(container, filters, context = "Unknown") {
+  if (!container) {
+    console.warn(`Map Shine | safeApplyFilters (${context}): Container is null`);
+    return false;
+  }
+
+  if (!filters || filters.length === 0) {
+    container.filters = null;
+    return true;
+  }
+
+  // Clean the filter array
+  const cleanedFilters = cleanFilterArray(filters, context);
+  
+  if (!cleanedFilters || cleanedFilters.length === 0) {
+    console.warn(`Map Shine | safeApplyFilters (${context}): All filters were invalid, removing filter array`);
+    container.filters = null;
+    return false;
+  }
+
+  try {
+    container.filters = cleanedFilters;
+    return true;
+  } catch (error) {
+    console.error(`Map Shine | safeApplyFilters (${context}): Exception applying filters`, error);
+    container.filters = null;
+    return false;
+  }
+}
 
 /***************************************************************************************
  *
@@ -232,7 +390,7 @@ export const MODULE_DEFAULTS = {
       "layerBlendMode": 1
     },
     "animation": {
-      "globalIntensity": 0.8
+      "globalIntensity": 1.5
     },
     "pattern": {
       "stripes": {
@@ -241,7 +399,7 @@ export const MODULE_DEFAULTS = {
         "angle": 140,
         "scale": 0.077,
         "parallax": 1,
-        "width": 1,
+        "width": 0.86,
         "softness": 0.5,
         "randomWidth": 0.49,
         "randomIntensity": 1
@@ -249,10 +407,10 @@ export const MODULE_DEFAULTS = {
     },
     "colorCorrection": {
       "enabled": true,
-      "saturation": 1,
+      "saturation": 1.5,
       "brightness": 0,
-      "contrast": 3.25,
-      "gamma": 0.5,
+      "contrast": 1,
+      "gamma": 1,
       "tint": {
         "color": "#FFFFFF",
         "amount": 0
@@ -260,41 +418,41 @@ export const MODULE_DEFAULTS = {
       "invert": false
     },
     "cloudOcclusion": {
-      "enabled": false,
+      "enabled": true,
       "intensity": 0.81
     }
   },
   "cloudShadows": {
     "enabled": true,
     "blendMode": 0,
-    "shadowIntensity": 0.5,
+    "shadowIntensity": 2,
     "maskBlur": 1,
     "lightOcclusion": {
       "enabled": true,
       "intensity": 1
     },
     "wind": {
-      "angle": 326,
-      "speed": 0.5074,
+      "angle": 0,
+      "speed": 0,
       "linkToWind": true,
-      "linkedWindForce": 1,
-      "linkedMaxSpeed": 4,
+      "linkedWindForce": 0.29286,
+      "linkedMaxSpeed": 12.5,
       "linkedDrag": 0.96
     },
     "noise": {
-      "scale": 2.7,
+      "scale": 1.9,
       "octaves": 8,
-      "persistence": 0.4,
-      "lacunarity": 2.4
+      "persistence": 0.5,
+      "lacunarity": 2.3
     },
     "shading": {
-      "threshold": 0.59,
-      "softness": 0.54,
-      "brightness": 0.18,
-      "contrast": 2.1,
-      "gamma": 0.95
+      "threshold": 0.32,
+      "softness": 1,
+      "brightness": 0.15,
+      "contrast": 1.5,
+      "gamma": 1
     },
-    "evolutionSpeed": 4.1,
+    "evolutionSpeed": 0,
     "layers": {
       "layer1": {
         "enabled": true,
@@ -356,20 +514,20 @@ export const MODULE_DEFAULTS = {
     },
     "depth": {
       "enabled": true,
-      "color": "#FFFFFF",
+      "color": "#f6f6f6",
       "threshold": 0.3,
       "softness": 0.2,
       "offsetX": 0,
       "offsetY": 0,
       "zoomThresholdMin": 1.57,
       "zoomThresholdMax": 1.9,
-      "saturation": 1.0,
-      "brightness": 0.0,
+      "saturation": 1,
+      "brightness": 0,
       "contrast": 1.2,
-      "exposure": 0.0,
-      "gamma": 1.0,
-      "temperature": 0.0,
-      "tint": 0.0,
+      "exposure": 0.03,
+      "gamma": 1,
+      "temperature": 0,
+      "tint": 0,
       "zoomPointMin": 0.3,
       "zoomPointMid": 0.5,
       "zoomPointMax": 0.6,
@@ -430,16 +588,16 @@ export const MODULE_DEFAULTS = {
   },
   "bush": {
     "enabled": true,
-    "rustleScale": 0.06,
+    "rustleScale": 0.05,
     "rustleSpeed": 33.4,
-    "rustleFrequency": 0.9,
-    "rustleIntensity": 1.85,
+    "rustleFrequency": 13.7,
+    "rustleIntensity": 1.65,
     "swayScale": 12.1,
     "swaySpeed": 22.5,
-    "swayFrequency": 0.21,
-    "swayIntensity": 1.35,
+    "swayFrequency": 0.16,
+    "swayIntensity": 1.3,
     "swayWindMultiplier": 3,
-    "perpendicularMix": 1
+    "perpendicularMix": 0.65
   },
   "tree": {
     "enabled": true,
@@ -460,10 +618,10 @@ export const MODULE_DEFAULTS = {
     "blendMode": 4,
     "colorCorrection": {
       "enabled": true,
-      "exposure": 1.8,
+      "exposure": 3,
       "saturation": 1,
       "brightness": 0,
-      "contrast": 1,
+      "contrast": 0.25,
       "gamma": 1,
       "tint": {
         "color": "#FFFFFF",
@@ -471,7 +629,7 @@ export const MODULE_DEFAULTS = {
       }
     },
     "rgbSplit": {
-      "enabled": true,
+      "enabled": false,
       "amount": 5,
       "threshold": 0.2,
       "softness": 0.5
@@ -485,7 +643,7 @@ export const MODULE_DEFAULTS = {
       "enabled": true,
       "intensity": 0.4,
       "threshold": 0,
-      "softness": 0.01
+      "softness": 0.5
     },
     "lightOcclusion": {
       "enabled": true,
@@ -938,7 +1096,7 @@ export const MODULE_DEFAULTS = {
     }
   },
   "biofilm": {
-    "enabled": false,
+    "enabled": true,
     "blendMode": 1,
     "maskThreshold": 0.2,
     "maskUpperThreshold": 0.6,
@@ -956,9 +1114,9 @@ export const MODULE_DEFAULTS = {
         "alpha": 0
       },
       {
-        "time": 0.04,
-        "color": "#c9c9c8",
-        "alpha": 0.92
+        "time": 0.18567455586416937,
+        "color": "#53e3fd",
+        "alpha": 0.12
       },
       {
         "time": 1,
@@ -969,24 +1127,29 @@ export const MODULE_DEFAULTS = {
     "emissiveGradient": [
       {
         "time": 0,
-        "color": "#000000",
+        "color": "#ffffff",
         "alpha": 1
       },
       {
+        "time": 0.1919332487584672,
+        "color": "#ffffff",
+        "alpha": 0.02
+      },
+      {
         "time": 1,
-        "color": "#000000",
+        "color": "#ffffff",
         "alpha": 1
       }
     ],
     "scale": {
-      "sizeMultiplier": 0.6,
-      "start": 0.9,
-      "end": 1.09,
-      "minMult": 0.3
+      "sizeMultiplier": 3.1,
+      "start": 0.2,
+      "end": 2,
+      "minMult": 1
     },
     "speed": {
-      "start": 3,
-      "end": 6,
+      "start": 1,
+      "end": 3,
       "minMult": 0.5
     },
     "rotation": {
@@ -999,46 +1162,46 @@ export const MODULE_DEFAULTS = {
   "water": {
     "enabled": true,
     "depthDisplacement": {
-      "enabled": true,
+      "enabled": false,
       "strength": 0,
-      "darken": 0.23,
+      "darken": 0.05,
       "wallColor": "#0a2914",
       "wallIntensity": 1,
-      "wallSmearBlend": 0.5
+      "wallSmearBlend": 0
     },
     "flow": {
       "enabled": false,
-      "angle": 45,
-      "speed": 5
+      "angle": 0,
+      "speed": 50
     },
     "wave": {
       "enabled": true,
       "speed": 0.5,
-      "scale": 1,
-      "intensity": 0.01,
+      "scale": 1.5,
+      "intensity": 0.0035,
       "biofilmDistortion": {
         "enabled": false,
         "intensity": 0.5
       },
       "rainRipple": {
         "enabled": true,
-        "speed": 9.0,
+        "speed": 3.6,
         "scale": 2.1,
-        "intensity": 0.019
+        "intensity": 0.0016
       }
     },
     "murkiness": {
       "enabled": true,
-      "color": "#1a2c22",
+      "color": "#24442c",
       "wavyNoise": {
-        "strength": 0.48,
+        "strength": 0.28,
         "scale": 0.28,
         "speed": 0.04
       },
       "sandyNoise": {
-        "strength": 0.12,
-        "scale": 44.5,
-        "speed": 1,
+        "strength": 0.28,
+        "scale": 1,
+        "speed": 0.5,
         "modulationScale": 3,
         "modulationSpeed": 0.01,
         "modulationStrength": 0.5
@@ -1059,10 +1222,10 @@ export const MODULE_DEFAULTS = {
       "specularity": {
         "enabled": true,
         "color": "#FFFFFF",
-        "intensity": 0.15,
-        "shininess": 44,
-        "lightAngle": 87,
-        "lightElevation": 12,
+        "intensity": 0.53,
+        "shininess": 278,
+        "lightAngle": 90,
+        "lightElevation": 45,
         "cloudOcclusion": {
           "enabled": true,
           "intensity": 1
@@ -1071,16 +1234,16 @@ export const MODULE_DEFAULTS = {
     },
     "caustics": {
       "enabled": true,
-      "intensity": 0.004,
-      "scale": 0.4,
-      "speed": 0.14,
+      "intensity": 0.033,
+      "scale": 0.3,
+      "speed": 2,
       "color": "#bbffbe",
       "lineSharpness": 1,
       "bloomIntensity": 1,
-      "lineDistortion": 0.1,
-      "lineDistortionScale": 5,
+      "lineDistortion": 0.49,
+      "lineDistortionScale": 0.1,
       "intersectionBoost": 20,
-      "roughnessScale": 4.2,
+      "roughnessScale": 1.6,
       "roughnessIntensity": 0.83,
       "cloudOcclusion": {
         "enabled": true,
@@ -1112,7 +1275,7 @@ export const MODULE_DEFAULTS = {
     "puddles": {
       "enabled": true,
       "darkening": 0.2,
-      "dryingTimeMinutes": 5
+      "dryingTimeMinutes": 10
     },
     "glintParticles": {
       "enabled": false,
@@ -1174,7 +1337,7 @@ export const MODULE_DEFAULTS = {
     }
   },
   "foam": {
-    "enabled": true,
+    "enabled": false,
     "blendMode": 1,
     "smallBlur": 9,
     "largeBlur": 75,
@@ -1240,52 +1403,52 @@ export const MODULE_DEFAULTS = {
     "enabled": true,
     "particles": {
       "enabled": true,
-      "blendMode": 1,
-      "maskThreshold": 0.03,
+      "blendMode": 9,
+      "maskThreshold": 0.86,
       "maskInfluence": 0.31,
       "particleTexture": "modules/map-shine/assets/flame.webp",
-      "frequency": 0.019,
+      "frequency": 0.01,
       "lifetime": {
-        "min": 0.1,
-        "max": 2.5
+        "min": 1.5,
+        "max": 1.6
       },
       "toneCurve": {
         "enabled": true,
-        "contrast": 0.7,
-        "gamma": 0.82,
-        "knee": 0.9,
-        "coreClamp": 0.78
+        "contrast": 2.11,
+        "gamma": 1.66,
+        "knee": 1,
+        "coreClamp": 1.5
       },
       "colorAlphaGradient": [
         {
           "time": 0,
-          "color": "#FFDD88",
-          "alpha": 0
+          "color": "#ff4b17",
+          "alpha": 0.86
         },
         {
-          "time": 0.027615594909811518,
-          "color": "#ffd782",
-          "alpha": 0.04
+          "time": 0.15959805298756874,
+          "color": "#ff381c",
+          "alpha": 0.52
         },
         {
-          "time": 0.1554999458709611,
+          "time": 0.36506020529686556,
           "color": "#ff731e",
-          "alpha": 0.12
+          "alpha": 0.35
         },
         {
-          "time": 0.46143798828125,
+          "time": 0.6193617216796837,
           "color": "#9e4712",
           "alpha": 0.06
         },
         {
-          "time": 0.671140900715665,
+          "time": 0.8046144819585578,
           "color": "#000000",
-          "alpha": 0.02
+          "alpha": 0
         },
         {
-          "time": 0.840843686122106,
+          "time": 0.9511325741791219,
           "color": "#000000",
-          "alpha": 0.01
+          "alpha": 0
         },
         {
           "time": 1,
@@ -1300,24 +1463,19 @@ export const MODULE_DEFAULTS = {
           "alpha": 0
         },
         {
-          "time": 0.08507088302279178,
-          "color": "#ff9c09",
-          "alpha": 0.92
-        },
-        {
-          "time": 0.16106013504318503,
-          "color": "#fff29b",
-          "alpha": 0.9409804985762131
-        },
-        {
-          "time": 0.22994685295145176,
-          "color": "#ffb340",
-          "alpha": 0.96
+          "time": 0.16296628499263918,
+          "color": "#ff430d",
+          "alpha": 0.939726181956534
         },
         {
           "time": 0.32901698049752587,
           "color": "#ff6a11",
           "alpha": 0.78
+        },
+        {
+          "time": 0.7404077104527316,
+          "color": "#622806",
+          "alpha": 0.01
         },
         {
           "time": 0.999,
@@ -1331,20 +1489,20 @@ export const MODULE_DEFAULTS = {
         }
       ],
       "scale": {
-        "sizeMultiplier": 1.5,
-        "start": 0.25,
-        "end": 0.45,
+        "sizeMultiplier": 0.87,
+        "start": 0.63,
+        "end": 1.31,
         "minMult": 0.84
       },
       "speed": {
-        "start": 1,
-        "end": 2,
-        "minMult": 0.5
+        "start": 0.5,
+        "end": 1,
+        "minMult": 0.24
       },
       "rotation": {
         "enabled": true,
-        "minSpeed": -42,
-        "maxSpeed": 42,
+        "minSpeed": -11,
+        "maxSpeed": 11,
         "accel": -2
       },
       "wind": {
@@ -1353,7 +1511,7 @@ export const MODULE_DEFAULTS = {
         "baseSpeed": 34,
         "gustSpeed": 99,
         "gustFrequencyMin": 1,
-        "gustFrequencyMax": 26.4,
+        "gustFrequencyMax": 1.8,
         "gustDurationMin": 0.4,
         "gustDurationMax": 1.6,
         "angleChangeFrequencyMin": 3,
@@ -1362,11 +1520,11 @@ export const MODULE_DEFAULTS = {
       },
       "colorCorrection": {
         "enabled": true,
-        "saturation": 1.8,
+        "saturation": 2,
         "brightness": 0,
-        "contrast": 1,
-        "exposure": 1.8,
-        "gamma": 1
+        "contrast": 2.6,
+        "exposure": -1.35,
+        "gamma": 2.6
       }
     }
   },
@@ -1703,17 +1861,17 @@ export const MODULE_DEFAULTS = {
   },
   "buildingShadows": {
     "enabled": false,
-    "intensity": 0.33,
-    "maxOffset": 25,
-    "maxBlur": 9,
+    "intensity": 0.67,
+    "maxOffset": 93,
+    "maxBlur": 50,
     "sunAngle": 3
   },
   "timeOfDay": {
     "enabled": true,
     "syncToSceneDarkness": true,
     "syncFromFoundryTime": false,
-    "intensity": 1,
-    "currentTime": 13.359496489753496,
+    "intensity": 2,
+    "currentTime": 12.666666666666664,
     "keyframes": {
       "midnight": {
         "time": 0,
@@ -1728,11 +1886,11 @@ export const MODULE_DEFAULTS = {
       "dawn": {
         "time": 6,
         "temperature": 1,
-        "tint": -0.25,
-        "saturation": 0.5,
+        "tint": 0,
+        "saturation": 1.33,
         "brightness": 0,
         "contrast": 1,
-        "exposure": -0.25,
+        "exposure": 0,
         "gamma": 1
       },
       "midday": {
@@ -1749,10 +1907,10 @@ export const MODULE_DEFAULTS = {
         "time": 18,
         "temperature": 1,
         "tint": -0.25,
-        "saturation": 0.5,
+        "saturation": 1,
         "brightness": 0,
-        "contrast": 1.1,
-        "exposure": -0.25,
+        "contrast": 1,
+        "exposure": 0,
         "gamma": 1
       },
       "twilight": {
@@ -1827,8 +1985,8 @@ export const MODULE_DEFAULTS = {
     "blurMidZoom": 0,
     "blurMaxZoom": 0,
     "opacityMinZoom": 1,
-    "opacityMidZoom": 1,
-    "opacityMaxZoom": 1,
+    "opacityMidZoom": 0,
+    "opacityMaxZoom": 0,
     "zoomPointMin": 0.2,
     "zoomPointMid": 0.3,
     "zoomPointMax": 1.5,
@@ -1849,14 +2007,14 @@ export const MODULE_DEFAULTS = {
     },
     "buildingShadows": {
       "enabled": true,
-      "intensity": 0.6
+      "intensity": 1
     }
   },
   "ambientLayerZIndex": 250,
   "weather": {
     "enabled": true,
-    "currentState": "Clear",
-    "transitionDuration": 1000,
+    "currentState": "storm",
+    "transitionDuration": 30000,
     "windIntensityMultiplier": 0.5,
     "statePresets": {
       "clear": {
@@ -1873,15 +2031,15 @@ export const MODULE_DEFAULTS = {
           "b": 1
         },
         "colorCorrection": {
-          "saturation": 1.0,
-          "contrast": 1.0,
-          "brightness": 1.0
+          "saturation": 1,
+          "contrast": 1,
+          "brightness": 1
         },
         "windMultipliers": {
           "baseSpeed": 0.6,
           "gustSpeed": 0.7,
           "gustFrequency": 1.2,
-          "gustDuration": 1.0,
+          "gustDuration": 1,
           "angleChangeFrequency": 1.2,
           "angleChangeRange": 0.8
         },
@@ -1894,6 +2052,43 @@ export const MODULE_DEFAULTS = {
           "maxSpeed": 3,
           "force": 0.4,
           "drag": 0.85
+        }
+      },
+      "partly-cloudy": {
+        "name": "Partly Cloudy",
+        "cloudDensity": 0.4,
+        "cloudThreshold": 0.6,
+        "cloudSoftness": 0.4,
+        "precipitationIntensity": 0,
+        "precipitationType": "none",
+        "particleCount": 0,
+        "atmosphericTint": {
+          "r": 0.98,
+          "g": 0.98,
+          "b": 1
+        },
+        "colorCorrection": {
+          "saturation": 1.05,
+          "contrast": 1.02,
+          "brightness": 1.03
+        },
+        "windMultipliers": {
+          "baseSpeed": 0.7,
+          "gustSpeed": 0.8,
+          "gustFrequency": 1.1,
+          "gustDuration": 1,
+          "angleChangeFrequency": 1.1,
+          "angleChangeRange": 0.9
+        },
+        "foliageMultipliers": {
+          "rustleSpeed": 0.8,
+          "swaySpeed": 0.7
+        },
+        "description": "Bright sunny day with scattered white clouds",
+        "cloudWind": {
+          "maxSpeed": 4,
+          "force": 0.45,
+          "drag": 0.8
         }
       },
       "drizzle": {
@@ -1912,15 +2107,15 @@ export const MODULE_DEFAULTS = {
         "colorCorrection": {
           "saturation": 0.95,
           "contrast": 0.98,
-          "brightness": 1.0
+          "brightness": 1
         },
         "windMultipliers": {
           "baseSpeed": 0.8,
           "gustSpeed": 0.85,
           "gustFrequency": 1.1,
-          "gustDuration": 1.0,
-          "angleChangeFrequency": 1.0,
-          "angleChangeRange": 1.0
+          "gustDuration": 1,
+          "angleChangeFrequency": 1,
+          "angleChangeRange": 1
         },
         "foliageMultipliers": {
           "rustleSpeed": 0.9,
@@ -1952,16 +2147,16 @@ export const MODULE_DEFAULTS = {
           "brightness": 0.98
         },
         "windMultipliers": {
-          "baseSpeed": 1.0,
-          "gustSpeed": 1.0,
-          "gustFrequency": 1.0,
-          "gustDuration": 1.0,
-          "angleChangeFrequency": 1.0,
-          "angleChangeRange": 1.0
+          "baseSpeed": 1,
+          "gustSpeed": 1,
+          "gustFrequency": 1,
+          "gustDuration": 1,
+          "angleChangeFrequency": 1,
+          "angleChangeRange": 1
         },
         "foliageMultipliers": {
-          "rustleSpeed": 1.0,
-          "swaySpeed": 1.0
+          "rustleSpeed": 1,
+          "swaySpeed": 1
         },
         "description": "Steady rainfall with heavy clouds",
         "cloudWind": {
@@ -1997,8 +2192,8 @@ export const MODULE_DEFAULTS = {
           "angleChangeRange": 1.8
         },
         "foliageMultipliers": {
-          "rustleSpeed": 7.0,
-          "swaySpeed": 8.0
+          "rustleSpeed": 2,
+          "swaySpeed": 2.2
         },
         "description": "Heavy rain with strong wind and dark storm clouds",
         "cloudWind": {
@@ -2058,7 +2253,7 @@ export const MODULE_DEFAULTS = {
           "b": 1
         },
         "colorCorrection": {
-          "saturation": 0.80,
+          "saturation": 0.8,
           "contrast": 0.95,
           "brightness": 1.02
         },
@@ -2066,15 +2261,15 @@ export const MODULE_DEFAULTS = {
           "baseSpeed": 0.9,
           "gustSpeed": 0.9,
           "gustFrequency": 1.2,
-          "gustDuration": 0.9,
+          "gustDuration": 1,
           "angleChangeFrequency": 1.1,
-          "angleChangeRange": 0.7
+          "angleChangeRange": 0.9
         },
         "foliageMultipliers": {
           "rustleSpeed": 0.8,
           "swaySpeed": 0.75
         },
-        "description": "Snowfall with calm air and heavy cloud coverage",
+        "description": "Snowfall with dense white clouds",
         "cloudWind": {
           "maxSpeed": 6,
           "force": 0.55,
@@ -2105,13 +2300,13 @@ export const MODULE_DEFAULTS = {
           "gustFrequency": 0.35,
           "gustDuration": 1.4,
           "angleChangeFrequency": 0.6,
-          "angleChangeRange": 2.0
+          "angleChangeRange": 2
         },
         "foliageMultipliers": {
-          "rustleSpeed": 7.6,
-          "swaySpeed": 8.4
+          "rustleSpeed": 2.3,
+          "swaySpeed": 2.5
         },
-        "description": "Heavy snowfall with fierce wind and near-zero visibility",
+        "description": "Heavy snow with strong wind and thick cloud coverage",
         "cloudWind": {
           "maxSpeed": 20,
           "force": 1,
@@ -2121,7 +2316,7 @@ export const MODULE_DEFAULTS = {
     },
     "rain": {
       "opacity": 1,
-      "intensity": 3,
+      "intensity": 2.95,
       "strength": 0.55,
       "speed": 0.15,
       "rainDensity": 100,
@@ -2171,20 +2366,20 @@ export const MODULE_DEFAULTS = {
       "spreadRadius": 16,
       "edgeUpdateFrequency": 10,
       "updateFrequency": 0.85,
-      "frequency": 0.003,
+      "frequency": 0.019,
       "emitDuration": 0.2,
       "autoUpdate": false,
-      "opacity": 0.2,
+      "opacity": 0.4,
       "fadeInDuration": 0.2,
       "fadeOutStart": 0.94,
       "splashOpacity": 0.3,
       "lifetime": {
-        "min": 4.5,
-        "max": 9.6
+        "min": 0.7,
+        "max": 1.8
       },
       "size": {
-        "min": 0.23,
-        "max": 0.84
+        "min": 0.12,
+        "max": 0.48
       },
       "sizeVariation": 4.25,
       "color": {
@@ -2194,16 +2389,16 @@ export const MODULE_DEFAULTS = {
       },
       "matchRainTint": true,
       "matchRainOpacity": true,
-      "windForce": 1,
-      "windAccelerationTime": 15,
-      "turbulence": 0.5,
+      "windForce": 3.81,
+      "windAccelerationTime": 0.3,
+      "turbulence": 2,
       "groundCollisionAge": 0.95,
       "enableGroundCollision": true,
       "velocityStopAge": 0.9,
       "windInfluence": 2,
       "initialVelocity": 0,
       "motionBlur": {
-        "strength": 5,
+        "strength": 1.1,
         "maxLength": 30
       },
       "splashSizeMultiplier": 26,
@@ -2237,7 +2432,8 @@ export const MODULE_DEFAULTS = {
       "cullOutsideViewport": false,
       "lodEnabled": false,
       "lodDistanceThreshold": 2000,
-      "lodReductionFactor": 0.5
+      "lodReductionFactor": 0.5,
+      "maxParticles": 2000
     }
   }
 };
@@ -2629,19 +2825,13 @@ class MapShineInitialiser {
             );
             // Yield to the event loop, allowing the browser to repaint.
             await new Promise((resolve) => setTimeout(resolve, 10));
-          } else {
-            console.warn("[LoadingManager] No screen reference! Cannot update progress.");
           }
         },
       },
       profileManager: new ProfileManager(),
-      transitionManager: null, // Initialized below
+      transitionManager: null, // Initialized below (AppearanceTransitionManager)
+      unifiedTransitionManager: null, // Initialized below
       sceneChangeManager: new SceneChangeManager(),
-      debugger: null,
-      particleManager: null,
-      windManager: null,
-      tokenManager: null,
-      dynamicExposureManager: null,
       resourceManager: null, // The new resource manager
       lightMaskManager: null,
       mapPointsManager: MapPointsManager,
@@ -2876,6 +3066,9 @@ class MapShineInitialiser {
     game.mapShine.transitionManager = new AppearanceTransitionManager(
       game.mapShine.profileManager
     );
+    
+    // Initialize the unified transition manager for time & weather transitions
+    game.mapShine.unifiedTransitionManager = new UnifiedTransitionManager();
 
     // Show the loading screen now that the global namespace exists.
     if (!game.settings.get(MODULE_ID, "disable-loading-screen")) {
@@ -3442,6 +3635,11 @@ class LayerManager {
         zIndex: 120, // Environment effect, appears over tokens.
       },
 
+      weatherParticleLayer: {
+        layerClass: WeatherParticleLayer,
+        group: "environment",
+        zIndex: 650, // Below overhead (700) but above most environment elements
+      },
       particleLayer: {
         layerClass: ParticleLayer,
         group: "environment",
@@ -4047,6 +4245,9 @@ class HooksManager {
       // and ResourceManager are kept up-to-date on every subsequent animation frame.
       const mainTicker = () => {
         if (canvas?.stage) {
+          // Performance optimization: skip all updates for empty scenes
+          if (!game.mapShine?.hasContent) return;
+          
           CoordinateManager.update();
           game.mapShine.resourceManager?.onFrameStart();
           game.mapShine.lightMaskManager?.update();
@@ -4356,10 +4557,10 @@ class SceneChangeManager {
     toolbar.className = "mapshine-preview-toolbar";
     toolbar.innerHTML = `
         <label>Opacity</label>
-        <input id="ms-preview-opacity" type="range" min="0" max="1" step="0.05" value="${game.settings.get(
+        <input id="ms-preview-opacity" type="range" data-no-path="true" min="0" max="1" step="0.05" value="${game.settings.get(
           MODULE_ID,
           "loading-screen-background-overlay-opacity"
-        )}">
+        )}" title="Preview-only control, not connected to config">
         <span class="mapshine-divider"></span>
         <label>Shadow</label>
         <select id="ms-preview-shadow">
@@ -5873,6 +6074,34 @@ class ResourceManager {
     this._frameCache.heatDistortionNoise = texture;
     return texture;
   }
+
+  /**
+   * Retrieves the composite mask of all _NoWater textures.
+   * Used to exclude tiles (like trees and bushes) from water distortion effects.
+   * Caches the texture for the duration of the current frame.
+   * @returns {PIXI.RenderTexture|null} The noWater exclusion mask texture.
+   */
+  getNoWaterMask() {
+    if (this._destroyed) return null;
+    if (this._frameCache.noWaterMask) return this._frameCache.noWaterMask;
+
+    const layer = canvas.layers.find((l) => l instanceof WaterFXLayer);
+    if (!layer?.noWaterMaskContainer || !layer?.noWaterMaskTexture)
+      return null;
+
+    // Command the layer to render its noWater mask if needed
+    if (layer._needsNoWaterMaskUpdate && layer.noWaterMaskContainer && !layer.noWaterMaskContainer.destroyed && layer.noWaterMaskTexture?.valid) {
+      canvas.app.renderer.render(layer.noWaterMaskContainer, {
+        renderTexture: layer.noWaterMaskTexture,
+        transform: canvas.stage.transform.worldTransform,
+        clear: true,
+      });
+      layer._needsNoWaterMaskUpdate = false;
+    }
+
+    this._frameCache.noWaterMask = layer.noWaterMaskTexture;
+    return layer.noWaterMaskTexture;
+  }
 }
 
 // =================================================================================
@@ -5989,12 +6218,14 @@ class LightMaskManager {
     // Note: Pooled textures have CLAMP set by default in RenderTexturePool
     this.blurredLightMaskTexture.baseTexture.wrapMode = PIXI.WRAP_MODES.CLAMP;
 
-    this.kawaseBlurFilter1 = new PIXI.filters.KawaseBlurFilter(15, 2, true);
-
-    this.kawaseBlurFilter2 = new PIXI.filters.KawaseBlurFilter(15, 2, true);
-
-    this.kawaseBlurFilter3 = new PIXI.filters.KawaseBlurFilter(15, 2, true);
-    this.noiseFilter = new NoiseFilter({ noiseAmount: 0 });
+    this.kawaseBlurFilter1 = safeCreateFilter(PIXI.filters.KawaseBlurFilter, [15, 2, true], "GeometryMaskManager.kawaseBlur1");
+    this.kawaseBlurFilter2 = safeCreateFilter(PIXI.filters.KawaseBlurFilter, [15, 2, true], "GeometryMaskManager.kawaseBlur2");
+    this.kawaseBlurFilter3 = safeCreateFilter(PIXI.filters.KawaseBlurFilter, [15, 2, true], "GeometryMaskManager.kawaseBlur3");
+    this.noiseFilter = safeCreateFilter(NoiseFilter, { noiseAmount: 0 }, "GeometryMaskManager.noise");
+    
+    if (!this.kawaseBlurFilter1 || !this.kawaseBlurFilter2 || !this.kawaseBlurFilter3 || !this.noiseFilter) {
+      console.error("Map Shine | GeometryMaskManager: Failed to create one or more blur/noise filters");
+    }
 
     // Sprite for full-resolution rendering (final pass)
     // Use EMPTY texture to prevent resize errors before first render
@@ -6602,10 +6833,22 @@ class PauseManager {
     if (!this._pauseFilter) {
       this._pauseFilter = ScreenEffectsManager.getFilter("pauseEffect");
       if (!this._pauseFilter) {
-        console.error(
-          "Map Shine | PauseManager could not find its dedicated filter."
+        console.warn(
+          "Map Shine | PauseManager could not find its dedicated filter. Creating on-demand."
         );
-        return;
+        // Fallback: Create the filter on-demand
+        try {
+          this._pauseFilter = new ColorCorrectionFilter();
+          this._pauseFilter.enabled = false;
+          ScreenEffectsManager.addFilter("pauseEffect", this._pauseFilter);
+          console.log("Map Shine | PauseEffect filter created successfully as fallback.");
+        } catch (e) {
+          console.error(
+            "Map Shine | PauseManager failed to create fallback filter.",
+            e
+          );
+          return;
+        }
       }
     }
 
@@ -7103,6 +7346,365 @@ class AppearanceTransitionManager {
 
     await this.profileManager.updateAllSystemsFromConfig();
     this._setStatus("idle", "Preview ended");
+  }
+}
+
+/**
+ * Unified Transition Manager
+ * 
+ * Handles smooth transitions for both time of day and weather state changes.
+ * Supports overlapping transitions with proper blending when a new transition
+ * starts before the previous one completes.
+ * 
+ * Features:
+ * - Time of day transitions (15s to 30min)
+ * - Weather state transitions (15s to 30min)
+ * - Simultaneous time + weather transitions
+ * - Interruption handling (new transition blends from current interpolated state)
+ * - Easing functions for natural motion
+ * 
+ * @class UnifiedTransitionManager
+ */
+class UnifiedTransitionManager {
+  constructor() {
+    /** @type {Array<Object>} Active transitions */
+    this.activeTransitions = [];
+    
+    /** @type {number|null} Animation frame ID */
+    this._animationFrameId = null;
+    
+    /** @type {Object} Current blended state */
+    this.currentState = {
+      time: null,
+      weather: null
+    };
+    
+    console.log('MapShine | UnifiedTransitionManager initialized');
+  }
+  
+  /**
+   * Start a time of day transition
+   * @param {number} targetTime - Target time (0-24)
+   * @param {number} durationMs - Transition duration in milliseconds (15000 to 1800000)
+   * @returns {string} Transition ID
+   */
+  transitionTime(targetTime, durationMs = 3000) {
+    const config = game.mapShine?.profileManager?.activeConfig;
+    if (!config) {
+      console.warn('MapShine | UnifiedTransitionManager: No active config available');
+      return null;
+    }
+    
+    // Get current time (from ongoing transition or config)
+    const currentTime = this.currentState.time ?? config.timeOfDay.currentTime ?? 12.0;
+    
+    // Handle time wraparound (shortest path)
+    let adjustedTarget = targetTime;
+    const diff = targetTime - currentTime;
+    if (diff > 12) {
+      adjustedTarget = targetTime - 24;
+    } else if (diff < -12) {
+      adjustedTarget = targetTime + 24;
+    }
+    
+    const transitionId = `time-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    const transition = {
+      id: transitionId,
+      type: 'time',
+      startValue: currentTime,
+      targetValue: adjustedTarget,
+      originalTarget: targetTime, // Store original for wraparound
+      startTime: performance.now(),
+      duration: durationMs,
+      progress: 0,
+      active: true
+    };
+    
+    // Cancel any existing time transitions (replace, don't blend)
+    this.activeTransitions = this.activeTransitions.filter(t => t.type !== 'time');
+    
+    this.activeTransitions.push(transition);
+    this._ensureAnimationLoop();
+    
+    console.log(`MapShine | Time transition started: ${currentTime.toFixed(2)} → ${targetTime.toFixed(2)} over ${(durationMs/1000).toFixed(1)}s`);
+    
+    // Emit hook
+    Hooks.callAll('mapShine:timeTransitionStart', {
+      id: transitionId,
+      from: currentTime,
+      to: targetTime,
+      duration: durationMs
+    });
+    
+    return transitionId;
+  }
+  
+  /**
+   * Start a weather transition
+   * @param {string} targetState - Target weather state
+   * @param {number} durationMs - Transition duration in milliseconds
+   * @returns {string} Transition ID
+   */
+  transitionWeather(targetState, durationMs = 10000) {
+    const weatherManager = game.mapShine?.weatherSystemManager;
+    if (!weatherManager) {
+      console.warn('MapShine | UnifiedTransitionManager: WeatherSystemManager not available');
+      return null;
+    }
+    
+    // Get current state (from ongoing transition or manager)
+    const currentState = this.currentState.weather ?? weatherManager.currentState ?? 'clear';
+    
+    const transitionId = `weather-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    const transition = {
+      id: transitionId,
+      type: 'weather',
+      startValue: currentState,
+      targetValue: targetState,
+      startTime: performance.now(),
+      duration: durationMs,
+      progress: 0,
+      active: true
+    };
+    
+    // Cancel any existing weather transitions (replace, don't blend)
+    this.activeTransitions = this.activeTransitions.filter(t => t.type !== 'weather');
+    
+    this.activeTransitions.push(transition);
+    this._ensureAnimationLoop();
+    
+    console.log(`MapShine | Weather transition started: ${currentState} → ${targetState} over ${(durationMs/1000).toFixed(1)}s`);
+    
+    // Start the weather system transition
+    weatherManager.transitionToState(targetState, durationMs);
+    
+    // Emit hook
+    Hooks.callAll('mapShine:weatherTransitionStart', {
+      id: transitionId,
+      from: currentState,
+      to: targetState,
+      duration: durationMs
+    });
+    
+    return transitionId;
+  }
+  
+  /**
+   * Start simultaneous time and weather transition
+   * @param {number} targetTime - Target time
+   * @param {string} targetWeather - Target weather state
+   * @param {number} durationMs - Transition duration
+   * @returns {Object} Object with timeId and weatherId
+   */
+  transitionBoth(targetTime, targetWeather, durationMs = 10000) {
+    const timeId = this.transitionTime(targetTime, durationMs);
+    const weatherId = this.transitionWeather(targetWeather, durationMs);
+    
+    console.log(`MapShine | Simultaneous transition: Time → ${targetTime.toFixed(2)}, Weather → ${targetWeather}`);
+    
+    return { timeId, weatherId };
+  }
+  
+  /**
+   * Cancel a specific transition
+   * @param {string} transitionId - ID of transition to cancel
+   */
+  cancelTransition(transitionId) {
+    const index = this.activeTransitions.findIndex(t => t.id === transitionId);
+    if (index !== -1) {
+      const transition = this.activeTransitions[index];
+      this.activeTransitions.splice(index, 1);
+      
+      console.log(`MapShine | Transition cancelled: ${transitionId}`);
+      
+      // Emit cancellation hook
+      Hooks.callAll('mapShine:transitionCancelled', { id: transitionId, type: transition.type });
+    }
+  }
+  
+  /**
+   * Cancel all active transitions
+   */
+  cancelAll() {
+    const count = this.activeTransitions.length;
+    this.activeTransitions = [];
+    
+    if (count > 0) {
+      console.log(`MapShine | All transitions cancelled (${count} active)`);
+      Hooks.callAll('mapShine:allTransitionsCancelled', { count });
+    }
+  }
+  
+  /**
+   * Cubic ease-in-out easing function
+   * @param {number} t - Progress (0-1)
+   * @returns {number} Eased progress (0-1)
+   */
+  _easeInOutCubic(t) {
+    return t < 0.5 
+      ? 4 * t * t * t 
+      : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  }
+  
+  /**
+   * Main animation loop - updates all active transitions
+   * @private
+   */
+  _animate() {
+    if (this.activeTransitions.length === 0) {
+      this._stopAnimationLoop();
+      return;
+    }
+    
+    const now = performance.now();
+    const completedTransitions = [];
+    
+    // Update each transition
+    for (const transition of this.activeTransitions) {
+      if (!transition.active) continue;
+      
+      const elapsed = now - transition.startTime;
+      const rawProgress = Math.min(1, elapsed / transition.duration);
+      transition.progress = this._easeInOutCubic(rawProgress);
+      
+      // Apply transition based on type
+      if (transition.type === 'time') {
+        this._applyTimeTransition(transition);
+      } else if (transition.type === 'weather') {
+        this._applyWeatherTransition(transition);
+      }
+      
+      // Check if complete
+      if (rawProgress >= 1) {
+        transition.active = false;
+        completedTransitions.push(transition);
+      }
+    }
+    
+    // Handle completed transitions
+    for (const transition of completedTransitions) {
+      this._onTransitionComplete(transition);
+      this.activeTransitions = this.activeTransitions.filter(t => t.id !== transition.id);
+    }
+    
+    // Continue animation loop
+    this._animationFrameId = requestAnimationFrame(() => this._animate());
+  }
+  
+  /**
+   * Apply time transition (interpolate time value)
+   * @private
+   */
+  _applyTimeTransition(transition) {
+    const interpolatedTime = transition.startValue + 
+      (transition.targetValue - transition.startValue) * transition.progress;
+    
+    // Handle wraparound
+    let finalTime = interpolatedTime;
+    if (finalTime < 0) finalTime += 24;
+    if (finalTime >= 24) finalTime -= 24;
+    
+    this.currentState.time = finalTime;
+    
+    // Update config directly without triggering full system regeneration
+    // This allows smooth interpolation during the transition
+    if (game.mapShine?.profileManager?.activeConfig) {
+      game.mapShine.profileManager.activeConfig.timeOfDay.currentTime = finalTime;
+      
+      // Lightweight update: just refresh time-dependent values without regeneration
+      if (game.mapShine.profileManager.updateTimeBasedSystems) {
+        game.mapShine.profileManager.updateTimeBasedSystems();
+      }
+    }
+  }
+  
+  /**
+   * Apply weather transition (managed by WeatherSystemManager)
+   * @private
+   */
+  _applyWeatherTransition(transition) {
+    // Weather transitions are handled by WeatherSystemManager
+    // We just track state here
+    this.currentState.weather = transition.targetValue;
+  }
+  
+  /**
+   * Handle transition completion
+   * @private
+   */
+  _onTransitionComplete(transition) {
+    console.log(`MapShine | Transition complete: ${transition.type} - ${transition.id}`);
+    
+    if (transition.type === 'time') {
+      // Ensure final time is set correctly (handle wraparound)
+      const finalTime = transition.originalTarget;
+      this.currentState.time = finalTime;
+      
+      if (game.mapShine?.updateTimeOfDay) {
+        game.mapShine.updateTimeOfDay(finalTime);
+      }
+      
+      // Emit completion hook
+      Hooks.callAll('mapShine:timeTransitionComplete', {
+        id: transition.id,
+        time: finalTime
+      });
+    } else if (transition.type === 'weather') {
+      // Emit completion hook
+      Hooks.callAll('mapShine:weatherTransitionComplete', {
+        id: transition.id,
+        state: transition.targetValue
+      });
+    }
+  }
+  
+  /**
+   * Ensure animation loop is running
+   * @private
+   */
+  _ensureAnimationLoop() {
+    if (this._animationFrameId === null) {
+      this._animationFrameId = requestAnimationFrame(() => this._animate());
+    }
+  }
+  
+  /**
+   * Stop animation loop
+   * @private
+   */
+  _stopAnimationLoop() {
+    if (this._animationFrameId !== null) {
+      cancelAnimationFrame(this._animationFrameId);
+      this._animationFrameId = null;
+    }
+  }
+  
+  /**
+   * Get diagnostics for UI display
+   * @returns {Object} Diagnostic information
+   */
+  getDiagnostics() {
+    return {
+      activeTransitions: this.activeTransitions.length,
+      transitions: this.activeTransitions.map(t => ({
+        id: t.id,
+        type: t.type,
+        progress: `${(t.progress * 100).toFixed(1)}%`,
+        remaining: `${((t.duration - (performance.now() - t.startTime)) / 1000).toFixed(1)}s`
+      })),
+      currentState: { ...this.currentState }
+    };
+  }
+  
+  /**
+   * Destroy the manager
+   */
+  destroy() {
+    this.cancelAll();
+    this._stopAnimationLoop();
+    console.log('MapShine | UnifiedTransitionManager destroyed');
   }
 }
 
@@ -7609,11 +8211,14 @@ class OverheadEffectLayer extends ResizableAnimatedCanvasLayer {
       height: screen.height,
     });
 
-    this.blurFilter = new PIXI.BlurFilter();
-    this.recolorFilter = new OverheadRecolorFilter();
+    this.blurFilter = safeCreateFilter(PIXI.BlurFilter, {}, "OverheadEffectLayer.BlurFilter");
+    this.recolorFilter = safeCreateFilter(OverheadRecolorFilter, {}, "OverheadEffectLayer.RecolorFilter");
 
     this.compositeSprite = new PIXI.Sprite(this.compositeTexture);
-    this.compositeSprite.filters = [this.blurFilter, this.recolorFilter];
+    const filters = [];
+    if (this.blurFilter) filters.push(this.blurFilter);
+    if (this.recolorFilter) filters.push(this.recolorFilter);
+    safeApplyFilters(this.compositeSprite, filters, "OverheadEffectLayer.compositeSprite");
     this.compositeSprite.filterArea = new PIXI.Rectangle(
       0,
       0,
@@ -7670,6 +8275,40 @@ class OverheadEffectLayer extends ResizableAnimatedCanvasLayer {
   _onAnimate(deltaTime) {
     if (this._destroyed || !this.visible) {
       if (this.compositeSprite) this.compositeSprite.visible = false;
+      // Restore original tile visibility
+      for (const [tileId] of this.overheadSprites.entries()) {
+        const tile = canvas.tiles.get(tileId);
+        if (tile && tile.isManagedByOverheadLayer) {
+          tile.mesh.alpha = 1.0;
+        }
+      }
+      return;
+    }
+
+    // ✅ FIX: Check master enabled flag
+    const config = game.mapShine?.profileManager?.activeConfig;
+    if (config && config.enabled === false) {
+      if (this.compositeSprite) this.compositeSprite.visible = false;
+      // Restore original tile visibility when master disabled
+      for (const [tileId] of this.overheadSprites.entries()) {
+        const tile = canvas.tiles.get(tileId);
+        if (tile && tile.isManagedByOverheadLayer) {
+          tile.mesh.alpha = 1.0;
+        }
+      }
+      return;
+    }
+
+    // ✅ FIX: Check overheadEffect enabled flag - revert to Foundry default when disabled
+    if (config?.overheadEffect && config.overheadEffect.enabled === false) {
+      if (this.compositeSprite) this.compositeSprite.visible = false;
+      // Restore original tile visibility when overheadEffect disabled
+      for (const [tileId] of this.overheadSprites.entries()) {
+        const tile = canvas.tiles.get(tileId);
+        if (tile && tile.isManagedByOverheadLayer) {
+          tile.mesh.alpha = 1.0;
+        }
+      }
       return;
     }
 
@@ -8271,6 +8910,9 @@ class MapShineLifecycle {
       console.log(`Map Shine | Discovery attempt ${attempt}/${maxAttempts}:`, diagnostics);
 
       if (hasBackgroundTarget || hasTileTargets) {
+        // Set flag for performance optimizations
+        game.mapShine.hasContent = true;
+        
         console.log(
           `Map Shine | Texture discovery successful on attempt #${attempt}. Initializing all systems.`
         );
@@ -8337,6 +8979,10 @@ class MapShineLifecycle {
     console.warn(
       `Map Shine | Texture discovery failed after ${maxAttempts} attempts. No effect maps found.`
     );
+    
+    // Set flag for performance optimizations - empty scene
+    game.mapShine.hasContent = false;
+    
     // Wrap minimal setup with timeout as final fallback
     try {
       await this.withTimeout(
@@ -9095,9 +9741,16 @@ class MapShineLifecycle {
           sprite.height = 1;
           sprite.visible = true;
 
-          // Create and apply the filter
+          // Create and apply the filter using safe methods
           const filter = filterDef.create();
-          sprite.filters = [filter];
+          
+          // Validate filter before applying
+          if (!validateFilter(filter, `Prewarm.${filterDef.name}`)) {
+            console.warn(`Map Shine | Skipping prewarm for invalid filter: ${filterDef.name}`);
+            continue;
+          }
+          
+          safeApplyFilters(sprite, [filter], `Prewarm.${filterDef.name}`);
 
           // Add to container
           tempContainer.addChild(sprite);
@@ -10157,6 +10810,7 @@ class TextureAutoLoader {
     caustics: "_Caustics",
     shoreline: "_Shoreline",
     puddle: "_Puddle",
+    noWater: "_NoWater",
     steam: "_Steam",
   };
 
@@ -10236,6 +10890,7 @@ class TextureAutoLoader {
     if (!tileSrc) return null;
 
     const suffixData = await this._findSuffixesForBaseTexture(tileSrc);
+    
     const hasEffectMap = Object.values(suffixData).some(
       (path) => path && typeof path === "string"
     );
@@ -10390,11 +11045,16 @@ class NoiseTextureManager {
     this.sourceSprite.width = screen.width;
     this.sourceSprite.height = screen.height;
     // START OF MODIFICATION
-    this.filter = new NoisePatternFilter({
+    this.filter = safeCreateFilter(NoisePatternFilter, {
       u_isWorldSpace: this.isWorldSpace,
       u_resolution: [screen.width, screen.height], // Pass initial screen resolution here
-    });
-    this.sourceSprite.filters = [this.filter];
+    }, "DynamicTokenMaskManager.NoisePatternFilter");
+    
+    if (this.filter) {
+      safeApplyFilters(this.sourceSprite, [this.filter], "DynamicTokenMaskManager.sourceSprite");
+    } else {
+      console.error("Map Shine | DynamicTokenMaskManager: Failed to create NoisePatternFilter");
+    }
     // END OF MODIFICATION
 
     // If this is a world-space noise, it must re-render on pan.
@@ -10562,7 +11222,13 @@ class DynamicTokenMaskManager {
         this._needsUpdate = false;
       }
     };
-    this.canvas.app.ticker.add(this._boundOnAnimate);
+    
+    try {
+      this.canvas.app.ticker.add(this._boundOnAnimate);
+    } catch (error) {
+      console.error('DynamicTokenMaskManager | Failed to add ticker:', error);
+      // Don't add the ticker if there's an error
+    }
 
     // Register resize handler
     this._boundOnResize = this._onResize.bind(this);
@@ -13335,7 +14001,8 @@ class ParticleEffectController {
       manageFilter(this.fireColorCorrectionFilter, shouldUseCC);
     }
 
-    this.parentContainer.filters = allFilters.length > 0 ? allFilters : null;
+    // Use safe filter application for Fire effect container
+    safeApplyFilters(this.parentContainer, allFilters.length > 0 ? allFilters : [], "FireEffectController.parentContainer");
   }
 
   /**
@@ -14820,6 +15487,17 @@ class WeatherEdgeDropletController {
   update(deltaTime) {
     if (!this.isInitialized || !this.emitter || this.initializationFailed) return;
     
+    // ✅ CRITICAL: Check master enabled flag
+    const config = game.mapShine?.profileManager?.activeConfig;
+    if (config && config.enabled === false) {
+      // Module disabled - stop emitting immediately
+      if (this.emitter.emit) {
+        this.emitter.emit = false;
+        this.emitter.frequency = 0;
+      }
+      return;
+    }
+    
     // Update _Outdoors mask for GPU-based indoor culling
     this._updateOutdoorsMask();
     
@@ -15073,6 +15751,7 @@ class WeatherSystemManager {
   // Weather state enumeration
   static STATES = {
     CLEAR: 'clear',
+    PARTLY_CLOUDY: 'partly-cloudy',
     DRIZZLE: 'drizzle',
     RAIN: 'rain',
     STORM: 'storm',
@@ -15099,6 +15778,9 @@ class WeatherSystemManager {
     // Shader system reference
     this.weatherEffectLayer = null;
     
+    // Particle system reference (for weather particle effects like edge droplets)
+    this.weatherParticleLayer = null;
+    
     // Cloud texture reference for potential future cloud-based intensity modulation
     this.cloudTextureValid = false;
     
@@ -15116,6 +15798,10 @@ class WeatherSystemManager {
     this._puddleMaxIntensity = 0; // Peak intensity reached during rain
     this._puddleDryingStartTime = null; // When rain stopped (puddles start drying)
     this._isPuddleDrying = false; // Whether puddles are currently drying
+    
+    // Puddle initialization fade-in (prevents dark flash on scene load)
+    this._puddleInitialLoadTime = null; // Timestamp when puddles first became active
+    this._puddleInitialFadeDuration = 1500; // Milliseconds to fade in puddles on load (1.5s)
     
     // State definitions with properties for each weather type
     this.stateDefinitions = this._initializeStateDefinitions();
@@ -15213,36 +15899,44 @@ class WeatherSystemManager {
 
   /**
    * Start transition to a new weather state
+   * Now uses the centralized WeatherStateManager for unified transition handling
    */
   transitionToState(newState, durationMs = null) {
-    if (!Object.values(WeatherSystemManager.STATES).includes(newState)) {
+    // Validate weather state
+    if (!this.weatherStateManager.getStateDefinition(newState)) {
       this.lastError = `Invalid weather state: ${newState}`;
       this.lastErrorTime = Date.now();
       console.error(`MapShine | WeatherSystemManager: ${this.lastError}`);
       return false;
     }
 
-    if (newState === this.currentState && !this.isTransitioning) {
+    // Check if already in this state and not transitioning
+    if (newState === this.weatherStateManager.currentState && !this.weatherStateManager.isTransitioning) {
       console.log(`MapShine | WeatherSystemManager: Already in ${newState} state`);
       return true;
     }
 
-    // Start the target weather shaders at 0% intensity BEFORE the transition begins
-    // This ensures they're active when transitioning between precipitation types
-    if (this.weatherEffectLayer) {
-      const targetStateDef = this.stateDefinitions[newState];
-      if (targetStateDef.precipitationType !== 'none') {
-        this._startTargetWeatherAtZero(newState);
-      }
+    // Use WeatherStateManager for unified transition handling
+    const success = this.weatherStateManager.transitionTo(newState, {
+      duration: durationMs,
+      force: false
+    });
+
+    if (!success) {
+      this.lastError = this.weatherStateManager.lastError || 'Transition failed';
+      this.lastErrorTime = Date.now();
+      console.error(`MapShine | WeatherSystemManager: Transition failed - ${this.lastError}`);
+      return false;
     }
 
-    this.targetState = newState;
+    // Update legacy state tracking for compatibility
+    this.currentState = newState;
+    this.targetState = this.weatherStateManager.targetState;
     this.isTransitioning = true;
-    this.transitionProgress = 0;
-    this.transitionDuration = durationMs || this.transitionDuration;
     this.transitionStartTime = Date.now();
+    this.transitionDuration = durationMs || this.weatherStateManager.transitionDuration;
 
-    console.log(`MapShine | WeatherSystemManager: Transitioning from ${this.currentState} to ${newState} over ${this.transitionDuration}ms`);
+    console.log(`MapShine | WeatherSystemManager: Transition started to ${newState} (${this.transitionDuration}ms)`);
     return true;
   }
 
@@ -15272,8 +15966,39 @@ class WeatherSystemManager {
 
   /**
    * Update weather system state and transitions
+   * Now delegates transition management to WeatherStateManager
    */
   update(deltaTime) {
+    // ✅ CRITICAL: Check master enabled flag
+    const config = game.mapShine?.profileManager?.activeConfig;
+    if (config && config.enabled === false) {
+      // Module disabled - hide all weather effects immediately
+      if (this.weatherEffectLayer) {
+        this.weatherEffectLayer.stopAllEffects();
+      }
+      return;
+    }
+    
+    // Update WeatherStateManager if available
+    if (this.weatherStateManager) {
+      this.weatherStateManager.updateTransition(deltaTime);
+      
+      // Sync legacy state tracking with WeatherStateManager
+      this.currentState = this.weatherStateManager.currentState;
+      this.targetState = this.weatherStateManager.targetState;
+      this.isTransitioning = this.weatherStateManager.isTransitioning;
+      this.transitionProgress = this.weatherStateManager.transitionProgress;
+      
+      // Update weather effect layer
+      if (this.weatherEffectLayer) {
+        this.weatherEffectLayer.update();
+      }
+      
+      // All other updates are now handled by the WeatherStateManager through registered systems
+      return;
+    }
+    
+    // Fallback to legacy behavior if WeatherStateManager not available
     // Periodically revalidate cloud texture (it may become valid after initialization)
     if (!this.cloudTextureValid) {
       this.cloudTextureValid = this._validateCloudTexture();
@@ -15507,6 +16232,7 @@ class WeatherSystemManager {
       waterLayer._puddleIntensity = 0;
       this._isPuddleDrying = false;
       this._puddleDryingStartTime = null;
+      this._puddleInitialLoadTime = null;
       return;
     }
 
@@ -15582,6 +16308,26 @@ class WeatherSystemManager {
         puddleIntensity = 0;
         // console.log('MapShine | Puddles: Fully dried');
       }
+    }
+
+    // Apply gradual fade-in on initial scene load to prevent dark flash
+    // This ensures outdoor masks and other textures are fully loaded before full intensity
+    if (puddleIntensity > 0) {
+      if (this._puddleInitialLoadTime === null) {
+        this._puddleInitialLoadTime = Date.now();
+      }
+      
+      const elapsedSinceLoad = Date.now() - this._puddleInitialLoadTime;
+      if (elapsedSinceLoad < this._puddleInitialFadeDuration) {
+        // Fade in from 0 to target intensity over fade duration
+        const fadeProgress = elapsedSinceLoad / this._puddleInitialFadeDuration;
+        // Use ease-in curve for smooth fade-in
+        const easedFade = fadeProgress * fadeProgress;
+        puddleIntensity *= easedFade;
+      }
+    } else {
+      // Reset fade-in timer when puddles are not active
+      this._puddleInitialLoadTime = null;
     }
 
     // Store puddle intensity for WaterFXLayer to use in shader
@@ -16399,6 +17145,25 @@ class WeatherSystemManager {
   async initialize() {
     console.warn('MapShine | 🌦️ WeatherSystemManager.initialize() starting...');
     try {
+      // Import and initialize the centralized weather state management system
+      const { WeatherStateManager } = await import('./weather/WeatherStateManager.js');
+      const { TransitionRegistry } = await import('./weather/TransitionRegistry.js');
+      const { EffectRegistry } = await import('./weather/EffectRegistry.js');
+      console.warn('  - WeatherStateManager modules imported');
+      
+      // Initialize the core weather management systems
+      this.weatherStateManager = new WeatherStateManager();
+      this.transitionRegistry = new TransitionRegistry();
+      this.effectRegistry = new EffectRegistry();
+      
+      // Initialize transition rules
+      this.transitionRegistry.initializeDefaultRules();
+      console.warn('  - TransitionRegistry initialized with default rules');
+      
+      // Initialize weather state manager
+      await this.weatherStateManager.initialize();
+      console.warn('  - WeatherStateManager initialized');
+      
       // Import and initialize the shader-based weather system
       const { WeatherEffectLayer } = await import('./weather/WeatherEffectLayer.js');
       console.warn('  - WeatherEffectLayer module imported');
@@ -16408,6 +17173,10 @@ class WeatherSystemManager {
       console.warn('  - WeatherEffectLayer instance created');
       await this.weatherEffectLayer.initialize();
       console.warn('  - WeatherEffectLayer initialized');
+      
+      // Register weather systems with the EffectRegistry
+      this._registerWeatherSystems();
+      console.warn('  - Weather systems registered with EffectRegistry');
       
       // Add the layer to canvas (ABOVE overhead tiles/effects)
       // The _Outdoors mask in the shader will hide weather in indoor areas
@@ -16433,15 +17202,21 @@ class WeatherSystemManager {
       }
       
       // Edge droplet system (raindrop particles from building edges)
+      // Uses WeatherParticleLayer for independent z-index control
+      this.weatherParticleLayer = canvas.weatherParticleLayer;
+      
       const config = game.mapShine?.profileManager?.activeConfig;
       if (config?.weather?.edgeDroplets?.enabled) {
         try {
           this.edgeDropletController = new WeatherEdgeDropletController(config.weather.edgeDroplets);
           this.edgeDropletController.initialize();
           
-          // Add container to weather layer
-          if (this.weatherEffectLayer) {
-            this.weatherEffectLayer.addChild(this.edgeDropletController.container);
+          // Add container to WeatherParticleLayer (renders below overhead at zIndex 650)
+          if (this.weatherParticleLayer) {
+            this.weatherParticleLayer.addChild(this.edgeDropletController.container);
+            console.log('MapShine | WeatherSystemManager: Edge droplet container added to WeatherParticleLayer (zIndex 650)');
+          } else {
+            console.warn('MapShine | WeatherSystemManager: WeatherParticleLayer not found! Edge droplets will not render.');
           }
           
           console.log('MapShine | WeatherSystemManager: Edge droplet system initialized');
@@ -16462,6 +17237,155 @@ class WeatherSystemManager {
       console.error(`MapShine | WeatherSystemManager: ${this.lastError}`, e);
       return false;
     }
+  }
+
+  /**
+   * Register all weather systems with the EffectRegistry
+   * This enables centralized weather state management
+   * @private
+   */
+  _registerWeatherSystems() {
+    // Register WeatherEffectLayer (shader-based weather effects)
+    if (this.weatherEffectLayer) {
+      this.effectRegistry.registerEffect('weatherShaders', {
+        updateFunction: (weatherState) => {
+          // Update shader-based weather effects
+          this.weatherEffectLayer.updateFromConfig({ weather: weatherState });
+        },
+        transitionFunction: (fromState, toState, progress, interpolatedState) => {
+          // Handle smooth transitions between shader states
+          this.weatherEffectLayer.updateFromConfig({ weather: interpolatedState });
+        },
+        priority: 1, // High priority - effects should update first
+        capabilities: ['rain', 'snow', 'fog', 'shader-based'],
+        dependencies: [],
+        enabled: true
+      });
+    }
+    
+    // Register WindManager (wind system integration)
+    if (game.mapShine?.windManager) {
+      this.effectRegistry.registerEffect('windSystem', {
+        updateFunction: (weatherState) => {
+          // Apply weather-specific wind parameters
+          if (weatherState.environment?.windMultipliers) {
+            const windConfig = {
+              baseSpeed: weatherState.environment.windMultipliers.baseSpeed * 100,
+              gustSpeed: weatherState.environment.windMultipliers.gustSpeed * 150,
+              gustFrequency: weatherState.environment.windMultipliers.gustFrequency,
+              gustDuration: weatherState.environment.windMultipliers.gustDuration * 1000,
+              angleChangeFrequency: weatherState.environment.windMultipliers.angleChangeFrequency,
+              angleChangeRange: weatherState.environment.windMultipliers.angleChangeRange
+            };
+            game.mapShine.windManager.updateFromConfig(windConfig);
+          }
+        },
+        transitionFunction: (fromState, toState, progress, interpolatedState) => {
+          if (interpolatedState.environment?.windMultipliers) {
+            const windConfig = {
+              baseSpeed: interpolatedState.environment.windMultipliers.baseSpeed * 100,
+              gustSpeed: interpolatedState.environment.windMultipliers.gustSpeed * 150,
+              gustFrequency: interpolatedState.environment.windMultipliers.gustFrequency,
+              gustDuration: interpolatedState.environment.windMultipliers.gustDuration * 1000,
+              angleChangeFrequency: interpolatedState.environment.windMultipliers.angleChangeFrequency,
+              angleChangeRange: interpolatedState.environment.windMultipliers.angleChangeRange
+            };
+            game.mapShine.windManager.updateFromConfig(windConfig);
+          }
+        },
+        priority: 2, // Medium priority
+        capabilities: ['wind', 'environmental'],
+        dependencies: [],
+        enabled: true
+      });
+    }
+    
+    // Register CloudShadowsLayer (cloud system integration)
+    const cloudShadowsLayer = canvas.layers?.find(l => l instanceof CloudShadowsLayer);
+    if (cloudShadowsLayer) {
+      this.effectRegistry.registerEffect('cloudSystem', {
+        // No-op: CloudShadowsLayer reads weather every frame in renderEffectNow()
+        updateFunction: (_weatherState) => {},
+        transitionFunction: (_fromState, _toState, _progress, _interpolatedState) => {},
+        priority: 3, // Lower priority
+        capabilities: ['clouds', 'shadows'],
+        dependencies: [],
+        enabled: true
+      });
+    }
+    
+    // Register precipitation particle system
+    if (this.precipitationController) {
+      this.effectRegistry.registerEffect('precipitationParticles', {
+        updateFunction: (weatherState) => {
+          // Update precipitation particle configuration
+          if (weatherState.precipitation) {
+            this.updatePrecipitation({ 
+              weather: {
+                ...weatherState,
+                particleCount: weatherState.precipitation.particleCount,
+                precipitationType: weatherState.precipitation.type,
+                precipitationIntensity: weatherState.precipitation.intensity
+              }
+            });
+          }
+        },
+        transitionFunction: (fromState, toState, progress, interpolatedState) => {
+          if (interpolatedState.precipitation) {
+            this.updatePrecipitation({ 
+              weather: {
+                ...interpolatedState,
+                particleCount: Math.floor(interpolatedState.precipitation.particleCount),
+                precipitationType: interpolatedState.precipitation.type,
+                precipitationIntensity: interpolatedState.precipitation.intensity
+              }
+            });
+          }
+        },
+        priority: 4, // Low priority
+        capabilities: ['particles', 'precipitation'],
+        dependencies: ['weatherShaders'],
+        enabled: true
+      });
+    }
+    
+    // Register edge droplet system
+    if (this.edgeDropletController) {
+      this.effectRegistry.registerEffect('edgeDroplets', {
+        updateFunction: (weatherState) => {
+          // Enable/disable edge droplets based on weather state
+          const isRainy = weatherState.precipitation?.type === 'rain' || 
+                         weatherState.precipitation?.type === 'sleet' ||
+                         weatherState.precipitation?.type === 'storm';
+          
+          if (this.edgeDropletController.container) {
+            this.edgeDropletController.container.visible = isRainy;
+          }
+        },
+        priority: 5, // Lowest priority
+        capabilities: ['edge-effects', 'droplets'],
+        dependencies: ['weatherShaders'],
+        enabled: true
+      });
+    }
+    
+    // Now that systems are registered, set up the WeatherStateManager to use them
+    this.weatherStateManager.registerSystem('weatherEffectLayer', {
+      updateFunction: (weatherState) => {
+        // Apply weather state to all registered effects
+        this.effectRegistry.applyWeatherState(weatherState);
+      },
+      transitionFunction: (fromState, toState, progress) => {
+        // Apply transition to all registered effects
+        const fromDef = this.weatherStateManager.getStateDefinition(fromState);
+        const toDef = this.weatherStateManager.getStateDefinition(toState);
+        this.effectRegistry.applyWeatherTransition(fromState, toState, progress, fromDef, toDef);
+      },
+      priority: 1,
+      enabled: true
+    });
+    
+    console.log(`WeatherSystemManager | Registered ${this.effectRegistry.registeredEffects.size} weather systems`);
   }
 
   /**
@@ -16491,6 +17415,9 @@ class WeatherSystemManager {
       }
       this.weatherEffectLayer = null;
     }
+    
+    // Clear reference to weather particle layer (managed by Foundry's layer lifecycle)
+    this.weatherParticleLayer = null;
     
     console.log('MapShine | WeatherSystemManager destroyed');
   }
@@ -17005,6 +17932,58 @@ class GeometryMaskShape {
   }
 }
 
+/**
+ * WeatherParticleLayer - Dedicated layer for weather-related particle effects
+ * 
+ * Manages particle-based weather effects (rain droplets, snowflakes, edge droplets)
+ * separate from the main ParticleLayer to allow independent z-index control.
+ * This enables weather particles to render below overhead tiles while other particles
+ * (dust, fire, biofilm, etc.) render at different depths.
+ * 
+ * @extends AnimatedCanvasLayer
+ */
+export class WeatherParticleLayer extends AnimatedCanvasLayer {
+  constructor() {
+    super();
+    this._initialized = false;
+  }
+
+  async _draw() {
+    await super._draw(); // Handles ticker binding and _destroyed flag
+    this._initialized = false;
+    this.eventMode = "none";
+    
+    console.log('MapShine | WeatherParticleLayer: Layer initialized and ready for weather particles');
+  }
+
+  async _tearDown(options) {
+    if (this._destroyed) return;
+    
+    console.log('MapShine | WeatherParticleLayer: Tearing down');
+    
+    await super._tearDown(options); // Handles ticker unbinding and _destroyed flag
+  }
+
+  _onAnimate(deltaTime) {
+    if (this._destroyed) return;
+    
+    // CRITICAL: Skip all updates during scene transitions
+    if (game.mapShine.transitionActive) return;
+
+    // Check master enabled flag
+    const config = game.mapShine?.profileManager?.activeConfig;
+    if (config && config.enabled === false) return;
+
+    // Mark as initialized once systems are ready
+    if (!this._initialized && game.mapShine.systemsReady) {
+      this._initialized = true;
+    }
+
+    // Weather particles are managed by WeatherSystemManager
+    // This layer just provides the container and z-index positioning
+  }
+}
+
 export class ParticleLayer extends AnimatedCanvasLayer {
   constructor() {
     super();
@@ -17106,6 +18085,10 @@ export class ParticleLayer extends AnimatedCanvasLayer {
     
     // CRITICAL: Skip all updates during scene transitions to prevent rendering destroyed objects
     if (game.mapShine.transitionActive) return;
+
+    // ✅ FIX: Check master enabled flag
+    const config = game.mapShine?.profileManager?.activeConfig;
+    if (config && config.enabled === false) return;
 
     // Clamp delta time to prevent physics explosions on frame drops
     const clampedDeltaTime = Math.min(deltaTime, MAX_DELTA_TIME);
@@ -20940,7 +21923,7 @@ export class ScreenEffectsManager {
                                       "postProcessing.grain.size",
                                       "Size",
                                       0.1,
-                                      5,
+                                      15,
                                       0.05,
                                       "Scale of the grain pattern. Smaller values = larger grain."
                                     )}
@@ -21055,6 +22038,13 @@ export class ScreenEffectsManager {
   static addFilter(key, filter) {
     if (!this._container) return;
     this.removeFilter(key);
+    
+    // Validate filter before adding
+    if (!validateFilter(filter, `ScreenEffectsManager.${key}`)) {
+      console.error(`Map Shine | Cannot add invalid filter: ${key}`);
+      return;
+    }
+    
     this._filters.set(key, filter);
     this._updateContainerFilters();
   }
@@ -21094,6 +22084,7 @@ export class ScreenEffectsManager {
       LensDistortionFilter,
       ChromaticAberrationFilter,
       ColorCorrectionFilter,
+      FilmGrainFilter,
     ];
 
     const TiltShiftFilterConstructor =
@@ -21102,42 +22093,59 @@ export class ScreenEffectsManager {
     if (TiltShiftFilterConstructor)
       managedFilterClasses.push(TiltShiftFilterConstructor);
 
-    const otherFilters = (this._container.filters || []).filter(
-      (f) => !managedFilterClasses.some((cls) => f instanceof cls)
-    );
+    // Clean other filters to remove any corrupt ones
+    const otherFilters = cleanFilterArray(
+      (this._container.filters || []).filter(
+        (f) => !managedFilterClasses.some((cls) => f instanceof cls)
+      ),
+      "ScreenEffectsManager.otherFilters"
+    ) || [];
 
-    const orderedManagedFilters = RENDER_ORDER.map((key) =>
-      this._filters.get(key)
-    ).filter(Boolean);
+    // Validate and collect managed filters
+    const orderedManagedFilters = RENDER_ORDER.map((key) => ({
+      key,
+      filter: this._filters.get(key)
+    })).filter(({ key, filter }) => {
+      if (!filter) return false;
+      if (!validateFilter(filter, `ScreenEffectsManager.${key}`)) {
+        console.warn(`Map Shine | Removing corrupt filter from ScreenEffectsManager: ${key}`);
+        this._filters.delete(key);
+        return false;
+      }
+      return true;
+    }).map(({ filter }) => filter);
 
     const newFilters = [...otherFilters, ...orderedManagedFilters];
 
-    this._container.filters = newFilters.length > 0 ? newFilters : null;
+    // Use safe filter application
+    safeApplyFilters(this._container, newFilters, "ScreenEffectsManager.worldContainer");
   }
 
   static setupAllGlobalFilters() {
     const ppErrors = [];
     const heatErrors = [];
 
-    try {
-      this.addFilter("prism", new PrismFilter());
+    const prismFilter = safeCreateFilter(PrismFilter, {}, "ScreenEffects.prism");
+    if (prismFilter) {
+      this.addFilter("prism", prismFilter);
       systemStatus.update("shaders", "prism", {
         state: "ok",
         message: "Compiled successfully.",
       });
-    } catch (e) {
-      console.error("MapShine | Failed to compile PrismFilter", e);
+    } else {
+      console.error("MapShine | Failed to create PrismFilter");
       systemStatus.update("shaders", "prism", {
         state: "error",
-        message: `Compilation failed: ${e.message}`,
+        message: "Filter creation failed",
       });
     }
 
-    try {
-      this.addFilter("heatDistortion", new HeatDistortionFilter());
-    } catch (e) {
+    const heatFilter = safeCreateFilter(HeatDistortionFilter, {}, "ScreenEffects.heatDistortion");
+    if (heatFilter) {
+      this.addFilter("heatDistortion", heatFilter);
+    } else {
       heatErrors.push("HeatDistortion");
-      console.error("MapShine | Failed to compile HeatDistortionFilter", e);
+      console.error("MapShine | Failed to create HeatDistortionFilter");
     }
 
     /* DIAGNOSTIC: TimeOfDayColorFilter is now managed by its own layer, not globally.
@@ -21156,46 +22164,74 @@ export class ScreenEffectsManager {
           : `Failed to compile: ${heatErrors.join(", ")}`,
     });
 
-    try {
-      this.addFilter("vignette", new VignetteFilter());
-    } catch {
+    const vignetteFilter = safeCreateFilter(VignetteFilter, {}, "ScreenEffects.vignette");
+    if (vignetteFilter) {
+      this.addFilter("vignette", vignetteFilter);
+    } else {
       ppErrors.push("Vignette");
     }
-    try {
-      this.addFilter("lensDistortion", new LensDistortionFilter());
-    } catch {
+    
+    const lensFilter = safeCreateFilter(LensDistortionFilter, {}, "ScreenEffects.lensDistortion");
+    if (lensFilter) {
+      this.addFilter("lensDistortion", lensFilter);
+    } else {
       ppErrors.push("LensDistortion");
     }
-    try {
-      this.addFilter("chromaticAberration", new ChromaticAberrationFilter());
-    } catch {
+    
+    const chromFilter = safeCreateFilter(ChromaticAberrationFilter, {}, "ScreenEffects.chromaticAberration");
+    if (chromFilter) {
+      this.addFilter("chromaticAberration", chromFilter);
+    } else {
       ppErrors.push("ChromaticAberration (Post)");
     }
-    try {
-      this.addFilter("colorCorrection", new ColorCorrectionFilter());
-      const pauseFilter = new ColorCorrectionFilter();
+    
+    // Initialize each filter separately to prevent cascade failures
+    const ccFilter = safeCreateFilter(ColorCorrectionFilter, {}, "ScreenEffects.colorCorrection");
+    if (ccFilter) {
+      this.addFilter("colorCorrection", ccFilter);
+    } else {
+      console.error("MapShine | Failed to create colorCorrection filter");
+      ppErrors.push("ColorCorrection");
+    }
+    
+    const pauseFilter = safeCreateFilter(ColorCorrectionFilter, {}, "ScreenEffects.pauseEffect");
+    if (pauseFilter) {
       pauseFilter.enabled = false;
       this.addFilter("pauseEffect", pauseFilter);
-      const combatFilter = new ColorCorrectionFilter();
+    } else {
+      console.error("MapShine | Failed to create pauseEffect filter");
+      ppErrors.push("pauseEffect");
+    }
+    
+    const combatFilter = safeCreateFilter(ColorCorrectionFilter, {}, "ScreenEffects.combatEffect");
+    if (combatFilter) {
       combatFilter.enabled = false;
       this.addFilter("combatEffect", combatFilter);
-      this.addFilter("filmGrain", new FilmGrainFilter());
-    } catch {
-      ppErrors.push("ColorCorrection, SceneIllumination, or FilmGrain");
+    } else {
+      console.error("MapShine | Failed to create combatEffect filter");
+      ppErrors.push("combatEffect");
+    }
+    
+    const filmGrainFilter = safeCreateFilter(FilmGrainFilter, {}, "ScreenEffects.filmGrain");
+    if (filmGrainFilter) {
+      this.addFilter("filmGrain", filmGrainFilter);
+    } else {
+      console.error("MapShine | Failed to create filmGrain filter");
+      ppErrors.push("FilmGrain");
     }
 
-    try {
-      const TiltShiftFilterConstructor =
-        PIXI.filters?.TiltShiftFilter ||
-        (globalThis.filters && globalThis.filters.TiltShiftFilter);
-      if (TiltShiftFilterConstructor) {
-        const tiltShiftFilter = new TiltShiftFilterConstructor();
+    const TiltShiftFilterConstructor =
+      PIXI.filters?.TiltShiftFilter ||
+      (globalThis.filters && globalThis.filters.TiltShiftFilter);
+    if (TiltShiftFilterConstructor) {
+      const tiltShiftFilter = safeCreateFilter(TiltShiftFilterConstructor, {}, "ScreenEffects.tiltShift");
+      if (tiltShiftFilter) {
         this.addFilter("tiltShift", tiltShiftFilter);
       } else {
-        ppErrors.push("TiltShift (Bundling Failed)");
+        ppErrors.push("TiltShift (Creation Failed)");
       }
-    } catch {
-      ppErrors.push("TiltShift (Creation Failed)");
+    } else {
+      ppErrors.push("TiltShift (Bundling Failed)");
     }
 
     systemStatus.update("shaders", "postProcessing", {
@@ -21617,7 +22653,7 @@ export class ScreenEffectsManager {
   }
 
   static updateFrame(deltaTimeInSeconds) {
-    if (!this._container) return;
+    if (!this._container || this._filters.size === 0) return;
 
     // Update time-sensitive filters like Film Grain
     for (const filter of this._filters.values()) {
@@ -21643,6 +22679,16 @@ export class ScreenEffectsManager {
     // Destroy filters with defensive error handling
     for (const filter of this._filters.values()) {
       try {
+        // Clean up any texture uniforms before destroying the filter
+        if (filter.uniforms) {
+          for (const uniformKey in filter.uniforms) {
+            const uniform = filter.uniforms[uniformKey];
+            // Check if uniform is a texture and nullify it to prevent reference errors
+            if (uniform && typeof uniform === 'object' && uniform.baseTexture) {
+              filter.uniforms[uniformKey] = null;
+            }
+          }
+        }
         filter?.destroy();
       } catch (err) {
         console.warn("Map Shine | Error destroying filter:", err);
@@ -22881,14 +23927,15 @@ class FoamLayer extends ResizableAnimatedCanvasLayer {
     await super._draw(); // Handles ticker, resize, and _destroyed flag
     this.time = 0;
 
-    try {
-      this.foamFilter = new FoamFilter();
-    } catch (e) {
-      console.error("MapShine | Failed to create FoamFilter.", e);
+    this.foamFilter = safeCreateFilter(FoamFilter, {}, "FoamEffectLayer");
+    if (!this.foamFilter) {
+      console.error("MapShine | Failed to create FoamFilter.");
     }
 
     this.effectSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
-    this.effectSprite.filters = this.foamFilter ? [this.foamFilter] : [];
+    if (this.foamFilter) {
+      safeApplyFilters(this.effectSprite, [this.foamFilter], "FoamEffectLayer.effectSprite");
+    }
     this.addChild(this.effectSprite);
 
     await this.updateFromConfig(game.mapShine.profileManager.activeConfig);
@@ -22896,6 +23943,13 @@ class FoamLayer extends ResizableAnimatedCanvasLayer {
 
   _onAnimate(deltaTime) {
     if (this._destroyed || !this.visible || !this.foamFilter) return;
+
+    // ✅ FIX: Check master enabled flag
+    const config = game.mapShine?.profileManager?.activeConfig;
+    if (config && config.enabled === false) return;
+
+    // ✅ FIX: Check foam enabled flag
+    if (config?.foam && config.foam.enabled === false) return;
 
     const resourceManager = game.mapShine.resourceManager;
     const waterMask = resourceManager?.getWaterMask();
@@ -23196,10 +24250,14 @@ class MaskedEffectLayer extends ResizableAnimatedCanvasLayer {
 
     // Destroy PIXI objects
     this.combinedMaskTexture?.destroy(true);
+    
+    // CRITICAL FIX: Do NOT destroy baseTextures - they are shared with TextureLoader cache
+    // and potentially with Foundry's tile textures. Destroying them causes Foundry's tile
+    // teardown to fail when checking isVideo (which accesses texture.baseTexture.resource.source)
     this.maskContainer?.destroy({
       children: true,
-      texture: true,
-      baseTexture: true,
+      texture: false,  // Don't destroy texture instances (they reference shared baseTextures)
+      baseTexture: false,  // NEVER destroy baseTextures - they're shared/cached
     });
     this.maskSprites.clear();
 
@@ -23219,6 +24277,17 @@ class MaskedEffectLayer extends ResizableAnimatedCanvasLayer {
     
     // CRITICAL: Skip all updates during scene transitions
     if (game.mapShine?.transitionActive) return;
+
+    // ✅ FIX: Check master enabled flag FIRST
+    const config = game.mapShine?.profileManager?.activeConfig;
+    if (config && config.enabled === false) return;
+
+    // ✅ FIX: Check individual effect enabled flag
+    const effectKey = this.options?.effectKey || this._effectKey;
+    if (effectKey && config) {
+      const effectConfig = config[effectKey];
+      if (effectConfig && effectConfig.enabled === false) return;
+    }
 
     if (this._needsMaskUpdate) {
       this.renderMask();
@@ -25546,24 +26615,26 @@ class MetallicShineLayer extends ResizableAnimatedCanvasLayer {
       height: screen.height,
     });
 
-    try {
-      this.stripePatternFilter = new MetallicStripePatternFilter();
-      this.shineFilter = new MetallicShineFilter();
-    } catch (e) {
-      console.error("MapShine | Failed to create Metallic Shine filters.", e);
+    this.stripePatternFilter = safeCreateFilter(MetallicStripePatternFilter, {}, "MetallicShineLayer.stripe");
+    this.shineFilter = safeCreateFilter(MetallicShineFilter, {}, "MetallicShineLayer.shine");
+    
+    if (!this.stripePatternFilter || !this.shineFilter) {
+      console.error("MapShine | Failed to create Metallic Shine filters.");
     }
 
-    this.stripePatternTexture = PIXI.RenderTexture.create({
-      width: screen.width,
-      height: screen.height,
-    });
+    this.screen = renderer.screen;
+
     this.stripeGeneratorSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
     this.stripeGeneratorSprite.width = screen.width;
     this.stripeGeneratorSprite.height = screen.height;
-    this.stripeGeneratorSprite.filters = [this.stripePatternFilter];
+    if (this.stripePatternFilter) {
+      safeApplyFilters(this.stripeGeneratorSprite, [this.stripePatternFilter], "MetallicShineLayer.stripeSprite");
+    }
 
     this.effectSprite = new PIXI.Sprite(PIXI.Texture.WHITE);
-    this.effectSprite.filters = this.shineFilter ? [this.shineFilter] : [];
+    if (this.shineFilter) {
+      safeApplyFilters(this.effectSprite, [this.shineFilter], "MetallicShineLayer.effectSprite");
+    }
     this.addChild(this.effectSprite);
 
     this.finalShineTexture = PIXI.RenderTexture.create({
@@ -26687,6 +27758,7 @@ class CloudShadowsLayer extends MaskedEffectLayer {
   constructor() {
     super({
       maskSuffix: "outdoors",
+      effectKey: "cloudShadows"
     });
 
     this.cloudFilter = null;
@@ -26695,6 +27767,11 @@ class CloudShadowsLayer extends MaskedEffectLayer {
     this.rawCloudTexture = null;
 
     this._cloudVelocity = { x: 0, y: 0 };
+    // Smoothed wind direction state to prevent direction flips across 0/360 wrap
+    this._smoothedWindAngleRad = null;
+    this._lastWindAngleRad = null;
+    // Smoothed gust strength for turbulence to avoid popping
+    this._smoothedGustStrength = 0.0;
 
     this.zoomPointMin = 1.0;
     this.zoomPointMid = 2.0;
@@ -27099,11 +28176,14 @@ class CloudShadowsLayer extends MaskedEffectLayer {
     this._cloudVelocity = { x: 0, y: 0 };
 
     try {
-      this.cloudFilter = new CloudShadowsFilter();
-      canvas.primary.filters = [
-        ...(canvas.primary.filters || []),
-        this.cloudFilter,
-      ];
+      this.cloudFilter = safeCreateFilter(CloudShadowsFilter, {}, "CloudShadowsLayer");
+      if (this.cloudFilter) {
+        safeApplyFilters(
+          canvas.primary,
+          [...(canvas.primary.filters || []), this.cloudFilter],
+          "canvas.primary (CloudShadows)"
+        );
+      }
       systemStatus.update("shaders", "cloudShadows", {
         state: "ok",
         message: "Compiled successfully.",
@@ -27142,9 +28222,15 @@ class CloudShadowsLayer extends MaskedEffectLayer {
       if (this.cloudFilter) this.cloudFilter.enabled = false;
       return;
     }
-    const hasActiveMasks =
+    let hasActiveMasks =
       this.maskSprites.size > 0 &&
       Array.from(this.maskSprites.values()).some((s) => s.texture.valid);
+
+    // If zoom masking is disabled (we render everywhere), treat masks as active
+    const currentZoom = CoordinateManager.getCanvasScale();
+    const ZOOM_MASKING_THRESHOLD = 0.3;
+    if (currentZoom <= ZOOM_MASKING_THRESHOLD) hasActiveMasks = true;
+
     this.cloudFilter.enabled = this.visible && hasActiveMasks;
     if (!this.cloudFilter.enabled) return;
     this.renderEffectNow(deltaTime);
@@ -27189,6 +28275,7 @@ class CloudShadowsLayer extends MaskedEffectLayer {
       // Weather state to cloud parameter mapping
       const weatherCloudParams = {
         clear: { density: 0.2, coverage: 0.15, brightness: 1.0, darkness: 0.1 },
+        'partly-cloudy': { density: 0.4, coverage: 0.6, brightness: 0.9, darkness: 0.2 },
         drizzle: { density: 0.5, coverage: 0.7, brightness: 0.8, darkness: 0.3 },
         rain: { density: 0.7, coverage: 0.85, brightness: 0.6, darkness: 0.5 },
         storm: { density: 0.9, coverage: 0.98, brightness: 0.4, darkness: 0.8 },
@@ -27225,10 +28312,18 @@ class CloudShadowsLayer extends MaskedEffectLayer {
       u.u_weatherBrightness = params.brightness;
       u.u_weatherDarkness = params.darkness;
       
-      // Gust strength for turbulence modulation (from windManager)
+      // Gust strength for turbulence modulation (smoothed to avoid darting)
       if (game.mapShine.windManager) {
-        const gustNormalized = Math.min(1.0, game.mapShine.windManager.speed / 200.0);
-        u.u_gustStrength = gustNormalized;
+        // Use smoothedSpeed to avoid spikes, then apply additional low-pass filtering
+        const wm = game.mapShine.windManager;
+        const rawGust = Math.min(1.0, (wm.smoothedSpeed ?? wm.speed ?? 0) / 200.0);
+        const riseRate = 0.02;  // faster ramp up
+        const fallRate = 0.01;  // slower ramp down
+        const rate = rawGust > this._smoothedGustStrength ? riseRate : fallRate;
+        this._smoothedGustStrength += (rawGust - this._smoothedGustStrength) * rate;
+        // Reduce overall influence so gusts do not shove the noise pattern
+        const turbulence = this._smoothedGustStrength * 0.35; // was 1.0; now ~1/3 strength
+        u.u_gustStrength = turbulence;
       }
     }
     
@@ -27263,28 +28358,43 @@ class CloudShadowsLayer extends MaskedEffectLayer {
     // === WIND INTEGRATION ===
     if (windConfig.linkToWind && game.mapShine.windManager?.config?.enabled) {
       const windManager = game.mapShine.windManager;
-      // Use smoothedAngle for clouds to give them inertia and steady drift
-      const windAngleRad = windManager.smoothedAngle * (Math.PI / 180.0);
-      // Use smoothedSpeed instead of speed to ignore gusts
-      const windForceMagnitude =
-        windManager.smoothedSpeed * (windConfig.linkedWindForce ?? 0.02);
-      const accelX = Math.cos(windAngleRad) * windForceMagnitude;
+      // Target angle in radians from wind manager
+      const targetAngleRad = (windManager.smoothedAngle ?? 0) * (Math.PI / 180.0);
+
+      // Initialize smoothed angle on first run
+      if (this._smoothedWindAngleRad === null) {
+        this._smoothedWindAngleRad = targetAngleRad;
+      }
+
+      // Compute shortest wrapped angular difference in range (-PI, PI]
+      let angleDiff = targetAngleRad - this._smoothedWindAngleRad;
+      angleDiff = ((angleDiff + Math.PI) % (2 * Math.PI)) - Math.PI;
+
+      // Ease toward target angle using a small factor scaled by delta time
+      const angleLerpRate = 2.0; // radians per second responsiveness
+      this._smoothedWindAngleRad += angleDiff * Math.min(1.0, angleLerpRate * deltaInSeconds);
+
+      // Compute acceleration from SMOOTHED angle to avoid sudden flips
+      const windForceMagnitude = windManager.smoothedSpeed * (windConfig.linkedWindForce ?? 0.02);
+      const accelX = Math.cos(this._smoothedWindAngleRad) * windForceMagnitude;
       // Negate Y for screen coordinates (Y increases downward)
-      const accelY = -Math.sin(windAngleRad) * windForceMagnitude;
+      const accelY = -Math.sin(this._smoothedWindAngleRad) * windForceMagnitude;
       this._cloudVelocity.x += accelX * deltaInSeconds;
       this._cloudVelocity.y += accelY * deltaInSeconds;
+
+      // Apply drag and clamp to max speed for stability
       const dragFactor = 1.0 - (windConfig.linkedDrag ?? 0.5) * deltaInSeconds;
       this._cloudVelocity.x *= dragFactor;
       this._cloudVelocity.y *= dragFactor;
       const maxSpeed = (windConfig.linkedMaxSpeed ?? 20) * 0.0001;  // UI value scaled down
-      const currentSpeedSq =
-        this._cloudVelocity.x ** 2 + this._cloudVelocity.y ** 2;
+      const currentSpeedSq = this._cloudVelocity.x ** 2 + this._cloudVelocity.y ** 2;
       if (currentSpeedSq > maxSpeed ** 2) {
         const currentSpeed = Math.sqrt(currentSpeedSq);
         const scale = maxSpeed / currentSpeed;
         this._cloudVelocity.x *= scale;
         this._cloudVelocity.y *= scale;
       }
+
       // Negate when passing to shader because UV scrolling moves pattern opposite to scroll direction
       u.u_windDirection = [-this._cloudVelocity.x, -this._cloudVelocity.y];
     } else {
@@ -27304,7 +28414,6 @@ class CloudShadowsLayer extends MaskedEffectLayer {
     u.u_time += deltaTime * timeFactor;
     this._updateUniformPositions();
 
-    u.u_outputRawCloud = true;
     // Validate sprite and textures before rendering
     // NOTE: Don't check rawCloudTexture.valid - RenderTextures may not be valid until first render
     if (this._patternGeneratorSprite?.texture?.baseTexture?.valid && 
@@ -27313,17 +28422,23 @@ class CloudShadowsLayer extends MaskedEffectLayer {
       const renderer = canvas.app.renderer;
       // CRITICAL: Check if BatchRenderer is ready before rendering
       const batchRenderer = renderer.plugins?.batch;
-      if (!batchRenderer || !batchRenderer._bufferedElements || !batchRenderer._aIndex || batchRenderer._aIndex.length === 0) {
-        return; // Defer rendering until BatchRenderer is initialized
+      // Relax readiness: if batch plugin exists, attempt render; renderer will no-op if not ready
+      if (batchRenderer) {
+        // Toggle raw output ONLY around the offscreen render
+        u.u_outputRawCloud = true;
+        try {
+          renderer.render(this._patternGeneratorSprite, {
+            renderTexture: this.rawCloudTexture,
+            clear: true,
+          });
+        } finally {
+          u.u_outputRawCloud = false;
+        }
       }
-      
-      renderer.render(this._patternGeneratorSprite, {
-        renderTexture: this.rawCloudTexture,
-        clear: true,
-      });
-      // console.log("MapShine | CloudShadows: Generated raw cloud texture with u_outputRawCloud=true, shader should apply applyShadingControls");
+    } else {
+      // Safety: ensure main pass never sees raw output mode
+      u.u_outputRawCloud = false;
     }
-    u.u_outputRawCloud = false;
   }
 
   _updateUniformPositions() {
@@ -27338,7 +28453,8 @@ class CloudShadowsLayer extends MaskedEffectLayer {
   }
 
   async updateFromConfig(config) {
-    const csConfig = config.cloudShadows;
+    const csConfig = config?.cloudShadows;
+    if (!csConfig) return;
     this.visible = config.enabled && csConfig.enabled;
     if (!this.cloudFilter) return;
 
@@ -27377,6 +28493,7 @@ class CloudShadowsLayer extends MaskedEffectLayer {
       ];
       u.u_layer1_octaves = layers.layer1?.octaves ?? 3;
       u.u_layer1_opacity = layers.layer1?.opacity ?? 0.3;
+      u.u_layer1_parallaxDepth = layers.layer1?.parallaxDepth ?? 0.1;
 
       // Layer 2
       u.u_layer2_enabled = layers.layer2?.enabled ?? true;
@@ -27388,6 +28505,7 @@ class CloudShadowsLayer extends MaskedEffectLayer {
       ];
       u.u_layer2_octaves = layers.layer2?.octaves ?? 5;
       u.u_layer2_opacity = layers.layer2?.opacity ?? 0.5;
+      u.u_layer2_parallaxDepth = layers.layer2?.parallaxDepth ?? 0.3;
 
       // Layer 3
       u.u_layer3_enabled = layers.layer3?.enabled ?? true;
@@ -27399,6 +28517,7 @@ class CloudShadowsLayer extends MaskedEffectLayer {
       ];
       u.u_layer3_octaves = layers.layer3?.octaves ?? 6;
       u.u_layer3_opacity = layers.layer3?.opacity ?? 0.6;
+      u.u_layer3_parallaxDepth = layers.layer3?.parallaxDepth ?? 0.5;
 
       // Layer 4
       u.u_layer4_enabled = layers.layer4?.enabled ?? true;
@@ -27410,6 +28529,7 @@ class CloudShadowsLayer extends MaskedEffectLayer {
       ];
       u.u_layer4_octaves = layers.layer4?.octaves ?? 4;
       u.u_layer4_opacity = layers.layer4?.opacity ?? 0.4;
+      u.u_layer4_parallaxDepth = layers.layer4?.parallaxDepth ?? 0.2;
 
       // Layer 5
       u.u_layer5_enabled = layers.layer5?.enabled ?? true;
@@ -27421,6 +28541,7 @@ class CloudShadowsLayer extends MaskedEffectLayer {
       ];
       u.u_layer5_octaves = layers.layer5?.octaves ?? 2;
       u.u_layer5_opacity = layers.layer5?.opacity ?? 0.2;
+      u.u_layer5_parallaxDepth = layers.layer5?.parallaxDepth ?? 0.15;
 
       // Layer 6 (Whispy domain-warped edges)
       u.u_layer6_enabled = layers.layer6?.enabled ?? true;
@@ -27455,9 +28576,10 @@ class CloudShadowsLayer extends MaskedEffectLayer {
 
   async _tearDown(options) {
     if (this.cloudFilter) {
-      canvas.primary.filters = (canvas.primary.filters || []).filter(
+      const cleanedFilters = (canvas.primary.filters || []).filter(
         (f) => f !== this.cloudFilter
       );
+      safeApplyFilters(canvas.primary, cleanedFilters, "canvas.primary (CloudShadows teardown)");
 
       this.cloudFilter.destroy();
       this.cloudFilter = null;
@@ -28000,6 +29122,7 @@ class CanopyLayer extends MaskedEffectLayer {
   constructor() {
     super({
       maskSuffix: "canopy",
+      effectKey: "canopy",
     });
 
     this.filter = null;
@@ -28033,10 +29156,16 @@ class CanopyLayer extends MaskedEffectLayer {
     await super._draw(options);
 
     try {
-      this.filter = new CanopyFilter();
+      this.filter = safeCreateFilter(CanopyFilter, {}, "CanopyLayer");
       // Apply the filter to the primary canvas container. This ensures it affects everything
       // rendered underneath it (like tiles and tokens).
-      canvas.primary.filters = [...(canvas.primary.filters || []), this.filter];
+      if (this.filter) {
+        safeApplyFilters(
+          canvas.primary,
+          [...(canvas.primary.filters || []), this.filter],
+          "canvas.primary (Canopy)"
+        );
+      }
     } catch (e) {
       console.error("MapShine | Failed to create CanopyFilter", e);
       this.filter = null;
@@ -28084,9 +29213,10 @@ class CanopyLayer extends MaskedEffectLayer {
   async _tearDown(options) {
     // When the layer is removed, we must also remove its filter from the canvas container.
     if (this.filter) {
-      canvas.primary.filters = (canvas.primary.filters || []).filter(
+      const cleanedFilters = (canvas.primary.filters || []).filter(
         (f) => f !== this.filter
       );
+      safeApplyFilters(canvas.primary, cleanedFilters, "canvas.primary (Canopy teardown)");
 
       this.filter.destroy();
       this.filter = null;
@@ -28882,10 +30012,13 @@ class BushLayer extends AnimatedCanvasLayer {
   _findAndApplyFilters() {
     if (!canvas.tiles?.placeables) return;
     
+    console.log(`MapShine | BushLayer._findAndApplyFilters: Scanning ${canvas.tiles.placeables.length} tiles`);
+    
     // Find tiles with _Bush in their texture path
     for (const tile of canvas.tiles.placeables) {
       const texturePath = tile.document.texture.src;
       if (texturePath && texturePath.includes('_Bush')) {
+        console.log(`MapShine | Found _Bush tile: ${texturePath}`);
         if (!this.affectedTiles.has(tile.id)) {
           const config = game.mapShine.profileManager?.activeConfig?.bush || {};
           const filter = new FoliageDistortionFilter({
@@ -28911,12 +30044,18 @@ class BushLayer extends AnimatedCanvasLayer {
           
           if (tile.isManagedByOverheadLayer && overheadSprite) {
             // Apply filter to overhead sprite instead
-            overheadSprite.filters = [...(overheadSprite.filters || []), filter];
-            console.log(`MapShine | Applied bush distortion to overhead sprite: ${tile.id}`);
+            const existingFilters = cleanFilterArray(overheadSprite.filters || [], `BushLayer.overheadSprite.${tile.id}`);
+            const filtersToApply = existingFilters ? [...existingFilters, filter] : [filter];
+            safeApplyFilters(overheadSprite, filtersToApply, `BushLayer.overheadSprite.${tile.id}`);
+            console.log(`MapShine | Applied bush distortion to overhead sprite: ${tile.id}, filter count: ${overheadSprite.filters?.length || 0}`);
           } else if (tile.mesh) {
             // Apply filter to regular tile mesh
-            tile.mesh.filters = [...(tile.mesh.filters || []), filter];
-            console.log(`MapShine | Applied bush distortion to tile mesh: ${tile.id}`);
+            const existingFilters = cleanFilterArray(tile.mesh.filters || [], `BushLayer.mesh.${tile.id}`);
+            const filtersToApply = existingFilters ? [...existingFilters, filter] : [filter];
+            safeApplyFilters(tile.mesh, filtersToApply, `BushLayer.mesh.${tile.id}`);
+            console.log(`MapShine | Applied bush distortion to tile mesh: ${tile.id}, filter count: ${tile.mesh.filters?.length || 0}`);
+          } else {
+            console.warn(`MapShine | Could not apply bush filter to tile ${tile.id} - no mesh or overhead sprite found`);
           }
           
           this.affectedTiles.set(tile.id, filter);
@@ -28929,7 +30068,16 @@ class BushLayer extends AnimatedCanvasLayer {
     if (this._destroyed) return;
     if (game.mapShine?.transitionActive) return;
     
+    // ✅ FIX: Check master enabled flag
     const config = game.mapShine.profileManager?.activeConfig;
+    if (!config || config.enabled === false) {
+      // Disable all filters
+      for (const filter of this.affectedTiles.values()) {
+        filter.enabled = false;
+      }
+      return;
+    }
+    
     if (!config?.bush?.enabled) {
       // Disable all filters
       for (const filter of this.affectedTiles.values()) {
@@ -28940,6 +30088,23 @@ class BushLayer extends AnimatedCanvasLayer {
     
     const bushConfig = config.bush;
     const windManager = game.mapShine?.windManager;
+    
+    // DIAGNOSTIC: Log tile count and uniform values once per second
+    // Commented out to reduce console spam
+    // if (!this._lastLogTime || Date.now() - this._lastLogTime > 1000) {
+    //   const firstFilter = this.affectedTiles.values().next().value;
+    //   if (firstFilter) {
+    //     console.log(`MapShine | BushLayer: ${this.affectedTiles.size} tiles, bush.enabled=${bushConfig.enabled}`);
+    //     console.log(`  u_time=${firstFilter.uniforms.u_time.toFixed(2)}, u_windStrength=${firstFilter.uniforms.u_windStrength.toFixed(3)}`);
+    //     console.log(`  u_windDirection=[${firstFilter.uniforms.u_windDirection[0].toFixed(3)}, ${firstFilter.uniforms.u_windDirection[1].toFixed(3)}]`);
+    //     console.log(`  rustleScale=${firstFilter.uniforms.u_rustleScale}, swayScale=${firstFilter.uniforms.u_swayScale}`);
+    //     if (windManager) {
+    //       console.log(`  WindManager: angle=${windManager.angle.toFixed(1)}°, speed=${windManager.speed.toFixed(1)}, normalizedStrength=${windManager.getNormalizedStrength().toFixed(3)}`);
+    //       console.log(`  WindManager config: baseSpeed=${windManager.config?.baseSpeed}, gustSpeed=${windManager.config?.gustSpeed}`);
+    //     }
+    //   }
+    //   this._lastLogTime = Date.now();
+    // }
     
     // Update all bush filters
     for (const filter of this.affectedTiles.values()) {
@@ -28954,10 +30119,10 @@ class BushLayer extends AnimatedCanvasLayer {
         // NEGATE for shaders that ADD to UV (shader scrolls opposite to wind vector)
         filter.uniforms.u_windDirection = [-velocityX, -velocityY];
         
-        // Apply wind strength with inertia (bushes have moderate response time)
-        // Lerp rate: 0.04 = ~1-1.5 second ramp up/down (faster than trees, slower than instant)
+        // Apply wind strength with moderate inertia (bushes respond faster than trees)
+        // Lerp rate: 0.05 = ~1 second ramp up/down
         const targetWindStrength = windManager.getNormalizedStrength();
-        this._smoothedWindStrength += (targetWindStrength - this._smoothedWindStrength) * 0.04;
+        this._smoothedWindStrength += (targetWindStrength - this._smoothedWindStrength) * 0.05;
         filter.uniforms.u_windStrength = this._smoothedWindStrength;
       }
       
@@ -29058,13 +30223,13 @@ class TreeLayer extends AnimatedCanvasLayer {
     const content = `
       <p class="description-text">Wind-driven distortion for trees with rustle and sway layers.</p>
       
-      ${DebuggerUIBuilder._createSliderHTML("tree.rustleScale", "Rustle Distance", 0, 15, 0.01)}
+      ${DebuggerUIBuilder._createSliderHTML("tree.rustleScale", "Rustle Distance", 0, 10, 0.1)}
       ${DebuggerUIBuilder._createSliderHTML("tree.rustleSpeed", "Rustle Speed", 0, 45, 0.1)}
-      ${DebuggerUIBuilder._createSliderHTML("tree.rustleFrequency", "Rustle Frequency", 0.1, 12, 0.1)}
+      ${DebuggerUIBuilder._createSliderHTML("tree.rustleFrequency", "Rustle Frequency", 0.1, 15, 0.1)}
       ${DebuggerUIBuilder._createSliderHTML("tree.rustleIntensity", "Rustle Intensity", 0, 2, 0.05)}
-      ${DebuggerUIBuilder._createSliderHTML("tree.swayScale", "Sway Distance", 0, 20, 0.01)}
-      ${DebuggerUIBuilder._createSliderHTML("tree.swaySpeed", "Sway Speed", 0, 15.0, 0.1)}
-      ${DebuggerUIBuilder._createSliderHTML("tree.swayFrequency", "Sway Frequency", 0.01, 3, 0.01)}
+      ${DebuggerUIBuilder._createSliderHTML("tree.swayScale", "Sway Distance", 0, 30, 0.1)}
+      ${DebuggerUIBuilder._createSliderHTML("tree.swaySpeed", "Sway Speed", 0, 22.5, 0.1)}
+      ${DebuggerUIBuilder._createSliderHTML("tree.swayFrequency", "Sway Frequency", 0.01, 5, 0.05)}
       ${DebuggerUIBuilder._createSliderHTML("tree.swayIntensity", "Sway Intensity", 0, 2, 0.05)}
       ${DebuggerUIBuilder._createSliderHTML("tree.swayWindMultiplier", "Wind Response", 0, 3, 0.1)}
       ${DebuggerUIBuilder._createSliderHTML("tree.perpendicularMix", "Turbulence Mix", 0, 1, 0.05)}
@@ -29080,23 +30245,26 @@ class TreeLayer extends AnimatedCanvasLayer {
   _findAndApplyFilters() {
     if (!canvas.tiles?.placeables) return;
     
+    console.log(`MapShine | TreeLayer._findAndApplyFilters: Scanning ${canvas.tiles.placeables.length} tiles`);
+    
     // Find tiles with _Tree in their texture path
     for (const tile of canvas.tiles.placeables) {
       const texturePath = tile.document.texture.src;
       if (texturePath && texturePath.includes('_Tree')) {
+        console.log(`MapShine | Found _Tree tile: ${texturePath}`);
         if (!this.affectedTiles.has(tile.id)) {
           const config = game.mapShine.profileManager?.activeConfig?.tree || {};
           const filter = new FoliageDistortionFilter({
-            u_rustleScale: config.rustleScale || 4.0,
-            u_rustleSpeed: config.rustleSpeed || 2.5,
-            u_rustleFrequency: config.rustleFrequency || 6.0,
-            u_rustleIntensity: config.rustleIntensity || 0.8,
-            u_swayScale: config.swayScale || 25.0,
-            u_swaySpeed: config.swaySpeed || 0.6,
-            u_swayFrequency: config.swayFrequency || 0.8,
-            u_swayIntensity: config.swayIntensity || 1.2,
-            u_swayWindMultiplier: config.swayWindMultiplier || 1.5,
-            u_perpendicularMix: config.perpendicularMix || 0.25
+            u_rustleScale: config.rustleScale || 3.0,
+            u_rustleSpeed: config.rustleSpeed || 3.0,
+            u_rustleFrequency: config.rustleFrequency || 8.0,
+            u_rustleIntensity: config.rustleIntensity || 1.0,
+            u_swayScale: config.swayScale || 12.0,
+            u_swaySpeed: config.swaySpeed || 1.0,
+            u_swayFrequency: config.swayFrequency || 1.5,
+            u_swayIntensity: config.swayIntensity || 1.0,
+            u_swayWindMultiplier: config.swayWindMultiplier || 1.0,
+            u_perpendicularMix: config.perpendicularMix || 0.3
           });
           
           // Set tile world position and size for world-space noise calculation
@@ -29109,12 +30277,18 @@ class TreeLayer extends AnimatedCanvasLayer {
           
           if (tile.isManagedByOverheadLayer && overheadSprite) {
             // Apply filter to overhead sprite instead
-            overheadSprite.filters = [...(overheadSprite.filters || []), filter];
-            console.log(`MapShine | Applied tree distortion to overhead sprite: ${tile.id}`);
+            const existingFilters = cleanFilterArray(overheadSprite.filters || [], `TreeLayer.overheadSprite.${tile.id}`);
+            const filtersToApply = existingFilters ? [...existingFilters, filter] : [filter];
+            safeApplyFilters(overheadSprite, filtersToApply, `TreeLayer.overheadSprite.${tile.id}`);
+            console.log(`MapShine | Applied tree distortion to overhead sprite: ${tile.id}, filter count: ${overheadSprite.filters?.length || 0}`);
           } else if (tile.mesh) {
             // Apply filter to regular tile mesh
-            tile.mesh.filters = [...(tile.mesh.filters || []), filter];
-            console.log(`MapShine | Applied tree distortion to tile mesh: ${tile.id}`);
+            const existingFilters = cleanFilterArray(tile.mesh.filters || [], `TreeLayer.mesh.${tile.id}`);
+            const filtersToApply = existingFilters ? [...existingFilters, filter] : [filter];
+            safeApplyFilters(tile.mesh, filtersToApply, `TreeLayer.mesh.${tile.id}`);
+            console.log(`MapShine | Applied tree distortion to tile mesh: ${tile.id}, filter count: ${tile.mesh.filters?.length || 0}`);
+          } else {
+            console.warn(`MapShine | Could not apply tree filter to tile ${tile.id} - no mesh or overhead sprite found`);
           }
           
           this.affectedTiles.set(tile.id, filter);
@@ -29127,17 +30301,18 @@ class TreeLayer extends AnimatedCanvasLayer {
     if (this._destroyed) return;
     if (game.mapShine?.transitionActive) return;
     
-    const config = game.mapShine.profileManager?.activeConfig;
-    if (!config?.tree?.enabled) {
-      // Disable all filters
-      for (const filter of this.affectedTiles.values()) {
-        filter.enabled = false;
-      }
-      return;
-    }
-    
+    const config = game.mapShine?.profileManager?.activeConfig;
+    if (!config) return;
+
     const treeConfig = config.tree;
     const windManager = game.mapShine?.windManager;
+    
+    // DIAGNOSTIC: Log tile count once per second
+    // Commented out to reduce console spam
+    // if (!this._lastLogTime || Date.now() - this._lastLogTime > 1000) {
+    //   console.log(`MapShine | TreeLayer: ${this.affectedTiles.size} tiles with tree filters, tree.enabled = ${treeConfig.enabled}`);
+    //   this._lastLogTime = Date.now();
+    // }
     
     // Update all tree filters
     for (const filter of this.affectedTiles.values()) {
@@ -29261,6 +30436,7 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
   constructor() {
     super({
       maskSuffix: "structural",
+      effectKey: "structuralShadows",
     });
     this.filter = null;
     this.time = 0; // For animations if needed in the future
@@ -29472,9 +30648,15 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
     await super._draw(options); // Handles mask container and texture
 
     try {
-      this.filter = new StructuralFilter();
+      this.filter = safeCreateFilter(StructuralFilter, {}, "StructuralShadowsLayer");
       // Apply the filter to the primary canvas container. This ensures it renders after tiles but before lighting.
-      canvas.primary.filters = [...(canvas.primary.filters || []), this.filter];
+      if (this.filter) {
+        safeApplyFilters(
+          canvas.primary,
+          [...(canvas.primary.filters || []), this.filter],
+          "canvas.primary (Structural)"
+        );
+      }
     } catch (e) {
       console.error("MapShine | Failed to create StructuralFilter", e);
     }
@@ -29488,6 +30670,13 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
     if (this._destroyed || !this.filter) return;
 
     const config = game.mapShine.profileManager.activeConfig;
+    
+    // Check master enabled flag first
+    if (!config || config.enabled === false) {
+      if (this.filter) this.filter.enabled = false;
+      return;
+    }
+    
     const ssConfig = config.structuralShadows;
     const hasActiveMasks = this.maskSprites.size > 0;
     this.filter.enabled = ssConfig.enabled && hasActiveMasks;
@@ -29549,6 +30738,7 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
         u.u_layer1_stretch = [layers.layer1?.stretchX ?? 1.0, layers.layer1?.stretchY ?? 1.0];
         u.u_layer1_octaves = layers.layer1?.octaves ?? 3;
         u.u_layer1_opacity = layers.layer1?.opacity ?? 0.3;
+        u.u_layer1_parallaxDepth = layers.layer1?.parallaxDepth ?? 0.1;
         
         // Layer 2
         u.u_layer2_enabled = layers.layer2?.enabled ?? true;
@@ -29557,6 +30747,7 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
         u.u_layer2_stretch = [layers.layer2?.stretchX ?? 1.0, layers.layer2?.stretchY ?? 1.0];
         u.u_layer2_octaves = layers.layer2?.octaves ?? 5;
         u.u_layer2_opacity = layers.layer2?.opacity ?? 0.5;
+        u.u_layer2_parallaxDepth = layers.layer2?.parallaxDepth ?? 0.3;
         
         // Layer 3
         u.u_layer3_enabled = layers.layer3?.enabled ?? true;
@@ -29565,6 +30756,7 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
         u.u_layer3_stretch = [layers.layer3?.stretchX ?? 1.0, layers.layer3?.stretchY ?? 1.0];
         u.u_layer3_octaves = layers.layer3?.octaves ?? 6;
         u.u_layer3_opacity = layers.layer3?.opacity ?? 0.6;
+        u.u_layer3_parallaxDepth = layers.layer3?.parallaxDepth ?? 0.5;
         
         // Layer 4
         u.u_layer4_enabled = layers.layer4?.enabled ?? true;
@@ -29573,6 +30765,7 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
         u.u_layer4_stretch = [layers.layer4?.stretchX ?? 1.0, layers.layer4?.stretchY ?? 1.0];
         u.u_layer4_octaves = layers.layer4?.octaves ?? 4;
         u.u_layer4_opacity = layers.layer4?.opacity ?? 0.4;
+        u.u_layer4_parallaxDepth = layers.layer4?.parallaxDepth ?? 0.2;
         
         // Layer 5
         u.u_layer5_enabled = layers.layer5?.enabled ?? true;
@@ -29581,6 +30774,7 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
         u.u_layer5_stretch = [layers.layer5?.stretchX ?? 1.0, layers.layer5?.stretchY ?? 1.0];
         u.u_layer5_octaves = layers.layer5?.octaves ?? 2;
         u.u_layer5_opacity = layers.layer5?.opacity ?? 0.2;
+        u.u_layer5_parallaxDepth = layers.layer5?.parallaxDepth ?? 0.15;
       }
     }
 
@@ -29637,9 +30831,10 @@ class StructuralShadowsLayer extends MaskedEffectLayer {
 
   async _tearDown(options) {
     if (this.filter) {
-      canvas.primary.filters = (canvas.primary.filters || []).filter(
+      const cleanedFilters = (canvas.primary.filters || []).filter(
         (f) => f !== this.filter
       );
+      safeApplyFilters(canvas.primary, cleanedFilters, "canvas.primary (Structural teardown)");
 
       this.filter.destroy();
       this.filter = null;
@@ -29897,6 +31092,7 @@ class IridescenceLayer extends MaskedEffectLayer {
   constructor() {
     super({
       maskSuffix: "iridescence",
+      effectKey: "iridescence",
     });
 
     this.iridescenceFilter = null;
@@ -30441,6 +31637,13 @@ class GroundGlowLayer extends ResizableAnimatedCanvasLayer {
 
   _onAnimate() {
     if (this._destroyed || !this.visible || !this.glowFilter) return;
+
+    // ✅ FIX: Check master enabled flag
+    const config = game.mapShine?.profileManager?.activeConfig;
+    if (config && config.enabled === false) return;
+
+    // ✅ FIX: Check groundGlow enabled flag
+    if (config?.groundGlow && config.groundGlow.enabled === false) return;
 
     if (this._needsMaskUpdate) {
       this._renderCompositeMask();
@@ -31037,10 +32240,11 @@ class HeatDistortionLayer extends ResizableAnimatedCanvasLayer {
     this.noiseSprite?.destroy();
     this.noiseTexture?.destroy(true);
     this.combinedMaskTexture?.destroy(true);
+    // Don't destroy baseTextures - they're shared with TextureLoader cache
     this.heatSourceContainer?.destroy({
       children: true,
-      texture: true,
-      baseTexture: true,
+      texture: false,
+      baseTexture: false,
     });
     this.heatSprites.clear();
 
@@ -31056,6 +32260,7 @@ class PrismLayer extends MaskedEffectLayer {
   constructor() {
     super({
       maskSuffix: "prism",
+      effectKey: "prism",
     });
 
     this.distortionNoiseManager = null;
@@ -31318,10 +32523,12 @@ class WaterEffectsFilter extends PIXI.Filter {
                             uniform sampler2D u_cloudShadows;
                             uniform sampler2D u_outdoorsMask;
                             uniform sampler2D u_puddleMask;
+                            uniform sampler2D u_noWaterMask;
 
                             // Uniforms for toggles and parameters
                             uniform bool u_useShorelineMask;
                             uniform bool u_usePuddleMask;
+                            uniform bool u_useNoWaterMask;
                             uniform vec2 u_camera_offset;
                             uniform vec2 u_view_size;
                             uniform float u_canvas_scale;
@@ -31487,6 +32694,15 @@ class WaterEffectsFilter extends PIXI.Filter {
                                 vec2 sceneMin = uSceneRectNorm.xy;
                                 vec2 sceneMax = uSceneRectNorm.xy + uSceneRectNorm.zw;
                                 if (vScreenCoord.x < sceneMin.x || vScreenCoord.x > sceneMax.x || vScreenCoord.y < sceneMin.y || vScreenCoord.y > sceneMax.y) {
+                                    gl_FragColor = texture2D(uSampler, vTextureCoord);
+                                    return;
+                                }
+
+                                // Sample noWater mask if enabled to check for exclusions
+                                float noWaterMaskValue = u_useNoWaterMask ? texture2D(u_noWaterMask, vTextureCoord).r : 0.0;
+                                
+                                // If noWater mask is present, exit early without any water effects
+                                if (noWaterMaskValue > 0.01) {
                                     gl_FragColor = texture2D(uSampler, vTextureCoord);
                                     return;
                                 }
@@ -31756,6 +32972,8 @@ class WaterEffectsFilter extends PIXI.Filter {
       u_outdoorsMask: options.u_outdoorsMask ?? PIXI.Texture.WHITE,
       u_puddleMask: options.u_puddleMask ?? PIXI.Texture.EMPTY,
       u_usePuddleMask: options.u_usePuddleMask ?? false,
+      u_noWaterMask: options.u_noWaterMask ?? PIXI.Texture.EMPTY,
+      u_useNoWaterMask: options.u_useNoWaterMask ?? false,
 
       uSceneRectNorm: [0, 0, 1, 1],
       u_canvas_scale: 1.0,
@@ -31857,6 +33075,7 @@ class WaterFXLayer extends MaskedEffectLayer {
   constructor() {
     super({
       maskSuffix: "water",
+      effectKey: "water",
     });
 
     // Water effect properties
@@ -31876,11 +33095,16 @@ class WaterFXLayer extends MaskedEffectLayer {
     this.puddleMaskContainer = null;
     this.puddleMaskTexture = null;
     this.puddleMaskSprites = new Map();
+    this.noWaterMaskContainer = null;
+    this.noWaterMaskTexture = null;
+    this.noWaterMaskSprites = new Map();
     this._needsShorelineMaskUpdate = true;
     this._needsCausticsMaskUpdate = true;
     this._needsPuddleMaskUpdate = true;
+    this._needsNoWaterMaskUpdate = true;
     this.time = 0;
     this._puddleIntensity = 0; // Weather-driven puddle intensity (0-1)
+    this._smoothedSpeed = 1.0; // Smoothed displacement speed to prevent specular jitter during transitions
   }
 
   static getSettingsHTML() {
@@ -32750,11 +33974,14 @@ class WaterFXLayer extends MaskedEffectLayer {
 
     // --- Main Water Filter ---
     try {
-      this.waterEffectsFilter = new WaterEffectsFilter();
-      canvas.primary.filters = [
-        ...(canvas.primary.filters || []),
-        this.waterEffectsFilter,
-      ];
+      this.waterEffectsFilter = safeCreateFilter(WaterEffectsFilter, {}, "WaterEffectLayer");
+      if (this.waterEffectsFilter) {
+        safeApplyFilters(
+          canvas.primary,
+          [...(canvas.primary.filters || []), this.waterEffectsFilter],
+          "canvas.primary (Water)"
+        );
+      }
       systemStatus.update("shaders", "water", {
         state: "ok",
         message: "Compiled successfully.",
@@ -32817,6 +34044,13 @@ class WaterFXLayer extends MaskedEffectLayer {
     this.puddleMaskContainer = new PIXI.Container();
 
     this.puddleMaskTexture = PIXI.RenderTexture.create({
+      width: renderer.screen.width,
+      height: renderer.screen.height,
+    });
+
+    this.noWaterMaskContainer = new PIXI.Container();
+
+    this.noWaterMaskTexture = PIXI.RenderTexture.create({
       width: renderer.screen.width,
       height: renderer.screen.height,
     });
@@ -32968,9 +34202,11 @@ class WaterFXLayer extends MaskedEffectLayer {
     const deltaInSeconds = (canvas.app.ticker.elapsedMS / 1000) * timeFactor;
     
     // Apply speed scaling during time accumulation (not in shader)
-    // This prevents visual "jumps" when u_speed changes during weather transitions
-    const currentSpeed = this.displacementFilter?.uniforms?.u_speed ?? 1.0;
-    this.time += deltaInSeconds * currentSpeed;
+    // Smooth the speed changes to prevent specular highlights from sliding rapidly during transitions
+    const targetSpeed = this.displacementFilter?.uniforms?.u_speed ?? 1.0;
+    const speedLerpRate = 0.02; // Slow interpolation (3-4 seconds at 60fps) prevents jitter
+    this._smoothedSpeed += (targetSpeed - this._smoothedSpeed) * speedLerpRate;
+    this.time += deltaInSeconds * this._smoothedSpeed;
 
     const renderer = canvas.app.renderer;
     const stage = canvas.stage;
@@ -33019,6 +34255,15 @@ class WaterFXLayer extends MaskedEffectLayer {
       this._needsPuddleMaskUpdate = false;
     }
 
+    if (this._needsNoWaterMaskUpdate) {
+      renderer.render(this.noWaterMaskContainer, {
+        renderTexture: this.noWaterMaskTexture,
+        transform: canvas.stage.transform.worldTransform,
+        clear: true,
+      });
+      this._needsNoWaterMaskUpdate = false;
+    }
+
     this.blurSourceSprite.texture = this.getMaskTexture();
     renderer.render(this.blurSourceSprite, {
       renderTexture: this.blurredWaterMaskTexture,
@@ -33028,6 +34273,7 @@ class WaterFXLayer extends MaskedEffectLayer {
     const useShorelineMask = this.shorelineMaskSprites.size > 0;
     const useCausticsMask = this.causticsMaskSprites.size > 0;
     const usePuddleMask = this.puddleMaskSprites.size > 0;
+    const useNoWaterMask = this.noWaterMaskSprites.size > 0;
 
     const u = waterEffectsFilter.uniforms;
     const wConfig = game.mapShine.profileManager.activeConfig.water;
@@ -33081,6 +34327,8 @@ class WaterFXLayer extends MaskedEffectLayer {
     u.u_hasCausticsMask = useCausticsMask;
     u.u_puddleMask = this.puddleMaskTexture;
     u.u_usePuddleMask = usePuddleMask;
+    u.u_noWaterMask = this.noWaterMaskTexture;
+    u.u_useNoWaterMask = useNoWaterMask;
     
     // Use CoordinateManager uniforms for consistency
     u.u_camera_offset = coordUniforms.u_camera_offset;
@@ -33124,6 +34372,7 @@ class WaterFXLayer extends MaskedEffectLayer {
     this._needsShorelineMaskUpdate = true;
     this._needsCausticsMaskUpdate = true;
     this._needsPuddleMaskUpdate = true;
+    this._needsNoWaterMaskUpdate = true;
   }
 
   _onResize() {
@@ -33149,6 +34398,10 @@ class WaterFXLayer extends MaskedEffectLayer {
       renderer.screen.width,
       renderer.screen.height
     );
+    this.noWaterMaskTexture?.resize(
+      renderer.screen.width,
+      renderer.screen.height
+    );
 
     if (this.displacementSprite) {
       this.displacementSprite.width = halfWidth;
@@ -33158,15 +34411,17 @@ class WaterFXLayer extends MaskedEffectLayer {
     this._needsShorelineMaskUpdate = true;
     this._needsCausticsMaskUpdate = true;
     this._needsPuddleMaskUpdate = true;
+    this._needsNoWaterMaskUpdate = true;
   }
 
   async updateEffectTargets(targets) {
     await super.updateEffectTargets(targets);
-    if (!this.shorelineMaskContainer || !this.causticsMaskContainer || !this.puddleMaskContainer) return;
+    if (!this.shorelineMaskContainer || !this.causticsMaskContainer || !this.puddleMaskContainer || !this.noWaterMaskContainer) return;
 
     const validShorelineIds = new Set();
     const validCausticIds = new Set();
     const validPuddleIds = new Set();
+    const validNoWaterIds = new Set();
     const allTargets = new Map([
       ["background", targets.background],
       ...targets.tiles.entries(),
@@ -33217,6 +34472,21 @@ class WaterFXLayer extends MaskedEffectLayer {
           targetData.rect
         );
       }
+
+      if (targetData?.noWater) {
+        validNoWaterIds.add(id);
+        let sprite = this.noWaterMaskSprites.get(id);
+        if (!sprite) {
+          sprite = new PIXI.Sprite(PIXI.Texture.EMPTY);
+          this.noWaterMaskSprites.set(id, sprite);
+          this.noWaterMaskContainer.addChild(sprite);
+        }
+        await this._updateSpriteTransform(
+          sprite,
+          targetData.noWater,
+          targetData.rect
+        );
+      }
     }
 
     for (const [id, sprite] of this.shorelineMaskSprites.entries()) {
@@ -33240,16 +34510,25 @@ class WaterFXLayer extends MaskedEffectLayer {
       }
     }
 
+    for (const [id, sprite] of this.noWaterMaskSprites.entries()) {
+      if (!validNoWaterIds.has(id)) {
+        sprite.destroy();
+        this.noWaterMaskSprites.delete(id);
+      }
+    }
+
     this._needsShorelineMaskUpdate = true;
     this._needsCausticsMaskUpdate = true;
     this._needsPuddleMaskUpdate = true;
+    this._needsNoWaterMaskUpdate = true;
   }
 
   async _tearDown(options) {
     if (this.waterEffectsFilter) {
-      canvas.primary.filters = (canvas.primary.filters || []).filter(
+      const cleanedFilters = (canvas.primary.filters || []).filter(
         (f) => f !== this.waterEffectsFilter
       );
+      safeApplyFilters(canvas.primary, cleanedFilters, "canvas.primary (Water teardown)");
 
       this.waterEffectsFilter.destroy();
       this.waterEffectsFilter = null;
@@ -33261,29 +34540,38 @@ class WaterFXLayer extends MaskedEffectLayer {
     this.blurFilter?.destroy();
     this.blurSourceSprite?.destroy();
     this.blurredWaterMaskTexture?.destroy(true);
+    // Don't destroy baseTextures - they're shared with TextureLoader cache
     this.shorelineMaskContainer?.destroy({
       children: true,
-      texture: true,
-      baseTexture: true,
+      texture: false,
+      baseTexture: false,
     });
     this.shorelineMaskTexture?.destroy(true);
     this.shorelineMaskSprites.clear();
 
     this.causticsMaskContainer?.destroy({
       children: true,
-      texture: true,
-      baseTexture: true,
+      texture: false,
+      baseTexture: false,
     });
     this.combinedCausticsMaskTexture?.destroy(true);
     this.causticsMaskSprites.clear();
 
     this.puddleMaskContainer?.destroy({
       children: true,
-      texture: true,
-      baseTexture: true,
+      texture: false,
+      baseTexture: false,
     });
     this.puddleMaskTexture?.destroy(true);
     this.puddleMaskSprites.clear();
+
+    this.noWaterMaskContainer?.destroy({
+      children: true,
+      texture: false,
+      baseTexture: false,
+    });
+    this.noWaterMaskTexture?.destroy(true);
+    this.noWaterMaskSprites.clear();
 
     this.displacementFilter = null;
     this.displacementSprite = null;
@@ -33295,6 +34583,8 @@ class WaterFXLayer extends MaskedEffectLayer {
     this.shorelineMaskTexture = null;
     this.puddleMaskContainer = null;
     this.puddleMaskTexture = null;
+    this.noWaterMaskContainer = null;
+    this.noWaterMaskTexture = null;
     this.causticsMaskContainer = null;
     this.combinedCausticsMaskTexture = null;
 
@@ -33588,6 +34878,7 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
     // This layer uses the _Outdoors mask as its source.
     super({
       maskSuffix: "outdoors",
+      effectKey: "buildingShadows",
     });
 
     this.currentTime = 12.0; // Default to midday
@@ -33727,9 +35018,15 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
     this.blurSourceSprite.height = halfHeight;
 
     try {
-      this.filter = new BuildingShadowsFilter();
+      this.filter = safeCreateFilter(BuildingShadowsFilter, {}, "BuildingShadowsLayer");
       // This line is critical and has been restored. It applies the shadow filter to the primary container.
-      canvas.primary.filters = [...(canvas.primary.filters || []), this.filter];
+      if (this.filter) {
+        safeApplyFilters(
+          canvas.primary,
+          [...(canvas.primary.filters || []), this.filter],
+          "canvas.primary (BuildingShadows)"
+        );
+      }
     } catch (e) {
       console.error("MapShine | Failed to create BuildingShadowsFilter", e);
       this.filter = null;
@@ -33895,9 +35192,10 @@ class BuildingShadowsLayer extends MaskedEffectLayer {
   async _tearDown(options) {
     // Remove the filter from the canvas container
     if (this.filter) {
-      canvas.primary.filters = (canvas.primary.filters || []).filter(
+      const cleanedFilters = (canvas.primary.filters || []).filter(
         (f) => f !== this.filter
       );
+      safeApplyFilters(canvas.primary, cleanedFilters, "canvas.primary (BuildingShadows teardown)");
 
       this.filter.destroy();
       this.filter = null;
@@ -34152,6 +35450,18 @@ class MapShineClock {
     this._isDragging = false;
     this._dragData = {};
 
+    // Track last weather state to avoid unnecessary DOM updates
+    this._lastWeatherState = null;
+    this._lastWeatherTarget = null;
+    this._lastWeatherProgress = -1;
+
+    // Time transition state
+    this.transitionActive = false;
+    this.transitionStartTime = 0;
+    this.transitionDuration = 3000; // Default 3 seconds
+    this.transitionStartValue = 0;
+    this.transitionTargetValue = 0;
+
     this._onExternalTimeChangeBound = this._onExternalTimeChange.bind(this);
     this._onFoundryTimeUpdateBound = this._onFoundryTimeUpdate.bind(this);
 
@@ -34169,6 +35479,61 @@ class MapShineClock {
     this.element.html(this._getHTML());
     this.activateListeners();
     this._updateTime(this.currentTime, { fromHook: true });
+    
+    // Initialize duration display
+    const seconds = this.transitionDuration / 1000;
+    this._updateDurationDisplay(seconds);
+    
+    // Sync with any ongoing UnifiedTransitionManager transition
+    this._syncWithActiveTransition();
+  }
+  
+  /**
+   * Sync clock UI with any active UnifiedTransitionManager transition
+   * Called when clock is rendered/reopened to resume visual transition
+   */
+  _syncWithActiveTransition() {
+    const utm = game.mapShine?.unifiedTransitionManager;
+    if (!utm) {
+      this._updateTransitionIndicator(false);
+      this._updateGhostHand(false);
+      return;
+    }
+    
+    // Find active time transition
+    const activeTimeTransition = utm.activeTransitions.find(t => t.type === 'time' && t.active);
+    
+    if (activeTimeTransition) {
+      // Resume the transition visually in the clock
+      const now = performance.now();
+      const elapsed = now - activeTimeTransition.startTime;
+      const remainingDuration = activeTimeTransition.duration - elapsed;
+      
+      if (remainingDuration > 0) {
+        // Transition still active - sync clock state
+        this.transitionActive = true;
+        this.transitionStartTime = activeTimeTransition.startTime;
+        this.transitionDuration = activeTimeTransition.duration;
+        this.transitionStartValue = activeTimeTransition.startValue;
+        this.transitionTargetValue = activeTimeTransition.originalTarget || activeTimeTransition.targetValue;
+        
+        // Show visual indicators
+        this._updateTransitionIndicator(true);
+        this._updateGhostHand(true, this.transitionTargetValue);
+        
+        console.log(`MapShine | Clock synced with ongoing transition: ${remainingDuration.toFixed(0)}ms remaining`);
+      } else {
+        // Transition completed while UI was closed
+        this.transitionActive = false;
+        this._updateTransitionIndicator(false);
+        this._updateGhostHand(false);
+      }
+    } else {
+      // No active transition
+      this.transitionActive = false;
+      this._updateTransitionIndicator(false);
+      this._updateGhostHand(false);
+    }
   }
 
   _onAnimate() {
@@ -34203,6 +35568,92 @@ class MapShineClock {
       }
     } else if (arrow) {
       arrow.style.display = "none";
+    }
+
+    // Update weather indicator
+    const weatherManager = game.mapShine?.weatherSystemManager;
+    const weatherIndicator = this.element.find(".clock-weather-indicator")[0];
+    
+    if (weatherManager && weatherIndicator) {
+      const weatherConfig = game.mapShine.profileManager.activeConfig.weather;
+      if (weatherConfig?.enabled) {
+        const currentState = weatherManager.currentState || 'clear';
+        const targetState = weatherManager.targetState || currentState;
+        const progress = weatherManager.transitionProgress || 0;
+        
+        // Show weather icon based on current state
+        const icons = {
+          clear: '☀️',
+          drizzle: '🌦️',
+          rain: '🌧️',
+          storm: '⛈️',
+          sleet: '🌨️',
+          snow: '❄️',
+          blizzard: '🌨️💨'
+        };
+        
+        const icon = icons[currentState] || '☀️';
+        
+        // Only update DOM if weather state actually changed OR dropdown is not open
+        const hasDropdown = weatherIndicator.querySelector('.weather-dropdown');
+        const stateChanged = this._lastWeatherState !== currentState ||
+                             this._lastWeatherTarget !== targetState ||
+                             Math.abs(this._lastWeatherProgress - progress) > 0.01;
+        
+        if (!hasDropdown && stateChanged) {
+          // Display state name and transition info
+          let displayText = currentState.charAt(0).toUpperCase() + currentState.slice(1);
+          if (weatherManager.isTransitioning && targetState !== currentState) {
+            displayText += ` → ${targetState.charAt(0).toUpperCase() + targetState.slice(1)} (${Math.round(progress * 100)}%)`;
+          }
+          
+          weatherIndicator.innerHTML = `<div class="weather-icon">${icon}</div><div class="weather-text">${displayText}</div>`;
+          
+          // Update tracking
+          this._lastWeatherState = currentState;
+          this._lastWeatherTarget = targetState;
+          this._lastWeatherProgress = progress;
+        }
+        weatherIndicator.style.display = "flex";
+      } else {
+        weatherIndicator.style.display = "none";
+      }
+    } else if (weatherIndicator) {
+      weatherIndicator.style.display = "none";
+    }
+
+    // Handle time transitions
+    if (this.transitionActive) {
+      const now = performance.now();
+      const elapsed = now - this.transitionStartTime;
+      const progress = Math.min(1, elapsed / this.transitionDuration);
+      
+      if (progress >= 1) {
+        // Transition complete
+        this.transitionActive = false;
+        this.currentTime = this.transitionTargetValue;
+        this._updateTransitionIndicator(false);
+        this._updateGhostHand(false);
+        this._updateTimeDisplay(this.currentTime);
+        
+        // Emit hook for completion
+        Hooks.callAll("mapShine:timeTransitionComplete", {
+          time: this.currentTime
+        });
+        
+        console.log(`MapShine | Clock transition complete: ${this.constructor._formatTime(this.currentTime)}`);
+      } else {
+        // Apply easing and interpolate for UI display only
+        const easedProgress = this._easeInOutCubic(progress);
+        const interpolatedTime = this._lerp(
+          this.transitionStartValue,
+          this.transitionTargetValue,
+          easedProgress
+        );
+        this.currentTime = interpolatedTime;
+        this._updateTimeDisplay(this.currentTime);
+        // Note: UnifiedTransitionManager handles actual system updates
+      }
     }
 
     this._animationFrameId = requestAnimationFrame(this._onAnimateBound);
@@ -34272,6 +35723,22 @@ class MapShineClock {
                       pointer-events: none;
                       z-index: 2;
                   }
+                  .clock-hand-ghost {
+                      position: absolute;
+                      width: 24px;
+                      height: 50%;
+                      top: 0;
+                      left: 50%;
+                      transform-origin: bottom center;
+                      margin-left: -12px;
+                      pointer-events: none;
+                      z-index: 1;
+                      opacity: 0;
+                      transition: opacity 0.3s ease;
+                  }
+                  .clock-hand-ghost.visible {
+                      opacity: 0.5;
+                  }
                   .clock-wind-arrow {
                       position: absolute;
                       top: 0;
@@ -34303,6 +35770,38 @@ class MapShineClock {
                   .clock-mode-toggle { width: auto !important; padding: 4px 8px; font-size: 0.9em; margin-top: 4px; background: #2a4a2a; border: 1px solid #4a8a4a; color: #aaffaa; }
                   .clock-mode-toggle:hover { background: #3a5a3a; }
                   .clock-disclaimer { font-size: 11px; color: #aaa; text-align: center; margin: 8px 0 0 0; max-width: 160px; line-height: 1.3; }
+                  .clock-weather-indicator { display: none; flex-direction: row; align-items: center; justify-content: center; gap: 6px; padding: 4px 8px; margin-top: 4px; background: rgba(33, 150, 243, 0.15); border: 1px solid rgba(33, 150, 243, 0.3); border-radius: 4px; font-size: 11px; color: #87ceeb; max-width: 160px; cursor: pointer; transition: background 0.2s; position: relative; }
+                  .clock-weather-indicator:hover { background: rgba(33, 150, 243, 0.25); }
+                  .clock-weather-indicator .weather-icon { font-size: 14px; line-height: 1; }
+                  .clock-weather-indicator .weather-text { font-weight: 600; text-align: center; line-height: 1.2; }
+                  .clock-timeofday-indicator { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 6px; padding: 4px 8px; margin-top: 4px; background: rgba(255, 193, 7, 0.15); border: 1px solid rgba(255, 193, 7, 0.3); border-radius: 4px; font-size: 11px; color: #ffc107; max-width: 160px; cursor: pointer; transition: background 0.2s; position: relative; }
+                  .clock-timeofday-indicator:hover { background: rgba(255, 193, 7, 0.25); }
+                  .clock-timeofday-indicator .timeofday-icon { font-size: 14px; line-height: 1; }
+                  .clock-timeofday-indicator .timeofday-text { font-weight: 600; text-align: center; line-height: 1.2; }
+                  .weather-dropdown { position: absolute; top: 100%; left: 0; min-width: 140px; margin-top: 4px; background: #2a2a2a; border: 1px solid rgba(33, 150, 243, 0.5); border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); z-index: 1000; overflow: hidden; }
+                  .weather-dropdown-item { padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 12px; color: #ccc; transition: background 0.15s; border-bottom: 1px solid rgba(255,255,255,0.05); }
+                  .weather-dropdown-item:last-child { border-bottom: none; }
+                  .weather-dropdown-item:hover { background: rgba(33, 150, 243, 0.2); color: #fff; }
+                  .weather-dropdown-item.active { background: rgba(33, 150, 243, 0.3); color: #87ceeb; font-weight: bold; }
+                  .weather-dropdown-item .item-icon { font-size: 16px; }
+                  .weather-dropdown-item .item-name { flex: 1; }
+                  .timeofday-dropdown { position: absolute; top: 100%; left: 0; min-width: 140px; margin-top: 4px; background: #2a2a2a; border: 1px solid rgba(255, 193, 7, 0.5); border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); z-index: 1000; overflow: hidden; max-height: 300px; overflow-y: auto; }
+                  .timeofday-dropdown-item { padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 12px; color: #ccc; transition: background 0.15s; border-bottom: 1px solid rgba(255,255,255,0.05); }
+                  .timeofday-dropdown-item:last-child { border-bottom: none; }
+                  .timeofday-dropdown-item:hover { background: rgba(255, 193, 7, 0.2); color: #fff; }
+                  .timeofday-dropdown-item.active { background: rgba(255, 193, 7, 0.3); color: #ffc107; font-weight: bold; }
+                  .timeofday-dropdown-item .item-icon { font-size: 16px; }
+                  .timeofday-dropdown-item .item-name { flex: 1; }
+                  .timeofday-dropdown-item .item-time { font-size: 10px; color: #888; }
+                  .transition-controls { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: 4px; padding: 6px; background: rgba(128, 90, 213, 0.15); border: 1px solid rgba(128, 90, 213, 0.3); border-radius: 4px; max-width: 160px; }
+                  .transition-controls-header { font-size: 9px; color: #b19cd9; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; text-align: center; line-height: 1.3; }
+                  .transition-controls-row { display: flex; align-items: center; gap: 6px; width: 100%; }
+                  .transition-duration-slider { flex: 1; height: 4px; -webkit-appearance: none; appearance: none; background: rgba(128, 90, 213, 0.3); outline: none; border-radius: 2px; }
+                  .transition-duration-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 12px; height: 12px; background: #b19cd9; cursor: pointer; border-radius: 50%; }
+                  .transition-duration-slider::-moz-range-thumb { width: 12px; height: 12px; background: #b19cd9; cursor: pointer; border-radius: 50%; border: none; }
+                  .transition-duration-display { font-size: 11px; color: #b19cd9; font-weight: 600; min-width: 32px; text-align: right; }
+                  .transition-preset-select { flex: 1; padding: 2px 4px; font-size: 10px; background: #2a2a2a; color: #b19cd9; border: 1px solid rgba(128, 90, 213, 0.3); border-radius: 3px; cursor: pointer; }
+                  .transition-indicator { display: none; flex-direction: row; align-items: center; justify-content: center; gap: 6px; padding: 4px 8px; margin-top: 4px; background: rgba(128, 90, 213, 0.2); border: 1px solid rgba(128, 90, 213, 0.4); border-radius: 4px; font-size: 11px; color: #b19cd9; max-width: 160px; font-weight: 600; }
                 </style>
                 <div class="day-night-clock-component">
                     ${dragHandleHTML}
@@ -34310,8 +35809,9 @@ class MapShineClock {
                         <div class="clock-face" style="--clock-gradient: ${initialGradient};">
                             <div class="time-marker m-12">12</div> <div class="time-marker m-6">6</div>
                             <div class="time-marker m-18">18</div> <div class="time-marker m-0">0</div>
+                            <div class="clock-hand-ghost"><img class="clock-icon" src="${initialIcon}"></div>
                             <div class="clock-hand" style="transform: rotate(${initialAngle}deg);"><img class="clock-icon" src="${initialIcon}"></div>
-                <div class="clock-wind-arrow"></div>
+                            <div class="clock-wind-arrow"></div>
                         </div>
                     </div>
                     <div class="clock-controls">
@@ -34322,12 +35822,36 @@ class MapShineClock {
                         <button data-action="adjust-time" data-amount="0.25" title="Add 15 Minutes" ${this.timeMode === 'foundry' ? 'disabled' : ''}>+</button>
                     </div>
                     ${modeToggleHTML}
+                    <div class="clock-timeofday-indicator">
+                        <div class="timeofday-icon">☀️</div>
+                        <div class="timeofday-text">Midday</div>
+                    </div>
+                    <div class="clock-weather-indicator"></div>
+                    <div class="transition-controls">
+                        <div class="transition-controls-header">Transition Duration<br>(Time & Weather)</div>
+                        <div class="transition-controls-row">
+                            <input type="range" class="transition-duration-slider" min="15" max="1800" step="15" value="180" title="Transition Duration">
+                            <span class="transition-duration-display">3m 0s</span>
+                        </div>
+                        <div class="transition-controls-row">
+                            <select class="transition-preset-select" title="Quick Presets">
+                                <option value="15">Instant (15s)</option>
+                                <option value="60">Fast (1m)</option>
+                                <option value="180">Normal (3m)</option>
+                                <option value="300">Slow (5m)</option>
+                                <option value="600">Cinematic (10m)</option>
+                                <option value="1800">Epic (30m)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="transition-indicator">⏳ Transitioning...</div>
                     ${disclaimerHTML}
                 </div>
             `;
   }
 
   activateListeners() {
+    console.log('MapShine | MapShineClock.activateListeners() called');
     const clockContainer = this.element.find(".clock-container");
 
     this._onDragBound = this._onDrag.bind(this);
@@ -34369,6 +35893,51 @@ class MapShineClock {
       this.toggleTimeMode();
     });
 
+    // Weather indicator click - toggle dropdown
+    const weatherIndicator = this.element.find(".clock-weather-indicator");
+    console.log('MapShine | Weather indicator element found:', weatherIndicator.length > 0);
+    console.log('MapShine | Attaching click handler to .clock-weather-indicator');
+    
+    this.element.on("click", ".clock-weather-indicator", (event) => {
+      console.log('MapShine | Weather indicator CLICKED!');
+      event.stopPropagation();
+      this.toggleWeatherDropdown();
+    });
+
+    // Weather dropdown item click
+    this.element.on("click", ".weather-dropdown-item", (event) => {
+      event.stopPropagation();
+      const newState = $(event.currentTarget).data("state");
+      if (newState) {
+        this.changeWeatherState(newState);
+      }
+    });
+
+    // Close dropdown when clicking outside
+    $(document).on("click.weatherDropdown", () => {
+      this.closeWeatherDropdown();
+    });
+
+    // Time of day indicator click - toggle dropdown
+    this.element.on("click", ".clock-timeofday-indicator", (event) => {
+      event.stopPropagation();
+      this.toggleTimeOfDayDropdown();
+    });
+
+    // Time of day dropdown item click
+    this.element.on("click", ".timeofday-dropdown-item", (event) => {
+      event.stopPropagation();
+      const timeValue = parseFloat($(event.currentTarget).data("time"));
+      if (!isNaN(timeValue)) {
+        this.changeTimeOfDay(timeValue);
+      }
+    });
+
+    // Close time of day dropdown when clicking outside
+    $(document).on("click.timeOfDayDropdown", () => {
+      this.closeTimeOfDayDropdown();
+    });
+
     // Time display input
     this.element.find(".time-display-input").on("change", (event) => {
       // Only allow in manual mode
@@ -34386,6 +35955,21 @@ class MapShineClock {
       }
     });
 
+    // Transition duration slider
+    this.element.find(".transition-duration-slider").on("input", (event) => {
+      const seconds = parseFloat(event.currentTarget.value);
+      this.transitionDuration = seconds * 1000;
+      this._updateDurationDisplay(seconds);
+    });
+
+    // Transition preset select
+    this.element.find(".transition-preset-select").on("change", (event) => {
+      const seconds = parseFloat(event.currentTarget.value);
+      this.transitionDuration = seconds * 1000;
+      this._updateDurationDisplay(seconds);
+      this.element.find(".transition-duration-slider").val(seconds);
+    });
+
     // Initialize UI state based on current mode
     this.updateUIState();
   }
@@ -34394,6 +35978,8 @@ class MapShineClock {
     Hooks.off("mapShine:timeChanged", this._onExternalTimeChangeBound);
     Hooks.off("updateWorldTime", this._onFoundryTimeUpdateBound);
     $(window).off(".daynightclock");
+    $(document).off(".weatherDropdown");
+    $(document).off(".timeOfDayDropdown");
 
     if (this._animationFrameId) {
       cancelAnimationFrame(this._animationFrameId);
@@ -34448,6 +36034,304 @@ class MapShineClock {
     // Update clock container cursor
     const clockContainer = this.element.find('.clock-container');
     clockContainer.css('cursor', isManual ? 'grab' : 'default');
+  }
+
+  toggleWeatherDropdown() {
+    console.log('MapShine | toggleWeatherDropdown() called');
+    const indicator = this.element.find('.clock-weather-indicator');
+    console.log('MapShine | Indicator element:', indicator.length);
+    let dropdown = this.element.find('.weather-dropdown');
+    console.log('MapShine | Existing dropdown:', dropdown.length);
+    
+    if (dropdown.length > 0) {
+      // Dropdown exists, remove it
+      dropdown.remove();
+      return;
+    }
+    
+    // Create dropdown
+    const weatherManager = game.mapShine?.weatherSystemManager;
+    console.log('MapShine | game.mapShine exists:', !!game.mapShine);
+    console.log('MapShine | weatherSystemManager exists:', !!weatherManager);
+    if (!weatherManager) {
+      console.warn('MapShine | Cannot create dropdown - weatherSystemManager not found!');
+      return;
+    }
+    
+    const currentState = weatherManager.currentState || 'clear';
+    
+    const states = [
+      { key: 'clear', icon: '☀️', name: 'Clear' },
+      { key: 'partly-cloudy', icon: '⛅', name: 'Partly Cloudy' },
+      { key: 'drizzle', icon: '🌦️', name: 'Drizzle' },
+      { key: 'rain', icon: '🌧️', name: 'Rain' },
+      { key: 'storm', icon: '⛈️', name: 'Storm' },
+      { key: 'sleet', icon: '🌨️', name: 'Sleet' },
+      { key: 'snow', icon: '❄️', name: 'Snow' },
+      { key: 'blizzard', icon: '🌨️💨', name: 'Blizzard' }
+    ];
+    
+    const dropdownHTML = `
+      <div class="weather-dropdown">
+        ${states.map(state => `
+          <div class="weather-dropdown-item ${state.key === currentState ? 'active' : ''}" data-state="${state.key}">
+            <span class="item-icon">${state.icon}</span>
+            <span class="item-name">${state.name}</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    
+    indicator.append(dropdownHTML);
+    console.log('MapShine | Dropdown HTML appended to indicator');
+    
+    // Verify it was added
+    setTimeout(() => {
+      const checkDropdown = this.element.find('.weather-dropdown');
+      console.log('MapShine | Dropdown exists after append:', checkDropdown.length);
+    }, 10);
+  }
+
+  closeWeatherDropdown() {
+    console.log('MapShine | closeWeatherDropdown() called');
+    this.element.find('.weather-dropdown').remove();
+  }
+
+  changeWeatherState(newState) {
+    console.log('MapShine | changeWeatherState() called with:', newState);
+    const weatherManager = game.mapShine?.weatherSystemManager;
+    if (!weatherManager) {
+      console.warn('MapShine | Weather system not available');
+      return;
+    }
+    
+    console.log('MapShine | Weather manager available, current state:', weatherManager.currentState);
+    console.log('MapShine | Weather manager isReady:', weatherManager.isReady);
+    console.log('MapShine | Weather manager isTransitioning:', weatherManager.isTransitioning);
+    
+    // Use the transition duration from the slider
+    const duration = this.transitionDuration || 3000;
+    console.log('MapShine | Using transition duration:', duration);
+    
+    // Transition to new state
+    console.log('MapShine | Calling transitionToState...');
+    const result = weatherManager.transitionToState(newState, duration);
+    console.log('MapShine | transitionToState returned:', result);
+    
+    if (result === false) {
+      console.error('MapShine | Transition failed! Last error:', weatherManager.lastError);
+    }
+    
+    // Update config to persist the change
+    game.mapShine.profileManager.recordUserChange('weather.currentState', newState);
+    
+    // Close dropdown
+    this.closeWeatherDropdown();
+    
+    console.log(`MapShine | Weather changed to: ${newState} (duration: ${duration}ms)`);
+  }
+
+  toggleTimeOfDayDropdown() {
+    const indicator = this.element.find('.clock-timeofday-indicator');
+    let dropdown = this.element.find('.timeofday-dropdown');
+    
+    if (dropdown.length > 0) {
+      dropdown.remove();
+      return;
+    }
+    
+    // Time of day presets
+    const timePresets = [
+      { time: 0, icon: '🌙', name: 'Midnight', display: '00:00' },
+      { time: 3, icon: '🌃', name: 'Late Night', display: '03:00' },
+      { time: 5, icon: '🌅', name: 'Pre-Dawn', display: '05:00' },
+      { time: 6, icon: '🌄', name: 'Dawn', display: '06:00' },
+      { time: 7, icon: '🌤️', name: 'Early Morning', display: '07:00' },
+      { time: 9, icon: '☀️', name: 'Morning', display: '09:00' },
+      { time: 12, icon: '🌞', name: 'Midday', display: '12:00' },
+      { time: 15, icon: '☀️', name: 'Afternoon', display: '15:00' },
+      { time: 17, icon: '🌤️', name: 'Late Afternoon', display: '17:00' },
+      { time: 18, icon: '🌇', name: 'Dusk', display: '18:00' },
+      { time: 19, icon: '🌆', name: 'Sunset', display: '19:00' },
+      { time: 20, icon: '🌃', name: 'Evening', display: '20:00' },
+      { time: 22, icon: '🌙', name: 'Night', display: '22:00' }
+    ];
+    
+    const currentTime = this.currentTime;
+    
+    const dropdownHTML = `
+      <div class="timeofday-dropdown">
+        ${timePresets.map(preset => {
+          const isActive = Math.abs(preset.time - currentTime) < 0.5;
+          return `
+            <div class="timeofday-dropdown-item ${isActive ? 'active' : ''}" data-time="${preset.time}">
+              <span class="item-icon">${preset.icon}</span>
+              <span class="item-name">${preset.name}</span>
+              <span class="item-time">${preset.display}</span>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+    
+    indicator.append(dropdownHTML);
+  }
+
+  closeTimeOfDayDropdown() {
+    this.element.find('.timeofday-dropdown').remove();
+  }
+
+  changeTimeOfDay(newTime) {
+    if (this.timeMode !== 'manual') {
+      console.warn('MapShine | Cannot change time in Foundry Time mode');
+      ui.notifications.warn('Switch to Manual mode to change time of day');
+      this.closeTimeOfDayDropdown();
+      return;
+    }
+    
+    console.log(`MapShine | Transitioning to time: ${newTime} (duration: ${this.transitionDuration}ms)`);
+    
+    // Close dropdown
+    this.closeTimeOfDayDropdown();
+    
+    // Use the standard _updateTime method which handles the transition properly
+    this._updateTime(newTime);
+    
+    // Update the time of day indicator text
+    this._updateTimeOfDayIndicator(newTime);
+  }
+
+  _updateTimeOfDayIndicator(time) {
+    const indicator = this.element.find('.clock-timeofday-indicator');
+    if (!indicator.length) return;
+    
+    // Determine time of day label
+    let label = 'Midday';
+    let icon = '🌞';
+    
+    if (time >= 0 && time < 3) { label = 'Midnight'; icon = '🌙'; }
+    else if (time >= 3 && time < 5) { label = 'Late Night'; icon = '🌃'; }
+    else if (time >= 5 && time < 6) { label = 'Pre-Dawn'; icon = '🌅'; }
+    else if (time >= 6 && time < 7) { label = 'Dawn'; icon = '🌄'; }
+    else if (time >= 7 && time < 9) { label = 'Early Morning'; icon = '🌤️'; }
+    else if (time >= 9 && time < 12) { label = 'Morning'; icon = '☀️'; }
+    else if (time >= 12 && time < 15) { label = 'Midday'; icon = '🌞'; }
+    else if (time >= 15 && time < 17) { label = 'Afternoon'; icon = '☀️'; }
+    else if (time >= 17 && time < 18) { label = 'Late Afternoon'; icon = '🌤️'; }
+    else if (time >= 18 && time < 19) { label = 'Dusk'; icon = '🌇'; }
+    else if (time >= 19 && time < 20) { label = 'Sunset'; icon = '🌆'; }
+    else if (time >= 20 && time < 22) { label = 'Evening'; icon = '🌃'; }
+    else if (time >= 22) { label = 'Night'; icon = '🌙'; }
+    
+    indicator.find('.timeofday-icon').text(icon);
+    indicator.find('.timeofday-text').text(label);
+  }
+
+  /**
+   * Cubic ease-in-out function for smooth transitions
+   */
+  _easeInOutCubic(t) {
+    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  }
+
+  /**
+   * Linear interpolation between two values
+   */
+  _lerp(start, end, t) {
+    // Handle wraparound for time (e.g., 23:00 → 1:00 should go forward, not backward)
+    let diff = end - start;
+    if (diff > 12) {
+      diff -= 24;
+      end = start + diff;
+    } else if (diff < -12) {
+      diff += 24;
+      end = start + diff;
+    }
+    return start + (end - start) * t;
+  }
+
+  /**
+   * Update the transition duration display
+   */
+  _updateDurationDisplay(seconds) {
+    if (!this.element) return;
+    const display = this.element.find(".transition-duration-display");
+    
+    // Format as minutes and seconds
+    if (seconds >= 60) {
+      const minutes = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      if (secs === 0) {
+        display.text(`${minutes}m 0s`);
+      } else {
+        display.text(`${minutes}m ${secs}s`);
+      }
+    } else {
+      display.text(`${seconds}s`);
+    }
+  }
+
+  /**
+   * Show or hide the transition indicator
+   */
+  _updateTransitionIndicator(show) {
+    if (!this.element) return;
+    const indicator = this.element.find(".transition-indicator");
+    indicator.css("display", show ? "flex" : "none");
+  }
+
+  /**
+   * Update the ghost clock hand to show transition target position
+   */
+  _updateGhostHand(show, targetTime = null) {
+    if (!this.element) return;
+    
+    const ghostHand = this.element.find(".clock-hand-ghost");
+    const ghostIcon = ghostHand.find(".clock-icon");
+    
+    if (show && targetTime !== null) {
+      // Position ghost hand at target time
+      const targetAngle = this.constructor._getAngleForTime(targetTime);
+      const isNight = targetTime < 6 || targetTime >= 18;
+      const iconSrc = isNight
+        ? "modules/map-shine/assets/moon.webp"
+        : "modules/map-shine/assets/sun.webp";
+      
+      ghostHand.css("transform", `rotate(${targetAngle}deg)`);
+      ghostIcon.attr("src", iconSrc);
+      ghostHand.addClass("visible");
+    } else {
+      // Hide ghost hand
+      ghostHand.removeClass("visible");
+    }
+  }
+
+  /**
+   * Update the visual time display without triggering system updates
+   */
+  _updateTimeDisplay(time) {
+    if (!this.element) return;
+    
+    const gradient = this.constructor._getClockGradientForTime(time);
+    this.element.find(".clock-face").css("--clock-gradient", gradient);
+
+    const angle = this.constructor._getAngleForTime(time);
+    const formattedTime = this.constructor._formatTime(time);
+    const isNight = time < 6 || time >= 18;
+    
+    this.element.find(".clock-hand").css("transform", `rotate(${angle}deg)`);
+    this.element.find(".time-display-input").val(formattedTime);
+    
+    const icon = this.element.find(".clock-icon");
+    const newIconSrc = isNight
+      ? "modules/map-shine/assets/moon.webp"
+      : "modules/map-shine/assets/sun.webp";
+    if (icon.attr("src") !== newIconSrc) {
+      icon.attr("src", newIconSrc);
+    }
+    
+    // Update time of day indicator text
+    this._updateTimeOfDayIndicator(time);
   }
 
   static _formatTime(time) {
@@ -34629,34 +36513,48 @@ class MapShineClock {
   }
 
   _updateTime(newTime, { fromHook = false } = {}) {
-    this.currentTime = (newTime + 24) % 24;
-    if (!this.element) return;
-
-    const gradient = this.constructor._getClockGradientForTime(this.currentTime);
-    this.element.find(".clock-face").css("--clock-gradient", gradient);
-
-    const angle = this.constructor._getAngleForTime(this.currentTime);
-
-    const formattedTime = this.constructor._formatTime(this.currentTime);
-    const isNight = this.currentTime < 6 || this.currentTime >= 18;
-    this.element.find(".clock-hand").css("transform", `rotate(${angle}deg)`);
-    this.element.find(".time-display-input").val(formattedTime);
-    const icon = this.element.find(".clock-icon");
-    const newIconSrc = isNight
-      ? "modules/map-shine/assets/moon.webp"
-      : "modules/map-shine/assets/sun.webp";
-    if (icon.attr("src") !== newIconSrc) {
-      icon.attr("src", newIconSrc);
-    }
-    // Notify the system to update visuals based on the mode:
-    // - Manual mode: only update when user interacts (not from external hooks)
-    // - Foundry mode: only update when Foundry time changes (from hooks)
-    const shouldUpdate = (this.timeMode === 'manual' && !fromHook) || 
-                         (this.timeMode === 'foundry' && fromHook);
+    const normalizedTime = (newTime + 24) % 24;
     
-    if (shouldUpdate) {
-      game.mapShine.updateTimeOfDay(this.currentTime);
+    // If this is from a hook (external change), update instantly without transition
+    if (fromHook) {
+      this.currentTime = normalizedTime;
+      if (this.element) {
+        this._updateTimeDisplay(this.currentTime);
+      }
+      
+      // Notify the system based on mode
+      const shouldUpdate = (this.timeMode === 'manual' && !fromHook) || 
+                           (this.timeMode === 'foundry' && fromHook);
+      if (shouldUpdate) {
+        game.mapShine.updateTimeOfDay(this.currentTime);
+      }
+      return;
     }
+    
+    // User-initiated change: start a transition
+    this.transitionActive = true;
+    this.transitionStartTime = performance.now();
+    this.transitionStartValue = this.currentTime;
+    this.transitionTargetValue = normalizedTime;
+    
+    // Show transition indicator and ghost hand
+    this._updateTransitionIndicator(true);
+    this._updateGhostHand(true, normalizedTime);
+    
+    // Start the system transition using UnifiedTransitionManager
+    if (this.timeMode === 'manual' && game.mapShine?.unifiedTransitionManager) {
+      game.mapShine.unifiedTransitionManager.transitionTime(normalizedTime, this.transitionDuration);
+    }
+    
+    // Emit hook for transition start
+    Hooks.callAll("mapShine:timeTransitionStart", {
+      from: this.transitionStartValue,
+      to: this.transitionTargetValue,
+      duration: this.transitionDuration
+    });
+    
+    // Note: The animation loop (_onAnimate) handles the clock UI interpolation
+    // UnifiedTransitionManager handles the actual visual system updates
   }
 
   _onExternalTimeChange(time) {
@@ -34702,6 +36600,21 @@ class MapShineClock {
   }
 }
 
+/**
+ * Day/Night Clock Application
+ * 
+ * Displays a draggable clock interface for controlling time of day and weather.
+ * 
+ * @class DayNightClock
+ * @extends Application
+ * 
+ * @todo FUTURE UI ENHANCEMENT: Model this as a "remote control" interface.
+ * Design should resemble a sleek, thin black rectangle with rounded edges containing
+ * buttons and displays - similar to a TV/media remote. This would provide a quick,
+ * intuitive way for GMs/DMs to change scene aspects (time, weather, etc.) without
+ * opening the main UI panel. Current implementation handles time and weather;
+ * future versions should expand with additional scene control buttons.
+ */
 class DayNightClock extends Application {
   constructor(options = {}) {
     super(options);
@@ -34737,7 +36650,16 @@ class DayNightClock extends Application {
   }
 
   async close(options) {
-    this.clockComponent?.destroy();
+    // Cancel any ongoing animation and transition
+    if (this.clockComponent) {
+      if (this.clockComponent._animationFrameId) {
+        cancelAnimationFrame(this.clockComponent._animationFrameId);
+        this.clockComponent._animationFrameId = null;
+      }
+      this.clockComponent.transitionActive = false;
+      this.clockComponent.destroy();
+    }
+    
     game.mapShine.dayNightClock = null;
     ui.controls.render(true);
     return super.close(options);
@@ -34901,6 +36823,7 @@ class TimeOfDayLayer extends MaskedEffectLayer {
   constructor() {
     super({
       maskSuffix: "outdoors",
+      effectKey: "timeOfDay",
     });
     this.currentTime = 12.0; // Keep track of the current 24-hour time
     this._sortedKeyframes = [];
@@ -35028,9 +36951,15 @@ class TimeOfDayLayer extends MaskedEffectLayer {
     await super._draw(options);
 
     try {
-      this.filter = new TimeOfDayColorFilter();
+      this.filter = safeCreateFilter(TimeOfDayColorFilter, {}, "TimeOfDayLayer");
       // Apply the filter to the primary canvas container, which contains tiles and drawings.
-      canvas.primary.filters = [...(canvas.primary.filters || []), this.filter];
+      if (this.filter) {
+        safeApplyFilters(
+          canvas.primary,
+          [...(canvas.primary.filters || []), this.filter],
+          "canvas.primary (TimeOfDay)"
+        );
+      }
     } catch (e) {
       console.error(
         "MapShine | Failed to create TimeOfDayColorFilter for its layer.",
@@ -35181,6 +37110,16 @@ class TimeOfDayLayer extends MaskedEffectLayer {
     this._updateFilterUniforms();
   }
 
+  updateTimeUniforms(config) {
+    const todConfig = config.timeOfDay;
+    if (!todConfig) return;
+    
+    if (todConfig.currentTime !== undefined) {
+      this.currentTime = todConfig.currentTime;
+      this._updateFilterUniforms();
+    }
+  }
+
   async updateFromConfig(config) {
     const todConfig = config.timeOfDay;
     if (!todConfig) return;
@@ -35202,9 +37141,10 @@ class TimeOfDayLayer extends MaskedEffectLayer {
   async _tearDown(options) {
     if (this.filter) {
       // Remove the filter from the correct container.
-      canvas.primary.filters = (canvas.primary.filters || []).filter(
+      const cleanedFilters = (canvas.primary.filters || []).filter(
         (f) => f !== this.filter
       );
+      safeApplyFilters(canvas.primary, cleanedFilters, "canvas.primary (TimeOfDay teardown)");
 
       this.filter.destroy();
       this.filter = null;
@@ -36137,6 +38077,7 @@ class DebuggerUIBuilder {
               "",
               {
                 clear: "Clear",
+                "partly-cloudy": "Partly Cloudy",
                 drizzle: "Drizzle",
                 rain: "Rain",
                 storm: "Storm",
@@ -37510,6 +39451,10 @@ class DebuggerUIBuilder {
                             <div class="header-buttons-left">
                               <a id="material-editor-help-btn" class="header-btn" href="https://github.com/Garsondee/map-shine" target="_blank" rel="noopener noreferrer" title="Help/Info (Opens GitHub page)">?</a>
                               <button data-action="open-user-guide" id="material-editor-user-guide-btn" class="header-btn" title="Open User Guide" style="background-color: #2a552a; border-color: #6aaa6a; color: #ccffcc; width: auto; padding: 0 8px;"><i class="fas fa-book-open"></i> User Guide</button>
+                              <label style="display: flex; align-items: center; gap: 6px; margin-left: 12px; padding: 4px 8px; background: rgba(255, 59, 48, 0.1); border: 1px solid rgba(255, 59, 48, 0.3); border-radius: 4px; cursor: pointer;" title="Master switch to disable ALL Map Shine effects instantly. Uncheck to put the module in standby mode and stop all rendering/animation.">
+                                <input type="checkbox" id="control-enabled" data-path="enabled" style="margin: 0; cursor: pointer;">
+                                <span style="color: #ffaaaa; font-size: 13px; font-weight: 600; white-space: nowrap;">⚠️ Module Enabled</span>
+                              </label>
                             </div>
                             <h3 id="material-editor-title">Map Shine</h3>
                             <div class="header-buttons-right">
@@ -37738,7 +39683,7 @@ class DebuggerUIBuilder {
       valueControlHTML = `
                     <div class="control-row control-row-slider">
                         <label for="${id}-brightness-slider">Brightness</label>
-                        <input type="range" id="${id}-brightness-slider" min="0" max="1" step="0.01" value="1">
+                        <input type="range" id="${id}-brightness-slider" data-no-path="true" min="0" max="1" step="0.01" value="1" title="Gradient stop control, not a config slider">
                         <span class="value-span" id="${id}-brightness-value">1.00</span>
                     </div>
                 `;
@@ -37767,7 +39712,7 @@ class DebuggerUIBuilder {
                     <div class="gradient-editor-controls">
                         <div class="control-row control-row-slider">
                             <label for="${id}-alpha-slider">Alpha</label>
-                            <input type="range" id="${id}-alpha-slider" min="0" max="1" step="0.01" value="1">
+                            <input type="range" id="${id}-alpha-slider" data-no-path="true" min="0" max="1" step="0.01" value="1" title="Gradient stop control, not a config slider">
                             <span class="value-span" id="${id}-alpha-value">1.00</span>
                         </div>
                         ${valueControlHTML}
@@ -39735,7 +41680,6 @@ class DebuggerEventHandler {
     this.sliderDebounceTimeout = null;
     this.allLutPresets = {};
     this._isDebuggerClockDragging = false;
-    this._onTimeChangedBound = this._onTimeChanged.bind(this);
     this._lastTimeChangedUpdate = 0; // Throttle time-based UI updates
     this.uiClock = null;
 
@@ -40005,6 +41949,15 @@ class DebuggerEventHandler {
         this._boundGradientBarDoubleClick(e);
       }
     });
+
+    // Search effects input handler
+    const searchInput = this.element.querySelector('#fx-search-input');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        this._filterEffects(query);
+      });
+    }
 
     // Set up dynamic column resizing
     this._setupDynamicColumnResizing();
@@ -40418,10 +42371,10 @@ class DebuggerEventHandler {
       if (weatherManager) {
         const config = this.profileManager.activeConfig.weather;
         
-        // Transition to the new state (convert to lowercase to match STATES)
-        const stateLowercase = value.toLowerCase();
-        weatherManager.transitionToState(stateLowercase, config.transitionDuration || 10000);
-        console.log(`MapShine | Transitioning to weather state: ${stateLowercase}`);
+        // Transition to the new state (convert to lowercase and replace spaces with hyphens to match STATES)
+        const stateNormalized = value.toLowerCase().replace(/\s+/g, '-');
+        weatherManager.transitionToState(stateNormalized, config.transitionDuration || 10000);
+        console.log(`MapShine | Transitioning to weather state: ${stateNormalized}`);
       }
       
       // Continue with normal profile system save
@@ -41232,34 +43185,68 @@ class DebuggerEventHandler {
 
   /**
    * Filters effect sections based on search query
+   * Searches through ALL accordions (including nested sub-accordions) and shows parent accordions when children match
    * @param {string} query - The search query
    */
   _filterEffects(query) {
-    const allEffects = this.element.querySelectorAll('.fx-column > details, .fx-column > h3');
+    // Get ALL details elements (top-level and nested) plus h3 headings
+    const allTopLevel = this.element.querySelectorAll('.fx-column > details, .fx-column > h3');
+    const allDetails = this.element.querySelectorAll('.fx-column details');
     
     if (!query) {
       // Show all effects when search is empty
-      allEffects.forEach(el => {
+      allDetails.forEach(el => {
+        el.style.display = '';
+      });
+      allTopLevel.forEach(el => {
         el.style.display = '';
       });
       return;
     }
     
-    allEffects.forEach(el => {
-      // Get the text content of the summary or heading
-      const text = el.tagName === 'H3' 
-        ? el.textContent 
-        : el.querySelector('summary')?.textContent || '';
+    // First pass: Mark which elements match the search
+    const matchingElements = new Set();
+    
+    allDetails.forEach(el => {
+      // Get the text content of the summary
+      const summaryText = el.querySelector('summary')?.textContent || '';
       
       // Check if text matches the query
-      const matches = text.toLowerCase().includes(query);
-      el.style.display = matches ? '' : 'none';
+      if (summaryText.toLowerCase().includes(query)) {
+        matchingElements.add(el);
+        
+        // Also mark all parent accordions as matching
+        let parent = el.parentElement?.closest('details');
+        while (parent) {
+          matchingElements.add(parent);
+          parent = parent.parentElement?.closest('details');
+        }
+      }
+    });
+    
+    // Also check h3 headings
+    const h3Elements = this.element.querySelectorAll('.fx-column > h3');
+    h3Elements.forEach(el => {
+      if (el.textContent.toLowerCase().includes(query)) {
+        matchingElements.add(el);
+      }
+    });
+    
+    // Second pass: Show/hide based on matches
+    allDetails.forEach(el => {
+      if (matchingElements.has(el)) {
+        el.style.display = '';
+      } else {
+        el.style.display = 'none';
+      }
+    });
+    
+    h3Elements.forEach(el => {
+      el.style.display = matchingElements.has(el) ? '' : 'none';
     });
   }
 
-  _onTimeChanged(time) {
-    // Throttle UI updates to max once per 150ms during transitions
-    // Prevents 60fps hook spam from overwhelming UI updates
+  _onTimeControlChanged(time) {
     const now = Date.now();
     const timeSinceLastUpdate = now - this._lastTimeChangedUpdate;
     
@@ -43655,10 +45642,6 @@ class DebuggerEventHandler {
   }
 
   destroy() {
-    // Remove the global hook listener
-
-    Hooks.off("mapShine:timeChanged", this._onTimeChangedBound);
-
     // Destroy the UI clock component if it exists
     if (this.uiClock) {
       this.uiClock.destroy();
@@ -44006,7 +45989,7 @@ class SimpleUIPanel extends Application {
       if (intensity !== null) {
         intensitySlider = `
                                     <div class="simple-slider-wrapper">
-                                        <input type="range" id="simple-intensity-${key}" data-key="${key}" data-type="intensity" min="0" max="100" step="1" value="${intensity}">
+                                        <input type="range" id="simple-intensity-${key}" data-no-path="true" data-key="${key}" data-type="intensity" min="0" max="100" step="1" value="${intensity}" title="Client-side override control, uses game.settings">
                                         <span class="value-span" id="simple-intensity-${key}-value">${intensity}</span>
                                     </div>
                                 `;
@@ -44357,6 +46340,59 @@ Hooks.once("ready", () => {
     console.log(
       "Map Shine | Registered libWrapper intercept for loading messages in 'ready' hook."
     );
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HEADLESS TESTING SYSTEM INTEGRATION
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// This hook activates the automated testing system when running in headless mode.
+// Tests run after full module initialization and output results to the terminal.
+//
+// To activate:
+//   1. Set environment variable: MAP_SHINE_TEST_MODE=true
+//   2. Optionally set test suite: MAP_SHINE_TEST_SUITE=ui (or config, managers, textures, all)
+//   3. Run: node "C:\Program Files\Foundry Virtual Tabletop\resources\app\main.js" --headless --world=map-development-world
+//
+// The system will:
+//   - Wait for mapShine:setupComplete hook
+//   - Run requested test suites
+//   - Output results to console
+//   - Exit with appropriate code (0=success, 1=failure)
+//
+Hooks.once("ready", async () => {
+  // Check if we're in test mode via environment variable or module flag
+  const isTestMode = typeof process !== 'undefined' && process.env.MAP_SHINE_TEST_MODE === 'true';
+  const testSuite = typeof process !== 'undefined' && process.env.MAP_SHINE_TEST_SUITE || 'all';
+  
+  if (isTestMode) {
+    console.log('\n🧪 Map Shine Test Mode Active');
+    console.log(`📦 Test Suite: ${testSuite}`);
+    console.log('⏳ Waiting for full module initialization...\n');
+    
+    // Wait for full initialization to complete
+    await new Promise(resolve => {
+      Hooks.once('mapShine:setupComplete', resolve);
+    });
+    
+    console.log('✅ Module initialization complete. Starting tests...\n');
+    
+    // Import and run tests
+    try {
+      const { MapShineTestRunner } = await import('./tests/headless-runner.js');
+      await MapShineTestRunner.runTests(testSuite);
+    } catch (error) {
+      console.error('❌ FATAL: Failed to load or run test system:', error);
+      console.error(error.stack);
+      
+      // Exit with error code
+      setTimeout(() => {
+        if (typeof process !== 'undefined' && process.exit) {
+          process.exit(1);
+        }
+      }, 1000);
+    }
   }
 });
 

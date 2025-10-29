@@ -1,0 +1,123 @@
+// ============================================================================
+// FPS DIAGNOSTIC - COPY AND PASTE INTO BROWSER CONSOLE (F12)
+// ============================================================================
+// 
+// INSTRUCTIONS:
+// 1. Load into Foundry VTT normally (where 120 FPS cap works correctly)
+// 2. Press F12 to open browser console
+// 3. Copy EVERYTHING below this line (Ctrl+A in this file, then Ctrl+C)
+// 4. Paste into console and press Enter
+// 5. Wait 5 seconds for FPS measurement
+// 6. Copy the JSON output that appears
+// 7. Send the JSON data back to me
+//
+// ============================================================================
+
+(function() {
+  console.log('\n' + '='.repeat(80));
+  console.log('🔍 FPS SETTINGS DIAGNOSTIC - FOUNDRY VTT');
+  console.log('='.repeat(80) + '\n');
+  
+  const diagnosticData = {};
+  
+  // Capture PIXI Ticker settings
+  if (canvas?.app?.ticker) {
+    const t = canvas.app.ticker;
+    diagnosticData.ticker = {
+      maxFPS: t.maxFPS,
+      minFPS: t.minFPS,
+      targetFPS: t.targetFPS,
+      currentFPS: t.FPS,
+      speed: t.speed,
+      deltaTime: t.deltaTime
+    };
+    console.log('📊 TICKER SETTINGS:', diagnosticData.ticker);
+  } else {
+    console.error('❌ canvas.app.ticker not available!');
+    diagnosticData.ticker = null;
+  }
+  
+  // Capture Performance Mode
+  if (canvas?.performance) {
+    diagnosticData.performance = {
+      mode: canvas.performance.mode,
+      modeLabel: ['LOW', 'MEDIUM', 'HIGH', 'MAXIMUM'][canvas.performance.mode] || 'UNKNOWN'
+    };
+    console.log('🎨 PERFORMANCE MODE:', diagnosticData.performance);
+  } else {
+    console.error('❌ canvas.performance not available!');
+    diagnosticData.performance = null;
+  }
+  
+  // Start 5-second FPS measurement
+  console.log('\n⏱️  Measuring FPS for 5 seconds...\n');
+  
+  const fpsData = { samples: [], startTime: performance.now() };
+  let lastTime = performance.now();
+  let frameCount = 0;
+  
+  const measureFPS = () => {
+    const now = performance.now();
+    const delta = now - lastTime;
+    lastTime = now;
+    
+    fpsData.samples.push(1000 / delta);
+    frameCount++;
+    
+    if (now - fpsData.startTime < 5000) {
+      requestAnimationFrame(measureFPS);
+    } else {
+      // Calculate statistics
+      fpsData.samples.sort((a, b) => a - b);
+      const avg = fpsData.samples.reduce((a, b) => a + b, 0) / fpsData.samples.length;
+      const min = fpsData.samples[0];
+      const max = fpsData.samples[fpsData.samples.length - 1];
+      const median = fpsData.samples[Math.floor(fpsData.samples.length / 2)];
+      const p95 = fpsData.samples[Math.floor(fpsData.samples.length * 0.95)];
+      
+      diagnosticData.fpsStats = {
+        frameCount: frameCount,
+        averageFPS: parseFloat(avg.toFixed(2)),
+        medianFPS: parseFloat(median.toFixed(2)),
+        minFPS: parseFloat(min.toFixed(2)),
+        maxFPS: parseFloat(max.toFixed(2)),
+        p95FPS: parseFloat(p95.toFixed(2)),
+        measurementDuration: 5000
+      };
+      
+      // Display results
+      console.log('='.repeat(80));
+      console.log('✅ MEASUREMENT COMPLETE!');
+      console.log('='.repeat(80));
+      console.log('\n📊 FPS STATISTICS:');
+      console.log(`   Frames Captured: ${diagnosticData.fpsStats.frameCount}`);
+      console.log(`   Average FPS: ${diagnosticData.fpsStats.averageFPS}`);
+      console.log(`   Median FPS: ${diagnosticData.fpsStats.medianFPS}`);
+      console.log(`   Min FPS: ${diagnosticData.fpsStats.minFPS}`);
+      console.log(`   Max FPS: ${diagnosticData.fpsStats.maxFPS}`);
+      console.log(`   95th Percentile: ${diagnosticData.fpsStats.p95FPS}`);
+      
+      console.log('\n\n🎯 CRITICAL SETTINGS FOR 120 FPS CAP:');
+      console.log('-'.repeat(80));
+      if (diagnosticData.ticker) {
+        console.log(`   ticker.maxFPS = ${diagnosticData.ticker.maxFPS} ${diagnosticData.ticker.maxFPS === 120 ? '✅' : '⚠️'}`);
+        console.log(`   ticker.minFPS = ${diagnosticData.ticker.minFPS}`);
+        console.log(`   ticker.targetFPS = ${diagnosticData.ticker.targetFPS.toFixed(2)}`);
+      }
+      if (diagnosticData.performance) {
+        console.log(`   performance.mode = ${diagnosticData.performance.mode} (${diagnosticData.performance.modeLabel})`);
+      }
+      
+      console.log('\n\n💾 COPY THIS JSON DATA (everything between the lines):');
+      console.log('━'.repeat(80));
+      console.log(JSON.stringify(diagnosticData, null, 2));
+      console.log('━'.repeat(80));
+      
+      console.log('\n' + '='.repeat(80));
+      console.log('✅ DIAGNOSTIC COMPLETE - Send the JSON data above!');
+      console.log('='.repeat(80) + '\n');
+    }
+  };
+  
+  requestAnimationFrame(measureFPS);
+})();

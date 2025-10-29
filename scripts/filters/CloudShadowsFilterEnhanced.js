@@ -426,4 +426,16 @@ export class CloudShadowsFilterEnhanced extends PIXI.Filter {
       u_layer3_parallaxDepth: 0.5,
     });
   }
+
+  /**
+   * Clean up texture references to prevent memory leaks and scene teardown errors
+   */
+  destroy() {
+    // Clean up texture uniforms to prevent null reference errors during scene teardown
+    if (this.uniforms) {
+      this.uniforms.uOutdoorsMask = null;
+      this.uniforms.uLightPolygonMask = null;
+    }
+    super.destroy();
+  }
 }

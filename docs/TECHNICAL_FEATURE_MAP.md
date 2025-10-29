@@ -1,7 +1,7 @@
 # Map Shine - Technical Feature Map
 
-**Version:** 1.2.10  
-**Last Updated:** 2025-10-26
+**Version:** 1.2.19  
+**Last Updated:** 2025-01-26
 
 > **Purpose:** Comprehensive technical reference for all module systems, layers, managers, and features.  
 > **Location Reference:** Add `docs/TECHNICAL_FEATURE_MAP.md` to your AI instructions for quick feature lookup.
@@ -24,6 +24,7 @@
 - [Utilities](#utility-systems) - Texture loading, pooling, profiling
 - [Configuration](#configuration-systems) - Defaults, profiles, settings
 - [Performance](#performance-systems) - Optimizations and pooling
+- [Automated Testing](#automated-testing-systems) - Performance profiling, validators
 
 ---
 
@@ -386,9 +387,17 @@ clearFrameCache()           // Per-frame cleanup
 
 | Component | Purpose | Location |
 |-----------|---------|----------|
-| **DayNightClock** | 24hr time control, Foundry time sync, draggable | lines 32795-32983 |
+| **DayNightClock** | 24hr time control, Foundry time sync, draggable, **weather state indicator with clickable dropdown** (v1.2.17), wind direction display | lines 34266-34740 |
 | **UserGuide** | In-module documentation | lines 42400-42681 |
 | **LoadingScreen** | World/scene loading UI | `scripts/ui/LoadingUI.js` |
+
+**DayNightClock Weather Features (v1.2.17):**
+- Real-time weather state display with emoji icons
+- Interactive dropdown menu (click to change weather)
+- 7 weather states: Clear, Drizzle, Rain, Storm, Sleet, Snow, Blizzard
+- Current state highlighted, transition progress shown
+- Performance optimized: state-based updates (not frame-based)
+- Click-outside-to-close behavior
 
 ---
 
@@ -530,6 +539,167 @@ _Outdoors, _Surface, _Rooftops, _SmellyFlies
 
 ---
 
+## Automated Testing Systems
+
+### Performance Profiling Framework 📊
+**Location:** `tests/playwright/` | **Version:** 1.2.16+
+
+**Purpose:** Automated effect-by-effect performance analysis with baseline measurement and FPS impact quantification.
+
+#### Test Suites
+
+**1. quick-profile-test.spec.js** (Daily Testing)
+- **Mode:** SOLO only (each effect tested alone)
+- **Duration:** ~11 minutes for 12 effects
+- **Purpose:** Fast feedback during development
+- **Output:** Per-effect FPS cost, baseline comparison, markdown reports
+- **Command:** `npx playwright test quick-profile-test.spec.js --config=playwright-headed.config.js --workers=1`
+
+**2. effect-profiling.spec.js** (Release Testing)
+- **Modes:** DISABLED (measure gain) + SOLO (measure cost)
+- **Duration:** ~20 minutes full run
+- **Purpose:** Comprehensive pre-release validation
+- **Features:** Two methodologies for validation, regression detection
+- **Command:** `npx playwright test effect-profiling.spec.js --config=playwright-headed.config.js --workers=1`
+
+**3. run-comprehensive-test.js** (Console-Based)
+- **Tests:** Memory leaks, shader compilation, manager init, config validation
+- **Duration:** ~2 minutes
+- **Purpose:** Non-performance bug detection
+- **Command:** Run in browser console: `await runComprehensiveTests()`
+
+#### Performance Validator
+**File:** `tests/validators/PerformanceValidator.js` (541 lines)
+
+**Capabilities:**
+- Real-time FPS monitoring (configurable duration)
+- Frame time variance tracking (stutter detection)
+- VRAM usage monitoring (memory pressure)
+- Pool cache hit rate validation
+- Performance regression detection (baseline comparison)
+- Frame budget analysis (60 FPS target)
+
+**Key Methods:**
+```javascript
+monitorPerformance(durationMs, label, progressCallback)  // Track metrics
+validateMetrics(metrics)                                 // Check thresholds
+comparePerformance(baseline, current)                    // Regression detection
+checkFrameBudget(sampleFrames)                          // 60 FPS target check
+```
+
+**Thresholds:**
+- Min Average FPS: 30
+- Max Frame Time: 33.33ms (30 FPS)
+- Max Frame Time Variance: 10ms
+- Max VRAM Growth: 50MB
+- Min Pool Cache Hit Rate: 90%
+
+#### Test Workflow
+
+**Daily Development:**
+```bash
+# Quick check after code changes (~11 min)
+npx playwright test quick-profile-test.spec.js --config=playwright-headed.config.js --workers=1
+```
+
+**Before Commits:**
+```javascript
+// In browser console (~2 min)
+await runComprehensiveTests()
+```
+
+**Before Releases:**
+```bash
+# Full profiling with both modes (~20 min)
+npx playwright test effect-profiling.spec.js --config=playwright-headed.config.js --workers=1
+```
+
+#### Effect Profiling Output
+
+**Baseline Measurement:**
+- Module OFF: Raw Foundry VTT performance
+- Establishes performance floor
+- Saved to `docs/BASELINE_MODULE_OFF_[timestamp].md`
+
+**Effect Measurements:**
+- Per-effect FPS impact (positive/negative)
+- Average, Min, Max, Median, Trimmed Mean, 95th Percentile FPS
+- Frame time statistics
+- Stutter event count
+- VRAM delta
+
+**Report Generation:**
+- Markdown reports in `docs/` directory
+- Timestamped for historical tracking
+- Summary statistics table
+- Recommendations for optimization
+
+#### Test Architecture
+
+**Infrastructure:**
+- Foundry launcher: `tests/playwright/foundry-launcher.js` (auto start/stop on port 30000)
+- Test helpers: `tests/playwright/map-shine-utils.js` (MapShineTestHelper class)
+- Config: `playwright-headed.config.js` (GPU rendering enabled)
+
+**Execution Flow:**
+1. Launch Foundry VTT server
+2. Navigate browser to localhost:30000
+3. Authenticate (dropdown selection)
+4. Wait for canvas ready (90s timeout)
+5. Wait for Map Shine managers (30s timeout)
+6. Measure baseline (module OFF) - 20s
+7. Re-enable module
+8. For each effect:
+   - Enable effect alone (SOLO mode)
+   - Measure FPS for 15-20s
+   - Generate report
+   - Disable effect
+9. Generate summary report
+10. Shutdown Foundry server
+
+**Artifacts:**
+- Videos: `tests/playwright-artifacts/*.webm`
+- Screenshots: `tests/playwright-artifacts/*.png`
+- Traces: `tests/playwright-artifacts/*.zip`
+- HTML Reports: `tests/playwright-report/index.html`
+
+#### Console-Based Validators
+
+**Memory Leak Detector** (`tests/validators/MemoryLeakDetector.js`)
+- PIXI texture cache growth tracking
+- RenderTexturePool leak detection
+- Scene transition leak testing
+- Effect toggle leak testing
+
+**Shader Validator** (`tests/validators/ShaderValidator.js`)
+- Shader compilation validation
+- Uniform availability checks
+- Null baseTexture detection
+- GL error monitoring
+
+**Manager Validator** (`tests/validators/ManagerValidator.js`)
+- Manager existence checks
+- Initialization state validation
+- Config propagation testing
+
+#### Usage in Development
+
+**When to Run Tests:**
+- ✅ After implementing new features/effects
+- ✅ After making changes to existing systems
+- ✅ After fixing bugs
+- ✅ Before committing code
+- ✅ Before releases
+
+**Expected Results:**
+- Baseline FPS: 50-60 FPS (module OFF)
+- Effect FPS: Varies by complexity
+- FPS Drop: Most effects < 10 FPS impact
+- Warnings: Frame variance, stutter events
+- Errors: FPS < 30, VRAM growth > 50MB
+
+---
+
 ## Texture Discovery Suffix Reference
 
 Quick lookup for texture naming conventions:
@@ -541,10 +711,18 @@ Background_Image_Metallic.jpg → Metallic regions
 Background_Image_CloudShadows.jpg → Cloud shadow mask
 Background_Image_Outdoors.jpg → Indoor/outdoor mask
 Background_Image_Water.jpg    → Water caustics mask
+Background_Image_NoWater.jpg  → Water effect exclusion mask (v1.2.18+)
 Background_Image_Glow.jpg     → Glow-in-dark regions
 ```
 
 **Full list:** See TextureAutoLoader.SUFFIX_MAP (20+ suffixes)
+
+**Water Effect Masks (v1.2.18+):**
+- `_Water` - Main water areas with full effects
+- `_Caustics` - Caustics-only areas (no distortion)
+- `_Shoreline` - Shoreline foam generation
+- `_Puddle` - Puddle-specific masking
+- `_NoWater` - Exclusion mask (trees, rocks, etc.)
 
 ---
 

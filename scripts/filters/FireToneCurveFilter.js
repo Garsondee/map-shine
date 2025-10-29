@@ -90,5 +90,14 @@ export class FireToneCurveFilter extends PIXI.Filter {
     };
     super(vertex, fragment, uniforms);
   }
+
+  /**
+   * Clean up texture references to prevent memory leaks and scene teardown errors
+   */
+  destroy() {
+    // This filter doesn't hold custom texture references,
+    // but we still call super.destroy() for proper cleanup
+    super.destroy();
+  }
 }
 

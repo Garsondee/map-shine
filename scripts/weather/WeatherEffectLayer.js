@@ -303,14 +303,15 @@ export class WeatherEffectLayer extends PIXI.Container {
   }
 
   /**
-   * Update from configuration object
+   * Update layer configuration
    * 
    * ⚠️ WARNING: Can be called multiple times during transitions - minimize logging!
    * 
    * @param {object} config - Weather configuration from profile
    */
   updateFromConfig(config) {
-    if (!config?.weather?.enabled) {
+    // ✅ CRITICAL: Check BOTH master enabled flag AND weather enabled flag
+    if (!config?.enabled || !config?.weather?.enabled) {
       this.stopAllEffects();
       return;
     }
@@ -355,6 +356,7 @@ export class WeatherEffectLayer extends PIXI.Container {
     };
     
     const fogConfig = {
+      opacity: weatherConfig.fog.opacity ?? 1.0,
       intensity: weatherConfig.fog.intensity,
       rotation: weatherConfig.fog.rotation,
       slope: weatherConfig.fog.slope,

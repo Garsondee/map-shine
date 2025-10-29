@@ -10,6 +10,7 @@ export class FogShader extends WeatherShaderBase {
    * Default uniform values for fog
    */
   static defaultUniforms = {
+    opacity: 1.0,
     intensity: 1,
     rotation: 0,
     slope: 0.25
@@ -57,6 +58,7 @@ export class FogShader extends WeatherShaderBase {
   static fragmentShader(mode = 2) {
     return `
     ${this.FRAGMENT_HEADER}
+    uniform float opacity;
     uniform float intensity;
     uniform float slope;
     uniform float rotation;
@@ -125,7 +127,7 @@ export class FogShader extends WeatherShaderBase {
       pb = smoothstep(slope * 0.5, slope + 0.001, pb);
       
       gl_FragColor = vec4( mix(vec3(0.05, 0.05, 0.08), col * clamp(slope, 1.0, 2.0), pb), 1.0) 
-                     * vec4(tint, 1.0) * intensity * mask * alpha;
+                     * vec4(tint, 1.0) * opacity * intensity * mask * alpha;
     }
     `;
   }

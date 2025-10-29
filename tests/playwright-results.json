@@ -1,0 +1,817 @@
+{
+  "config": {
+    "configFile": "C:\\Users\\Ingram\\Documents\\Mythica Machina Module Development\\map-shine-development\\map-shine\\playwright.config.js",
+    "rootDir": "C:/Users/Ingram/Documents/Mythica Machina Module Development/map-shine-development/map-shine/tests/playwright",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "html",
+        {
+          "outputFolder": "tests/playwright-report",
+          "open": "never"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "tests/playwright-results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "C:/Users/Ingram/Documents/Mythica Machina Module Development/map-shine-development/map-shine/tests/playwright-artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "C:/Users/Ingram/Documents/Mythica Machina Module Development/map-shine-development/map-shine/tests/playwright",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.56.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "example.spec.js",
+      "file": "example.spec.js",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Map Shine - Basic Initialization",
+          "file": "example.spec.js",
+          "line": 32,
+          "column": 15,
+          "specs": [
+            {
+              "title": "full initialization and validation",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 33335,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "🚀 Starting Foundry VTT server...\n"
+                        },
+                        {
+                          "text": "   World: map-development-world\n"
+                        },
+                        {
+                          "text": "   Port: 30000\n"
+                        },
+                        {
+                          "text": "   Scene: WndznGLSc1U7iMVN\n"
+                        },
+                        {
+                          "text": "✅ Foundry VTT server is ready\n"
+                        },
+                        {
+                          "text": "🌐 Navigating to Foundry VTT...\n"
+                        },
+                        {
+                          "text": "🔐 Authenticating...\n"
+                        },
+                        {
+                          "text": "🔐 Checking for login form...\n"
+                        },
+                        {
+                          "text": "🔐 Login form found, authenticating...\n"
+                        },
+                        {
+                          "text": "   Found user dropdown, selecting user...\n"
+                        },
+                        {
+                          "text": "   Selected: Gamemaster\n"
+                        },
+                        {
+                          "text": "🔐 Submitting login form...\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Lazy Accordion diagnostics available:\n"
+                        },
+                        {
+                          "text": "✅ Authentication successful - navigated to game\n"
+                        },
+                        {
+                          "text": "⏳ Waiting for canvas (may take 60+ seconds)...\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Initializing.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | SceneChangeManager: Registering hooks...\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | SceneChangeManager initialized and hooked into canvas events.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Current state: IDLE\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Loading manager available: true\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Loading screen available: true\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Library Test: Verifying PIXI.particles global.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Scene transitions enabled - registering Scene.prototype.view wrapper\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Scene.prototype.view wrapper registered successfully\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Unified Pause Manager Initialized.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Initialization complete.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | worldContainer created in canvasInit\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | ParticleManager initialized with 9 effect controllers.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Canvas object: Canvas\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Canvas.scene: Mythica Machina - Japanese Horror House\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | SceneChangeManager: Performing setup...\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Checking loading manager...\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Calling loadingManager.setProgress('START')...\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | SceneChangeManager: Starting loading progress updates\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Importing MapShineLifecycle...\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Registered libWrapper intercept for loading messages in 'ready' hook.\n"
+                        },
+                        {
+                          "text": "✅ Canvas ready\n"
+                        },
+                        {
+                          "text": "⏳ Waiting for Map Shine...\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Beginning persistent discovery...\n"
+                        },
+                        {
+                          "text": "✅ Map Shine initialized\n"
+                        },
+                        {
+                          "text": "⏳ Waiting for managers to initialize...\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Loaded & downsampled texture (-> 4875x4875) with 2 cache keys: mythica-machina-japanese-horror-house-Ground_Water.webp\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Loaded & downsampled texture (-> 4875x4875) with 2 cache keys: mythica-machina-japanese-horror-house-Ground_Water.webp\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Loaded & downsampled texture (-> 4875x4875) with 2 cache keys: mythica-machina-japanese-horror-house-Ground_Specular.webp\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Loaded & downsampled texture (-> 4875x4875) with 2 cache keys: mythica-machina-japanese-horror-house-Ground_Specular.webp\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Loaded & downsampled texture (-> 4425x4425) with 2 cache keys: mythica-machina-japanese-horror-house-Roof_Outdoors.webp\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Loaded & downsampled texture (-> 4425x4425) with 2 cache keys: mythica-machina-japanese-horror-house-Roof_Outdoors.webp\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Loaded & downsampled texture (-> 4425x4425) with 2 cache keys: mythica-machina-japanese-horror-house-Roof_Outdoors.webp\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Loaded & downsampled texture (-> 4425x4425) with 2 cache keys: mythica-machina-japanese-horror-house-Roof_Outdoors.webp\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Loaded & downsampled texture (-> 4425x4425) with 2 cache keys: mythica-machina-japanese-horror-house-Roof_Outdoors.webp\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Loaded & downsampled texture (-> 4425x4425) with 2 cache keys: mythica-machina-japanese-horror-house-Roof_Outdoors.webp\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Loaded & downsampled texture (-> 4425x4425) with 2 cache keys: mythica-machina-japanese-horror-house-Roof_Outdoors.webp\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Loaded & downsampled texture (-> 4425x4425) with 2 cache keys: mythica-machina-japanese-horror-house-Roof_Outdoors.webp\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Loaded & downsampled texture (-> 4875x4875) with 2 cache keys: mythica-machina-japanese-horror-house-Ground_Puddle.webp\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Loaded & downsampled texture (-> 4875x4875) with 2 cache keys: mythica-machina-japanese-horror-house-Ground_Puddle.webp\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Loaded & downsampled texture (-> 4875x4875) with 2 cache keys: mythica-machina-japanese-horror-house-Ground_Fire.webp\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Loaded & downsampled texture (-> 4875x4875) with 2 cache keys: mythica-machina-japanese-horror-house-Ground_Fire.webp\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Loaded & downsampled texture (-> 4875x4875) with 2 cache keys: mythica-machina-japanese-horror-house-Ground_Outdoors.webp\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Loaded & downsampled texture (-> 4875x4875) with 2 cache keys: mythica-machina-japanese-horror-house-Ground_Outdoors.webp\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Loaded & downsampled texture (-> 4875x4875) with 2 cache keys: mythica-machina-japanese-horror-house-Ground_Outdoors.webp\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Loaded & downsampled texture (-> 4875x4875) with 2 cache keys: mythica-machina-japanese-horror-house-Ground_Outdoors.webp\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Loaded & downsampled texture (-> 4875x4875) with 2 cache keys: mythica-machina-japanese-horror-house-Ground_Outdoors.webp\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Loaded & downsampled texture (-> 4875x4875) with 2 cache keys: mythica-machina-japanese-horror-house-Ground_Outdoors.webp\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Discovery attempt 2/10: {backgroundExists: false, tilesCount: 4, tilesWithTextures: 4, texturesLoaded: 4, texturesLoading: 0}\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Texture discovery successful on attempt #2. Initializing all systems.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Pre-loading 10 discovered textures...\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | 8 textures will be optimized for memory savings.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | All discovered textures pre-loaded successfully.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Pinned 10 textures to prevent eviction.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Pre-warming shaders for smooth first-frame performance...\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Successfully pre-warmed 27 shaders.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Pre-warming water system render textures...\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Water system prewarmed successfully (4 render passes)\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | ResourceManager initialized.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | LightMaskManager initialized (3-Pass Kawase Blur with Downscaling).\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Live configuration built. Source: scene.\n"
+                        },
+                        {
+                          "text": "✅ Initialization complete!\n"
+                        },
+                        {
+                          "text": "\n📝 Test 1: Checking core managers...\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Discovery attempt 2/10: {backgroundExists: false, tilesCount: 4, tilesWithTextures: 4, texturesLoaded: 4, texturesLoading: 0}\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Texture discovery successful on attempt #2. Initializing all systems.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Finalizing configuration based on available textures.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Effect 'canopy' auto-disabled: No texture or map point found.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Effect 'structuralShadows' auto-disabled: No texture or map point found.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Effect 'iridescence' auto-disabled: No texture or map point found.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Effect 'groundGlow' auto-disabled: No texture or map point found.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Effect 'heatDistortion' auto-disabled: No texture or map point found.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Effect 'prism' auto-disabled: No texture or map point found.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Effect 'dust' auto-disabled: No texture or map point found.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Effect 'glint' auto-disabled: No texture or map point found.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Effect 'smellyFlies' auto-disabled: No texture or map point found.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Effect 'lightning' auto-disabled: No texture or map point found.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Pre-loading 10 discovered textures...\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | 8 textures will be optimized for memory savings.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | All discovered textures pre-loaded successfully.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Pinned 10 textures to prevent eviction.\n"
+                        },
+                        {
+                          "text": "✅ All core managers initialized\n"
+                        },
+                        {
+                          "text": "\n📝 Test 2: Validating config structure...\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Starting masked layers prewarm...\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Pre-warming shaders for smooth first-frame performance...\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Successfully pre-warmed 27 shaders.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Pre-warming masked effect layers...\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Masked effect layers prewarmed successfully (0 layers)\n"
+                        },
+                        {
+                          "text": "✅ Config structure validated\n"
+                        },
+                        {
+                          "text": "\n📝 Test 3: Checking weather diagnostics...\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Masked layers prewarm completed\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Pre-warming water system render textures...\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Water system prewarmed successfully (2 render passes)\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Starting geometry masks prewarm...\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Pre-warming geometry masks...\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Geometry masks prewarm completed\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Particle setup check: {hasLayer: true, hasMethod: true}\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | ResourceManager initialized.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | LightMaskManager initialized (3-Pass Kawase Blur with Downscaling).\n"
+                        },
+                        {
+                          "text": "✅ weatherSystemManager ready\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Live configuration built. Source: scene.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Particle setup complete: 3 emitters across 9 controllers (2499.9ms)\n"
+                        },
+                        {
+                          "text": "✅ Weather state: storm\n"
+                        },
+                        {
+                          "text": "\n🎉 All tests passed!\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | TokenManager initialized.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Finalizing configuration based on available textures.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Effect 'canopy' auto-disabled: No texture or map point found.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Effect 'structuralShadows' auto-disabled: No texture or map point found.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Effect 'iridescence' auto-disabled: No texture or map point found.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Effect 'groundGlow' auto-disabled: No texture or map point found.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Effect 'heatDistortion' auto-disabled: No texture or map point found.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Effect 'prism' auto-disabled: No texture or map point found.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Effect 'dust' auto-disabled: No texture or map point found.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Effect 'glint' auto-disabled: No texture or map point found.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Effect 'smellyFlies' auto-disabled: No texture or map point found.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Effect 'lightning' auto-disabled: No texture or map point found.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Combat Effect Manager Initialized.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | GeometryMaskManager initialized (Lazy Texture Allocation).\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Starting masked layers prewarm...\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Pre-warming masked effect layers...\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Masked effect layers prewarmed successfully (0 layers)\n"
+                        },
+                        {
+                          "text": "[BROWSER] %cMap Shine | Setup complete. All 12 managers initialized successfully. color: #4CAF50; font-weight: bold;\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Masked layers prewarm completed\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Starting geometry masks prewarm...\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Pre-warming geometry masks...\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Geometry masks prewarmed successfully\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Geometry masks prewarm completed\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Particle setup check: {hasLayer: true, hasMethod: true}\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Particle setup complete: 3 emitters across 9 controllers (0.0ms)\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | TokenManager initialized.\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | GeometryMaskManager initialized (Lazy Texture Allocation).\n"
+                        },
+                        {
+                          "text": "[BROWSER] %cMap Shine | Setup complete. All 17 managers initialized successfully. color: #4CAF50; font-weight: bold;\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Emitted mapShine:setupComplete hook (full setup)\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Emitted mapShine:setupComplete hook (full setup)\n"
+                        },
+                        {
+                          "text": "🛑 Stopping Foundry VTT server...\n"
+                        },
+                        {
+                          "text": "✅ Foundry VTT server stopped\n"
+                        }
+                      ],
+                      "stderr": [
+                        {
+                          "text": "[BROWSER] Error: You are accessing the global \"Game\" which is now namespaced under foundry.Game\nDeprecated since Version 13\nBackwards-compatible support will be removed in Version 15\n    at logCompatibilityWarning (http://localhost:30000/scripts/foundry.mjs:6712:17)\n    at get (http://localhost:30000/scripts/foundry.mjs:181043:9)\n    at http://localhost:30000/modules/lib-wrapper/lib-wrapper.js:1:52158\n    at ue (http://localhost:30000/modules/lib-wrapper/lib-wrapper.js:1:52185)\n    at ge (http://localhost:30000/modules/lib-wrapper/lib-wrapper.js:1:52517)\n    at 🎁register [as register] (http://localhost:30000/modules/lib-wrapper/lib-wrapper.js:1:56176)\n    at PauseManager.initialize (http://localhost:30000/modules/map-shine/scripts/module.js:6521:16)\n    at HooksManager.registerIntegrationsAndHooks (http://localhost:30000/modules/map-shine/scripts/module.js:3985:18)\n    at MapShineInitialiser.initialize (http://localhost:30000/modules/map-shine/scripts/module.js:2512:18)\n    at Object.fn (http://localhost:30000/modules/map-shine/scripts/module.js:44401:23)\n    at #call (http://localhost:30000/scripts/foundry.mjs:23829:20)\n    at Hooks.callAll (http://localhost:30000/scripts/foundry.mjs:23788:17)\n    at Game.initialize (http://localhost:30000/scripts/foundry.mjs:168996:13)\n    at 🎁foundry.Game.prototype.initialize#0 (http://localhost:30000/modules/lib-wrapper/lib-wrapper.js:1:34530)\n    at window.addEventListener.once (http://localhost:30000/scripts/foundry.mjs:181086:25)\n"
+                        },
+                        {
+                          "text": "[BROWSER] Error: The V1 Application framework is deprecated, and will be removed in a later core software version. Please use the V2 version of the Application framework available under foundry.applications.api.ApplicationV2.\nDeprecated since Version 13\nBackwards-compatible support will be removed in Version 16\n    at Object.logCompatibilityWarning (http://localhost:30000/scripts/foundry.mjs:6712:17)\n    at new Application (http://localhost:30000/scripts/foundry.mjs:37005:21)\n    at new FormApplication (http://localhost:30000/scripts/foundry.mjs:38037:5)\n    at new SettingsMenuPF2e (http://localhost:30000/systems/pf2e/pf2e.mjs:1618:215)\n    at new HomebrewElements (http://localhost:30000/systems/pf2e/pf2e.mjs:1618:18324)\n    at Object.fn (http://localhost:30000/systems/pf2e/pf2e.mjs:1618:29520)\n    at #call (http://localhost:30000/scripts/foundry.mjs:23829:20)\n    at Hooks.callAll (http://localhost:30000/scripts/foundry.mjs:23788:17)\n    at Localization.initialize (http://localhost:30000/scripts/foundry.mjs:167556:13)\n    at async Game.initialize (http://localhost:30000/scripts/foundry.mjs:169007:5)\n    at async window.addEventListener.once (http://localhost:30000/scripts/foundry.mjs:181086:3)\n"
+                        },
+                        {
+                          "text": "[BROWSER] [MapShine Transition] Canvas not initialized, using default scene transition\n"
+                        },
+                        {
+                          "text": "[BROWSER] Error: TileDocumentPF2e#overhead is deprecated.\nDeprecated since Version 12\nBackwards-compatible support will be removed in Version 14\n    at Object.logCompatibilityWarning (http://localhost:30000/scripts/foundry.mjs:6712:17)\n    at get overhead (http://localhost:30000/scripts/foundry.mjs:22032:19)\n    at OverheadEffectLayer._refreshOverheadTiles (http://localhost:30000/modules/map-shine/scripts/module.js:7956:23)\n    at #call (http://localhost:30000/scripts/foundry.mjs:23829:20)\n    at Hooks.call (http://localhost:30000/scripts/foundry.mjs:23812:40)\n    at #draw (http://localhost:30000/scripts/foundry.mjs:94384:13)\n    at async Canvas.draw (http://localhost:30000/scripts/foundry.mjs:94241:5)\n    at async ScenePF2e.view (http://localhost:30000/scripts/foundry.mjs:46160:7)\n    at async Game.initializeCanvas (http://localhost:30000/scripts/foundry.mjs:169352:20)\n    at async Game.setupGame (http://localhost:30000/scripts/foundry.mjs:169119:5)\n    at async #initializeGameView (http://localhost:30000/scripts/foundry.mjs:170566:5)\n    at async Game.initialize (http://localhost:30000/scripts/foundry.mjs:169016:5)\n    at async window.addEventListener.once (http://localhost:30000/scripts/foundry.mjs:181086:3)\n"
+                        },
+                        {
+                          "text": "[BROWSER] Error: TileDocumentPF2e#overhead is deprecated.\nDeprecated since Version 12\nBackwards-compatible support will be removed in Version 14\n    at Object.logCompatibilityWarning (http://localhost:30000/scripts/foundry.mjs:6712:17)\n    at get overhead (http://localhost:30000/scripts/foundry.mjs:22032:19)\n    at OverheadEffectLayer._refreshOverheadTiles (http://localhost:30000/modules/map-shine/scripts/module.js:7956:23)\n    at #call (http://localhost:30000/scripts/foundry.mjs:23829:20)\n    at Hooks.call (http://localhost:30000/scripts/foundry.mjs:23812:40)\n    at #draw (http://localhost:30000/scripts/foundry.mjs:94384:13)\n    at async Canvas.draw (http://localhost:30000/scripts/foundry.mjs:94241:5)\n    at async ScenePF2e.view (http://localhost:30000/scripts/foundry.mjs:46160:7)\n    at async Game.initializeCanvas (http://localhost:30000/scripts/foundry.mjs:169352:20)\n    at async Game.setupGame (http://localhost:30000/scripts/foundry.mjs:169119:5)\n    at async #initializeGameView (http://localhost:30000/scripts/foundry.mjs:170566:5)\n    at async Game.initialize (http://localhost:30000/scripts/foundry.mjs:169016:5)\n    at async window.addEventListener.once (http://localhost:30000/scripts/foundry.mjs:181086:3)\n"
+                        },
+                        {
+                          "text": "[BROWSER] Error: You are accessing TileDocumentPF2e#roof which has been migrated to TileDocumentPF2e#restrictions.{light|weather}\nDeprecated since Version 12\nBackwards-compatible support will be removed in Version 14\n    at logCompatibilityWarning (http://localhost:30000/scripts/foundry.mjs:6712:17)\n    at TileDocumentPF2e._logDataFieldMigration (http://localhost:30000/scripts/foundry.mjs:13201:5)\n    at get roof (http://localhost:30000/scripts/foundry.mjs:22010:22)\n    at OverheadEffectLayer._refreshOverheadTiles (http://localhost:30000/modules/map-shine/scripts/module.js:7957:23)\n    at #call (http://localhost:30000/scripts/foundry.mjs:23829:20)\n    at Hooks.call (http://localhost:30000/scripts/foundry.mjs:23812:40)\n    at #draw (http://localhost:30000/scripts/foundry.mjs:94384:13)\n    at async Canvas.draw (http://localhost:30000/scripts/foundry.mjs:94241:5)\n    at async ScenePF2e.view (http://localhost:30000/scripts/foundry.mjs:46160:7)\n    at async Game.initializeCanvas (http://localhost:30000/scripts/foundry.mjs:169352:20)\n    at async Game.setupGame (http://localhost:30000/scripts/foundry.mjs:169119:5)\n    at async #initializeGameView (http://localhost:30000/scripts/foundry.mjs:170566:5)\n    at async Game.initialize (http://localhost:30000/scripts/foundry.mjs:169016:5)\n    at async window.addEventListener.once (http://localhost:30000/scripts/foundry.mjs:181086:3)\n"
+                        },
+                        {
+                          "text": "[BROWSER] Error: TileDocumentPF2e#overhead is deprecated.\nDeprecated since Version 12\nBackwards-compatible support will be removed in Version 14\n    at Object.logCompatibilityWarning (http://localhost:30000/scripts/foundry.mjs:6712:17)\n    at get overhead (http://localhost:30000/scripts/foundry.mjs:22032:19)\n    at OverheadEffectLayer._refreshOverheadTiles (http://localhost:30000/modules/map-shine/scripts/module.js:7956:23)\n    at #call (http://localhost:30000/scripts/foundry.mjs:23829:20)\n    at Hooks.call (http://localhost:30000/scripts/foundry.mjs:23812:40)\n    at #draw (http://localhost:30000/scripts/foundry.mjs:94384:13)\n    at async Canvas.draw (http://localhost:30000/scripts/foundry.mjs:94241:5)\n    at async ScenePF2e.view (http://localhost:30000/scripts/foundry.mjs:46160:7)\n    at async Game.initializeCanvas (http://localhost:30000/scripts/foundry.mjs:169352:20)\n    at async Game.setupGame (http://localhost:30000/scripts/foundry.mjs:169119:5)\n    at async #initializeGameView (http://localhost:30000/scripts/foundry.mjs:170566:5)\n    at async Game.initialize (http://localhost:30000/scripts/foundry.mjs:169016:5)\n    at async window.addEventListener.once (http://localhost:30000/scripts/foundry.mjs:181086:3)\n"
+                        },
+                        {
+                          "text": "[BROWSER] Error: You are accessing TileDocumentPF2e#roof which has been migrated to TileDocumentPF2e#restrictions.{light|weather}\nDeprecated since Version 12\nBackwards-compatible support will be removed in Version 14\n    at logCompatibilityWarning (http://localhost:30000/scripts/foundry.mjs:6712:17)\n    at TileDocumentPF2e._logDataFieldMigration (http://localhost:30000/scripts/foundry.mjs:13201:5)\n    at get roof (http://localhost:30000/scripts/foundry.mjs:22010:22)\n    at OverheadEffectLayer._refreshOverheadTiles (http://localhost:30000/modules/map-shine/scripts/module.js:7957:23)\n    at #call (http://localhost:30000/scripts/foundry.mjs:23829:20)\n    at Hooks.call (http://localhost:30000/scripts/foundry.mjs:23812:40)\n    at #draw (http://localhost:30000/scripts/foundry.mjs:94384:13)\n    at async Canvas.draw (http://localhost:30000/scripts/foundry.mjs:94241:5)\n    at async ScenePF2e.view (http://localhost:30000/scripts/foundry.mjs:46160:7)\n    at async Game.initializeCanvas (http://localhost:30000/scripts/foundry.mjs:169352:20)\n    at async Game.setupGame (http://localhost:30000/scripts/foundry.mjs:169119:5)\n    at async #initializeGameView (http://localhost:30000/scripts/foundry.mjs:170566:5)\n    at async Game.initialize (http://localhost:30000/scripts/foundry.mjs:169016:5)\n    at async window.addEventListener.once (http://localhost:30000/scripts/foundry.mjs:181086:3)\n"
+                        },
+                        {
+                          "text": "[BROWSER] Error: TileDocumentPF2e#overhead is deprecated.\nDeprecated since Version 12\nBackwards-compatible support will be removed in Version 14\n    at Object.logCompatibilityWarning (http://localhost:30000/scripts/foundry.mjs:6712:17)\n    at get overhead (http://localhost:30000/scripts/foundry.mjs:22032:19)\n    at OverheadEffectLayer._refreshOverheadTiles (http://localhost:30000/modules/map-shine/scripts/module.js:7956:23)\n    at #call (http://localhost:30000/scripts/foundry.mjs:23829:20)\n    at Hooks.call (http://localhost:30000/scripts/foundry.mjs:23812:40)\n    at #draw (http://localhost:30000/scripts/foundry.mjs:94384:13)\n    at async Canvas.draw (http://localhost:30000/scripts/foundry.mjs:94241:5)\n    at async ScenePF2e.view (http://localhost:30000/scripts/foundry.mjs:46160:7)\n    at async Game.initializeCanvas (http://localhost:30000/scripts/foundry.mjs:169352:20)\n    at async Game.setupGame (http://localhost:30000/scripts/foundry.mjs:169119:5)\n    at async #initializeGameView (http://localhost:30000/scripts/foundry.mjs:170566:5)\n    at async Game.initialize (http://localhost:30000/scripts/foundry.mjs:169016:5)\n    at async window.addEventListener.once (http://localhost:30000/scripts/foundry.mjs:181086:3)\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Effect target refresh timed out on attempt 1: Error: Effect Target Refresh timed out after 5000ms\n    at http://localhost:30000/modules/map-shine/scripts/module.js:8196:24\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | Effect target refresh timed out on attempt 1: Error: Effect Target Refresh timed out after 5000ms\n    at http://localhost:30000/modules/map-shine/scripts/module.js:8196:24\n"
+                        },
+                        {
+                          "text": "[BROWSER] MapShine | 🌦️ WeatherSystemManager.initialize() starting...\n"
+                        },
+                        {
+                          "text": "[BROWSER]   - WeatherEffectLayer module imported\n"
+                        },
+                        {
+                          "text": "[BROWSER]   - WeatherEffectLayer instance created\n"
+                        },
+                        {
+                          "text": "[BROWSER] 🔧 MapShine | RainShaderAdvanced 2.1.1-DOUBLE-LIFETIME-WIND initialized\n"
+                        },
+                        {
+                          "text": "[BROWSER]   - WeatherEffectLayer initialized\n"
+                        },
+                        {
+                          "text": "[BROWSER]   - Weather layer added to canvas.environment at index 14 with zIndex=800\n"
+                        },
+                        {
+                          "text": "[BROWSER]   - This places weather ABOVE OverheadEffectLayer (zIndex=700), BushLayer (115), TreeLayer (116)\n"
+                        },
+                        {
+                          "text": "[BROWSER] Error: TileDocumentPF2e#overhead is deprecated.\nDeprecated since Version 12\nBackwards-compatible support will be removed in Version 14\n    at Object.logCompatibilityWarning (http://localhost:30000/scripts/foundry.mjs:6712:17)\n    at get overhead (http://localhost:30000/scripts/foundry.mjs:22032:19)\n    at OverheadEffectLayer._refreshOverheadTiles (http://localhost:30000/modules/map-shine/scripts/module.js:7956:23)\n    at OverheadEffectLayer.updateFromConfig (http://localhost:30000/modules/map-shine/scripts/module.js:7940:10)\n    at MapShineLifecycle.runFullSetup (http://localhost:30000/modules/map-shine/scripts/module.js:8526:23)\n    at async MapShineLifecycle.beginPersistentDiscovery (http://localhost:30000/modules/map-shine/scripts/module.js:8348:11)\n"
+                        },
+                        {
+                          "text": "[BROWSER] Error: TileDocumentPF2e#overhead is deprecated.\nDeprecated since Version 12\nBackwards-compatible support will be removed in Version 14\n    at Object.logCompatibilityWarning (http://localhost:30000/scripts/foundry.mjs:6712:17)\n    at get overhead (http://localhost:30000/scripts/foundry.mjs:22032:19)\n    at OverheadEffectLayer._refreshOverheadTiles (http://localhost:30000/modules/map-shine/scripts/module.js:7956:23)\n    at OverheadEffectLayer.updateFromConfig (http://localhost:30000/modules/map-shine/scripts/module.js:7940:10)\n    at MapShineLifecycle.runFullSetup (http://localhost:30000/modules/map-shine/scripts/module.js:8526:23)\n    at async MapShineLifecycle.beginPersistentDiscovery (http://localhost:30000/modules/map-shine/scripts/module.js:8348:11)\n"
+                        },
+                        {
+                          "text": "[BROWSER] Error: You are accessing TileDocumentPF2e#roof which has been migrated to TileDocumentPF2e#restrictions.{light|weather}\nDeprecated since Version 12\nBackwards-compatible support will be removed in Version 14\n    at logCompatibilityWarning (http://localhost:30000/scripts/foundry.mjs:6712:17)\n    at TileDocumentPF2e._logDataFieldMigration (http://localhost:30000/scripts/foundry.mjs:13201:5)\n    at get roof (http://localhost:30000/scripts/foundry.mjs:22010:22)\n    at OverheadEffectLayer._refreshOverheadTiles (http://localhost:30000/modules/map-shine/scripts/module.js:7957:23)\n    at OverheadEffectLayer.updateFromConfig (http://localhost:30000/modules/map-shine/scripts/module.js:7940:10)\n    at MapShineLifecycle.runFullSetup (http://localhost:30000/modules/map-shine/scripts/module.js:8526:23)\n    at async MapShineLifecycle.beginPersistentDiscovery (http://localhost:30000/modules/map-shine/scripts/module.js:8348:11)\n"
+                        },
+                        {
+                          "text": "[BROWSER] Error: TileDocumentPF2e#overhead is deprecated.\nDeprecated since Version 12\nBackwards-compatible support will be removed in Version 14\n    at Object.logCompatibilityWarning (http://localhost:30000/scripts/foundry.mjs:6712:17)\n    at get overhead (http://localhost:30000/scripts/foundry.mjs:22032:19)\n    at OverheadEffectLayer._refreshOverheadTiles (http://localhost:30000/modules/map-shine/scripts/module.js:7956:23)\n    at OverheadEffectLayer.updateFromConfig (http://localhost:30000/modules/map-shine/scripts/module.js:7940:10)\n    at MapShineLifecycle.runFullSetup (http://localhost:30000/modules/map-shine/scripts/module.js:8526:23)\n    at async MapShineLifecycle.beginPersistentDiscovery (http://localhost:30000/modules/map-shine/scripts/module.js:8348:11)\n"
+                        },
+                        {
+                          "text": "[BROWSER] Error: You are accessing TileDocumentPF2e#roof which has been migrated to TileDocumentPF2e#restrictions.{light|weather}\nDeprecated since Version 12\nBackwards-compatible support will be removed in Version 14\n    at logCompatibilityWarning (http://localhost:30000/scripts/foundry.mjs:6712:17)\n    at TileDocumentPF2e._logDataFieldMigration (http://localhost:30000/scripts/foundry.mjs:13201:5)\n    at get roof (http://localhost:30000/scripts/foundry.mjs:22010:22)\n    at OverheadEffectLayer._refreshOverheadTiles (http://localhost:30000/modules/map-shine/scripts/module.js:7957:23)\n    at OverheadEffectLayer.updateFromConfig (http://localhost:30000/modules/map-shine/scripts/module.js:7940:10)\n    at MapShineLifecycle.runFullSetup (http://localhost:30000/modules/map-shine/scripts/module.js:8526:23)\n    at async MapShineLifecycle.beginPersistentDiscovery (http://localhost:30000/modules/map-shine/scripts/module.js:8348:11)\n"
+                        },
+                        {
+                          "text": "[BROWSER] Error: TileDocumentPF2e#overhead is deprecated.\nDeprecated since Version 12\nBackwards-compatible support will be removed in Version 14\n    at Object.logCompatibilityWarning (http://localhost:30000/scripts/foundry.mjs:6712:17)\n    at get overhead (http://localhost:30000/scripts/foundry.mjs:22032:19)\n    at OverheadEffectLayer._refreshOverheadTiles (http://localhost:30000/modules/map-shine/scripts/module.js:7956:23)\n    at OverheadEffectLayer.updateFromConfig (http://localhost:30000/modules/map-shine/scripts/module.js:7940:10)\n    at MapShineLifecycle.runFullSetup (http://localhost:30000/modules/map-shine/scripts/module.js:8526:23)\n    at async MapShineLifecycle.beginPersistentDiscovery (http://localhost:30000/modules/map-shine/scripts/module.js:8348:11)\n"
+                        },
+                        {
+                          "text": "[BROWSER] Map Shine | GeometryMaskManager not available, skipping prewarm\n"
+                        },
+                        {
+                          "text": "[BROWSER] MapShine | 🌦️ WEATHER AUTO-START DEBUG:\n"
+                        },
+                        {
+                          "text": "[BROWSER]   - WeatherSystemManager exists: true\n"
+                        },
+                        {
+                          "text": "[BROWSER]   - Manager isReady: true\n"
+                        },
+                        {
+                          "text": "[BROWSER]   - Config weather enabled: true\n"
+                        },
+                        {
+                          "text": "[BROWSER]   - Initial state: Storm\n"
+                        },
+                        {
+                          "text": "[BROWSER]   - Conditions met, applying initial state...\n"
+                        },
+                        {
+                          "text": "[BROWSER] MapShine | 🌦️ setInitialState() called with: Storm\n"
+                        },
+                        {
+                          "text": "[BROWSER] MapShine | WeatherSystemManager: Initial state set to 'storm'\n"
+                        },
+                        {
+                          "text": "[BROWSER]   - weatherEffectLayer exists: true\n"
+                        },
+                        {
+                          "text": "[BROWSER]   - Calling updateFromConfig on weatherEffectLayer...\n"
+                        },
+                        {
+                          "text": "[BROWSER]   - updateFromConfig complete\n"
+                        },
+                        {
+                          "text": "[BROWSER]   - State definition precipitationType: rain\n"
+                        },
+                        {
+                          "text": "[BROWSER]   - WeatherEffectLayer exists, updating...\n"
+                        },
+                        {
+                          "text": "[BROWSER]   - Effect status:\n"
+                        },
+                        {
+                          "text": "[BROWSER]     - rain: visible=true, alpha=1, opacity=1\n"
+                        },
+                        {
+                          "text": "[BROWSER]     - snow: visible=false, alpha=1, opacity=0.8\n"
+                        },
+                        {
+                          "text": "[BROWSER]     - fog: visible=true, alpha=1, opacity=undefined\n"
+                        },
+                        {
+                          "text": "[BROWSER] [RenderTexturePool] Already initialized\n"
+                        },
+                        {
+                          "text": "[BROWSER] MapShine | 🌦️ WeatherSystemManager.initialize() starting...\n"
+                        },
+                        {
+                          "text": "[BROWSER]   - WeatherEffectLayer module imported\n"
+                        },
+                        {
+                          "text": "[BROWSER]   - WeatherEffectLayer instance created\n"
+                        },
+                        {
+                          "text": "[BROWSER] 🔧 MapShine | RainShaderAdvanced 2.1.1-DOUBLE-LIFETIME-WIND initialized\n"
+                        },
+                        {
+                          "text": "[BROWSER]   - WeatherEffectLayer initialized\n"
+                        },
+                        {
+                          "text": "[BROWSER]   - Weather layer added to canvas.environment at index 15 with zIndex=800\n"
+                        },
+                        {
+                          "text": "[BROWSER]   - This places weather ABOVE OverheadEffectLayer (zIndex=700), BushLayer (115), TreeLayer (116)\n"
+                        },
+                        {
+                          "text": "[BROWSER] Error: TileDocumentPF2e#overhead is deprecated.\nDeprecated since Version 12\nBackwards-compatible support will be removed in Version 14\n    at Object.logCompatibilityWarning (http://localhost:30000/scripts/foundry.mjs:6712:17)\n    at get overhead (http://localhost:30000/scripts/foundry.mjs:22032:19)\n    at OverheadEffectLayer._refreshOverheadTiles (http://localhost:30000/modules/map-shine/scripts/module.js:7956:23)\n    at OverheadEffectLayer.updateFromConfig (http://localhost:30000/modules/map-shine/scripts/module.js:7940:10)\n    at ProfileManager.updateAllSystemsFromConfig (http://localhost:30000/modules/map-shine/scripts/managers/ProfileManager.js:615:23)\n"
+                        },
+                        {
+                          "text": "[BROWSER] Error: TileDocumentPF2e#overhead is deprecated.\nDeprecated since Version 12\nBackwards-compatible support will be removed in Version 14\n    at Object.logCompatibilityWarning (http://localhost:30000/scripts/foundry.mjs:6712:17)\n    at get overhead (http://localhost:30000/scripts/foundry.mjs:22032:19)\n    at OverheadEffectLayer._refreshOverheadTiles (http://localhost:30000/modules/map-shine/scripts/module.js:7956:23)\n    at OverheadEffectLayer.updateFromConfig (http://localhost:30000/modules/map-shine/scripts/module.js:7940:10)\n    at ProfileManager.updateAllSystemsFromConfig (http://localhost:30000/modules/map-shine/scripts/managers/ProfileManager.js:615:23)\n"
+                        },
+                        {
+                          "text": "[BROWSER] Error: You are accessing TileDocumentPF2e#roof which has been migrated to TileDocumentPF2e#restrictions.{light|weather}\nDeprecated since Version 12\nBackwards-compatible support will be removed in Version 14\n    at logCompatibilityWarning (http://localhost:30000/scripts/foundry.mjs:6712:17)\n    at TileDocumentPF2e._logDataFieldMigration (http://localhost:30000/scripts/foundry.mjs:13201:5)\n    at get roof (http://localhost:30000/scripts/foundry.mjs:22010:22)\n    at OverheadEffectLayer._refreshOverheadTiles (http://localhost:30000/modules/map-shine/scripts/module.js:7957:23)\n    at OverheadEffectLayer.updateFromConfig (http://localhost:30000/modules/map-shine/scripts/module.js:7940:10)\n    at ProfileManager.updateAllSystemsFromConfig (http://localhost:30000/modules/map-shine/scripts/managers/ProfileManager.js:615:23)\n"
+                        },
+                        {
+                          "text": "[BROWSER] Error: TileDocumentPF2e#overhead is deprecated.\nDeprecated since Version 12\nBackwards-compatible support will be removed in Version 14\n    at Object.logCompatibilityWarning (http://localhost:30000/scripts/foundry.mjs:6712:17)\n    at get overhead (http://localhost:30000/scripts/foundry.mjs:22032:19)\n    at OverheadEffectLayer._refreshOverheadTiles (http://localhost:30000/modules/map-shine/scripts/module.js:7956:23)\n    at OverheadEffectLayer.updateFromConfig (http://localhost:30000/modules/map-shine/scripts/module.js:7940:10)\n    at ProfileManager.updateAllSystemsFromConfig (http://localhost:30000/modules/map-shine/scripts/managers/ProfileManager.js:615:23)\n"
+                        },
+                        {
+                          "text": "[BROWSER] Error: You are accessing TileDocumentPF2e#roof which has been migrated to TileDocumentPF2e#restrictions.{light|weather}\nDeprecated since Version 12\nBackwards-compatible support will be removed in Version 14\n    at logCompatibilityWarning (http://localhost:30000/scripts/foundry.mjs:6712:17)\n    at TileDocumentPF2e._logDataFieldMigration (http://localhost:30000/scripts/foundry.mjs:13201:5)\n    at get roof (http://localhost:30000/scripts/foundry.mjs:22010:22)\n    at OverheadEffectLayer._refreshOverheadTiles (http://localhost:30000/modules/map-shine/scripts/module.js:7957:23)\n    at OverheadEffectLayer.updateFromConfig (http://localhost:30000/modules/map-shine/scripts/module.js:7940:10)\n    at ProfileManager.updateAllSystemsFromConfig (http://localhost:30000/modules/map-shine/scripts/managers/ProfileManager.js:615:23)\n"
+                        },
+                        {
+                          "text": "[BROWSER] Error: TileDocumentPF2e#overhead is deprecated.\nDeprecated since Version 12\nBackwards-compatible support will be removed in Version 14\n    at Object.logCompatibilityWarning (http://localhost:30000/scripts/foundry.mjs:6712:17)\n    at get overhead (http://localhost:30000/scripts/foundry.mjs:22032:19)\n    at OverheadEffectLayer._refreshOverheadTiles (http://localhost:30000/modules/map-shine/scripts/module.js:7956:23)\n    at OverheadEffectLayer.updateFromConfig (http://localhost:30000/modules/map-shine/scripts/module.js:7940:10)\n    at ProfileManager.updateAllSystemsFromConfig (http://localhost:30000/modules/map-shine/scripts/managers/ProfileManager.js:615:23)\n"
+                        },
+                        {
+                          "text": "[BROWSER] Error: TileDocumentPF2e#overhead is deprecated.\nDeprecated since Version 12\nBackwards-compatible support will be removed in Version 14\n    at Object.logCompatibilityWarning (http://localhost:30000/scripts/foundry.mjs:6712:17)\n    at get overhead (http://localhost:30000/scripts/foundry.mjs:22032:19)\n    at OverheadEffectLayer._refreshOverheadTiles (http://localhost:30000/modules/map-shine/scripts/module.js:7956:23)\n    at OverheadEffectLayer.updateFromConfig (http://localhost:30000/modules/map-shine/scripts/module.js:7940:10)\n    at MapShineLifecycle.runFullSetup (http://localhost:30000/modules/map-shine/scripts/module.js:8526:23)\n    at async MapShineLifecycle.beginPersistentDiscovery (http://localhost:30000/modules/map-shine/scripts/module.js:8348:11)\n    at async SceneChangeManager._performSetup (http://localhost:30000/modules/map-shine/scripts/module.js:4982:5)\n    at async SceneChangeManager.handleCanvasReady (http://localhost:30000/modules/map-shine/scripts/module.js:4721:7)\n"
+                        },
+                        {
+                          "text": "[BROWSER] Error: TileDocumentPF2e#overhead is deprecated.\nDeprecated since Version 12\nBackwards-compatible support will be removed in Version 14\n    at Object.logCompatibilityWarning (http://localhost:30000/scripts/foundry.mjs:6712:17)\n    at get overhead (http://localhost:30000/scripts/foundry.mjs:22032:19)\n    at OverheadEffectLayer._refreshOverheadTiles (http://localhost:30000/modules/map-shine/scripts/module.js:7956:23)\n    at OverheadEffectLayer.updateFromConfig (http://localhost:30000/modules/map-shine/scripts/module.js:7940:10)\n    at MapShineLifecycle.runFullSetup (http://localhost:30000/modules/map-shine/scripts/module.js:8526:23)\n    at async MapShineLifecycle.beginPersistentDiscovery (http://localhost:30000/modules/map-shine/scripts/module.js:8348:11)\n    at async SceneChangeManager._performSetup (http://localhost:30000/modules/map-shine/scripts/module.js:4982:5)\n    at async SceneChangeManager.handleCanvasReady (http://localhost:30000/modules/map-shine/scripts/module.js:4721:7)\n"
+                        },
+                        {
+                          "text": "[BROWSER] Error: You are accessing TileDocumentPF2e#roof which has been migrated to TileDocumentPF2e#restrictions.{light|weather}\nDeprecated since Version 12\nBackwards-compatible support will be removed in Version 14\n    at logCompatibilityWarning (http://localhost:30000/scripts/foundry.mjs:6712:17)\n    at TileDocumentPF2e._logDataFieldMigration (http://localhost:30000/scripts/foundry.mjs:13201:5)\n    at get roof (http://localhost:30000/scripts/foundry.mjs:22010:22)\n    at OverheadEffectLayer._refreshOverheadTiles (http://localhost:30000/modules/map-shine/scripts/module.js:7957:23)\n    at OverheadEffectLayer.updateFromConfig (http://localhost:30000/modules/map-shine/scripts/module.js:7940:10)\n    at MapShineLifecycle.runFullSetup (http://localhost:30000/modules/map-shine/scripts/module.js:8526:23)\n    at async MapShineLifecycle.beginPersistentDiscovery (http://localhost:30000/modules/map-shine/scripts/module.js:8348:11)\n    at async SceneChangeManager._performSetup (http://localhost:30000/modules/map-shine/scripts/module.js:4982:5)\n    at async SceneChangeManager.handleCanvasReady (http://localhost:30000/modules/map-shine/scripts/module.js:4721:7)\n"
+                        },
+                        {
+                          "text": "[BROWSER] Error: TileDocumentPF2e#overhead is deprecated.\nDeprecated since Version 12\nBackwards-compatible support will be removed in Version 14\n    at Object.logCompatibilityWarning (http://localhost:30000/scripts/foundry.mjs:6712:17)\n    at get overhead (http://localhost:30000/scripts/foundry.mjs:22032:19)\n    at OverheadEffectLayer._refreshOverheadTiles (http://localhost:30000/modules/map-shine/scripts/module.js:7956:23)\n    at OverheadEffectLayer.updateFromConfig (http://localhost:30000/modules/map-shine/scripts/module.js:7940:10)\n    at MapShineLifecycle.runFullSetup (http://localhost:30000/modules/map-shine/scripts/module.js:8526:23)\n    at async MapShineLifecycle.beginPersistentDiscovery (http://localhost:30000/modules/map-shine/scripts/module.js:8348:11)\n    at async SceneChangeManager._performSetup (http://localhost:30000/modules/map-shine/scripts/module.js:4982:5)\n    at async SceneChangeManager.handleCanvasReady (http://localhost:30000/modules/map-shine/scripts/module.js:4721:7)\n"
+                        },
+                        {
+                          "text": "[BROWSER] Error: You are accessing TileDocumentPF2e#roof which has been migrated to TileDocumentPF2e#restrictions.{light|weather}\nDeprecated since Version 12\nBackwards-compatible support will be removed in Version 14\n    at logCompatibilityWarning (http://localhost:30000/scripts/foundry.mjs:6712:17)\n    at TileDocumentPF2e._logDataFieldMigration (http://localhost:30000/scripts/foundry.mjs:13201:5)\n    at get roof (http://localhost:30000/scripts/foundry.mjs:22010:22)\n    at OverheadEffectLayer._refreshOverheadTiles (http://localhost:30000/modules/map-shine/scripts/module.js:7957:23)\n    at OverheadEffectLayer.updateFromConfig (http://localhost:30000/modules/map-shine/scripts/module.js:7940:10)\n    at MapShineLifecycle.runFullSetup (http://localhost:30000/modules/map-shine/scripts/module.js:8526:23)\n    at async MapShineLifecycle.beginPersistentDiscovery (http://localhost:30000/modules/map-shine/scripts/module.js:8348:11)\n    at async SceneChangeManager._performSetup (http://localhost:30000/modules/map-shine/scripts/module.js:4982:5)\n    at async SceneChangeManager.handleCanvasReady (http://localhost:30000/modules/map-shine/scripts/module.js:4721:7)\n"
+                        },
+                        {
+                          "text": "[BROWSER] Error: TileDocumentPF2e#overhead is deprecated.\nDeprecated since Version 12\nBackwards-compatible support will be removed in Version 14\n    at Object.logCompatibilityWarning (http://localhost:30000/scripts/foundry.mjs:6712:17)\n    at get overhead (http://localhost:30000/scripts/foundry.mjs:22032:19)\n    at OverheadEffectLayer._refreshOverheadTiles (http://localhost:30000/modules/map-shine/scripts/module.js:7956:23)\n    at OverheadEffectLayer.updateFromConfig (http://localhost:30000/modules/map-shine/scripts/module.js:7940:10)\n    at MapShineLifecycle.runFullSetup (http://localhost:30000/modules/map-shine/scripts/module.js:8526:23)\n    at async MapShineLifecycle.beginPersistentDiscovery (http://localhost:30000/modules/map-shine/scripts/module.js:8348:11)\n    at async SceneChangeManager._performSetup (http://localhost:30000/modules/map-shine/scripts/module.js:4982:5)\n    at async SceneChangeManager.handleCanvasReady (http://localhost:30000/modules/map-shine/scripts/module.js:4721:7)\n"
+                        },
+                        {
+                          "text": "[BROWSER] MapShine | 🌦️ WEATHER AUTO-START DEBUG:\n"
+                        },
+                        {
+                          "text": "[BROWSER]   - WeatherSystemManager exists: true\n"
+                        },
+                        {
+                          "text": "[BROWSER]   - Manager isReady: true\n"
+                        },
+                        {
+                          "text": "[BROWSER]   - Config weather enabled: true\n"
+                        },
+                        {
+                          "text": "[BROWSER]   - Initial state: Storm\n"
+                        },
+                        {
+                          "text": "[BROWSER]   - Conditions met, applying initial state...\n"
+                        },
+                        {
+                          "text": "[BROWSER] MapShine | 🌦️ setInitialState() called with: Storm\n"
+                        },
+                        {
+                          "text": "[BROWSER] MapShine | WeatherSystemManager: Initial state set to 'storm'\n"
+                        },
+                        {
+                          "text": "[BROWSER]   - weatherEffectLayer exists: true\n"
+                        },
+                        {
+                          "text": "[BROWSER]   - Calling updateFromConfig on weatherEffectLayer...\n"
+                        },
+                        {
+                          "text": "[BROWSER]   - updateFromConfig complete\n"
+                        },
+                        {
+                          "text": "[BROWSER]   - State definition precipitationType: rain\n"
+                        },
+                        {
+                          "text": "[BROWSER]   - WeatherEffectLayer exists, updating...\n"
+                        },
+                        {
+                          "text": "[BROWSER]   - Effect status:\n"
+                        },
+                        {
+                          "text": "[BROWSER]     - rain: visible=true, alpha=1, opacity=1\n"
+                        },
+                        {
+                          "text": "[BROWSER]     - snow: visible=false, alpha=1, opacity=0.8\n"
+                        },
+                        {
+                          "text": "[BROWSER]     - fog: visible=true, alpha=1, opacity=undefined\n"
+                        }
+                      ],
+                      "retry": 0,
+                      "startTime": "2025-10-26T15:24:11.885Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "dd9b2edffe9b7501040c-b99ccc21c8bca6fb3f67",
+              "file": "example.spec.js",
+              "line": 34,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2025-10-26T15:24:10.710Z",
+    "duration": 44767.891,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

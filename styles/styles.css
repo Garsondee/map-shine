@@ -2194,3 +2194,94 @@
     flex-direction: column;
     gap: 6px;
   }
+
+  /* =============================================================================
+     Clock Dropdowns (Weather and Time of Day)
+     ========================================================================== */
+
+  .weather-dropdown,
+  .timeofday-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 4px;
+    background: rgba(17, 24, 39, 0.95);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 4px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    min-width: 160px;
+    max-height: 300px;
+    overflow-y: auto;
+    backdrop-filter: blur(10px);
+  }
+
+  .weather-dropdown-item,
+  .timeofday-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .weather-dropdown-item:last-child,
+  .timeofday-dropdown-item:last-child {
+    border-bottom: none;
+  }
+
+  .weather-dropdown-item:hover,
+  .timeofday-dropdown-item:hover {
+    background: rgba(59, 130, 246, 0.2);
+  }
+
+  .weather-dropdown-item.active,
+  .timeofday-dropdown-item.active {
+    background: rgba(59, 130, 246, 0.3);
+    border-left: 3px solid #3b82f6;
+  }
+
+  .weather-dropdown-item .item-icon,
+  .timeofday-dropdown-item .item-icon {
+    font-size: 18px;
+    width: 24px;
+    text-align: center;
+  }
+
+  .weather-dropdown-item .item-name,
+  .timeofday-dropdown-item .item-name {
+    flex: 1;
+    color: #f1f5f9;
+    font-size: 13px;
+  }
+
+  .timeofday-dropdown-item .item-time {
+    color: #94a3b8;
+    font-size: 11px;
+    font-family: monospace;
+  }
+
+  /* Custom scrollbar for dropdowns */
+  .weather-dropdown::-webkit-scrollbar,
+  .timeofday-dropdown::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .weather-dropdown::-webkit-scrollbar-track,
+  .timeofday-dropdown::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+  }
+
+  .weather-dropdown::-webkit-scrollbar-thumb,
+  .timeofday-dropdown::-webkit-scrollbar-thumb {
+    background: rgba(59, 130, 246, 0.5);
+    border-radius: 3px;
+  }
+
+  .weather-dropdown::-webkit-scrollbar-thumb:hover,
+  .timeofday-dropdown::-webkit-scrollbar-thumb:hover {
+    background: rgba(59, 130, 246, 0.7);
+  }

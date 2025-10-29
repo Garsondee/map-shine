@@ -21,6 +21,13 @@ const CONFIG_SYSTEM_MAP = {
   physicsRope: { type: 'layer', layerClass: 'PhysicsRopeLayer' },
   bush: { type: 'layer', layerClass: 'BushLayer' },
   tree: { type: 'layer', layerClass: 'TreeLayer' },
+  water: { type: 'layer', layerClass: 'WaterFXLayer' },
+  foam: { type: 'layer', layerClass: 'FoamLayer' },
+  overheadEffect: { type: 'layer', layerClass: 'OverheadEffectLayer' },
+  lightning: { type: 'layer', layerClass: 'LightningLayer' },
+  mapPoints: { type: 'layer', layerClass: 'MapPointsLayer' },
+  cloudDepth: { type: 'layer', layerClass: 'CloudDepthLayer' },
+  buildingShadows: { type: 'layer', layerClass: 'BuildingShadowsLayer' },
   
   // Post-processing filters
   postProcessing: { type: 'filter', filterName: 'postProcessing' },
@@ -31,6 +38,12 @@ const CONFIG_SYSTEM_MAP = {
   biofilm: { type: 'particle', effectKey: 'biofilm' },
   metallicGlints: { type: 'particle', effectKey: 'metallicGlints' },
   smellyFlies: { type: 'particle', effectKey: 'smellyFlies' },
+  sparks: { type: 'particle', effectKey: 'sparks' },
+  glint: { type: 'particle', effectKey: 'glint' },
+  steam: { type: 'particle', effectKey: 'steam' },
+  
+  // Weather system
+  weather: { type: 'manager', managerKey: 'weatherSystemManager' },
   
   // Time control affects multiple systems
   timeControl: { type: 'cross-cutting', updateFn: 'updateTimeControl' },
@@ -435,17 +448,20 @@ export class ProfileManager {
   // SECTION: User Overrides & State Management
   // =========================================================================
   async recordUserChange(path, value) {
+    // Update both userOverrides and activeConfig immediately for instant UI response
     foundry.utils.setProperty(this._userOverrides, path, value);
-    await this.dataManager.saveUserOverrides(
+    foundry.utils.setProperty(this.activeConfig, path, value);
+    
+    // Persist to storage asynchronously (don't wait for completion)
+    this.dataManager.saveUserOverrides(
       this.activeSceneId,
       this._userOverrides
-    );
-    // Must reload after save completes to ensure we get the updated config
-    this.initializeForScene();
+    ).catch(err => {
+      console.error('MapShine | Failed to save user overrides:', err);
+      ui.notifications?.error('Failed to save setting. See console for details.');
+    });
     
-    // Directly update activeConfig to ensure immediate responsiveness
-    // This prevents race conditions where the reload might not pick up the change
-    foundry.utils.setProperty(this.activeConfig, path, value);
+    // No need to reload - activeConfig already updated directly
   }
 
   async revertToSceneDefault() {
@@ -510,85 +526,166 @@ export class ProfileManager {
     
     console.log(`MapShine | Targeted update for: ${topLevelKey} (${systemConfig.type})`);
     
-    switch (systemConfig.type) {
-      case 'layer': {
-        // Find and update only the specific layer
-        const layer = canvas.layers.find(l => l.constructor.name === systemConfig.layerClass);
-        if (layer && typeof layer.updateFromConfig === 'function') {
-          try {
-            await layer.updateFromConfig(this.activeConfig);
-          } catch (e) {
-            console.error(`MapShine | Error updating ${systemConfig.layerClass}:`, e);
-          }
-        }
-        break;
-      }
-      
-      case 'filter': {
-        // Update only the specific filter(s)
-        const { ScreenEffectsManager } = await import("../module.js");
-        if (systemConfig.filterName === 'postProcessing') {
-          // Update all post-processing filters
-          ScreenEffectsManager.updateAllFiltersFromConfig(this.activeConfig);
-        } else {
-          // Update specific filter
-          ScreenEffectsManager.updateFilterFromPath(path, this.activeConfig);
-        }
-        break;
-      }
-      
-      case 'particle': {
-        // Update specific particle effect
-        if (systemConfig.effectKey === 'smellyFlies') {
-          const fliesLayer = canvas.layers.find(l => l instanceof SmellyFliesLayer);
-          if (fliesLayer && typeof fliesLayer.updateFromConfig === 'function') {
-            await fliesLayer.updateFromConfig(this.activeConfig);
-          }
-        } else if (game.mapShine.particleManager) {
-          // Update specific particle controller via the global particle manager
-          const controller = game.mapShine.particleManager.controllers.get(systemConfig.effectKey);
-          if (controller && typeof controller.updateFromConfig === 'function') {
-            controller.updateFromConfig(this.activeConfig);
-          }
-        }
-        break;
-      }
-      
-      case 'cross-cutting': {
-        // Handle effects that span multiple systems
-        if (systemConfig.updateFn === 'updateTimeControl') {
-          game.mapShine.timeControl.timeFactor = value / 100.0;
-          // Time affects multiple layers - need targeted list
-          const timeAffectedLayers = ['TimeOfDayLayer', 'CloudShadowsLayer', 'IridescenceLayer'];
-          for (const layerName of timeAffectedLayers) {
-            const layer = canvas.layers.find(l => l.constructor.name === layerName);
-            if (layer && typeof layer.updateFromConfig === 'function') {
-              await layer.updateFromConfig(this.activeConfig, { timeOnly: true });
+    try {
+      switch (systemConfig.type) {
+        case 'layer': {
+          // Find and update only the specific layer
+          const layer = canvas.layers.find(l => l.constructor.name === systemConfig.layerClass);
+          if (layer && typeof layer.updateFromConfig === 'function') {
+            try {
+              await layer.updateFromConfig(this.activeConfig);
+            } catch (e) {
+              console.error(`MapShine | Error updating ${systemConfig.layerClass}:`, e);
+              throw e; // Re-throw to trigger fallback
             }
           }
+          break;
         }
-        break;
+        
+        case 'filter': {
+          // Update only the specific filter(s)
+          try {
+            const { ScreenEffectsManager } = await import("../module.js");
+            if (systemConfig.filterName === 'postProcessing') {
+              // Update all post-processing filters
+              ScreenEffectsManager.updateAllFiltersFromConfig(this.activeConfig);
+            } else {
+              // Update specific filter
+              ScreenEffectsManager.updateFilterFromPath(path, this.activeConfig);
+            }
+          } catch (e) {
+            console.error(`MapShine | Error updating filter ${systemConfig.filterName}:`, e);
+            throw e; // Re-throw to trigger fallback
+          }
+          break;
+        }
+        
+        case 'particle': {
+          // Update specific particle effect
+          if (systemConfig.effectKey === 'smellyFlies') {
+            const fliesLayer = canvas.layers.find(l => l instanceof SmellyFliesLayer);
+            if (fliesLayer && typeof fliesLayer.updateFromConfig === 'function') {
+              await fliesLayer.updateFromConfig(this.activeConfig);
+            }
+          } else if (game.mapShine.particleManager) {
+            // Update specific particle controller via the global particle manager
+            const controller = game.mapShine.particleManager.controllers.get(systemConfig.effectKey);
+            if (controller && typeof controller.updateFromConfig === 'function') {
+              controller.updateFromConfig(this.activeConfig);
+            }
+          }
+          break;
+        }
+        
+        case 'manager': {
+          // Update a specific manager (e.g., WeatherSystemManager)
+          const manager = game.mapShine?.[systemConfig.managerKey];
+          if (manager && typeof manager.updateFromConfig === 'function') {
+            try {
+              await manager.updateFromConfig(this.activeConfig);
+            } catch (e) {
+              console.error(`MapShine | Error updating manager ${systemConfig.managerKey}:`, e);
+              throw e; // Re-throw to trigger fallback
+            }
+          }
+          break;
+        }
+        
+        case 'cross-cutting': {
+          // Handle effects that span multiple systems
+          if (systemConfig.updateFn === 'updateTimeControl') {
+            game.mapShine.timeControl.timeFactor = value / 100.0;
+            // Time affects multiple layers - need targeted list
+            const timeAffectedLayers = ['TimeOfDayLayer', 'CloudShadowsLayer', 'IridescenceLayer'];
+            for (const layerName of timeAffectedLayers) {
+              const layer = canvas.layers.find(l => l.constructor.name === layerName);
+              if (layer && typeof layer.updateFromConfig === 'function') {
+                await layer.updateFromConfig(this.activeConfig, { timeOnly: true });
+              }
+            }
+          }
+          break;
+        }
+        
+        case 'universal': {
+          // Universal settings are handled differently - they affect game settings
+          // These typically require a full refresh
+          return this.updateAllSystemsFromConfig();
+        }
+        
+        case 'none': {
+          // These settings don't require real-time updates
+          break;
+        }
+        
+        default:
+          console.warn(`MapShine | Unknown system type: ${systemConfig.type}`);
+          break;
       }
       
-      case 'universal': {
-        // Universal settings are handled differently - they affect game settings
-        // These typically require a full refresh
-        return this.updateAllSystemsFromConfig();
+      // Apply tile opacities if needed (lightweight operation)
+      if (game.mapShine.effectTargetManager && topLevelKey !== 'timeControl') {
+        game.mapShine.effectTargetManager.applyTileOpacities();
       }
       
-      case 'none': {
-        // These settings don't require real-time updates
-        break;
-      }
+    } catch (error) {
+      console.error(`MapShine | Targeted update failed for ${topLevelKey}, falling back to full update:`, error);
+      // Fallback to full update on any error
+      return this.updateAllSystemsFromConfig();
+    }
+  }
+
+  /**
+   * Lightweight update for time-dependent systems during smooth transitions.
+   * Updates only shader uniforms and interpolated values without regenerating geometry.
+   * Used by UnifiedTransitionManager for real-time time of day changes.
+   */
+  updateTimeBasedSystems() {
+    if (!canvas?.ready) return;
+    const config = this.activeConfig;
+    
+    // Update time control factor
+    game.mapShine.timeControl.timeFactor = config.timeControl.globalTime / 100.0;
+    
+    // Update scene darkness smoothly during transition (if enabled and user is GM)
+    if (game.user.isGM && config.timeOfDay?.syncToSceneDarkness && canvas.scene) {
+      const time = config.timeOfDay.currentTime ?? 12.0;
+      const darkness = 0.5 * (Math.cos((Math.PI * time) / 12) + 1);
+      const clampedDarkness = Math.max(0, Math.min(1, darkness));
       
-      default:
-        console.warn(`MapShine | Unknown system type: ${systemConfig.type}`);
-        break;
+      // Update darkness level directly without triggering a full scene update
+      // This avoids the database write and allows smooth interpolation
+      const currentDarkness = canvas.scene.environment.darknessLevel ?? 0;
+      const darknessDiff = Math.abs(currentDarkness - clampedDarkness);
+      
+      // Update every frame for perfectly smooth transitions
+      // Use very small threshold (0.0001) to avoid floating point noise but ensure smooth changes
+      if (darknessDiff > 0.0001) {
+        canvas.scene.environment.darknessLevel = clampedDarkness;
+        
+        // Throttle perception updates to avoid performance issues
+        // Only update lighting when difference is meaningful (> 0.003 or ~0.3% change)
+        if (darknessDiff > 0.003) {
+          if (canvas.perception?.update) {
+            canvas.perception.update({ refreshLighting: true, refreshVision: false });
+          }
+        }
+      }
     }
     
-    // Apply tile opacities if needed (lightweight operation)
-    if (game.mapShine.effectTargetManager && topLevelKey !== 'timeControl') {
-      game.mapShine.effectTargetManager.applyTileOpacities();
+    // Update layers that have time-dependent shaders (without regeneration)
+    for (const layer of canvas.layers) {
+      // Only update layers with lightweight time updates
+      if (typeof layer.updateTimeUniforms === "function") {
+        try {
+          layer.updateTimeUniforms(config);
+        } catch (e) {
+          console.error(
+            `MapShine | Error updating time uniforms for ${layer.constructor.name}`,
+            e
+          );
+        }
+      }
     }
   }
 

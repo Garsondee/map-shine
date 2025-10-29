@@ -1,2 +1,9 @@
 .history/
 node_modules/
+
+# Playwright test artifacts (videos, traces, screenshots)
+tests/playwright-artifacts/
+tests/playwright-report/
+tests/playwright-results.json
+playwright-report/
+test-results/

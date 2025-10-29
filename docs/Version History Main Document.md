@@ -1,3 +1,827 @@
+Version: 1.2.27 (Current)
+
+**FEATURE - Filter Corruption Protection System**
+
+Implemented a comprehensive filter validation and safe creation system to prevent PIXI filter corruption that can occur when invalid filters or corrupted filter arrays are applied to display objects. This system provides defensive programming against shader compilation failures, invalid filter states, and memory corruption.
+
+**Problem Identified:**
+- PIXI filters can become corrupted due to shader compilation failures, invalid uniforms, or improper disposal
+- Applying corrupted filters to display objects can cause cascade failures affecting all rendering
+- Filter arrays could become corrupted with null/undefined entries or destroyed filters
+- No validation was performed before filter creation or application
+
+**Solution Implemented:**
+- **safeCreateFilter**: Validates filter classes and safely instantiates filters with proper error handling and context logging
+- **validateFilter**: Comprehensive filter state validation checking shaders, uniforms, programs, and texture states
+- **cleanFilterArray**: Sanitizes filter arrays by removing invalid, destroyed, or corrupted entries
+- **safeApplyFilters**: Validates and cleans filter arrays before applying them to display objects
+- **Updated All Filter Creation**: Migrated ScreenEffectsManager (vignette, colorCorrection, pauseEffect, combatEffect, filmGrain, tiltShift) to use safe creation methods
+- **Enhanced Logging**: Context-aware logging for debugging filter creation and validation failures
+
+**Technical Changes:**
+- Added utility functions at top of module.js (lines ~136-234)
+- Updated ScreenEffectsManager.setup() to use safeCreateFilter for all filter instantiation
+- Each filter creation now includes proper validation and fallback error tracking
+- System provides detailed console warnings for filter issues without breaking execution
+
+**Benefits:**
+- Prevents filter corruption from propagating through the rendering pipeline
+- Provides early detection of shader compilation failures
+- Gracefully handles filter creation errors without breaking module functionality
+- Detailed error logging helps diagnose PIXI-related rendering issues
+- More robust and defensive codebase for complex shader operations
+
+---
+
+Version: 1.2.26
+
+**BUG FIX - Water Settings UI Controls Not Updating**
+
+Fixed a critical issue where changing water settings in the UI (especially specular highlights) had no effect on the scene. Users could move sliders and change values but the water effects would not update in real-time.
+
+**Problem Identified:**
+- The targeted update system in ProfileManager was looking for a layer class named 'WaterEffectLayer'
+- The actual water layer class is named 'WaterFXLayer'
+- This mismatch caused the updateFromConfig method to never be called when UI controls changed
+- Console showed "Targeted update for: water (layer)" but the layer was never found or updated
+
+**Solution Implemented:**
+- **Fixed Layer Class Mapping**: Updated CONFIG_SYSTEM_MAP in ProfileManager.js to use the correct class name 'WaterFXLayer' instead of 'WaterEffectLayer'
+- **Verified Update Path**: Confirmed that the UI controls properly trigger targeted updates which now successfully find and update the WaterFXLayer
+- **Cleaned Debug Code**: Removed temporary debugging logs that were added during investigation
+
+**Technical Changes:**
+- ProfileManager.js line 24: Changed `water: { type: 'layer', layerClass: 'WaterEffectLayer' }` to `water: { type: 'layer', layerClass: 'WaterFXLayer' }`
+- This enables the targeted update system to properly locate the WaterFXLayer instance
+- The updateFromConfig method now receives config changes and applies them to shader uniforms
+- All water settings (specularity, waves, caustics, etc.) now update correctly in real-time
+
+**Benefits:**
+- All water UI controls now work correctly and update the scene immediately
+- Specular highlights can be adjusted in real-time with proper visual feedback
+- No more confusion from UI changes that don't affect the rendered scene
+- Maintains the performance benefits of targeted updates (only water layer redraws, not entire scene)
+
+---
+
+Version: 1.2.25
+
+**BUG FIX - Scene Teardown Texture Cleanup Error**
+
+Fixed a critical error that occurred during scene transitions when Foundry tried to access texture properties that had been destroyed. The error "can't access property 'source', this.texture.baseTexture.resource is null" was happening because our filters were holding references to textures that were being destroyed during scene teardown.
+
+**Problem Identified:**
+- During scene transitions, Foundry's internal code checks if textures are videos by accessing `texture.baseTexture.resource.source`
+- Our filters (especially CloudShadowsFilterEnhanced) held texture uniforms that were destroyed during teardown
+- When Foundry tried to access these destroyed textures, it threw null reference errors
+
+**Solution Implemented:**
+- **Enhanced Filter Destroy Methods**: Added proper `destroy()` methods to all custom filters to clean up texture uniform references
+- **ScreenEffectsManager Cleanup**: Enhanced the tearDown method to proactively nullify all texture uniforms before destroying filters
+- **Defensive Texture Handling**: Added checks to identify and clean up any texture uniforms in filters before destruction
+- **Comprehensive Cleanup**: The cleanup now properly handles all texture references to prevent null pointer access
+
+**Technical Changes:**
+- CloudShadowsFilterEnhanced now properly nullifies `uOutdoorsMask` and `uLightPolygonMask` uniforms in destroy()
+- FireToneCurveFilter includes a destroy() method for consistency
+- ScreenEffectsManager.tearDown() iterates through all filter uniforms and nullifies texture references
+- Version bumped to 1.2.25 with corresponding manifest and download URL updates
+
+**Benefits:**
+- Scene transitions now complete without texture reference errors
+- More robust memory management during scene changes
+- Prevents crashes when switching between scenes with active effects
+- Maintains stability during rapid scene switching
+
+---
+
+Version: 1.2.24
+
+**BUG FIX - PauseEffect Filter Initialization Error**
+
+Fixed a critical bug where the pauseEffect filter could fail to initialize during module setup, causing the pause functionality to break when users tried to pause the game. The issue occurred when the ColorCorrectionFilter constructor threw an exception during the ScreenEffectsManager initialization.
+
+**Problem Identified:**
+- During ScreenEffectsManager.setup(), the pauseEffect filter initialization could fail
+- When PauseManager later tried to access the filter, it returned undefined
+- This caused the pause functionality to completely fail with a "could not find its dedicated filter" error
+
+**Solution Implemented:**
+- **Enhanced Error Handling**: Added proper try-catch blocks around all filter initializations in ScreenEffectsManager.setup() with detailed error logging
+- **Fallback Mechanism**: Modified PauseManager to create the pauseEffect filter on-demand if it wasn't found during setup
+- **Improved Logging**: Added comprehensive error logging to track filter initialization failures and recovery attempts
+- **Defensive Programming**: The system now gracefully handles filter initialization failures and provides automatic recovery
+
+**Technical Changes:**
+- ScreenEffectsManager.setup() now logs specific errors for each filter that fails to initialize
+- PauseManager.setPauseState() includes a fallback that creates missing filters dynamically
+- All filter initializations now use consistent error handling patterns
+- Version bumped to 1.2.24 with corresponding manifest and download URL updates
+
+**Benefits:**
+- Pause functionality now works reliably even if initial filter setup fails
+- Better error reporting helps diagnose filter-related issues
+- System is more resilient to initialization failures
+- Maintains backward compatibility while improving robustness
+
+---
+
+Version: 1.2.22
+
+**FEATURE - Centralized WeatherStateManager Integration**
+
+Implemented a unified weather state management system that centralizes all weather state definitions, transitions, and effect updates. This creates a single source of truth for weather behavior and enables smooth, coordinated transitions across all weather-related subsystems.
+
+**Core Components Added:**
+- **WeatherStateManager**: Centralized manager holding all weather state definitions, managing transitions, interpolation, and user-customizable states
+- **TransitionRegistry**: Manages transition rules and natural progressions between weather states with optimal pathfinding
+- **EffectRegistry**: Manages registration and coordination of all weather effect systems for unified updates
+
+**WeatherSystemManager Integration:**
+- Modified initialize() method to import and instantiate WeatherStateManager, TransitionRegistry, and EffectRegistry
+- Added _registerWeatherSystems() method to register WeatherEffectLayer, WindManager, CloudShadowsLayer, precipitation particles, and edge droplets with EffectRegistry
+- Updated transitionToState() to delegate transition logic to WeatherStateManager.transitionTo()
+- Updated update() method to use WeatherStateManager for centralized transition handling
+- Preserved legacy state tracking variables for backward compatibility
+
+**Registered Weather Systems:**
+- WeatherEffectLayer (shader-based effects): Priority 1, handles rain/snow/fog shaders
+- WindManager (wind system): Priority 2, applies weather-specific wind parameters
+- CloudShadowsLayer (cloud system): Priority 3, controls cloud density and movement
+- Precipitation particles: Priority 4, manages rain/snow/sleet particle systems
+- Edge droplets: Priority 5, controls wind-blown water particles on geometry edges
+
+**Benefits:**
+- Single source of truth for all weather state definitions
+- Smooth, coordinated transitions across all subsystems
+- Extensible architecture for adding new weather effects
+- Improved maintainability and reduced code duplication
+- Better separation of concerns with centralized control
+
+**Technical Details:**
+- Each registered effect system provides updateFunction and transitionFunction callbacks
+- Priority-based execution ensures proper update order (shaders first, then particles)
+- Capabilities and dependencies tracking for effect management
+- Easing and interpolation handled centrally by WeatherStateManager
+- Comprehensive logging for debugging and diagnostics
+
+---
+
+Version: 1.2.21
+
+**FEATURE - "Partly Cloudy" Weather State**
+
+Added a new weather state that provides a bright and positive atmosphere like "Clear" but with scattered white clouds for visual interest.
+
+**Weather State Characteristics:**
+- **Cloud Density:** 0.4 (moderate cloud coverage)
+- **Cloud Threshold:** 0.6 (well-defined cloud shapes)
+- **Cloud Softness:** 0.4 (soft cloud edges)
+- **Precipitation:** None (no rain/snow)
+- **Atmospheric Tint:** Nearly pure white (0.98, 0.98, 1.0) for bright skies
+- **Color Correction:** Enhanced saturation (1.05), contrast (1.02), and brightness (1.03) for vibrant appearance
+- **Wind:** Gentle breezes (max speed 4) with light cloud movement
+- **Foliage:** Mild rustle effects for natural ambiance
+
+**UI Integration:**
+- Added to weather state dropdown in the Map Shine debugger interface
+- Positioned between "Clear" and "Drizzle" for logical progression
+- Uses existing weather transition system for smooth changes
+
+**Technical Implementation:**
+- Added `PARTLY_CLOUDY: 'partly-cloudy'` to WeatherSystemManager.STATES enum
+- Added complete preset definition to UNIVERSAL_EFFECT_DEFAULTS.weather.statePresets
+- Integrates with existing cloud generation and wind systems
+- Compatible with all weather transition and interpolation logic
+
+**Use Case:**
+Perfect for scenes that need visual interest from cloud shadows and movement while maintaining a bright, positive atmosphere without precipitation effects.
+
+---
+
+Version: 1.2.20
+
+**STABLE STATE RESET**
+
+Reset the module to a known stable state (commit fb22c1e) before the major cloud shadow performance optimizations were attempted. This version serves as a clean baseline for future development.
+
+---
+
+Version: 1.2.19
+
+**FEATURE - UnifiedTransitionManager for Smooth Config Blending**
+
+Implemented comprehensive transition manager to enable smooth interpolation between configurations during time-of-day and weather changes, eliminating visual "popping" and jarring transitions.
+
+**Problem:**
+- Time-of-day transitions (e.g., 6:00 AM → 12:00 PM) caused instantaneous config changes
+- All effect parameters changed simultaneously creating harsh visual jumps
+- No smooth interpolation between old and new states
+- Weather transitions lacked coordinated effect blending
+
+**Solution:**
+
+**UnifiedTransitionManager Class** (Lines 2275-2376):
+- Generic transition system for any config-to-config blend
+- Accepts `fromConfig`, `toConfig`, `duration`, `onUpdate`, and `onComplete` callbacks
+- Performs deep recursive config interpolation across all properties
+- Supports custom easing functions (default: ease-in-out cubic)
+- Handles nested objects and arrays automatically
+- Cancels previous transitions when new one starts
+
+**Key Features:**
+1. **Deep Config Cloning** - Preserves original configs during transitions
+2. **Recursive Interpolation** - Blends all numeric properties in nested structures
+3. **Frame-Based Updates** - Uses `requestAnimationFrame` for smooth 60 FPS blending
+4. **Easing Support** - Cubic ease-in-out provides natural acceleration/deceleration
+5. **Callback Architecture** - `onUpdate` receives blended config each frame, `onComplete` fires when done
+
+**MapShineClock Integration** (Lines 35005-35023, 35044-35061):
+- Time transitions now use UnifiedTransitionManager instead of direct `updateTimeOfDay` calls
+- Creates target config with new time value
+- 100ms transitions for interim updates during dragging
+- Smooth blending of all time-dependent parameters
+
+**Technical Implementation:**
+```javascript
+game.mapShine.unifiedTransitionManager.startTransition({
+  fromConfig: game.mapShine.profileManager.activeConfig,
+  toConfig: targetConfig,
+  duration: 100,
+  onUpdate: async (blendedConfig) => {
+    await game.mapShine.profileManager.updateAllSystemsFromConfig(blendedConfig);
+  },
+  onComplete: async () => {
+    game.mapShine.profileManager.activeConfig.timeOfDay.currentTime = this.currentTime;
+  }
+});
+```
+
+**Initialization** (Line 2876):
+- `game.mapShine.unifiedTransitionManager` created during module setup
+- Available globally for any transition needs
+- Zero dependencies on specific effect systems
+
+**Benefits:**
+- ✅ Smooth time-of-day transitions without visual popping
+- ✅ Coordinated blending of all effect parameters
+- ✅ Reusable for weather, profile switching, and appearance changes
+- ✅ Frame-accurate interpolation at 60 FPS
+- ✅ Automatic cleanup and cancellation handling
+- ✅ Extensible for future transition needs
+
+**Future Extensions:**
+- Weather state transitions can use same system
+- Profile switching (day preset → night preset) with smooth blend
+- Appearance transition manager can delegate to unified system
+- Custom transition curves (ease-in, ease-out, linear, etc.)
+
+---
+
+**DOCUMENTATION - DayNightClock Remote Control Design Vision**
+
+Added comprehensive JSDoc to `DayNightClock` class describing future UI enhancement vision (Lines 35771-35785).
+
+**Vision:** Transform the clock into a sleek "remote control" interface for scene management.
+
+**Design Concept:**
+- Thin black rectangle with rounded edges (TV/media remote aesthetic)
+- Quick-access buttons for time, weather, and scene properties
+- Intuitive GM/DM control panel without opening main editor
+- Current implementation handles time and weather controls
+- Future: Additional scene control buttons (lighting presets, ambient sounds, etc.)
+
+**Current Features:**
+- Draggable clock face with sun/moon icon
+- Time adjustment controls (+/- 15 min buttons)
+- Manual vs Foundry time sync toggle
+- Transition speed controls with presets
+- Weather state dropdown with 7 states
+- Wind direction arrow indicator
+
+**Future Enhancements:**
+- Lighting preset buttons (day/night/dim)
+- Quick ambient audio toggles
+- Scene mood presets (horror/peaceful/combat)
+- Player visibility controls
+- Fog of war quick toggles
+
+**Documentation Purpose:**
+- Preserves design vision for future development
+- Guides UI expansion planning
+- Maintains consistent aesthetic direction
+- Helps future contributors understand intent
+
+---
+
+Version: 1.2.18
+
+**FEATURE - NoWater Mask System for Selective Effect Exclusion**
+
+Implemented comprehensive noWater mask system to exclude specific tiles (trees, bushes, rocks, structures) from water effects while allowing them to remain affected by other environmental effects.
+
+**Use Case:**
+- Tiles like trees, bushes, and rocks should not display water distortion, waves, or caustics
+- These same tiles should still be affected by cloud shadows, weather, and other effects
+- Required a selective exclusion system that only affects water effects
+
+**Implementation:**
+
+**1. WaterFXLayer Infrastructure**
+- `noWaterMaskContainer` - Container for tiles marked with `_NoWater` suffix
+- `noWaterMaskTexture` - Render texture capturing noWater exclusion mask
+- `noWaterMaskSprites` - Map tracking sprites for each noWater tile
+- `_needsNoWaterMaskUpdate` - Flag to trigger mask regeneration
+
+**2. Effect Flag Registration**
+- Added `noWater: "_NoWater"` to ResourceManager effect flag mapping (line 10223)
+- Enables automatic detection of tiles with `_NoWater` suffix
+- Follows existing pattern: `_Water`, `_Caustics`, `_Shoreline`, `_Puddle`
+
+**3. Mask Lifecycle Management**
+- `updateEffectTargets()` - Creates/updates noWater mask sprites from tile data (lines 33417-33430)
+- `_onAnimate()` - Renders noWater mask container to texture when needed (lines 33212-33219)
+- `_tearDown()` - Proper cleanup of noWater textures and sprites (lines 33507-33513, 33525-33526)
+- `_onResize()` - Resizes noWater mask texture on viewport changes (line 33355)
+
+**4. Shader Integration (WaterEffectsFilter)**
+- Added `u_noWaterMask` sampler2D uniform (line 31483)
+- Added `u_useNoWaterMask` boolean uniform (line 31488)
+- Early exit check in fragment shader when noWater mask present (lines 31658-31665):
+  ```glsl
+  float noWaterMaskValue = u_useNoWaterMask ? texture2D(u_noWaterMask, vTextureCoord).r : 0.0;
+  if (noWaterMaskValue > 0.01) {
+      gl_FragColor = texture2D(uSampler, vTextureCoord);
+      return;  // Skip all water effects
+  }
+  ```
+- Filter constructor initialization (lines 31932-31933)
+- Uniform updates in `_onAnimate()` (lines 33284-33285, 33230)
+
+**5. ResourceManager Integration**
+- `getNoWaterMask()` method provides public API access (lines 5884-5904)
+- Frame-based caching for performance
+- Validates container and texture before rendering
+- Returns `PIXI.Texture.EMPTY` when no noWater tiles present
+
+**How It Works:**
+1. Tiles with `_NoWater` suffix detected by ResourceManager
+2. WaterFXLayer creates sprites in noWaterMaskContainer for each tile
+3. Container rendered to noWaterMaskTexture every frame (screen-space)
+4. WaterEffectsFilter samples mask in shader
+5. White pixels (mask present) → skip all water calculations
+6. Black pixels (no mask) → apply water effects normally
+
+**Technical Details:**
+- Mask resolution: Full screen (matches viewport)
+- Render every frame: Only when `_needsNoWaterMaskUpdate = true`
+- Texture format: RGBA8 (same as other masks)
+- Sample coordinate: `vTextureCoord` (screen-space UVs)
+- Early exit: Occurs before any water calculations (performance optimal)
+- Mask compositing: Binary exclusion (not multiplicative blend)
+
+**Performance Impact:**
+- Minimal cost when no `_NoWater` tiles present (container empty, uniform = false)
+- One additional texture sample per fragment in water areas
+- Early shader exit prevents expensive water calculations
+- Net performance: Slight improvement when excluding complex tiles from water
+
+**Integration Points:**
+- Works seamlessly with existing water masks (_Water, _Shoreline, _Caustics, _Puddle)
+- Compatible with all water sub-effects (waves, caustics, specularity, murkiness, etc.)
+- Independent of outdoor masking and overhead coverage systems
+- No impact on non-water effects
+
+**Result:**
+- ✅ Trees and bushes excluded from water distortion
+- ✅ Rocks and structures can be water-free
+- ✅ Other effects (clouds, weather) still apply normally
+- ✅ Proper cleanup on scene transitions
+- ✅ Automatic resize handling
+- ✅ Minimal performance overhead
+- ✅ Consistent with existing mask architecture
+
+**Files Modified:**
+- `scripts/module.js`:
+  - WaterFXLayer class (constructor, updateEffectTargets, _tearDown, _onResize, _onAnimate)
+  - WaterEffectsFilter class (shader uniforms, fragment shader logic, constructor)
+  - ResourceManager.getNoWaterMask() method
+  - Effect flag name mapping
+- `module.json` - Version 1.2.18, download URLs updated
+
+**Future Enhancements:**
+- Could extend to other effect layers if needed (ambient, metallic shine, etc.)
+- Potential for gradient-based partial exclusion (currently binary)
+- Per-effect exclusion masks (e.g., `_NoCaustics`, `_NoWaves` for finer control)
+
+**Status:** ✅ PRODUCTION READY
+
+---
+
+Version: 1.2.17
+
+**BUG FIX: Water Specular Highlights Rapidly Moving During Weather Transitions**
+
+Fixed critical issue where specular highlights on water surfaces would rapidly slide across the surface during weather state transitions.
+
+**Root Cause:**
+- `WaterFXLayer._onAnimate()` was scaling displacement time by the raw displacement speed
+- `WeatherSystemManager._applyRainRipples()` changes displacement speed during transitions (base → rain speed)
+- Abrupt speed changes caused displacement normals to shift rapidly
+- Shifting normals caused specular highlights to visibly slide across water surface
+
+**Solution:**
+- Added `_smoothedSpeed` property to `WaterFXLayer` to track smoothed displacement animation speed
+- Implemented slow interpolation (lerp rate 0.02) for 3-4 second gradual speed transitions at 60fps
+- Displacement time now accumulates using smoothed speed instead of raw speed
+- Prevents specular "sliding" effect while maintaining wave animation changes
+
+**Technical Details:**
+- Modified: `WaterFXLayer.constructor()` line 32018 - Added `_smoothedSpeed` property
+- Modified: `WaterFXLayer._onAnimate()` lines 33107-33110 - Smooth speed transitions
+- Lerp formula: `this._smoothedSpeed += (targetSpeed - this._smoothedSpeed) * 0.02`
+- Similar approach to rain speed smoothing in `WeatherSystemManager._updateWindOnShaders()`
+
+**Result:**
+Specular highlights now remain stable during weather transitions, with displacement wave speed changing gradually and imperceptibly over 3-4 seconds.
+
+---
+
+**WEATHER STATE INDICATOR - DayNight Clock Enhancement**
+
+Added real-time weather state display to the DayNightClock UI component for at-a-glance weather monitoring.
+
+**New Features:**
+- Weather icon display (☀️ Clear, 🌧️ Rain, ⛈️ Storm, ❄️ Snow, etc.)
+- Current state name with capitalization
+- Transition progress indicator (e.g., "Rain → Storm (45%)")
+- Auto-hide when weather system disabled
+- Styled indicator with blue theme matching clock aesthetic
+- Updates every animation frame for smooth transitions
+
+**Implementation Details:**
+- Location: `MapShineClock._onAnimate()` lines 34343-34380
+- Integrates with existing `WeatherSystemManager`
+- Reads from `weather.enabled` config
+- Shows 7 weather states with appropriate emoji icons
+- Displays transition arrow and percentage during state changes
+
+**Clickable Dropdown (Added):**
+- Click indicator to open weather state menu
+- 7 weather states with icons (Clear, Drizzle, Rain, Storm, Sleet, Snow, Blizzard)
+- Current state highlighted in blue
+- Instant weather changes with smooth transitions
+- Click outside to close dropdown
+- Config persistence via ProfileManager
+
+**Performance Optimization:**
+- State change detection prevents unnecessary DOM updates
+- Only updates innerHTML when weather state actually changes
+- Reduced DOM mutations from ~3600/min to ~1-2/min
+- Tracks `_lastWeatherState`, `_lastWeatherTarget`, `_lastWeatherProgress`
+- Smart comparison with 1% threshold for progress changes
+
+**Benefits:**
+- Quick visual feedback for GMs without opening debugger
+- **One-click weather control** from the clock UI
+- Shows both current and target states during transitions
+- Complements existing wind arrow indicator
+- Minimal performance impact (state-based updates, not time-based)
+- Graceful degradation (hidden when system disabled)
+
+**UI Layout:**
+```
+┌──────────────┐
+│  Clock Face  │  (Sun/Moon icon + wind arrow)
+├──────────────┤
+│   Controls   │  (Time adjust buttons)
+├──────────────┤
+│  Mode Toggle │  (Manual/Foundry sync)
+├──────────────┤
+│🌧️ Rain → Storm│  ← NEW INDICATOR
+│    (65%)     │
+└──────────────┘
+```
+
+---
+
+Version: 1.2.16
+
+**AUTOMATED PERFORMANCE TESTING SYSTEM - Effect Profiling & Regression Detection**
+
+Implemented comprehensive automated performance testing system to measure per-effect FPS impact, detect performance regressions, and establish baseline metrics.
+
+**Three Performance Testing Modes:**
+
+1. **quick-profile-test.spec.js** (Daily Development - ~11 minutes)
+   - SOLO mode testing: Each effect tested in isolation
+   - Measures true FPS cost per effect
+   - Baseline measurement (module OFF) for comparison
+   - Fast feedback loop during development
+   - Generates timestamped markdown reports
+   - Progress reporting every 5 seconds
+   - Command: `npx playwright test quick-profile-test.spec.js --config=playwright-headed.config.js --workers=1`
+
+2. **effect-profiling.spec.js** (Release Testing - ~20 minutes)
+   - DISABLED mode: Measures FPS gain when disabling each effect
+   - SOLO mode: Measures FPS cost of each effect alone
+   - Dual methodology for validation
+   - Comprehensive pre-release analysis
+   - Compares both approaches to catch measurement errors
+   - Full Playwright automation with GPU rendering
+   - Command: `npx playwright test effect-profiling.spec.js --config=playwright-headed.config.js --workers=1`
+
+3. **run-comprehensive-test.js** (Console-Based - ~2 minutes)
+   - Memory leak detection
+   - Shader compilation validation
+   - Manager initialization checks
+   - Config structure validation
+   - Quick health checks
+   - Command: In browser console: `await runComprehensiveTests()`
+
+**PerformanceValidator Enhancements:**
+
+Extended `PerformanceValidator.js` with advanced metrics:
+- **Median FPS** - More stable than mean with high variance
+- **Trimmed Mean FPS** - Removes top/bottom 5% outliers
+- **95th Percentile FPS** - 5% of frames are faster than this
+- **Progress Callbacks** - Real-time reporting during tests
+- **Stutter Event Tracking** - Frames > 100ms
+- **Frame Time Variance** - Standard deviation for smoothness
+- **VRAM Growth Monitoring** - Memory pressure detection
+- **Pool Cache Hit Rate** - RenderTexturePool efficiency
+
+**Test Architecture:**
+
+**Infrastructure:**
+- Foundry launcher automatically starts/stops server on port 30000
+- MapShineTestHelper handles authentication, canvas waiting, manager validation
+- Headed mode required for GPU rendering (WebGL shaders)
+- Progress reporting during long measurements
+- Automatic report generation with timestamps
+
+**Execution Flow:**
+1. Launch Foundry VTT server (port 30000)
+2. Navigate browser and authenticate
+3. Wait for canvas ready (90s timeout)
+4. Wait for Map Shine managers initialized (30s timeout)
+5. **Baseline Measurement** - Module disabled for 20s
+6. Re-enable module and wait for stabilization
+7. **Effect Loop** (SOLO mode):
+   - Disable ALL effects
+   - Enable target effect ALONE
+   - Wait for initialization (2s)
+   - Measure FPS for 15-20s with progress updates
+   - Calculate statistics (mean, median, trimmed mean, p95)
+   - Disable effect
+8. Generate summary report with all effects
+9. Shutdown Foundry server
+
+**Report Output:**
+
+**Baseline Report:**
+- `docs/BASELINE_MODULE_OFF_[timestamp].md`
+- Raw Foundry VTT performance without Map Shine
+- Establishes performance floor
+- Used for calculating true module cost
+
+**Effect Reports:**
+- `docs/QUICK_EFFECT_PROFILE_[timestamp].md` (quick test)
+- `docs/EFFECT_PROFILE_[timestamp].md` (full test)
+- Per-effect FPS metrics
+- Comparison to baseline
+- FPS impact (positive/negative)
+- Summary statistics table
+- Recommendations for optimization
+
+**Metrics Tracked:**
+
+For each effect and baseline:
+- **Average FPS** (arithmetic mean)
+- **Median FPS** (50th percentile - robust to outliers)
+- **Trimmed Mean FPS** (outliers removed)
+- **95th Percentile FPS** (performance floor)
+- **Min/Max FPS** (range)
+- **Frame Time** (average, variance, std dev)
+- **Stutter Events** (frames > 100ms)
+- **VRAM Growth** (memory delta in MB)
+
+**Test Duration:**
+- Baseline: 20 seconds
+- Per-effect: 15-20 seconds
+- Quick test: ~11 minutes (12 effects)
+- Full test: ~20 minutes (both modes)
+
+**When to Run Tests:**
+- ✅ After implementing new features/effects
+- ✅ After making changes to rendering systems
+- ✅ After fixing bugs
+- ✅ Before committing code
+- ✅ Before releases
+- ✅ To establish performance budgets
+
+**Test Coverage:**
+
+**Effects Profiled:**
+1. Cloud Shadows
+2. Canopy
+3. Structural Shadows
+4. Iridescence
+5. Prism
+6. Water Effects
+7. Building Shadows
+8. Time of Day
+9. Metallic Shine
+10. Ground Glow
+11. Weather System
+12. All other canvas layers
+
+**Expected Results:**
+- Baseline FPS: 50-60 FPS (module OFF)
+- Most effects: < 10 FPS impact
+- Heavy effects (weather, water): 10-20 FPS impact
+- Warnings: Frame variance > 10ms, stutter events
+- Errors: FPS < 30, VRAM growth > 50MB
+
+**Files Created:**
+1. `tests/playwright/quick-profile-test.spec.js` (335 lines)
+2. Enhanced `tests/validators/PerformanceValidator.js` with new metrics
+
+**Files Modified:**
+1. `tests/playwright/effect-profiling.spec.js` - Added baseline test
+2. `tests/validators/PerformanceValidator.js` - Added median, trimmed mean, p95
+
+**Documentation Updated:**
+1. `docs/TECHNICAL_FEATURE_MAP.md` - Added Automated Testing Systems section
+2. `docs/Version History Main Document.md` - This entry
+
+**Expected Impact:**
+- Quantifiable performance budgets per effect
+- Regression detection before release
+- Data-driven optimization priorities
+- Automated CI/CD performance gates
+- Historical performance tracking
+
+**Status:** ✅ PRODUCTION READY
+
+---
+
+Version: 1.2.15
+
+**SELF-TESTING SYSTEM - Automated Bug Detection**
+
+Implemented comprehensive self-testing system to detect critical bugs, memory leaks, performance regressions, and shader errors automatically.
+
+**Three Critical Validators Created:**
+
+1. **MemoryLeakDetector** (`tests/validators/MemoryLeakDetector.js` - 500+ lines)
+   - Tracks PIXI texture cache growth
+   - Monitors particle emitter lifecycle
+   - Validates RenderTexturePool cleanup
+   - Detects geometry mask leaks
+   - Measures VRAM growth trends
+   - Scene transition leak testing
+   - Effect toggle leak testing
+
+2. **PerformanceValidator** (`tests/validators/PerformanceValidator.js` - 520+ lines)
+   - Real-time FPS monitoring (30s windows)
+   - Frame time variance tracking (stuttering detection)
+   - VRAM usage monitoring
+   - Pool cache hit rate validation
+   - Performance regression detection
+   - Frame budget analysis (60 FPS target)
+
+3. **ShaderValidator** (`tests/validators/ShaderValidator.js` - 480+ lines)
+   - Validates 14+ shader filter compilations
+   - Checks uniform availability
+   - Detects null baseTexture bindings
+   - Monitors GL errors
+   - Runtime shader error detection
+
+**Test Suite Integration:**
+- Updated `tests/headless-runner.js` with memory test suite
+- New test command: `MapShineTestRunner.runTests('memory')`
+- Automatic leak detection during CI/CD
+- Exit code 0 = pass, 1 = fail
+
+**Detection Capabilities:**
+
+**Memory Leaks:**
+- ✅ Texture cache growth > 10 textures
+- ✅ Particle emitters not destroyed
+- ✅ Pool textures not released (try-finally violations)
+- ✅ Geometry masks accumulating
+- ✅ VRAM growth > 50MB
+
+**Performance Issues:**
+- ✅ FPS drops below 30
+- ✅ Frame time variance > 10ms (stuttering)
+- ✅ Stutter events (frames > 100ms)
+- ✅ Cache hit rate < 90%
+- ✅ Frame time regressions
+
+**Shader Errors:**
+- ✅ Failed compilation
+- ✅ Undefined uniforms (e.g., u_filterArea bug)
+- ✅ Null/invalid baseTextures
+- ✅ GL_OUT_OF_MEMORY
+- ✅ Destroyed textures still bound
+
+**Documentation Created:**
+- `docs/SELF_TESTING_COMMANDS.md` - Console command reference
+- `docs/SELF_TESTING_IMPLEMENTATION_SUMMARY.md` - Technical details
+- `docs/TESTING_QUICK_START.md` - Quick start guide
+
+**Usage Examples:**
+
+*Quick Health Check (2 seconds):*
+```javascript
+game.mapShine.quickHealthCheck()
+```
+
+*Scene Transition Leak Test (15 seconds):*
+```javascript
+await MemoryLeakDetector.testSceneTransition()
+```
+
+*Performance Monitor (30 seconds):*
+```javascript
+await PerformanceValidator.monitorPerformance(30000)
+```
+
+*Validate All Shaders (instant):*
+```javascript
+ShaderValidator.validateAllShaders()
+```
+
+**What It Prevents:**
+- ✅ Scene transition memory leaks (textures not destroyed)
+- ✅ Pool texture leaks (missing try-finally)
+- ✅ FPS regressions after changes
+- ✅ Shader compilation failures
+- ✅ Performance degradation
+- ✅ Stuttering introduction
+
+**Files Created:**
+1. `tests/validators/MemoryLeakDetector.js`
+2. `tests/validators/PerformanceValidator.js`
+3. `tests/validators/ShaderValidator.js`
+4. `docs/SELF_TESTING_COMMANDS.md`
+5. `docs/SELF_TESTING_IMPLEMENTATION_SUMMARY.md`
+6. `docs/TESTING_QUICK_START.md`
+
+**Files Modified:**
+- `tests/headless-runner.js` - Added memory test suite
+
+**Expected Impact:**
+- 10-20 hours saved per major bug by catching issues early
+- Proactive detection vs reactive debugging
+- Automated regression prevention
+- CI/CD integration ready
+
+**Status:** ✅ PRODUCTION READY
+
+---
+
+Version: 1.2.14
+
+**PUDDLE RENDERING FIX - Dark Flash on Scene Load**
+
+Fixed critical issue where puddles rendered very dark when Foundry VTT first loaded with rainy weather (Storm/Rain/Drizzle).
+
+**Problem:**
+- Puddle intensity applied immediately at full value (1.0) on scene load
+- Outdoor masks and textures not fully initialized yet
+- Caused dark flash or incorrect initial rendering
+
+**Solution:**
+- Added 1.5-second fade-in for puddles on initial scene load
+- Uses quadratic ease-in curve for smooth natural progression  
+- Gives textures time to load before full intensity applied
+- Does not affect weather transitions or puddle drying behavior
+
+**Implementation:**
+- `_puddleInitialLoadTime`: Tracks when puddles first activated
+- `_puddleInitialFadeDuration`: 1500ms fade-in duration
+- Fade progress: 0.0 → 1.0 over duration using `progress²` easing
+- Timer resets when puddles become inactive
+
+**Files Modified:**
+- `scripts/module.js` - WeatherSystemManager (lines 15155-15157, 15549, 15627-15645)
+
+**Documentation:**
+- `docs/PUDDLE_DARK_FLASH_FIX.md` - Full technical explanation
+
+**Testing:**
+- ✅ Playwright tests pass
+- ✅ Smooth puddle appearance on scene load
+- ✅ No dark flash with Storm weather
+- ✅ Normal transitions unaffected
+
+**Status:** ✅ PRODUCTION READY
+
+---
+
 Version: 1.2.11 (Planned)
 
 **UI AUDIT - Enable/Disable Checkbox Functionality**
@@ -13,19 +837,33 @@ Comprehensive audit revealed 35+ enable/disable checkboxes that change config va
 
 **Root Cause:** Layers/managers read `updateFromConfig()` but don't skip rendering when `enabled === false`
 
-**Proposed Fixes:**
+**Fixes Implemented:**
 
-1. **MaskedEffectLayer Base Class** - Add enabled check to base `_onAnimate()` (automatically fixes 8 layers)
-2. **Direct Extensions** - Add enabled check to each layer's `_onAnimate()`
-3. **ParticleLayer** - Conditional controller creation based on enabled flags
-4. **Master Disable Switch** - NEW top-level checkbox to disable ALL Map Shine effects instantly
+1. ✅ **MaskedEffectLayer Base Class** - Added master + individual enabled checks to `_onAnimate()` (fixes 8 layers: CloudShadows, Canopy, Structural, Iridescence, Prism, Water, BuildingShadows, TimeOfDay)
+2. ✅ **GroundGlowLayer** - Added master + individual enabled checks to `_onAnimate()`
+3. ✅ **OverheadEffectLayer** - Added master + individual enabled checks to `_onAnimate()` with tile visibility restoration
+4. ✅ **FoamLayer** - Added master + individual enabled checks to `_onAnimate()`
+5. ✅ **HeatDistortionLayer** - Already had proper enabled checks (verified)
+6. ✅ **MetallicShineLayer** - Uses visibility control in `updateFromConfig()` (verified sufficient)
+7. ✅ **ParticleLayer** - Added master enabled check to `_onAnimate()` to skip all particle updates when disabled
+8. ✅ **BushLayer** - Added master enabled check to `_onAnimate()` to disable foliage distortion filters
+9. ✅ **TreeLayer** - Added master enabled check to `_onAnimate()` to disable foliage distortion filters
 
-**Implementation Timeline:** 34 hours (5 days) across 4 weeks
+**Master Disable Switch:**
+- ✅ Root-level `enabled` flag exists in MODULE_DEFAULTS (line 221)
+- ✅ Created compact master control UI at top of debugger (line 37678-37685)
+- Visual design: Red-tinted warning box with ⚠️ icon, reduced padding for compact appearance
+- Description: "Master switch to disable ALL Map Shine effects instantly"
+- All layers now check `config.enabled === false` before any rendering
+
+**Critical Fixes:**
+- ✅ **OverheadEffectLayer** now restores original tile visibility (`tile.mesh.alpha = 1.0`) when disabled, reverting to Foundry VTT's default behavior
+- ✅ **FoliageDistortionFilter** now properly disables when master switch is off (fixes bush/tree distortion persisting when disabled)
 
 **Documentation Created:**
 - `docs/CHECKBOX_AUDIT.md` - Complete audit with fix implementations
 
-**Status:** Planning phase, fixes ready to implement
+**Status:** ✅ COMPLETE - All rendering fixes, UI refinements, and critical bug fixes implemented. Ready for testing.
 
 ---
 
