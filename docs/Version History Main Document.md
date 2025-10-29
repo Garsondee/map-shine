@@ -1,4 +1,58 @@
-Version: 1.2.27 (Current)
+Version: 1.2.29 (Current)
+
+**FEATURE - Phase 1 Data Corruption Protection**
+
+Implemented comprehensive defensive data loading in ProfileDataManager to prevent corrupted data from breaking the module. All load methods now validate data before trusting it and gracefully fall back to safe defaults.
+
+**Problem Identified:**
+- Corrupted scene flags, world settings, or user adjustments could crash module initialization
+- No validation was performed before using loaded configuration data
+- Null/undefined data, type mismatches, and invalid profile structures could propagate through the system
+- Missing properties in loaded data could cause runtime errors during config merging
+
+**Solution Implemented:**
+- **Enhanced loadWorldDefaults()**: Validates world defaults are objects (not arrays/null), filters out corrupted effect configs
+- **Enhanced loadSceneData()**: Validates profiles are arrays, filters invalid profiles, validates active profile ID exists
+- **Enhanced loadUserOverrides()**: Validates user adjustments structure at all levels
+- **Added _isValidProfile()**: Validates profile structure (id, name, config required properties)
+- **Added _isValidEffectConfig()**: Validates effect config is non-empty object
+- **Comprehensive Error Handling**: Try-catch blocks around all load operations with safe fallbacks
+
+**Technical Changes:**
+- Updated ProfileDataManager.loadWorldDefaults() with type validation and filtering (lines 5243-5276)
+- Updated ProfileDataManager.loadSceneData() with profile validation and ID checking (lines 5306-5353)
+- Updated ProfileDataManager.loadUserOverrides() with structure validation (lines 5382-5412)
+- Added validation helper methods _isValidProfile() and _isValidEffectConfig() (lines 5447-5491)
+- All methods log warnings when corruption is detected and cleaned
+
+**Benefits:**
+- Prevents crashes from corrupted database entries or manual flag edits
+- Gracefully handles null/undefined/wrong-type data
+- Filters out invalid profiles while preserving valid ones
+- Clears orphaned active profile IDs that reference deleted profiles
+- Detailed console warnings help users understand what was fixed
+- Module continues to function even with partial data corruption
+
+**Testing:**
+- Created automated test suite: `tests/phase1-data-validation-test.js`
+- All 3 test categories passed (world defaults, scene data, user overrides)
+- Verified handling of null data, arrays instead of objects, mixed valid/invalid entries
+- Confirmed invalid profile IDs are cleared and corrupted configs are filtered
+
+---
+
+Version: 1.2.28
+
+**BUG FIX - Critical Initialization Errors**
+
+Fixed three initialization-breaking bugs that prevented the module from loading:
+1. BushLayer/TreeLayer null spread operator errors when cleanFilterArray returns null
+2. ScreenEffectsManager undefined 'key' variable in filter pipeline
+3. FilmGrainFilter missing from managedFilterClasses causing 18+ corrupt filter accumulation
+
+---
+
+Version: 1.2.27
 
 **FEATURE - Filter Corruption Protection System**
 

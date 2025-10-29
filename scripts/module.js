@@ -21,7 +21,7 @@
  * @author Mythica Machina - Ingram Blakelock
  * 
  * Remember that you will need to update the module.json file in the root too when changing version.
- * @version 1.2.28 - Critical Bug Fixes: Fixed three initialization-breaking bugs: (1) BushLayer/TreeLayer null spread operator errors when cleanFilterArray returns null, (2) ScreenEffectsManager undefined 'key' variable in filter pipeline, (3) FilmGrainFilter missing from managedFilterClasses causing 18+ corrupt filter accumulation. All systems now initialize cleanly.
+ * @version 1.2.29 - FEATURE - Phase 1 Data Corruption Protection: Implemented comprehensive defensive data loading in ProfileDataManager with validation for world defaults, scene profiles, and user overrides. All load methods now validate data types, filter corrupted entries, and gracefully fall back to safe defaults. Prevents crashes from null/undefined data, type mismatches, invalid profiles, and orphaned references.
  *
  * @requires foundry ^13+
  * @requires pixi.js ^7.4.3
@@ -5241,7 +5241,38 @@ export class ProfileDataManager {
    * @returns {object} The worldDefaults object { effectKey: effectConfig, ... }
    */
   loadWorldDefaults() {
-    return game.settings.get(this.moduleId, WORLD_DEFAULTS_SETTING) || {};
+    try {
+      const rawData = game.settings.get(this.moduleId, WORLD_DEFAULTS_SETTING);
+      
+      // DEFENSIVE: Validate type
+      if (!rawData || typeof rawData !== 'object' || Array.isArray(rawData)) {
+        console.warn('Map Shine | World defaults corrupted (invalid type), using empty object');
+        return {};
+      }
+      
+      // DEFENSIVE: Validate each effect config
+      const validated = {};
+      let corruptedCount = 0;
+      
+      for (const [effectKey, effectConfig] of Object.entries(rawData)) {
+        if (this._isValidEffectConfig(effectConfig)) {
+          validated[effectKey] = effectConfig;
+        } else {
+          corruptedCount++;
+          console.warn(`Map Shine | Removed corrupted world default for effect: ${effectKey}`);
+        }
+      }
+      
+      if (corruptedCount > 0) {
+        console.warn(`Map Shine | Cleaned ${corruptedCount} corrupted world defaults`);
+      }
+      
+      return validated;
+      
+    } catch (error) {
+      console.error('Map Shine | Error loading world defaults:', error);
+      return {};
+    }
   }
 
   /**
@@ -5269,17 +5300,56 @@ export class ProfileDataManager {
 
   /**
    * Loads scene-specific profile data from flags.
+   * DEFENSIVE: Validates all data before trusting it.
    * @returns {{profiles: Array<object>, activeProfileId: string|null}}
    */
   loadSceneData() {
     if (!canvas.scene) return { profiles: [], activeProfileId: null };
-    const profiles = canvas.scene.getFlag(this.moduleId, "profiles") || [];
-    const activeProfileId =
-      canvas.scene.getFlag(this.moduleId, "activeProfileId") || null;
-    return {
-      profiles: Array.isArray(profiles) ? profiles : [],
-      activeProfileId,
-    };
+    
+    try {
+      const rawProfiles = canvas.scene.getFlag(this.moduleId, "profiles");
+      const rawActiveId = canvas.scene.getFlag(this.moduleId, "activeProfileId");
+      
+      // DEFENSIVE: Validate profiles array
+      let validProfiles = [];
+      if (Array.isArray(rawProfiles)) {
+        validProfiles = rawProfiles.filter(profile => this._isValidProfile(profile));
+        
+        const removedCount = rawProfiles.length - validProfiles.length;
+        if (removedCount > 0) {
+          console.warn(
+            `Map Shine | Removed ${removedCount} corrupted profile(s) from scene "${canvas.scene.name}"`
+          );
+        }
+      } else if (rawProfiles !== null && rawProfiles !== undefined) {
+        console.warn(
+          `Map Shine | Scene profiles corrupted (not an array) in "${canvas.scene.name}", resetting to empty`
+        );
+      }
+      
+      // DEFENSIVE: Validate active profile ID
+      let activeProfileId = null;
+      if (rawActiveId && typeof rawActiveId === 'string') {
+        // Check if the active ID actually exists in the profiles
+        const profileExists = validProfiles.some(p => p.id === rawActiveId);
+        if (profileExists) {
+          activeProfileId = rawActiveId;
+        } else if (rawActiveId) {
+          console.warn(
+            `Map Shine | Active profile ID "${rawActiveId}" not found in scene profiles, clearing`
+          );
+        }
+      }
+      
+      return {
+        profiles: validProfiles,
+        activeProfileId
+      };
+      
+    } catch (error) {
+      console.error('Map Shine | Error loading scene data:', error);
+      return { profiles: [], activeProfileId: null };
+    }
   }
 
   /**
@@ -5305,14 +5375,40 @@ export class ProfileDataManager {
 
   /**
    * Loads user-specific temporary overrides for a given scene.
+   * DEFENSIVE: Validates data structure before returning.
    * @param {string} sceneId - The ID of the scene.
    * @returns {object} The user overrides object for that scene.
    */
   loadUserOverrides(sceneId) {
     if (!sceneId) return {};
-    const allUserOverrides =
-      game.settings.get(this.moduleId, "user-adjustments") || {};
-    return allUserOverrides[sceneId] || {};
+    
+    try {
+      const allUserOverrides = game.settings.get(this.moduleId, "user-adjustments");
+      
+      // DEFENSIVE: Validate top-level structure
+      if (!allUserOverrides || typeof allUserOverrides !== 'object' || Array.isArray(allUserOverrides)) {
+        console.warn('Map Shine | User overrides corrupted (invalid type), using empty object');
+        return {};
+      }
+      
+      const sceneOverrides = allUserOverrides[sceneId];
+      
+      // DEFENSIVE: Validate scene-specific overrides
+      if (!sceneOverrides) {
+        return {};
+      }
+      
+      if (typeof sceneOverrides !== 'object' || Array.isArray(sceneOverrides)) {
+        console.warn(`Map Shine | User overrides for scene ${sceneId} corrupted, using empty object`);
+        return {};
+      }
+      
+      return sceneOverrides;
+      
+    } catch (error) {
+      console.error('Map Shine | Error loading user overrides:', error);
+      return {};
+    }
   }
 
   /**
@@ -5346,6 +5442,52 @@ export class ProfileDataManager {
       "user-adjustments",
       allUserOverrides
     );
+  }
+
+  /**
+   * PHASE 1 VALIDATION: Validates a profile object structure.
+   * @param {*} profile - Profile to validate
+   * @returns {boolean} True if profile is valid
+   * @private
+   */
+  _isValidProfile(profile) {
+    if (!profile || typeof profile !== 'object' || Array.isArray(profile)) {
+      return false;
+    }
+    
+    // Check required properties
+    if (!profile.id || typeof profile.id !== 'string') {
+      return false;
+    }
+    
+    if (!profile.name || typeof profile.name !== 'string') {
+      return false;
+    }
+    
+    if (!profile.config || typeof profile.config !== 'object' || Array.isArray(profile.config)) {
+      return false;
+    }
+    
+    return true;
+  }
+
+  /**
+   * PHASE 1 VALIDATION: Validates an effect config object.
+   * @param {*} config - Config to validate
+   * @returns {boolean} True if config is valid
+   * @private
+   */
+  _isValidEffectConfig(config) {
+    if (!config || typeof config !== 'object' || Array.isArray(config)) {
+      return false;
+    }
+    
+    // Basic structure check - should have at least some properties
+    if (Object.keys(config).length === 0) {
+      return false;
+    }
+    
+    return true;
   }
 }
 
