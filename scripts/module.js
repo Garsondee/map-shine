@@ -30123,7 +30123,7 @@ class FoliageDistortionFilter extends PIXI.Filter {
 class BushLayer extends AnimatedCanvasLayer {
   constructor() {
     super();
-    this.affectedTiles = new Map(); // Map of tile ID -> filter instance
+    this.affectedTiles = new Map(); // Map of tile ID -> { filter, tile, sprite } object
     this._smoothedWindStrength = 0; // Inertia for wind gusts (prevents instant on/off)
   }
 
@@ -30200,7 +30200,12 @@ class BushLayer extends AnimatedCanvasLayer {
             console.warn(`MapShine | Could not apply bush filter to tile ${tile.id} - no mesh or overhead sprite found`);
           }
           
-          this.affectedTiles.set(tile.id, filter);
+          // Store references to both the filter and the objects we applied it to
+          this.affectedTiles.set(tile.id, {
+            filter: filter,
+            tile: overheadSprite ? null : tile,
+            sprite: overheadSprite || null
+          });
         }
       }
     }
@@ -30249,7 +30254,8 @@ class BushLayer extends AnimatedCanvasLayer {
     // }
     
     // Update all bush filters
-    for (const filter of this.affectedTiles.values()) {
+    for (const entry of this.affectedTiles.values()) {
+      const filter = entry.filter;
       filter.enabled = true;
       
       // Update wind
@@ -30306,7 +30312,8 @@ class BushLayer extends AnimatedCanvasLayer {
     const bushConfig = config.bush;
     if (!bushConfig) return;
     
-    for (const filter of this.affectedTiles.values()) {
+    for (const entry of this.affectedTiles.values()) {
+      const filter = entry.filter;
       // Update rustle layer
       filter.uniforms.u_rustleScale = bushConfig.rustleScale;
       filter.uniforms.u_rustleSpeed = bushConfig.rustleSpeed;
@@ -30326,21 +30333,30 @@ class BushLayer extends AnimatedCanvasLayer {
   }
 
   async _tearDown(options) {
-    // Remove filters from tiles and overhead sprites
-    for (const [tileId, filter] of this.affectedTiles.entries()) {
-      const tile = canvas.tiles?.get(tileId);
-      const overheadLayer = canvas.effects?.children?.find(l => l instanceof OverheadEffectLayer);
-      const overheadSprite = overheadLayer?.overheadSprites?.get(tileId);
-      
-      if (overheadSprite) {
-        overheadSprite.filters = (overheadSprite.filters || []).filter(f => f !== filter);
+    console.log(`MapShine | BushLayer._tearDown: Cleaning up ${this.affectedTiles.size} bush filters`);
+    
+    // Remove filters using stored references (not canvas lookups)
+    for (const [tileId, entry] of this.affectedTiles.entries()) {
+      try {
+        // Use our stored references instead of looking up via canvas
+        if (entry.sprite?.filters) {
+          entry.sprite.filters = entry.sprite.filters.filter(f => f !== entry.filter);
+        }
+        if (entry.tile?.mesh?.filters) {
+          entry.tile.mesh.filters = entry.tile.mesh.filters.filter(f => f !== entry.filter);
+        }
+        
+        // Destroy the filter
+        if (entry.filter) {
+          entry.filter.destroy();
+        }
+      } catch (error) {
+        console.warn(`MapShine | Error cleaning up bush filter for tile ${tileId}:`, error);
       }
-      if (tile?.mesh) {
-        tile.mesh.filters = (tile.mesh.filters || []).filter(f => f !== filter);
-      }
-      filter.destroy();
     }
+    
     this.affectedTiles.clear();
+    console.log(`MapShine | BushLayer._tearDown: Complete`);
     await super._tearDown(options);
   }
 }
@@ -30356,7 +30372,7 @@ class BushLayer extends AnimatedCanvasLayer {
 class TreeLayer extends AnimatedCanvasLayer {
   constructor() {
     super();
-    this.affectedTiles = new Map(); // Map of tile ID -> filter instance
+    this.affectedTiles = new Map(); // Map of tile ID -> { filter, tile, sprite } object
     this._smoothedWindStrength = 0; // Inertia for wind gusts (prevents instant on/off)
   }
 
@@ -30433,7 +30449,12 @@ class TreeLayer extends AnimatedCanvasLayer {
             console.warn(`MapShine | Could not apply tree filter to tile ${tile.id} - no mesh or overhead sprite found`);
           }
           
-          this.affectedTiles.set(tile.id, filter);
+          // Store references to both the filter and the objects we applied it to
+          this.affectedTiles.set(tile.id, {
+            filter: filter,
+            tile: overheadSprite ? null : tile,
+            sprite: overheadSprite || null
+          });
         }
       }
     }
@@ -30457,7 +30478,8 @@ class TreeLayer extends AnimatedCanvasLayer {
     // }
     
     // Update all tree filters
-    for (const filter of this.affectedTiles.values()) {
+    for (const entry of this.affectedTiles.values()) {
+      const filter = entry.filter;
       filter.enabled = true;
       
       // Update wind
@@ -30514,7 +30536,8 @@ class TreeLayer extends AnimatedCanvasLayer {
     const treeConfig = config.tree;
     if (!treeConfig) return;
     
-    for (const filter of this.affectedTiles.values()) {
+    for (const entry of this.affectedTiles.values()) {
+      const filter = entry.filter;
       // Update rustle layer
       filter.uniforms.u_rustleScale = treeConfig.rustleScale;
       filter.uniforms.u_rustleSpeed = treeConfig.rustleSpeed;
@@ -30534,21 +30557,30 @@ class TreeLayer extends AnimatedCanvasLayer {
   }
 
   async _tearDown(options) {
-    // Remove filters from tiles and overhead sprites
-    for (const [tileId, filter] of this.affectedTiles.entries()) {
-      const tile = canvas.tiles?.get(tileId);
-      const overheadLayer = canvas.effects?.children?.find(l => l instanceof OverheadEffectLayer);
-      const overheadSprite = overheadLayer?.overheadSprites?.get(tileId);
-      
-      if (overheadSprite) {
-        overheadSprite.filters = (overheadSprite.filters || []).filter(f => f !== filter);
+    console.log(`MapShine | TreeLayer._tearDown: Cleaning up ${this.affectedTiles.size} tree filters`);
+    
+    // Remove filters using stored references (not canvas lookups)
+    for (const [tileId, entry] of this.affectedTiles.entries()) {
+      try {
+        // Use our stored references instead of looking up via canvas
+        if (entry.sprite?.filters) {
+          entry.sprite.filters = entry.sprite.filters.filter(f => f !== entry.filter);
+        }
+        if (entry.tile?.mesh?.filters) {
+          entry.tile.mesh.filters = entry.tile.mesh.filters.filter(f => f !== entry.filter);
+        }
+        
+        // Destroy the filter
+        if (entry.filter) {
+          entry.filter.destroy();
+        }
+      } catch (error) {
+        console.warn(`MapShine | Error cleaning up tree filter for tile ${tileId}:`, error);
       }
-      if (tile?.mesh) {
-        tile.mesh.filters = (tile.mesh.filters || []).filter(f => f !== filter);
-      }
-      filter.destroy();
     }
+    
     this.affectedTiles.clear();
+    console.log(`MapShine | TreeLayer._tearDown: Complete`);
     await super._tearDown(options);
   }
 }
