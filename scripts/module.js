@@ -21,7 +21,7 @@
  * @author Mythica Machina - Ingram Blakelock
  * 
  * Remember that you will need to update the module.json file in the root too when changing version.
- * @version 1.2.29 - FEATURE - Phase 1 Data Corruption Protection: Implemented comprehensive defensive data loading in ProfileDataManager with validation for world defaults, scene profiles, and user overrides. All load methods now validate data types, filter corrupted entries, and gracefully fall back to safe defaults. Prevents crashes from null/undefined data, type mismatches, invalid profiles, and orphaned references.
+ * @version 1.2.30 - FEATURE - Phase 1 Data Corruption Protection: Implemented comprehensive defensive data loading in ProfileDataManager with validation for world defaults, scene profiles, and user overrides. All load methods now validate data types, filter corrupted entries, and gracefully fall back to safe defaults. Prevents crashes from null/undefined data, type mismatches, invalid profiles, and orphaned references.
  *
  * @requires foundry ^13+
  * @requires pixi.js ^7.4.3
