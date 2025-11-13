@@ -2038,7 +2038,6 @@ this.PIXI = this.PIXI || {};
         if (verbose) {
           console.error("PathParticle requires a path value in its config!");
         }
-        // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
         this.path = (x) => x;
       }
       this.list = new PropertyList(false);
@@ -2564,7 +2563,6 @@ this.PIXI = this.PIXI || {};
    * @param config The old emitter config to upgrade.
    * @param art The old art values as would have been passed into the Emitter constructor or `Emitter.init()`
    */
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   function upgradeConfig(config, art) {
     var _a,
       _b,

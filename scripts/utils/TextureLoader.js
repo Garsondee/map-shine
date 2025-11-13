@@ -22,7 +22,9 @@ export class TextureLoader {
      */
     static _optimizationStats = {
         total: 0,
-        completed: 0
+        completed: 0,
+        // Only report progress to the loading UI when an optimization batch is active
+        trackingActive: false
     };
 
     /**
@@ -215,17 +217,24 @@ export class TextureLoader {
     static startOptimizationTracking(total) {
         this._optimizationStats.total = total;
         this._optimizationStats.completed = 0;
+        this._optimizationStats.trackingActive = true;
     }
 
     /**
      * Report progress for a completed optimization
      */
     static async reportOptimizationProgress() {
+        // If tracking hasn't been started, do not report (prevents x/0 logs)
+        if (!this._optimizationStats.trackingActive || this._optimizationStats.total <= 0) {
+            this._optimizationStats.completed++;
+            return;
+        }
+
         this._optimizationStats.completed++;
-        
+
         const progress = this._optimizationStats.completed / this._optimizationStats.total;
         const loadingManager = game.mapShine?.loadingManager;
-        
+
         if (loadingManager?.screen?.setProgress) {
             const startWaypoint = loadingManager.waypoints.TEXTURE_OPTIMIZATION_START;
             const endWaypoint = loadingManager.waypoints.TEXTURE_OPTIMIZATION_END;
@@ -237,6 +246,13 @@ export class TextureLoader {
             // Yield to event loop to allow UI updates
             await new Promise(resolve => setTimeout(resolve, 0));
         }
+    }
+
+    /**
+     * End optimization tracking and reset flags (called after preloading completes)
+     */
+    static endOptimizationTracking() {
+        this._optimizationStats.trackingActive = false;
     }
 
     /**
@@ -275,7 +291,7 @@ export class TextureLoader {
         }
         
         this._textureCache.clear();
-        this._optimizationStats = { total: 0, completed: 0 };
+        this._optimizationStats = { total: 0, completed: 0, trackingActive: false };
         
         if (clearedCount > 0) {
             console.log(`Map Shine | Texture cache cleared (${clearedCount} textures destroyed)`);
