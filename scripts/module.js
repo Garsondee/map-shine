@@ -28607,6 +28607,37 @@ class CloudShadowsLayer extends MaskedEffectLayer {
       CoordinateManager.getSceneRectNormalizedArray();
   }
 
+  _onResize() {
+    super._onResize();
+    const renderer = canvas.app.renderer;
+
+    this.rawCloudTexture?.resize(renderer.screen.width, renderer.screen.height);
+    if (this._patternGeneratorSprite) {
+      this._patternGeneratorSprite.width = renderer.screen.width;
+      this._patternGeneratorSprite.height = renderer.screen.height;
+    }
+  }
+
+  async _tearDown(options) {
+    if (this.cloudFilter) {
+      const cleanedFilters = (canvas.primary.filters || []).filter(
+        (f) => f !== this.cloudFilter
+      );
+      safeApplyFilters(canvas.primary, cleanedFilters, "canvas.primary (CloudShadows teardown)");
+
+      this.cloudFilter.destroy();
+      this.cloudFilter = null;
+    }
+
+    this._patternGeneratorSprite?.destroy();
+    this.rawCloudTexture?.destroy(true);
+
+    this._patternGeneratorSprite = null;
+    this.rawCloudTexture = null;
+
+    await super._tearDown(options);
+  }
+
   async updateFromConfig(config) {
     const csConfig = config?.cloudShadows;
     if (!csConfig) return;
@@ -28716,37 +28747,18 @@ class CloudShadowsLayer extends MaskedEffectLayer {
 
     // Evolution speed
     u.u_evolutionSpeed = (csConfig.evolutionSpeed ?? 5) * 0.0001;  // UI value scaled down
-  }
-
-  _onResize() {
-    super._onResize();
-    const renderer = canvas.app.renderer;
-
-    this.rawCloudTexture?.resize(renderer.screen.width, renderer.screen.height);
-    if (this._patternGeneratorSprite) {
-      this._patternGeneratorSprite.width = renderer.screen.width;
-      this._patternGeneratorSprite.height = renderer.screen.height;
+    
+    // Update effect targets (mask sprites)
+    if (game.mapShine.effectTargetManager?.targets) {
+      await this.updateEffectTargets(game.mapShine.effectTargetManager.targets);
     }
-  }
-
-  async _tearDown(options) {
-    if (this.cloudFilter) {
-      const cleanedFilters = (canvas.primary.filters || []).filter(
-        (f) => f !== this.cloudFilter
-      );
-      safeApplyFilters(canvas.primary, cleanedFilters, "canvas.primary (CloudShadows teardown)");
-
-      this.cloudFilter.destroy();
-      this.cloudFilter = null;
+    
+    // CRITICAL: Also update CloudDepthLayer when cloudShadows.depth settings change
+    // CloudDepthLayer has its own instance variables for opacity that need to be synced
+    const cloudDepthLayer = canvas.cloudDepth;
+    if (cloudDepthLayer && typeof cloudDepthLayer.updateFromConfig === 'function') {
+      await cloudDepthLayer.updateFromConfig(config);
     }
-
-    this._patternGeneratorSprite?.destroy();
-    this.rawCloudTexture?.destroy(true);
-
-    this._patternGeneratorSprite = null;
-    this.rawCloudTexture = null;
-
-    await super._tearDown(options);
   }
 }
 
@@ -28798,6 +28810,12 @@ class CloudDepthRecolorFilter extends PIXI.Filter {
       }
 
       void main() {
+        // Early exit if zoom opacity is zero - no processing needed
+        if (u_zoomOpacity < 0.001) {
+          gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+          return;
+        }
+        
         // Scene bounds check - prevent rendering outside scene area
         vec2 sceneMin = uSceneRectNorm.xy;
         vec2 sceneMax = uSceneRectNorm.xy + uSceneRectNorm.zw;
@@ -28897,6 +28915,9 @@ class CloudDepthRecolorFilter extends PIXI.Filter {
         // Clamp final color
         vec3 finalColor = clamp(workingColor, 0.0, 1.0);
         
+        // Apply zoom opacity to alpha
+        // NOTE: Sprite alpha is ALSO controlled by CloudDepthLayer._onAnimate
+        // We apply zoom opacity here for smooth shader-based fading
         float outA = clamp(alpha * u_zoomOpacity, 0.0, 1.0);
         vec3 outRGB = finalColor * outA; // Premultiplied alpha to avoid color bleed
         gl_FragColor = vec4(outRGB, outA);
@@ -29114,7 +29135,9 @@ class CloudDepthLayer extends AnimatedCanvasLayer {
     }
 
     // Apply calculated opacity
-    this.depthSprite.alpha = opacity;
+    // NOTE: We set sprite alpha to 1.0 and let the shader handle opacity via u_zoomOpacity
+    // This prevents double-application of opacity (once by PIXI, once by shader)
+    this.depthSprite.alpha = 1.0;
     this.depthSprite.visible = opacity > 0.01;
 
     // Update filter uniforms
@@ -29164,6 +29187,9 @@ class CloudDepthLayer extends AnimatedCanvasLayer {
       u.u_brightness = config.brightness ?? 0.0;
       u.u_contrast = config.contrast ?? 1.0;
       u.u_gamma = config.gamma ?? 1.0;
+      
+      // CRITICAL: Pass zoom-based opacity to shader
+      u.u_zoomOpacity = opacity;
     }
   }
 
