@@ -1,0 +1,513 @@
+﻿≡ƒöì Scanning Map Shine project for import/export issues...
+
+Γ£à Scanned 93 files
+
+≡ƒöÄ Validating imports and exports...
+
+================================================================================
+≡ƒôè IMPORT/EXPORT ANALYSIS RESULTS
+================================================================================
+
+≡ƒö┤ 7 ERRORS FOUND:
+
+
+EXPORT_NOT_FOUND (4 issues):
+--------------------------------------------------------------------------------
+
+1. scripts/ConfigBuilder.js
+   "ClientOverrides" is not exported from "scripts/module.js"
+   Missing: "ClientOverrides"
+
+2. scripts/managers/ProfileManager.js
+   "ProfileDataManager" is not exported from "scripts/module.js"
+   Missing: "ProfileDataManager"
+
+3. scripts/managers/ProfileManager.js
+   "ParticleLayer" is not exported from "scripts/module.js"
+   Missing: "ParticleLayer"
+
+4. scripts/module.js
+   "" is not exported from "scripts/utils/ParticleUtils.js"
+
+IMPORT_PATH_NOT_FOUND (3 issues):
+--------------------------------------------------------------------------------
+
+5. scripts/module.js
+   Cannot resolve import path: "./layers/AmbientLayer.js"
+
+6. scripts/module.js
+   Cannot resolve import path: "./filters/FireToneCurveFilter.js"
+
+7. scripts/module.js
+   Cannot resolve import path: "./layers/AnimatedCanvasLayer.js"
+
+
+ΓÜá∩╕Å  344 WARNINGS FOUND:
+
+
+1. scripts/config/blend-modes.js (1 issues)
+   - "BLEND_MODES" is used but not imported or defined
+
+2. scripts/core/Clock.js (1 issues)
+   - "MODULE_DEFAULTS" is used but not imported or defined
+
+3. scripts/core/MapShineInitialiser.js (14 issues)
+   - "CombatEffectManager" is used but not imported or defined
+   - "ProfileManager" is used but not imported or defined
+   - "SceneChangeManager" is used but not imported or defined
+   - "MapPointsInteractionManager" is used but not imported or defined
+   - "TextureAutoLoader" is used but not imported or defined
+   - "MaterialEditorDebugger" is used but not imported or defined
+   - "SimpleUIPanel" is used but not imported or defined
+   - "DayNightClock" is used but not imported or defined
+   - "UserGuide" is used but not imported or defined
+   - "AppearanceTransitionManager" is used but not imported or defined
+   - "UnifiedTransitionManager" is used but not imported or defined
+   - "LoadingScreen" is used but not imported or defined
+   - "LayerManager" is used but not imported or defined
+   - "HooksManager" is used but not imported or defined
+
+4. scripts/core/MapShineLifecycle.js (47 issues)
+   - "ResourceManager" is used but not imported or defined
+   - "LightMaskManager" is used but not imported or defined
+   - "WindManager" is used but not imported or defined
+   - "WeatherSystemManager" is used but not imported or defined
+   - "WeatherOrchestrator" is used but not imported or defined
+   - "TokenManager" is used but not imported or defined
+   - "DynamicExposureManager" is used but not imported or defined
+   - "GeometryMaskManager" is used but not imported or defined
+   - "DynamicTokenMaskManager" is used but not imported or defined
+   - "WaterEffectsFilter" is used but not imported or defined
+   - "WaveDisplacementFilter" is used but not imported or defined
+   - "FoamFilter" is used but not imported or defined
+   - "BiofilmMaskFilter" is used but not imported or defined
+   - "MetallicShineFilter" is used but not imported or defined
+   - "MetallicStripePatternFilter" is used but not imported or defined
+   - "IridescenceFilter" is used but not imported or defined
+   - "GroundGlowFilter" is used but not imported or defined
+   - "CloudShadowsFilter" is used but not imported or defined
+   - "CanopyFilter" is used but not imported or defined
+   - "StructuralFilter" is used but not imported or defined
+   - "BuildingShadowsFilter" is used but not imported or defined
+   - "HeatDistortionFilter" is used but not imported or defined
+   - "HeatDistortionNoiseFilter" is used but not imported or defined
+   - "LensDistortionFilter" is used but not imported or defined
+   - "ChromaticAberrationFilter" is used but not imported or defined
+   - "ColorCorrectionFilter" is used but not imported or defined
+   - "AmbientColorFilter" is used but not imported or defined
+   - "TimeOfDayColorFilter" is used but not imported or defined
+   - "OverheadRecolorFilter" is used but not imported or defined
+   - "NoisePatternFilter" is used but not imported or defined
+   - "FilmGrainFilter" is used but not imported or defined
+   - "NoiseFilter" is used but not imported or defined
+   - "ParticleRgbSplitFilter" is used but not imported or defined
+   - "CloudSuppressorFilter" is used but not imported or defined
+   - "PrismFilter" is used but not imported or defined
+   - "VignetteFilter" is used but not imported or defined
+   - "CRITICALITY" is used but not imported or defined
+   - "RenderTexturePool" is used but not imported or defined
+   - "ScreenEffectsManager" is used but not imported or defined
+   - "MapPointsManager" is used but not imported or defined
+   - "TextureLoader" is used but not imported or defined
+   - "Texture" is used but not imported or defined
+   - "CoordinateManager" is used but not imported or defined
+   - "ParticleLayer" is used but not imported or defined
+   - "StructuralShadowsLayer" is used but not imported or defined
+   - "WaterFXLayer" is used but not imported or defined
+   - "type" is used but not imported or defined
+
+5. scripts/diagnostics/batchrenderer-debug.js (3 issues)
+   - "OriginalSprite" is used but not imported or defined
+   - "Container" is used but not imported or defined
+   - "Sprite" is used but not imported or defined
+
+6. scripts/diagnostics/EffectValidator.js (1 issues)
+   - "Texture" is used but not imported or defined
+
+7. scripts/diagnostics/scene-data-checker.js (4 issues)
+   - "Blob" is used but not imported or defined
+   - "CONST" is used but not imported or defined
+   - "TILE_OCCLUSION_MODES" is used but not imported or defined
+   - "URL" is used but not imported or defined
+
+8. scripts/effects/AmbientLayer.js (4 issues)
+   - "AmbientColorFilter" is used but not imported or defined
+   - "BLEND_MODES" is used but not imported or defined
+   - "DebuggerUIBuilder" is used but not imported or defined
+   - "Texture" is used but not imported or defined
+
+9. scripts/effects/BuildingShadows.js (7 issues)
+   - "DebuggerUIBuilder" is used but not imported or defined
+   - "SCALE_MODES" is used but not imported or defined
+   - "RenderTexture" is used but not imported or defined
+   - "WRAP_MODES" is used but not imported or defined
+   - "Texture" is used but not imported or defined
+   - "CoordinateManager" is used but not imported or defined
+   - "RenderTexturePool" is used but not imported or defined
+
+10. scripts/effects/Canopy.js (3 issues)
+   - "DebuggerUIBuilder" is used but not imported or defined
+   - "CoordinateManager" is used but not imported or defined
+   - "Texture" is used but not imported or defined
+
+11. scripts/effects/CloudDepth.js (3 issues)
+   - "RenderTexture" is used but not imported or defined
+   - "Texture" is used but not imported or defined
+   - "CoordinateManager" is used but not imported or defined
+
+12. scripts/effects/Diagnostic.js (4 issues)
+   - "Texture" is used but not imported or defined
+   - "TextureAutoLoader" is used but not imported or defined
+   - "TextureLoader" is used but not imported or defined
+   - "info" is used but not imported or defined
+
+13. scripts/effects/Foam.js (3 issues)
+   - "Texture" is used but not imported or defined
+   - "DebuggerUIBuilder" is used but not imported or defined
+   - "CoordinateManager" is used but not imported or defined
+
+14. scripts/effects/GroundGlow.js (5 issues)
+   - "DebuggerUIBuilder" is used but not imported or defined
+   - "RenderTexture" is used but not imported or defined
+   - "Texture" is used but not imported or defined
+   - "CoordinateManager" is used but not imported or defined
+   - "TextureLoader" is used but not imported or defined
+
+15. scripts/effects/HeatDistortion.js (6 issues)
+   - "DebuggerUIBuilder" is used but not imported or defined
+   - "RenderTexture" is used but not imported or defined
+   - "Texture" is used but not imported or defined
+   - "TextureLoader" is used but not imported or defined
+   - "ScreenEffectsManager" is used but not imported or defined
+   - "CoordinateManager" is used but not imported or defined
+
+16. scripts/effects/Iridescence.js (5 issues)
+   - "NoiseTextureManager" is used but not imported or defined
+   - "Texture" is used but not imported or defined
+   - "DebuggerUIBuilder" is used but not imported or defined
+   - "BLEND_MODES" is used but not imported or defined
+   - "CoordinateManager" is used but not imported or defined
+
+17. scripts/effects/Lightning.js (4 issues)
+   - "MapPointsManager" is used but not imported or defined
+   - "LINE_CAP" is used but not imported or defined
+   - "LINE_JOIN" is used but not imported or defined
+   - "DebuggerUIBuilder" is used but not imported or defined
+
+18. scripts/effects/MaskedEffectLayer.js (4 issues)
+   - "RenderTexture" is used but not imported or defined
+   - "WRAP_MODES" is used but not imported or defined
+   - "Texture" is used but not imported or defined
+   - "TextureLoader" is used but not imported or defined
+
+19. scripts/effects/MetallicShine.js (5 issues)
+   - "DebuggerUIBuilder" is used but not imported or defined
+   - "RenderTexture" is used but not imported or defined
+   - "Texture" is used but not imported or defined
+   - "CoordinateManager" is used but not imported or defined
+   - "TextureLoader" is used but not imported or defined
+
+20. scripts/effects/OverheadEffect.js (6 issues)
+   - "Texture" is used but not imported or defined
+   - "RenderTexture" is used but not imported or defined
+   - "CoordinateManager" is used but not imported or defined
+   - "CONST" is used but not imported or defined
+   - "TILE_OCCLUSION_MODES" is used but not imported or defined
+   - "NativeAnimation" is used but not imported or defined
+
+21. scripts/effects/Particles.js (7 issues)
+   - "ParticleRgbSplitFilter" is used but not imported or defined
+   - "CloudSuppressorFilter" is used but not imported or defined
+   - "BiofilmMaskFilter" is used but not imported or defined
+   - "CoordinateManager" is used but not imported or defined
+   - "RenderTexture" is used but not imported or defined
+   - "DebuggerUIBuilder" is used but not imported or defined
+   - "TextureMaskShape" is used but not imported or defined
+
+22. scripts/effects/PhysicsRope.js (3 issues)
+   - "MapPointsManager" is used but not imported or defined
+   - "TextureLoader" is used but not imported or defined
+   - "WRAP_MODES" is used but not imported or defined
+
+23. scripts/effects/Prism.js (6 issues)
+   - "NoiseTextureManager" is used but not imported or defined
+   - "DebuggerUIBuilder" is used but not imported or defined
+   - "ScreenEffectsManager" is used but not imported or defined
+   - "CoordinateManager" is used but not imported or defined
+   - "Texture" is used but not imported or defined
+   - "Filter" is used but not imported or defined
+
+24. scripts/effects/StructuralShadows.js (4 issues)
+   - "DebuggerUIBuilder" is used but not imported or defined
+   - "Texture" is used but not imported or defined
+   - "CoordinateManager" is used but not imported or defined
+   - "CloudShadowsLayer" is used but not imported or defined
+
+25. scripts/effects/TimeOfDay.js (2 issues)
+   - "DebuggerUIBuilder" is used but not imported or defined
+   - "MODULE_DEFAULTS" is used but not imported or defined
+
+26. scripts/effects/Vegetation.js (2 issues)
+   - "Filter" is used but not imported or defined
+   - "DebuggerUIBuilder" is used but not imported or defined
+
+27. scripts/effects/Water.js (5 issues)
+   - "Texture" is used but not imported or defined
+   - "DebuggerUIBuilder" is used but not imported or defined
+   - "RenderTexture" is used but not imported or defined
+   - "WRAP_MODES" is used but not imported or defined
+   - "CoordinateManager" is used but not imported or defined
+
+28. scripts/managers/AppearanceTransitionManager.js (6 issues)
+   - "NativeAnimation" is used but not imported or defined
+   - "ParticleLayer" is used but not imported or defined
+   - "SmellyFliesLayer" is used but not imported or defined
+   - "BuildingShadowsLayer" is used but not imported or defined
+   - "TimeOfDayLayer" is used but not imported or defined
+   - "MaskedEffectLayer" is used but not imported or defined
+
+29. scripts/managers/CombatEffectManager.js (3 issues)
+   - "ScreenEffectsManager" is used but not imported or defined
+   - "NativeAnimation" is used but not imported or defined
+   - "UNIVERSAL_EFFECT_DEFAULTS" is used but not imported or defined
+
+30. scripts/managers/DynamicExposureManager.js (3 issues)
+   - "ScreenEffectsManager" is used but not imported or defined
+   - "CoordinateManager" is used but not imported or defined
+   - "NativeAnimation" is used but not imported or defined
+
+31. scripts/managers/DynamicTokenMaskManager.js (2 issues)
+   - "CoordinateManager" is used but not imported or defined
+   - "RenderTexture" is used but not imported or defined
+
+32. scripts/managers/FontManager.js (1 issues)
+   - "URL" is used but not imported or defined
+
+33. scripts/managers/GeometryMaskManager.js (4 issues)
+   - "CoordinateManager" is used but not imported or defined
+   - "RenderTexture" is used but not imported or defined
+   - "MapPointsManager" is used but not imported or defined
+   - "LINE_CAP" is used but not imported or defined
+
+34. scripts/managers/HooksManager.js (10 issues)
+   - "MapShineClock" is used but not imported or defined
+   - "ShapeSpawnBehavior" is used but not imported or defined
+   - "Emitter" is used but not imported or defined
+   - "PauseManager" is used but not imported or defined
+   - "CoordinateManager" is used but not imported or defined
+   - "ScreenEffectsManager" is used but not imported or defined
+   - "UPDATE_PRIORITY" is used but not imported or defined
+   - "MapShineLifecycle" is used but not imported or defined
+   - "MapShineInitialiser" is used but not imported or defined
+   - "MapShineTestRunner" is used but not imported or defined
+
+35. scripts/managers/LayerManager.js (1 issues)
+   - "Canvas" is used but not imported or defined
+
+36. scripts/managers/LightMaskManager.js (8 issues)
+   - "TYPES" is used but not imported or defined
+   - "SCALE_MODES" is used but not imported or defined
+   - "RenderTexture" is used but not imported or defined
+   - "WRAP_MODES" is used but not imported or defined
+   - "Texture" is used but not imported or defined
+   - "RenderTexturePool" is used but not imported or defined
+   - "Program" is used but not imported or defined
+   - "Matrix" is used but not imported or defined
+
+37. scripts/managers/NoiseTextureManager.js (5 issues)
+   - "RenderTexture" is used but not imported or defined
+   - "SCALE_MODES" is used but not imported or defined
+   - "WRAP_MODES" is used but not imported or defined
+   - "Texture" is used but not imported or defined
+   - "CoordinateManager" is used but not imported or defined
+
+38. scripts/managers/PauseManager.js (5 issues)
+   - "ColorCorrectionFilter" is used but not imported or defined
+   - "ScreenEffectsManager" is used but not imported or defined
+   - "NativeAnimation" is used but not imported or defined
+   - "UNIVERSAL_EFFECT_DEFAULTS" is used but not imported or defined
+   - "FontLoader" is used but not imported or defined
+
+39. scripts/managers/ProfileManager.js (1 issues)
+   - "ScreenEffectsManager" is used but not imported or defined
+
+40. scripts/managers/ResourceManager.js (8 issues)
+   - "CloudShadowsLayer" is used but not imported or defined
+   - "StructuralShadowsLayer" is used but not imported or defined
+   - "CanopyLayer" is used but not imported or defined
+   - "MetallicShineLayer" is used but not imported or defined
+   - "WaterFXLayer" is used but not imported or defined
+   - "PrismLayer" is used but not imported or defined
+   - "IridescenceLayer" is used but not imported or defined
+   - "HeatDistortionLayer" is used but not imported or defined
+
+41. scripts/managers/SceneChangeManager.js (7 issues)
+   - "LoadingUI" is used but not imported or defined
+   - "STATES" is used but not imported or defined
+   - "UNIVERSAL_EFFECT_DEFAULTS" is used but not imported or defined
+   - "TextureLoader" is used but not imported or defined
+   - "ScreenEffectsManager" is used but not imported or defined
+   - "RenderTexturePool" is used but not imported or defined
+   - "MapShineLifecycle" is used but not imported or defined
+
+42. scripts/managers/ScreenEffectsManager.js (11 issues)
+   - "RENDER_ORDER" is used but not imported or defined
+   - "UNIVERSAL_EFFECT_DEFAULTS" is used but not imported or defined
+   - "LutUtils" is used but not imported or defined
+   - "cls" is used but not imported or defined
+   - "PrismFilter" is used but not imported or defined
+   - "TiltShiftFilterConstructor" is used but not imported or defined
+   - "FilmGrainFilter" is used but not imported or defined
+   - "VignetteFilter" is used but not imported or defined
+   - "LensDistortionFilter" is used but not imported or defined
+   - "ChromaticAberrationFilter" is used but not imported or defined
+   - "ColorCorrectionFilter" is used but not imported or defined
+
+43. scripts/managers/SettingsManager.js (5 issues)
+   - "ST_DEFAULTS" is used but not imported or defined
+   - "PE" is used but not imported or defined
+   - "PE_CC" is used but not imported or defined
+   - "CE_CC" is used but not imported or defined
+   - "FM" is used but not imported or defined
+
+44. scripts/module.js (23 issues)
+   - "SystemStatusManager" is used but not imported or defined
+   - "WeatherStateManager" is used but not imported or defined
+   - "TransitionRegistry" is used but not imported or defined
+   - "EffectRegistry" is used but not imported or defined
+   - "WeatherEffectLayer" is used but not imported or defined
+   - "Uint8Array" is used but not imported or defined
+   - "ParticleEffectController" is used but not imported or defined
+   - "Float32Array" is used but not imported or defined
+   - "BLEND_MODES" is used but not imported or defined
+   - "RenderTexture" is used but not imported or defined
+   - "Texture" is used but not imported or defined
+   - "STATES" is used but not imported or defined
+   - "ScreenEffectsManager" is used but not imported or defined
+   - "BehaviorOrder" is used but not imported or defined
+   - "PropertyNode" is used but not imported or defined
+   - "PARTICLE_EFFECT_DEFINITIONS" is used but not imported or defined
+   - "Filter" is used but not imported or defined
+   - "SCALE_MODES" is used but not imported or defined
+   - "MIPMAP_MODES" is used but not imported or defined
+   - "CloudShadowsLayer" is used but not imported or defined
+   - "WaterFXLayer" is used but not imported or defined
+   - "BushLayer" is used but not imported or defined
+   - "TreeLayer" is used but not imported or defined
+
+45. scripts/particle-emitter.js (11 issues)
+   - "math" is used but not imported or defined
+   - "Function" is used but not imported or defined
+   - "ShapeClass" is used but not imported or defined
+   - "RangeError" is used but not imported or defined
+   - "Texture" is used but not imported or defined
+   - "BLEND_MODES" is used but not imported or defined
+   - "Ticker" is used but not imported or defined
+   - "BehaviorOrder" is used but not imported or defined
+   - "MATH_FUNCS" is used but not imported or defined
+   - "DisplayObject" is used but not imported or defined
+   - "core" is used but not imported or defined
+
+46. scripts/pixi-filters.js (14 issues)
+   - "Float32Array" is used but not imported or defined
+   - "a" is used but not imported or defined
+   - "I" is used but not imported or defined
+   - "Pe" is used but not imported or defined
+   - "BLEND_MODES" is used but not imported or defined
+   - "Texture" is used but not imported or defined
+   - "MIPMAP_MODES" is used but not imported or defined
+   - "SCALE_MODES" is used but not imported or defined
+   - "Vt" is used but not imported or defined
+   - "Nt" is used but not imported or defined
+   - "Yt" is used but not imported or defined
+   - "Ht" is used but not imported or defined
+   - "Er" is used but not imported or defined
+   - "Rr" is used but not imported or defined
+
+47. scripts/ui/MainUI.js (35 issues)
+   - "LazyAccordionManager" is used but not imported or defined
+   - "MapShineClock" is used but not imported or defined
+   - "Option" is used but not imported or defined
+   - "CurveEditor" is used but not imported or defined
+   - "Event" is used but not imported or defined
+   - "FontLoader" is used but not imported or defined
+   - "ScreenEffectsManager" is used but not imported or defined
+   - "MODULE_DEFAULTS" is used but not imported or defined
+   - "MapPointsManager" is used but not imported or defined
+   - "MetallicShineLayer" is used but not imported or defined
+   - "TimeOfDayLayer" is used but not imported or defined
+   - "BuildingShadowsLayer" is used but not imported or defined
+   - "WaterFXLayer" is used but not imported or defined
+   - "FoamLayer" is used but not imported or defined
+   - "CloudShadowsLayer" is used but not imported or defined
+   - "IridescenceLayer" is used but not imported or defined
+   - "HeatDistortionLayer" is used but not imported or defined
+   - "CanopyLayer" is used but not imported or defined
+   - "BushLayer" is used but not imported or defined
+   - "TreeLayer" is used but not imported or defined
+   - "StructuralShadowsLayer" is used but not imported or defined
+   - "AmbientLayer" is used but not imported or defined
+   - "GroundGlowLayer" is used but not imported or defined
+   - "PrismLayer" is used but not imported or defined
+   - "ParticleEffectController" is used but not imported or defined
+   - "LightningLayer" is used but not imported or defined
+   - "Node" is used but not imported or defined
+   - "TEMP_CLIPBOARD_STORAGE" is used but not imported or defined
+   - "TextureLoader" is used but not imported or defined
+   - "WRAP_MODES" is used but not imported or defined
+   - "UNIVERSAL_EFFECT_DEFAULTS" is used but not imported or defined
+   - "TextureAutoLoader" is used but not imported or defined
+   - "ConfigBuilder" is used but not imported or defined
+   - "ParticleLayer" is used but not imported or defined
+   - "check" is used but not imported or defined
+
+48. scripts/ui/MaterialEditorDebugger.js (4 issues)
+   - "DebuggerUIBuilder" is used but not imported or defined
+   - "DebuggerEventHandler" is used but not imported or defined
+   - "ResizeObserver" is used but not imported or defined
+   - "ScreenEffectsManager" is used but not imported or defined
+
+49. scripts/utils/filter-utils.js (1 issues)
+   - "filterConstructor" is used but not imported or defined
+
+50. scripts/utils/FontLoader.js (1 issues)
+   - "URL" is used but not imported or defined
+
+51. scripts/utils/MemoryProfiler.js (3 issues)
+   - "FORMATS" is used but not imported or defined
+   - "TYPES" is used but not imported or defined
+   - "type" is used but not imported or defined
+
+52. scripts/utils/RenderTexturePool.js (4 issues)
+   - "SCALE_MODES" is used but not imported or defined
+   - "TYPES" is used but not imported or defined
+   - "RenderTexture" is used but not imported or defined
+   - "WRAP_MODES" is used but not imported or defined
+
+53. scripts/utils/TextureLoader.js (3 issues)
+   - "DOWNSCALE_SUFFIXES" is used but not imported or defined
+   - "Texture" is used but not imported or defined
+   - "RenderTexture" is used but not imported or defined
+
+54. scripts/weather/FogShader.js (1 issues)
+   - "Program" is used but not imported or defined
+
+55. scripts/weather/QuadMesh.js (2 issues)
+   - "State" is used but not imported or defined
+   - "DRAW_MODES" is used but not imported or defined
+
+56. scripts/weather/WeatherEffectLayer.js (1 issues)
+   - "BLEND_MODES" is used but not imported or defined
+
+57. scripts/weather/WeatherShaderBase.js (2 issues)
+   - "this" is used but not imported or defined
+   - "Program" is used but not imported or defined
+
+
+================================================================================
+≡ƒôê SUMMARY:
+   Files Scanned: 93
+   Errors: 7
+   Warnings: 344
+================================================================================
+

@@ -1,3 +1,5 @@
+import { PIXI } from "../pixi-adapter.js";
+
 /**
  * Texture loading utility with automatic resolution downscaling for _Suffixed textures
  */

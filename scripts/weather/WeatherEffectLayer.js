@@ -7,6 +7,7 @@ import { WeatherShaderEffect } from './WeatherShaderEffect.js';
 import { RainShaderAdvanced } from './RainShaderAdvanced.js';
 import { SnowShaderAdvanced } from './SnowShaderAdvanced.js';
 import { FogShader } from './FogShader.js';
+import { BLEND_MODES } from "../pixi-adapter.js";
 
 export class WeatherEffectLayer extends PIXI.Container {
   constructor() {
@@ -57,7 +58,7 @@ export class WeatherEffectLayer extends PIXI.Container {
       windStrength: 0.5,
       speed: 0.2
     }, RainShaderAdvanced);
-    rainEffect.blendMode = PIXI.BLEND_MODES.SCREEN;
+    rainEffect.blendMode = BLEND_MODES.SCREEN;
     rainEffect.zIndex = 0;
     this.weatherEffects.addChild(rainEffect);
     this.effects.set('rain', rainEffect);
@@ -72,7 +73,7 @@ export class WeatherEffectLayer extends PIXI.Container {
       driftAmount: 1.0,          // Wind drift intensity (like rain speed)
       speed: 0.5
     }, SnowShaderAdvanced);
-    snowEffect.blendMode = PIXI.BLEND_MODES.SCREEN;
+    snowEffect.blendMode = BLEND_MODES.SCREEN;
     snowEffect.zIndex = 1;
     this.weatherEffects.addChild(snowEffect);
     this.effects.set('snow', snowEffect);
@@ -83,7 +84,7 @@ export class WeatherEffectLayer extends PIXI.Container {
       intensity: 0.4,
       speed: 0.4
     }, FogShader);
-    fogEffect.blendMode = PIXI.BLEND_MODES.SCREEN;
+    fogEffect.blendMode = BLEND_MODES.SCREEN;
     fogEffect.zIndex = 2;
     this.weatherEffects.addChild(fogEffect);
     this.effects.set('fog', fogEffect);

@@ -2,6 +2,8 @@
  * Base class for weather shaders in Map Shine
  * Ported from Foundry VTT's AbstractWeatherShader
  */
+import { PIXI, Program, Matrix } from "../pixi-adapter.js";
+
 export class WeatherShaderBase extends PIXI.Shader {
   constructor(program, uniforms) {
     super(program, foundry.utils.deepClone(uniforms));
@@ -255,7 +257,7 @@ export class WeatherShaderBase extends PIXI.Shader {
    * @returns {PIXI.Program}
    */
   static createProgram() {
-    return PIXI.Program.from(this.vertexShader, this.fragmentShader);
+    return Program.from(this.vertexShader, this.fragmentShader);
   }
 
   /* -------------------------------------------- */

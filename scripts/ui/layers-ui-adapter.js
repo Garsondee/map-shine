@@ -1,0 +1,24 @@
+// Adapter to expose layer classes for analyzer visibility without changing runtime
+export const MetallicShineLayer = globalThis.MetallicShineLayer || null;
+export const TimeOfDayLayer = globalThis.TimeOfDayLayer || null;
+export const BuildingShadowsLayer = globalThis.BuildingShadowsLayer || null;
+export const WaterFXLayer = globalThis.WaterFXLayer || null;
+export const FoamLayer = globalThis.FoamLayer || null;
+export const CloudShadowsLayer = globalThis.CloudShadowsLayer || null;
+export const IridescenceLayer = globalThis.IridescenceLayer || null;
+export const HeatDistortionLayer = globalThis.HeatDistortionLayer || null;
+export const CanopyLayer = globalThis.CanopyLayer || null;
+export const BushLayer = globalThis.BushLayer || null;
+export const TreeLayer = globalThis.TreeLayer || null;
+export const StructuralShadowsLayer = globalThis.StructuralShadowsLayer || null;
+export const AmbientLayer = globalThis.AmbientLayer || null;
+export const GroundGlowLayer = globalThis.GroundGlowLayer || null;
+export const PrismLayer = globalThis.PrismLayer || null;
+export const LightningLayer = globalThis.LightningLayer || null;
+export const ParticleLayer = globalThis.ParticleLayer || null;
+export const WeatherParticleLayer = globalThis.WeatherParticleLayer || null;
+export const CloudDepthLayer = globalThis.CloudDepthLayer || null;
+export const OverheadEffectLayer = globalThis.OverheadEffectLayer || null;
+export const PhysicsRopeLayer = globalThis.PhysicsRopeLayer || null;
+export const MapPointsLayer = globalThis.MapPointsLayer || null;
+export const DiagnosticLayer = globalThis.DiagnosticLayer || null;

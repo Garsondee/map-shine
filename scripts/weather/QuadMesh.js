@@ -1,3 +1,4 @@
+import { PIXI, State, DRAW_MODES } from "../pixi-adapter.js";
 /**
  * A basic rectangular mesh with a shader
  * Simplified rendering for full-screen effects
@@ -52,7 +53,7 @@ export class QuadMesh extends PIXI.Container {
    * State bound to this QuadMesh
    * @type {PIXI.State}
    */
-  #state = PIXI.State.for2d();
+  #state = State.for2d();
 
   /**
    * Initialize shader based on the shader class type
@@ -88,7 +89,7 @@ export class QuadMesh extends PIXI.Container {
     renderer.geometry.bind(this.#geometry, this.#shader);
 
     // Draw the geometry
-    renderer.geometry.draw(PIXI.DRAW_MODES.TRIANGLES);
+    renderer.geometry.draw(DRAW_MODES.TRIANGLES);
   }
 
   /**

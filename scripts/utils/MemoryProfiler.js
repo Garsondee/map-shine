@@ -1,6 +1,8 @@
 /**
  * Memory profiling utility for tracking PIXI resource usage
  */
+import { PIXI } from "../pixi-adapter.js";
+
 export class MemoryProfiler {
     /**
      * Collect comprehensive memory statistics

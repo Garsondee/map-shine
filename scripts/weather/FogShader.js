@@ -1,3 +1,4 @@
+import { PIXI, Program } from "../pixi-adapter.js";
 /**
  * Fog shader effect using Fractional Brownian Motion
  * Ported from Foundry VTT's FogShader with performance modes
@@ -48,7 +49,7 @@ export class FogShader extends WeatherShaderBase {
    */
   static createProgram() {
     const mode = canvas?.performance?.mode ?? 2;
-    return PIXI.Program.from(this.vertexShader, this.fragmentShader(mode));
+    return Program.from(this.vertexShader, this.fragmentShader(mode));
   }
 
   /**

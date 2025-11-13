@@ -100,4 +100,3 @@ export class FireToneCurveFilter extends PIXI.Filter {
     super.destroy();
   }
 }
-

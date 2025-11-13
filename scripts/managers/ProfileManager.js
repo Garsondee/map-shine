@@ -1,5 +1,10 @@
 import { MODULE_ID } from "../config/constants.js";
-import { ProfileDataManager, MODULE_DEFAULTS, ConfigBuilder, ParticleLayer, SmellyFliesLayer } from "../module.js";
+import { ProfileDataManager } from "./ProfileDataManager.js";
+import { ParticleLayer } from "../effects/Particles.js";
+import { SmellyFliesLayer } from "../effects/layers-adapter.js";
+import { ConfigBuilder } from "../ConfigBuilder.js";
+import { MODULE_DEFAULTS } from "../config/MODULE_DEFAULTS.js";
+import { ScreenEffectsManager } from "./ScreenEffectsManager.js";
 
 /**
  * Maps configuration paths to their corresponding system update functions.
@@ -545,7 +550,6 @@ export class ProfileManager {
         case 'filter': {
           // Update only the specific filter(s)
           try {
-            const { ScreenEffectsManager } = await import("../module.js");
             if (systemConfig.filterName === 'postProcessing') {
               // Update all post-processing filters
               ScreenEffectsManager.updateAllFiltersFromConfig(this.activeConfig);
@@ -563,7 +567,7 @@ export class ProfileManager {
         case 'particle': {
           // Update specific particle effect
           if (systemConfig.effectKey === 'smellyFlies') {
-            const fliesLayer = canvas.layers.find(l => l instanceof SmellyFliesLayer);
+            const fliesLayer = canvas.layers.find(l => SmellyFliesLayer && (l instanceof SmellyFliesLayer));
             if (fliesLayer && typeof fliesLayer.updateFromConfig === 'function') {
               await fliesLayer.updateFromConfig(this.activeConfig);
             }
@@ -704,7 +708,7 @@ export class ProfileManager {
 
     for (const layer of canvas.layers) {
       if (options.skipParticles &&
-        (layer instanceof ParticleLayer || layer instanceof SmellyFliesLayer)) {
+        (layer instanceof ParticleLayer || (SmellyFliesLayer && (layer instanceof SmellyFliesLayer)))) {
         continue;
       }
       if (typeof layer.updateFromConfig === "function") {
@@ -719,7 +723,6 @@ export class ProfileManager {
       }
     }
     // Dynamically import ScreenEffectsManager to avoid circular dependency
-    const { ScreenEffectsManager } = await import("../module.js");
     ScreenEffectsManager.updateAllFiltersFromConfig(config);
     if (game.mapShine.effectTargetManager) {
       game.mapShine.effectTargetManager.applyTileOpacities();

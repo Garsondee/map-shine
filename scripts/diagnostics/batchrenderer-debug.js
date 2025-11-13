@@ -1,3 +1,5 @@
+import { PIXI } from "../pixi-adapter.js";
+
 /**
  * BatchRenderer Null Object Diagnostic Tool
  * 

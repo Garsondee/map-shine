@@ -1,3 +1,5 @@
+import { PIXI, RenderTexture, SCALE_MODES, TYPES, WRAP_MODES } from "../pixi-adapter.js";
+
 /**
  * @fileoverview Shared RenderTexture Pool for Map Shine Module
  * 

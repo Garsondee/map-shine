@@ -12,23 +12,9 @@
 
 import { hexToRgbArray } from "../utils/ColorUtils.js";
 import { TextureLoader } from "../utils/TextureLoader.js";
-
-// TODO: These dependencies need to be extracted and imported properly
-// For now, we'll access them lazily from globalThis when needed
-function getAmbientColorFilter() {
-	// @ts-ignore - Global dependencies from main module
-	return globalThis.AmbientColorFilter;
-}
-
-function getDebuggerUIBuilder() {
-	// @ts-ignore - Global dependencies from main module  
-	return globalThis.DebuggerUIBuilder;
-}
-
-function getBlendModeOptions() {
-	// @ts-ignore - Global dependencies from main module
-	return globalThis.BLEND_MODE_OPTIONS;
-}
+import { PIXI, Texture, BLEND_MODES } from "../pixi-adapter.js";
+import { DebuggerUIBuilder } from "../ui/MainUI.js";
+// AmbientColorFilter is resolved dynamically at runtime to avoid import order issues
 
 /**
  * Custom canvas layer for rendering ambient visual effects across the entire scene.
@@ -81,8 +67,16 @@ class AmbientLayer extends foundry.canvas.layers.CanvasLayer {
 		console.log("AmbientLayer DEBUG | _draw: _destroyed flag set to false.");
 
 		try {
-			const AmbientColorFilter = getAmbientColorFilter();
-			this.colorFilter = new AmbientColorFilter();
+			let AmbientCtor = null;
+			try {
+				const mod = await import("../postfx/filters-adapter.js");
+				AmbientCtor = mod?.AmbientColorFilter || null;
+			} catch (_) { /* ignore adapter import errors */ }
+			if (!AmbientCtor && globalThis.AmbientColorFilter) {
+				AmbientCtor = globalThis.AmbientColorFilter;
+			}
+			if (!AmbientCtor) throw new ReferenceError("AmbientColorFilter not available (null)");
+			this.colorFilter = new AmbientCtor();
 			console.log(
 				"AmbientLayer DEBUG | _draw: AmbientColorFilter created successfully."
 			);
@@ -103,7 +97,6 @@ class AmbientLayer extends foundry.canvas.layers.CanvasLayer {
 	}
 
 	static getSettingsHTML() {
-		const DebuggerUIBuilder = getDebuggerUIBuilder();
 		return DebuggerUIBuilder._createAccordionHTML(
 			"ambient",
 			"Ambient / Emissive",
@@ -181,10 +174,10 @@ class AmbientLayer extends foundry.canvas.layers.CanvasLayer {
                         </details>
                 
                         <details id="details-ambient-colorCorrection"><summary><span class="accordion-toggle"></span><div class="summary-control">${DebuggerUIBuilder._createCheckboxHTML(
-				"ambient.colorCorrection.enabled",
-				"Color Correction",
-				true
-			)}</div></summary>
+			"ambient.colorCorrection.enabled",
+			"Color Correction",
+			true
+		)}</div></summary>
                             <div style="padding-left: 15px;">
                                 ${DebuggerUIBuilder._createSliderHTML(
 				"ambient.colorCorrection.saturation",

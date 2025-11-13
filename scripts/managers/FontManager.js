@@ -1,3 +1,5 @@
+import { URL } from "../dom-adapter.js";
+
 /**
  * @fileoverview Font Management System for Map Shine Module
  *

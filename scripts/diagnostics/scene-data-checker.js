@@ -1,3 +1,6 @@
+import { CONST, TILE_OCCLUSION_MODES } from "../foundry-adapter.js";
+import { URL, Blob } from "../dom-adapter.js";
+
 /**
  * Scene Data Integrity Checker
  * 

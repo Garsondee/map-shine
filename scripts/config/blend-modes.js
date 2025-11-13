@@ -60,3 +60,9 @@ export const BLEND_MODE_OPTIONS = {
 
 // Make BLEND_MODE_OPTIONS available globally for extracted modules that need direct access
 globalThis.BLEND_MODE_OPTIONS = BLEND_MODE_OPTIONS;
+
+/**
+ * Direct alias to PIXI.BLEND_MODES for consumers that previously imported BLEND_MODES.
+ */
+export const BLEND_MODES = PIXI.BLEND_MODES;
+globalThis.BLEND_MODES = BLEND_MODES;

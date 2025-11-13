@@ -345,6 +345,11 @@ export class LoadingUI {
     // Force a reflow to ensure animations start properly
     void this.element.offsetHeight;
 
+    // Ensure the overlay is actually visible when shown
+    // Previously opacity stayed at 0 from createElement(); this makes it render immediately
+    this.element.style.pointerEvents = "auto";
+    this.element.style.opacity = "1";
+
     // Start hint cycling
     this.startHintCycle();
   }
@@ -568,6 +573,16 @@ export class LoadingUI {
 
     const fadeDuration = duration || this.fadeOutDuration;
     await new Promise((resolve) => setTimeout(resolve, fadeDuration));
+  }
+
+  /**
+   * Convenience helper used by lifecycle code. Fades out then destroys the overlay.
+   * @param {number} [duration] - Optional override for fade duration
+   * @returns {Promise<void>}
+   */
+  async hide(duration) {
+    await this.fadeOut(duration);
+    this.destroy();
   }
 
   /**
