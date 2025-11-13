@@ -16,7 +16,7 @@
  * @author Mythica Machina - Ingram Blakelock
  */
 
-import { MODULE_ID } from "../config/constants.js";
+import { MODULE_ID, TEMP_CLIPBOARD_STORAGE } from "../config/constants.js";
 import { FontLoader } from "../managers/FontManager.js";
 import { FONT_CHOICES } from "../config/fonts.js";
 import { BLEND_MODE_OPTIONS } from "../config/blend-modes.js";
@@ -4678,9 +4678,9 @@ export class DebuggerEventHandler {
       data: settingsToCopy,
     };
 
-    // Store in temporary storage instead of clipboard
-    TEMP_CLIPBOARD_STORAGE.accordion = accordionData;
-    ui.notifications.info(`"${effectKey}" settings copied to temporary storage.`);
+    // Store using Foundry's settings system (persists across scene changes)
+    await game.settings.set(MODULE_ID, "accordion-clipboard", accordionData);
+    ui.notifications.info(`"${effectKey}" settings copied. You can now paste in any scene.`);
   }
 
   async _onPasteAccordion(effectKey) {
@@ -4689,8 +4689,8 @@ export class DebuggerEventHandler {
       effectKey
     );
     try {
-      // Read from temporary storage instead of clipboard
-      const accordionData = TEMP_CLIPBOARD_STORAGE.accordion;
+      // Read from Foundry's settings system (persists across scene changes)
+      const accordionData = game.settings.get(MODULE_ID, "accordion-clipboard");
 
       if (!accordionData) {
         ui.notifications.warn("No accordion settings have been copied yet. Use the copy button first.");

@@ -3552,6 +3552,12 @@ class SettingsManager {
       type: Number,
       default: 250,
     });
+    game.settings.register(MODULE_ID, "accordion-clipboard", {
+      scope: "client",
+      config: false,
+      type: Object,
+      default: null,
+    });
   }
 
   /**
