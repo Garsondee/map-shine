@@ -37,16 +37,21 @@ import {
   StructuralShadowsLayer,
   GroundGlowLayer,
   PrismLayer,
-  ParticleEffectController,
   LightningLayer,
   ParticleLayer,
   LazyAccordionManager,
   TextureAutoLoader,
   CurveEditor,
   systemStatus,
-  PARTICLE_EFFECT_DEFINITIONS,
-  MapPointsManager
+  MapPointsManager,
+  MODULE_DEFAULTS,
+  ConfigBuilder
 } from "../module.js";
+import { UNIVERSAL_EFFECT_DEFAULTS } from "../config/universal-defaults.js";
+import { 
+  ParticleEffectController,
+  PARTICLE_EFFECT_DEFINITIONS
+} from "../effects/ParticleSystem.js";
 import { AmbientLayer } from "../layers/AmbientLayer.js";
 import { EFFECT_SOURCE_OPTIONS, ROPE_TYPE_PRESETS, GRADIENT_PRESETS, LUT_PRESETS } from "../config/presets.js";
 import { COLOR_CORRECTION_PRESETS } from "../config/color-correction-presets.js";
@@ -675,7 +680,7 @@ export class DebuggerUIBuilder {
       
       const threshold = this._perfThresholds[methodName] || 10;
       if (duration > threshold) {
-        console.error(`🔴 UI Builder | ${methodName} took ${duration.toFixed(2)}ms (threshold: ${threshold}ms)`);
+        console.warn(`🔴 UI Builder | ${methodName} took ${duration.toFixed(2)}ms (threshold: ${threshold}ms)`);
       }
     }
     

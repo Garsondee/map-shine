@@ -60,29 +60,52 @@ export class AnimatedCanvasLayer extends foundry.canvas.layers.CanvasLayer {
      * @protected
      */
     this._destroyed = false;
+    
+    /**
+     * Flag indicating if the layer is ready to render
+     * Prevents rendering during initialization
+     * @type {boolean}
+     * @protected
+     */
+    this._isReady = false;
   }
 
   /**
    * Draws the layer and automatically binds the ticker listener.
    * Subclasses should call super._draw(options) first, then perform their initialization.
+   * IMPORTANT: Ticker is NOT bound until startAnimation() is called to prevent
+   * rendering during initialization.
    * 
    * @param {object} options - Drawing options
    * @returns {Promise<void>}
    * @override
    */
   async _draw(options) {
-    // Reset destruction flag
+    // Reset flags
     this._destroyed = false;
+    this._isReady = false;
     
     // Set to non-interactive by default (can be overridden by subclasses)
     this.eventMode = "none";
     
-    // Bind and register animation callback if _onAnimate is implemented
+    // Create bound callback but don't add to ticker yet
     if (typeof this._onAnimate === 'function') {
       this._onAnimateBound = this._onAnimate.bind(this);
-      canvas.app.ticker.add(this._onAnimateBound);
     } else {
       console.warn(`${this.constructor.name} extends AnimatedCanvasLayer but does not implement _onAnimate()`);
+    }
+  }
+  
+  /**
+   * Starts the animation ticker. Call this at the END of your subclass _draw() method
+   * after all resources are initialized.
+   * 
+   * @protected
+   */
+  startAnimation() {
+    if (this._onAnimateBound && !this._isReady) {
+      canvas.app.ticker.add(this._onAnimateBound);
+      this._isReady = true;
     }
   }
 
@@ -110,8 +133,9 @@ export class AnimatedCanvasLayer extends foundry.canvas.layers.CanvasLayer {
     // Prevent duplicate teardown
     if (this._destroyed) return;
     
-    // Set destruction flag
+    // Set flags to stop rendering immediately
     this._destroyed = true;
+    this._isReady = false;
     
     // Remove ticker listener
     if (this._onAnimateBound) {
